@@ -8,9 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 var log = logger.GetOrCreate("basicSync")
@@ -47,7 +48,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	connectableNodes = append(connectableNodes, metachainNode)
 
 	idxProposerShard0 := 0
-	idxProposers := []int{idxProposerShard0, idxProposerMeta}
+	leaders := []*integrationTests.TestProcessorNode{nodes[idxProposerShard0], nodes[idxProposerMeta]}
 
 	integrationTests.ConnectNodes(connectableNodes)
 
@@ -72,7 +73,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 
 	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 
@@ -110,7 +111,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposerShard0 := 0
-	idxProposers := []int{idxProposerShard0}
+	leaders := []*integrationTests.TestProcessorNode{nodes[idxProposerShard0]}
 
 	defer func() {
 		for _, n := range nodes {
@@ -133,7 +134,7 @@ func TestSyncWorksInShard_EmptyBlocksDoubleSign(t *testing.T) {
 
 	numRoundsToTest := 2
 	for i := 0; i < numRoundsToTest; i++ {
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 
 		time.Sleep(integrationTests.SyncDelay)
 

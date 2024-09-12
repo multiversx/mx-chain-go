@@ -8,14 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 var vmType = []byte{5, 0}
@@ -37,11 +38,11 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -63,7 +64,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	time.Sleep(time.Second)
 	numRoundsToPropagateIntraShard := 2
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateIntraShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// ----- issue ESDT token
@@ -72,7 +73,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	proposeIssueTokenAndTransferFunds(nodes, multisignContractAddress, initalSupply, 0, ticker)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateIntraShard, nonce, round)
 	time.Sleep(time.Second)
 
 	actionID := getActionID(t, nodes, multisignContractAddress)
@@ -82,13 +83,13 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 
 	time.Sleep(time.Second)
 	numRoundsToPropagateCrossShard := 10
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateCrossShard, nonce, round)
 	time.Sleep(time.Second)
 
 	performActionID(nodes, multisignContractAddress, actionID, 0)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateCrossShard, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
@@ -102,7 +103,7 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	proposeTransferToken(nodes, multisignContractAddress, transferValue, 0, destinationAddress, tokenIdentifier)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateIntraShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateIntraShard, nonce, round)
 	time.Sleep(time.Second)
 
 	actionID = getActionID(t, nodes, multisignContractAddress)
@@ -111,13 +112,13 @@ func TestESDTTransferWithMultisig(t *testing.T) {
 	boardMembersSignActionID(nodes, multisignContractAddress, actionID, 1, 2)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateCrossShard, nonce, round)
 	time.Sleep(time.Second)
 
 	performActionID(nodes, multisignContractAddress, actionID, 0)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, numRoundsToPropagateCrossShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, numRoundsToPropagateCrossShard, nonce, round)
 	time.Sleep(time.Second)
 
 	expectedBalance := big.NewInt(0).Set(initalSupply)

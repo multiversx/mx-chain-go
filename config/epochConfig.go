@@ -118,6 +118,7 @@ type EnableEpochs struct {
 	EGLDInMultiTransferEnableEpoch                           uint32
 	CryptoOpcodesV2EnableEpoch                               uint32
 	EquivalentMessagesEnableEpoch                            uint32
+	FixedOrderInConsensusEnableEpoch                         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

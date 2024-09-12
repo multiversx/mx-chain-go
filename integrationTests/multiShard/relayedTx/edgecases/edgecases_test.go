@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShouldNotIncrementUserAccNonce(t *testing.T) {
@@ -16,7 +17,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, leaders, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -46,7 +47,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 			totalFees.Add(totalFees, totalFee)
 		}
 
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
@@ -54,7 +55,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 
 	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 

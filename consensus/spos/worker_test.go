@@ -970,7 +970,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		nil,
 		nil,
 		hdrStr,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte(wrk.ConsensusState().Leader()),
 		signature,
 		int(bls.MtBlockHeader),
 		0,
