@@ -522,6 +522,8 @@ func TestMetaInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *test
 
 	testCreateMetaTopicShouldFailOnAllMessenger(t, "generatePeerShardInterceptor", common.ConnectionTopic, "")
 
+	testCreateMetaTopicShouldFailOnAllMessenger(t, "generateEquivalentProofsInterceptors", common.EquivalentProofsTopic, "")
+
 	t.Run("generatePeerAuthenticationInterceptor_main", testCreateMetaTopicShouldFail(common.PeerAuthenticationTopic, ""))
 }
 
@@ -605,10 +607,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorsHeartbeatForMetachain := 1
 		numInterceptorsShardValidatorInfoForMetachain := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorsEquivalentProofs := noOfShards + 1
 		totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 			numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 			numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
+			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo + numInterceptorsEquivalentProofs
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())
@@ -655,10 +658,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorsHeartbeatForMetachain := 1
 		numInterceptorsShardValidatorInfoForMetachain := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorsEquivalentProofs := noOfShards + 1
 		totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 			numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 			numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
+			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo + numInterceptorsEquivalentProofs
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())

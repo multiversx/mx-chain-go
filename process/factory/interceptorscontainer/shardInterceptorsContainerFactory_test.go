@@ -480,6 +480,8 @@ func TestShardInterceptorsContainerFactory_CreateTopicsAndRegisterFailure(t *tes
 
 	testCreateShardTopicShouldFailOnAllMessenger(t, "generatePeerShardIntercepto", common.ConnectionTopic, "")
 
+	testCreateShardTopicShouldFailOnAllMessenger(t, "generateEquivalentProofsInterceptor", common.EquivalentProofsTopic, "")
+
 	t.Run("generatePeerAuthenticationInterceptor_main", testCreateShardTopicShouldFail(common.PeerAuthenticationTopic, ""))
 }
 func testCreateShardTopicShouldFailOnAllMessenger(t *testing.T, testNamePrefix string, matchStrToErrOnCreate string, matchStrToErrOnRegister string) {
@@ -610,9 +612,11 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorHeartbeat := 1
 		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorEquivalentProofs := 1
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
+			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
+			numInterceptorEquivalentProofs
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())
@@ -658,9 +662,11 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorHeartbeat := 1
 		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorEquivalentProofs := 1
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
+			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
+			numInterceptorEquivalentProofs
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())

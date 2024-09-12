@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -161,5 +162,6 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		MetaBlockProcessor:      &mock.EpochStartMetaBlockProcessorStub{},
+		HeadersPool:             &pool.HeadersPoolStub{},
 	}
 }

@@ -552,6 +552,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
+	e.dataPool.Headers()
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:    e.coreComponentsHolder,
 		CryptoComponentsHolder:  e.cryptoComponentsHolder,
@@ -563,6 +564,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		StartInEpochConfig:      epochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		MetaBlockProcessor:      metaBlockProcessor,
+		HeadersPool:             e.dataPool.Headers(),
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -759,20 +761,20 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:               e.dataPool,
-		Marshalizer:            e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:         e.requestHandler,
-		ChanceComputer:         e.rater,
-		GenesisNodesConfig:     e.genesisNodesConfig,
-		ChainParametersHandler: e.coreComponentsHolder.ChainParametersHandler(),
-		NodeShuffler:           e.nodeShuffler,
-		Hasher:                 e.coreComponentsHolder.Hasher(),
-		PubKey:                 pubKey,
-		ShardIdAsObserver:      shardId,
-		ChanNodeStop:           e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:       e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:          e.prefsConfig.FullArchive,
-		EnableEpochsHandler:    e.coreComponentsHolder.EnableEpochsHandler(),
+		DataPool:                        e.dataPool,
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                  e.requestHandler,
+		ChanceComputer:                  e.rater,
+		GenesisNodesConfig:              e.genesisNodesConfig,
+		ChainParametersHandler:          e.coreComponentsHolder.ChainParametersHandler(),
+		NodeShuffler:                    e.nodeShuffler,
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		PubKey:                          pubKey,
+		ShardIdAsObserver:               shardId,
+		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                   e.prefsConfig.FullArchive,
+		EnableEpochsHandler:             e.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 	}
 
