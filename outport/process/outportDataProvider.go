@@ -140,7 +140,6 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	}
 
 	stateChanges := odp.stateChangesCollector.GetStateChangesForTxs()
-	odp.stateChangesCollector.Reset()
 
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
