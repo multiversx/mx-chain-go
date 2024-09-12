@@ -1388,6 +1388,53 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		require.False(t, isJobDone)
 	})
 
+	t.Run("fail to verify signature share, an element will return an error on SignatureShare, should not panic", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				if index < 8 {
+					return nil, nil
+				}
+				return nil, bls.ErrAux
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				time.Sleep(100 * time.Millisecond)
+				return bls.ErrAux
+			},
+			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				return nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+
+		sr.Header = &block.Header{}
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[2], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[3], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[4], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[5], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[6], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[7], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[8], bls.SrSignature, true)
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Error("Should not panic")
+				}
+			}()
+			invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
+			time.Sleep(200 * time.Millisecond)
+			require.Equal(t, err, bls.ErrAux)
+			require.Nil(t, invalidSigners)
+		}()
+		time.Sleep(time.Second)
+
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

@@ -106,15 +106,15 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	dataToBeSigned := []byte("message")
 	consensusState.Data = dataToBeSigned
 
-	sr := *initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(dataToBeSigned, uint16(i), sr.EnableEpochsHandler().GetCurrentEpoch(), []byte(keys[i]))
+	sr := initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
+	for i := 0; i < len((*sr).ConsensusGroup()); i++ {
+		_, err := (*sr).SigningHandler().CreateSignatureShareForPublicKey(dataToBeSigned, uint16(i), (*sr).EnableEpochsHandler().GetCurrentEpoch(), []byte(keys[i]))
 		require.Nil(b, err)
-		_ = sr.SetJobDone(keys[i], bls.SrSignature, true)
+		_ = (*sr).SetJobDone(keys[i], bls.SrSignature, true)
 	}
 	for i := 0; i < b.N; i++ {
 		b.StartTimer()
-		invalidSigners, err := sr.VerifyNodesOnAggSigFail(ctx)
+		invalidSigners, err := (*sr).VerifyNodesOnAggSigFail(ctx)
 		b.StopTimer()
 		require.Nil(b, err)
 		require.NotNil(b, invalidSigners)
