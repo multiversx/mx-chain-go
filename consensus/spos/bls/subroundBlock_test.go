@@ -475,14 +475,26 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return providedHeadr
 			},
-			GetCurrentHeaderProofCalled: func() data.HeaderProof {
-				return data.HeaderProof{
-					AggregatedSignature: providedSignature,
-					PubKeysBitmap:       providedBitmap,
-				}
-			},
 		}
-		sr := *initSubroundBlock(chainHandler, container, &statusHandler.AppStatusHandlerStub{})
+		container.SetBlockchain(chainHandler)
+
+		consensusState := initConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+		ch := make(chan bool, 1)
+
+		baseSr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
+		srBlock, _ := bls.NewSubroundBlock(
+			baseSr,
+			bls.ProcessingThresholdPercent,
+			&mock.SposWorkerMock{
+				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProofHandler, error) {
+					return &block.HeaderProof{
+						AggregatedSignature: providedSignature,
+						PubKeysBitmap:       providedBitmap,
+					}, nil
+				},
+			},
+		)
+		sr := *srBlock
 
 		providedLeaderSignature := []byte("leader signature")
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
@@ -533,9 +545,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.Header.GetNonce())
 
-		sig, bitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
-		assert.Equal(t, providedSignature, sig)
-		assert.Equal(t, providedBitmap, bitmap)
+		proof := sr.Header.GetPreviousProof()
+		assert.Equal(t, providedSignature, proof.GetAggregatedSignature())
+		assert.Equal(t, providedBitmap, proof.GetPubKeysBitmap())
 	})
 	t.Run("should work, equivalent messages flag not enabled", func(t *testing.T) {
 		t.Parallel()
@@ -736,13 +748,9 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
-		wasSetCurrentHeaderProofCalled := false
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
-			},
-			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
-				wasSetCurrentHeaderProofCalled = true
 			},
 		}
 		sr := *initSubroundBlock(chainHandler, container, &statusHandler.AppStatusHandlerStub{})
@@ -752,7 +760,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			ScheduledDeveloperFees:   big.NewInt(1),
 			ScheduledAccumulatedFees: big.NewInt(1),
 			ScheduledRootHash:        []byte("scheduled root hash"),
-			PreviousHeaderProof: &block.PreviousHeaderProof{
+			PreviousHeaderProof: &block.HeaderProof{
 				PubKeysBitmap:       []byte{1, 1, 1, 1},
 				AggregatedSignature: []byte("sig"),
 			},
@@ -765,7 +773,6 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		sr.Data = nil
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.True(t, r)
-		assert.True(t, wasSetCurrentHeaderProofCalled)
 	})
 }
 
@@ -934,7 +941,7 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithEquivalentMessagesFlagEnabled(
 		ScheduledRootHash:        []byte("sch root hash"),
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
-		PreviousHeaderProof: &block.PreviousHeaderProof{
+		PreviousHeaderProof: &block.HeaderProof{
 			PubKeysBitmap:       []byte{1, 1, 1, 1},
 			AggregatedSignature: []byte("sig"),
 		},

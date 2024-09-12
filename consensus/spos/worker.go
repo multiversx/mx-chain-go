@@ -863,10 +863,10 @@ func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProofHandle
 }
 
 // SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProofHandler, nonce uint64) {
+func (wrk *Worker) SetValidEquivalentProof(proof data.HeaderProofHandler) {
 	// only valid equivalent proofs are being added to proofs tracker
 	wrk.equivalentProofsPool.AddNotarizedProof(proof)
-	wrk.equivalentMessagesDebugger.SetValidEquivalentProof(headerHash, proof)
+	wrk.equivalentMessagesDebugger.SetValidEquivalentProof(proof.GetHeaderHash(), proof)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

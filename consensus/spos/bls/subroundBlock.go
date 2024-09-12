@@ -563,19 +563,17 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 
 	proof, err := sr.worker.GetEquivalentProof(sr.GetData())
 	if err != nil {
+		log.Debug("saveProofForPreviousHeaderIfNeeded: do not set proof since it was not found")
 		return
 	}
 
 	if !isProofEmpty(proof) {
+		log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
 		return
 	}
 
-	prevAggSig, prevBitmap := sr.Header.GetPreviousProof()
-	proof = data.HeaderProof{
-		AggregatedSignature: prevAggSig,
-		PubKeysBitmap:       prevBitmap,
-	}
-	sr.Blockchain().SetCurrentHeaderProof(proof)
+	proof = sr.Header.GetPreviousProof()
+	sr.worker.SetValidEquivalentProof(proof)
 }
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) error {

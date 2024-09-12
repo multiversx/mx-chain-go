@@ -418,8 +418,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		sr.worker.SetValidEquivalentProof(sr.GetData(), proof, sr.Header.GetNonce())
-		sr.Blockchain().SetCurrentHeaderProof(proof)
+		sr.worker.SetValidEquivalentProof(proof)
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -836,12 +835,15 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	isNodeInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
 	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
 	if isNodeInConsensus && cnsDta != nil && isEquivalentMessagesFlagEnabled {
-		proof := data.HeaderProof{
-			AggregatedSignature: cnsDta.AggregateSignature,
+		proof := &block.HeaderProof{
 			PubKeysBitmap:       cnsDta.PubKeysBitmap,
+			AggregatedSignature: cnsDta.AggregateSignature,
+			HeaderHash:          cnsDta.BlockHeaderHash,
+			HeaderEpoch:         header.GetEpoch(),
+			HeaderNonce:         header.GetNonce(),
+			HeaderShardId:       header.GetShardID(),
 		}
-		sr.Blockchain().SetCurrentHeaderProof(proof)
-		sr.worker.SetValidEquivalentProof(cnsDta.BlockHeaderHash, proof, sr.Header.GetNonce())
+		sr.worker.SetValidEquivalentProof(proof)
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)

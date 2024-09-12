@@ -406,7 +406,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 	bitmap := previousHeader.GetPubKeysBitmap()
 	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, previousHeader.GetEpoch()) {
-		_, bitmap = previousHeader.GetPreviousAggregatedSignatureAndBitmap()
+		proof := previousHeader.GetPreviousProof()
+		bitmap = proof.GetPubKeysBitmap()
 	}
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,

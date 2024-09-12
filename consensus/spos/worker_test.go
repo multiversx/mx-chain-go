@@ -27,9 +27,9 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -99,7 +99,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 
-	proofTracker, _ := track.NewProofTracker()
+	proofsPool := proofscache.NewProofsPool()
 
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:           blsService,
@@ -129,7 +129,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
 		EquivalentMessagesDebugger: &consensusMocks.EquivalentMessagesDebuggerStub{},
 		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ProofTracker:               proofTracker,
+		EquivalentProofsPool:       proofsPool,
 	}
 
 	return workerArgs
@@ -633,11 +633,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	}
 
 	equivalentMessagesDebugger := debug.NewEquivalentMessagesDebugger()
-
 	workerArgs.EquivalentMessagesDebugger = equivalentMessagesDebugger
-	proofTracker, _ := track.NewProofTracker()
-	workerArgs.ProofTracker = proofTracker
-
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")
@@ -731,10 +727,10 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	equivalentMessages := equivalentMessagesDebugger.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
-	wrk.SetValidEquivalentProof(equivalentBlockHeaderHash, data.HeaderProof{
+	wrk.SetValidEquivalentProof(&block.HeaderProof{
 		AggregatedSignature: []byte("sig"),
 		PubKeysBitmap:       []byte("bitmap"),
-	}, uint64(2))
+	})
 	assert.True(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
 	equivMsgFrom := core.PeerID("from other peer id")
@@ -2151,7 +2147,8 @@ func TestWorker_EquivalentProof(t *testing.T) {
 	t.Parallel()
 
 	providedHash := []byte("hash")
-	providedProof := data.HeaderProof{
+	providedProof := &block.HeaderProof{
+		HeaderHash:          providedHash,
 		AggregatedSignature: []byte("sig"),
 		PubKeysBitmap:       []byte("bitmap"),
 	}
@@ -2162,11 +2159,11 @@ func TestWorker_EquivalentProof(t *testing.T) {
 		wrk, _ := spos.NewWorker(workerArgs)
 
 		_, err := wrk.GetEquivalentProof(providedHash)
-		require.Equal(t, track.ErrMissingEquivalentProof, err)
+		require.True(t, errors.Is(err, proofscache.ErrMissingProof))
 
 		require.False(t, wrk.HasEquivalentMessage(providedHash))
 
-		wrk.SetValidEquivalentProof(providedHash, providedProof, uint64(2))
+		wrk.SetValidEquivalentProof(providedProof)
 		require.True(t, wrk.HasEquivalentMessage(providedHash))
 
 		proof, err := wrk.GetEquivalentProof(providedHash)
@@ -2188,7 +2185,7 @@ func TestWorker_EquivalentProof(t *testing.T) {
 			go func(idx int) {
 				switch idx % 3 {
 				case 0:
-					wrk.SetValidEquivalentProof(providedHash, providedProof, uint64(2))
+					wrk.SetValidEquivalentProof(providedProof)
 				case 1:
 					_, _ = wrk.GetEquivalentProof(providedHash)
 				case 2:
