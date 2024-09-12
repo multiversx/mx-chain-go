@@ -552,7 +552,6 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	e.dataPool.Headers()
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
 		CoreComponentsHolder:    e.coreComponentsHolder,
 		CryptoComponentsHolder:  e.cryptoComponentsHolder,
