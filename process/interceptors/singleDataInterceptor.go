@@ -1,12 +1,17 @@
 package interceptors
 
 import (
+	"errors"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
@@ -64,6 +69,7 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
 			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
+			timeCache:            cache.NewTimeCache(30 * time.Second),
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
@@ -75,6 +81,9 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
 func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
+	// Sweep the time cache before processing the message
+	sdi.timeCache.Sweep()
+
 	err := sdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
 		return err
@@ -93,13 +102,18 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	sdi.receivedDebugInterceptedData(interceptedData)
+	err = sdi.checkIfMessageHasBeenProcessed(interceptedData)
+	if err != nil {
+		sdi.throttler.EndProcessing()
+		return err
+	}
 
 	err = interceptedData.CheckValidity()
 	if err != nil {
 		sdi.throttler.EndProcessing()
 		sdi.processDebugInterceptedData(interceptedData, err)
 
-		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
+		isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
 		if isWrongVersion {
 			// this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()

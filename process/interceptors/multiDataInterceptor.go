@@ -2,17 +2,20 @@ package interceptors
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 var log = logger.GetOrCreate("process/interceptors")
@@ -79,6 +82,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			processor:            arg.Processor,
 			preferredPeersHolder: arg.PreferredPeersHolder,
 			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
+			timeCache:            cache.NewTimeCache(30 * time.Second),
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
@@ -152,6 +156,11 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+
+		errCache := mdi.checkIfMessageHasBeenProcessed(interceptedData)
+		if errCache != nil {
+			continue
+		}
 		listInterceptedData[index] = interceptedData
 		if err != nil {
 			mdi.throttler.EndProcessing()
@@ -206,6 +215,10 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 	}
 
 	mdi.receivedDebugInterceptedData(interceptedData)
+	//shouldProcess := mdi.checkIfMessageHasBeenProcessed(interceptedData)
+	//if !shouldProcess {
+	//	return nil, nil
+	//}
 
 	err = interceptedData.CheckValidity()
 	if err != nil {

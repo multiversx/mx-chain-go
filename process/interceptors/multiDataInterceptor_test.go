@@ -10,13 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var fromConnectedPeerId = core.PeerID("from connected peer Id")
@@ -570,6 +571,9 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	interceptedData := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
 		CheckValidityCalled: func() error {
 			return expectedErr
 		},

@@ -2,12 +2,15 @@ package interceptors
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 type baseDataInterceptor struct {
@@ -19,6 +22,8 @@ type baseDataInterceptor struct {
 	mutDebugHandler      sync.RWMutex
 	debugHandler         process.InterceptedDebugger
 	preferredPeersHolder process.PreferredPeersHolderHandler
+
+	timeCache *cache.TimeCache
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -117,6 +122,25 @@ func (bdi *baseDataInterceptor) receivedDebugInterceptedData(interceptedData pro
 	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogReceivedHashes(bdi.topic, identifiers)
 	bdi.mutDebugHandler.RUnlock()
+}
+
+func (bdi *baseDataInterceptor) checkIfMessageHasBeenProcessed(interceptedData process.InterceptedData) error {
+	hash := string(interceptedData.Hash())
+
+	if hash == "" {
+		return nil
+	}
+
+	if bdi.timeCache.Has(hash) {
+		return fmt.Errorf("intercepted data has already been processed")
+	}
+
+	err := bdi.timeCache.Add(hash)
+	if err != nil {
+		return fmt.Errorf("intercepted data could not be added to the cache")
+	}
+
+	return nil
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler
