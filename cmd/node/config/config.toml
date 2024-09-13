@@ -387,7 +387,7 @@
     Name = "TxDataPool"
     Capacity = 600000
     SizePerSender = 20000
-    SizeInBytes = 419430400 #800MB
+    SizeInBytes = 419430400 #400MB
     SizeInBytesPerSender = 12288000
     Type = "TxCache"
     Shards = 16
@@ -490,7 +490,7 @@
         UseTmpAsFilePath = true
 
 [Antiflood]
-    Enabled = false
+    Enabled = true
     NumConcurrentResolverJobs = 50
     NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
@@ -561,7 +561,7 @@
         MaxDeviationTimeInMilliseconds = 25
 
 [WebServerAntiflood]
-    WebServerAntifloodEnabled = false
+    WebServerAntifloodEnabled = true
     # SimultaneousRequests represents the number of concurrent requests accepted by the web server
     # this is a global throttler that acts on all http connections regardless of the originating source
     SimultaneousRequests = 100
