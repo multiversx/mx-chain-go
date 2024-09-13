@@ -7,10 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -358,4 +360,52 @@ func TestComputeAndAttachGasUsedAndFeeRelayedV3WithRefund(t *testing.T) {
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
 	require.Equal(t, uint64(55149500), txWithSRefundSCR.GasUsed)
 	require.Equal(t, "699500000000000", txWithSRefundSCR.Fee)
+}
+
+func TestComputeAndAttachGasUsedAndFeeFailedRelayedV1(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag
+		},
+	}
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		smartContract.NewArgumentParser(),
+		&marshal.JsonMarshalizer{},
+		enableEpochsHandler,
+	)
+
+	txWithSRefundSCR := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithSRefundSCR, "testData/failedRelayedV1.json")
+	require.NoError(t, err)
+
+	snd, _ := pubKeyConverter.Decode(txWithSRefundSCR.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithSRefundSCR.Receiver)
+	val, _ := big.NewInt(0).SetString(txWithSRefundSCR.Value, 10)
+	txWithSRefundSCR.Tx = &transaction.Transaction{
+		Nonce:    txWithSRefundSCR.Nonce,
+		Value:    val,
+		RcvAddr:  rcv,
+		SndAddr:  snd,
+		GasPrice: txWithSRefundSCR.GasPrice,
+		GasLimit: txWithSRefundSCR.GasLimit,
+		Data:     txWithSRefundSCR.Data,
+	}
+
+	txWithSRefundSCR.InitiallyPaidFee = ""
+	txWithSRefundSCR.Fee = ""
+	txWithSRefundSCR.GasUsed = 0
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
+	require.Equal(t, uint64(1274230), txWithSRefundSCR.GasUsed)
+	require.Equal(t, "1274230000000000", txWithSRefundSCR.Fee)
+	require.Equal(t, "1274230000000000", txWithSRefundSCR.InitiallyPaidFee)
 }
