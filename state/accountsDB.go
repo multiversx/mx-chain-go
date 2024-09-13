@@ -160,9 +160,7 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	if check.IfNil(args.SnapshotsManager) {
 		return ErrNilSnapshotsManager
 	}
-	if check.IfNil(args.StateChangesCollector) {
-		return ErrNilStateChangesCollector
-	}
+	if check.IfNil(args.StateChangesCollector) { return ErrNilStateChangesCollector }
 
 	return nil
 }
@@ -917,9 +915,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		log.Warn("failed to dump state changes to json file", "error", err)
 		return nil, err
 	}
-
-	//TODO: discuss the workflow. If reset here, the outport driver won't be able to pick up the changes.
-	//adb.stateChangesCollector.Reset()
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
