@@ -251,3 +251,46 @@ func TestStateChangesCollector_Reset(t *testing.T) {
 
 	assert.Equal(t, 0, len(scc.GetStateChanges()))
 }
+
+func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
+	t.Parallel()
+
+	scc := NewStateChangesCollector()
+	assert.Equal(t, 0, len(scc.stateChanges))
+
+	numStateChanges := 10
+	for i := 0; i < numStateChanges; i++ {
+		scc.AddStateChange(&data.StateChange{
+			Type: "write",
+			// distribute evenly based on parity of the index
+			TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+		})
+	}
+
+	stateChangesForTx := scc.GetStateChangesForTxs()
+
+	require.Len(t, stateChangesForTx, 2)
+	require.Len(t, stateChangesForTx["hash0"].StateChanges, 5)
+	require.Len(t, stateChangesForTx["hash1"].StateChanges, 5)
+
+	require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+		"hash0" : {
+			[]*data.StateChange{
+				{Type: "write", TxHash: []byte("hash0")},
+				{Type: "write", TxHash: []byte("hash0")},
+				{Type: "write", TxHash: []byte("hash0")},
+				{Type: "write", TxHash: []byte("hash0")},
+				{Type: "write", TxHash: []byte("hash0")},
+			},
+		},
+		"hash1" : {
+			[]*data.StateChange{
+				{Type: "write", TxHash: []byte("hash1")},
+				{Type: "write", TxHash: []byte("hash1")},
+				{Type: "write", TxHash: []byte("hash1")},
+				{Type: "write", TxHash: []byte("hash1")},
+				{Type: "write", TxHash: []byte("hash1")},
+			},
+		},
+	})
+}

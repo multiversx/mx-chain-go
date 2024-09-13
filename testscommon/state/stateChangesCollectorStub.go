@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
+// StateChangesCollectorStub represents a mock for the StateChangesCollector interface
 type StateChangesCollectorStub struct {
 	AddStateChangeCalled                   func(stateChange stateChanges.StateChange)
 	AddSaveAccountStateChangeCalled        func(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange)

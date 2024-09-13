@@ -44,8 +44,6 @@ type stateChangesCollector struct {
 
 // NewStateChangesCollector creates a new StateChangesCollector
 func NewStateChangesCollector() *stateChangesCollector {
-	// TODO: add outport driver
-
 	return &stateChangesCollector{
 		stateChanges: make([]StateChange, 0),
 	}
@@ -127,7 +125,7 @@ func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.State
 			},
 			}
 		} else {
-			stateChangesForTxs[txHash].StateChanges = append(sc.StateChanges,
+			sc.StateChanges = append(sc.StateChanges,
 				&data.StateChange{
 					Type:            stateChange.GetType(),
 					Index:           stateChange.GetIndex(),
