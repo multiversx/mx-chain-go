@@ -276,7 +276,7 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 		return ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(args.EquivalentProofsPool) {
-		return ErrNilProofPool
+		return ErrNilEquivalentProofPool
 	}
 
 	return nil
@@ -829,7 +829,7 @@ func (wrk *Worker) processEquivalentMessage(cnsMsg *consensus.Message) error {
 	}
 
 	hdrHash := cnsMsg.BlockHeaderHash
-	hasProof := wrk.HasEquivalentMessage(hdrHash)
+	hasProof := wrk.equivalentProofsPool.HasProof(wrk.shardCoordinator.SelfId(), hdrHash)
 
 	wrk.equivalentMessagesDebugger.UpsertEquivalentMessage(hdrHash)
 
@@ -846,27 +846,6 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 	}
 
 	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.AggregateSignature)
-}
-
-// HasEquivalentMessage returns true if an equivalent message was received before
-func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
-	_, err := wrk.GetEquivalentProof(headerHash)
-	return err == nil
-}
-
-// GetEquivalentProof returns the equivalent proof for the provided hash
-func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProofHandler, error) {
-	return wrk.equivalentProofsPool.GetNotarizedProof(wrk.shardCoordinator.SelfId(), headerHash)
-}
-
-// SetValidEquivalentProof saves the equivalent proof for the provided header
-func (wrk *Worker) SetValidEquivalentProof(proof data.HeaderProofHandler) {
-	// only valid equivalent proofs are being added to proofs tracker
-	err := wrk.equivalentProofsPool.AddNotarizedProof(proof)
-	if err != nil {
-		log.Error("failed to add equivalent proof: %w", err)
-	}
-	wrk.equivalentMessagesDebugger.UpsertEquivalentMessage(proof.GetHeaderHash())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

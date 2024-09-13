@@ -673,6 +673,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	dbb.cacheHeaders.Put(headerHash, struct{}{}, 0)
 	dbb.mutHeadersCache.Unlock()
 
+	// TODO: should be handled from interceptor
 	proof := headerHandler.GetPreviousProof()
 
 	var aggSig, bitmap []byte

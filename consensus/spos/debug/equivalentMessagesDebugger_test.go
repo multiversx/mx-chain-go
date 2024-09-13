@@ -14,7 +14,7 @@ func TestNewEquivalentMessagesDebugger_IsInterfaceNil(t *testing.T) {
 	var debugger *equivalentMessagesDebugger
 	require.True(t, debugger.IsInterfaceNil())
 
-	debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolStub{}, &testscommon.ShardsCoordinatorMock{})
+	debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolMock{}, &testscommon.ShardsCoordinatorMock{})
 	require.Nil(t, err)
 
 	require.False(t, debugger.IsInterfaceNil())
@@ -33,7 +33,7 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 			}
 		}()
 
-		debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolStub{}, &testscommon.ShardsCoordinatorMock{})
+		debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolMock{}, &testscommon.ShardsCoordinatorMock{})
 		require.Nil(t, err)
 		debugger.DisplayEquivalentMessagesStatistics()
 	})
@@ -48,7 +48,7 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 			}
 		}()
 
-		debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolStub{}, &testscommon.ShardsCoordinatorMock{})
+		debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolMock{}, &testscommon.ShardsCoordinatorMock{})
 		require.Nil(t, err)
 		debugger.shouldProcessDataFunc = func() bool {
 			return true

@@ -2033,7 +2033,9 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
 		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
 			proof := shardHdr.GetPreviousProof()
-			shardData.PubKeysBitmap = proof.GetPubKeysBitmap()
+			if proof != nil {
+				shardData.PubKeysBitmap = proof.GetPubKeysBitmap()
+			}
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())

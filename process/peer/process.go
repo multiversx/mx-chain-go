@@ -407,7 +407,9 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	bitmap := previousHeader.GetPubKeysBitmap()
 	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, previousHeader.GetEpoch()) {
 		proof := previousHeader.GetPreviousProof()
-		bitmap = proof.GetPubKeysBitmap()
+		if proof != nil {
+			bitmap = proof.GetPubKeysBitmap()
+		}
 	}
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,

@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -485,14 +486,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		srBlock, _ := bls.NewSubroundBlock(
 			baseSr,
 			bls.ProcessingThresholdPercent,
-			&mock.SposWorkerMock{
-				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProofHandler, error) {
-					return &block.HeaderProof{
-						AggregatedSignature: providedSignature,
-						PubKeysBitmap:       providedBitmap,
-					}, nil
-				},
-			},
+			&mock.SposWorkerMock{},
 		)
 		sr := *srBlock
 
@@ -541,6 +535,16 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&mock.RoundHandlerMock{
 			RoundIndex: 1,
 		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{
+					HeaderHash:          headerHash,
+					AggregatedSignature: providedSignature,
+					PubKeysBitmap:       providedBitmap,
+				}, nil
+			},
+		})
+
 		r := sr.DoBlockJob()
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.Header.GetNonce())

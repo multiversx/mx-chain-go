@@ -33,7 +33,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		PeerAuthentications:       cache.NewCacherStub(),
 		Heartbeats:                cache.NewCacherStub(),
 		ValidatorsInfo:            testscommon.NewShardedDataStub(),
-		Proofs:                    &dataRetrieverMocks.ProofsPoolStub{},
+		Proofs:                    &dataRetrieverMocks.ProofsPoolMock{},
 	}
 }
 

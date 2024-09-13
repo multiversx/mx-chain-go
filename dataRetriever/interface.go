@@ -361,9 +361,9 @@ type PeerAuthenticationPayloadValidator interface {
 
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
-	AddNotarizedProof(headerProof data.HeaderProofHandler) error
-	CleanupNotarizedProofsBehindNonce(shardID uint32, nonce uint64) error
-	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
-	GetAllNotarizedProofs(shardID uint32) (map[string]data.HeaderProofHandler, error)
+	AddProof(headerProof data.HeaderProofHandler) error
+	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
+	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

@@ -60,23 +60,23 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 		HeaderNonce:         4,
 		HeaderShardId:       shardID,
 	}
-	_ = pp.AddNotarizedProof(proof1)
-	_ = pp.AddNotarizedProof(proof2)
-	_ = pp.AddNotarizedProof(proof3)
-	_ = pp.AddNotarizedProof(proof4)
+	_ = pp.AddProof(proof1)
+	_ = pp.AddProof(proof2)
+	_ = pp.AddProof(proof3)
+	_ = pp.AddProof(proof4)
 
-	proof, err := pp.GetNotarizedProof(shardID, []byte("hash3"))
+	proof, err := pp.GetProof(shardID, []byte("hash3"))
 	require.Nil(t, err)
 	require.Equal(t, proof3, proof)
 
-	err = pp.CleanupNotarizedProofsBehindNonce(shardID, 4)
+	err = pp.CleanupProofsBehindNonce(shardID, 4)
 	require.Nil(t, err)
 
-	proof, err = pp.GetNotarizedProof(shardID, []byte("hash3"))
+	proof, err = pp.GetProof(shardID, []byte("hash3"))
 	require.Equal(t, proofscache.ErrMissingProof, err)
 	require.Nil(t, proof)
 
-	proof, err = pp.GetNotarizedProof(shardID, []byte("hash4"))
+	proof, err = pp.GetProof(shardID, []byte("hash4"))
 	require.Nil(t, err)
 	require.Equal(t, proof4, proof)
 }
@@ -97,14 +97,14 @@ func TestProofsPool_Concurrency(t *testing.T) {
 		go func(idx int) {
 			switch idx % 5 {
 			case 0, 1, 2:
-				_ = pp.AddNotarizedProof(generateProof())
+				_ = pp.AddProof(generateProof())
 			case 3:
-				_, err := pp.GetNotarizedProof(generateRandomShardID(), generateRandomHash())
+				_, err := pp.GetProof(generateRandomShardID(), generateRandomHash())
 				if errors.Is(err, proofscache.ErrMissingProof) {
 					atomic.AddUint32(&cnt, 1)
 				}
 			case 4:
-				_ = pp.CleanupNotarizedProofsBehindNonce(generateRandomShardID(), generateRandomNonce())
+				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce())
 			default:
 				assert.Fail(t, "should have not beed called")
 			}

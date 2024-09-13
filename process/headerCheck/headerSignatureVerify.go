@@ -208,7 +208,12 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 
 func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, []byte, error) {
 	previousProof := currentHeader.GetPreviousProof()
-	sig, bitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
+
+	var sig, bitmap []byte
+	if previousProof != nil {
+		sig, bitmap = previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
+	}
+
 	hash := currentHeader.GetPrevHash()
 	prevHeader, err := hsv.headersPool.GetHeaderByHash(hash)
 	if err != nil {

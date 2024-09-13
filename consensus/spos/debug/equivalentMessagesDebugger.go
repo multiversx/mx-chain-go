@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -14,14 +14,8 @@ import (
 
 var log = logger.GetOrCreate("debug/equivalentmessages")
 
-type proofsPoolHandler interface {
-	GetAllNotarizedProofs(shardID uint32) (map[string]data.HeaderProofHandler, error)
-	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
-	IsInterfaceNil() bool
-}
-
 type equivalentMessagesDebugger struct {
-	proofsPool       proofsPoolHandler
+	proofsPool       consensus.EquivalentProofsPool
 	shardCoordinator sharding.Coordinator
 
 	shouldProcessDataFunc func() bool
@@ -31,9 +25,9 @@ type equivalentMessagesDebugger struct {
 }
 
 // NewEquivalentMessagesDebugger returns a new instance of equivalentMessagesDebugger
-func NewEquivalentMessagesDebugger(proofsPool proofsPoolHandler, shardCoordinator sharding.Coordinator) (*equivalentMessagesDebugger, error) {
+func NewEquivalentMessagesDebugger(proofsPool consensus.EquivalentProofsPool, shardCoordinator sharding.Coordinator) (*equivalentMessagesDebugger, error) {
 	if check.IfNil(proofsPool) {
-		return nil, spos.ErrNilProofPool
+		return nil, spos.ErrNilEquivalentProofPool
 	}
 	if check.IfNil(shardCoordinator) {
 		return nil, spos.ErrNilShardCoordinator
@@ -47,10 +41,15 @@ func NewEquivalentMessagesDebugger(proofsPool proofsPoolHandler, shardCoordinato
 	}, nil
 }
 
+// ResetEquivalentMessages will reset messages counters
 func (debugger *equivalentMessagesDebugger) ResetEquivalentMessages() {
+	debugger.mutEquivalentMessages.Lock()
+	defer debugger.mutEquivalentMessages.Unlock()
+
 	debugger.msgCounters = make(map[string]uint64)
 }
 
+// UpsertEquivalentMessage will insert or update messages counter for provided header hash
 func (debugger *equivalentMessagesDebugger) UpsertEquivalentMessage(
 	headerHash []byte,
 ) {
@@ -64,6 +63,7 @@ func (debugger *equivalentMessagesDebugger) UpsertEquivalentMessage(
 	debugger.msgCounters[string(headerHash)]++
 }
 
+// DeleteEquivalentMessage will delete equivalent message counter
 func (debugger *equivalentMessagesDebugger) DeleteEquivalentMessage(headerHash []byte) {
 	debugger.mutEquivalentMessages.Lock()
 	defer debugger.mutEquivalentMessages.Unlock()
@@ -97,7 +97,7 @@ func (debugger *equivalentMessagesDebugger) dataToString() string {
 	idx := 0
 	for hash, numMessages := range debugger.msgCounters {
 		var sig, bitmap []byte
-		proof, err := debugger.proofsPool.GetNotarizedProof(debugger.shardCoordinator.SelfId(), []byte(hash))
+		proof, err := debugger.proofsPool.GetProof(debugger.shardCoordinator.SelfId(), []byte(hash))
 		if err == nil {
 			sig, bitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 		}

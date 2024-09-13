@@ -434,7 +434,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	prevBlockProof, err := sr.worker.GetEquivalentProof(sr.GetData())
+	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
 	if err != nil {
 		return false
 	}
@@ -474,7 +474,9 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 }
 
 func isProofEmpty(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 || len(proof.GetPubKeysBitmap()) == 0
+	return len(proof.GetAggregatedSignature()) == 0 ||
+		len(proof.GetPubKeysBitmap()) == 0 ||
+		len(proof.GetHeaderHash()) == 0
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received
@@ -561,7 +563,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 		return
 	}
 
-	proof, err := sr.worker.GetEquivalentProof(sr.GetData())
+	proof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
 	if err != nil {
 		log.Debug("saveProofForPreviousHeaderIfNeeded: do not set proof since it was not found")
 		return
@@ -573,7 +575,11 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 	}
 
 	proof = sr.Header.GetPreviousProof()
-	sr.worker.SetValidEquivalentProof(proof)
+	err = sr.EquivalentProofsPool().AddProof(proof)
+	if err != nil {
+		log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err)
+		return
+	}
 }
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) error {

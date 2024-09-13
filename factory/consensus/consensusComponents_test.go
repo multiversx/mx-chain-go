@@ -103,7 +103,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &testsMocks.HeadersCacherStub{}
 				},
 				ProofsCalled: func() retriever.ProofsPool {
-					return &dataRetrieverMocks.ProofsPoolStub{}
+					return &dataRetrieverMocks.ProofsPoolMock{}
 				},
 			},
 			BlockChain: &testscommon.ChainHandlerStub{

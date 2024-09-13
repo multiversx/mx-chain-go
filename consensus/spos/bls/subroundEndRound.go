@@ -132,7 +132,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	hasProof := sr.worker.HasEquivalentMessage(cnsDta.BlockHeaderHash)
+	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), cnsDta.BlockHeaderHash)
 	if hasProof && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return true
 	}
@@ -418,7 +418,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		sr.worker.SetValidEquivalentProof(proof)
+		sr.EquivalentProofsPool().AddProof(proof)
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -525,7 +525,7 @@ func (sr *subroundEndRound) shouldSendFinalInfo() bool {
 	}
 
 	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
-	if sr.worker.HasEquivalentMessage(sr.GetData()) {
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		log.Debug("shouldSendFinalInfo: equivalent message already processed")
 		return false
 	}
@@ -843,7 +843,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 			HeaderNonce:         header.GetNonce(),
 			HeaderShardId:       header.GetShardID(),
 		}
-		sr.worker.SetValidEquivalentProof(proof)
+		sr.EquivalentProofsPool().AddProof(proof)
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
