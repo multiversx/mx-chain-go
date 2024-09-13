@@ -538,10 +538,10 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 
-	err = e.createResolversContainer()
-	if err != nil {
-		return err
-	}
+	//err = e.createResolversContainer()
+	//if err != nil {
+	//	return err
+	//}
 
 	err = e.createRequestHandler()
 	if err != nil {
