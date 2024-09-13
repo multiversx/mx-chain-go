@@ -62,5 +62,10 @@ gitPullAllChanges()
     git pull
     cd ..
 
+    echo -e "Pulling changes for mx-chain-tools-go..."
+    cd mx-chain-tools-go
+    git pull
+    cd ..
+
     popd
 }
