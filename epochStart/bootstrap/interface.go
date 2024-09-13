@@ -91,3 +91,8 @@ type ShardForLatestEpochComputer interface {
 	GetShardIDForLatestEpoch() (uint32, bool, error)
 	IsInterfaceNil() bool
 }
+
+type bootStrapShardRequesterHandler interface {
+	requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error
+	computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32
+}

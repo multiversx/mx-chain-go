@@ -2,24 +2,20 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
-	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 type sovereignChainEpochStartBootstrap struct {
@@ -34,6 +30,10 @@ func NewSovereignChainEpochStartBootstrap(epochStartBootstrap *epochStartBootstr
 
 	scesb := &sovereignChainEpochStartBootstrap{
 		epochStartBootstrap,
+	}
+
+	scesb.bootStrapShardRequester = &sovereignBootStrapShardRequester{
+		scesb,
 	}
 
 	scesb.getDataToSyncMethod = scesb.getDataToSync
@@ -57,71 +57,6 @@ func (scesb *sovereignChainEpochStartBootstrap) getDataToSync(
 // GetShardIDForLatestEpoch returns the shard ID for the latest epoch
 func (scesb *sovereignChainEpochStartBootstrap) GetShardIDForLatestEpoch() (uint32, bool, error) {
 	return core.SovereignChainShardId, false, nil
-}
-
-func (e *sovereignChainEpochStartBootstrap) requestAndProcessing() (Parameters, error) {
-	var err error
-	e.baseData.numberOfShards = 1
-	e.baseData.lastEpoch = e.epochStartMeta.GetEpoch()
-
-	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
-	if err != nil {
-		return Parameters{}, err
-	}
-	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
-
-	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
-	if !ok {
-		return Parameters{}, epochStart.ErrWrongTypeAssertion
-	}
-	e.prevEpochStartMeta = prevEpochStartMeta
-
-	pubKeyBytes, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	miniBlocks, err := e.processNodesConfig(pubKeyBytes)
-	if err != nil {
-		return Parameters{}, err
-	}
-	log.Debug("start in epoch bootstrap: processNodesConfig")
-
-	e.saveSelfShardId()
-	e.shardCoordinator, err = e.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
-	if err != nil {
-		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
-	}
-	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
-
-	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
-	err = e.mainMessenger.CreateTopic(consensusTopic, true)
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	err = e.createHeartbeatSender()
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	err = e.requestAndProcessForSovereignShard(miniBlocks)
-	if err != nil {
-		return Parameters{}, err
-	}
-
-	log.Debug("removing cached received trie nodes")
-	e.dataPool.TrieNodes().Clear()
-
-	parameters := Parameters{
-		Epoch:       e.baseData.lastEpoch,
-		SelfShardId: e.baseData.shardId,
-		NumOfShards: e.baseData.numberOfShards,
-		NodesConfig: e.nodesConfig,
-	}
-
-	return parameters, nil
 }
 
 func (e *sovereignChainEpochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
@@ -150,76 +85,6 @@ func (e *sovereignChainEpochStartBootstrap) syncHeadersFrom(meta data.MetaHeader
 	}
 
 	return syncedHeaders, nil
-}
-
-func (e *sovereignChainEpochStartBootstrap) requestAndProcessForSovereignShard(peerMiniBlocks []*block.MiniBlock) error {
-	argsStorageHandler := StorageHandlerArgs{
-		GeneralConfig:                   e.generalConfig,
-		PreferencesConfig:               e.prefsConfig,
-		ShardCoordinator:                e.shardCoordinator,
-		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Hasher:                          e.coreComponentsHolder.Hasher(),
-		CurrentEpoch:                    e.baseData.lastEpoch,
-		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
-		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		NodeProcessingMode:              e.nodeProcessingMode,
-		StateStatsHandler:               e.stateStatsHandler,
-		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
-	}
-	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
-	if err != nil {
-		return err
-	}
-
-	defer storageHandlerComponent.CloseStorageService()
-
-	e.closeTrieComponents()
-	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.generalConfig,
-		e.coreComponentsHolder,
-		storageHandlerComponent.storageService,
-		e.stateStatsHandler,
-	)
-	if err != nil {
-		return err
-	}
-
-	e.trieContainer = triesContainer
-	e.trieStorageManagers = trieStorageManagers
-
-	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", e.epochStartMeta.GetRootHash())
-	err = e.syncUserAccountsState(e.epochStartMeta.GetRootHash())
-	if err != nil {
-		return err
-	}
-	log.Debug("start in epoch bootstrap: syncUserAccountsState")
-
-	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
-	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
-	if err != nil {
-		return err
-	}
-
-	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock: e.epochStartMeta,
-		PreviousEpochStart:  e.prevEpochStartMeta,
-		ShardHeader:         e.epochStartMeta,
-		NodesConfig:         e.nodesConfig,
-		Headers:             e.syncedHeaders,
-		ShardCoordinator:    e.shardCoordinator,
-		PendingMiniBlocks:   make(map[string]*block.MiniBlock),
-		PeerMiniBlocks:      peerMiniBlocks,
-	}
-
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
-	if errSavingToStorage != nil {
-		return errSavingToStorage
-	}
-
-	return nil
 }
 
 func (e *sovereignChainEpochStartBootstrap) createResolversContainer() error {

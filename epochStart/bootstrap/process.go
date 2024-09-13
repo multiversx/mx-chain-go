@@ -156,6 +156,8 @@ type epochStartBootstrap struct {
 	getDataToSyncMethod         func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 	shardForLatestEpochComputer ShardForLatestEpochComputer
 	runTypeComponents           RunTypeComponentsHolder
+
+	bootStrapShardRequester bootStrapShardRequesterHandler
 }
 
 type baseDataInStorage struct {
@@ -248,6 +250,9 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		runTypeComponents:               args.RunTypeComponents,
+	}
+	epochStartProvider.bootStrapShardRequester = &bootStrapShardRequester{
+		epochStartProvider,
 	}
 
 	epochStartProvider.shardForLatestEpochComputer = epochStartProvider
@@ -679,7 +684,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	var err error
-	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
+	e.baseData.numberOfShards = e.bootStrapShardRequester.computeNumShards(e.epochStartMeta)
 	e.baseData.lastEpoch = e.epochStartMeta.GetEpoch()
 
 	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
@@ -689,7 +694,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
@@ -730,7 +735,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForShard(miniBlocks)
+		err = e.bootStrapShardRequester.requestAndProcessForShard(miniBlocks)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -907,135 +912,6 @@ func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShar
 		}
 	}
 	return epochStartData, epochStart.ErrEpochStartDataForShardNotFound
-}
-
-func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
-	epochStartData, err := e.findSelfShardEpochStartData()
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers(), ctx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	pendingMiniBlocks, err := e.miniBlocksSyncer.GetMiniBlocks()
-	if err != nil {
-		return err
-	}
-	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
-
-	// TODO: MX-15748 Analyse this
-	shardIds := []uint32{
-		core.MetachainShardId,
-		core.MetachainShardId,
-	}
-	lastFinishedMeta := epochStartData.GetLastFinishedMetaBlock()
-	firstPendingMetaBlock := epochStartData.GetFirstPendingMetaBlock()
-	hashesToRequest := [][]byte{
-		lastFinishedMeta,
-		firstPendingMetaBlock,
-	}
-
-	e.headersSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	neededHeaders, err := e.headersSyncer.GetHeaders()
-	if err != nil {
-		return err
-	}
-	log.Debug("start in epoch bootstrap: SyncMissingHeadersByHash")
-
-	for hash, hdr := range neededHeaders {
-		e.syncedHeaders[hash] = hdr
-	}
-
-	shardNotarizedHeader, ok := e.syncedHeaders[string(epochStartData.GetHeaderHash())].(data.ShardHeaderHandler)
-	if !ok {
-		return epochStart.ErrWrongTypeAssertion
-	}
-
-	dts, err := e.getDataToSyncMethod(
-		epochStartData,
-		shardNotarizedHeader,
-	)
-	if err != nil {
-		return err
-	}
-
-	for hash, hdr := range dts.additionalHeaders {
-		e.syncedHeaders[hash] = hdr
-	}
-
-	argsStorageHandler := StorageHandlerArgs{
-		GeneralConfig:                   e.generalConfig,
-		PreferencesConfig:               e.prefsConfig,
-		ShardCoordinator:                e.shardCoordinator,
-		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Hasher:                          e.coreComponentsHolder.Hasher(),
-		CurrentEpoch:                    e.baseData.lastEpoch,
-		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
-		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		NodeProcessingMode:              e.nodeProcessingMode,
-		StateStatsHandler:               e.stateStatsHandler,
-		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
-	}
-	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
-	if err != nil {
-		return err
-	}
-
-	defer storageHandlerComponent.CloseStorageService()
-
-	e.closeTrieComponents()
-	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.generalConfig,
-		e.coreComponentsHolder,
-		storageHandlerComponent.storageService,
-		e.stateStatsHandler,
-	)
-	if err != nil {
-		return err
-	}
-
-	e.trieContainer = triesContainer
-	e.trieStorageManagers = trieStorageManagers
-
-	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", dts.rootHashToSync)
-	err = e.syncUserAccountsState(dts.rootHashToSync)
-	if err != nil {
-		return err
-	}
-	log.Debug("start in epoch bootstrap: syncUserAccountsState")
-
-	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock: e.epochStartMeta,
-		PreviousEpochStart:  e.prevEpochStartMeta,
-		ShardHeader:         dts.ownShardHdr,
-		NodesConfig:         e.nodesConfig,
-		Headers:             e.syncedHeaders,
-		ShardCoordinator:    e.shardCoordinator,
-		PendingMiniBlocks:   pendingMiniBlocks,
-		PeerMiniBlocks:      peerMiniBlocks,
-	}
-
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled, dts.miniBlocks)
-	if errSavingToStorage != nil {
-		return errSavingToStorage
-	}
-
-	return nil
 }
 
 func (e *epochStartBootstrap) getDataToSync(
