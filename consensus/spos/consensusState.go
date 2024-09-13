@@ -7,14 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-// IndexOfLeaderInConsensusGroup represents the index of the leader in the consensus group
-const IndexOfLeaderInConsensusGroup = 0
 
 var log = logger.GetOrCreate("consensus/spos")
 
@@ -146,7 +144,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 		return "", ErrEmptyConsensusGroup
 	}
 
-	return cns.consensusGroup[IndexOfLeaderInConsensusGroup], nil
+	return cns.Leader(), nil
 }
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
@@ -157,8 +155,8 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 	shardId uint32,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
-) ([]string, error) {
-	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
+) (string, []string, error) {
+	leader, validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
 	if err != nil {
 		log.Debug(
 			"compute consensus group",
@@ -168,7 +166,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 			"shardId", shardId,
 			"epoch", epoch,
 		)
-		return nil, err
+		return "", nil, err
 	}
 
 	consensusSize := len(validatorsGroup)
@@ -178,7 +176,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 		newConsensusGroup[i] = string(validatorsGroup[i].PubKey())
 	}
 
-	return newConsensusGroup, nil
+	return string(leader.PubKey()), newConsensusGroup, nil
 }
 
 // IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise

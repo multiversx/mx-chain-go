@@ -4,15 +4,16 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewValidatorAccountsSyncer(t *testing.T) {
@@ -93,7 +94,7 @@ func TestValidatorAccountsSyncer_SyncAccounts(t *testing.T) {
 			},
 		}
 
-		cacher := testscommon.NewCacherMock()
+		cacher := cache.NewCacherMock()
 		cacher.Put(key, itn, 0)
 		args.Cacher = cacher
 

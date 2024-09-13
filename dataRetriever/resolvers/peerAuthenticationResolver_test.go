@@ -13,15 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -57,7 +59,7 @@ func createMockPeerAuthenticationObject() interface{} {
 func createMockArgPeerAuthenticationResolver() resolvers.ArgPeerAuthenticationResolver {
 	return resolvers.ArgPeerAuthenticationResolver{
 		ArgBaseResolver:        createMockArgBaseResolver(),
-		PeerAuthenticationPool: testscommon.NewCacherStub(),
+		PeerAuthenticationPool: cache.NewCacherStub(),
 		DataPacker:             &mock.DataPackerStub{},
 		PayloadValidator:       &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
@@ -233,7 +235,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveMultipleHashesRequest: all hashes missing from cache should error", func(t *testing.T) {
 		t.Parallel()
 
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return nil, false
 		}
@@ -262,7 +264,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveMultipleHashesRequest: all hashes will return wrong objects should error", func(t *testing.T) {
 		t.Parallel()
 
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return "wrong object", true
 		}
@@ -292,7 +294,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgPeerAuthenticationResolver()
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return createMockPeerAuthenticationObject(), true
 		}
@@ -349,7 +351,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 		providedHashes, err := arg.Marshaller.Marshal(batch.Batch{Data: hashes})
 		assert.Nil(t, err)
 
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			val, ok := providedKeys[string(key)]
 			return val, ok
@@ -394,7 +396,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveMultipleHashesRequest: PackDataInChunks returns error", func(t *testing.T) {
 		t.Parallel()
 
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return createMockPeerAuthenticationObject(), true
 		}
@@ -419,7 +421,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 	t.Run("resolveMultipleHashesRequest: Send returns error", func(t *testing.T) {
 		t.Parallel()
 
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			return createMockPeerAuthenticationObject(), true
 		}
@@ -446,7 +448,7 @@ func TestPeerAuthenticationResolver_ProcessReceivedMessage(t *testing.T) {
 
 		providedKeys := getKeysSlice()
 		expectedLen := len(providedKeys)
-		cache := testscommon.NewCacherStub()
+		cache := cache.NewCacherStub()
 		cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 			for _, pk := range providedKeys {
 				if bytes.Equal(pk, key) {

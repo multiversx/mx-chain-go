@@ -61,6 +61,7 @@ func initConsensusState() *spos.ConsensusState {
 	)
 
 	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetLeader(eligibleList[indexLeader])
 	rcns.ResetRoundState()
 
 	pBFTThreshold := consensusGroupSize*2/3 + 1

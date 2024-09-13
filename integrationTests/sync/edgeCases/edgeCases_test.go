@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 // TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard tests the following scenario:
@@ -24,8 +25,8 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	numNodesPerShard := 3
 	numNodesMeta := 3
 
-	nodes, idxProposers := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
-	idxProposerMeta := idxProposers[1]
+	nodes, leaders := integrationTests.SetupSyncNodesOneShardAndMeta(numNodesPerShard, numNodesMeta)
+	leaderMeta := leaders[1]
 	defer integrationTests.CloseProcessorNodes(nodes)
 
 	integrationTests.BootstrapDelay()
@@ -44,7 +45,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
-		idxProposers,
+		leaders,
 		nonces,
 		numRoundsBlocksAreProposedCorrectly,
 	)
@@ -54,14 +55,14 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	integrationTests.ResetHighestProbableNonce(nodes, shardIdToRollbackLastBlock, 2)
 	integrationTests.EmptyDataPools(nodes, shardIdToRollbackLastBlock)
 
-	//revert also the nonce, so the same block nonce will be used when shard will propose the next block
+	// revert also the nonce, so the same block nonce will be used when shard will propose the next block
 	atomic.AddUint64(nonces[idxNonceShard], ^uint64(0))
 
 	numRoundsBlocksAreProposedOnlyByMeta := 2
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
-		[]int{idxProposerMeta},
+		[]*integrationTests.TestProcessorNode{leaderMeta},
 		[]*uint64{nonces[idxNonceMeta]},
 		numRoundsBlocksAreProposedOnlyByMeta,
 	)
@@ -70,7 +71,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
-		idxProposers,
+		leaders,
 		nonces,
 		secondNumRoundsBlocksAreProposedCorrectly,
 	)
@@ -99,12 +100,12 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 
 	integrationTests.StartSyncingBlocks(syncNodesSlice)
 
-	//after joining the network we must propose a new block on the metachain as to be received by the sync
-	//node and to start the bootstrapping process
+	// after joining the network we must propose a new block on the metachain as to be received by the sync
+	// node and to start the bootstrapping process
 	integrationTests.ProposeBlocks(
 		nodes,
 		&round,
-		[]int{idxProposerMeta},
+		[]*integrationTests.TestProcessorNode{leaderMeta},
 		[]*uint64{nonces[idxNonceMeta]},
 		1,
 	)
@@ -115,7 +116,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 	time.Sleep(integrationTests.SyncDelay * time.Duration(numOfRoundsToWaitToCatchUp))
 	integrationTests.UpdateRound(nodes, round)
 
-	nonceProposerMeta := nodes[idxProposerMeta].BlockChain.GetCurrentBlockHeader().GetNonce()
+	nonceProposerMeta := leaderMeta.BlockChain.GetCurrentBlockHeader().GetNonce()
 	nonceSyncNode := syncMetaNode.BlockChain.GetCurrentBlockHeader().GetNonce()
 	assert.Equal(t, nonceProposerMeta, nonceSyncNode)
 }

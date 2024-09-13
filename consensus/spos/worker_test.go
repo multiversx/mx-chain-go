@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -86,7 +87,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	syncTimerMock := &mock.SyncTimerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := testscommon.NewCacherMock()
+	poolAdder := cache.NewCacherMock()
 
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                syncTimerMock,
@@ -970,7 +971,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		nil,
 		nil,
 		hdrStr,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte(wrk.ConsensusState().Leader()),
 		signature,
 		int(bls.MtBlockHeader),
 		0,

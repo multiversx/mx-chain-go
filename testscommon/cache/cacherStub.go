@@ -1,4 +1,4 @@
-package testscommon
+package cache
 
 // CacherStub -
 type CacherStub struct {

@@ -2128,7 +2128,7 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
-	validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
+	_, validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
 	if err != nil {
 		return err
 	}

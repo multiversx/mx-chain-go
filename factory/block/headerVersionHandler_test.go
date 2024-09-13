@@ -10,10 +10,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,7 +52,7 @@ func TestNewHeaderIntegrityVerifierr_InvalidVersionElementOnEpochValuesEqualShou
 			},
 		},
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
@@ -67,7 +69,7 @@ func TestNewHeaderIntegrityVerifier_InvalidVersionElementOnStringTooLongShouldEr
 			},
 		},
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrInvalidVersionStringTooLong))
@@ -79,7 +81,7 @@ func TestNewHeaderIntegrityVerifierr_InvalidDefaultVersionShouldErr(t *testing.T
 	hdrIntVer, err := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		"",
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
@@ -103,7 +105,7 @@ func TestNewHeaderIntegrityVerifier_EmptyListShouldErr(t *testing.T) {
 	hdrIntVer, err := NewHeaderVersionHandler(
 		make([]config.VersionByEpochs, 0),
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrEmptyVersionsByEpochsList))
@@ -120,7 +122,7 @@ func TestNewHeaderIntegrityVerifier_ZerothElementIsNotOnEpochZeroShouldErr(t *te
 			},
 		},
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	require.True(t, check.IfNil(hdrIntVer))
 	require.True(t, errors.Is(err, ErrInvalidVersionOnEpochValues))
@@ -132,7 +134,7 @@ func TestNewHeaderIntegrityVerifier_ShouldWork(t *testing.T) {
 	hdrIntVer, err := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	require.False(t, check.IfNil(hdrIntVer))
 	require.NoError(t, err)
@@ -147,7 +149,7 @@ func TestHeaderIntegrityVerifier_PopulatedReservedShouldErr(t *testing.T) {
 	hdrIntVer, _ := NewHeaderVersionHandler(
 		make([]config.VersionByEpochs, 0),
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	err := hdrIntVer.Verify(hdr)
 	require.Equal(t, process.ErrReservedFieldInvalid, err)
@@ -159,7 +161,7 @@ func TestHeaderIntegrityVerifier_VerifySoftwareVersionEmptyVersionInHeaderShould
 	hdrIntVer, _ := NewHeaderVersionHandler(
 		make([]config.VersionByEpochs, 0),
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	err := hdrIntVer.Verify(&block.MetaBlock{})
 	require.True(t, errors.Is(err, ErrInvalidSoftwareVersion))
@@ -180,7 +182,7 @@ func TestHeaderIntegrityVerifierr_VerifySoftwareVersionWrongVersionShouldErr(t *
 			},
 		},
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	err := hdrIntVer.Verify(
 		&block.MetaBlock{
@@ -207,7 +209,7 @@ func TestHeaderIntegrityVerifier_VerifySoftwareVersionWildcardShouldWork(t *test
 			},
 		},
 		defaultVersion,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	err := hdrIntVer.Verify(
 		&block.MetaBlock{
@@ -227,7 +229,7 @@ func TestHeaderIntegrityVerifier_VerifyShouldWork(t *testing.T) {
 	hdrIntVer, _ := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		"software",
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("software"),
@@ -243,7 +245,7 @@ func TestHeaderIntegrityVerifier_VerifyNotWildcardShouldWork(t *testing.T) {
 	hdrIntVer, _ := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		"software",
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 	mb := &block.MetaBlock{
 		SoftwareVersion: []byte("v1"),
@@ -260,7 +262,7 @@ func TestHeaderIntegrityVerifier_GetVersionShouldWork(t *testing.T) {
 	hdrIntVer, _ := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		defaultVersion,
-		&testscommon.CacherStub{
+		&cache.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) bool {
 				atomic.AddUint32(&numPutCalls, 1)
 				epoch := binary.BigEndian.Uint32(key)
@@ -311,7 +313,7 @@ func TestHeaderIntegrityVerifier_ExistsInInternalCacheShouldReturn(t *testing.T)
 	hdrIntVer, _ := NewHeaderVersionHandler(
 		versionsCorrectlyConstructed,
 		defaultVersion,
-		&testscommon.CacherStub{
+		&cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return cachedVersion, true
 			},

@@ -10,16 +10,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
@@ -39,6 +39,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:        integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:     integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -48,11 +49,11 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 		enableEpochsConfig,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -88,7 +89,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 
 	nrRoundsToPropagateMultiShard := 10
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	time.Sleep(time.Second)
 
@@ -110,11 +111,11 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	// ----- wait for unbond period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 10, nonce, round)
 
 	manualSetToInactiveStateStakedPeers(t, nodes)
 
@@ -128,7 +129,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	verifyUnbound(t, nodes)
 }
@@ -153,18 +154,16 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 	)
 
 	nodes := make([]*integrationTests.TestProcessorNode, 0)
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 
 	for _, nds := range nodesMap {
 		nodes = append(nodes, nds...)
 	}
 
-	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
-		require.Nil(t, err)
-
-		idxProposers = append(idxProposers, idx)
+	for i := 0; i < numOfShards; i++ {
+		leaders[i] = nodesMap[uint32(i)][0]
 	}
+	leaders[numOfShards] = nodesMap[core.MetachainShardId][0]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -204,7 +203,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 
 	nrRoundsToPropagateMultiShard := 10
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	time.Sleep(time.Second)
 
@@ -228,7 +227,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	roundsPerEpoch := uint64(10)
 	for _, node := range nodes {
@@ -238,7 +237,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 
 	// ----- wait for unbound period
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 10, nonce, round)
 
 	// ----- send unBound
 	for index, node := range nodes {
@@ -253,7 +252,7 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 	time.Sleep(time.Second)
 
 	integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	verifyUnbound(t, nodes)
 }
@@ -323,7 +322,6 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 	}
 
 	nbBlocksToProduce := roundsPerEpoch * 3
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 
 	for i := uint64(0); i < nbBlocksToProduce; i++ {
 		for _, nodesSlice := range nodesMap {
@@ -331,9 +329,8 @@ func TestStakeWithRewardsAddressAndValidatorStatistics(t *testing.T) {
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodesSlice)
 		}
 
-		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-		indexesProposers := endOfEpoch.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 		round++
 		nonce++
 
