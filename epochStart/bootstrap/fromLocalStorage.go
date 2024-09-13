@@ -127,7 +127,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
 
-	err = e.createRequestHandler()
+	e.requestHandler, err = e.bootStrapShardRequester.createRequestHandler()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -148,7 +148,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}()
 
-	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
+	e.syncedHeaders, err = e.bootStrapShardRequester.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -178,7 +178,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForSovereignShard(emptyPeerMiniBlocksSlice)
+		err = e.bootStrapShardRequester.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -287,7 +287,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 		return nil, err
 	}
 
-	metaBlock := &block.SovereignChainHeader{}
+	metaBlock := &block.MetaBlock{}
 	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, epochStartMetaBlock)
 	if err != nil {
 		return nil, err

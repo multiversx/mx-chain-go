@@ -20,11 +20,16 @@ func NewSovereignChainEpochStartBootstrap(epochStartBootstrap *epochStartBootstr
 		epochStartBootstrap,
 	}
 
+	scesb.bootStrapShardRequester = &sovereignBootStrapShardRequester{
+		scesb,
+	}
+
 	scesb.getDataToSyncMethod = scesb.getDataToSync
 	scesb.shardForLatestEpochComputer = scesb
 	return scesb, nil
 }
 
+// todo : probably delete this
 func (scesb *sovereignChainEpochStartBootstrap) getDataToSync(
 	_ data.EpochStartShardDataHandler,
 	shardNotarizedHeader data.ShardHeaderHandler,
@@ -40,4 +45,8 @@ func (scesb *sovereignChainEpochStartBootstrap) getDataToSync(
 // GetShardIDForLatestEpoch returns the shard ID for the latest epoch
 func (scesb *sovereignChainEpochStartBootstrap) GetShardIDForLatestEpoch() (uint32, bool, error) {
 	return core.SovereignChainShardId, false, nil
+}
+
+func (e *sovereignChainEpochStartBootstrap) IsInterfaceNil() bool {
+	return e == nil
 }

@@ -91,3 +91,11 @@ type ShardForLatestEpochComputer interface {
 	GetShardIDForLatestEpoch() (uint32, bool, error)
 	IsInterfaceNil() bool
 }
+
+type bootStrapShardRequesterHandler interface {
+	requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error
+	computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32
+	createRequestHandler() (process.RequestHandler, error)
+	createResolversContainer() error
+	syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error)
+}
