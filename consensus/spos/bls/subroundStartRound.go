@@ -167,13 +167,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	msg := ""
-	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
-		msg = " (my turn in multi-key)"
-	}
-	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
-		msg = " (my turn)"
-	}
+	msg := sr.GetLeaderStartRoundMessage()
 	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
@@ -187,17 +181,17 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	pubKeys := sr.ConsensusGroup()
 	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
+	if numMultiKeysInConsensusGroup > 0 {
+		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
+	}
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
-	isLeader := isSingleKeyLeader || sr.IsKeyManagedByCurrentNode([]byte(leader))
-	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
-	if !isSelfInConsensus {
+	if !sr.IsSelfInConsensusGroup() {
 		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if !isLeader {
+		if !sr.IsSelfLeader() {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
@@ -236,16 +230,12 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
-		if sr.IsKeyManagedByCurrentNode(pkBytes) {
+		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
 		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
-	}
-
-	if numMultiKeysInConsensusGroup > 0 {
-		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
 	}
 
 	return numMultiKeysInConsensusGroup
