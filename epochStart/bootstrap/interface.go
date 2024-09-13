@@ -97,4 +97,5 @@ type bootStrapShardRequesterHandler interface {
 	computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32
 	createRequestHandler() (process.RequestHandler, error)
 	createResolversContainer() error
+	syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error)
 }
