@@ -12,7 +12,7 @@ export USE_PROXY=1
 
 # Enable the MultiversX Transaction Generator. Note that this is a private
 # repository (mx-chain-txgen-go).
-export USE_TXGEN=1
+export USE_TXGEN=0
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -52,13 +52,13 @@ export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
 # Shard structure
-export SHARDCOUNT=1
-export SHARD_VALIDATORCOUNT=1
+export SHARDCOUNT=2
+export SHARD_VALIDATORCOUNT=3
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=1
+export SHARD_CONSENSUS_SIZE=3
 
 # Metashard structure
-export META_VALIDATORCOUNT=1
+export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
