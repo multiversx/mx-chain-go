@@ -38,13 +38,6 @@ func (pc *proofsCache) getProofByHash(headerHash []byte) (data.HeaderProofHandle
 	return proof, nil
 }
 
-func (pc *proofsCache) getAllProofs() map[string]data.HeaderProofHandler {
-	pc.mutProofsCache.RLock()
-	defer pc.mutProofsCache.RUnlock()
-
-	return pc.proofsByHash
-}
-
 func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	if proof == nil {
 		return

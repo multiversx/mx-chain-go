@@ -418,7 +418,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		sr.EquivalentProofsPool().AddProof(proof)
+		err = sr.EquivalentProofsPool().AddProof(proof)
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.AddProof", "error", err)
+			return false
+		}
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -843,7 +847,11 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 			HeaderNonce:         header.GetNonce(),
 			HeaderShardId:       header.GetShardID(),
 		}
-		sr.EquivalentProofsPool().AddProof(proof)
+		err = sr.EquivalentProofsPool().AddProof(proof)
+		if err != nil {
+			log.Debug("doEndRoundJobByParticipant.AddProof", "error", err)
+			return false
+		}
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
