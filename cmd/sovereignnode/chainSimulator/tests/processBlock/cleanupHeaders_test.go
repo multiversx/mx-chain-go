@@ -15,6 +15,57 @@ import (
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 )
 
+func TestSovereignChainSimulator_NoCrossHeadersReceived(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch:         core.OptionalUint64{},
+			ApiInterface:           api.NewNoApiInterface(),
+			MinNodesPerShard:       2,
+			ConsensusGroupSize:     2,
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
+
+	for round := 1; round <= 10; round++ {
+		err = cs.GenerateBlocks(1)
+		require.Nil(t, err)
+
+		selfNotarizedHeaders, _, err := nodeHandler.GetProcessComponents().BlockTracker().GetSelfNotarizedHeader(core.SovereignChainShardId, 0)
+		require.Nil(t, err)
+		require.NotNil(t, selfNotarizedHeaders)
+		require.Equal(t, uint64(round)-1, selfNotarizedHeaders.GetNonce()) // in round X, header with nonce X-1 is notarized
+		checkNotarizedHeadersLen(t, nodeHandler, round)
+
+		// no cross headers received
+		crossTrackedHeaders, _ := nodeHandler.GetProcessComponents().BlockTracker().GetTrackedHeaders(core.MainChainShardId)
+		require.Nil(t, crossTrackedHeaders)
+
+		// only the initial dummy cross header is notarized
+		crossNotarizedHeader, _, err := nodeHandler.GetProcessComponents().BlockTracker().GetCrossNotarizedHeader(core.SovereignChainShardId, 0)
+		require.Nil(t, err)
+		require.Equal(t, uint64(0), crossNotarizedHeader.GetNonce())
+
+		crossNotarizedHeader, _, err = nodeHandler.GetProcessComponents().BlockTracker().GetCrossNotarizedHeader(core.SovereignChainShardId, 1)
+		require.Nil(t, crossNotarizedHeader)
+		require.Error(t, err, track.ErrNotarizedHeaderOffsetIsOutOfBound)
+	}
+}
+
 func TestSovereignChainSimulator_BlockTrackerPoolsCleanup(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
