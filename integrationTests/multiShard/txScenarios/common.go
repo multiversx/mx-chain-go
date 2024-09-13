@@ -42,6 +42,7 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:               integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:            integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

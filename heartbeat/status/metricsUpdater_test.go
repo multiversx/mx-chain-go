@@ -8,18 +8,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/heartbeat/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgsMetricsUpdater() ArgsMetricsUpdater {
 	return ArgsMetricsUpdater{
-		PeerAuthenticationCacher:            testscommon.NewCacherMock(),
+		PeerAuthenticationCacher:            cache.NewCacherMock(),
 		HeartbeatMonitor:                    &mock.HeartbeatMonitorStub{},
 		HeartbeatSenderInfoProvider:         &mock.HeartbeatSenderInfoProviderStub{},
 		AppStatusHandler:                    &statusHandler.AppStatusHandlerStub{},

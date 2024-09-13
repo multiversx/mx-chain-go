@@ -98,6 +98,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 
 				// TODO[Sorin]: remove this once all equivalent messages PRs are merged
 				cfg.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+				cfg.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 			},
 		})
 		require.Nil(t, err)
@@ -146,6 +147,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 
 				// TODO[Sorin]: remove this once all equivalent messages PRs are merged
 				cfg.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+				cfg.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 			},
 		})
 		require.Nil(t, err)
