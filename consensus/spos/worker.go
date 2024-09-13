@@ -114,7 +114,6 @@ type WorkerArgs struct {
 	PeerBlacklistHandler       consensus.PeerBlacklistHandler
 	EquivalentMessagesDebugger EquivalentMessagesDebugger
 	EnableEpochsHandler        common.EnableEpochsHandler
-	EquivalentProofsPool       consensus.EquivalentProofsPool
 }
 
 // NewWorker creates a new Worker object
@@ -168,7 +167,6 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		closer:                     closing.NewSafeChanCloser(),
 		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
 		enableEpochsHandler:        args.EnableEpochsHandler,
-		equivalentProofsPool:       args.EquivalentProofsPool,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -274,9 +272,6 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(args.EquivalentProofsPool) {
-		return ErrNilEquivalentProofPool
 	}
 
 	return nil

@@ -217,7 +217,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerBlacklistHandler:       cc.peerBlacklistHandler,
 		EquivalentMessagesDebugger: equivalentMesaggesDebbuger,
 		EnableEpochsHandler:        ccf.coreComponents.EnableEpochsHandler(),
-		EquivalentProofsPool:       ccf.dataComponents.Datapool().Proofs(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -266,6 +265,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
+		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

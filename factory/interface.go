@@ -401,12 +401,6 @@ type ConsensusWorker interface {
 	ResetConsensusMessages(currentHash []byte, prevHash []byte)
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	// HasEquivalentMessage returns true if an equivalent message was received before
-	HasEquivalentMessage(headerHash []byte) bool
-	// GetEquivalentProof returns the equivalent proof for the provided hash
-	GetEquivalentProof(headerHash []byte) (data.HeaderProofHandler, error)
-	// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-	SetValidEquivalentProof(proof data.HeaderProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

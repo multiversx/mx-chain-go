@@ -98,7 +98,7 @@ func testConsensusWithInvalidSigners(equivalentMessagesFlagActive bool) func(t *
 			for shardID := range nodes {
 				for _, n := range nodes[shardID] {
 					// this is just for the test only, as equivalent messages are enabled from epoch 0
-					_ = n.Node.GetDataComponents().Datapool().Proofs().AddNotarizedProof(&block.HeaderProof{
+					_ = n.Node.GetDataComponents().Datapool().Proofs().AddProof(&block.HeaderProof{
 						AggregatedSignature: []byte("initial sig"),
 						PubKeysBitmap:       []byte("initial bitmap"),
 						HeaderShardId:       shardID,

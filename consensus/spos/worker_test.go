@@ -24,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -97,8 +96,6 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 
-	proofsPool := proofscache.NewProofsPool()
-
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:           blsService,
 		BlockChain:                 blockchainMock,
@@ -127,7 +124,6 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
 		EquivalentMessagesDebugger: &consensusMocks.EquivalentMessagesDebuggerStub{},
 		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		EquivalentProofsPool:       proofsPool,
 	}
 
 	return workerArgs
