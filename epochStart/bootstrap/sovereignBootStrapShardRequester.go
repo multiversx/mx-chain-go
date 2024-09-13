@@ -1,8 +1,16 @@
 package bootstrap
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -82,4 +90,55 @@ func (e *sovereignBootStrapShardRequester) requestAndProcessForShard(peerMiniBlo
 
 func (e *sovereignBootStrapShardRequester) computeNumShards(_ data.MetaHeaderHandler) uint32 {
 	return 1
+}
+
+func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.RequestHandler, error) {
+	requestersContainerArgs := requesterscontainer.FactoryArgs{
+		RequesterConfig:                 e.generalConfig.Requesters,
+		ShardCoordinator:                e.shardCoordinator,
+		MainMessenger:                   e.mainMessenger,
+		FullArchiveMessenger:            e.fullArchiveMessenger,
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
+		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
+		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
+		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
+		SizeCheckDelta:                  0,
+	}
+
+	sh, err := requesterscontainer.NewShardRequestersContainerFactory(requestersContainerArgs)
+	if err != nil {
+		return nil, err
+	}
+	requestersFactory, err := requesterscontainer.NewSovereignShardRequestersContainerFactory(sh)
+	if err != nil {
+		return nil, err
+	}
+
+	container, err := requestersFactory.Create()
+	if err != nil {
+		return nil, err
+	}
+	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
+	return e.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(
+		requestHandlers.RequestHandlerArgs{
+			RequestersFinder:      finder,
+			RequestedItemsHandler: requestedItemsHandler,
+			WhiteListHandler:      e.whiteListHandler,
+			MaxTxsToRequest:       maxToRequest,
+			ShardID:               core.MetachainShardId,
+			RequestInterval:       timeBetweenRequests,
+		},
+	)
+}
+
+func (e *sovereignBootStrapShardRequester) createResolversContainer() error {
+	return nil
 }
