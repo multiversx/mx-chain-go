@@ -78,7 +78,7 @@ func (e *bootStrapShardRequester) requestAndProcessForShard(peerMiniBlocks []*bl
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	dts, err := e.getDataToSyncMethod(
+	dts, err := e.getDataToSync(
 		epochStartData,
 		shardNotarizedHeader,
 	)
