@@ -132,12 +132,12 @@ func (bdi *baseDataInterceptor) checkIfMessageHasBeenProcessed(interceptedData p
 	}
 
 	if bdi.timeCache.Has(hash) {
-		return fmt.Errorf("intercepted data has already been processed")
+		return fmt.Errorf("processed intercepted data with hash: %s", hash)
 	}
 
 	err := bdi.timeCache.Add(hash)
 	if err != nil {
-		return fmt.Errorf("intercepted data could not be added to the cache")
+		return fmt.Errorf("failed to add to time cache intercepted data with hash: %s", hash)
 	}
 
 	return nil

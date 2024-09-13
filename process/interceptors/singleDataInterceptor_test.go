@@ -2,7 +2,7 @@ package interceptors_test
 
 import (
 	"errors"
-	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -10,13 +10,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
@@ -468,6 +469,67 @@ func TestSingleDataInterceptor_Close(t *testing.T) {
 
 	err := sdi.Close()
 	assert.Nil(t, err)
+}
+
+func TestSingleDataInterceptor_ProcessSameMessage(t *testing.T) {
+	t.Parallel()
+
+	checkCalledNum := int32(0)
+	processCalledNum := int32(0)
+	throttler := createMockThrottler()
+	interceptedData := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
+		CheckValidityCalled: func() error {
+			return nil
+		},
+		IsForCurrentShardCalled: func() bool {
+			return false
+		},
+	}
+
+	whiteListHandler := &testscommon.WhiteListHandlerStub{
+		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
+			return true
+		},
+	}
+	arg := createMockArgSingleDataInterceptor()
+	arg.DataFactory = &mock.InterceptedDataFactoryStub{
+		CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
+			return interceptedData, nil
+		},
+	}
+	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
+	arg.Throttler = throttler
+	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		IsOriginatorEligibleForTopicCalled: func(pid core.PeerID, topic string) error {
+			return process.ErrOnlyValidatorsCanUseThisTopic
+		},
+	}
+	arg.WhiteListRequest = whiteListHandler
+	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
+
+	msg := &p2pmocks.P2PMessageMock{
+		DataField: []byte("data to be processed"),
+	}
+
+	wg := sync.WaitGroup{}
+	errCount := atomic.Uint32{}
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+			if err != nil && strings.Contains(err.Error(), "has already been processed") {
+				errCount.Add(1)
+			}
+		}()
+	}
+
+	wg.Wait()
+	require.Equal(t, uint32(2), errCount.Load())
 }
 
 //------- IsInterfaceNil
