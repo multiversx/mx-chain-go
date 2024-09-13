@@ -1398,11 +1398,11 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 				if index < 8 {
 					return nil, nil
 				}
-				return nil, bls.ErrAux
+				return nil, ErrAux
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 				time.Sleep(100 * time.Millisecond)
-				return bls.ErrAux
+				return ErrAux
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
 				return nil
@@ -1428,7 +1428,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 			}()
 			invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
 			time.Sleep(200 * time.Millisecond)
-			require.Equal(t, err, bls.ErrAux)
+			require.Equal(t, err, ErrAux)
 			require.Nil(t, invalidSigners)
 		}()
 		time.Sleep(time.Second)
