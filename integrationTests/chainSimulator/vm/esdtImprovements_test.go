@@ -401,6 +401,18 @@ func checkMetaData(
 	require.Equal(t, expectedMetaData.Attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
 }
 
+func checkReservedField(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	addressBytes []byte,
+	tokenID []byte,
+	shardID uint32,
+	expectedReservedField []byte,
+) {
+	esdtData := getESDTDataFromAcc(t, cs, addressBytes, tokenID, shardID)
+	require.Equal(t, expectedReservedField, esdtData.Reserved)
+}
+
 func checkMetaDataNotInAcc(
 	t *testing.T,
 	cs testsChainSimulator.ChainSimulator,
@@ -3861,7 +3873,7 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	baseIssuingCost := "1000"
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
-
+	marshaller := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer()
 	addrs := createAddresses(t, cs, true)
 
 	log.Info("Register dynamic metaESDT token")
@@ -3930,6 +3942,7 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, metaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, shardID, []byte{1})
 
 	log.Info("send metaEsdt cross shard")
 
@@ -3964,8 +3977,19 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	expectedMetaData.Hash = newMetaData.Hash
 	expectedMetaData.Attributes = newMetaData.Attributes
 
+	round := cs.GetNodeHandler(0).GetChainHandler().GetCurrentBlockHeader().GetRound()
+	reserved := &esdt.MetaDataVersion{
+		Name:       round,
+		Creator:    round,
+		Hash:       round,
+		Attributes: round,
+	}
+	firstVersion, _ := marshaller.Marshal(reserved)
+
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 0, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 0, firstVersion)
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 1, metaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 1, []byte{1})
 
 	log.Info("send the update role to shard 2")
 
@@ -3988,7 +4012,9 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	require.Equal(t, "success", txResult.Status.String())
 
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 0, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 0, firstVersion)
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 1, metaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 1, []byte{1})
 
 	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, 2)
 	require.Equal(t, uint64(0), retrievedMetaData.Nonce)
@@ -4001,6 +4027,15 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
 	}
 	require.Equal(t, 0, len(retrievedMetaData.Attributes))
+
+	round2 := cs.GetNodeHandler(2).GetChainHandler().GetCurrentBlockHeader().GetRound()
+	reserved = &esdt.MetaDataVersion{
+		URIs:      round2,
+		Creator:   round2,
+		Royalties: round2,
+	}
+	secondVersion, _ := cs.GetNodeHandler(shardID).GetCoreComponents().InternalMarshalizer().Marshal(reserved)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 2, secondVersion)
 
 	log.Info("transfer from shard 0 to shard 1 - should merge metaData")
 
@@ -4015,7 +4050,9 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	require.Nil(t, err)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 0, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 0, firstVersion)
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 1, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 1, firstVersion)
 
 	log.Info("transfer from shard 1 to shard 2 - should merge metaData")
 
@@ -4036,7 +4073,9 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	require.Nil(t, err)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 0, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 0, firstVersion)
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 1, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 1, firstVersion)
 
 	latestMetaData := txsFee.GetDefaultMetaData()
 	latestMetaData.Nonce = expectedMetaData.Nonce
@@ -4046,6 +4085,17 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	latestMetaData.Attributes = expectedMetaData.Attributes
 	latestMetaData.Uris = newMetaData2.Uris
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 2, latestMetaData)
+
+	reserved = &esdt.MetaDataVersion{
+		Name:       round,
+		Creator:    round2,
+		Royalties:  round2,
+		Hash:       round,
+		URIs:       round2,
+		Attributes: round,
+	}
+	thirdVersion, _ := cs.GetNodeHandler(shardID).GetCoreComponents().InternalMarshalizer().Marshal(reserved)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 2, thirdVersion)
 
 	log.Info("transfer from shard 2 to shard 0 - should update metaData")
 
@@ -4065,8 +4115,29 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	require.Nil(t, err)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 0, latestMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 0, thirdVersion)
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 1, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 1, firstVersion)
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 2, latestMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 2, thirdVersion)
+
+	log.Info("transfer from shard 1 to shard 0 - liquidity should be updated")
+
+	tx = esdtNFTTransferTx(1, addrs[1].Bytes, addrs[0].Bytes, tokenID)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 0, latestMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 0, thirdVersion)
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 1, expectedMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 1, firstVersion)
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, 2, latestMetaData)
+	checkReservedField(t, cs, core.SystemAccountAddress, tokenID, 2, thirdVersion)
 }
 
 func unsetSpecialRole(
