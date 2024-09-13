@@ -256,7 +256,7 @@ func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 // subroundEndRound
 
 // SubroundEndRound defines a type for the subroundEndRound structure
-type SubroundEndRound *subroundEndRound
+type SubroundEndRound = *subroundEndRound
 
 // DoEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) DoEndRoundJob() bool {
