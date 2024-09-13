@@ -1390,7 +1390,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 	t.Run("fail to verify signature share, an element will return an error on SignatureShare, should not panic", func(t *testing.T) {
 		t.Parallel()
-
+		var ErrAux = errors.New("auxiliary error")
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		signingHandler := &consensusMocks.SigningHandlerStub{
