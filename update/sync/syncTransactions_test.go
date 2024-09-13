@@ -16,17 +16,19 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgs() ArgsNewTransactionsSyncer {
@@ -529,7 +531,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolShouldWork(t *testing.T) {
 			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
+						return &cache.CacherStub{
 							PeekCalled: func(key []byte) (value interface{}, ok bool) {
 								if bytes.Equal(key, txHash) {
 									return nil, true
@@ -690,7 +692,7 @@ func TestTransactionsSync_GetValidatorInfoFromPoolOrStorage(t *testing.T) {
 			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
 				return &testscommon.ShardedDataStub{
 					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return &testscommon.CacherStub{
+						return &cache.CacherStub{
 							PeekCalled: func(key []byte) (value interface{}, ok bool) {
 								return nil, false
 							},
@@ -852,7 +854,7 @@ func getDataPoolsWithShardValidatorInfoAndTxHash(svi *state.ShardValidatorInfo, 
 		ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-					return &testscommon.CacherStub{
+					return &cache.CacherStub{
 						PeekCalled: func(key []byte) (value interface{}, ok bool) {
 							if bytes.Equal(key, txHash) {
 								return svi, true

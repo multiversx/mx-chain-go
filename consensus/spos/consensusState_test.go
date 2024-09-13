@@ -104,22 +104,6 @@ func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnTrue(t *testing.T)
 	assert.Equal(t, true, cns.IsNodeLeaderInCurrentRound("1"))
 }
 
-func TestConsensusState_IsSelfLeaderInCurrentRoundShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	cns := internalInitConsensusState()
-
-	assert.False(t, cns.IsSelfLeaderInCurrentRound())
-}
-
-func TestConsensusState_IsSelfLeaderInCurrentRoundShouldReturnTrue(t *testing.T) {
-	t.Parallel()
-
-	cns := internalInitConsensusState()
-
-	assert.False(t, cns.IsSelfLeaderInCurrentRound())
-}
-
 func TestConsensusState_GetLeaderShoudErrNilConsensusGroup(t *testing.T) {
 	t.Parallel()
 
