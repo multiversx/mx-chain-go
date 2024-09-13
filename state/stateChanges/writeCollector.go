@@ -103,15 +103,15 @@ func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, 
 
 // GetStateChangesForTxs will retrieve the state changes linked with the tx hash.
 func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
-	scc.stateChangesMut.Lock()
-	defer scc.stateChangesMut.Unlock()
+	scc.stateChangesMut.RLock()
+	defer scc.stateChangesMut.RUnlock()
 
 	stateChangesForTxs := make(map[string]*data.StateChanges)
 
 	for _, stateChange := range scc.stateChanges {
 		txHash := string(stateChange.GetTxHash())
 
-		if sc, ok := stateChangesForTxs[txHash]; !ok {
+		if _, ok := stateChangesForTxs[txHash]; !ok {
 			stateChangesForTxs[txHash] = &data.StateChanges{StateChanges: []*data.StateChange{
 				{
 					Type:            stateChange.GetType(),
@@ -125,7 +125,7 @@ func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.State
 			},
 			}
 		} else {
-			sc.StateChanges = append(sc.StateChanges,
+			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges,
 				&data.StateChange{
 					Type:            stateChange.GetType(),
 					Index:           stateChange.GetIndex(),
