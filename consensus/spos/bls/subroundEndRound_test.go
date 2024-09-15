@@ -1390,7 +1390,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 	t.Run("fail to verify signature share, an element will return an error on SignatureShare, should not panic", func(t *testing.T) {
 		t.Parallel()
-		var ErrAux = errors.New("auxiliary error")
+		var expectedErr = errors.New("auxiliary error")
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -1398,11 +1398,11 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 				if index < 8 {
 					return nil, nil
 				}
-				return nil, ErrAux
+				return nil, expectedErr
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 				time.Sleep(100 * time.Millisecond)
-				return ErrAux
+				return expectedErr
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
 				return nil
@@ -1428,7 +1428,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 			}()
 			invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
 			time.Sleep(200 * time.Millisecond)
-			require.Equal(t, err, ErrAux)
+			require.Equal(t, err, expectedErr)
 			require.Nil(t, invalidSigners)
 		}()
 		time.Sleep(time.Second)
