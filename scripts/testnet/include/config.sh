@@ -94,7 +94,6 @@ prepareElasticsearch() {
     ES_CONTAINER_ID=$(docker start $ES_CONTAINER)
   else
     ES_CONTAINER_ID=$(docker run -d --network host --volume=$ELASTICSEARCH_VOLUME:/usr/share/elasticsearch/data -e "discovery.type=single-node" --name=$ES_CONTAINER docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
-    sleep 20
     updateElasticsearchIndices
   fi
   echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
