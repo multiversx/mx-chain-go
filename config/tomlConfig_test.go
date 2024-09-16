@@ -863,6 +863,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
     CleanupAuctionOnLowWaitingListEnableEpoch = 95
 
+    # UseGasBoundedShouldFailExecutionEnableEpoch represents the epoch when use bounded gas function should fail execution in case of error
+    UseGasBoundedShouldFailExecutionEnableEpoch = 96
+
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
     DynamicESDTEnableEpoch = 96
 
@@ -997,6 +1000,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
 			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
+			UseGasBoundedShouldFailExecutionEnableEpoch:              96,
 			DynamicESDTEnableEpoch:                                   96,
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,

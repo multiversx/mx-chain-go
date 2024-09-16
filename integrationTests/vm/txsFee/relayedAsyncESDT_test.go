@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -34,7 +35,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance, uint32(core.Fungible))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
@@ -96,7 +97,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance, uint32(core.Fungible))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
@@ -158,7 +159,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance, uint32(core.Fungible))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
