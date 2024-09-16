@@ -58,6 +58,44 @@ func initConsensusStateWithKeysHandlerAndNodesCoordinator(keysHandler consensus.
 	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
 }
 
+func initConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler, keys []string) *spos.ConsensusState {
+	numberOfKeys := len(keys)
+	eligibleNodesPubKeys := make(map[string]struct{}, numberOfKeys)
+	for _, key := range keys {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	indexLeader := 1
+	rcns, _ := spos.NewRoundConsensus(
+		eligibleNodesPubKeys,
+		numberOfKeys,
+		keys[indexLeader],
+		keysHandler,
+	)
+	rcns.SetConsensusGroup(keys)
+	rcns.ResetRoundState()
+
+	pBFTThreshold := numberOfKeys*2/3 + 1
+	pBFTFallbackThreshold := numberOfKeys*1/2 + 1
+	rthr := spos.NewRoundThreshold()
+	rthr.SetThreshold(1, 1)
+	rthr.SetThreshold(2, pBFTThreshold)
+	rthr.SetFallbackThreshold(1, 1)
+	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+	)
+	cns.Data = []byte("X")
+	cns.RoundIndex = 0
+
+	return cns
+}
+
 func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHandler, consensusGroupSize int) *spos.ConsensusState {
 	eligibleList := createEligibleList(consensusGroupSize)
 
