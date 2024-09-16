@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -124,6 +125,7 @@ func NewMetaInterceptorsContainerFactory(
 		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
 		hardforkTrigger:            args.HardforkTrigger,
 		nodeOperationMode:          args.NodeOperationMode,
+		processedMessagesCacheMap:  args.ProcessedMessagesCacheMap,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -263,14 +265,15 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:                topic,
-			DataFactory:          hdrFactory,
-			Processor:            hdrProcessor,
-			Throttler:            micf.globalThrottler,
-			AntifloodHandler:     micf.antifloodHandler,
-			WhiteListRequest:     micf.whiteListHandler,
-			CurrentPeerId:        micf.mainMessenger.ID(),
-			PreferredPeersHolder: micf.preferredPeersHolder,
+			Topic:                     topic,
+			DataFactory:               hdrFactory,
+			Processor:                 hdrProcessor,
+			Throttler:                 micf.globalThrottler,
+			AntifloodHandler:          micf.antifloodHandler,
+			WhiteListRequest:          micf.whiteListHandler,
+			CurrentPeerId:             micf.mainMessenger.ID(),
+			PreferredPeersHolder:      micf.preferredPeersHolder,
+			ProcessedMessagesCacheMap: micf.processedMessagesCacheMap,
 		},
 	)
 	if err != nil {

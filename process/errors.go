@@ -942,6 +942,9 @@ var ErrNilEpochStartSystemSCProcessor = errors.New("nil epoch start system sc pr
 // ErrEmptyPeerID signals that an empty peer ID has been provided
 var ErrEmptyPeerID = errors.New("empty peer ID")
 
+// ErrNilProcessedMessagesCacheMap signals that an empty cache map has been provided
+var ErrNilProcessedMessagesCacheMap = errors.New("empty processed messages cache map")
+
 // ErrNilFallbackHeaderValidator signals that a nil fallback header validator has been provided
 var ErrNilFallbackHeaderValidator = errors.New("nil fallback header validator")
 

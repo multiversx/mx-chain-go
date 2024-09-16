@@ -3,9 +3,11 @@ package sharding
 import (
 	"bytes"
 	"fmt"
+	"os"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -182,6 +184,7 @@ func (ns *NodesSetup) processConfig() error {
 		return ErrMinNodesPerShardSmallerThanConsensusSize
 	}
 	if ns.nrOfNodes < ns.genesisChainParameters.ShardMinNumNodes {
+		fmt.Fprintf(os.Stdout, "number of nodes: %s", ns.nrOfNodes)
 		return ErrNodesSizeSmallerThanMinNoOfNodes
 	}
 	if ns.genesisChainParameters.MetachainMinNumNodes < 1 {

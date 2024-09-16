@@ -1501,6 +1501,8 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 		nodeOperationMode = common.FullArchiveMode
 	}
 
+	processedMessagesCacheMap := make(map[string]storage.Cacher)
+
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return pcf.newShardInterceptorContainerFactory(
@@ -1513,6 +1515,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			fullArchivePeerShardMapper,
 			hardforkTrigger,
 			nodeOperationMode,
+			processedMessagesCacheMap,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1526,6 +1529,7 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			fullArchivePeerShardMapper,
 			hardforkTrigger,
 			nodeOperationMode,
+			processedMessagesCacheMap,
 		)
 	}
 
@@ -1665,6 +1669,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
+	processedMessagesCacheMap map[string]storage.Cacher,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1698,6 +1703,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            nodeOperationMode,
+		ProcessedMessagesCacheMap:    processedMessagesCacheMap,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1718,6 +1724,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
+	processedMessageCacheMap map[string]storage.Cacher,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1751,6 +1758,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            nodeOperationMode,
+		ProcessedMessagesCacheMap:    processedMessageCacheMap,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)

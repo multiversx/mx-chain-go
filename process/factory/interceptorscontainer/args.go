@@ -2,6 +2,7 @@ package interceptorscontainer
 
 import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/heartbeat"
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // CommonInterceptorsContainerFactoryArgs holds the arguments needed for the metachain/shard interceptors factories
@@ -43,4 +45,6 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	FullArchivePeerShardMapper   process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
 	NodeOperationMode            common.NodeOperation
+	ProcessedMessagesCache       storage.Cacher
+	ProcessedMessagesCacheMap    map[string]storage.Cacher
 }

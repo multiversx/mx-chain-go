@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -123,6 +124,7 @@ func NewShardInterceptorsContainerFactory(
 		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
 		hardforkTrigger:            args.HardforkTrigger,
 		nodeOperationMode:          args.NodeOperationMode,
+		processedMessagesCacheMap:  args.ProcessedMessagesCacheMap,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

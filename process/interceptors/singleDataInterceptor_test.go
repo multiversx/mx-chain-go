@@ -16,20 +16,23 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
 	return interceptors.ArgSingleDataInterceptor{
-		Topic:                "test topic",
-		DataFactory:          &mock.InterceptedDataFactoryStub{},
-		Processor:            &mock.InterceptorProcessorStub{},
-		Throttler:            createMockThrottler(),
-		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		CurrentPeerId:        "pid",
+		Topic:                     "test topic",
+		DataFactory:               &mock.InterceptedDataFactoryStub{},
+		Processor:                 &mock.InterceptorProcessorStub{},
+		Throttler:                 createMockThrottler(),
+		AntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:          &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder:      &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:             "pid",
+		ProcessedMessagesCacheMap: make(map[string]storage.Cacher),
 	}
 }
 
@@ -508,6 +511,14 @@ func TestSingleDataInterceptor_ProcessSameMessage(t *testing.T) {
 		},
 	}
 	arg.WhiteListRequest = whiteListHandler
+
+	span := 1 * time.Second
+	c, _ := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: span,
+		CacheExpiry: time.Second,
+	})
+	arg.ProcessedMessagesCacheMap[arg.Topic] = c
+
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 
 	msg := &p2pmocks.P2PMessageMock{
@@ -522,7 +533,7 @@ func TestSingleDataInterceptor_ProcessSameMessage(t *testing.T) {
 			defer wg.Done()
 
 			err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
-			if err != nil && strings.Contains(err.Error(), "has already been processed") {
+			if err != nil && strings.Contains(err.Error(), "processed intercepted data with hash") {
 				errCount.Add(1)
 			}
 		}()
@@ -530,6 +541,10 @@ func TestSingleDataInterceptor_ProcessSameMessage(t *testing.T) {
 
 	wg.Wait()
 	require.Equal(t, uint32(2), errCount.Load())
+
+	<-time.After(span + time.Millisecond)
+	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
+	require.Nil(t, err)
 }
 
 //------- IsInterfaceNil

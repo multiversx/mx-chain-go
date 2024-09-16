@@ -10,20 +10,19 @@ import (
 
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type baseDataInterceptor struct {
-	throttler            process.InterceptorThrottler
-	antifloodHandler     process.P2PAntifloodHandler
-	topic                string
-	currentPeerId        core.PeerID
-	processor            process.InterceptorProcessor
-	mutDebugHandler      sync.RWMutex
-	debugHandler         process.InterceptedDebugger
-	preferredPeersHolder process.PreferredPeersHolderHandler
-
-	timeCache *cache.TimeCache
+	throttler                 process.InterceptorThrottler
+	antifloodHandler          process.P2PAntifloodHandler
+	topic                     string
+	currentPeerId             core.PeerID
+	processor                 process.InterceptorProcessor
+	mutDebugHandler           sync.RWMutex
+	debugHandler              process.InterceptedDebugger
+	preferredPeersHolder      process.PreferredPeersHolderHandler
+	processedMessagesCacheMap map[string]storage.Cacher
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -125,19 +124,22 @@ func (bdi *baseDataInterceptor) receivedDebugInterceptedData(interceptedData pro
 }
 
 func (bdi *baseDataInterceptor) checkIfMessageHasBeenProcessed(interceptedData process.InterceptedData) error {
-	hash := string(interceptedData.Hash())
-
-	if hash == "" {
+	if len(interceptedData.Hash()) == 0 {
 		return nil
 	}
 
-	if bdi.timeCache.Has(hash) {
-		return fmt.Errorf("processed intercepted data with hash: %s", hash)
+	c, ok := bdi.processedMessagesCacheMap[bdi.topic]
+	if !ok {
+		return fmt.Errorf("cache for topic %q does not exist", bdi.topic)
 	}
 
-	err := bdi.timeCache.Add(hash)
-	if err != nil {
-		return fmt.Errorf("failed to add to time cache intercepted data with hash: %s", hash)
+	cache, ok := c.(storage.Cacher)
+	if !ok {
+		return fmt.Errorf("failed to cast cacher")
+	}
+
+	if has, _ := cache.HasOrAdd(interceptedData.Hash(), nil, 0); has {
+		return fmt.Errorf("processed intercepted data with hash: %s", interceptedData.Hash())
 	}
 
 	return nil
