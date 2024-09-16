@@ -303,10 +303,10 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
 	var err error
-	sesb.baseData.numberOfShards = sesb.bootStrapShardRequester.computeNumShards(sesb.epochStartMeta)
+	sesb.baseData.numberOfShards = sesb.bootStrapShardProcessor.computeNumShards(sesb.epochStartMeta)
 	sesb.baseData.lastEpoch = sesb.epochStartMeta.GetEpoch()
 
-	sesb.syncedHeaders, err = sesb.bootStrapShardRequester.syncHeadersFromStorage(
+	sesb.syncedHeaders, err = sesb.bootStrapShardProcessor.syncHeadersFromStorage(
 		sesb.epochStartMeta,
 		sesb.destinationShardAsObserver,
 		sesb.importDbConfig.ImportDBTargetShardID,
@@ -329,7 +329,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
-	err = sesb.bootStrapShardRequester.processNodesConfigFromStorage(pubKeyBytes, sesb.importDbConfig.ImportDBTargetShardID)
+	err = sesb.bootStrapShardProcessor.processNodesConfigFromStorage(pubKeyBytes, sesb.importDbConfig.ImportDBTargetShardID)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -355,7 +355,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.bootStrapShardRequester.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
+		err = sesb.bootStrapShardProcessor.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}

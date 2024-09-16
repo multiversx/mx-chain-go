@@ -349,7 +349,7 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		syncedHeaders, err := sesb.bootStrapShardRequester.syncHeadersFromStorage(
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
 			metaBlock,
 			0,
 			sesb.importDbConfig.ImportDBTargetShardID,
@@ -382,7 +382,7 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		syncedHeaders, err := sesb.bootStrapShardRequester.syncHeadersFromStorage(
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
 			metaBlock,
 			0,
 			sesb.importDbConfig.ImportDBTargetShardID,
@@ -432,7 +432,7 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			string(hdrHash2): &block.MetaBlock{},
 		}
 
-		syncedHeaders, err := sesb.bootStrapShardRequester.syncHeadersFromStorage(
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
 			metaBlock,
 			0,
 			sesb.importDbConfig.ImportDBTargetShardID,
@@ -467,7 +467,7 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		syncedHeaders, err := sesb.bootStrapShardRequester.syncHeadersFromStorage(
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
 			metaBlock,
 			0,
 			sesb.importDbConfig.ImportDBTargetShardID,
@@ -535,7 +535,7 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	sesb.epochStartMeta = metaBlock
 	sesb.prevEpochStartMeta = metaBlock
 
-	err := sesb.bootStrapShardRequester.processNodesConfigFromStorage([]byte("pubkey"), sesb.importDbConfig.ImportDBTargetShardID)
+	err := sesb.bootStrapShardProcessor.processNodesConfigFromStorage([]byte("pubkey"), sesb.importDbConfig.ImportDBTargetShardID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)

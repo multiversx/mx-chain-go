@@ -19,7 +19,7 @@ func NewSovereignChainEpochStartBootstrap(epochStartBootstrap *epochStartBootstr
 		epochStartBootstrap,
 	}
 
-	scesb.bootStrapShardRequester = &sovereignBootStrapShardRequester{
+	scesb.bootStrapShardProcessor = &sovereignBootStrapShardRequester{
 		scesb,
 	}
 
