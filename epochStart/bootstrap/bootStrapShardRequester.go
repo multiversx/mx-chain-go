@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -326,4 +327,84 @@ func (e *bootStrapShardRequester) syncHeadersFromStorage(
 	}
 
 	return syncedHeaders, nil
+}
+
+func (e *bootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) error {
+	var err error
+	shardId := e.destinationShardAsObserver
+	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
+		shardId = e.genesisShardCoordinator.SelfId()
+	}
+	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
+		DataPool:                         e.dataPool,
+		Marshalizer:                      e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                   e.requestHandler,
+		ChanceComputer:                   e.rater,
+		GenesisNodesConfig:               e.genesisNodesConfig,
+		NodeShuffler:                     e.nodeShuffler,
+		Hasher:                           e.coreComponentsHolder.Hasher(),
+		PubKey:                           pubKey,
+		ShardIdAsObserver:                shardId,
+		ChanNodeStop:                     e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                 e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                    e.prefsConfig.FullArchive,
+		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorWithRaterFactory: e.runTypeComponents.NodesCoordinatorWithRaterCreator(),
+	}
+	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
+	if err != nil {
+		return err
+	}
+
+	clonedHeader := e.epochStartMeta.ShallowClone()
+	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
+	if !ok {
+		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
+	}
+	err = e.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta, importDBTargetShardID)
+	if err != nil {
+		return err
+	}
+
+	clonedHeader = e.prevEpochStartMeta.ShallowClone()
+	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
+	if !ok {
+		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
+	}
+
+	err = e.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta, importDBTargetShardID)
+	if err != nil {
+		return err
+	}
+
+	// no need to save the peers miniblocks here as they were already fetched from the DB
+	e.nodesConfig, e.baseData.shardId, _, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
+	e.baseData.shardId = e.applyShardIDAsObserverIfNeeded(e.baseData.shardId)
+
+	return err
+}
+
+// applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
+// header to  be exactly the shard ID used in the import-db process. This is necessary as to allow the miniblocks to be requested
+// on the available resolver and should be called only from this storage-base bootstrap instance.
+// This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
+// "start of epoch metablock mismatch"
+func (e *bootStrapShardRequester) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler, importDBTargetShardID uint32) error {
+	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
+	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
+	var err error
+
+	for i := range originalMiniblocksHeaders {
+		mb := originalMiniblocksHeaders[i].ShallowClone()
+		err = mb.SetSenderShardID(importDBTargetShardID) // it is safe to modify here as mb is a shallow clone
+		if err != nil {
+			return err
+		}
+
+		mbsHeaderHandlersToSet = append(mbsHeaderHandlersToSet, mb)
+	}
+
+	err = metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
+	return err
 }

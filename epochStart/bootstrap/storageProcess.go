@@ -269,6 +269,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
 		requestersContainerFactory, err = storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	} else {
+		// todo here
 		requestersContainerFactory, err = storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 
@@ -329,7 +330,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
-	err = sesb.processNodesConfig(pubKeyBytes)
+	err = sesb.bootStrapShardRequester.processNodesConfigFromStorage(pubKeyBytes, sesb.importDbConfig.ImportDBTargetShardID)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -369,86 +370,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	}
 
 	return parameters, nil
-}
-
-func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error {
-	var err error
-	shardId := sesb.destinationShardAsObserver
-	if shardId > sesb.baseData.numberOfShards && shardId != core.MetachainShardId {
-		shardId = sesb.genesisShardCoordinator.SelfId()
-	}
-	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                         sesb.dataPool,
-		Marshalizer:                      sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:                   sesb.requestHandler,
-		ChanceComputer:                   sesb.rater,
-		GenesisNodesConfig:               sesb.genesisNodesConfig,
-		NodeShuffler:                     sesb.nodeShuffler,
-		Hasher:                           sesb.coreComponentsHolder.Hasher(),
-		PubKey:                           pubKey,
-		ShardIdAsObserver:                shardId,
-		ChanNodeStop:                     sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:                 sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:                    sesb.prefsConfig.FullArchive,
-		EnableEpochsHandler:              sesb.coreComponentsHolder.EnableEpochsHandler(),
-		NodesCoordinatorRegistryFactory:  sesb.nodesCoordinatorRegistryFactory,
-		NodesCoordinatorWithRaterFactory: sesb.runTypeComponents.NodesCoordinatorWithRaterCreator(),
-	}
-	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
-	if err != nil {
-		return err
-	}
-
-	clonedHeader := sesb.epochStartMeta.ShallowClone()
-	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
-	if !ok {
-		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
-	}
-	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
-	if err != nil {
-		return err
-	}
-
-	clonedHeader = sesb.prevEpochStartMeta.ShallowClone()
-	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
-	if !ok {
-		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
-	}
-
-	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)
-	if err != nil {
-		return err
-	}
-
-	// no need to save the peers miniblocks here as they were already fetched from the DB
-	sesb.nodesConfig, sesb.baseData.shardId, _, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
-	sesb.baseData.shardId = sesb.applyShardIDAsObserverIfNeeded(sesb.baseData.shardId)
-
-	return err
-}
-
-// applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
-// header to  be exactly the shard ID used in the import-db process. This is necessary as to allow the miniblocks to be requested
-// on the available resolver and should be called only from this storage-base bootstrap instance.
-// This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
-// "start of epoch metablock mismatch"
-func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
-	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
-	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
-	var err error
-
-	for i := range originalMiniblocksHeaders {
-		mb := originalMiniblocksHeaders[i].ShallowClone()
-		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) // it is safe to modify here as mb is a shallow clone
-		if err != nil {
-			return err
-		}
-
-		mbsHeaderHandlersToSet = append(mbsHeaderHandlersToSet, mb)
-	}
-
-	err = metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
-	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

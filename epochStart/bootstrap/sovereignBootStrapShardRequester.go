@@ -188,3 +188,33 @@ func (e *sovereignBootStrapShardRequester) baseSyncHeadersFromStorage(
 
 	return syncedHeaders, nil
 }
+
+func (e *sovereignBootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, _ uint32) error {
+	var err error
+	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
+		DataPool:                         e.dataPool,
+		Marshalizer:                      e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                   e.requestHandler,
+		ChanceComputer:                   e.rater,
+		GenesisNodesConfig:               e.genesisNodesConfig,
+		NodeShuffler:                     e.nodeShuffler,
+		Hasher:                           e.coreComponentsHolder.Hasher(),
+		PubKey:                           pubKey,
+		ShardIdAsObserver:                core.SovereignChainShardId,
+		ChanNodeStop:                     e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                 e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                    e.prefsConfig.FullArchive,
+		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorWithRaterFactory: e.runTypeComponents.NodesCoordinatorWithRaterCreator(),
+	}
+	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
+	if err != nil {
+		return err
+	}
+
+	// no need to save the peers miniblocks here as they were already fetched from the DB
+	e.nodesConfig, e.baseData.shardId, _, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	e.baseData.shardId = core.SovereignChainShardId
+	return err
+}
