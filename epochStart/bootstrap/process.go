@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -52,7 +54,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
@@ -589,6 +590,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler:          e.requestHandler,
 		SignaturesHandler:       e.mainMessenger,
 		NodeOperationMode:       e.nodeOperationMode,
+		ProcessedMessagesCache:  make(map[string]storage.Cacher),
 	}
 
 	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
@@ -759,20 +761,20 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		shardId = e.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:               e.dataPool,
-		Marshalizer:            e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:         e.requestHandler,
-		ChanceComputer:         e.rater,
-		GenesisNodesConfig:     e.genesisNodesConfig,
-		ChainParametersHandler: e.coreComponentsHolder.ChainParametersHandler(),
-		NodeShuffler:           e.nodeShuffler,
-		Hasher:                 e.coreComponentsHolder.Hasher(),
-		PubKey:                 pubKey,
-		ShardIdAsObserver:      shardId,
-		ChanNodeStop:           e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:       e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:          e.prefsConfig.FullArchive,
-		EnableEpochsHandler:    e.coreComponentsHolder.EnableEpochsHandler(),
+		DataPool:                        e.dataPool,
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                  e.requestHandler,
+		ChanceComputer:                  e.rater,
+		GenesisNodesConfig:              e.genesisNodesConfig,
+		ChainParametersHandler:          e.coreComponentsHolder.ChainParametersHandler(),
+		NodeShuffler:                    e.nodeShuffler,
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		PubKey:                          pubKey,
+		ShardIdAsObserver:               shardId,
+		ChanNodeStop:                    e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                   e.prefsConfig.FullArchive,
+		EnableEpochsHandler:             e.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 	}
 

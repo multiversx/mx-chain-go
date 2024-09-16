@@ -45,6 +45,5 @@ type CommonInterceptorsContainerFactoryArgs struct {
 	FullArchivePeerShardMapper   process.PeerShardMapper
 	HardforkTrigger              heartbeat.HardforkTrigger
 	NodeOperationMode            common.NodeOperation
-	ProcessedMessagesCache       storage.Cacher
 	ProcessedMessagesCacheMap    map[string]storage.Cacher
 }
