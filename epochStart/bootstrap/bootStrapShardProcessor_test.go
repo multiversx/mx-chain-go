@@ -21,7 +21,7 @@ func TestBootStrapShardProcessor_applyCurrentShardIDOnMiniblocksCopy(t *testing.
 		ImportDBTargetShardID: expectedShardId,
 	}
 	sesb, _ := NewStorageEpochStartBootstrap(args)
-	bsr := &bootStrapShardRequester{
+	bsr := &bootStrapShardProcessor{
 		sesb.epochStartBootstrap,
 	}
 

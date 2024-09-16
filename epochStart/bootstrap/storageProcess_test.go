@@ -535,7 +535,8 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	sesb.epochStartMeta = metaBlock
 	sesb.prevEpochStartMeta = metaBlock
 
-	err := sesb.bootStrapShardProcessor.processNodesConfigFromStorage([]byte("pubkey"), sesb.importDbConfig.ImportDBTargetShardID)
+	var err error
+	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.bootStrapShardProcessor.processNodesConfigFromStorage([]byte("pubkey"), sesb.importDbConfig.ImportDBTargetShardID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)

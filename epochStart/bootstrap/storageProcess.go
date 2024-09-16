@@ -329,7 +329,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
-	err = sesb.bootStrapShardProcessor.processNodesConfigFromStorage(pubKeyBytes, sesb.importDbConfig.ImportDBTargetShardID)
+	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.bootStrapShardProcessor.processNodesConfigFromStorage(pubKeyBytes, sesb.importDbConfig.ImportDBTargetShardID)
 	if err != nil {
 		return Parameters{}, err
 	}

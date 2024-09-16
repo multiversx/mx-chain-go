@@ -242,7 +242,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		runTypeComponents:               args.RunTypeComponents,
 	}
-	epochStartProvider.bootStrapShardProcessor = &bootStrapShardRequester{
+	epochStartProvider.bootStrapShardProcessor = &bootStrapShardProcessor{
 		epochStartProvider,
 	}
 

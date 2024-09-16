@@ -18,15 +18,16 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
-type bootStrapShardRequester struct {
+type bootStrapShardProcessor struct {
 	*epochStartBootstrap
 }
 
-func (e *bootStrapShardRequester) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
+func (e *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
 	epochStartData, err := e.findSelfShardEpochStartData()
 	if err != nil {
 		return err
@@ -154,11 +155,11 @@ func (e *bootStrapShardRequester) requestAndProcessForShard(peerMiniBlocks []*bl
 	return nil
 }
 
-func (e *bootStrapShardRequester) computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32 {
+func (e *bootStrapShardProcessor) computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32 {
 	return uint32(len(epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
 }
 
-func (e *bootStrapShardRequester) createRequestHandler() (process.RequestHandler, error) {
+func (e *bootStrapShardProcessor) createRequestHandler() (process.RequestHandler, error) {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
 		RequesterConfig:                 e.generalConfig.Requesters,
 		ShardCoordinator:                e.shardCoordinator,
@@ -204,7 +205,7 @@ func (e *bootStrapShardRequester) createRequestHandler() (process.RequestHandler
 	)
 }
 
-func (e *bootStrapShardRequester) createResolversContainer() error {
+func (e *bootStrapShardProcessor) createResolversContainer() error {
 	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
@@ -252,7 +253,7 @@ func (e *bootStrapShardRequester) createResolversContainer() error {
 	return resolverFactory.AddShardTrieNodeResolvers(container)
 }
 
-func (e *bootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+func (e *bootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 
@@ -285,7 +286,7 @@ func (e *bootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderHandler) (
 	return syncedHeaders, nil
 }
 
-func (e *bootStrapShardRequester) syncHeadersFromStorage(
+func (e *bootStrapShardProcessor) syncHeadersFromStorage(
 	meta data.MetaHeaderHandler,
 	syncingShardID uint32,
 	importDBTargetShardID uint32,
@@ -329,7 +330,7 @@ func (e *bootStrapShardRequester) syncHeadersFromStorage(
 	return syncedHeaders, nil
 }
 
-func (e *bootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) error {
+func (e *bootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error) {
 	var err error
 	shardId := e.destinationShardAsObserver
 	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
@@ -354,35 +355,33 @@ func (e *bootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, i
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	clonedHeader := e.epochStartMeta.ShallowClone()
 	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
-		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
+		return nil, 0, fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
 	err = e.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta, importDBTargetShardID)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	clonedHeader = e.prevEpochStartMeta.ShallowClone()
 	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
-		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
+		return nil, 0, fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
 
 	err = e.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta, importDBTargetShardID)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	// no need to save the peers miniblocks here as they were already fetched from the DB
-	e.nodesConfig, e.baseData.shardId, _, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
-	e.baseData.shardId = e.applyShardIDAsObserverIfNeeded(e.baseData.shardId)
-
-	return err
+	nodesConfig, shardId, _, err := e.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
+	return nodesConfig, e.applyShardIDAsObserverIfNeeded(shardId), err
 }
 
 // applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
@@ -390,7 +389,7 @@ func (e *bootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, i
 // on the available resolver and should be called only from this storage-base bootstrap instance.
 // This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
 // "start of epoch metablock mismatch"
-func (e *bootStrapShardRequester) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler, importDBTargetShardID uint32) error {
+func (e *bootStrapShardProcessor) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler, importDBTargetShardID uint32) error {
 	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
 	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
 	var err error
