@@ -924,7 +924,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
-		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
+		AuctionListDisplayHandler:    auctionListDisplayer,
 	}
 	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
 	if err != nil {

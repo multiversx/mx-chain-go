@@ -144,9 +144,6 @@ func (ald *auctionListDisplayer) getShortKey(pubKey []byte) string {
 
 // DisplayOwnersSelectedNodes will display owners' selected nodes
 func (ald *auctionListDisplayer) DisplayOwnersSelectedNodes(ownersData map[string]*OwnerAuctionData) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
 
 	tableHeader := []string{
 		"Owner",
@@ -185,9 +182,6 @@ func (ald *auctionListDisplayer) DisplayAuctionList(
 	ownersData map[string]*OwnerAuctionData,
 	numOfSelectedNodes uint32,
 ) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
 
 	tableHeader := []string{"Owner", "Registered key", "Qualified TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))

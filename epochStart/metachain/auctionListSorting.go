@@ -8,6 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+type OwnerAuctionDataExtended struct {
+	ownerKey string
+	*OwnerAuctionData
+}
+
 func (als *auctionListSelector) selectNodes(
 	ownersData map[string]*OwnerAuctionData,
 	numAvailableSlots uint32,
@@ -19,6 +24,55 @@ func (als *auctionListSelector) selectNodes(
 	pubKeyLen := getPubKeyLen(ownersData)
 	normRand := calcNormalizedRandomness(randomness, pubKeyLen)
 
+	ownerAuctionDataExtended := make([]*OwnerAuctionDataExtended, 0)
+	nrQualifiedNodes := 0
+
+	copiedOwnersData := copyOwnersData(ownersData)
+	for ownerKey, owner := range copiedOwnersData {
+		ownerAuctionDataExtended = append(ownerAuctionDataExtended, &OwnerAuctionDataExtended{
+			ownerKey:         ownerKey,
+			OwnerAuctionData: owner,
+		})
+
+		nrQualifiedNodes += int(owner.numQualifiedAuctionNodes)
+	}
+
+	numQualifiedToBeRemoved := nrQualifiedNodes - int(numAvailableSlots)
+
+	for i := 0; i < numQualifiedToBeRemoved; i++ {
+		sort.Slice(ownerAuctionDataExtended, func(i, j int) bool {
+			return ownerAuctionDataExtended[i].OwnerAuctionData.qualifiedTopUpPerNode.Cmp(ownerAuctionDataExtended[j].OwnerAuctionData.qualifiedTopUpPerNode) > 0
+		})
+
+		for index := len(ownerAuctionDataExtended) - 1; index >= 0; index-- {
+			currentOwner := ownerAuctionDataExtended[index]
+			if currentOwner.numQualifiedAuctionNodes == 0 {
+				continue
+			}
+			currentOwner.numQualifiedAuctionNodes--
+			ownerRemainingNodes := big.NewInt(currentOwner.numActiveNodes + currentOwner.numQualifiedAuctionNodes)
+			currentOwner.qualifiedTopUpPerNode = big.NewInt(0).Div(currentOwner.totalTopUp, ownerRemainingNodes)
+			log.Info("removing one node from key", "key", currentOwner.ownerKey, "remaining nodes", ownerRemainingNodes, "qualifiedTopup", currentOwner.qualifiedTopUpPerNode)
+			break
+		}
+	}
+
+	newOwnersData := make(map[string]*OwnerAuctionData)
+	for _, owner := range ownerAuctionDataExtended {
+		sortListByPubKey(owner.auctionList)
+		addQualifiedValidatorsTopUpInMap(owner.OwnerAuctionData, validatorTopUpMap)
+		selectedFromAuction = append(selectedFromAuction, owner.auctionList[:owner.numQualifiedAuctionNodes]...)
+		newOwnersData[owner.ownerKey] = owner.OwnerAuctionData
+	}
+
+	als.auctionListDisplayer.DisplayOwnersSelectedNodes(newOwnersData)
+	sortValidators(selectedFromAuction, validatorTopUpMap, normRand)
+	als.auctionListDisplayer.DisplayAuctionList(selectedFromAuction, newOwnersData, numAvailableSlots)
+
+	log.Info("selectedFromAuction - new", "numNodes", len(selectedFromAuction), "numAvailable", numAvailableSlots, "removed", len(selectedFromAuction)-int(numAvailableSlots))
+
+	selectedFromAuction = make([]state.ValidatorInfoHandler, 0)
+	validatorTopUpMap = make(map[string]*big.Int)
 	for _, owner := range ownersData {
 		sortListByPubKey(owner.auctionList)
 		addQualifiedValidatorsTopUpInMap(owner, validatorTopUpMap)
@@ -28,6 +82,8 @@ func (als *auctionListSelector) selectNodes(
 	als.auctionListDisplayer.DisplayOwnersSelectedNodes(ownersData)
 	sortValidators(selectedFromAuction, validatorTopUpMap, normRand)
 	als.auctionListDisplayer.DisplayAuctionList(selectedFromAuction, ownersData, numAvailableSlots)
+
+	log.Info("selectedFromAuction - old", "numNodes", len(selectedFromAuction), "numAvailable", numAvailableSlots, "removed", len(selectedFromAuction)-int(numAvailableSlots))
 
 	return selectedFromAuction[:numAvailableSlots]
 }

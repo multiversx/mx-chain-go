@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 	"time"
 
@@ -1231,12 +1232,24 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	i, err := strconv.ParseInt(fmt.Sprintf("%d", headerHandler.GetTimeStamp()), 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	tm := time.Unix(i, 0)
+
+	if headerHandler.GetRound() > 20895849 {
+		time.Sleep(time.Second * 6)
+		return errors.New("radu")
+	}
+
 	log.Info("meta block has been committed successfully",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
-		"hash", headerHash)
+		"hash", headerHash,
+		"date", tm)
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
