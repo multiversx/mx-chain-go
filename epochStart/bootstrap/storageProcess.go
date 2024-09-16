@@ -1,7 +1,6 @@
 package bootstrap
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -304,17 +303,22 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
 	var err error
-	sesb.baseData.numberOfShards = uint32(len(sesb.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
+	sesb.baseData.numberOfShards = sesb.bootStrapShardRequester.computeNumShards(sesb.epochStartMeta)
 	sesb.baseData.lastEpoch = sesb.epochStartMeta.GetEpoch()
 
-	sesb.syncedHeaders, err = sesb.syncHeadersFromStorage(sesb.epochStartMeta, sesb.destinationShardAsObserver)
+	sesb.syncedHeaders, err = sesb.bootStrapShardRequester.syncHeadersFromStorage(
+		sesb.epochStartMeta,
+		sesb.destinationShardAsObserver,
+		sesb.importDbConfig.ImportDBTargetShardID,
+		sesb.timeToWaitForRequestedData,
+	)
 	if err != nil {
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got shard header and previous epoch start meta block")
 
 	prevEpochStartMetaHash := sesb.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
@@ -365,45 +369,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	}
 
 	return parameters, nil
-}
-
-func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta data.MetaHeaderHandler, syncingShardID uint32) (map[string]data.HeaderHandler, error) {
-	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-
-	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-		shouldSkipHeaderFetch := epochStartData.GetShardID() != syncingShardID &&
-			sesb.importDbConfig.ImportDBTargetShardID != core.MetachainShardId
-		if shouldSkipHeaderFetch {
-			continue
-		}
-
-		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
-		shardIds = append(shardIds, epochStartData.GetShardID())
-	}
-
-	if meta.GetEpoch() > sesb.startEpoch+1 { // no need to request genesis block
-		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
-		shardIds = append(shardIds, core.MetachainShardId)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), sesb.timeToWaitForRequestedData)
-	err := sesb.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
-	cancel()
-	if err != nil {
-		return nil, err
-	}
-
-	syncedHeaders, err := sesb.headersSyncer.GetHeaders()
-	if err != nil {
-		return nil, err
-	}
-
-	if meta.GetEpoch() == sesb.startEpoch+1 {
-		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
-	}
-
-	return syncedHeaders, nil
 }
 
 func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error {

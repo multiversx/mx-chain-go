@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
@@ -98,4 +99,10 @@ type bootStrapShardRequesterHandler interface {
 	createRequestHandler() (process.RequestHandler, error)
 	createResolversContainer() error
 	syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error)
+	syncHeadersFromStorage(
+		meta data.MetaHeaderHandler,
+		syncingShardID uint32,
+		importDBTargetShardID uint32,
+		timeToWaitForRequestedData time.Duration,
+	) (map[string]data.HeaderHandler, error)
 }

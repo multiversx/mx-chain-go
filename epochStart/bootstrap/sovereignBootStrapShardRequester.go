@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -146,15 +147,30 @@ func (e *sovereignBootStrapShardRequester) createResolversContainer() error {
 }
 
 func (e *sovereignBootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+	return e.baseSyncHeadersFromStorage(meta, DefaultTimeToWaitForRequestedData)
+}
+
+func (e *sovereignBootStrapShardRequester) syncHeadersFromStorage(
+	meta data.MetaHeaderHandler,
+	_ uint32,
+	_ uint32,
+	timeToWaitForRequestedData time.Duration,
+) (map[string]data.HeaderHandler, error) {
+	return e.baseSyncHeadersFromStorage(meta, timeToWaitForRequestedData)
+}
+
+func (e *sovereignBootStrapShardRequester) baseSyncHeadersFromStorage(
+	meta data.MetaHeaderHandler,
+	timeToWaitForRequestedData time.Duration,
+) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, 1)
 	shardIds := make([]uint32, 0, 1)
-
 	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.SovereignChainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWaitForRequestedData)
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {

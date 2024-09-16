@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
@@ -43,7 +44,6 @@ func (e *bootStrapShardRequester) requestAndProcessForShard(peerMiniBlocks []*bl
 	}
 	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
 
-	// TODO: MX-15748 Analyse this
 	shardIds := []uint32{
 		core.MetachainShardId,
 		core.MetachainShardId,
@@ -266,6 +266,50 @@ func (e *bootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderHandler) (
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+
+	syncedHeaders, err := e.headersSyncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	if meta.GetEpoch() == e.startEpoch+1 {
+		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
+	}
+
+	return syncedHeaders, nil
+}
+
+func (e *bootStrapShardRequester) syncHeadersFromStorage(
+	meta data.MetaHeaderHandler,
+	syncingShardID uint32,
+	importDBTargetShardID uint32,
+	timeToWaitForRequestedData time.Duration,
+) (map[string]data.HeaderHandler, error) {
+	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
+	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
+
+	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		shouldSkipHeaderFetch := epochStartData.GetShardID() != syncingShardID &&
+			importDBTargetShardID != core.MetachainShardId
+		if shouldSkipHeaderFetch {
+			continue
+		}
+
+		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
+		shardIds = append(shardIds, epochStartData.GetShardID())
+	}
+
+	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
+		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
+		shardIds = append(shardIds, core.MetachainShardId)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWaitForRequestedData)
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
