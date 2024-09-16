@@ -16,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/round"
@@ -28,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -35,8 +39,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
@@ -55,7 +57,7 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &testscommon.CacherStub{
+		cs := &cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
@@ -491,7 +493,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			wasCalled++
 		}
@@ -708,7 +710,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -803,7 +805,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -885,7 +887,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -1874,7 +1876,7 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 
@@ -2093,7 +2095,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {

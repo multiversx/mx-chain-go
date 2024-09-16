@@ -96,7 +96,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
-	node := string(cnsDta.PubKey)
+	messageSender := string(cnsDta.PubKey)
 
 	if !sr.IsConsensusDataSet() {
 		return false
@@ -106,14 +106,13 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 	}
 
 	// TODO[cleanup cns finality]: remove if statement
-	isSenderAllowed := sr.IsNodeInConsensusGroup(node)
+	isSenderAllowed := sr.IsNodeInConsensusGroup(messageSender)
 	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		isNodeLeader := sr.IsNodeLeaderInCurrentRound(node) && sr.ShouldConsiderSelfKeyInConsensus()
-		isSenderAllowed = isNodeLeader || sr.IsMultiKeyLeaderInCurrentRound()
+		isSenderAllowed = sr.IsNodeLeaderInCurrentRound(messageSender)
 	}
 	if !isSenderAllowed { // is NOT this node leader in current round?
 		sr.PeerHonestyHandler().ChangeScore(
-			node,
+			messageSender,
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
@@ -122,9 +121,9 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 	}
 
 	// TODO[cleanup cns finality]: remove if
-	isSelfSender := sr.IsNodeSelf(node) || sr.IsKeyManagedByCurrentNode([]byte(node))
+	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
 	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		isSelfSender = sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+		isSelfSender = sr.IsSelfLeader()
 	}
 	if isSelfSender {
 		return false
@@ -153,7 +152,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		"LeaderSignature", cnsDta.LeaderSignature)
 
 	sr.PeerHonestyHandler().ChangeScore(
-		node,
+		messageSender,
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
@@ -229,8 +228,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	// TODO[cleanup cns finality]: remove if statement
 	isSenderAllowed := sr.IsNodeInConsensusGroup(messageSender)
 	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		isSelfLeader := sr.IsNodeLeaderInCurrentRound(messageSender) && sr.ShouldConsiderSelfKeyInConsensus()
-		isSenderAllowed = isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()
+		isSenderAllowed = sr.IsNodeLeaderInCurrentRound(messageSender)
 	}
 	if !isSenderAllowed { // is NOT this node leader in current round?
 		sr.PeerHonestyHandler().ChangeScore(
@@ -243,9 +241,9 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	}
 
 	// TODO[cleanup cns finality]: update this check
-	isSelfSender := messageSender == sr.SelfPubKey() || sr.IsKeyManagedByCurrentNode([]byte(messageSender))
+	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
 	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		isSelfSender = sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+		isSelfSender = sr.IsSelfLeader()
 	}
 	if isSelfSender {
 		return false
@@ -332,7 +330,7 @@ func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	isLeader := sr.IsSelfLeader()
 	if sr.ConsensusGroup() == nil || isLeader {
 		return
 	}
@@ -353,8 +351,8 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 
 	// TODO[cleanup cns finality]: remove this code block
 	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() && !isFlagEnabled {
-		if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup() {
+	if !sr.IsSelfLeader() && !isFlagEnabled {
+		if sr.IsSelfInConsensusGroup() {
 			err := sr.prepareBroadcastBlockDataForValidator()
 			if err != nil {
 				log.Warn("validator in consensus group preparing for delayed broadcast",
@@ -368,7 +366,7 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 		return sr.doEndRoundJobByParticipant(nil)
 	}
 
-	if !sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && !sr.IsMultiKeyInConsensusGroup() {
+	if !sr.IsSelfInConsensusGroup() {
 		sr.mutProcessingEndRound.Lock()
 		defer sr.mutProcessingEndRound.Unlock()
 
@@ -782,8 +780,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
 	// TODO[cleanup cns finality]: remove the leader check
 	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	if !(isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()) && !isEquivalentMessagesFlagEnabled {
+	if !sr.IsSelfLeader() && !isEquivalentMessagesFlagEnabled {
 		return
 	}
 
@@ -880,9 +877,9 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 		return false
 	}
 
-	isNodeInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+	isSelfInConsensus := sr.IsSelfInConsensusGroup()
 	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
-	if isNodeInConsensus && cnsDta != nil && isEquivalentMessagesFlagEnabled {
+	if isSelfInConsensus && cnsDta != nil && isEquivalentMessagesFlagEnabled {
 		proof := data.HeaderProof{
 			AggregatedSignature: cnsDta.AggregateSignature,
 			PubKeysBitmap:       cnsDta.PubKeysBitmap,
@@ -894,7 +891,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	// TODO[cleanup cns finality]: remove this
-	if isNodeInConsensus && !isEquivalentMessagesFlagEnabled {
+	if isSelfInConsensus && !isEquivalentMessagesFlagEnabled {
 		err = sr.setHeaderForValidator(header)
 		if err != nil {
 			log.Warn("doEndRoundJobByParticipant", "error", err.Error())
@@ -1136,7 +1133,7 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	minIdx := sr.ConsensusGroupSize()
 
 	for idx, validator := range sr.ConsensusGroup() {
-		if !sr.IsKeyManagedByCurrentNode([]byte(validator)) {
+		if !sr.IsKeyManagedBySelf([]byte(validator)) {
 			continue
 		}
 
@@ -1162,7 +1159,7 @@ func (sr *subroundEndRound) getSender() ([]byte, error) {
 
 	for _, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
-		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
+		if !sr.IsKeyManagedBySelf(pkBytes) {
 			continue
 		}
 
@@ -1319,16 +1316,9 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 
 	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
 
-	selfJobDone := true
-	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		selfJobDone = sr.IsSelfJobDone(SrSignature)
-	}
-	multiKeyJobDone := true
-	if sr.IsMultiKeyInConsensusGroup() {
-		multiKeyJobDone = sr.IsMultiKeyJobDone(SrSignature)
-	}
+	isSelfJobDone := sr.IsSelfJobDone(SrSignature)
 
-	shouldStopWaitingSignatures := selfJobDone && multiKeyJobDone && isSignatureCollectionDone
+	shouldStopWaitingSignatures := isSelfJobDone && isSignatureCollectionDone
 	if shouldStopWaitingSignatures {
 		log.Debug("step 2: signatures collection done",
 			"subround", sr.Name(),

@@ -11,6 +11,11 @@ import (
 
 var _ consensus.SubroundHandler = (*Subround)(nil)
 
+const (
+	singleKeyStartMsg = " (my turn)"
+	multiKeyStartMsg  = " (my turn in multi-key)"
+)
+
 // Subround struct contains the needed data for one Subround and the Subround properties. It defines a Subround
 // with its properties (its ID, next Subround ID, its duration, its name) and also it has some handler functions
 // which should be set. Job function will be the main function of this Subround, Extend function will handle the overtime
@@ -219,6 +224,36 @@ func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
 	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
 
 	return isMainMachineInactive
+}
+
+// IsSelfInConsensusGroup returns true is the current node is in consensus group in single
+// key or in multi-key mode
+func (sr *Subround) IsSelfInConsensusGroup() bool {
+	return sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+}
+
+// IsSelfLeader returns true is the current node is leader is single key or in
+// multi-key mode
+func (sr *Subround) IsSelfLeader() bool {
+	return sr.isSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+}
+
+// isSelfLeaderInCurrentRound method checks if the current node is leader in the current round
+func (sr *Subround) isSelfLeaderInCurrentRound() bool {
+	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+}
+
+// GetLeaderStartRoundMessage returns the leader start round message based on single key
+// or multi-key node type
+func (sr *Subround) GetLeaderStartRoundMessage() string {
+	if sr.IsMultiKeyLeaderInCurrentRound() {
+		return multiKeyStartMsg
+	}
+	if sr.isSelfLeaderInCurrentRound() {
+		return singleKeyStartMsg
+	}
+
+	return ""
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
