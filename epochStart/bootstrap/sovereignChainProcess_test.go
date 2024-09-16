@@ -4,10 +4,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignChainEpochStartBootstrap(t *testing.T) {
@@ -35,28 +33,6 @@ func TestNewSovereignChainEpochStartBootstrap(t *testing.T) {
 		assert.NotNil(t, scesb)
 		assert.Nil(t, err)
 	})
-}
-
-func TestGetDataToSync_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	esb, _ := NewEpochStartBootstrap(args)
-	scesb, _ := NewSovereignChainEpochStartBootstrap(esb)
-
-	rootHash := []byte("rootHash")
-	hdr := &block.Header{
-		RootHash: rootHash,
-	}
-	dts, err := scesb.getDataToSync(nil, hdr)
-
-	require.Nil(t, err)
-	assert.Equal(t, hdr, dts.ownShardHdr)
-	assert.Equal(t, rootHash, dts.rootHashToSync)
-	assert.False(t, dts.withScheduled)
-	assert.Nil(t, dts.additionalHeaders)
 }
 
 func TestSovereignEpochStartBootstrap_GetShardIDForLatestEpoch(t *testing.T) {

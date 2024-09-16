@@ -145,7 +145,6 @@ type epochStartBootstrap struct {
 	nodeType                    core.NodeType
 	startEpoch                  uint32
 	shuffledOut                 bool
-	getDataToSyncMethod         func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 	shardForLatestEpochComputer ShardForLatestEpochComputer
 	runTypeComponents           RunTypeComponentsHolder
 
@@ -278,8 +277,6 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		epochStartProvider.baseData.lastRound = epochStartProvider.startRound
 		epochStartProvider.baseData.epochStartRound = uint64(epochStartProvider.startRound)
 	}
-
-	epochStartProvider.getDataToSyncMethod = epochStartProvider.getDataToSync
 
 	return epochStartProvider, nil
 }

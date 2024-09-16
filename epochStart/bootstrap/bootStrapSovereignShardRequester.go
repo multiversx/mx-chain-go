@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -109,12 +110,7 @@ func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.Reque
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
 	}
-
-	sh, err := requesterscontainer.NewShardRequestersContainerFactory(requestersContainerArgs)
-	if err != nil {
-		return nil, err
-	}
-	requestersFactory, err := requesterscontainer.NewSovereignShardRequestersContainerFactory(sh)
+	requestersFactory, err := e.runTypeComponents.RequestersContainerFactoryCreator().CreateRequesterContainerFactory(requestersContainerArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -123,16 +119,16 @@ func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.Reque
 	if err != nil {
 		return nil, err
 	}
+
 	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	return e.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(
 		requestHandlers.RequestHandlerArgs{
 			RequestersFinder:      finder,
-			RequestedItemsHandler: requestedItemsHandler,
+			RequestedItemsHandler: cache.NewTimeCache(timeBetweenRequests),
 			WhiteListHandler:      e.whiteListHandler,
 			MaxTxsToRequest:       maxToRequest,
 			ShardID:               core.MetachainShardId,
@@ -146,15 +142,30 @@ func (e *sovereignBootStrapShardRequester) createResolversContainer() error {
 }
 
 func (e *sovereignBootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+	return e.baseSyncHeadersFromStorage(meta, DefaultTimeToWaitForRequestedData)
+}
+
+func (e *sovereignBootStrapShardRequester) syncHeadersFromStorage(
+	meta data.MetaHeaderHandler,
+	_ uint32,
+	_ uint32,
+	timeToWaitForRequestedData time.Duration,
+) (map[string]data.HeaderHandler, error) {
+	return e.baseSyncHeadersFromStorage(meta, timeToWaitForRequestedData)
+}
+
+func (e *sovereignBootStrapShardRequester) baseSyncHeadersFromStorage(
+	meta data.MetaHeaderHandler,
+	timeToWaitForRequestedData time.Duration,
+) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, 1)
 	shardIds := make([]uint32, 0, 1)
-
 	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.SovereignChainShardId)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	ctx, cancel := context.WithTimeout(context.Background(), timeToWaitForRequestedData)
 	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
@@ -171,4 +182,34 @@ func (e *sovereignBootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderH
 	}
 
 	return syncedHeaders, nil
+}
+
+func (e *sovereignBootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, _ uint32) error {
+	var err error
+	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
+		DataPool:                         e.dataPool,
+		Marshalizer:                      e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                   e.requestHandler,
+		ChanceComputer:                   e.rater,
+		GenesisNodesConfig:               e.genesisNodesConfig,
+		NodeShuffler:                     e.nodeShuffler,
+		Hasher:                           e.coreComponentsHolder.Hasher(),
+		PubKey:                           pubKey,
+		ShardIdAsObserver:                core.SovereignChainShardId,
+		ChanNodeStop:                     e.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                 e.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                    e.prefsConfig.FullArchive,
+		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorWithRaterFactory: e.runTypeComponents.NodesCoordinatorWithRaterCreator(),
+	}
+	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
+	if err != nil {
+		return err
+	}
+
+	// no need to save the peers miniblocks here as they were already fetched from the DB
+	e.nodesConfig, e.baseData.shardId, _, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	e.baseData.shardId = core.SovereignChainShardId
+	return err
 }
