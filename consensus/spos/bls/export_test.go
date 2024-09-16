@@ -256,7 +256,7 @@ func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 // subroundEndRound
 
 // SubroundEndRound defines a type for the subroundEndRound structure
-type SubroundEndRound *subroundEndRound
+type SubroundEndRound = *subroundEndRound
 
 // DoEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) DoEndRoundJob() bool {
@@ -314,8 +314,8 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 }
 
 // VerifyNodesOnAggSigFail calls the unexported verifyNodesOnAggSigFail function
-func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
-	return sr.verifyNodesOnAggSigFail()
+func (sr *subroundEndRound) VerifyNodesOnAggSigFail(ctx context.Context) ([]string, error) {
+	return sr.verifyNodesOnAggSigFail(ctx)
 }
 
 // ComputeAggSigOnValidNodes calls the unexported computeAggSigOnValidNodes function

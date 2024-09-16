@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -28,6 +29,7 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 	sentSignatureTracker          spos.SentSignaturesTracker
 	worker                        spos.WorkerHandler
+	signatureThrottler            core.Throttler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -37,6 +39,7 @@ func NewSubroundEndRound(
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
 	worker spos.WorkerHandler,
+	signatureThrottler core.Throttler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(
 		baseSubround,
@@ -53,6 +56,9 @@ func NewSubroundEndRound(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(signatureThrottler) {
+		return nil, spos.ErrNilThrottler
+	}
 
 	srEndRound := subroundEndRound{
 		Subround:                      baseSubround,
@@ -61,6 +67,7 @@ func NewSubroundEndRound(
 		mutProcessingEndRound:         sync.Mutex{},
 		sentSignatureTracker:          sentSignatureTracker,
 		worker:                        worker,
+		signatureThrottler:            signatureThrottler,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -553,7 +560,50 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
+func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error {
+	for {
+		if sr.signatureThrottler.CanProcess() {
+			break
+		}
+
+		select {
+		case <-time.After(time.Millisecond):
+			continue
+		case <-ctx.Done():
+			return spos.ErrTimeIsOut
+		}
+	}
+	return nil
+}
+
+// verifySignature implements parallel signature verification
+func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) error {
+	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
+	if err != nil {
+		log.Trace("VerifySignatureShare returned an error: ", err)
+		errSetJob := sr.SetJobDone(pk, SrSignature, false)
+		if errSetJob != nil {
+			return errSetJob
+		}
+
+		decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
+
+		sr.PeerHonestyHandler().ChangeScore(
+			pk,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			decreaseFactor,
+		)
+		return err
+	}
+
+	log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk)
+
+	return nil
+}
+
+func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]string, error) {
+	wg := &sync.WaitGroup{}
+	mutex := &sync.Mutex{}
 	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
 
@@ -572,29 +622,29 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 			return nil, err
 		}
 
-		isSuccessfull := true
-		err = sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
+		err = sr.checkGoRoutinesThrottler(ctx)
 		if err != nil {
-			isSuccessfull = false
-
-			err = sr.SetJobDone(pk, SrSignature, false)
-			if err != nil {
-				return nil, err
-			}
-
-			// use increase factor since it was added optimistically, and it proved to be wrong
-			decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
-			sr.PeerHonestyHandler().ChangeScore(
-				pk,
-				spos.GetConsensusTopicID(sr.ShardCoordinator()),
-				decreaseFactor,
-			)
-
-			invalidPubKeys = append(invalidPubKeys, pk)
+			return nil, err
 		}
 
-		log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
+		sr.signatureThrottler.StartProcessing()
+
+		wg.Add(1)
+
+		go func(i int, pk string, wg *sync.WaitGroup, sigShare []byte) {
+			defer func() {
+				sr.signatureThrottler.EndProcessing()
+				wg.Done()
+			}()
+			errSigVerification := sr.verifySignature(i, pk, sigShare)
+			if errSigVerification != nil {
+				mutex.Lock()
+				invalidPubKeys = append(invalidPubKeys, pk)
+				mutex.Unlock()
+			}
+		}(i, pk, wg, sigShare)
 	}
+	wg.Wait()
 
 	return invalidPubKeys, nil
 }
@@ -621,7 +671,9 @@ func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []st
 }
 
 func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, error) {
-	invalidPubKeys, err := sr.verifyNodesOnAggSigFail()
+	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	invalidPubKeys, err := sr.verifyNodesOnAggSigFail(ctx)
+	cancel()
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigFail", "error", err.Error())
 		return nil, nil, err
