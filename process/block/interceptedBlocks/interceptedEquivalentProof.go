@@ -80,7 +80,14 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 		return nil, err
 	}
 
-	log.Trace("interceptedEquivalentProof successfully created")
+	log.Trace("interceptedEquivalentProof successfully created",
+		"header hash", logger.DisplayByteSlice(headerProof.HeaderHash),
+		"header shard", headerProof.HeaderShardId,
+		"header epoch", headerProof.HeaderEpoch,
+		"header nonce", headerProof.HeaderNonce,
+		"bitmap", logger.DisplayByteSlice(headerProof.PubKeysBitmap),
+		"signature", logger.DisplayByteSlice(headerProof.AggregatedSignature),
+	)
 
 	return headerProof, nil
 }
