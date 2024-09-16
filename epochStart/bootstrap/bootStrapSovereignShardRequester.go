@@ -110,12 +110,7 @@ func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.Reque
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
 	}
-
-	sh, err := requesterscontainer.NewShardRequestersContainerFactory(requestersContainerArgs)
-	if err != nil {
-		return nil, err
-	}
-	requestersFactory, err := requesterscontainer.NewSovereignShardRequestersContainerFactory(sh)
+	requestersFactory, err := e.runTypeComponents.RequestersContainerFactoryCreator().CreateRequesterContainerFactory(requestersContainerArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -124,16 +119,16 @@ func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.Reque
 	if err != nil {
 		return nil, err
 	}
+
 	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	return e.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(
 		requestHandlers.RequestHandlerArgs{
 			RequestersFinder:      finder,
-			RequestedItemsHandler: requestedItemsHandler,
+			RequestedItemsHandler: cache.NewTimeCache(timeBetweenRequests),
 			WhiteListHandler:      e.whiteListHandler,
 			MaxTxsToRequest:       maxToRequest,
 			ShardID:               core.MetachainShardId,

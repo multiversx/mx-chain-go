@@ -269,7 +269,6 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
 		requestersContainerFactory, err = storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	} else {
-		// todo here
 		requestersContainerFactory, err = storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 
