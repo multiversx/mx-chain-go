@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 )
@@ -44,7 +43,6 @@ type ArgsEpochStartInterceptorContainer struct {
 	RequestHandler          process.RequestHandler
 	SignaturesHandler       process.SignaturesHandler
 	NodeOperationMode       common.NodeOperation
-	ProcessedMessagesCache  map[string]storage.Cacher
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -111,7 +109,6 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            args.NodeOperationMode,
-		ProcessedMessagesCacheMap:    args.ProcessedMessagesCache,
 	}
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)

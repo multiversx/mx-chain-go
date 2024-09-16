@@ -128,14 +128,9 @@ func (bdi *baseDataInterceptor) checkIfMessageHasBeenProcessed(interceptedData p
 		return nil
 	}
 
-	c, ok := bdi.processedMessagesCacheMap[bdi.topic]
+	cache, ok := bdi.processedMessagesCacheMap[bdi.topic]
 	if !ok {
 		return fmt.Errorf("cache for topic %q does not exist", bdi.topic)
-	}
-
-	cache, ok := c.(storage.Cacher)
-	if !ok {
-		return fmt.Errorf("failed to cast cacher")
 	}
 
 	if has, _ := cache.HasOrAdd(interceptedData.Hash(), nil, 0); has {

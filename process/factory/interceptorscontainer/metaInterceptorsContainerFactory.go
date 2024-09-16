@@ -263,6 +263,11 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		return nil, err
 	}
 
+	err = micf.createCacheForInterceptor(topic)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
 			Topic:                     topic,

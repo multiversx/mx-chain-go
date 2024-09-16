@@ -341,6 +341,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 
 	err = bicf.createCacheForInterceptor(topic)
 	if err != nil {
+		fmt.Println("something is wrong here")
 		return nil, err
 	}
 

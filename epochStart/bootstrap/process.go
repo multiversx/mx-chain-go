@@ -590,7 +590,6 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler:          e.requestHandler,
 		SignaturesHandler:       e.mainMessenger,
 		NodeOperationMode:       e.nodeOperationMode,
-		ProcessedMessagesCache:  make(map[string]storage.Cacher),
 	}
 
 	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
