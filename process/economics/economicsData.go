@@ -591,8 +591,15 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.T
 	txFee := ed.ComputeTxFeeInEpoch(tx, epoch)
 
 	if len(tx.GetUserTransactions()) > 0 {
-		gasUnitsUsed := big.NewInt(0).Div(txFee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
-		return gasUnitsUsed.Uint64(), txFee
+		txFeeAfterRefund := txFee.Sub(txFee, refundValue)
+
+		gasPriceForProcessing := ed.GasPriceForProcessingInEpoch(tx, epoch)
+		gasUnitsRefunded := refundValue.Uint64() / gasPriceForProcessing
+
+		gasUnitsConsideredForInitialFee := ed.computeRelayedTxV3MinGasLimit(tx)
+		gasUnitsUsed := gasUnitsConsideredForInitialFee - gasUnitsRefunded
+
+		return gasUnitsUsed, txFeeAfterRefund
 	}
 
 	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.PenalizedTooMuchGasFlag, epoch)
@@ -680,6 +687,20 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
 
 	return totalGasLimit, nil
+}
+
+func (ed *economicsData) computeRelayedTxV3MinGasLimit(tx data.TransactionWithFeeHandler) uint64 {
+	relayedTxGasLimit := ed.ComputeGasLimit(tx)
+	relayedTxMinGasLimit := ed.MinGasLimit()
+	relayedTxGasLimitDiff := relayedTxGasLimit - relayedTxMinGasLimit // this may be positive if the relayed tx is guarded
+
+	innerTxs := tx.GetUserTransactions()
+	totalGasLimit := relayedTxGasLimitDiff + relayedTxMinGasLimit*uint64(len(innerTxs))
+	for _, innerTx := range innerTxs {
+		totalGasLimit += innerTx.GetGasLimit()
+	}
+
+	return totalGasLimit
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

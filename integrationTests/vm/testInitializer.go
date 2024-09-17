@@ -630,6 +630,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 
 	blockChainHook, _ := vmFactory.BlockChainHookImpl().(*hooks.BlockChainHookImpl)
 	_ = builtInFuncFactory.SetPayableHandler(blockChainHook)
+	_ = builtInFuncFactory.SetBlockchainHook(blockChainHook)
 
 	return vmContainer, blockChainHook, datapool
 }
