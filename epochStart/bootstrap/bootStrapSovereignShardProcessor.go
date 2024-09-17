@@ -44,13 +44,15 @@ func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlo
 		return err
 	}
 
-	defer storageHandlerComponent.CloseStorageService()
+	sovStorageHandler := newSovereignShardStorageHandler(storageHandlerComponent)
+
+	defer sovStorageHandler.CloseStorageService()
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
-		storageHandlerComponent.storageService,
+		sovStorageHandler.storageService,
 		e.stateStatsHandler,
 	)
 	if err != nil {
@@ -83,7 +85,7 @@ func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlo
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
-	return storageHandlerComponent.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
+	return sovStorageHandler.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
 }
 
 func (e *sovereignBootStrapShardProcessor) computeNumShards(_ data.MetaHeaderHandler) uint32 {

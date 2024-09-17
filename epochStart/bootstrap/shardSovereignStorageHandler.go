@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -25,18 +24,13 @@ func newSovereignShardStorageHandler(shardStorageHandler *shardStorageHandler) *
 }
 
 // SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
-func (ssh *sovereignShardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool, syncedMiniBlocks map[string]*block.MiniBlock) error {
-	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if err != nil {
-		return err
-	}
-
+func (ssh *sovereignShardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, _ data.HeaderHandler, _ bool, syncedMiniBlocks map[string]*block.MiniBlock) error {
 	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)
 	if err != nil {
 		return err
 	}
 
-	err = ssh.saveEpochStartMetaHdrs(components)
+	err = ssh.saveEpochStartMetaHdrs(components, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return err
 	}
@@ -68,31 +62,8 @@ func (ssh *sovereignShardStorageHandler) SaveDataToStorage(components *Component
 		HighestFinalBlockNonce:     lastHeader.Nonce,
 		LastRound:                  0,
 	}
-	bootStrapDataBytes, err := ssh.marshalizer.Marshal(&bootStrapData)
-	if err != nil {
-		return err
-	}
 
-	roundToUseAsKey := int64(components.ShardHeader.GetRound())
-	roundNum := bootstrapStorage.RoundNum{Num: roundToUseAsKey}
-	roundNumBytes, err := ssh.marshalizer.Marshal(&roundNum)
-	if err != nil {
-		return err
-	}
-
-	err = bootStorer.Put([]byte(common.HighestRoundFromBootStorage), roundNumBytes)
-	if err != nil {
-		return err
-	}
-
-	log.Info("saved bootstrap data to storage", "round", roundToUseAsKey)
-	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
-	err = bootStorer.Put(key, bootStrapDataBytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return ssh.saveBootStrapData(components, bootStrapData)
 }
 
 func (ssh *sovereignShardStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {

@@ -84,10 +84,25 @@ func TestBootStrapSovereignShardProcessor_requestAndProcessForShard(t *testing.T
 		},
 	}
 
-	// This will not work properly until we have a sovereign shard storage handler and
-	// overwrite SaveDataToStorage, tbd in next PRs
 	err := sovProc.requestAndProcessForShard(make([]*block.MiniBlock, 0))
-	require.NotNil(t, err)
+	require.Nil(t, err)
+
+	// take this and use to test sov bootstrapper
+	/*
+		//epochStartBlock_0
+		bootStorer, err := sovProc.storageService.GetStorer(dataRetriever.BootstrapUnit)
+		require.Nil(t, err)
+
+		roundToUseAsKey := int64(metaBlockInstance.GetRound())
+		key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
+		bootStrapDataBytes, err := bootStorer.Get(key)
+		require.Nil(t, err)
+
+		bootStrapData := &bootstrapStorage.BootstrapData{}
+
+		err = sovProc.coreComponentsHolder.InternalMarshalizer().Unmarshal(bootStrapData, bootStrapDataBytes)
+		require.Nil(t, err)
+	*/
 }
 
 func TestBootStrapSovereignShardProcessor_computeNumShards(t *testing.T) {
