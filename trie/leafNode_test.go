@@ -7,8 +7,10 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -323,9 +325,13 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	expectedVal := "dogs"
 	data := []core.TrieData{getTrieDataWithDefaultVersion(key, expectedVal)}
 
-	newNode, _, err := ln.insert(data, nil)
-	assert.NotNil(t, newNode)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 	assert.Nil(t, err)
+
+	newNode, _ := ln.insert(data, goRoutinesManager, nil)
+	assert.NotNil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
 
 	val, _, _ := newNode.tryGet([]byte(key), 0, nil)
 	assert.Equal(t, []byte(expectedVal), val)
@@ -343,9 +349,13 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	nodeVal := []byte{3, 4, 5}
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), string(nodeVal))}
 
-	newNode, _, err := ln.insert(data, nil)
-	assert.NotNil(t, newNode)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 	assert.Nil(t, err)
+
+	newNode, _ := ln.insert(data, goRoutinesManager, nil)
+	assert.NotNil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
 
 	val, _, _ := newNode.tryGet(nodeKey, 0, nil)
 	assert.Equal(t, nodeVal, val)
@@ -361,9 +371,13 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	lnHash := ln.getHash()
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
-	newNode, oldHashes, err := ln.insert(data, db)
-	assert.NotNil(t, newNode)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 	assert.Nil(t, err)
+
+	newNode, oldHashes := ln.insert(data, goRoutinesManager, db)
+	assert.NotNil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
 }
 
@@ -377,9 +391,13 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	lnHash := ln.getHash()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
-	newNode, oldHashes, err := ln.insert(data, db)
-	assert.NotNil(t, newNode)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 	assert.Nil(t, err)
+
+	newNode, oldHashes := ln.insert(data, goRoutinesManager, db)
+	assert.NotNil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
 }
 
@@ -389,9 +407,13 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
-	newNode, oldHashes, err := ln.insert(data, nil)
-	assert.NotNil(t, newNode)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 	assert.Nil(t, err)
+
+	newNode, oldHashes := ln.insert(data, goRoutinesManager, nil)
+	assert.NotNil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
 
@@ -402,9 +424,13 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
-	newNode, oldHashes, err := ln.insert(data, nil)
-	assert.NotNil(t, newNode)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 	assert.Nil(t, err)
+
+	newNode, oldHashes := ln.insert(data, goRoutinesManager, nil)
+	assert.NotNil(t, newNode)
+	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
 
@@ -414,9 +440,13 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 	var ln *leafNode
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
-	newNode, _, err := ln.insert(data, nil)
+	th, _ := throttler.NewNumGoRoutinesThrottler(5)
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+	assert.Nil(t, err)
+
+	newNode, _ := ln.insert(data, goRoutinesManager, nil)
 	assert.Nil(t, newNode)
-	assert.True(t, errors.Is(err, ErrNilLeafNode))
+	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilLeafNode))
 	assert.Nil(t, newNode)
 }
 
@@ -804,8 +834,12 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		assert.False(t, ln.dirty)
 		originalHash := ln.getHash()
 
-		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
+
+		newNode, modifiedHahses := ln.insert(newData, goRoutinesManager, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
 		assert.True(t, newNode.isDirty())
 		assert.Equal(t, [][]byte{originalHash}, modifiedHahses)
 		assert.Equal(t, []byte("dogs"), newNode.(*leafNode).Value)
@@ -820,8 +854,12 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
 
-		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
+
+		newNode, modifiedHahses := ln.insert(newData, goRoutinesManager, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Nil(t, newNode)
 		assert.Equal(t, 0, len(modifiedHahses))
 	})
@@ -840,8 +878,12 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		assert.False(t, ln.dirty)
 		originalHash := ln.getHash()
 
-		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
+
+		newNode, modifiedHahses := ln.insert(newData, goRoutinesManager, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Equal(t, [][]byte{originalHash}, modifiedHahses)
 		bn, ok := newNode.(*branchNode)
 		assert.True(t, ok)
@@ -866,8 +908,12 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		assert.False(t, ln.dirty)
 		originalHash := ln.getHash()
 
-		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		th, _ := throttler.NewNumGoRoutinesThrottler(5)
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
+
+		newNode, modifiedHahses := ln.insert(newData, goRoutinesManager, nil)
+		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Equal(t, [][]byte{originalHash}, modifiedHahses)
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)

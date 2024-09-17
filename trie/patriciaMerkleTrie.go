@@ -9,9 +9,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -43,6 +45,7 @@ type patriciaMerkleTrie struct {
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	batchManager            common.TrieBatchManager
 	mutOperation            sync.RWMutex
+	goroutinesThrottler     core.Throttler
 
 	oldHashes            [][]byte
 	oldRoot              []byte
@@ -80,6 +83,12 @@ func NewTrie(
 		return nil, err
 	}
 
+	// TODO give this as an argument
+	trieThrottler, err := throttler.NewNumGoRoutinesThrottler(20)
+	if err != nil {
+		return nil, err
+	}
+
 	return &patriciaMerkleTrie{
 		trieStorage:             trieStorage,
 		marshalizer:             msh,
@@ -91,6 +100,7 @@ func NewTrie(
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
+		goroutinesThrottler:     trieThrottler,
 	}, nil
 }
 
@@ -203,7 +213,13 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	newRoot, oldHashes, err := tr.root.insert(sortedDataForInsertion, tr.trieStorage)
+	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	if err != nil {
+		return err
+	}
+
+	newRoot, oldHashes := tr.root.insert(sortedDataForInsertion, manager, tr.trieStorage)
+	err = manager.GetError()
 	if err != nil {
 		return err
 	}
