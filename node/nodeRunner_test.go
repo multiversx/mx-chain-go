@@ -346,24 +346,19 @@ func TestPrintEnableEpochs(t *testing.T) {
 	assert.Equal(t, reflect.Struct, reflect.ValueOf(enableEpochs).Kind())
 	v := reflect.ValueOf(enableEpochs)
 	expectedNrFields := v.NumField()
-
 	// the gasSchedule.GasScheduleByEpochs is also logged
 	expectedNrFields++
 
 	log.SetLevel(logger.LogDebug)
-
 	buff := &bytes.Buffer{}
 	_ = logger.AddLogObserver(buff, &logger.PlainFormatter{})
 
 	printEnableEpochs(configs)
 
 	_ = logger.RemoveLogObserver(buff)
-
 	buffString := strings.TrimSpace(buff.String())
-
 	loggedFields := strings.Split(buffString, "\n")
-
-	assert.Equal(t, expectedNrFields, len(loggedFields))
+	assert.Equal(t, expectedNrFields, len(loggedFields), "add newly added enable epochs to the printEnableEpochs method")
 }
 
 func checkCloseCalledMap(tb testing.TB, closedCalled map[string]struct{}, exceptions ...string) {
