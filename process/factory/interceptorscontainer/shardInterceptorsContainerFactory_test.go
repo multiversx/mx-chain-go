@@ -596,6 +596,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
+		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -644,6 +645,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
+		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
