@@ -5,6 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -22,8 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxTxNonceDeltaAllowed = 100
@@ -589,6 +590,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args := getArgumentsMeta(coreComp, cryptoComp)
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
+		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
+
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 		require.Nil(t, err)
 
@@ -638,6 +641,7 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.NodeOperationMode = common.FullArchiveMode
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
+		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 		require.Nil(t, err)

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -17,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ epochStart.StartOfEpochMetaSyncer = (*epochStartMetaSyncer)(nil)
@@ -91,14 +93,15 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:                factory.MetachainBlocksTopic,
-			DataFactory:          interceptedMetaHdrDataFactory,
-			Processor:            args.MetaBlockProcessor,
-			Throttler:            disabled.NewThrottler(),
-			AntifloodHandler:     disabled.NewAntiFloodHandler(),
-			WhiteListRequest:     args.WhitelistHandler,
-			CurrentPeerId:        args.Messenger.ID(),
-			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+			Topic:                     factory.MetachainBlocksTopic,
+			DataFactory:               interceptedMetaHdrDataFactory,
+			Processor:                 args.MetaBlockProcessor,
+			Throttler:                 disabled.NewThrottler(),
+			AntifloodHandler:          disabled.NewAntiFloodHandler(),
+			WhiteListRequest:          args.WhitelistHandler,
+			CurrentPeerId:             args.Messenger.ID(),
+			PreferredPeersHolder:      disabled.NewPreferredPeersHolder(),
+			ProcessedMessagesCacheMap: make(map[string]storage.Cacher),
 		},
 	)
 	if err != nil {
