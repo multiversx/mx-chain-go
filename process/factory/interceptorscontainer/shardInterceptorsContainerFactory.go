@@ -99,7 +99,6 @@ func NewShardInterceptorsContainerFactory(
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
 		PeerID:                       args.MainMessenger.ID(),
-		HeadersPool:                  args.DataPool.Headers(),
 	}
 
 	base := &baseInterceptorsContainerFactory{

@@ -26,6 +26,8 @@ import (
 
 const defaultChancesSelection = 1
 
+var expectedErr = errors.New("expected error")
+
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	return &ArgsHeaderSigVerifier{
 		Marshalizer:             &mock.MarshalizerMock{},
@@ -726,5 +728,103 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		}
 		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
 		assert.Nil(t, err)
+	})
+}
+
+func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil proof should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.FixedOrderInConsensusFlag)
+		hdrSigVerifier, err := NewHeaderSigVerifier(args)
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(nil)
+		require.Equal(t, process.ErrNilHeaderProof, err)
+	})
+	t.Run("flag not active should error", func(t *testing.T) {
+		t.Parallel()
+
+		hdrSigVerifier, err := NewHeaderSigVerifier(createHeaderSigVerifierArgs())
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		require.True(t, errors.Is(err, process.ErrFlagNotActive))
+		require.True(t, strings.Contains(err.Error(), string(common.FixedOrderInConsensusFlag)))
+	})
+	t.Run("GetAllEligibleValidatorsPublicKeysForShard error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.FixedOrderInConsensusFlag
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+		hdrSigVerifier, err := NewHeaderSigVerifier(args)
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("GetMultiSigner error should error", func(t *testing.T) {
+		t.Parallel()
+
+		cnt := 0
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.FixedOrderInConsensusFlag
+			},
+		}
+		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				cnt++
+				if cnt > 1 {
+					return nil, expectedErr
+				}
+				return &cryptoMocks.MultiSignerStub{}, nil
+			},
+		}
+		hdrSigVerifier, err := NewHeaderSigVerifier(args)
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		wasVerifyAggregatedSigCalled := false
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.FixedOrderInConsensusFlag
+			},
+		}
+		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return &cryptoMocks.MultiSignerStub{
+					VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+						wasVerifyAggregatedSigCalled = true
+						return nil
+					},
+				}, nil
+			},
+		}
+		hdrSigVerifier, err := NewHeaderSigVerifier(args)
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		require.NoError(t, err)
+		require.True(t, wasVerifyAggregatedSigCalled)
 	})
 }

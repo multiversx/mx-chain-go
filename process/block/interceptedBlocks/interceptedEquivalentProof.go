@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -23,14 +22,12 @@ type ArgInterceptedEquivalentProof struct {
 	Marshaller        marshal.Marshalizer
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
-	Headers           dataRetriever.HeadersPool
 }
 
 type interceptedEquivalentProof struct {
 	proof             *block.HeaderProof
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
-	headers           dataRetriever.HeadersPool
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -49,7 +46,6 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		proof:             equivalentProof,
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
-		headers:           args.Headers,
 	}, nil
 }
 
@@ -65,9 +61,6 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.HeaderSigVerifier) {
 		return process.ErrNilHeaderSigVerifier
-	}
-	if check.IfNil(args.Headers) {
-		return process.ErrNilHeadersDataPool
 	}
 
 	return nil
@@ -108,12 +101,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
-	hdr, err := iep.headers.GetHeaderByHash(iep.proof.HeaderHash)
-	if err != nil {
-		return err
-	}
-
-	return iep.headerSigVerifier.VerifySignatureForHash(hdr, iep.proof.HeaderHash, iep.proof.PubKeysBitmap, iep.proof.AggregatedSignature)
+	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {

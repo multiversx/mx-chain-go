@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -108,7 +107,6 @@ func createMockArgument(
 		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerID:                       "pid",
-		HeadersPool:                  &pool.HeadersPoolStub{},
 	}
 }
 

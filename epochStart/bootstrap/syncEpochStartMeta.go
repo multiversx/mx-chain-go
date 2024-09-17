@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -44,7 +43,6 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ArgsParser              process.ArgumentsParser
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	MetaBlockProcessor      EpochStartMetaBlockInterceptorProcessor
-	HeadersPool             dataRetriever.HeadersPool
 }
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
@@ -84,7 +82,6 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		ValidityAttester:        disabled.NewValidityAttester(),
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
 		ArgsParser:              args.ArgsParser,
-		HeadersPool:             args.HeadersPool,
 	}
 
 	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)

@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
 )
@@ -104,7 +103,6 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			Marshaller:        args.Marshaller,
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
-			Headers:           &pool.HeadersPoolStub{},
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
 			PubKeysBitmap:       []byte("bitmap"),

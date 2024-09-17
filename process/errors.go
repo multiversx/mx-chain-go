@@ -1247,3 +1247,9 @@ var ErrInvalidHeader = errors.New("header is invalid")
 
 // ErrNilEquivalentProofsPool signals that a nil equivalent proofs pool has been provided
 var ErrNilEquivalentProofsPool = errors.New("nil equivalent proofs pool")
+
+// ErrNilHeaderProof signals that a nil header proof has been provided
+var ErrNilHeaderProof = errors.New("nil header proof")
+
+// ErrFlagNotActive signals that a flag is not active
+var ErrFlagNotActive = errors.New("flag not active")

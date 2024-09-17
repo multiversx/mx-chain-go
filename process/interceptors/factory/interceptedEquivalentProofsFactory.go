@@ -3,7 +3,6 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -13,7 +12,6 @@ type interceptedEquivalentProofsFactory struct {
 	marshaller        marshal.Marshalizer
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier consensus.HeaderSigVerifier
-	headers           dataRetriever.HeadersPool
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
@@ -22,7 +20,6 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedDataFactory) *inte
 		marshaller:        args.CoreComponents.InternalMarshalizer(),
 		shardCoordinator:  args.ShardCoordinator,
 		headerSigVerifier: args.HeaderSigVerifier,
-		headers:           args.HeadersPool,
 	}
 }
 
@@ -33,7 +30,6 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.
 		Marshaller:        factory.marshaller,
 		ShardCoordinator:  factory.shardCoordinator,
 		HeaderSigVerifier: factory.headerSigVerifier,
-		Headers:           factory.headers,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

@@ -7,13 +7,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -43,7 +41,6 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		Marshaller:        testMarshaller,
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
-		Headers:           &pool.HeadersPoolStub{},
 	}
 }
 
@@ -96,15 +93,6 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, process.ErrNilHeaderSigVerifier, err)
 		require.Nil(t, iep)
 	})
-	t.Run("nil Headers should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = nil
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.Equal(t, process.ErrNilHeadersDataPool, err)
-		require.Nil(t, iep)
-	})
 	t.Run("unmarshal error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -145,21 +133,6 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
-	})
-	t.Run("headers pool error should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return nil, expectedErr
-			},
-		}
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

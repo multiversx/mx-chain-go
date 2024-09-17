@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +18,6 @@ func createMockArgInterceptedDataFactory() ArgInterceptedDataFactory {
 		},
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
-		HeadersPool:       &pool.HeadersPoolStub{},
 	}
 }
 

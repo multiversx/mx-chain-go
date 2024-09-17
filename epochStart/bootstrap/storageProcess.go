@@ -187,7 +187,6 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		StartInEpochConfig:      sesb.generalConfig.EpochStartConfig,
 		HeaderIntegrityVerifier: sesb.headerIntegrityVerifier,
 		MetaBlockProcessor:      metablockProcessor,
-		HeadersPool:             sesb.dataPool.Headers(),
 	}
 
 	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
