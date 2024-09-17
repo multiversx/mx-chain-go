@@ -9,7 +9,7 @@ import (
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error)
 	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
 	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
@@ -17,7 +17,7 @@ type NodesCoordinatorStub struct {
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetValidatorsIndexesCalled               func(pubKeys []string, epoch uint32) ([]uint64, error)
 	ConsensusGroupSizeCalled                 func(shardID uint32, epoch uint32) int
-	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
+	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
 	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
 	GetOwnPublicKeyCalled                    func() []byte
@@ -121,14 +121,12 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	round uint64,
 	shardId uint32,
 	epoch uint32,
-) (validatorsGroup []nodesCoordinator.Validator, err error) {
+) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 	if ncm.ComputeConsensusGroupCalled != nil {
 		return ncm.ComputeConsensusGroupCalled(randomness, round, shardId, epoch)
 	}
 
-	var list []nodesCoordinator.Validator
-
-	return list, nil
+	return nil, nil, nil
 }
 
 // ConsensusGroupSizeForShardAndEpoch -
@@ -145,12 +143,12 @@ func (ncm *NodesCoordinatorStub) GetConsensusValidatorsPublicKeys(
 	round uint64,
 	shardId uint32,
 	epoch uint32,
-) ([]string, error) {
+) (string, []string, error) {
 	if ncm.GetValidatorsPublicKeysCalled != nil {
 		return ncm.GetValidatorsPublicKeysCalled(randomness, round, shardId, epoch)
 	}
 
-	return nil, nil
+	return "", nil, nil
 }
 
 // SetNodesPerShards -

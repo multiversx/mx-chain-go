@@ -7,14 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-// IndexOfLeaderInConsensusGroup represents the index of the leader in the consensus group
-const IndexOfLeaderInConsensusGroup = 0
 
 var log = logger.GetOrCreate("consensus/spos")
 
@@ -136,11 +134,6 @@ func (cns *ConsensusState) IsNodeLeaderInCurrentRound(node string) bool {
 	return leader == node
 }
 
-// IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
-func (cns *ConsensusState) IsSelfLeaderInCurrentRound() bool {
-	return cns.IsNodeLeaderInCurrentRound(cns.selfPubKey)
-}
-
 // GetLeader method gets the leader of the current round
 func (cns *ConsensusState) GetLeader() (string, error) {
 	if cns.consensusGroup == nil {
@@ -151,7 +144,7 @@ func (cns *ConsensusState) GetLeader() (string, error) {
 		return "", ErrEmptyConsensusGroup
 	}
 
-	return cns.consensusGroup[IndexOfLeaderInConsensusGroup], nil
+	return cns.Leader(), nil
 }
 
 // GetNextConsensusGroup gets the new consensus group for the current round based on current eligible list and a random
@@ -162,8 +155,8 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 	shardId uint32,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
-) ([]string, error) {
-	validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
+) (string, []string, error) {
+	leader, validatorsGroup, err := nodesCoordinator.ComputeConsensusGroup(randomSource, round, shardId, epoch)
 	if err != nil {
 		log.Debug(
 			"compute consensus group",
@@ -173,7 +166,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 			"shardId", shardId,
 			"epoch", epoch,
 		)
-		return nil, err
+		return "", nil, err
 	}
 
 	consensusSize := len(validatorsGroup)
@@ -183,7 +176,7 @@ func (cns *ConsensusState) GetNextConsensusGroup(
 		newConsensusGroup[i] = string(validatorsGroup[i].PubKey())
 	}
 
-	return newConsensusGroup, nil
+	return string(leader.PubKey()), newConsensusGroup, nil
 }
 
 // IsConsensusDataSet method returns true if the consensus data for the current round is set and false otherwise
@@ -210,11 +203,6 @@ func (cns *ConsensusState) IsJobDone(node string, currentSubroundId int) bool {
 	}
 
 	return jobDone
-}
-
-// IsSelfJobDone method returns true if self job for the current subround is done and false otherwise
-func (cns *ConsensusState) IsSelfJobDone(currentSubroundId int) bool {
-	return cns.IsJobDone(cns.selfPubKey, currentSubroundId)
 }
 
 // IsSubroundFinished method returns true if the current subround is finished and false otherwise
@@ -251,16 +239,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 		return false
 	}
 
-	selfJobDone := true
-	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
-		selfJobDone = cns.IsSelfJobDone(currentSubroundId)
-	}
-	multiKeyJobDone := true
-	if cns.IsMultiKeyInConsensusGroup() {
-		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundId)
-	}
-
-	if selfJobDone && multiKeyJobDone {
+	if cns.IsSelfJobDone(currentSubroundId) {
 		return false
 	}
 
@@ -350,7 +329,7 @@ func (cns *ConsensusState) IsMultiKeyLeaderInCurrentRound() bool {
 		return false
 	}
 
-	return cns.IsKeyManagedByCurrentNode([]byte(leader))
+	return cns.IsKeyManagedBySelf([]byte(leader))
 }
 
 // IsLeaderJobDone method returns true if the leader job for the current subround is done and false otherwise
@@ -364,9 +343,9 @@ func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
 	return cns.IsJobDone(leader, currentSubroundId)
 }
 
-// IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
+// isMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
 // the current subround and false otherwise
-func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
+func (cns *ConsensusState) isMultiKeyJobDone(currentSubroundId int) bool {
 	for _, validator := range cns.consensusGroup {
 		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
 			continue
@@ -378,6 +357,21 @@ func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
 	}
 
 	return true
+}
+
+// IsSelfJobDone method returns true if self job for the current subround is done and false otherwise
+func (cns *ConsensusState) IsSelfJobDone(currentSubroundID int) bool {
+	selfJobDone := true
+	if cns.IsNodeInConsensusGroup(cns.SelfPubKey()) {
+		selfJobDone = cns.IsJobDone(cns.SelfPubKey(), currentSubroundID)
+	}
+
+	multiKeyJobDone := true
+	if cns.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = cns.isMultiKeyJobDone(currentSubroundID)
+	}
+
+	return selfJobDone && multiKeyJobDone
 }
 
 // GetMultikeyRedundancyStepInReason returns the reason if the current node stepped in as a multikey redundancy node

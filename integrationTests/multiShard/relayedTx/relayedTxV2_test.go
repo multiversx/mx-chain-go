@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
@@ -18,7 +19,7 @@ func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+	nodes, leaders, players, relayer := CreateGeneralSetupForRelayTxTest()
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -69,13 +70,13 @@ func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testi
 
 	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		for _, player := range players {
@@ -89,7 +90,7 @@ func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testi
 	}
 
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 

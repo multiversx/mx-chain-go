@@ -69,8 +69,8 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
+	isSelfLeader := sr.IsSelfLeader()
+	if !isSelfLeader { // is NOT self leader in this round?
 		return false
 	}
 
@@ -197,6 +197,11 @@ func (sr *subroundBlock) getSignatureShare(leader string, header data.HeaderHand
 }
 
 func (sr *subroundBlock) couldBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
+	// TODO[cleanup cns finality]: remove this method
+	if sr.EnableEpochsHandler().IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return false
+	}
+
 	bodyAndHeaderSize := uint32(len(marshalizedBody) + len(marshalizedHeader))
 	log.Debug("couldBeSentTogether",
 		"body size", len(marshalizedBody),
@@ -318,14 +323,48 @@ func (sr *subroundBlock) sendBlockBody(
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
 	headerHandler data.HeaderHandler,
-	marshalizedHeader []byte,
+	marshalledHeader []byte,
 	signature []byte,
 ) bool {
-	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		return sr.sendBlockHeaderBeforeEquivalentProofs(headerHandler, marshalledHeader, signature)
+	}
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
-		log.Debug("sendBlockBody.GetLeader", "error", errGetLeader)
+		log.Debug("sendBlockHeader.GetLeader", "error", errGetLeader)
+		return false
+	}
+
+	err := sr.BroadcastMessenger().BroadcastHeader(headerHandler, []byte(leader))
+	if err != nil {
+		log.Warn("sendBlockHeader.BroadcastHeader", "error", err.Error())
+		return false
+	}
+
+	headerHash := sr.Hasher().Compute(string(marshalledHeader))
+
+	log.Debug("step 1: block header has been sent",
+		"nonce", headerHandler.GetNonce(),
+		"hash", headerHash)
+
+	sr.Data = headerHash
+	sr.Header = headerHandler
+
+	return true
+}
+
+// TODO[cleanup cns finality]: remove this method
+func (sr *subroundBlock) sendBlockHeaderBeforeEquivalentProofs(
+	headerHandler data.HeaderHandler,
+	marshalledHeader []byte,
+	signature []byte,
+) bool {
+	headerHash := sr.Hasher().Compute(string(marshalledHeader))
+
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("sendBlockHeaderBeforeEquivalentProofs.GetLeader", "error", errGetLeader)
 		return false
 	}
 
@@ -333,7 +372,7 @@ func (sr *subroundBlock) sendBlockHeader(
 		headerHash,
 		signature,
 		nil,
-		marshalizedHeader,
+		marshalledHeader,
 		[]byte(leader),
 		nil,
 		int(MtBlockHeader),
@@ -348,7 +387,7 @@ func (sr *subroundBlock) sendBlockHeader(
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("sendBlockHeader.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("sendBlockHeaderBeforeEquivalentProofs.BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 

@@ -86,7 +86,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 	require.Nil(b, err)
 
 	container.SetSigningHandler(signingHandler)
-	consensusState := initConsensusStateWithArgs(keysHandlerMock, numberOfKeys, mapKeys)
+	consensusState := initConsensusStateWithArgs(keysHandlerMock, mapKeys)
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -166,13 +167,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	msg := ""
-	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
-		msg = " (my turn in multi-key)"
-	}
-	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
-		msg = " (my turn)"
-	}
+	msg := sr.GetLeaderStartRoundMessage()
 	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
@@ -186,17 +181,17 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	pubKeys := sr.ConsensusGroup()
 	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
+	if numMultiKeysInConsensusGroup > 0 {
+		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
+	}
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
-	isLeader := isSingleKeyLeader || sr.IsKeyManagedByCurrentNode([]byte(leader))
-	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
-	if !isSelfInConsensus {
+	if !sr.IsSelfInConsensusGroup() {
 		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if !isLeader {
+		if !sr.IsSelfLeader() {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
@@ -235,16 +230,12 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
-		if sr.IsKeyManagedByCurrentNode(pkBytes) {
+		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
 		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
-	}
-
-	if numMultiKeysInConsensusGroup > 0 {
-		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
 	}
 
 	return numMultiKeysInConsensusGroup
@@ -320,7 +311,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, err := sr.GetNextConsensusGroup(
+	leader, nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
@@ -339,6 +330,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)
+	sr.SetLeader(leader)
 
 	consensusGroupSizeForEpoch := sr.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(shardId, currentHeader.GetEpoch())
 	sr.SetConsensusGroupSize(consensusGroupSizeForEpoch)

@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -41,7 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestStartInEpochForAShardNodeInMultiShardedEnvironment(t *testing.T) {
@@ -74,6 +75,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:        integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:     integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -88,11 +90,11 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * numNodesPerShard
+		leaders[i] = nodes[i*numNodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * numNodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*numNodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -119,8 +121,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	nrRoundsToPropagateMultiShard := uint64(5)
 	for i := uint64(0); i <= (uint64(epoch)*roundsPerEpoch)+nrRoundsToPropagateMultiShard; i++ {
 		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 

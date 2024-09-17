@@ -24,6 +24,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -40,6 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -55,8 +59,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -160,7 +162,7 @@ func createShardedDataChacherNotifier(
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &cache.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, testHash) {
 							return handler, true
@@ -207,7 +209,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
 		MetaBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -234,7 +236,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := testscommon.NewCacherStub()
+			cs := cache.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -3121,8 +3123,8 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return nil, expectedErr
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, nil, expectedErr
 		}
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
@@ -3143,8 +3145,8 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		validator2, _ := nodesCoordinator.NewValidator([]byte("pk2"), 2, 2)
 
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator0, []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
 		}
 
 		resetCountersCalled := make([][]byte, 0)

@@ -143,6 +143,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	// TODO[Sorin]: remove this once all equivalent messages PRs are merged
 	configs.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+	configs.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 
 	node.ApplyArchCustomConfigs(configs)
 

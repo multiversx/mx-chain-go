@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -65,7 +66,7 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 			return &mock.HeadersCacherStub{}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return testscommon.NewCacherStub()
+			return cache.NewCacherStub()
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
@@ -74,7 +75,7 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 			return testscommon.NewShardedDataStub()
 		},
 		TrieNodesCalled: func() storage.Cacher {
-			return testscommon.NewCacherStub()
+			return cache.NewCacherStub()
 		},
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
