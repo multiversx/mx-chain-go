@@ -68,13 +68,22 @@ if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
     popd
 
     pushd .
-
     git clone git@github.com:multiversx/mx-chain-sovereign-bridge-go.git
     cd mx-chain-sovereign-bridge-go
     cd cert/cmd/cert
     go build
     ./cert
+    popd
 
+    pushd .
+    git clone --no-checkout https://github.com/multiversx/mx-chain-tools-go.git
+    cd mx-chain-tools-go
+    git sparse-checkout init --cone
+    git sparse-checkout set elasticreindexer
+    git checkout main
+    cd elasticreindexer
+    cd cmd/indices-creator/
+    go build
     popd
 fi
 
