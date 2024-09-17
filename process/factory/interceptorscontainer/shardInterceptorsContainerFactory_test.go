@@ -494,6 +494,7 @@ func testCreateShardTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrO
 
 		coreComp, cryptoComp := createMockComponentHolders()
 		args := getArgumentsShard(coreComp, cryptoComp)
+		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 		if strings.Contains(t.Name(), "full_archive") {
 			args.NodeOperationMode = common.FullArchiveMode
 			args.FullArchiveMessenger = createShardStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
