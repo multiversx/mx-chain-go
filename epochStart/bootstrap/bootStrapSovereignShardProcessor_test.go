@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +32,6 @@ func createSovBootStrapProc() *sovereignBootStrapShardProcessor {
 func TestBootStrapSovereignShardProcessor_requestAndProcessForShard(t *testing.T) {
 	t.Parallel()
 
-	notarizedShardHeaderHash := []byte("notarizedShardHeaderHash")
 	prevShardHeaderHash := []byte("prevShardHeaderHash")
 	notarizedMetaHeaderHash := []byte("notarizedMetaHeaderHash")
 	prevMetaHeaderHash := []byte("prevMetaHeaderHash")
@@ -41,9 +41,6 @@ func TestBootStrapSovereignShardProcessor_requestAndProcessForShard(t *testing.T
 	args.RunTypeComponents = mock.NewSovereignRunTypeComponentsStub()
 
 	prevShardHeader := &block.Header{}
-	notarizedShardHeader := &block.Header{
-		PrevHash: prevShardHeaderHash,
-	}
 	notarizedMetaHeader := &block.SovereignChainHeader{
 		Header: &block.Header{
 			PrevHash: prevMetaHeaderHash,
@@ -63,9 +60,8 @@ func TestBootStrapSovereignShardProcessor_requestAndProcessForShard(t *testing.T
 	epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 			return map[string]data.HeaderHandler{
-				string(notarizedShardHeaderHash): notarizedShardHeader,
-				string(notarizedMetaHeaderHash):  notarizedMetaHeader,
-				string(prevShardHeaderHash):      prevShardHeader,
+				string(notarizedMetaHeaderHash): notarizedMetaHeader,
+				string(prevShardHeaderHash):     prevShardHeader,
 			}, nil
 		},
 	}
@@ -161,30 +157,18 @@ func TestBootStrapSovereignShardProcessor_syncHeadersFrom(t *testing.T) {
 	require.Equal(t, 2, headersSyncedCt)
 }
 
-// TODO HERE THIS TEST NEEDS REFACTOR
 func TestBootStrapSovereignShardProcessor_processNodesConfigFromStorage(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	hdrHash1 := []byte("hdrHash1")
-	hdrHash2 := []byte("hdrHash2")
 	sovBlock := &block.SovereignChainHeader{
 		Header: &block.Header{
 			Epoch: 0,
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{
-					Hash:          hdrHash1,
-					SenderShardID: 1,
-				},
-				{
-					Hash:          hdrHash2,
-					SenderShardID: 2,
-				},
-			},
 		},
 	}
 
 	pksBytes := createPkBytes(1)
+	delete(pksBytes, core.MetachainShardId)
+
 	expectedNodesConfig := &nodesCoordinator.NodesCoordinatorRegistry{
 		EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 			"0": {
@@ -192,13 +176,6 @@ func TestBootStrapSovereignShardProcessor_processNodesConfigFromStorage(t *testi
 					"0": {
 						&nodesCoordinator.SerializableValidator{
 							PubKey:  pksBytes[0],
-							Chances: 1,
-							Index:   0,
-						},
-					},
-					"4294967295": {
-						&nodesCoordinator.SerializableValidator{
-							PubKey:  pksBytes[core.MetachainShardId],
 							Chances: 1,
 							Index:   0,
 						},
@@ -211,22 +188,25 @@ func TestBootStrapSovereignShardProcessor_processNodesConfigFromStorage(t *testi
 		CurrentEpoch: 0,
 	}
 
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GenesisNodesConfig = getNodesConfigMock(1)
-
-	sesb := initializeStorageEpochStartBootstrap(args)
-	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-	sesb.requestHandler = &testscommon.RequestHandlerStub{}
-	sesb.epochStartMeta = sovBlock
-	sesb.prevEpochStartMeta = sovBlock
-
-	sovProc := &sovereignBootStrapShardProcessor{
-		&sovereignChainEpochStartBootstrap{
-			sesb.epochStartBootstrap,
+	sovProc := createSovBootStrapProc()
+	sovProc.runTypeComponents = &mock.RunTypeComponentsStub{
+		NodesCoordinatorWithRaterFactory: &testscommon.NodesCoordinatorFactoryMock{
+			CreateNodesCoordinatorWithRaterCalled: func(args *nodesCoordinator.NodesCoordinatorWithRaterArgs) (nodesCoordinator.NodesCoordinator, error) {
+				return &shardingMocks.NodesCoordinatorMock{
+					NodesCoordinatorToRegistryCalled: func(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
+						return expectedNodesConfig
+					},
+				}, nil
+			},
 		},
 	}
-	nodesConfig, shardId, err := sovProc.processNodesConfigFromStorage([]byte("pubkey"), sesb.importDbConfig.ImportDBTargetShardID)
+
+	sovProc.dataPool = dataRetrieverMock.NewPoolsHolderMock()
+	sovProc.requestHandler = &testscommon.RequestHandlerStub{}
+	sovProc.epochStartMeta = sovBlock
+	sovProc.prevEpochStartMeta = sovBlock
+
+	nodesConfig, shardId, err := sovProc.processNodesConfigFromStorage([]byte("pubkey"), 0)
 	require.Nil(t, err)
 	require.Equal(t, core.SovereignChainShardId, shardId)
 	require.Equal(t, nodesConfig, expectedNodesConfig)

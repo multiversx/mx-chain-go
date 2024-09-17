@@ -65,9 +65,8 @@ func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlo
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
-	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState", "validatorRootHash", e.epochStartMeta.GetValidatorStatsRootHash())
 	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
 	if err != nil {
 		return err
@@ -84,12 +83,7 @@ func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlo
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
-	if errSavingToStorage != nil {
-		return errSavingToStorage
-	}
-
-	return nil
+	return storageHandlerComponent.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
 }
 
 func (e *sovereignBootStrapShardProcessor) computeNumShards(_ data.MetaHeaderHandler) uint32 {
