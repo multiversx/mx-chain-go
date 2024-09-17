@@ -920,9 +920,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
-	arguments.StateChangesCollector = &stateMock.StateChangesCollectorStub{
-		ResetCalled: func() {},
-	}
+	arguments.StateChangesCollector = &stateMock.StateChangesCollectorStub{}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
@@ -1054,9 +1052,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			resetCountersForManagedBlockSignerCalled = true
 		},
 	}
-	arguments.StateChangesCollector = &stateMock.StateChangesCollectorStub{
-		ResetCalled: func() {},
-	}
+	arguments.StateChangesCollector = &stateMock.StateChangesCollectorStub{}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 

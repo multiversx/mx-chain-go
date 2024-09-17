@@ -160,7 +160,9 @@ func checkArgsAccountsDB(args ArgsAccountsDB) error {
 	if check.IfNil(args.SnapshotsManager) {
 		return ErrNilSnapshotsManager
 	}
-	if check.IfNil(args.StateChangesCollector) { return ErrNilStateChangesCollector }
+	if check.IfNil(args.StateChangesCollector) {
+		return ErrNilStateChangesCollector
+	}
 
 	return nil
 }
