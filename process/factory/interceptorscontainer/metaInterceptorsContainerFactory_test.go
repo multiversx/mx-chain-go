@@ -543,6 +543,7 @@ func testCreateMetaTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrOn
 		} else {
 			args.MainMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
 		}
+		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 		icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 		mainContainer, fullArchiveConatiner, err := icf.Create()
