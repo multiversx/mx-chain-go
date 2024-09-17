@@ -72,19 +72,11 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 		t.Skip("this is not a short test")
 	}
 
-	nft := sovChainPrefix + "-SOVNFT-123456"
-	nftNonce := uint64(3)
 	nftV2 := sovChainPrefix + "-NFTV2-a1b2c3"
 	nftV2Nonce := uint64(10)
 	token := sovChainPrefix + "-TKN-1q2w3e"
 
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
-	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-		Identifier: nft,
-		Nonce:      nftNonce,
-		Amount:     big.NewInt(1),
-		Type:       core.NonFungible,
-	})
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: nftV2,
 		Nonce:      nftV2Nonce,
@@ -99,12 +91,6 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 	})
 
 	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
-	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
-		Identifier: nft,
-		Nonce:      nftNonce,
-		Amount:     big.NewInt(1),
-		Type:       core.NonFungible,
-	})
 	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
 		Identifier: nftV2,
 		Nonce:      nftV2Nonce,
