@@ -66,6 +66,13 @@ func GetSysContactDeployAddressBytes(t *testing.T, nodeHandler process.NodeHandl
 	return addressBytes
 }
 
+// GetShardForAddress will return the shard of the address
+func GetShardForAddress(cs ChainSimulator, address string) uint32 {
+	nodeHandler := cs.GetNodeHandler(0)
+	pubKey, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(address)
+	return nodeHandler.GetShardCoordinator().ComputeId(pubKey)
+}
+
 // DeployContract will deploy a smart contract and return its address
 func DeployContract(
 	t *testing.T,
@@ -184,12 +191,7 @@ func RequireAccountHasToken(
 	address string,
 	value *big.Int,
 ) {
-	nodeHandler := cs.GetNodeHandler(0)
-
-	pubKey, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(address)
-	require.Nil(t, err)
-
-	addressShardID := nodeHandler.GetShardCoordinator().ComputeId(pubKey)
+	addressShardID := GetShardForAddress(cs, address)
 	tokens, _, err := cs.GetNodeHandler(addressShardID).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
 	require.Nil(t, err)
 
@@ -216,6 +218,26 @@ func TransferESDT(
 		"@" + hex.EncodeToString([]byte(token)) +
 		"@" + hex.EncodeToString(amount.Bytes())
 	txResult := SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	RequireSuccessfulTransaction(t, txResult)
+}
+
+// TransferESDTNFT will transfer the amount of NFT/SFT token to an address
+func TransferESDTNFT(
+	t *testing.T,
+	cs ChainSimulator,
+	sender, receiver []byte,
+	nonce *uint64,
+	token string,
+	tokenNonce uint64,
+	amount *big.Int,
+) {
+	esdtNftTransferArgs :=
+		core.BuiltInFunctionESDTNFTTransfer +
+			"@" + hex.EncodeToString([]byte(token)) +
+			"@" + hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes()) +
+			"@" + hex.EncodeToString(amount.Bytes()) +
+			"@" + hex.EncodeToString(receiver)
+	txResult := SendTransaction(t, cs, sender, nonce, sender, ZeroValue, esdtNftTransferArgs, uint64(5000000))
 	RequireSuccessfulTransaction(t, txResult)
 }
 

@@ -115,10 +115,7 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 	simulateExecutionAndDeposit(t, bridgedInTokens, bridgedOutTokens)
 }
 
-// TODO ESDT-prefix fix SFT create test
 func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
-	t.Skip("skil failing test, to be resolved in the next PR")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -179,7 +176,7 @@ func simulateExecutionAndDeposit(
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocksUntilEpochIsReached(3)
+	err = cs.GenerateBlocksUntilEpochIsReached(4)
 	require.Nil(t, err)
 
 	nodeHandler := cs.GetNodeHandler(0)
@@ -205,7 +202,7 @@ func simulateExecutionAndDeposit(
 
 	// We need to register tokens originated from sovereign (to pay the issue cost)
 	// Only the tokens with sovereign prefix need to be registered (these are the ones that will be minted), the rest will be taken from contract balance
-	tokens := getPrefixedTokens(bridgedInTokens, argsEsdtSafe.ChainPrefix)
+	tokens := getUniquePrefixedTokens(bridgedInTokens, argsEsdtSafe.ChainPrefix)
 	registerSovereignNewTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, argsEsdtSafe.IssuePaymentToken, tokens)
 
 	// We will deposit an array of prefixed tokens from a sovereign chain to the main chain,
@@ -214,7 +211,7 @@ func simulateExecutionAndDeposit(
 	chainSim.RequireSuccessfulTransaction(t, txResult)
 	for _, bridgedInToken := range groupTokens(bridgedInTokens) {
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(bridgedInToken), wallet.Bech32, bridgedInToken.Amount)
-		requireMetadataInAccount(t, nodeHandler, bridgedInToken, wallet.Bech32, bridgedInToken.Amount)
+		checkMetaDataInAccounts(t, cs, bridgedInToken, wallet.Bech32, bridgedInToken.Amount)
 	}
 
 	// deposit an array of tokens from main chain to sovereign chain,
@@ -231,7 +228,7 @@ func simulateExecutionAndDeposit(
 		remainingAmount := big.NewInt(0).Sub(bridgedValue, bridgedOutToken.Amount)
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, remainingAmount)
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, esdtSafeEncoded, big.NewInt(0))
-		requireMetadataInAccount(t, nodeHandler, bridgedOutToken, wallet.Bech32, remainingAmount)
+		checkMetaDataInAccounts(t, cs, bridgedOutToken, wallet.Bech32, remainingAmount)
 
 		tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(fullTokenIdentifier)
 		require.Nil(t, err)
@@ -240,11 +237,13 @@ func simulateExecutionAndDeposit(
 	}
 }
 
-func getPrefixedTokens(bridgedTokens []chainSim.ArgsDepositToken, prefix string) []string {
+func getUniquePrefixedTokens(bridgedTokens []chainSim.ArgsDepositToken, prefix string) []string {
 	tokens := make([]string, 0)
+	seen := make(map[string]bool)
 	for _, token := range bridgedTokens {
-		if strings.HasPrefix(token.Identifier, prefix+"-") {
+		if strings.HasPrefix(token.Identifier, prefix+"-") && !seen[token.Identifier] {
 			tokens = append(tokens, token.Identifier)
+			seen[token.Identifier] = true
 		}
 	}
 	return tokens
@@ -259,38 +258,89 @@ func getBridgedValue(bridgeInTokens []chainSim.ArgsDepositToken, token string) (
 	return nil, fmt.Errorf("token not found")
 }
 
-func requireMetadataInAccount(
+func checkMetaDataInAccounts(
 	t *testing.T,
-	nodeHandler process.NodeHandler,
+	cs chainSim.ChainSimulator,
 	token chainSim.ArgsDepositToken,
 	account string,
 	expectedAmount *big.Int,
 ) {
-	address := esdtSystemAccount
-	if token.Type == core.Fungible || token.Type == core.NonFungibleV2 {
-		address = account
-	}
+	addressShardID := chainSim.GetShardForAddress(cs, account)
+	nodeHandler := cs.GetNodeHandler(addressShardID)
 
-	accountKeys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, dataApi.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.NotNil(t, t, accountKeys)
-
-	esdtValue, err := hex.DecodeString(accountKeys[getTokenKey(token)])
-	require.Nil(t, err)
+	// get user account token data
+	esdtValue := getAccountTokenData(t, nodeHandler, account, token)
 
 	if expectedAmount.Cmp(big.NewInt(0)) == 0 {
-		require.Empty(t, esdtValue) // expect that key doesn't exist in account
+		require.Empty(t, esdtValue)            // expect that key doesn't exist in account
+		if metaDataOnUserAccount(token.Type) { // for other token types the key can exist because other wallets in shard can have the token
+			requireNoTokenDataInSysAccount(t, nodeHandler, token) // no keys in system account
+		}
 		return
 	}
 
 	esdtData := &esdt.ESDigitalToken{}
-	err = nodeHandler.GetCoreComponents().InternalMarshalizer().Unmarshal(esdtData, esdtValue)
+	err := nodeHandler.GetCoreComponents().InternalMarshalizer().Unmarshal(esdtData, esdtValue)
 	require.Nil(t, err)
+	require.NotNil(t, esdtData)
 	require.Equal(t, expectedAmount, esdtData.Value)
 	require.Equal(t, uint32(token.Type), esdtData.Type)
-	if token.Nonce > 0 {
+
+	if token.Type == core.Fungible {
+		require.Nil(t, esdtData.TokenMetaData)
+		requireNoTokenDataInSysAccount(t, nodeHandler, token) // no keys in system account
+	} else if token.Type == core.NonFungibleV2 || token.Type == core.DynamicNFT {
+		require.NotNil(t, esdtData.TokenMetaData)
+		require.Equal(t, token.Nonce, esdtData.TokenMetaData.Nonce)
+		requireNoTokenDataInSysAccount(t, nodeHandler, token) // no keys in system account
+	} else {
+		require.Nil(t, esdtData.TokenMetaData)
+
+		// get system account token data
+		esdtValue = getAccountTokenData(t, nodeHandler, esdtSystemAccount, token)
+
+		esdtData = &esdt.ESDigitalToken{}
+		err = nodeHandler.GetCoreComponents().InternalMarshalizer().Unmarshal(esdtData, esdtValue)
+		require.Nil(t, err)
+		require.NotNil(t, esdtData)
+		require.GreaterOrEqual(t, esdtData.Value.Uint64(), expectedAmount.Uint64()) // greater if other wallets have the token
+		require.Equal(t, uint32(token.Type), esdtData.Type)
+		require.NotNil(t, esdtData.TokenMetaData)
 		require.Equal(t, token.Nonce, esdtData.TokenMetaData.Nonce)
 	}
+}
+
+func getAccountTokenData(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	account string,
+	token chainSim.ArgsDepositToken,
+) []byte {
+	accountKeys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(account, dataApi.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, accountKeys)
+
+	esdtValue, err := hex.DecodeString(accountKeys[getTokenKey(token)])
+	require.Nil(t, err)
+
+	return esdtValue
+}
+
+func requireNoTokenDataInSysAccount(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	token chainSim.ArgsDepositToken,
+) {
+	accountKeys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(esdtSystemAccount, dataApi.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, accountKeys)
+	require.Empty(t, accountKeys[getTokenKey(token)])
+}
+
+func metaDataOnUserAccount(esdtType core.ESDTType) bool {
+	return esdtType == core.Fungible ||
+		esdtType == core.NonFungibleV2 ||
+		esdtType == core.DynamicNFT
 }
 
 func getTokenKey(token chainSim.ArgsDepositToken) string {
