@@ -558,6 +558,7 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
+	args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	mainContainer, fullArchiveContainer, err := icf.Create()
