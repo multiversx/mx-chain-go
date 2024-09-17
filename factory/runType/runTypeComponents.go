@@ -49,6 +49,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
+	updateFactory "github.com/multiversx/mx-chain-go/update/factory/creator"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -116,6 +117,7 @@ type runTypeComponents struct {
 	preProcessorsContainerFactoryCreator    data.PreProcessorsContainerFactoryCreator
 	dataRetrieverContainersSetter           mainFactory.DataRetrieverContainersSetter
 	shardMessengerFactory                   sposFactory.BroadCastShardMessengerFactoryHandler
+	exportHandlerFactoryCreator             mainFactory.ExportHandlerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -290,6 +292,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		preProcessorsContainerFactoryCreator:    shard.NewPreProcessorContainerFactoryCreator(),
 		dataRetrieverContainersSetter:           dataRetriever.NewDataRetrieverContainerSetter(),
 		shardMessengerFactory:                   broadcastFactory.NewShardChainMessengerFactory(),
+		exportHandlerFactoryCreator:             updateFactory.NewExportHandlerFactoryCreator(),
 	}, nil
 }
 

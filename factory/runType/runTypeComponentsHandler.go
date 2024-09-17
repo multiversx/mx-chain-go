@@ -236,6 +236,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.shardMessengerFactory) {
 		return errors.ErrNilBroadCastShardMessengerFactoryHandler
 	}
+	if check.IfNil(mrc.exportHandlerFactoryCreator) {
+		return errors.ErrNilExportHandlerFactoryCreator
+	}
 
 	return nil
 }
@@ -778,6 +781,18 @@ func (mrc *managedRunTypeComponents) BroadCastShardMessengerFactoryHandler() spo
 	}
 
 	return mrc.runTypeComponents.shardMessengerFactory
+}
+
+// ExportHandlerFactoryCreator returns the export handler factory creator
+func (mrc *managedRunTypeComponents) ExportHandlerFactoryCreator() factory.ExportHandlerFactoryCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.exportHandlerFactoryCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

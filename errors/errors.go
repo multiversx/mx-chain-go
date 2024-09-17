@@ -853,3 +853,6 @@ var ErrNilDataRetrieverContainersSetter = errors.New("nil data retriever contain
 
 // ErrNilBroadCastShardMessengerFactoryHandler signals that a nil shard messenger factory has been provided
 var ErrNilBroadCastShardMessengerFactoryHandler = errors.New("nil shard messenger factory has been provided")
+
+// ErrNilExportHandlerFactoryCreator signals that a nil export handler factory creator has been provided
+var ErrNilExportHandlerFactoryCreator = errors.New("nil export handler factory creator has been provided")
