@@ -236,7 +236,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.shardMessengerFactory) {
 		return errors.ErrNilBroadCastShardMessengerFactoryHandler
 	}
-	if check.IfNil(mrc.shardMessengerFactory) {
+	if check.IfNil(mrc.exportHandlerFactoryCreator) {
 		return errors.ErrNilExportHandlerFactoryCreator
 	}
 
