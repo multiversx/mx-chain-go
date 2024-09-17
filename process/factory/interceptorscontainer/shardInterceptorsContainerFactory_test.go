@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -26,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
 )
 
 var providedHardforkPubKey = []byte("provided hardfork pub key")
@@ -559,6 +560,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		},
 	}
 	args.WhiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
