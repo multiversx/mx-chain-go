@@ -127,7 +127,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
 
-	e.requestHandler, err = e.bootStrapShardRequester.createRequestHandler()
+	e.requestHandler, err = e.bootStrapShardProcessor.createRequestHandler()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -148,7 +148,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}()
 
-	e.syncedHeaders, err = e.bootStrapShardRequester.syncHeadersFrom(e.epochStartMeta)
+	e.syncedHeaders, err = e.bootStrapShardProcessor.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -178,7 +178,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.bootStrapShardRequester.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
+		err = e.bootStrapShardProcessor.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}

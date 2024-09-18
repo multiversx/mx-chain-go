@@ -148,7 +148,7 @@ type epochStartBootstrap struct {
 	shardForLatestEpochComputer ShardForLatestEpochComputer
 	runTypeComponents           RunTypeComponentsHolder
 
-	bootStrapShardRequester bootStrapShardRequesterHandler
+	bootStrapShardProcessor bootStrapShardProcessorHandler
 }
 
 type baseDataInStorage struct {
@@ -242,7 +242,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		runTypeComponents:               args.RunTypeComponents,
 	}
-	epochStartProvider.bootStrapShardRequester = &bootStrapShardRequester{
+	epochStartProvider.bootStrapShardProcessor = &bootStrapShardProcessor{
 		epochStartProvider,
 	}
 
@@ -532,12 +532,12 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	e.trieContainer = triesContainer
 	e.trieStorageManagers = trieStorageManagers
 
-	err = e.bootStrapShardRequester.createResolversContainer()
+	err = e.bootStrapShardProcessor.createResolversContainer()
 	if err != nil {
 		return err
 	}
 
-	e.requestHandler, err = e.bootStrapShardRequester.createRequestHandler()
+	e.requestHandler, err = e.bootStrapShardProcessor.createRequestHandler()
 	if err != nil {
 		return err
 	}
@@ -640,10 +640,10 @@ func (e *epochStartBootstrap) createSyncers() error {
 // Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
 func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	var err error
-	e.baseData.numberOfShards = e.bootStrapShardRequester.computeNumShards(e.epochStartMeta)
+	e.baseData.numberOfShards = e.bootStrapShardProcessor.computeNumShards(e.epochStartMeta)
 	e.baseData.lastEpoch = e.epochStartMeta.GetEpoch()
 
-	e.syncedHeaders, err = e.bootStrapShardRequester.syncHeadersFrom(e.epochStartMeta)
+	e.syncedHeaders, err = e.bootStrapShardProcessor.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -691,7 +691,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.bootStrapShardRequester.requestAndProcessForShard(miniBlocks)
+		err = e.bootStrapShardProcessor.requestAndProcessForShard(miniBlocks)
 		if err != nil {
 			return Parameters{}, err
 		}

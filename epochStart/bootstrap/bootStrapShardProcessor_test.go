@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testing.T) {
+func TestBootStrapShardProcessor_applyCurrentShardIDOnMiniblocksCopy(t *testing.T) {
 	t.Parallel()
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
@@ -21,7 +21,7 @@ func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testi
 		ImportDBTargetShardID: expectedShardId,
 	}
 	sesb, _ := NewStorageEpochStartBootstrap(args)
-	besb := &bootStrapShardRequester{
+	bsr := &bootStrapShardProcessor{
 		sesb.epochStartBootstrap,
 	}
 
@@ -38,7 +38,7 @@ func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testi
 			},
 		},
 	}
-	err := besb.applyCurrentShardIDOnMiniblocksCopy(metaBlock, sesb.importDbConfig.ImportDBTargetShardID)
+	err := bsr.applyCurrentShardIDOnMiniblocksCopy(metaBlock, sesb.importDbConfig.ImportDBTargetShardID)
 
 	assert.Nil(t, err)
 	for _, miniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {

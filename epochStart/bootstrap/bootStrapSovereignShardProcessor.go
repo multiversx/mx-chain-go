@@ -13,15 +13,16 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
-type sovereignBootStrapShardRequester struct {
+type sovereignBootStrapShardProcessor struct {
 	*sovereignChainEpochStartBootstrap
 }
 
-func (e *sovereignBootStrapShardRequester) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
+func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
 	argsStorageHandler := StorageHandlerArgs{
 		GeneralConfig:                   e.generalConfig,
 		PreferencesConfig:               e.prefsConfig,
@@ -43,13 +44,15 @@ func (e *sovereignBootStrapShardRequester) requestAndProcessForShard(peerMiniBlo
 		return err
 	}
 
-	defer storageHandlerComponent.CloseStorageService()
+	sovStorageHandler := newSovereignShardStorageHandler(storageHandlerComponent)
+
+	defer sovStorageHandler.CloseStorageService()
 
 	e.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
 		e.generalConfig,
 		e.coreComponentsHolder,
-		storageHandlerComponent.storageService,
+		sovStorageHandler.storageService,
 		e.stateStatsHandler,
 	)
 	if err != nil {
@@ -64,9 +67,8 @@ func (e *sovereignBootStrapShardRequester) requestAndProcessForShard(peerMiniBlo
 	if err != nil {
 		return err
 	}
-	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
-	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState", "validatorRootHash", e.epochStartMeta.GetValidatorStatsRootHash())
 	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
 	if err != nil {
 		return err
@@ -83,19 +85,14 @@ func (e *sovereignBootStrapShardRequester) requestAndProcessForShard(peerMiniBlo
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
-	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
-	if errSavingToStorage != nil {
-		return errSavingToStorage
-	}
-
-	return nil
+	return sovStorageHandler.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
 }
 
-func (e *sovereignBootStrapShardRequester) computeNumShards(_ data.MetaHeaderHandler) uint32 {
+func (e *sovereignBootStrapShardProcessor) computeNumShards(_ data.MetaHeaderHandler) uint32 {
 	return 1
 }
 
-func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.RequestHandler, error) {
+func (e *sovereignBootStrapShardProcessor) createRequestHandler() (process.RequestHandler, error) {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
 		RequesterConfig:                 e.generalConfig.Requesters,
 		ShardCoordinator:                e.shardCoordinator,
@@ -131,30 +128,30 @@ func (e *sovereignBootStrapShardRequester) createRequestHandler() (process.Reque
 			RequestedItemsHandler: cache.NewTimeCache(timeBetweenRequests),
 			WhiteListHandler:      e.whiteListHandler,
 			MaxTxsToRequest:       maxToRequest,
-			ShardID:               core.MetachainShardId,
+			ShardID:               core.SovereignChainShardId,
 			RequestInterval:       timeBetweenRequests,
 		},
 	)
 }
 
-func (e *sovereignBootStrapShardRequester) createResolversContainer() error {
+func (e *sovereignBootStrapShardProcessor) createResolversContainer() error {
 	return nil
 }
 
-func (e *sovereignBootStrapShardRequester) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
-	return e.baseSyncHeadersFromStorage(meta, DefaultTimeToWaitForRequestedData)
+func (e *sovereignBootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+	return e.baseSyncHeaders(meta, DefaultTimeToWaitForRequestedData)
 }
 
-func (e *sovereignBootStrapShardRequester) syncHeadersFromStorage(
+func (e *sovereignBootStrapShardProcessor) syncHeadersFromStorage(
 	meta data.MetaHeaderHandler,
 	_ uint32,
 	_ uint32,
 	timeToWaitForRequestedData time.Duration,
 ) (map[string]data.HeaderHandler, error) {
-	return e.baseSyncHeadersFromStorage(meta, timeToWaitForRequestedData)
+	return e.baseSyncHeaders(meta, timeToWaitForRequestedData)
 }
 
-func (e *sovereignBootStrapShardRequester) baseSyncHeadersFromStorage(
+func (e *sovereignBootStrapShardProcessor) baseSyncHeaders(
 	meta data.MetaHeaderHandler,
 	timeToWaitForRequestedData time.Duration,
 ) (map[string]data.HeaderHandler, error) {
@@ -184,7 +181,7 @@ func (e *sovereignBootStrapShardRequester) baseSyncHeadersFromStorage(
 	return syncedHeaders, nil
 }
 
-func (e *sovereignBootStrapShardRequester) processNodesConfigFromStorage(pubKey []byte, _ uint32) error {
+func (e *sovereignBootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, _ uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error) {
 	var err error
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
 		DataPool:                         e.dataPool,
@@ -205,11 +202,10 @@ func (e *sovereignBootStrapShardRequester) processNodesConfigFromStorage(pubKey 
 	}
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
-		return err
+		return nil, 0, err
 	}
 
 	// no need to save the peers miniblocks here as they were already fetched from the DB
-	e.nodesConfig, e.baseData.shardId, _, err = e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
-	e.baseData.shardId = core.SovereignChainShardId
-	return err
+	nodesConfig, _, _, err := e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	return nodesConfig, core.SovereignChainShardId, err
 }

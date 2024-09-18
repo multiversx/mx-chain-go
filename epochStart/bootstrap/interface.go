@@ -95,7 +95,7 @@ type ShardForLatestEpochComputer interface {
 	IsInterfaceNil() bool
 }
 
-type bootStrapShardRequesterHandler interface {
+type bootStrapShardProcessorHandler interface {
 	requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error
 	computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32
 	createRequestHandler() (process.RequestHandler, error)
@@ -107,5 +107,5 @@ type bootStrapShardRequesterHandler interface {
 		importDBTargetShardID uint32,
 		timeToWaitForRequestedData time.Duration,
 	) (map[string]data.HeaderHandler, error)
-	processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) error
+	processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error)
 }
