@@ -785,7 +785,7 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 	return nil
 }
 
-func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
+func (wrk *Worker) processInvalidEquivalentMessage(blockHeaderHash []byte) {
 	wrk.equivalentMessagesDebugger.DeleteEquivalentMessage(blockHeaderHash)
 }
 
