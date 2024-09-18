@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -14,54 +15,20 @@ import (
 
 var log = logger.GetOrCreate("state/stateChanges")
 
-// DataTrieChange represents a change in the data trie
-type DataTrieChange struct {
-	Type string `json:"type"`
-	Key  []byte `json:"key"`
-	Val  []byte `json:"-"`
-}
-
 // ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
 var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
 
 type StateChange interface {
-	GetTxHash() []byte
-	SetTxHash(txHash []byte)
-	GetIndex() int
-	SetIndex(index int)
 	GetType() string
-}
+	GetIndex() int32
+	GetTxHash() []byte
+	GetMainTrieKey() []byte
+	GetMainTrieVal() []byte
+	GetOperation() string
+	GetDataTrieChanges() []*data.DataTrieChange
 
-// StateChangeDTO is used to collect state changes
-// TODO: change to use proto structs
-type StateChangeDTO struct {
-	Type            string           `json:"type"`
-	Index           int              `json:"-"`
-	TxHash          []byte           `json:"-"`
-	MainTrieKey     []byte           `json:"mainTrieKey"`
-	MainTrieVal     []byte           `json:"-"`
-	Operation       string           `json:"operation"`
-	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
-}
-
-func (sc *StateChangeDTO) GetType() string {
-	return sc.Type
-}
-
-func (sc *StateChangeDTO) GetIndex() int {
-	return sc.Index
-}
-
-func (sc *StateChangeDTO) SetIndex(index int) {
-	sc.Index = index
-}
-
-func (sc *StateChangeDTO) GetTxHash() []byte {
-	return sc.TxHash
-}
-
-func (sc *StateChangeDTO) SetTxHash(txHash []byte) {
-	sc.TxHash = txHash
+	SetTxHash(txHash []byte)
+	SetIndex(index int32)
 }
 
 // StateChangesForTx is used to collect state changes for a transaction hash
@@ -77,8 +44,6 @@ type stateChangesCollector struct {
 
 // NewStateChangesCollector creates a new StateChangesCollector
 func NewStateChangesCollector() *stateChangesCollector {
-	// TODO: add outport driver
-
 	return &stateChangesCollector{
 		stateChanges: make([]StateChange, 0),
 	}
@@ -136,6 +101,47 @@ func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, 
 	return stateChangesForTxs, nil
 }
 
+// GetStateChangesForTxs will retrieve the state changes linked with the tx hash.
+func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
+	scc.stateChangesMut.RLock()
+	defer scc.stateChangesMut.RUnlock()
+
+	stateChangesForTxs := make(map[string]*data.StateChanges)
+
+	for _, stateChange := range scc.stateChanges {
+		txHash := string(stateChange.GetTxHash())
+
+		if _, ok := stateChangesForTxs[txHash]; !ok {
+			stateChangesForTxs[txHash] = &data.StateChanges{StateChanges: []*data.StateChange{
+				{
+					Type:            stateChange.GetType(),
+					Index:           stateChange.GetIndex(),
+					TxHash:          stateChange.GetTxHash(),
+					MainTrieKey:     stateChange.GetMainTrieKey(),
+					MainTrieVal:     stateChange.GetMainTrieVal(),
+					Operation:       stateChange.GetOperation(),
+					DataTrieChanges: stateChange.GetDataTrieChanges(),
+				},
+			},
+			}
+		} else {
+			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges,
+				&data.StateChange{
+					Type:            stateChange.GetType(),
+					Index:           stateChange.GetIndex(),
+					TxHash:          stateChange.GetTxHash(),
+					MainTrieKey:     stateChange.GetMainTrieKey(),
+					MainTrieVal:     stateChange.GetMainTrieVal(),
+					Operation:       stateChange.GetOperation(),
+					DataTrieChanges: stateChange.GetDataTrieChanges(),
+				},
+			)
+		}
+	}
+
+	return stateChangesForTxs
+}
+
 // Reset resets the state changes collector
 func (scc *stateChangesCollector) Reset() {
 	scc.stateChangesMut.Lock()
@@ -176,7 +182,7 @@ func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
 		return nil
 	}
 
-	scc.stateChanges[len(scc.stateChanges)-1].SetIndex(index)
+	scc.stateChanges[len(scc.stateChanges)-1].SetIndex(int32(index))
 
 	return nil
 }
@@ -196,7 +202,7 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 	defer scc.stateChangesMut.Unlock()
 
 	for i := len(scc.stateChanges) - 1; i >= 0; i-- {
-		if scc.stateChanges[i].GetIndex() == index {
+		if scc.stateChanges[i].GetIndex() == int32(index) {
 			scc.stateChanges = scc.stateChanges[:i]
 			break
 		}

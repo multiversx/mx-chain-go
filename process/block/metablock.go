@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -22,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const firstHeaderNonce = uint64(1)
@@ -635,6 +636,7 @@ func (mp *metaProcessor) indexBlock(
 		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
+
 	if err != nil {
 		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),
 			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
@@ -1305,6 +1307,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.stateChangesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()

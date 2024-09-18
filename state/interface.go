@@ -6,10 +6,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/stateChanges"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // AccountFactory creates an account of different types
@@ -161,7 +163,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -259,7 +261,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -366,4 +368,5 @@ type StateChangesCollector interface {
 	RevertToIndex(index int) error
 	Publish() error
 	IsInterfaceNil() bool
+	GetStateChangesForTxs() map[string]*data.StateChanges
 }
