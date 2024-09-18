@@ -96,6 +96,11 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	log.Debug("saving synced miniblocks", "num miniblocks", len(syncedMiniBlocks))
 	ssh.saveMiniblocks(syncedMiniBlocks)
 
+	processedMiniBlocks, pendingMiniBlocks, err := ssh.getProcessedAndPendingMiniBlocksWithScheduled(components.EpochStartMetaBlock, components.Headers, notarizedShardHeader, withScheduled)
+	if err != nil {
+		return err
+	}
+
 	triggerConfigKey, err := ssh.saveTriggerRegistry(components)
 	if err != nil {
 		return err
@@ -107,12 +112,17 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	lastCrossNotarizedHdrs, err := ssh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers, withScheduled)
+	if err != nil {
+		return err
+	}
+
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
-		LastCrossNotarizedHeaders:  []bootstrapStorage.BootstrapHeaderInfo{},
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHdrs,
 		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
-		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
-		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
+		ProcessedMiniBlocks:        processedMiniBlocks,
+		PendingMiniBlocks:          pendingMiniBlocks,
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
 		EpochStartTriggerConfigKey: triggerConfigKey,
 		HighestFinalBlockNonce:     lastHeader.Nonce,
@@ -798,7 +808,7 @@ func (ssh *shardStorageHandler) saveLastHeader(shardHeader data.HeaderHandler) (
 }
 
 func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
-	shardHeader := components.EpochStartMetaBlock.(*block.SovereignChainHeader)
+	shardHeader := components.ShardHeader
 
 	metaBlock := components.EpochStartMetaBlock
 	metaBlockHash, err := core.CalculateHash(ssh.marshalizer, ssh.hasher, metaBlock)
@@ -806,29 +816,17 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	triggerReg := block.SovereignShardTriggerRegistry{
-		Epoch:                       metaBlock.GetEpoch(),
-		CurrentRound:                metaBlock.GetRound(),
-		EpochFinalityAttestingRound: metaBlock.GetRound(),
-		CurrEpochStartRound:         metaBlock.GetRound(),
-		PrevEpochStartRound:         components.PreviousEpochStart.GetRound(),
-		EpochStartMetaHash:          metaBlockHash,
-		SovereignChainHeader:        shardHeader,
+	triggerReg := block.ShardTriggerRegistry{
+		Epoch:                       shardHeader.GetEpoch(),
+		MetaEpoch:                   metaBlock.GetEpoch(),
+		CurrentRoundIndex:           int64(shardHeader.GetRound()),
+		EpochStartRound:             shardHeader.GetRound(),
+		EpochMetaBlockHash:          metaBlockHash,
+		IsEpochStart:                true,
+		NewEpochHeaderReceived:      true,
+		EpochFinalityAttestingRound: 0,
+		EpochStartShardHeader:       &block.Header{},
 	}
-
-	/*
-		triggerReg := block.ShardTriggerRegistry{
-			Epoch:                       shardHeader.GetEpoch(),
-			MetaEpoch:                   metaBlock.GetEpoch(),
-			CurrentRoundIndex:           int64(shardHeader.GetRound()),
-			EpochStartRound:             shardHeader.GetRound(),
-			EpochMetaBlockHash:          metaBlockHash,
-			IsEpochStart:                true,
-			NewEpochHeaderReceived:      true,
-			EpochFinalityAttestingRound: 0,
-			EpochStartShardHeader:       &block.Header{},
-		}
-	*/
 
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
