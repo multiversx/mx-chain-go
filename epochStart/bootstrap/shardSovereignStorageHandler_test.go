@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -18,7 +19,7 @@ import (
 
 func getStoredBootstrapData(
 	t *testing.T,
-	sovShardStorage *sovereignShardStorageHandler,
+	marshaller marshal.Marshalizer,
 	bootStorer storage.Storer,
 	round uint64,
 ) *bootstrapStorage.BootstrapData {
@@ -28,7 +29,7 @@ func getStoredBootstrapData(
 	require.Nil(t, err)
 
 	bootStrapData := &bootstrapStorage.BootstrapData{}
-	err = sovShardStorage.marshalizer.Unmarshal(bootStrapData, bootStrapDataBytes)
+	err = marshaller.Unmarshal(bootStrapData, bootStrapDataBytes)
 	require.Nil(t, err)
 
 	return bootStrapData
@@ -79,7 +80,7 @@ func TestSovereignShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	hdrHash, err := core.CalculateHash(sovShardStorage.marshalizer, sovShardStorage.hasher, hdr1)
 	require.Nil(t, err)
 
-	bootStrapData := getStoredBootstrapData(t, sovShardStorage, bootStorer, hdr1.GetRound())
+	bootStrapData := getStoredBootstrapData(t, sovShardStorage.marshalizer, bootStorer, hdr1.GetRound())
 	require.Equal(t, &bootstrapStorage.BootstrapData{
 		LastHeader: bootstrapStorage.BootstrapHeaderInfo{
 			Nonce: 1,
