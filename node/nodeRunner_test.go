@@ -1,20 +1,25 @@
 package node
 
 import (
+	"bytes"
 	"os"
 	"path"
+	"reflect"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/node/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/api"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/api"
 )
 
 const originalConfigsPath = "../cmd/node/config"
@@ -328,6 +333,32 @@ func TestWaitForSignal(t *testing.T) {
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
 		checkCloseCalledMap(t, closedCalled, exceptions...)
 	})
+}
+
+func TestPrintEnableEpochs(t *testing.T) {
+	configs := &config.Configs{
+		EpochConfig: &config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{},
+		},
+	}
+	enableEpochs := configs.EpochConfig.EnableEpochs
+
+	assert.Equal(t, reflect.Struct, reflect.ValueOf(enableEpochs).Kind())
+	v := reflect.ValueOf(enableEpochs)
+	expectedNrFields := v.NumField()
+	// the gasSchedule.GasScheduleByEpochs is also logged
+	expectedNrFields++
+
+	log.SetLevel(logger.LogDebug)
+	buff := &bytes.Buffer{}
+	_ = logger.AddLogObserver(buff, &logger.PlainFormatter{})
+
+	printEnableEpochs(configs)
+
+	_ = logger.RemoveLogObserver(buff)
+	buffString := strings.TrimSpace(buff.String())
+	loggedFields := strings.Split(buffString, "\n")
+	assert.Equal(t, expectedNrFields, len(loggedFields), "add newly added enable epochs to the printEnableEpochs method")
 }
 
 func checkCloseCalledMap(tb testing.TB, closedCalled map[string]struct{}, exceptions ...string) {
