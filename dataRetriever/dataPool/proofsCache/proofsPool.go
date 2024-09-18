@@ -35,7 +35,7 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerProof.GetHeaderHash())
 	if hasProof {
-		log.Debug("there was already an valid proof for header, headerHash: %s", headerHash)
+		log.Debug("there was already a valid proof for header, headerHash: %s", headerHash)
 		return nil
 	}
 
