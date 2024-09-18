@@ -3,17 +3,18 @@ package disabled
 type crossChainTokenChecker struct {
 }
 
+// NewCrossChainTokenChecker creates a new cross chain token checker
 func NewCrossChainTokenChecker() *crossChainTokenChecker {
 	return &crossChainTokenChecker{}
 }
 
-// IsCrossChainOperation does nothing
-func (ctc *crossChainTokenChecker) IsCrossChainOperation(tokenID []byte) bool {
+// IsCrossChainOperation returns false
+func (ctc *crossChainTokenChecker) IsCrossChainOperation(_ []byte) bool {
 	return false
 }
 
-// IsCrossChainOperationAllowed does nothing
-func (ctc *crossChainTokenChecker) IsCrossChainOperationAllowed(address []byte, tokenID []byte) bool {
+// IsCrossChainOperationAllowed returns false
+func (ctc *crossChainTokenChecker) IsCrossChainOperationAllowed(_ []byte, _ []byte) bool {
 	return false
 }
 
