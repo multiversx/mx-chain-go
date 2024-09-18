@@ -59,9 +59,6 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
-	if arg.ProcessedMessagesCacheMap == nil {
-		return nil, process.ErrNilProcessedMessagesCacheMap
-	}
 
 	singleDataIntercept := &SingleDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{

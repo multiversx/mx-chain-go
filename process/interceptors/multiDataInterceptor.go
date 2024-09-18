@@ -73,9 +73,6 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
-	//if arg.ProcessedMessagesCacheMap == nil {
-	//	return nil, process.ErrNilProcessedMessagesCacheMap
-	//}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
