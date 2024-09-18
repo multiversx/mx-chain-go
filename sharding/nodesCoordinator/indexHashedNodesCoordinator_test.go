@@ -1864,6 +1864,39 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 	}
 }
 
+func TestIndexHashedNodesCoordinator_GetAllEligibleValidatorsPublicKeysForShard(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing nodes config should error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		validators, err := ihnc.GetAllEligibleValidatorsPublicKeysForShard(100, 0)
+		require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+		require.Nil(t, validators)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		expectedValidators := make([]string, 0, len(arguments.EligibleNodes[0]))
+		for _, val := range arguments.EligibleNodes[0] {
+			expectedValidators = append(expectedValidators, string(val.PubKey()))
+		}
+		validators, err := ihnc.GetAllEligibleValidatorsPublicKeysForShard(0, 0)
+		require.NoError(t, err)
+		require.Equal(t, expectedValidators, validators)
+	})
+}
+
 func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEpoch(t *testing.T) {
 	t.Parallel()
 

@@ -44,6 +44,11 @@ func (n *nodesCoordinator) GetAllEligibleValidatorsPublicKeys(_ uint32) (map[uin
 	return nil, nil
 }
 
+// GetAllEligibleValidatorsPublicKeysForShard -
+func (n *nodesCoordinator) GetAllEligibleValidatorsPublicKeysForShard(_ uint32, _ uint32) ([]string, error) {
+	return nil, nil
+}
+
 // GetAllWaitingValidatorsPublicKeys -
 func (n *nodesCoordinator) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil

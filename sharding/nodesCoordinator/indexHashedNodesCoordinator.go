@@ -496,6 +496,28 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	return string(leader.PubKey()), pubKeys, nil
 }
 
+// GetAllEligibleValidatorsPublicKeysForShard will return all validators public keys for the provided shard
+func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error) {
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	shardEligible := nodesConfig.eligibleMap[shardID]
+	validatorsPubKeys := make([]string, 0, len(shardEligible))
+	for i := 0; i < len(shardEligible); i++ {
+		validatorsPubKeys = append(validatorsPubKeys, string(shardEligible[i].PubKey()))
+	}
+
+	return validatorsPubKeys, nil
+}
+
 // GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
 func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	validatorsPubKeys := make(map[uint32][][]byte)

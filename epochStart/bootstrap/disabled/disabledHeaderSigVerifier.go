@@ -45,6 +45,11 @@ func (h *headerSigVerifier) VerifyPreviousBlockProof(_ data.HeaderHandler) error
 	return nil
 }
 
+// VerifyHeaderProof returns nil as it is disabled
+func (h *headerSigVerifier) VerifyHeaderProof(_ data.HeaderProofHandler) error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (h *headerSigVerifier) IsInterfaceNil() bool {
 	return h == nil

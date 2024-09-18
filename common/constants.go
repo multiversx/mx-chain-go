@@ -94,6 +94,9 @@ const ConnectionTopic = "connection"
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
 
+// EquivalentProofsTopic is the topic used for equivalent proofs
+const EquivalentProofsTopic = "equivalentProofs"
+
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 

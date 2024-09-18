@@ -155,16 +155,20 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler, pub
 		return nil, err
 	}
 
+	return getPubKeySigners(consensusPubKeys, pubKeysBitmap), nil
+}
+
+func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte {
 	pubKeysSigners := make([][]byte, 0, len(consensusPubKeys))
 	for i := range consensusPubKeys {
-		err = isIndexInBitmap(uint16(i), pubKeysBitmap)
+		err := isIndexInBitmap(uint16(i), pubKeysBitmap)
 		if err != nil {
 			continue
 		}
 		pubKeysSigners = append(pubKeysSigners, []byte(consensusPubKeys[i]))
 	}
 
-	return pubKeysSigners, nil
+	return pubKeysSigners
 }
 
 // VerifySignature will check if signature is correct
@@ -204,6 +208,31 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	}
 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
+}
+
+// VerifyHeaderProof checks if the proof is correct for the header
+func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHandler) error {
+	if check.IfNilReflect(proofHandler) {
+		return process.ErrNilHeaderProof
+	}
+
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixedOrderInConsensusFlag, proofHandler.GetHeaderEpoch()) {
+		return fmt.Errorf("%w for %s", process.ErrFlagNotActive, common.FixedOrderInConsensusFlag)
+	}
+
+	consensusPubKeys, err := hsv.nodesCoordinator.GetAllEligibleValidatorsPublicKeysForShard(proofHandler.GetHeaderEpoch(), proofHandler.GetHeaderShardId())
+	if err != nil {
+		return err
+	}
+
+	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(proofHandler.GetHeaderEpoch())
+	if err != nil {
+		return err
+	}
+
+	pubKeysSigners := getPubKeySigners(consensusPubKeys, proofHandler.GetPubKeysBitmap())
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
 func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, []byte, error) {
