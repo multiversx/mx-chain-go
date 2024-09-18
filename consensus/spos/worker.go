@@ -778,7 +778,7 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 
 	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	if err != nil {
-		wrk.processInvalidEquivalentMessageUnprotected(cnsMsg.BlockHeaderHash)
+		wrk.processInvalidEquivalentMessage(cnsMsg.BlockHeaderHash)
 		return err
 	}
 
