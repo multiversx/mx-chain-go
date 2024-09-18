@@ -277,6 +277,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
 		fct.worker,
+		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err

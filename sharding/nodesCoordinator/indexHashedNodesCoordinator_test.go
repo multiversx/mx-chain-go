@@ -1864,6 +1864,39 @@ func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesEpoch1(t *testi
 	}
 }
 
+func TestIndexHashedNodesCoordinator_GetAllEligibleValidatorsPublicKeysForShard(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing nodes config should error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		validators, err := ihnc.GetAllEligibleValidatorsPublicKeysForShard(100, 0)
+		require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
+		require.Nil(t, validators)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		expectedValidators := make([]string, 0, len(arguments.EligibleNodes[0]))
+		for _, val := range arguments.EligibleNodes[0] {
+			expectedValidators = append(expectedValidators, string(val.PubKey()))
+		}
+		validators, err := ihnc.GetAllEligibleValidatorsPublicKeysForShard(0, 0)
+		require.NoError(t, err)
+		require.Equal(t, expectedValidators, validators)
+	})
+}
+
 func TestIndexHashedNodesCoordinator_GetConsensusWhitelistedNodesAfterRevertToEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -2976,7 +3009,6 @@ func TestNodesCoordinator_CustomConsensusGroupSize(t *testing.T) {
 func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 	t.Parallel()
 
-	arguments := createArguments()
 	maxNumValuesCache := 3
 	key := []byte("key")
 
@@ -2993,6 +3025,8 @@ func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 
 	t.Run("adding a key should work", func(t *testing.T) {
 		t.Parallel()
+
+		arguments := createArguments()
 
 		arguments.ConsensusGroupCache, _ = cache.NewLRUCache(maxNumValuesCache)
 		nodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
@@ -3014,6 +3048,8 @@ func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 	t.Run("adding a key twice should overwrite the value", func(t *testing.T) {
 		t.Parallel()
 
+		arguments := createArguments()
+
 		arguments.ConsensusGroupCache, _ = cache.NewLRUCache(maxNumValuesCache)
 		nodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
 		require.Nil(t, err)
@@ -3034,6 +3070,8 @@ func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 
 	t.Run("adding more keys than the cache size should remove the oldest key", func(t *testing.T) {
 		t.Parallel()
+
+		arguments := createArguments()
 
 		key1 := []byte("key1")
 		key2 := []byte("key2")

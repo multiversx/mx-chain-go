@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
 const (
@@ -837,6 +838,38 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 	}
 
 	return bicf.addInterceptorsToContainers([]string{identifier}, []process.Interceptor{interceptor})
+}
+
+func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInterceptor(topic string) (process.Interceptor, error) {
+	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(*bicf.argInterceptorFactory)
+
+	marshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	argProcessor := processor.ArgEquivalentProofsInterceptorProcessor{
+		EquivalentProofsPool: &processMocks.EquivalentProofsPoolMock{}, // TODO: pass the real implementation when is done
+		Marshaller:           marshaller,
+	}
+	equivalentProofsProcessor, err := processor.NewEquivalentProofsInterceptorProcessor(argProcessor)
+	if err != nil {
+		return nil, err
+	}
+
+	interceptor, err := interceptors.NewSingleDataInterceptor(
+		interceptors.ArgSingleDataInterceptor{
+			Topic:                topic,
+			DataFactory:          equivalentProofsFactory,
+			Processor:            equivalentProofsProcessor,
+			Throttler:            bicf.globalThrottler,
+			AntifloodHandler:     bicf.antifloodHandler,
+			WhiteListRequest:     bicf.whiteListHandler,
+			CurrentPeerId:        bicf.mainMessenger.ID(),
+			PreferredPeersHolder: bicf.preferredPeersHolder,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return bicf.createTopicAndAssignHandler(topic, interceptor, true)
 }
 
 func (bicf *baseInterceptorsContainerFactory) addInterceptorsToContainers(keys []string, interceptors []process.Interceptor) error {

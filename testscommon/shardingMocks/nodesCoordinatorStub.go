@@ -9,21 +9,22 @@ import (
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error)
-	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
-	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
-	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
-	GetAllWaitingValidatorsPublicKeysCalled  func(_ uint32) (map[uint32][][]byte, error)
-	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
-	GetValidatorsIndexesCalled               func(pubKeys []string, epoch uint32) ([]uint64, error)
-	ConsensusGroupSizeCalled                 func(shardID uint32, epoch uint32) int
-	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error)
-	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
-	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
-	GetOwnPublicKeyCalled                    func() []byte
-	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
-	GetNumTotalEligibleCalled                func() uint64
-	ShardIdForEpochCalled                    func(epoch uint32) (uint32, error)
+	GetValidatorsPublicKeysCalled                    func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error)
+	GetValidatorsRewardsAddressesCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetValidatorWithPublicKeyCalled                  func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
+	GetAllValidatorsPublicKeysCalled                 func() (map[uint32][][]byte, error)
+	GetAllWaitingValidatorsPublicKeysCalled          func(_ uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysCalled         func(epoch uint32) (map[uint32][][]byte, error)
+	GetAllEligibleValidatorsPublicKeysForShardCalled func(epoch uint32, shardID uint32) ([]string, error)
+	GetValidatorsIndexesCalled                       func(pubKeys []string, epoch uint32) ([]uint64, error)
+	ConsensusGroupSizeCalled                         func(shardID uint32, epoch uint32) int
+	ComputeConsensusGroupCalled                      func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error)
+	EpochStartPrepareCalled                          func(metaHdr data.HeaderHandler, body data.BodyHandler)
+	GetConsensusWhitelistedNodesCalled               func(epoch uint32) (map[string]struct{}, error)
+	GetOwnPublicKeyCalled                            func() []byte
+	GetWaitingEpochsLeftForPublicKeyCalled           func(publicKey []byte) (uint32, error)
+	GetNumTotalEligibleCalled                        func() uint64
+	ShardIdForEpochCalled                            func(epoch uint32) (uint32, error)
 }
 
 // NodesCoordinatorToRegistry -
@@ -67,6 +68,14 @@ func (ncm *NodesCoordinatorStub) ComputeAdditionalLeaving(_ []*state.ShardValida
 func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
 	if ncm.GetAllEligibleValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllEligibleValidatorsPublicKeysCalled(epoch)
+	}
+	return nil, nil
+}
+
+// GetAllEligibleValidatorsPublicKeysForShard -
+func (ncm *NodesCoordinatorStub) GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error) {
+	if ncm.GetAllEligibleValidatorsPublicKeysForShardCalled != nil {
+		return ncm.GetAllEligibleValidatorsPublicKeysForShardCalled(epoch, shardID)
 	}
 	return nil, nil
 }

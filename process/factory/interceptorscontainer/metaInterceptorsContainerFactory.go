@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -195,6 +196,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, nil, err
 	}
 
+	err = micf.generateEquivalentProofsInterceptors()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return micf.mainContainer, micf.fullArchiveContainer, nil
 }
 
@@ -325,6 +331,39 @@ func (micf *metaInterceptorsContainerFactory) generateRewardTxInterceptors() err
 		keys[int(idx)] = identifierScr
 		interceptorSlice[int(idx)] = interceptor
 	}
+
+	return micf.addInterceptorsToContainers(keys, interceptorSlice)
+}
+
+func (micf *metaInterceptorsContainerFactory) generateEquivalentProofsInterceptors() error {
+	shardC := micf.shardCoordinator
+	noOfShards := shardC.NumberOfShards()
+
+	keys := make([]string, noOfShards+1)
+	interceptorSlice := make([]process.Interceptor, noOfShards+1)
+
+	for idx := uint32(0); idx < noOfShards; idx++ {
+		// equivalent proofs shard topic, for example: equivalentProofs_0_META
+		identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
+		interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
+		if err != nil {
+			return err
+		}
+
+		keys[int(idx)] = identifierEquivalentProofs
+		interceptorSlice[int(idx)] = interceptor
+	}
+
+	// equivalent proofs meta topic, equivalentProofs_META
+	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+
+	interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
+	if err != nil {
+		return err
+	}
+
+	keys[noOfShards] = identifierEquivalentProofs
+	interceptorSlice[noOfShards] = interceptor
 
 	return micf.addInterceptorsToContainers(keys, interceptorSlice)
 }
