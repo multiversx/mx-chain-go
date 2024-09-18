@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -87,23 +86,5 @@ func (ssh *sovereignShardStorageHandler) saveTriggerRegistry(components *Compone
 		SovereignChainHeader:        sovHeader,
 	}
 
-	bootstrapKey := []byte(fmt.Sprint(sovHeader.GetRound()))
-	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
-
-	triggerRegBytes, err := ssh.marshalizer.Marshal(&triggerReg)
-	if err != nil {
-		return nil, err
-	}
-
-	bootstrapStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	errPut := bootstrapStorer.Put(trigInternalKey, triggerRegBytes)
-	if errPut != nil {
-		return nil, errPut
-	}
-
-	return bootstrapKey, nil
+	return ssh.baseSaveTriggerRegistry(&triggerReg, sovHeader.GetRound())
 }

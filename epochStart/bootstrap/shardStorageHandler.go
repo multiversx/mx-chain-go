@@ -828,10 +828,14 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		EpochStartShardHeader:       &block.Header{},
 	}
 
-	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
+	return ssh.baseSaveTriggerRegistry(&triggerReg, shardHeader.GetRound())
+}
+
+func (ssh *shardStorageHandler) baseSaveTriggerRegistry(triggerReg shardTriggerRegistryHandler, round uint64) ([]byte, error) {
+	bootstrapKey := []byte(fmt.Sprint(round))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := ssh.marshalizer.Marshal(&triggerReg)
+	triggerRegBytes, err := ssh.marshalizer.Marshal(triggerReg)
 	if err != nil {
 		return nil, err
 	}
