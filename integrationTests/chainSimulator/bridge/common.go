@@ -240,17 +240,26 @@ func getTransferDataArgs(transferData *transferData) string {
 }
 
 func getTokenIdentifier(token chainSim.ArgsDepositToken) string {
-	if token.Nonce == 0 {
-		return token.Identifier
+	return createEsdtIdentifier(token.Identifier, token.Nonce)
+}
+
+func createEsdtIdentifier(identifier string, nonce uint64) string {
+	if nonce == 0 {
+		return identifier
 	}
-	return token.Identifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+	return identifier + "-" + fmt.Sprintf("%02x", nonce)
 }
 
 func getTokenNonce(nonce uint64) string {
 	if nonce == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%02X", nonce)
+
+	hexStr := fmt.Sprintf("%X", nonce)
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+	return hexStr
 }
 
 func getUint64Bytes(number uint64) string {
