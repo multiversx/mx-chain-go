@@ -523,8 +523,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EnableRoundsHandler: enableRoundsHandler,
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
-		VMOutputCacher:      txcache.NewDisabledCache(),
-		WasmVMChangeLocker:  genesisWasmVMLocker,
+		// TODO: is this correct?
+		VMOutputCacher:     txcache.NewDisabledCache(),
+		WasmVMChangeLocker: genesisWasmVMLocker,
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)

@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
@@ -26,6 +27,7 @@ type ArgsBootstrapComponentsHolder struct {
 	PrefsConfig          config.Preferences
 	Config               config.Config
 	ShardIDStr           string
+	AccountNonceProvider dataRetriever.AccountNonceProvider
 }
 
 type bootstrapComponentsHolder struct {
@@ -57,6 +59,7 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapCo
 		CryptoComponents:     args.CryptoComponents,
 		NetworkComponents:    args.NetworkComponents,
 		StatusCoreComponents: args.StatusCoreComponents,
+		AccountNonceProvider: args.AccountNonceProvider,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
