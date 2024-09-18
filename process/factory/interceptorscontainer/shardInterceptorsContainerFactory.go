@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -196,6 +197,11 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, nil, err
 	}
 
+	err = sicf.generateEquivalentProofsInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
 }
 
@@ -235,6 +241,20 @@ func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() err
 	interceptorSlice = append(interceptorSlice, interceptor)
 
 	return sicf.addInterceptorsToContainers(keys, interceptorSlice)
+}
+
+func (sicf *shardInterceptorsContainerFactory) generateEquivalentProofsInterceptor() error {
+	shardC := sicf.shardCoordinator
+
+	// equivalent proofs shard topic, for example: equivalentProofs_0_META
+	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+
+	interceptor, err := sicf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
+	if err != nil {
+		return err
+	}
+
+	return sicf.addInterceptorsToContainers([]string{identifierEquivalentProofs}, []process.Interceptor{interceptor})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
