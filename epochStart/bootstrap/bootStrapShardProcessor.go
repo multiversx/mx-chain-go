@@ -407,3 +407,34 @@ func (e *bootStrapShardProcessor) applyCurrentShardIDOnMiniblocksCopy(metablock 
 	err = metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
 	return err
 }
+
+func (e *bootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error) {
+	epochStartConfig := e.generalConfig.EpochStartConfig
+	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
+		e.mainMessenger,
+		e.requestHandler,
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
+		thresholdForConsideringMetaBlockCorrect,
+		epochStartConfig.MinNumConnectedPeersToStart,
+		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
+		CoreComponentsHolder:    e.coreComponentsHolder,
+		CryptoComponentsHolder:  e.cryptoComponentsHolder,
+		RequestHandler:          e.requestHandler,
+		Messenger:               e.mainMessenger,
+		ShardCoordinator:        e.shardCoordinator,
+		EconomicsData:           e.economicsData,
+		WhitelistHandler:        e.whiteListHandler,
+		StartInEpochConfig:      epochStartConfig,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		MetaBlockProcessor:      metaBlockProcessor,
+	}
+
+	return NewEpochStartMetaSyncer(argsEpochStartSyncer)
+}

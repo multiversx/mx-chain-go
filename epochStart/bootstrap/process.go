@@ -542,33 +542,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		return err
 	}
 
-	epochStartConfig := e.generalConfig.EpochStartConfig
-	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
-		e.mainMessenger,
-		e.requestHandler,
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		thresholdForConsideringMetaBlockCorrect,
-		epochStartConfig.MinNumConnectedPeersToStart,
-		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
-	)
-	if err != nil {
-		return err
-	}
-
-	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    e.coreComponentsHolder,
-		CryptoComponentsHolder:  e.cryptoComponentsHolder,
-		RequestHandler:          e.requestHandler,
-		Messenger:               e.mainMessenger,
-		ShardCoordinator:        e.shardCoordinator,
-		EconomicsData:           e.economicsData,
-		WhitelistHandler:        e.whiteListHandler,
-		StartInEpochConfig:      epochStartConfig,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		MetaBlockProcessor:      metaBlockProcessor,
-	}
-	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
+	e.epochStartMetaBlockSyncer, err = e.bootStrapShardProcessor.createEpochStartMetaSyncer()
 	if err != nil {
 		return err
 	}

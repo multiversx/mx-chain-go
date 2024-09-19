@@ -37,6 +37,7 @@ type epochStartMetaBlockProcessor struct {
 	peerCountTarget                   int
 	minNumConnectedPeers              int
 	minNumOfPeersToConsiderBlockValid int
+	epochStartPeerHandler             epochStartPeerHandler
 }
 
 // NewEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block
@@ -83,6 +84,8 @@ func NewEpochStartMetaBlockProcessor(
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 	}
+
+	processor.epochStartPeerHandler = processor
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
 	percentage := float64(consensusPercentage) / 100.0
@@ -165,16 +168,17 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
 func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (dataCore.MetaHeaderHandler, error) {
-	originalIntra, _, err := e.requestHandler.GetNumPeersToQuery(factory.ShardBlocksTopic + "_0")
+	requestTopic := e.epochStartPeerHandler.getRequestTopic()
+	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(requestTopic)
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err = e.requestHandler.SetNumPeersToQuery(factory.ShardBlocksTopic+"_0", originalIntra, 0)
+		err = e.epochStartPeerHandler.setNumPeers(e.requestHandler, originalIntra, originalCross)
 		if err != nil {
 			log.Warn("epoch bootstrapper: error setting num of peers intra/cross for resolver",
-				"resolver", factory.ShardBlocksTopic,
+				"resolver", requestTopic,
 				"error", err)
 		}
 	}()
@@ -227,7 +231,7 @@ func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (dataCore.Meta
 
 func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
-	err := e.requestHandler.SetNumPeersToQuery(factory.ShardBlocksTopic+"_0", numConnectedPeers, numConnectedPeers)
+	err := e.epochStartPeerHandler.setNumPeers(e.requestHandler, numConnectedPeers, numConnectedPeers)
 	if err != nil {
 		return err
 	}
@@ -266,6 +270,17 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 
 // RegisterHandler registers a callback function to be notified of incoming epoch start metablocks
 func (e *epochStartMetaBlockProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+}
+
+func (e *epochStartMetaBlockProcessor) setNumPeers(
+	requestHandler RequestHandler,
+	intra int, cross int,
+) error {
+	return requestHandler.SetNumPeersToQuery(e.getRequestTopic(), intra, cross)
+}
+
+func (e *epochStartMetaBlockProcessor) getRequestTopic() string {
+	return factory.MetachainBlocksTopic
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
