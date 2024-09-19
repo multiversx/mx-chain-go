@@ -175,7 +175,7 @@ func (sr *subroundBlock) DoBlockJob() bool {
 
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
 func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
-	return sr.processReceivedBlock(context.Background(), cnsDta)
+	return sr.processReceivedBlock(context.Background(), cnsDta.RoundIndex, cnsDta.PubKey)
 }
 
 // DoBlockConsensusCheck method checks if the consensus in the subround Block is achieved
@@ -204,8 +204,8 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 }
 
 // SendBlockHeader method sends the proposed block header in the subround Block
-func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte, signature []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader, signature)
+func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
+	return sr.sendBlockHeader(header, marshalizedHeader)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block
@@ -218,9 +218,14 @@ func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockBody(context.Background(), cnsDta)
 }
 
+// ReceivedBlockHeaderBeforeEquivalentProofs method is called when a block header is received through the block header channel
+func (sr *subroundBlock) ReceivedBlockHeaderBeforeEquivalentProofs(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeaderBeforeEquivalentProofs(context.Background(), cnsDta)
+}
+
 // ReceivedBlockHeader method is called when a block header is received through the block header channel
-func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeader(context.Background(), cnsDta)
+func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
+	sr.receivedBlockHeader(header)
 }
 
 // ReceivedBlockBodyAndHeader is called when both a header and block body have been received

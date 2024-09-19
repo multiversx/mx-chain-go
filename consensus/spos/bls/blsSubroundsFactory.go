@@ -207,7 +207,8 @@ func (fct *factory) generateBlockSubround() error {
 
 	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
 	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockInstance.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeaderBeforeEquivalentProofs)
+	fct.worker.AddReceivedHeaderHandler(subroundBlockInstance.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
 	return nil

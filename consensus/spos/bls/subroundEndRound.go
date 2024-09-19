@@ -326,6 +326,7 @@ func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 	isFlagEnabledForHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
+	// TODO[cleanup cns finality]: remove this method
 	// if flag is enabled, no need to commit this header, as it will be committed once the proof is available
 	if isFlagEnabledForHeader {
 		return
