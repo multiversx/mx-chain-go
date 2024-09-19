@@ -22,6 +22,7 @@ func createSovBootStrapProc() *sovereignBootStrapShardProcessor {
 	args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
 	args.RunTypeComponents = mock.NewSovereignRunTypeComponentsStub()
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	return &sovereignBootStrapShardProcessor{
 		&sovereignChainEpochStartBootstrap{
 			epochStartProvider,
@@ -200,7 +201,6 @@ func TestBootStrapSovereignShardProcessor_processNodesConfigFromStorage(t *testi
 	}
 
 	sovProc.dataPool = dataRetrieverMock.NewPoolsHolderMock()
-	sovProc.requestHandler = &testscommon.RequestHandlerStub{}
 	sovProc.epochStartMeta = sovBlock
 	sovProc.prevEpochStartMeta = sovBlock
 
@@ -208,4 +208,15 @@ func TestBootStrapSovereignShardProcessor_processNodesConfigFromStorage(t *testi
 	require.Nil(t, err)
 	require.Equal(t, core.SovereignChainShardId, shardId)
 	require.Equal(t, nodesConfig, expectedNodesConfig)
+}
+
+func TestBootStrapSovereignShardProcessor_createEpochStartMetaSyncer(t *testing.T) {
+	t.Parallel()
+
+	sovProc := createSovBootStrapProc()
+	epochStartBlockSyncer, err := sovProc.createEpochStartMetaSyncer()
+	require.Nil(t, err)
+
+	epochStartSyncer := epochStartBlockSyncer.(*epochStartMetaSyncer)
+	require.Equal(t, "*bootstrap.epochStartSovereignBlockProcessor", fmt.Sprintf("%T", epochStartSyncer.metaBlockProcessor))
 }
