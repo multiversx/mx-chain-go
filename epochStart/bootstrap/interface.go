@@ -112,6 +112,11 @@ type bootStrapShardProcessorHandler interface {
 	createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error)
 }
 
+type epochStartPeerHandler interface {
+	setNumPeers(requestHandler RequestHandler, intra int, cross int) error
+	getRequestTopic() string
+}
+
 type shardTriggerRegistryHandler interface {
 	GetEpochStartHeaderHandler() data.HeaderHandler
 }
