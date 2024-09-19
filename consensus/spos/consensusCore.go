@@ -40,6 +40,7 @@ type ConsensusCore struct {
 	peerBlacklistHandler          consensus.PeerBlacklistHandler
 	signingHandler                consensus.SigningHandler
 	enableEpochsHandler           common.EnableEpochsHandler
+	equivalentProofsPool          consensus.EquivalentProofsPool
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -67,6 +68,7 @@ type ConsensusCoreArgs struct {
 	PeerBlacklistHandler          consensus.PeerBlacklistHandler
 	SigningHandler                consensus.SigningHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
+	EquivalentProofsPool          consensus.EquivalentProofsPool
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -97,6 +99,7 @@ func NewConsensusCore(
 		peerBlacklistHandler:          args.PeerBlacklistHandler,
 		signingHandler:                args.SigningHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
+		equivalentProofsPool:          args.EquivalentProofsPool,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -220,6 +223,11 @@ func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
 // EnableEpochsHandler returns the enable epochs handler component
 func (cc *ConsensusCore) EnableEpochsHandler() common.EnableEpochsHandler {
 	return cc.enableEpochsHandler
+}
+
+// EquivalentProofsPool returns the equivalent proofs component
+func (cc *ConsensusCore) EquivalentProofsPool() consensus.EquivalentProofsPool {
+	return cc.equivalentProofsPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

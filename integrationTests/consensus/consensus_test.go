@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -250,9 +251,10 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
 				// this is just for the test only, as equivalent messages are enabled from epoch 0
-				n.ChainHandler.SetCurrentHeaderProof(data.HeaderProof{
+				_ = n.Node.GetDataComponents().Datapool().Proofs().AddProof(&block.HeaderProof{
 					AggregatedSignature: []byte("initial sig"),
 					PubKeysBitmap:       []byte("initial bitmap"),
+					HeaderShardId:       shardID,
 				})
 			}
 		}

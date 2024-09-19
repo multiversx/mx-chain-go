@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/stretchr/testify/assert"
-
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/stretchr/testify/assert"
 )
 
 func initNodesWithTestSigner(
@@ -99,9 +98,10 @@ func testConsensusWithInvalidSigners(equivalentMessagesFlagActive bool) func(t *
 			for shardID := range nodes {
 				for _, n := range nodes[shardID] {
 					// this is just for the test only, as equivalent messages are enabled from epoch 0
-					n.ChainHandler.SetCurrentHeaderProof(data.HeaderProof{
+					_ = n.Node.GetDataComponents().Datapool().Proofs().AddProof(&block.HeaderProof{
 						AggregatedSignature: []byte("initial sig"),
 						PubKeysBitmap:       []byte("initial bitmap"),
+						HeaderShardId:       shardID,
 					})
 				}
 			}

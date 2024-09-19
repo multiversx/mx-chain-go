@@ -38,8 +38,8 @@ type HeaderHandlerStub struct {
 	SetRandSeedCalled                      func(seed []byte) error
 	SetSignatureCalled                     func(signature []byte) error
 	SetLeaderSignatureCalled               func(signature []byte) error
-	GetPreviousAggregatedSignatureAndBitmapCalled func() ([]byte, []byte)
-	SetPreviousAggregatedSignatureAndBitmapCalled func(aggregatedSignature []byte, pubkeysBitmap []byte)
+	GetPreviousProofCalled                 func() data.HeaderProofHandler
+	SetPreviousProofCalled                 func(proof data.HeaderProofHandler)
 }
 
 // GetAccumulatedFees -
@@ -430,18 +430,18 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	return nil
 }
 
-// GetPreviousAggregatedSignatureAndBitmap -
-func (hhs *HeaderHandlerStub) GetPreviousAggregatedSignatureAndBitmap() ([]byte, []byte) {
-	if hhs.GetPreviousAggregatedSignatureAndBitmapCalled != nil {
-		return hhs.GetPreviousAggregatedSignatureAndBitmapCalled()
+// GetPreviousProof -
+func (hhs *HeaderHandlerStub) GetPreviousProof() data.HeaderProofHandler {
+	if hhs.GetPreviousProofCalled != nil {
+		return hhs.GetPreviousProofCalled()
 	}
 
-	return nil, nil
+	return nil
 }
 
-// SetPreviousAggregatedSignatureAndBitmap -
-func (hhs *HeaderHandlerStub) SetPreviousAggregatedSignatureAndBitmap(aggregatedSignature []byte, pubkeysBitmap []byte) {
-	if hhs.SetPreviousAggregatedSignatureAndBitmapCalled != nil {
-		hhs.SetPreviousAggregatedSignatureAndBitmapCalled(aggregatedSignature, pubkeysBitmap)
+// SetPreviousProof -
+func (hhs *HeaderHandlerStub) SetPreviousProof(proof data.HeaderProofHandler) {
+	if hhs.SetPreviousProofCalled != nil {
+		hhs.SetPreviousProofCalled(proof)
 	}
 }
