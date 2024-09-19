@@ -2,60 +2,42 @@ package stateChanges
 
 import (
 	"bytes"
-	"encoding/hex"
-	"errors"
-	"fmt"
 	"sync"
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("state/stateChanges")
 
-// ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
-var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
-
-type StateChange interface {
-	GetType() string
-	GetIndex() int32
-	GetTxHash() []byte
-	GetMainTrieKey() []byte
-	GetMainTrieVal() []byte
-	GetOperation() string
-	GetDataTrieChanges() []*data.DataTrieChange
-
-	SetTxHash(txHash []byte)
-	SetIndex(index int32)
-}
-
 // StateChangesForTx is used to collect state changes for a transaction hash
 type StateChangesForTx struct {
-	TxHash       []byte        `json:"txHash"`
-	StateChanges []StateChange `json:"stateChanges"`
+	TxHash       []byte              `json:"txHash"`
+	StateChanges []state.StateChange `json:"stateChanges"`
 }
 
 type stateChangesCollector struct {
-	stateChanges    []StateChange
+	stateChanges    []state.StateChange
 	stateChangesMut sync.RWMutex
 }
 
 // NewStateChangesCollector creates a new StateChangesCollector
 func NewStateChangesCollector() *stateChangesCollector {
 	return &stateChangesCollector{
-		stateChanges: make([]StateChange, 0),
+		stateChanges: make([]state.StateChange, 0),
 	}
 }
 
 // AddSaveAccountStateChange adds a new state change for the save account operation
-func (scc *stateChangesCollector) AddSaveAccountStateChange(_, _ vmcommon.AccountHandler, stateChange StateChange) {
+func (scc *stateChangesCollector) AddSaveAccountStateChange(_, _ vmcommon.AccountHandler, stateChange state.StateChange) {
 	scc.AddStateChange(stateChange)
 }
 
 // AddStateChange adds a new state change to the collector
-func (scc *stateChangesCollector) AddStateChange(stateChange StateChange) {
+func (scc *stateChangesCollector) AddStateChange(stateChange state.StateChange) {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
@@ -76,10 +58,10 @@ func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, 
 
 		if len(txHash) == 0 {
 			log.Warn("empty tx hash, state change event not associated to a transaction")
-			break
+			continue
 		}
 
-		innerStateChangesForTx := make([]StateChange, 0)
+		innerStateChangesForTx := make([]state.StateChange, 0)
 		for j := i; j < len(scc.stateChanges); j++ {
 			txHash2 := scc.stateChanges[j].GetTxHash()
 			if !bytes.Equal(txHash, txHash2) {
@@ -151,12 +133,16 @@ func (scc *stateChangesCollector) Reset() {
 }
 
 func (scc *stateChangesCollector) resetStateChangesUnprotected() {
-	scc.stateChanges = make([]StateChange, 0)
+	scc.stateChanges = make([]state.StateChange, 0)
 }
 
 // AddTxHashToCollectedStateChanges will try to set txHash field to each state change
 // if the field is not already set
-func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
+func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte, _ *transaction.Transaction) {
+	scc.addTxHashToCollectedStateChanges(txHash)
+}
+
+func (scc *stateChangesCollector) addTxHashToCollectedStateChanges(txHash []byte) {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
@@ -175,7 +161,7 @@ func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
 	defer scc.stateChangesMut.Unlock()
 
 	if index > len(scc.stateChanges) || index < 0 {
-		return ErrStateChangesIndexOutOfBounds
+		return state.ErrStateChangesIndexOutOfBounds
 	}
 
 	if len(scc.stateChanges) == 0 {
@@ -190,7 +176,7 @@ func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
 // RevertToIndex will revert to index
 func (scc *stateChangesCollector) RevertToIndex(index int) error {
 	if index > len(scc.stateChanges) || index < 0 {
-		return ErrStateChangesIndexOutOfBounds
+		return state.ErrStateChangesIndexOutOfBounds
 	}
 
 	if index == 0 {
@@ -211,29 +197,9 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 	return nil
 }
 
-// Publish will export state changes
+// Publish returns nil
 func (scc *stateChangesCollector) Publish() error {
-	stateChangesForTx, err := scc.getStateChangesForTxs()
-	if err != nil {
-		return err
-	}
-
-	printStateChanges(stateChangesForTx)
-
 	return nil
-}
-
-func printStateChanges(stateChanges []StateChangesForTx) {
-	for _, stateChange := range stateChanges {
-
-		if stateChange.TxHash != nil {
-			fmt.Println(hex.EncodeToString(stateChange.TxHash))
-		}
-
-		for _, st := range stateChange.StateChanges {
-			fmt.Println(st)
-		}
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

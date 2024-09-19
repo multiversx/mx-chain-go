@@ -272,11 +272,6 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
-	stateChangesCollector := disabled.NewDisabledStateChangesCollector()
-	// if scf.config.StateTriesConfig.CollectStateChangesEnabled {
-	// 	stateChangesCollector = state.NewStateChangesCollector()
-	// }
-
 	argStateMetrics := stateMetrics.ArgsStateMetrics{
 		SnapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
 		LastSnapshotDurationKey: common.MetricLastPeersSnapshotDurationSec,
@@ -288,6 +283,11 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 	}
 
 	snapshotManager, err := scf.createSnapshotManager(accountFactory, sm, iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider())
+	if err != nil {
+		return nil, err
+	}
+
+	stateChangesCollector, err := scf.createStateChangesCollector()
 	if err != nil {
 		return nil, err
 	}

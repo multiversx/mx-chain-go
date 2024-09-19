@@ -7,6 +7,7 @@ import (
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/stretchr/testify/require"
@@ -139,10 +140,10 @@ func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	numStateChanges := len(scc.stateChanges)
 
 	err := scc.RevertToIndex(-1)
-	require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 
 	err = scc.RevertToIndex(numStateChanges + 1)
-	require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 }
 
 func TestStateChangesCollector_RevertToIndex(t *testing.T) {
@@ -197,11 +198,11 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 		scc := NewStateChangesCollector()
 
 		err := scc.SetIndexToLastStateChange(-1)
-		require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 
 		numStateChanges := len(scc.stateChanges)
 		err = scc.SetIndexToLastStateChange(numStateChanges + 1)
-		require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -274,7 +275,7 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 	require.Len(t, stateChangesForTx["hash1"].StateChanges, 5)
 
 	require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
-		"hash0" : {
+		"hash0": {
 			[]*data.StateChange{
 				{Type: "write", TxHash: []byte("hash0")},
 				{Type: "write", TxHash: []byte("hash0")},
@@ -283,7 +284,7 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 				{Type: "write", TxHash: []byte("hash0")},
 			},
 		},
-		"hash1" : {
+		"hash1": {
 			[]*data.StateChange{
 				{Type: "write", TxHash: []byte("hash1")},
 				{Type: "write", TxHash: []byte("hash1")},

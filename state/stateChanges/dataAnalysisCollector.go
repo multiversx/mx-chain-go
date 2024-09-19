@@ -10,12 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // TODO: use proto stucts
-type DataAnalysisStateChangeDTO struct {
-	StateChange
+type dataAnalysisStateChangeDTO struct {
+	state.StateChange
 	Operation       string `json:"operation"`
 	Nonce           bool   `json:"nonceChanged"`
 	Balance         bool   `json:"balanceChanged"`
@@ -27,7 +28,7 @@ type DataAnalysisStateChangeDTO struct {
 	CodeMetadata    bool   `json:"codeMetadataChanged"`
 }
 
-type DataAnalysisStateChangesForTx struct {
+type dataAnalysisStateChangesForTx struct {
 	StateChangesForTx
 	Tx *transaction.Transaction `json:"tx"`
 }
@@ -57,17 +58,15 @@ func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalys
 	}
 
 	return &dataAnalysisCollector{
-		stateChangesCollector: &stateChangesCollector{
-			stateChanges: make([]StateChange, 0),
-		},
-		cachedTxs: make(map[string]*transaction.Transaction),
-		storer:    storer,
+		stateChangesCollector: NewStateChangesCollector(),
+		cachedTxs:             make(map[string]*transaction.Transaction),
+		storer:                storer,
 	}, nil
 }
 
 // AddSaveAccountStateChange adds a new state change for the save account operation
-func (scc *dataAnalysisCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange) {
-	dataAnalysisStateChange := &DataAnalysisStateChangeDTO{
+func (scc *dataAnalysisCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
+	dataAnalysisStateChange := &dataAnalysisStateChangeDTO{
 		StateChange: stateChange,
 	}
 
@@ -76,7 +75,7 @@ func (scc *dataAnalysisCollector) AddSaveAccountStateChange(oldAccount, account 
 	scc.AddStateChange(stateChange)
 }
 
-func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *DataAnalysisStateChangeDTO) {
+func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *dataAnalysisStateChangeDTO) {
 	baseNewAcc, newAccOk := newAcc.(userAccountHandler)
 	if !newAccOk {
 		return
@@ -120,14 +119,14 @@ func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *Da
 }
 
 // AddStateChange adds a new state change to the collector
-func (scc *dataAnalysisCollector) AddStateChange(stateChange StateChange) {
+func (scc *dataAnalysisCollector) AddStateChange(stateChange state.StateChange) {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
 	scc.stateChanges = append(scc.stateChanges, stateChange)
 }
 
-func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]DataAnalysisStateChangesForTx, error) {
+func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChangesForTx, error) {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
@@ -136,17 +135,17 @@ func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]DataAna
 		return nil, err
 	}
 
-	dataAnalysisStateChangesForTxs := make([]DataAnalysisStateChangesForTx, len(stateChangesForTxs))
+	dataAnalysisStateChangesForTxs := make([]dataAnalysisStateChangesForTx, len(stateChangesForTxs))
 
 	for _, stateChangeForTx := range stateChangesForTxs {
 		txHash := string(stateChangeForTx.TxHash)
 
-		cachedTx, txOk := scc.cachedTxs[string(txHash)]
+		cachedTx, txOk := scc.cachedTxs[txHash]
 		if !txOk {
 			return nil, fmt.Errorf("did not find tx in cache")
 		}
 
-		stateChangesForTx := DataAnalysisStateChangesForTx{
+		stateChangesForTx := dataAnalysisStateChangesForTx{
 			StateChangesForTx: stateChangeForTx,
 			Tx:                cachedTx,
 		}
@@ -154,6 +153,11 @@ func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]DataAna
 	}
 
 	return dataAnalysisStateChangesForTxs, nil
+}
+
+func (scc *dataAnalysisCollector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
+	scc.cachedTxs[string(txHash)] = tx
+	scc.addTxHashToCollectedStateChanges(txHash)
 }
 
 // Reset resets the state changes collector

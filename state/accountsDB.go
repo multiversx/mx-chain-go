@@ -719,6 +719,15 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 		return nil, nil
 	}
 
+	stateChange := &stateChange.StateChange{
+		Type:            "read",
+		MainTrieKey:     address,
+		MainTrieVal:     val,
+		Operation:       "getAccount",
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(stateChange)
+
 	acnt, err := adb.accountFactory.CreateAccount(address)
 	if err != nil {
 		return nil, err
@@ -912,9 +921,9 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
+	// TODO: evaluate moving this to procesing on CommitBlock
 	err := adb.stateChangesCollector.Publish()
 	if err != nil {
-		log.Warn("failed to dump state changes to json file", "error", err)
 		return nil, err
 	}
 

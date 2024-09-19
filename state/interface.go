@@ -11,7 +11,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 // AccountFactory creates an account of different types
@@ -360,8 +359,8 @@ type ValidatorInfoHandler interface {
 
 // StateChangesCollector defines the methods needed for an StateChangesCollector implementation
 type StateChangesCollector interface {
-	AddStateChange(stateChange stateChanges.StateChange)
-	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange)
+	AddStateChange(stateChange StateChange)
+	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange)
 	Reset()
 	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
 	SetIndexToLastStateChange(index int) error
@@ -369,4 +368,18 @@ type StateChangesCollector interface {
 	Publish() error
 	IsInterfaceNil() bool
 	GetStateChangesForTxs() map[string]*data.StateChanges
+}
+
+// StateChange defines the behaviour of a state change holder
+type StateChange interface {
+	GetType() string
+	GetIndex() int32
+	GetTxHash() []byte
+	GetMainTrieKey() []byte
+	GetMainTrieVal() []byte
+	GetOperation() string
+	GetDataTrieChanges() []*data.DataTrieChange
+
+	SetTxHash(txHash []byte)
+	SetIndex(index int32)
 }

@@ -6,7 +6,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 // disabledStateChangesCollector is a state changes collector that does nothing
@@ -19,11 +18,11 @@ func NewDisabledStateChangesCollector() state.StateChangesCollector {
 }
 
 // AddSaveAccountStateChange -
-func (d *disabledStateChangesCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange) {
+func (d *disabledStateChangesCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
 }
 
 // AddStateChange does nothing
-func (d *disabledStateChangesCollector) AddStateChange(_ stateChanges.StateChange) {
+func (d *disabledStateChangesCollector) AddStateChange(_ state.StateChange) {
 }
 
 // Reset does nothing

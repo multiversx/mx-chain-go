@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
@@ -31,6 +32,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
@@ -154,7 +157,7 @@ func getDefaultStateComponents(
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   enableEpochsHandler,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: stateDisabled.NewDisabledStateChangesCollector(),
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -426,127 +429,134 @@ func TestAccountsDB_SaveAccountMalfunctionMarshallerShouldErr(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// func TestAccountsDB_SaveAccountCollectsAllStateChanges(t *testing.T) {
-// 	t.Parallel()
+func TestAccountsDB_SaveAccountCollectsAllStateChanges(t *testing.T) {
+	t.Parallel()
 
-// 	autoBalanceFlagEnabled := false
-// 	enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-// 		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-// 			return autoBalanceFlagEnabled
-// 		},
-// 	}
-// 	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
-// 	address := generateRandomByteArray(32)
+	autoBalanceFlagEnabled := false
+	enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return autoBalanceFlagEnabled
+		},
+	}
 
-// 	stepCreateAccountWithDataTrieAndCode(t, adb, address)
-// 	autoBalanceFlagEnabled = true
-// 	stepMigrateDataTrieValAndChangeCode(t, adb, address)
-// }
+	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
+	address := generateRandomByteArray(32)
 
-// func stepCreateAccountWithDataTrieAndCode(
-// 	t *testing.T,
-// 	adb *state.AccountsDB,
-// 	address []byte,
-// ) {
-// 	marshaller := &marshallerMock.MarshalizerMock{}
+	stepCreateAccountWithDataTrieAndCode(t, adb, address)
+	autoBalanceFlagEnabled = true
+	stepMigrateDataTrieValAndChangeCode(t, adb, address)
+}
 
-// 	acc, _ := adb.LoadAccount(address)
-// 	userAcc := acc.(state.UserAccountHandler)
-// 	code := []byte("smart contract code")
-// 	key1 := []byte("key1")
-// 	key2 := []byte("key2")
-// 	userAcc.SetCode(code)
-// 	_ = userAcc.SaveKeyValue(key1, []byte("value"))
-// 	_ = userAcc.SaveKeyValue(key2, []byte("value"))
-// 	_ = adb.SaveAccount(userAcc)
-// 	adb.SetTxHashForLatestStateChanges([]byte("accountCreationTxHash"), &transaction.Transaction{})
-// 	serializedAcc, _ := marshaller.Marshal(userAcc)
-// 	codeHash := userAcc.GetCodeHash()
+func stepCreateAccountWithDataTrieAndCode(
+	t *testing.T,
+	adb *state.AccountsDB,
+	address []byte,
+) {
+	marshaller := &marshallerMock.MarshalizerMock{}
 
-// 	stateChangesForTx := adb.ResetStateChangesCollector()
-// 	assert.Equal(t, 1, len(stateChangesForTx))
+	acc, _ := adb.LoadAccount(address)
+	userAcc := acc.(state.UserAccountHandler)
+	code := []byte("smart contract code")
+	key1 := []byte("key1")
+	key2 := []byte("key2")
+	userAcc.SetCode(code)
+	_ = userAcc.SaveKeyValue(key1, []byte("value"))
+	_ = userAcc.SaveKeyValue(key2, []byte("value"))
+	_ = adb.SaveAccount(userAcc)
 
-// 	stateChanges := stateChangesForTx[0].StateChanges
-// 	assert.Equal(t, 2, len(stateChanges))
-// 	assert.Equal(t, []byte("accountCreationTxHash"), stateChangesForTx[0].TxHash)
+	txHash := []byte("accountCreationTxHash")
 
-// 	codeStateChange := stateChanges[0]
-// 	assert.Equal(t, codeHash, codeStateChange.MainTrieKey)
-// 	codeEntry := &state.CodeEntry{
-// 		Code:          code,
-// 		NumReferences: 1,
-// 	}
-// 	serializedCodeEntry, _ := marshaller.Marshal(codeEntry)
-// 	assert.Equal(t, serializedCodeEntry, codeStateChange.MainTrieVal)
-// 	assert.Equal(t, 0, len(codeStateChange.DataTrieChanges))
+	adb.SetTxHashForLatestStateChanges(txHash, &transaction.Transaction{})
+	serializedAcc, _ := marshaller.Marshal(userAcc)
+	codeHash := userAcc.GetCodeHash()
 
-// 	accountStateChange := stateChanges[1]
-// 	assert.Equal(t, address, accountStateChange.MainTrieKey)
-// 	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
-// 	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
-// 	assert.Equal(t, key1, accountStateChange.DataTrieChanges[0].Key)
-// 	valWithMetadata1 := append([]byte("value"), key1...)
-// 	valWithMetadata1 = append(valWithMetadata1, address...)
-// 	assert.Equal(t, valWithMetadata1, accountStateChange.DataTrieChanges[0].Val)
-// 	valWithMetadata2 := append([]byte("value"), key2...)
-// 	valWithMetadata2 = append(valWithMetadata2, address...)
-// 	assert.Equal(t, valWithMetadata2, accountStateChange.DataTrieChanges[1].Val)
-// }
+	stateChangesForTx := adb.ResetStateChangesCollector()
+	assert.Equal(t, 1, len(stateChangesForTx))
 
-// func stepMigrateDataTrieValAndChangeCode(
-// 	t *testing.T,
-// 	adb *state.AccountsDB,
-// 	address []byte,
-// ) {
-// 	marshaller := &marshallerMock.MarshalizerMock{}
-// 	hasher := &hashingMocks.HasherMock{}
+	stateChanges := stateChangesForTx[string(txHash)].StateChanges
+	assert.Equal(t, 2, len(stateChanges))
+	assert.Equal(t, txHash, stateChangesForTx[string(txHash)].StateChanges[0].GetTxHash())
 
-// 	acc, _ := adb.LoadAccount(address)
-// 	userAcc := acc.(state.UserAccountHandler)
-// 	oldCodeHash := userAcc.GetCodeHash()
-// 	code := []byte("new smart contract code")
-// 	userAcc.SetCode(code)
-// 	_ = userAcc.SaveKeyValue([]byte("key1"), []byte("value1"))
-// 	_ = adb.SaveAccount(userAcc)
-// 	adb.SetTxHashForLatestStateChanges([]byte("accountUpdateTxHash"), &transaction.Transaction{})
+	codeStateChange := stateChanges[0]
+	assert.Equal(t, codeHash, codeStateChange.MainTrieKey)
+	codeEntry := &state.CodeEntry{
+		Code:          code,
+		NumReferences: 1,
+	}
+	serializedCodeEntry, _ := marshaller.Marshal(codeEntry)
+	assert.Equal(t, serializedCodeEntry, codeStateChange.MainTrieVal)
+	assert.Equal(t, 0, len(codeStateChange.DataTrieChanges))
 
-// 	stateChangesForTx := adb.ResetStateChangesCollector()
-// 	assert.Equal(t, 1, len(stateChangesForTx))
-// 	assert.Equal(t, 3, len(stateChangesForTx[0].StateChanges))
-// 	assert.Equal(t, []byte("accountUpdateTxHash"), stateChangesForTx[0].TxHash)
+	accountStateChange := stateChanges[1]
+	assert.Equal(t, address, accountStateChange.MainTrieKey)
+	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
+	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
+	assert.Equal(t, key1, accountStateChange.DataTrieChanges[0].Key)
+	valWithMetadata1 := append([]byte("value"), key1...)
+	valWithMetadata1 = append(valWithMetadata1, address...)
+	assert.Equal(t, valWithMetadata1, accountStateChange.DataTrieChanges[0].Val)
+	valWithMetadata2 := append([]byte("value"), key2...)
+	valWithMetadata2 = append(valWithMetadata2, address...)
+	assert.Equal(t, valWithMetadata2, accountStateChange.DataTrieChanges[1].Val)
+}
 
-// 	stateChanges := stateChangesForTx[0].StateChanges
-// 	oldCodeEntryChange := stateChanges[0]
-// 	assert.Equal(t, oldCodeHash, oldCodeEntryChange.MainTrieKey)
-// 	assert.Equal(t, []byte(nil), oldCodeEntryChange.MainTrieVal)
-// 	assert.Equal(t, 0, len(oldCodeEntryChange.DataTrieChanges))
+func stepMigrateDataTrieValAndChangeCode(
+	t *testing.T,
+	adb *state.AccountsDB,
+	address []byte,
+) {
+	marshaller := &marshallerMock.MarshalizerMock{}
+	hasher := &hashingMocks.HasherMock{}
 
-// 	newCodeEntryChange := stateChanges[1]
-// 	codeEntry := &state.CodeEntry{
-// 		Code:          code,
-// 		NumReferences: 1,
-// 	}
-// 	serializedCodeEntry, _ := marshaller.Marshal(codeEntry)
-// 	assert.Equal(t, userAcc.GetCodeHash(), newCodeEntryChange.MainTrieKey)
-// 	assert.Equal(t, serializedCodeEntry, newCodeEntryChange.MainTrieVal)
-// 	assert.Equal(t, 0, len(newCodeEntryChange.DataTrieChanges))
+	acc, _ := adb.LoadAccount(address)
+	userAcc := acc.(state.UserAccountHandler)
+	oldCodeHash := userAcc.GetCodeHash()
+	code := []byte("new smart contract code")
+	userAcc.SetCode(code)
+	_ = userAcc.SaveKeyValue([]byte("key1"), []byte("value1"))
+	_ = adb.SaveAccount(userAcc)
 
-// 	accountStateChange := stateChanges[2]
-// 	serializedAcc, _ := marshaller.Marshal(userAcc)
-// 	assert.Equal(t, address, accountStateChange.MainTrieKey)
-// 	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
-// 	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
-// 	trieVal := &dataTrieValue.TrieLeafData{
-// 		Value:   []byte("value1"),
-// 		Key:     []byte("key1"),
-// 		Address: address,
-// 	}
-// 	serializedTrieVal, _ := marshaller.Marshal(trieVal)
-// 	assert.Equal(t, hasher.Compute("key1"), accountStateChange.DataTrieChanges[0].Key)
-// 	assert.Equal(t, serializedTrieVal, accountStateChange.DataTrieChanges[0].Val)
-// 	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[1].Key)
-// 	assert.Equal(t, []byte(nil), accountStateChange.DataTrieChanges[1].Val)
-// }
+	txHash := []byte("accountCreationTxHash")
+
+	adb.SetTxHashForLatestStateChanges(txHash, &transaction.Transaction{})
+
+	stateChangesForTx := adb.ResetStateChangesCollector()
+	assert.Equal(t, 1, len(stateChangesForTx))
+	assert.Equal(t, 3, len(stateChangesForTx[string(txHash)].StateChanges))
+	assert.Equal(t, txHash, stateChangesForTx[string(txHash)].StateChanges[0].GetTxHash())
+
+	stateChanges := stateChangesForTx[string(txHash)].StateChanges
+	oldCodeEntryChange := stateChanges[0]
+	assert.Equal(t, oldCodeHash, oldCodeEntryChange.MainTrieKey)
+	assert.Equal(t, []byte(nil), oldCodeEntryChange.MainTrieVal)
+	assert.Equal(t, 0, len(oldCodeEntryChange.DataTrieChanges))
+
+	newCodeEntryChange := stateChanges[1]
+	codeEntry := &state.CodeEntry{
+		Code:          code,
+		NumReferences: 1,
+	}
+	serializedCodeEntry, _ := marshaller.Marshal(codeEntry)
+	assert.Equal(t, userAcc.GetCodeHash(), newCodeEntryChange.MainTrieKey)
+	assert.Equal(t, serializedCodeEntry, newCodeEntryChange.MainTrieVal)
+	assert.Equal(t, 0, len(newCodeEntryChange.DataTrieChanges))
+
+	accountStateChange := stateChanges[2]
+	serializedAcc, _ := marshaller.Marshal(userAcc)
+	assert.Equal(t, address, accountStateChange.MainTrieKey)
+	assert.Equal(t, serializedAcc, accountStateChange.MainTrieVal)
+	assert.Equal(t, 2, len(accountStateChange.DataTrieChanges))
+	trieVal := &dataTrieValue.TrieLeafData{
+		Value:   []byte("value1"),
+		Key:     []byte("key1"),
+		Address: address,
+	}
+	serializedTrieVal, _ := marshaller.Marshal(trieVal)
+	assert.Equal(t, hasher.Compute("key1"), accountStateChange.DataTrieChanges[0].Key)
+	assert.Equal(t, serializedTrieVal, accountStateChange.DataTrieChanges[0].Val)
+	assert.Equal(t, []byte("key1"), accountStateChange.DataTrieChanges[1].Key)
+	assert.Equal(t, []byte(nil), accountStateChange.DataTrieChanges[1].Val)
+}
 
 func TestAccountsDB_SaveAccountWithSomeValuesShouldWork(t *testing.T) {
 	t.Parallel()
@@ -2937,6 +2947,8 @@ func TestAccountsDb_Concurrent(t *testing.T) {
 
 	numAccounts := 100000
 	accountsAddresses := generateAccounts(t, numAccounts, adb)
+
+	adb.SetTxHashForLatestStateChanges([]byte("txHash"), &transaction.Transaction{})
 	rootHash, _ := adb.Commit()
 
 	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)

@@ -5,13 +5,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // StateChangesCollectorStub represents a mock for the StateChangesCollector interface
 type StateChangesCollectorStub struct {
-	AddStateChangeCalled                   func(stateChange stateChanges.StateChange)
-	AddSaveAccountStateChangeCalled        func(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange)
+	AddStateChangeCalled                   func(stateChange state.StateChange)
+	AddSaveAccountStateChangeCalled        func(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange)
 	ResetCalled                            func()
 	AddTxHashToCollectedStateChangesCalled func(txHash []byte, tx *transaction.Transaction)
 	SetIndexToLastStateChangeCalled        func(index int) error
@@ -22,14 +22,14 @@ type StateChangesCollectorStub struct {
 }
 
 // AddStateChange -
-func (s *StateChangesCollectorStub) AddStateChange(stateChange stateChanges.StateChange) {
+func (s *StateChangesCollectorStub) AddStateChange(stateChange state.StateChange) {
 	if s.AddStateChangeCalled != nil {
 		s.AddStateChangeCalled(stateChange)
 	}
 }
 
 // AddSaveAccountStateChange -
-func (s *StateChangesCollectorStub) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange) {
+func (s *StateChangesCollectorStub) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
 	if s.AddSaveAccountStateChangeCalled != nil {
 		s.AddSaveAccountStateChangeCalled(oldAccount, account, stateChange)
 	}
