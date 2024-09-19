@@ -24,6 +24,10 @@ const (
 )
 
 func TestSovereignChainSimulator_CreateNftWithManyQuantityShouldFail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	expectedError := "invalid arguments to process built-in function, invalid quantity for esdt type"
 
 	txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
@@ -36,6 +40,10 @@ func TestSovereignChainSimulator_CreateNftWithManyQuantityShouldFail(t *testing.
 }
 
 func TestSovereignChainSimulator_CreateNftWithInvalidTypeShouldFail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	expectedError := "invalid arguments to process built-in function, invalid esdt type"
 
 	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
@@ -115,6 +123,10 @@ func executeSimpleEsdtOperationWithError(
 }
 
 func TestChainSimulator_CreateAndBurnAllEsdtTypes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
@@ -266,6 +278,10 @@ func burnAllEsdtTypes(
 }
 
 func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifierAndMakeTransactions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
