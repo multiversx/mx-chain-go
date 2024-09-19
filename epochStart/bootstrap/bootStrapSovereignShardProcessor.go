@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -208,4 +209,35 @@ func (e *sovereignBootStrapShardProcessor) processNodesConfigFromStorage(pubKey 
 	// no need to save the peers miniblocks here as they were already fetched from the DB
 	nodesConfig, _, _, err := e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
 	return nodesConfig, core.SovereignChainShardId, err
+}
+
+func (e *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error) {
+	epochStartConfig := e.generalConfig.EpochStartConfig
+	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
+		e.mainMessenger,
+		e.requestHandler,
+		e.coreComponentsHolder.InternalMarshalizer(),
+		e.coreComponentsHolder.Hasher(),
+		thresholdForConsideringMetaBlockCorrect,
+		epochStartConfig.MinNumConnectedPeersToStart,
+		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
+		CoreComponentsHolder:    e.coreComponentsHolder,
+		CryptoComponentsHolder:  e.cryptoComponentsHolder,
+		RequestHandler:          e.requestHandler,
+		Messenger:               e.mainMessenger,
+		ShardCoordinator:        e.shardCoordinator,
+		EconomicsData:           e.economicsData,
+		WhitelistHandler:        e.whiteListHandler,
+		StartInEpochConfig:      epochStartConfig,
+		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		MetaBlockProcessor:      newEpochStartSovereignBlockProcessor(metaBlockProcessor),
+	}
+
+	return NewEpochStartMetaSyncer(argsEpochStartSyncer)
 }

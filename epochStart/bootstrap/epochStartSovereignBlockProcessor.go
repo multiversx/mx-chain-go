@@ -14,6 +14,13 @@ type epochStartSovereignBlockProcessor struct {
 	*epochStartMetaBlockProcessor
 }
 
+// internal constructor
+func newEpochStartSovereignBlockProcessor(epochStartMetaBlockProcessor *epochStartMetaBlockProcessor) *epochStartSovereignBlockProcessor {
+	return &epochStartSovereignBlockProcessor{
+		epochStartMetaBlockProcessor,
+	}
+}
+
 // GetEpochStartMetaBlock will return the sovereign block after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the sovereign block is obtained or the context is done
 func (e *epochStartSovereignBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (dataCore.MetaHeaderHandler, error) {
@@ -60,7 +67,7 @@ func (e *epochStartSovereignBlockProcessor) GetEpochStartMetaBlock(ctx context.C
 
 func (e *epochStartSovereignBlockProcessor) requestMetaBlock() error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
-	err := e.requestHandler.SetNumPeersToQuery(getTopic(), numConnectedPeers, numConnectedPeers)
+	err := e.requestHandler.SetNumPeersToQuery(getTopic(), numConnectedPeers, 0)
 	if err != nil {
 		return err
 	}
