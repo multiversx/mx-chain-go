@@ -24,26 +24,31 @@ const (
 )
 
 func TestSovereignChainSimulator_CreateNftWithManyQuantityShouldFail(t *testing.T) {
-	expectedError := "invalid arguments to process built-in function, invalid quantity"
+	expectedError := "invalid arguments to process built-in function, invalid quantity for esdt type"
 
 	txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedError)
+	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungibleV2, core.NonFungibleV2.String())
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
+	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.DynamicNFT, core.DynamicNFT.String())
 	txData = createNftArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedError)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 }
 
 func TestSovereignChainSimulator_CreateNftWithInvalidTypeShouldFail(t *testing.T) {
 	expectedError := "invalid arguments to process built-in function, invalid esdt type"
 
+	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
 	txData := createNftArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedError)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
+	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungible, core.NonFungible.String())
 	txData = createNftArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedError)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
+	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.ESDTType(8), core.ESDTType(8).String())
 	txData = createNftArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedError)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 }
 
 func executeSimpleEsdtOperationWithError(
