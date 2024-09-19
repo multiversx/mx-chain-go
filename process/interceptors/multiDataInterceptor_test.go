@@ -665,6 +665,9 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 		IsForCurrentShardCalled: func() bool {
 			return false
 		},
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
 	}
 
 	whiteListHandler := &testscommon.WhiteListHandlerStub{

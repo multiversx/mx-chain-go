@@ -1,6 +1,7 @@
 package interceptors
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -15,23 +16,22 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var log = logger.GetOrCreate("process/interceptors")
 
 // ArgMultiDataInterceptor is the argument for the multi-data interceptor
 type ArgMultiDataInterceptor struct {
-	Topic                     string
-	Marshalizer               marshal.Marshalizer
-	DataFactory               process.InterceptedDataFactory
-	Processor                 process.InterceptorProcessor
-	Throttler                 process.InterceptorThrottler
-	AntifloodHandler          process.P2PAntifloodHandler
-	WhiteListRequest          process.WhiteListHandler
-	PreferredPeersHolder      process.PreferredPeersHolderHandler
-	CurrentPeerId             core.PeerID
-	ProcessedMessagesCacheMap map[string]storage.Cacher
+	Topic                   string
+	Marshalizer             marshal.Marshalizer
+	DataFactory             process.InterceptedDataFactory
+	Processor               process.InterceptorProcessor
+	Throttler               process.InterceptorThrottler
+	AntifloodHandler        process.P2PAntifloodHandler
+	WhiteListRequest        process.WhiteListHandler
+	PreferredPeersHolder    process.PreferredPeersHolderHandler
+	CurrentPeerId           core.PeerID
+	InterceptedDataVerifier process.InterceptedDataVerifier
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
@@ -70,20 +70,23 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if check.IfNil(arg.PreferredPeersHolder) {
 		return nil, process.ErrNilPreferredPeersHolder
 	}
+	if check.IfNil(arg.InterceptedDataVerifier) {
+		return nil, process.ErrNilInterceptedDataVerifier
+	}
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:                 arg.Throttler,
-			antifloodHandler:          arg.AntifloodHandler,
-			topic:                     arg.Topic,
-			currentPeerId:             arg.CurrentPeerId,
-			processor:                 arg.Processor,
-			preferredPeersHolder:      arg.PreferredPeersHolder,
-			debugHandler:              handler.NewDisabledInterceptorDebugHandler(),
-			processedMessagesCacheMap: arg.ProcessedMessagesCacheMap,
+			throttler:               arg.Throttler,
+			antifloodHandler:        arg.AntifloodHandler,
+			topic:                   arg.Topic,
+			currentPeerId:           arg.CurrentPeerId,
+			processor:               arg.Processor,
+			preferredPeersHolder:    arg.PreferredPeersHolder,
+			debugHandler:            handler.NewDisabledInterceptorDebugHandler(),
+			interceptedDataVerifier: arg.InterceptedDataVerifier,
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
@@ -157,17 +160,14 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+		fmt.Println(err)
 
-		listInterceptedData[index] = interceptedData
+		if !errors.Is(err, ErrInvalidInterceptedData) {
+			listInterceptedData[index] = interceptedData
+		}
 		if err != nil {
 			mdi.throttler.EndProcessing()
 			return err
-		}
-
-		errCache := mdi.checkIfMessageHasBeenProcessed(interceptedData)
-		if errCache != nil {
-			mdi.throttler.EndProcessing()
-			continue
 		}
 
 		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
@@ -219,7 +219,7 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 	mdi.receivedDebugInterceptedData(interceptedData)
 
-	err = interceptedData.CheckValidity()
+	err = mdi.interceptedDataVerifier.Verify(interceptedData)
 	if err != nil {
 		mdi.processDebugInterceptedData(interceptedData, err)
 

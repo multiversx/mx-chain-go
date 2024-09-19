@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -10,20 +11,19 @@ import (
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
 type ArgSingleDataInterceptor struct {
-	Topic                     string
-	DataFactory               process.InterceptedDataFactory
-	Processor                 process.InterceptorProcessor
-	Throttler                 process.InterceptorThrottler
-	AntifloodHandler          process.P2PAntifloodHandler
-	WhiteListRequest          process.WhiteListHandler
-	PreferredPeersHolder      process.PreferredPeersHolderHandler
-	CurrentPeerId             core.PeerID
-	ProcessedMessagesCacheMap map[string]storage.Cacher
+	Topic                   string
+	DataFactory             process.InterceptedDataFactory
+	Processor               process.InterceptorProcessor
+	Throttler               process.InterceptorThrottler
+	AntifloodHandler        process.P2PAntifloodHandler
+	WhiteListRequest        process.WhiteListHandler
+	PreferredPeersHolder    process.PreferredPeersHolderHandler
+	CurrentPeerId           core.PeerID
+	InterceptedDataVerifier process.InterceptedDataVerifier
 }
 
 // SingleDataInterceptor is used for intercepting packed multi data
@@ -56,20 +56,24 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 	if check.IfNil(arg.PreferredPeersHolder) {
 		return nil, process.ErrNilPreferredPeersHolder
 	}
+	if check.IfNil(arg.InterceptedDataVerifier) {
+		fmt.Println(arg.Topic)
+		return nil, process.ErrNilInterceptedDataVerifier
+	}
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
 
 	singleDataIntercept := &SingleDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:                 arg.Throttler,
-			antifloodHandler:          arg.AntifloodHandler,
-			topic:                     arg.Topic,
-			currentPeerId:             arg.CurrentPeerId,
-			processor:                 arg.Processor,
-			preferredPeersHolder:      arg.PreferredPeersHolder,
-			debugHandler:              handler.NewDisabledInterceptorDebugHandler(),
-			processedMessagesCacheMap: arg.ProcessedMessagesCacheMap,
+			throttler:               arg.Throttler,
+			antifloodHandler:        arg.AntifloodHandler,
+			topic:                   arg.Topic,
+			currentPeerId:           arg.CurrentPeerId,
+			processor:               arg.Processor,
+			preferredPeersHolder:    arg.PreferredPeersHolder,
+			debugHandler:            handler.NewDisabledInterceptorDebugHandler(),
+			interceptedDataVerifier: arg.InterceptedDataVerifier,
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
@@ -99,13 +103,8 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	sdi.receivedDebugInterceptedData(interceptedData)
-	err = sdi.checkIfMessageHasBeenProcessed(interceptedData)
-	if err != nil {
-		sdi.throttler.EndProcessing()
-		return err
-	}
-
-	err = interceptedData.CheckValidity()
+	err = sdi.interceptedDataVerifier.Verify(interceptedData)
+	fmt.Println(err)
 	if err != nil {
 		sdi.throttler.EndProcessing()
 		sdi.processDebugInterceptedData(interceptedData, err)

@@ -696,6 +696,9 @@ var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 // ErrNilPreferredPeersHolder signals that preferred peers holder is nil
 var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
 
+// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
+var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 

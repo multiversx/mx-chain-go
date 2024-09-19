@@ -8,10 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.HdrValidatorHandler = (*InterceptedMetaHeader)(nil)
@@ -99,7 +100,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		}
 
 		if imh.isMetaHeaderEpochOutOfRange() {
-			log.Trace("InterceptedMetaHeader.CheckValidity",
+			log.Trace("InterceptedMetaHeader.Verify",
 				"trigger epoch", imh.epochStartTrigger.Epoch(),
 				"metaBlock epoch", imh.hdr.GetEpoch(),
 				"error", process.ErrMetaHeaderEpochOutOfRange)

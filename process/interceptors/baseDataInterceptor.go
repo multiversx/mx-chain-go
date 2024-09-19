@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"bytes"
-	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -10,19 +9,18 @@ import (
 
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 type baseDataInterceptor struct {
-	throttler                 process.InterceptorThrottler
-	antifloodHandler          process.P2PAntifloodHandler
-	topic                     string
-	currentPeerId             core.PeerID
-	processor                 process.InterceptorProcessor
-	mutDebugHandler           sync.RWMutex
-	debugHandler              process.InterceptedDebugger
-	preferredPeersHolder      process.PreferredPeersHolderHandler
-	processedMessagesCacheMap map[string]storage.Cacher
+	throttler               process.InterceptorThrottler
+	antifloodHandler        process.P2PAntifloodHandler
+	topic                   string
+	currentPeerId           core.PeerID
+	processor               process.InterceptorProcessor
+	mutDebugHandler         sync.RWMutex
+	debugHandler            process.InterceptedDebugger
+	preferredPeersHolder    process.PreferredPeersHolderHandler
+	interceptedDataVerifier process.InterceptedDataVerifier
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -121,23 +119,6 @@ func (bdi *baseDataInterceptor) receivedDebugInterceptedData(interceptedData pro
 	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogReceivedHashes(bdi.topic, identifiers)
 	bdi.mutDebugHandler.RUnlock()
-}
-
-func (bdi *baseDataInterceptor) checkIfMessageHasBeenProcessed(interceptedData process.InterceptedData) error {
-	if len(interceptedData.Hash()) == 0 {
-		return nil
-	}
-
-	cache, ok := bdi.processedMessagesCacheMap[bdi.topic]
-	if !ok {
-		return fmt.Errorf("cache for topic %q does not exist", bdi.topic)
-	}
-
-	if has, _ := cache.HasOrAdd(interceptedData.Hash(), nil, 0); has {
-		return fmt.Errorf("processed intercepted data with hash: %s", interceptedData.Hash())
-	}
-
-	return nil
 }
 
 // SetInterceptedDebugHandler will set a new intercepted debug handler

@@ -612,7 +612,7 @@ func TestNewInterceptedTransaction_ShouldWork(t *testing.T) {
 	assert.Equal(t, tx, txi.Transaction())
 }
 
-// ------- CheckValidity
+// ------- Verify
 
 func TestInterceptedTransaction_CheckValidityNilSignatureShouldErr(t *testing.T) {
 	t.Parallel()

@@ -1401,3 +1401,8 @@ type SentSignaturesTracker interface {
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }
+
+type InterceptedDataVerifier interface {
+	Verify(interceptedData InterceptedData) error
+	IsInterfaceNil() bool
+}

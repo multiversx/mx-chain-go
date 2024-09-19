@@ -269,22 +269,22 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		return nil, err
 	}
 
-	err = micf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := micf.createCacheForInterceptor(topic)
 	if err != nil {
 		return nil, err
 	}
 
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:                     topic,
-			DataFactory:               hdrFactory,
-			Processor:                 hdrProcessor,
-			Throttler:                 micf.globalThrottler,
-			AntifloodHandler:          micf.antifloodHandler,
-			WhiteListRequest:          micf.whiteListHandler,
-			CurrentPeerId:             micf.mainMessenger.ID(),
-			PreferredPeersHolder:      micf.preferredPeersHolder,
-			ProcessedMessagesCacheMap: micf.processedMessagesCacheMap,
+			Topic:                   topic,
+			DataFactory:             hdrFactory,
+			Processor:               hdrProcessor,
+			Throttler:               micf.globalThrottler,
+			AntifloodHandler:        micf.antifloodHandler,
+			WhiteListRequest:        micf.whiteListHandler,
+			CurrentPeerId:           micf.mainMessenger.ID(),
+			PreferredPeersHolder:    micf.preferredPeersHolder,
+			InterceptedDataVerifier: interceptedDataVerifier,
 		},
 	)
 	if err != nil {
