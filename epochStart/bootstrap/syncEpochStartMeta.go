@@ -22,12 +22,13 @@ import (
 var _ epochStart.StartOfEpochMetaSyncer = (*epochStartMetaSyncer)(nil)
 
 type epochStartMetaSyncer struct {
-	requestHandler        RequestHandler
-	messenger             Messenger
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	singleDataInterceptor process.Interceptor
-	metaBlockProcessor    EpochStartMetaBlockInterceptorProcessor
+	requestHandler                 RequestHandler
+	messenger                      Messenger
+	marshalizer                    marshal.Marshalizer
+	hasher                         hashing.Hasher
+	singleDataInterceptor          process.Interceptor
+	metaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
+	epochStartTopicProviderHandler epochStartTopicProviderHandler
 }
 
 // ArgsNewEpochStartMetaSyncer -
@@ -91,7 +92,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:                factory.MetachainBlocksTopic,
+			Topic:                factory.ShardBlocksTopic,
 			DataFactory:          interceptedMetaHdrDataFactory,
 			Processor:            args.MetaBlockProcessor,
 			Throttler:            disabled.NewThrottler(),
@@ -105,6 +106,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 
+	e.epochStartTopicProviderHandler = e
 	return e, nil
 }
 
@@ -130,26 +132,30 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (dat
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier)
+	err := e.messenger.UnregisterMessageProcessor(e.getTopic(), common.EpochStartInterceptorsIdentifier)
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
-	err := e.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+	err := e.messenger.CreateTopic(e.getTopic(), true)
 	if err != nil {
 		log.Warn("error messenger create topic", "error", err)
 		return err
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(e.getTopic(), common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (e *epochStartMetaSyncer) getTopic() string {
+	return factory.MetachainBlocksTopic
 }
 
 // IsInterfaceNil returns true if underlying object is nil
