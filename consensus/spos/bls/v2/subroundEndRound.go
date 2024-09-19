@@ -1,4 +1,4 @@
-package bls
+package v2
 
 import (
 	"bytes"

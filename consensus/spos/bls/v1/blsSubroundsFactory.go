@@ -1,4 +1,4 @@
-package bls
+package v1
 
 import (
 	"time"
@@ -22,7 +22,6 @@ type factory struct {
 	sentSignaturesTracker spos.SentSignaturesTracker
 	chainID               []byte
 	currentPid            core.PeerID
-	signatureThrottler    core.Throttler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -34,7 +33,6 @@ func NewSubroundsFactory(
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
-	signatureThrottler core.Throttler,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -43,7 +41,6 @@ func NewSubroundsFactory(
 		chainID,
 		appStatusHandler,
 		sentSignaturesTracker,
-		signatureThrottler,
 	)
 	if err != nil {
 		return nil, err
@@ -57,7 +54,6 @@ func NewSubroundsFactory(
 		chainID:               chainID,
 		currentPid:            currentPid,
 		sentSignaturesTracker: sentSignaturesTracker,
-		signatureThrottler:    signatureThrottler,
 	}
 
 	return &fct, nil
@@ -70,7 +66,6 @@ func checkNewFactoryParams(
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
-	signatureThrottler core.Throttler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -87,9 +82,6 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(sentSignaturesTracker) {
 		return ErrNilSentSignatureTracker
-	}
-	if check.IfNil(signatureThrottler) {
-		return spos.ErrNilThrottler
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
@@ -158,9 +150,11 @@ func (fct *factory) generateStartRoundSubround() error {
 
 	subroundStartRoundInstance, err := NewSubroundStartRound(
 		subround,
+		fct.worker.Extend,
 		processingThresholdPercent,
+		fct.worker.ExecuteStoredMessages,
+		fct.worker.ResetConsensusMessages,
 		fct.sentSignaturesTracker,
-		fct.worker,
 	)
 	if err != nil {
 		return err
@@ -198,8 +192,8 @@ func (fct *factory) generateBlockSubround() error {
 
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
+		fct.worker.Extend,
 		processingThresholdPercent,
-		fct.worker,
 	)
 	if err != nil {
 		return err
@@ -207,8 +201,7 @@ func (fct *factory) generateBlockSubround() error {
 
 	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
 	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockInstance.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeaderBeforeEquivalentProofs)
-	fct.worker.AddReceivedHeaderHandler(subroundBlockInstance.receivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
 	return nil
@@ -236,16 +229,14 @@ func (fct *factory) generateSignatureSubround() error {
 
 	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
+		fct.worker.Extend,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
-		fct.worker,
-		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err
 	}
 
-	// TODO[cleanup cns finality]: remove this
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
@@ -274,11 +265,11 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
+		fct.worker.Extend,
 		spos.MaxThresholdPercent,
+		fct.worker.DisplayStatistics,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
-		fct.worker,
-		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err
@@ -286,7 +277,6 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
 	fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundEndRoundObject.receivedInvalidSignersInfo)
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundEndRoundObject.receivedSignature)
 	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 

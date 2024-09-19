@@ -1,4 +1,4 @@
-package bls
+package v1
 
 import (
 	"context"
@@ -23,18 +23,21 @@ type subroundStartRound struct {
 	outportMutex sync.RWMutex
 	*spos.Subround
 	processingThresholdPercentage int
+	executeStoredMessages         func()
+	resetConsensusMessages        func()
 
 	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
-	worker               spos.WorkerHandler
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
 func NewSubroundStartRound(
 	baseSubround *spos.Subround,
+	extend func(subroundId int),
 	processingThresholdPercentage int,
+	executeStoredMessages func(),
+	resetConsensusMessages func(),
 	sentSignatureTracker spos.SentSignaturesTracker,
-	worker spos.WorkerHandler,
 ) (*subroundStartRound, error) {
 	err := checkNewSubroundStartRoundParams(
 		baseSubround,
@@ -42,24 +45,31 @@ func NewSubroundStartRound(
 	if err != nil {
 		return nil, err
 	}
+	if extend == nil {
+		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
+	}
+	if executeStoredMessages == nil {
+		return nil, fmt.Errorf("%w for executeStoredMessages function", spos.ErrNilFunctionHandler)
+	}
+	if resetConsensusMessages == nil {
+		return nil, fmt.Errorf("%w for resetConsensusMessages function", spos.ErrNilFunctionHandler)
+	}
 	if check.IfNil(sentSignatureTracker) {
 		return nil, ErrNilSentSignatureTracker
-	}
-	if check.IfNil(worker) {
-		return nil, spos.ErrNilWorker
 	}
 
 	srStartRound := subroundStartRound{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
+		executeStoredMessages:         executeStoredMessages,
+		resetConsensusMessages:        resetConsensusMessages,
 		outportHandler:                disabled.NewDisabledOutport(),
 		sentSignatureTracker:          sentSignatureTracker,
 		outportMutex:                  sync.RWMutex{},
-		worker:                        worker,
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck
-	srStartRound.Extend = worker.Extend
+	srStartRound.Extend = extend
 	baseSubround.EpochStartRegistrationHandler().RegisterHandler(&srStartRound)
 
 	return &srStartRound, nil
@@ -100,15 +110,7 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.RoundTimeStamp = sr.RoundHandler().TimeStamp()
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
-	// reset the consensus messages, but still keep the proofs for current hash and previous hash
-	currentHash := sr.Blockchain().GetCurrentBlockHeaderHash()
-	prevHash := make([]byte, 0)
-	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if !check.IfNil(currentHeader) {
-		prevHash = currentHeader.GetPrevHash()
-	}
-	sr.worker.ResetConsensusMessages(currentHash, prevHash)
-
+	sr.resetConsensusMessages()
 	return true
 }
 
@@ -167,7 +169,13 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		return false
 	}
 
-	msg := sr.GetLeaderStartRoundMessage()
+	msg := ""
+	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+		msg = " (my turn in multi-key)"
+	}
+	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
+		msg = " (my turn)"
+	}
 	if len(msg) != 0 {
 		sr.AppStatusHandler().Increment(common.MetricCountLeader)
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "proposed")
@@ -181,17 +189,17 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	pubKeys := sr.ConsensusGroup()
 	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
-	if numMultiKeysInConsensusGroup > 0 {
-		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
-	}
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	if !sr.IsSelfInConsensusGroup() {
+	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
+	isLeader := isSingleKeyLeader || sr.IsKeyManagedByCurrentNode([]byte(leader))
+	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
+	if !isSelfInConsensus {
 		log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
-		if !sr.IsSelfLeader() {
+		if !isLeader {
 			sr.AppStatusHandler().Increment(common.MetricCountConsensus)
 			sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "participant")
 		}
@@ -221,7 +229,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
 	// execute stored messages which were received in this new round but before this initialisation
-	go sr.worker.ExecuteStoredMessages()
+	go sr.executeStoredMessages()
 
 	return true
 }
@@ -230,12 +238,16 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
-		if sr.IsKeyManagedBySelf(pkBytes) {
+		if sr.IsKeyManagedByCurrentNode(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
 		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
+	}
+
+	if numMultiKeysInConsensusGroup > 0 {
+		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
 	}
 
 	return numMultiKeysInConsensusGroup
@@ -311,7 +323,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	leader, nextConsensusGroup, err := sr.GetNextConsensusGroup(
+	nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
@@ -330,10 +342,6 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)
-	sr.SetLeader(leader)
-
-	consensusGroupSizeForEpoch := sr.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(shardId, currentHeader.GetEpoch())
-	sr.SetConsensusGroupSize(consensusGroupSizeForEpoch)
 
 	return nil
 }

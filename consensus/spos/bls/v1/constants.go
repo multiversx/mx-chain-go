@@ -1,8 +1,9 @@
-package bls
+package v1
 
 import (
-	"github.com/multiversx/mx-chain-go/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 var log = logger.GetOrCreate("consensus/spos/bls")

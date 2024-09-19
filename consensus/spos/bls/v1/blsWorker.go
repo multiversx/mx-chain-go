@@ -1,4 +1,4 @@
-package bls
+package v1
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
