@@ -95,9 +95,10 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 	require.Equal(t, ErrInvalidInterceptedData, err)
 
 	err = verifier.Verify(interceptedData)
-	require.NotNil(t, ErrInvalidInterceptedData, err)
+	// It is still invalid because it has the same hash.
+	require.Equal(t, ErrInvalidInterceptedData, err)
 
-	<-time.After(defaultSpan)
+	<-time.After(defaultSpan + 1*time.Millisecond)
 
 	err = verifier.Verify(interceptedData)
 	require.Nil(t, err)
