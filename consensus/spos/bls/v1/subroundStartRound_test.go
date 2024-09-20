@@ -10,9 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -51,8 +54,8 @@ func defaultSubround(
 
 	return spos.NewSubround(
 		-1,
-		v1.SrStartRound,
-		v1.SrBlock,
+		bls.SrStartRound,
+		bls.SrBlock,
 		int64(0*roundTimeDuration/100),
 		int64(5*roundTimeDuration/100),
 		"(START_ROUND)",
@@ -83,7 +86,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) v1
 }
 
 func initSubroundStartRound() v1.SubroundStartRound {
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	return initSubroundStartRoundWithContainer(container)
 }
 
@@ -92,11 +95,11 @@ func TestNewSubroundStartRound(t *testing.T) {
 
 	ch := make(chan bool, 1)
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr, _ := spos.NewSubround(
 		-1,
-		v1.SrStartRound,
-		v1.SrBlock,
+		bls.SrStartRound,
+		bls.SrBlock,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
 		"(START_ROUND)",
@@ -192,7 +195,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -208,7 +211,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 func TestSubroundStartRound_NewSubroundStartRoundNilBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -224,7 +227,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstrapperShouldFail(t *te
 func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -240,7 +243,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -256,7 +259,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerContainerShouldFa
 func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -272,7 +275,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *te
 func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -288,7 +291,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -304,7 +307,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -320,7 +323,7 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -349,7 +352,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 
 	sr := *initSubroundStartRound()
 
-	sr.SetStatus(v1.SrStartRound, spos.SsFinished)
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.True(t, ok)
@@ -358,11 +361,11 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCurrentRoundReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
 		return common.NsSynchronized
 	}}
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
 	sr := *initSubroundStartRoundWithContainer(container)
@@ -381,11 +384,11 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitCurrentRoundReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
 		return common.NsNotSynchronized
 	}}
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 	container.SetRoundHandler(initRoundHandlerMock())
 
@@ -398,12 +401,12 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{}
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 
 	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
 		return common.NsNotSynchronized
 	}
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -417,10 +420,10 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	err := errors.New("error")
-	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
-		return nil, err
+	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+		return nil, nil, err
 	}
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -437,7 +440,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenMainMachineIsAct
 			return true
 		},
 	}
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetNodeRedundancyHandler(nodeRedundancyMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -455,11 +458,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]nodesCoordinator.Validator, error) {
-		return make([]nodesCoordinator.Validator, 0), nil
+	) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+		return nil, make([]nodesCoordinator.Validator, 0), nil
 	}
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -471,7 +474,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsensusGroup(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	consensusState.SetSelfPubKey(consensusState.SelfPubKey() + "X")
 	ch := make(chan bool, 1)
@@ -493,7 +496,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 		return time.Duration(-1)
 	}
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetRoundHandler(roundHandlerMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -505,13 +508,13 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{}
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 
 	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
 		return common.NsSynchronized
 	}
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -527,7 +530,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		keysHandler := &testscommon.KeysHandlerStub{}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
@@ -542,8 +545,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		consensusState.SetSelfPubKey("not in consensus")
 		sr, _ := spos.NewSubround(
 			-1,
-			v1.SrStartRound,
-			v1.SrBlock,
+			bls.SrStartRound,
+			bls.SrBlock,
 			int64(85*roundTimeDuration/100),
 			int64(95*roundTimeDuration/100),
 			"(START_ROUND)",
@@ -572,7 +575,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		wasCalled := false
 		wasIncrementCalled := false
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		keysHandler := &testscommon.KeysHandlerStub{
 			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 				return string(pkBytes) == "B"
@@ -596,8 +599,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		consensusState.SetSelfPubKey("B")
 		sr, _ := spos.NewSubround(
 			-1,
-			v1.SrStartRound,
-			v1.SrBlock,
+			bls.SrStartRound,
+			bls.SrBlock,
 			int64(85*roundTimeDuration/100),
 			int64(95*roundTimeDuration/100),
 			"(START_ROUND)",
@@ -627,7 +630,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		wasCalled := false
 		wasIncrementCalled := false
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		keysHandler := &testscommon.KeysHandlerStub{}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
@@ -649,8 +652,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		}
 		sr, _ := spos.NewSubround(
 			-1,
-			v1.SrStartRound,
-			v1.SrBlock,
+			bls.SrStartRound,
+			bls.SrBlock,
 			int64(85*roundTimeDuration/100),
 			int64(95*roundTimeDuration/100),
 			"(START_ROUND)",
@@ -681,7 +684,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		wasMetricConsensusStateCalled := false
 		wasMetricCountLeaderCalled := false
 		cntMetricConsensusRoundStateCalled := 0
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		keysHandler := &testscommon.KeysHandlerStub{}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
@@ -713,8 +716,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		consensusState.SetSelfPubKey(leader)
 		sr, _ := spos.NewSubround(
 			-1,
-			v1.SrStartRound,
-			v1.SrBlock,
+			bls.SrStartRound,
+			bls.SrBlock,
 			int64(85*roundTimeDuration/100),
 			int64(95*roundTimeDuration/100),
 			"(START_ROUND)",
@@ -746,7 +749,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		wasMetricConsensusStateCalled := false
 		wasMetricCountLeaderCalled := false
 		cntMetricConsensusRoundStateCalled := 0
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		keysHandler := &testscommon.KeysHandlerStub{}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetStringValueHandler: func(key string, value string) {
@@ -781,8 +784,8 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		}
 		sr, _ := spos.NewSubround(
 			-1,
-			v1.SrStartRound,
-			v1.SrBlock,
+			bls.SrStartRound,
+			bls.SrBlock,
 			int64(85*roundTimeDuration/100),
 			int64(95*roundTimeDuration/100),
 			"(START_ROUND)",
@@ -821,10 +824,10 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]nodesCoordinator.Validator, error) {
-		return nil, err
+	) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+		return nil, nil, err
 	}
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 )
@@ -294,7 +295,7 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.checkSignaturesValidity", "error", err.Error())
@@ -435,7 +436,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 	}
 
 	for i, pk := range pubKeys {
-		isJobDone, err := sr.JobDone(pk, SrSignature)
+		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
 		if err != nil || !isJobDone {
 			continue
 		}
@@ -450,7 +451,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 		if err != nil {
 			isSuccessfull = false
 
-			err = sr.SetJobDone(pk, SrSignature, false)
+			err = sr.SetJobDone(pk, bls.SrSignature, false)
 			if err != nil {
 				return nil, err
 			}
@@ -521,7 +522,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
 	threshold := sr.Threshold(sr.Current())
-	numValidSigShares := sr.ComputeSize(SrSignature)
+	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 
 	if check.IfNil(sr.Header) {
 		return nil, nil, spos.ErrNilHeader
@@ -532,7 +533,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 			spos.ErrInvalidNumSigShares, numValidSigShares, threshold)
 	}
 
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		return nil, nil, err
@@ -565,7 +566,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		nil,
 		[]byte(leader),
 		nil,
-		int(MtBlockHeaderFinalInfo),
+		int(bls.MtBlockHeaderFinalInfo),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		sr.Header.GetPubKeysBitmap(),
@@ -606,7 +607,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		[]byte(leader),
 		nil,
-		int(MtInvalidSigners),
+		int(bls.MtInvalidSigners),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
@@ -867,7 +868,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	consensusGroup := sr.ConsensusGroup()
 	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, bitmap)
 	for _, pubKey := range signers {
-		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
+		isSigJobDone, err := sr.JobDone(pubKey, bls.SrSignature)
 		if err != nil {
 			return err
 		}

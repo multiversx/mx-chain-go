@@ -15,6 +15,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMock "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -26,9 +27,9 @@ import (
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
 	container *consensusMock.ConsensusCoreMock, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
 	return spos.NewSubround(
-		v1.SrStartRound,
-		v1.SrBlock,
-		v1.SrSignature,
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
 		int64(5*roundTimeDuration/100),
 		int64(25*roundTimeDuration/100),
 		"(BLOCK)",
@@ -314,16 +315,16 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	assert.False(t, r)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-	_ = sr.SetJobDone(sr.SelfPubKey(), v1.SrBlock, true)
+	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrBlock, true)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
-	_ = sr.SetJobDone(sr.SelfPubKey(), v1.SrBlock, false)
-	sr.SetStatus(v1.SrBlock, spos.SsFinished)
+	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrBlock, false)
+	sr.SetStatus(bls.SrBlock, spos.SsFinished)
 	r = sr.DoBlockJob()
 	assert.False(t, r)
 
-	sr.SetStatus(v1.SrBlock, spos.SsNotFinished)
+	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
 	bpm := &testscommon.BlockProcessorStub{}
 	err := errors.New("error")
 	bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
@@ -358,7 +359,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderDataAlreadySet(t *testing.T) {
 	hdr := &block.Header{Nonce: 1}
 	blkBody := &block.Body{}
 
-	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 
 	sr.Data = []byte("some data")
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
@@ -374,7 +375,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderNodeNotLeaderInCurrentRound(t *
 	hdr := &block.Header{Nonce: 1}
 	blkBody := &block.Body{}
 
-	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[1]), v1.MtBlockBodyAndHeader)
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[1]), bls.MtBlockBodyAndHeader)
 
 	sr.Data = nil
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
@@ -390,10 +391,10 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderCannotProcessJobDone(t *testing
 	hdr := &block.Header{Nonce: 1}
 	blkBody := &block.Body{}
 
-	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 
 	sr.Data = nil
-	_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrBlock, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrBlock, true)
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 
 	assert.False(t, r)
@@ -415,7 +416,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderErrorDecoding(t *testing.T) {
 	hdr := &block.Header{Nonce: 1}
 	blkBody := &block.Body{}
 
-	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 
 	sr.Data = nil
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
@@ -432,7 +433,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderBodyAlreadyReceived(t *testing.
 	hdr := &block.Header{Nonce: 1}
 	blkBody := &block.Body{}
 
-	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 
 	sr.Data = nil
 	sr.Body = &block.Body{}
@@ -450,7 +451,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderHeaderAlreadyReceived(t *testin
 	hdr := &block.Header{Nonce: 1}
 	blkBody := &block.Body{}
 
-	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 
 	sr.Data = nil
 	sr.Header = &block.Header{Nonce: 1}
@@ -467,7 +468,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 	t.Run("block is valid", func(t *testing.T) {
 		hdr := createDefaultHeader()
 		blkBody := &block.Body{}
-		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.True(t, r)
@@ -477,7 +478,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 			Nonce: 1,
 		}
 		blkBody := &block.Body{}
-		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), v1.MtBlockBodyAndHeader)
+		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[0]), bls.MtBlockBodyAndHeader)
 		sr.Data = nil
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.False(t, r)
@@ -524,7 +525,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(v1.MtBlockBody),
+		int(bls.MtBlockBody),
 		0,
 		chainID,
 		nil,
@@ -543,11 +544,11 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	assert.False(t, r)
 
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[0])
-	sr.SetStatus(v1.SrBlock, spos.SsFinished)
+	sr.SetStatus(bls.SrBlock, spos.SsFinished)
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetStatus(v1.SrBlock, spos.SsNotFinished)
+	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
@@ -562,7 +563,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		hdrStr,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(v1.MtBlockHeader),
+		int(bls.MtBlockHeader),
 		0,
 		chainID,
 		nil,
@@ -585,11 +586,11 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	assert.False(t, r)
 
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[0])
-	sr.SetStatus(v1.SrBlock, spos.SsFinished)
+	sr.SetStatus(bls.SrBlock, spos.SsFinished)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetStatus(v1.SrBlock, spos.SsNotFinished)
+	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
 	container.SetBlockProcessor(blockProcessorMock)
 	sr.Data = nil
 	sr.Header = nil
@@ -614,7 +615,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(v1.MtBlockBodyAndHeader),
+		int(bls.MtBlockBodyAndHeader),
 		0,
 		chainID,
 		nil,
@@ -646,7 +647,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(v1.MtBlockBody),
+		int(bls.MtBlockBody),
 		0,
 		chainID,
 		nil,
@@ -674,7 +675,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(v1.MtBlockBody),
+		int(bls.MtBlockBody),
 		0,
 		chainID,
 		nil,
@@ -711,7 +712,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 			nil,
 			[]byte(sr.ConsensusGroup()[0]),
 			[]byte("sig"),
-			int(v1.MtBlockBody),
+			int(bls.MtBlockBody),
 			0,
 			chainID,
 			nil,
@@ -772,7 +773,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinish
 	t.Parallel()
 	container := consensusMock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	sr.SetStatus(v1.SrBlock, spos.SsFinished)
+	sr.SetStatus(bls.SrBlock, spos.SsFinished)
 	assert.True(t, sr.DoBlockConsensusCheck())
 }
 
@@ -780,8 +781,8 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedR
 	t.Parallel()
 	container := consensusMock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	for i := 0; i < sr.Threshold(v1.SrBlock); i++ {
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], v1.SrBlock, true)
+	for i := 0; i < sr.Threshold(bls.SrBlock); i++ {
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrBlock, true)
 	}
 	assert.True(t, sr.DoBlockConsensusCheck())
 }
@@ -798,14 +799,14 @@ func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 	container := consensusMock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], v1.SrBlock, false)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], v1.SrSignature, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrBlock, false)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, false)
 	}
 	ok := sr.IsBlockReceived(1)
 	assert.False(t, ok)
 
-	_ = sr.SetJobDone("A", v1.SrBlock, true)
-	isJobDone, _ := sr.JobDone("A", v1.SrBlock)
+	_ = sr.SetJobDone("A", bls.SrBlock, true)
+	isJobDone, _ := sr.JobDone("A", bls.SrBlock)
 	assert.True(t, isJobDone)
 
 	ok = sr.IsBlockReceived(1)
@@ -1084,7 +1085,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		nil,
 		[]byte(sr.ConsensusGroup()[0]),
 		[]byte("sig"),
-		int(v1.MtBlockBody),
+		int(bls.MtBlockBody),
 		0,
 		chainID,
 		nil,

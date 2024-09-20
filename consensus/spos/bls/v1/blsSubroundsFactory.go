@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -131,11 +132,11 @@ func (fct *factory) getTimeDuration() time.Duration {
 func (fct *factory) generateStartRoundSubround() error {
 	subround, err := spos.NewSubround(
 		-1,
-		SrStartRound,
-		SrBlock,
+		bls.SrStartRound,
+		bls.SrBlock,
 		int64(float64(fct.getTimeDuration())*srStartStartTime),
 		int64(float64(fct.getTimeDuration())*srStartEndTime),
-		getSubroundName(SrStartRound),
+		bls.GetSubroundName(bls.SrStartRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
@@ -172,12 +173,12 @@ func (fct *factory) generateStartRoundSubround() error {
 
 func (fct *factory) generateBlockSubround() error {
 	subround, err := spos.NewSubround(
-		SrStartRound,
-		SrBlock,
-		SrSignature,
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
 		int64(float64(fct.getTimeDuration())*srBlockStartTime),
 		int64(float64(fct.getTimeDuration())*srBlockEndTime),
-		getSubroundName(SrBlock),
+		bls.GetSubroundName(bls.SrBlock),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
@@ -199,9 +200,9 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
-	fct.worker.AddReceivedMessageCall(MtBlockBody, subroundBlockInstance.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
+	fct.worker.AddReceivedMessageCall(bls.MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
+	fct.worker.AddReceivedMessageCall(bls.MtBlockBody, subroundBlockInstance.receivedBlockBody)
+	fct.worker.AddReceivedMessageCall(bls.MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
 	return nil
@@ -209,12 +210,12 @@ func (fct *factory) generateBlockSubround() error {
 
 func (fct *factory) generateSignatureSubround() error {
 	subround, err := spos.NewSubround(
-		SrBlock,
-		SrSignature,
-		SrEndRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		bls.SrEndRound,
 		int64(float64(fct.getTimeDuration())*srSignatureStartTime),
 		int64(float64(fct.getTimeDuration())*srSignatureEndTime),
-		getSubroundName(SrSignature),
+		bls.GetSubroundName(bls.SrSignature),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
@@ -237,7 +238,7 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
+	fct.worker.AddReceivedMessageCall(bls.MtSignature, subroundSignatureObject.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
@@ -245,12 +246,12 @@ func (fct *factory) generateSignatureSubround() error {
 
 func (fct *factory) generateEndRoundSubround() error {
 	subround, err := spos.NewSubround(
-		SrSignature,
-		SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(float64(fct.getTimeDuration())*srEndStartTime),
 		int64(float64(fct.getTimeDuration())*srEndEndTime),
-		getSubroundName(SrEndRound),
+		bls.GetSubroundName(bls.SrEndRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
 		fct.worker.ExecuteStoredMessages,
@@ -275,8 +276,8 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
-	fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundEndRoundObject.receivedInvalidSignersInfo)
+	fct.worker.AddReceivedMessageCall(bls.MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
+	fct.worker.AddReceivedMessageCall(bls.MtInvalidSigners, subroundEndRoundObject.receivedInvalidSignersInfo)
 	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 
@@ -286,10 +287,10 @@ func (fct *factory) generateEndRoundSubround() error {
 func (fct *factory) initConsensusThreshold() {
 	pBFTThreshold := core.GetPBFTThreshold(fct.consensusState.ConsensusGroupSize())
 	pBFTFallbackThreshold := core.GetPBFTFallbackThreshold(fct.consensusState.ConsensusGroupSize())
-	fct.consensusState.SetThreshold(SrBlock, 1)
-	fct.consensusState.SetThreshold(SrSignature, pBFTThreshold)
-	fct.consensusState.SetFallbackThreshold(SrBlock, 1)
-	fct.consensusState.SetFallbackThreshold(SrSignature, pBFTFallbackThreshold)
+	fct.consensusState.SetThreshold(bls.SrBlock, 1)
+	fct.consensusState.SetThreshold(bls.SrSignature, pBFTThreshold)
+	fct.consensusState.SetFallbackThreshold(bls.SrBlock, 1)
+	fct.consensusState.SetFallbackThreshold(bls.SrSignature, pBFTFallbackThreshold)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

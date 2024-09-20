@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -93,25 +94,25 @@ func initFactory() v1.Factory {
 func TestFactory_GetMessageTypeName(t *testing.T) {
 	t.Parallel()
 
-	r := v1.GetStringValue(v1.MtBlockBodyAndHeader)
+	r := bls.GetStringValue(bls.MtBlockBodyAndHeader)
 	assert.Equal(t, "(BLOCK_BODY_AND_HEADER)", r)
 
-	r = v1.GetStringValue(v1.MtBlockBody)
+	r = bls.GetStringValue(bls.MtBlockBody)
 	assert.Equal(t, "(BLOCK_BODY)", r)
 
-	r = v1.GetStringValue(v1.MtBlockHeader)
+	r = bls.GetStringValue(bls.MtBlockHeader)
 	assert.Equal(t, "(BLOCK_HEADER)", r)
 
-	r = v1.GetStringValue(v1.MtSignature)
+	r = bls.GetStringValue(bls.MtSignature)
 	assert.Equal(t, "(SIGNATURE)", r)
 
-	r = v1.GetStringValue(v1.MtBlockHeaderFinalInfo)
+	r = bls.GetStringValue(bls.MtBlockHeaderFinalInfo)
 	assert.Equal(t, "(FINAL_INFO)", r)
 
-	r = v1.GetStringValue(v1.MtUnknown)
+	r = bls.GetStringValue(bls.MtUnknown)
 	assert.Equal(t, "(UNKNOWN)", r)
 
-	r = v1.GetStringValue(consensus.MessageType(-1))
+	r = bls.GetStringValue(consensus.MessageType(-1))
 	assert.Equal(t, "Undefined message type", r)
 }
 

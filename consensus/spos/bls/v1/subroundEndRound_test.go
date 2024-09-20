@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -35,8 +36,8 @@ func initSubroundEndRoundWithContainer(
 	ch := make(chan bool, 1)
 	consensusState := initConsensusState()
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -74,8 +75,8 @@ func TestNewSubroundEndRound(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -159,8 +160,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -195,8 +196,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -231,8 +232,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -268,8 +269,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -304,8 +305,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -340,8 +341,8 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -376,8 +377,8 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
@@ -661,7 +662,7 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnTrueWhenRoundIsFin
 	t.Parallel()
 
 	sr := *initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetStatus(v1.SrEndRound, spos.SsFinished)
+	sr.SetStatus(bls.SrEndRound, spos.SsFinished)
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.True(t, ok)
@@ -690,7 +691,7 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldReturnNil(t *testing.T) {
 
 	sr := *initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
 
-	_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
+	_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 	err := sr.CheckSignaturesValidity([]byte{1})
 	assert.Equal(t, nil, err)
@@ -1047,7 +1048,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Equal(t, expectedErr, err)
@@ -1070,13 +1071,13 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		}
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		container.SetSigningHandler(signingHandler)
 
 		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
 
-		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], v1.SrSignature)
+		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
 		require.Nil(t, err)
 		require.False(t, isJobDone)
 	})
@@ -1100,8 +1101,8 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[1], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
 
 		invalidSigners, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
@@ -1118,7 +1119,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.Header = &block.Header{}
-		sr.SetThreshold(v1.SrEndRound, 2)
+		sr.SetThreshold(bls.SrEndRound, 2)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
@@ -1139,7 +1140,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.Equal(t, expectedErr, err)
@@ -1159,7 +1160,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		}
 		container.SetSigningHandler(signingHandler)
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.Equal(t, expectedErr, err)
@@ -1171,7 +1172,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		bitmap, sig, err := sr.ComputeAggSigOnValidNodes()
 		require.NotNil(t, bitmap)
@@ -1216,10 +1217,10 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		container.SetSigningHandler(signingHandler)
 
-		sr.SetThreshold(v1.SrEndRound, 2)
+		sr.SetThreshold(bls.SrEndRound, 2)
 
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[1], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
 
 		sr.Header = &block.Header{}
 
@@ -1263,11 +1264,11 @@ func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 
 		container.SetSigningHandler(signingHandler)
 
-		sr.SetThreshold(v1.SrEndRound, 2)
+		sr.SetThreshold(bls.SrEndRound, 2)
 
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], v1.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[1], v1.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[2], v1.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[2], bls.SrSignature, true)
 
 		sr.Header = &block.Header{}
 
@@ -1344,8 +1345,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		ch := make(chan bool, 1)
 		consensusState := initConsensusStateWithKeysHandler(keysHandler)
 		sr, _ := spos.NewSubround(
-			v1.SrSignature,
-			v1.SrEndRound,
+			bls.SrSignature,
+			bls.SrEndRound,
 			-1,
 			int64(85*roundTimeDuration/100),
 			int64(95*roundTimeDuration/100),
@@ -1715,8 +1716,8 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	ch := make(chan bool, 1)
 	consensusState := initConsensusStateWithKeysHandler(keysHandler)
 	sr, _ := spos.NewSubround(
-		v1.SrSignature,
-		v1.SrEndRound,
+		bls.SrSignature,
+		bls.SrEndRound,
 		-1,
 		int64(85*roundTimeDuration/100),
 		int64(95*roundTimeDuration/100),
