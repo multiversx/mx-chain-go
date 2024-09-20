@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -235,11 +236,11 @@ func (sr *Subround) IsSelfInConsensusGroup() bool {
 // IsSelfLeader returns true is the current node is leader is single key or in
 // multi-key mode
 func (sr *Subround) IsSelfLeader() bool {
-	return sr.isSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	return sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
 }
 
-// isSelfLeaderInCurrentRound method checks if the current node is leader in the current round
-func (sr *Subround) isSelfLeaderInCurrentRound() bool {
+// IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
+func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
 	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 }
 
@@ -249,7 +250,7 @@ func (sr *Subround) GetLeaderStartRoundMessage() string {
 	if sr.IsMultiKeyLeaderInCurrentRound() {
 		return multiKeyStartMsg
 	}
-	if sr.isSelfLeaderInCurrentRound() {
+	if sr.IsSelfLeaderInCurrentRound() {
 		return singleKeyStartMsg
 	}
 

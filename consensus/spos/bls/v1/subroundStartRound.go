@@ -170,7 +170,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	}
 
 	msg := ""
-	if sr.IsKeyManagedByCurrentNode([]byte(leader)) {
+	if sr.IsKeyManagedBySelf([]byte(leader)) {
 		msg = " (my turn in multi-key)"
 	}
 	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
@@ -193,7 +193,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	sr.indexRoundIfNeeded(pubKeys)
 
 	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
-	isLeader := isSingleKeyLeader || sr.IsKeyManagedByCurrentNode([]byte(leader))
+	isLeader := isSingleKeyLeader || sr.IsKeyManagedBySelf([]byte(leader))
 	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
 	if !isSelfInConsensus {
 		log.Debug("not in consensus group")
@@ -238,7 +238,7 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 	numMultiKeysInConsensusGroup := 0
 	for _, pk := range pubKeys {
 		pkBytes := []byte(pk)
-		if sr.IsKeyManagedByCurrentNode(pkBytes) {
+		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
 			log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
@@ -323,7 +323,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, err := sr.GetNextConsensusGroup(
+	leader, nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
@@ -342,6 +342,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)
+	sr.SetLeader(leader)
 
 	return nil
 }

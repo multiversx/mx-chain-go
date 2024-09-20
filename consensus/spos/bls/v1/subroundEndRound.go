@@ -924,7 +924,7 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	minIdx := sr.ConsensusGroupSize()
 
 	for idx, validator := range sr.ConsensusGroup() {
-		if !sr.IsKeyManagedByCurrentNode([]byte(validator)) {
+		if !sr.IsKeyManagedBySelf([]byte(validator)) {
 			continue
 		}
 

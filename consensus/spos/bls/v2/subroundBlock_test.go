@@ -532,7 +532,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		container.SetRoundHandler(&mock.RoundHandlerMock{
+		container.SetRoundHandler(&consensusMocks.RoundHandlerMock{
 			RoundIndex: 1,
 		})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
@@ -575,7 +575,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		container.SetRoundHandler(&mock.RoundHandlerMock{
+		container.SetRoundHandler(&consensusMocks.RoundHandlerMock{
 			RoundIndex: 1,
 		})
 		r := sr.DoBlockJob()
@@ -992,7 +992,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		return expectedErr
 	}
 	container.SetBlockProcessor(blockProcessorMock)
-	container.SetRoundHandler(&mock.RoundHandlerMock{RoundIndex: 1})
+	container.SetRoundHandler(&consensusMocks.RoundHandlerMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -1044,19 +1044,19 @@ func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 
 		return remainingTime
 	}
-	container.SetSyncTimer(&mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(&consensusMocks.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 84 / 100)
 	}})
 	ret := remainingTimeInThisRound()
 	assert.True(t, ret > 0)
 
-	container.SetSyncTimer(&mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(&consensusMocks.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 85 / 100)
 	}})
 	ret = remainingTimeInThisRound()
 	assert.True(t, ret == 0)
 
-	container.SetSyncTimer(&mock.SyncTimerMock{CurrentTimeCalled: func() time.Time {
+	container.SetSyncTimer(&consensusMocks.SyncTimerMock{CurrentTimeCalled: func() time.Time {
 		return time.Unix(0, 0).Add(roundTimeDuration * 86 / 100)
 	}})
 	ret = remainingTimeInThisRound()
@@ -1130,14 +1130,14 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
 	roundHandlerMock.TimeStampCalled = func() time.Time {
 		return time.Unix(0, 0)
 	}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	timeElapsed := sr.EndTime() - 1
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)
@@ -1160,14 +1160,14 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
 	roundHandlerMock.TimeStampCalled = func() time.Time {
 		return time.Unix(0, 0)
 	}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	timeElapsed := sr.EndTime() + 1
 	syncTimerMock.CurrentTimeCalled = func() time.Time {
 		return time.Unix(0, timeElapsed)

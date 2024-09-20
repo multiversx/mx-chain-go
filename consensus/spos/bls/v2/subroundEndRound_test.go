@@ -553,7 +553,7 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	sr.SetSelfPubKey("A")
 
 	remainingTime := time.Millisecond
-	roundHandlerMock := &mock.RoundHandlerMock{
+	roundHandlerMock := &consensusMocks.RoundHandlerMock{
 		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 			return remainingTime
 		},
@@ -1252,7 +1252,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	// update roundHandler's mock, so it will calculate for real the duration
 	container := consensusMocks.InitConsensusCore()
-	roundHandler := mock.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+	roundHandler := consensusMocks.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()
 		elapsedTime := currentTime.Sub(startTime)
 		remainingTime := maxTime - elapsedTime

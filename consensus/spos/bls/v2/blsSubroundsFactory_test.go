@@ -31,8 +31,8 @@ const roundTimeDuration = 100 * time.Millisecond
 func executeStoredMessages() {
 }
 
-func initRoundHandlerMock() *mock.RoundHandlerMock {
-	return &mock.RoundHandlerMock{
+func initRoundHandlerMock() *testscommonConsensus.RoundHandlerMock {
+	return &testscommonConsensus.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)

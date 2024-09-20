@@ -353,12 +353,12 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 
 	numMultiKeysSignaturesSent := 0
-	for idx, pk := range sr.ConsensusGroup() {
+	for _, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
 		if sr.IsJobDone(pk, sr.Current()) {
 			continue
 		}
-		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
+		if !sr.IsKeyManagedBySelf(pkBytes) {
 			continue
 		}
 
@@ -388,8 +388,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			numMultiKeysSignaturesSent++
 		}
 		sr.sentSignatureTracker.SignatureSent(pkBytes)
+		leader, err := sr.GetLeader()
 
-		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
+		isLeader := pk == leader
 		ok := sr.completeSignatureSubRound(pk, isLeader)
 		if !ok {
 			return false

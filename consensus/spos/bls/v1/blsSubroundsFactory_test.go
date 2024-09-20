@@ -42,8 +42,8 @@ func executeStoredMessages() {
 func resetConsensusMessages() {
 }
 
-func initRoundHandlerMock() *mock.RoundHandlerMock {
-	return &mock.RoundHandlerMock{
+func initRoundHandlerMock() *consensusMock.RoundHandlerMock {
+	return &consensusMock.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
