@@ -22,15 +22,21 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
+const (
+	cacheDefaultSpan   = 30 * time.Second
+	cacheDefaultExpiry = 30 * time.Second
+)
+
 var _ epochStart.StartOfEpochMetaSyncer = (*epochStartMetaSyncer)(nil)
 
 type epochStartMetaSyncer struct {
-	requestHandler        RequestHandler
-	messenger             Messenger
-	marshalizer           marshal.Marshalizer
-	hasher                hashing.Hasher
-	singleDataInterceptor process.Interceptor
-	metaBlockProcessor    EpochStartMetaBlockInterceptorProcessor
+	requestHandler          RequestHandler
+	messenger               Messenger
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	singleDataInterceptor   process.Interceptor
+	metaBlockProcessor      EpochStartMetaBlockInterceptorProcessor
+	interceptedDataCacheMap map[string]storage.Cacher
 }
 
 // ArgsNewEpochStartMetaSyncer -
@@ -93,16 +99,10 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 
-	//TODO: maybe move this into a function
-	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: 30 * time.Second,
-		CacheExpiry: 30 * time.Second,
-	})
+	interceptedDataVerifier, err := e.createCacheForInterceptor(factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
-	args.InterceptedDataCache[factory.MetachainBlocksTopic] = internalCache
-	interceptedDataVerifier := interceptors.NewInterceptedDataVerifier(internalCache)
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
@@ -166,6 +166,20 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 	}
 
 	return nil
+}
+
+func (e *epochStartMetaSyncer) createCacheForInterceptor(topic string) (process.InterceptedDataVerifier, error) {
+	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: cacheDefaultSpan,
+		CacheExpiry: cacheDefaultExpiry,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	e.interceptedDataCacheMap[topic] = internalCache
+	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
+	return verifier, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
