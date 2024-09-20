@@ -196,7 +196,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		MetaBlockProcessor:      metablockProcessor,
 	}
 
-	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
+	sesb.epochStartMetaBlockSyncer, err = sesb.bootStrapShardProcessor.createStorageEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
 		return err
 	}

@@ -241,3 +241,7 @@ func (e *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochSt
 
 	return newEpochStartSovereignSyncer(argsEpochStartSyncer)
 }
+
+func (e *sovereignBootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
+	return newEpochStartSovereignSyncer(args)
+}

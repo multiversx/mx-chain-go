@@ -110,6 +110,7 @@ type bootStrapShardProcessorHandler interface {
 	) (map[string]data.HeaderHandler, error)
 	processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error)
 	createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error)
+	createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error)
 }
 
 type epochStartTopicProviderHandler interface {

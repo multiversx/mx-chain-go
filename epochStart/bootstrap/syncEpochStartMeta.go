@@ -143,21 +143,21 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (dat
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(e.getTopic(), common.EpochStartInterceptorsIdentifier)
+	err := e.messenger.UnregisterMessageProcessor(e.epochStartTopicProviderHandler.getTopic(), common.EpochStartInterceptorsIdentifier)
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
-	err := e.messenger.CreateTopic(e.getTopic(), true)
+	err := e.messenger.CreateTopic(e.epochStartTopicProviderHandler.getTopic(), true)
 	if err != nil {
 		log.Warn("error messenger create topic", "error", err)
 		return err
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(e.getTopic(), common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(e.epochStartTopicProviderHandler.getTopic(), common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}

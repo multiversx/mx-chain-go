@@ -1,5 +1,7 @@
 package bootstrap
 
+import "github.com/multiversx/mx-chain-go/process/factory"
+
 type epochStartSovereignSyncer struct {
 	*epochStartMetaSyncer
 }
@@ -13,7 +15,7 @@ func newEpochStartSovereignSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStart
 
 	topicProvider := &sovereignTopicProvider{}
 	baseSyncer.epochStartTopicProviderHandler = topicProvider
-	baseSyncer.singleDataInterceptor, err = createSingleDataInterceptor(args, topicProvider.getTopic())
+	baseSyncer.singleDataInterceptor, err = createSingleDataInterceptor(args, factory.ShardBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
