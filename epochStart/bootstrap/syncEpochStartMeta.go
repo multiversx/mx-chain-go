@@ -74,11 +74,12 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 
 	e := &epochStartMetaSyncer{
-		requestHandler:     args.RequestHandler,
-		messenger:          args.Messenger,
-		marshalizer:        args.CoreComponentsHolder.InternalMarshalizer(),
-		hasher:             args.CoreComponentsHolder.Hasher(),
-		metaBlockProcessor: args.MetaBlockProcessor,
+		requestHandler:          args.RequestHandler,
+		messenger:               args.Messenger,
+		marshalizer:             args.CoreComponentsHolder.InternalMarshalizer(),
+		hasher:                  args.CoreComponentsHolder.Hasher(),
+		metaBlockProcessor:      args.MetaBlockProcessor,
+		interceptedDataCacheMap: args.InterceptedDataCache,
 	}
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
