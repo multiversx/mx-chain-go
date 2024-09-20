@@ -161,7 +161,7 @@ func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTrack
 // subroundBlock
 
 // SubroundBlock defines a type for the subroundBlock structure
-type SubroundBlock *subroundBlock
+type SubroundBlock = *subroundBlock
 
 // Blockchain gets the ChainHandler stored in the ConsensusCore
 func (sr *subroundBlock) BlockChain() data.ChainHandler {
