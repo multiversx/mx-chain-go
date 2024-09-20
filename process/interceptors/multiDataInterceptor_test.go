@@ -357,6 +357,11 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierStub{
+		VerifyCalled: func(interceptedData process.InterceptedData) error {
+			return interceptedData.CheckValidity()
+		},
+	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
@@ -607,6 +612,11 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
+		},
+	}
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierStub{
+		VerifyCalled: func(interceptedData process.InterceptedData) error {
+			return interceptedData.CheckValidity()
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
