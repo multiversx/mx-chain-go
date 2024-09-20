@@ -2,8 +2,6 @@ package interceptors_test
 
 import (
 	"errors"
-	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -22,15 +20,15 @@ import (
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
 	return interceptors.ArgSingleDataInterceptor{
-		Topic:                "test topic",
-		DataFactory:          &mock.InterceptedDataFactoryStub{},
-		Processor:            &mock.InterceptorProcessorStub{},
-		Throttler:            createMockThrottler(),
-		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		CurrentPeerId:        "pid",
-		//ProcessedMessagesCacheMap: make(map[string]storage.Cacher),
+		Topic:                   "test topic",
+		DataFactory:             &mock.InterceptedDataFactoryStub{},
+		Processor:               &mock.InterceptorProcessorStub{},
+		Throttler:               createMockThrottler(),
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:        &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:           "pid",
+		InterceptedDataVerifier: createMockInterceptedDataVerifier(),
 	}
 }
 
@@ -64,7 +62,7 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierStub {
 	return &mock.InterceptedDataVerifierStub{
 		VerifyCalled: func(interceptedData process.InterceptedData) error {
-			return nil
+			return interceptedData.CheckValidity()
 		},
 	}
 }
@@ -478,79 +476,6 @@ func TestSingleDataInterceptor_Close(t *testing.T) {
 
 	err := sdi.Close()
 	assert.Nil(t, err)
-}
-
-func TestSingleDataInterceptor_ProcessSameMessage(t *testing.T) {
-	t.Parallel()
-
-	checkCalledNum := int32(0)
-	processCalledNum := int32(0)
-	throttler := createMockThrottler()
-	interceptedData := &testscommon.InterceptedDataStub{
-		HashCalled: func() []byte {
-			return []byte("hash")
-		},
-		CheckValidityCalled: func() error {
-			return nil
-		},
-		IsForCurrentShardCalled: func() bool {
-			return false
-		},
-	}
-
-	whiteListHandler := &testscommon.WhiteListHandlerStub{
-		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
-			return true
-		},
-	}
-	arg := createMockArgSingleDataInterceptor()
-	arg.DataFactory = &mock.InterceptedDataFactoryStub{
-		CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
-			return interceptedData, nil
-		},
-	}
-	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
-	arg.Throttler = throttler
-	arg.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
-		IsOriginatorEligibleForTopicCalled: func(pid core.PeerID, topic string) error {
-			return process.ErrOnlyValidatorsCanUseThisTopic
-		},
-	}
-	arg.WhiteListRequest = whiteListHandler
-
-	span := 1 * time.Second
-	//c, _ := cache.NewTimeCacher(cache.ArgTimeCacher{
-	//	DefaultSpan: span,
-	//	CacheExpiry: time.Second,
-	//})
-	//arg.ProcessedMessagesCacheMap[arg.Topic] = c
-
-	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
-
-	msg := &p2pmocks.P2PMessageMock{
-		DataField: []byte("data to be processed"),
-	}
-
-	wg := sync.WaitGroup{}
-	errCount := atomic.Uint32{}
-	for i := 0; i < 3; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
-			if err != nil && strings.Contains(err.Error(), "processed intercepted data with hash") {
-				errCount.Add(1)
-			}
-		}()
-	}
-
-	wg.Wait()
-	require.Equal(t, uint32(2), errCount.Load())
-
-	<-time.After(span + time.Millisecond)
-	err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
-	require.Nil(t, err)
 }
 
 //------- IsInterfaceNil

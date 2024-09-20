@@ -26,6 +26,8 @@ func defaultInterceptedDataVerifier(span time.Duration) process.InterceptedDataV
 }
 
 func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
+	t.Parallel()
+
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
@@ -61,6 +63,8 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 }
 
 func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
+	t.Parallel()
+
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			return nil
