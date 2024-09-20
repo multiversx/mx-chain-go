@@ -93,31 +93,18 @@ func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.State
 	for _, stateChange := range scc.stateChanges {
 		txHash := string(stateChange.GetTxHash())
 
-		if _, ok := stateChangesForTxs[txHash]; !ok {
-			stateChangesForTxs[txHash] = &data.StateChanges{StateChanges: []*data.StateChange{
-				{
-					Type:            stateChange.GetType(),
-					Index:           stateChange.GetIndex(),
-					TxHash:          stateChange.GetTxHash(),
-					MainTrieKey:     stateChange.GetMainTrieKey(),
-					MainTrieVal:     stateChange.GetMainTrieVal(),
-					Operation:       stateChange.GetOperation(),
-					DataTrieChanges: stateChange.GetDataTrieChanges(),
-				},
-			},
+		st, ok := stateChange.(*data.StateChange)
+		if !ok {
+			continue
+		}
+
+		_, ok = stateChangesForTxs[txHash]
+		if !ok {
+			stateChangesForTxs[txHash] = &data.StateChanges{
+				StateChanges: []*data.StateChange{st},
 			}
 		} else {
-			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges,
-				&data.StateChange{
-					Type:            stateChange.GetType(),
-					Index:           stateChange.GetIndex(),
-					TxHash:          stateChange.GetTxHash(),
-					MainTrieKey:     stateChange.GetMainTrieKey(),
-					MainTrieVal:     stateChange.GetMainTrieVal(),
-					Operation:       stateChange.GetOperation(),
-					DataTrieChanges: stateChange.GetDataTrieChanges(),
-				},
-			)
+			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges, st)
 		}
 	}
 

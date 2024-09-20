@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-// TODO: use proto stucts
 type dataAnalysisStateChangeDTO struct {
 	state.StateChange
 	Operation       string `json:"operation"`
@@ -54,7 +53,7 @@ type dataAnalysisCollector struct {
 // NewDataAnalysisStateChangesCollector will create a new instance of data analysis collector
 func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalysisCollector, error) {
 	if check.IfNil(storer) {
-		return nil, storage.ErrNilPersisterFactory
+		return nil, storage.ErrNilPersister
 	}
 
 	return &dataAnalysisCollector{
@@ -72,7 +71,7 @@ func (scc *dataAnalysisCollector) AddSaveAccountStateChange(oldAccount, account 
 
 	checkAccountChanges(oldAccount, account, dataAnalysisStateChange)
 
-	scc.AddStateChange(stateChange)
+	scc.AddStateChange(dataAnalysisStateChange)
 }
 
 func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *dataAnalysisStateChangeDTO) {
@@ -127,15 +126,12 @@ func (scc *dataAnalysisCollector) AddStateChange(stateChange state.StateChange) 
 }
 
 func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChangesForTx, error) {
-	scc.stateChangesMut.Lock()
-	defer scc.stateChangesMut.Unlock()
-
 	stateChangesForTxs, err := scc.getStateChangesForTxs()
 	if err != nil {
 		return nil, err
 	}
 
-	dataAnalysisStateChangesForTxs := make([]dataAnalysisStateChangesForTx, len(stateChangesForTxs))
+	dataAnalysisStateChangesForTxs := make([]dataAnalysisStateChangesForTx, 0)
 
 	for _, stateChangeForTx := range stateChangesForTxs {
 		txHash := string(stateChangeForTx.TxHash)

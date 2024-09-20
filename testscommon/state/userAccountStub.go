@@ -17,6 +17,7 @@ var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
+	Nonce            uint64
 	Balance          *big.Int
 	DeveloperRewards *big.Int
 	UserName         []byte
@@ -108,7 +109,7 @@ func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 
 // GetNonce -
 func (u *UserAccountStub) GetNonce() uint64 {
-	return 0
+	return u.Nonce
 }
 
 // SetCode -
