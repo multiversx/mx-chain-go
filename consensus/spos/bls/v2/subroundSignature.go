@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 )
 
 const timeSpentBetweenChecks = time.Millisecond
@@ -122,7 +123,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 		nil,
 		pkBytes,
 		nil,
-		int(MtSignature),
+		int(bls.MtSignature),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,

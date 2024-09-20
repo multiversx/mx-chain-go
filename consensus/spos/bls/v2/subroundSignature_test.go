@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -28,7 +29,7 @@ import (
 
 const setThresholdJobsDone = "threshold"
 
-func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreMock) bls.SubroundSignature {
+func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreMock) v2.SubroundSignature {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -48,7 +49,7 @@ func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreM
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	srSignature, _ := bls.NewSubroundSignature(
+	srSignature, _ := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -59,7 +60,7 @@ func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreM
 	return srSignature
 }
 
-func initSubroundSignature() bls.SubroundSignature {
+func initSubroundSignature() v2.SubroundSignature {
 	container := consensusMocks.InitConsensusCore()
 	return initSubroundSignatureWithContainer(container)
 }
@@ -90,7 +91,7 @@ func TestNewSubroundSignature(t *testing.T) {
 	t.Run("nil subround should error", func(t *testing.T) {
 		t.Parallel()
 
-		srSignature, err := bls.NewSubroundSignature(
+		srSignature, err := v2.NewSubroundSignature(
 			nil,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
@@ -104,7 +105,7 @@ func TestNewSubroundSignature(t *testing.T) {
 	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srSignature, err := bls.NewSubroundSignature(
+		srSignature, err := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
@@ -118,7 +119,7 @@ func TestNewSubroundSignature(t *testing.T) {
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		srSignature, err := bls.NewSubroundSignature(
+		srSignature, err := v2.NewSubroundSignature(
 			sr,
 			nil,
 			&testscommon.SentSignatureTrackerStub{},
@@ -132,7 +133,7 @@ func TestNewSubroundSignature(t *testing.T) {
 	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srSignature, err := bls.NewSubroundSignature(
+		srSignature, err := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
@@ -141,13 +142,13 @@ func TestNewSubroundSignature(t *testing.T) {
 		)
 
 		assert.Nil(t, srSignature)
-		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, v2.ErrNilSentSignatureTracker, err)
 	})
 
 	t.Run("nil signatureThrottler should error", func(t *testing.T) {
 		t.Parallel()
 
-		srSignature, err := bls.NewSubroundSignature(
+		srSignature, err := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
@@ -184,7 +185,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	)
 
 	sr.ConsensusState = nil
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -219,7 +220,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetHasher(nil)
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -254,7 +255,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -290,7 +291,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 	)
 	container.SetRoundHandler(nil)
 
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -325,7 +326,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -360,7 +361,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		nil,
 		&testscommon.SentSignatureTrackerStub{},
@@ -395,7 +396,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	srSignature, err := bls.NewSubroundSignature(
+	srSignature, err := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
@@ -546,7 +547,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 
 		signatureSentForPks := make(map[string]struct{})
 		mutex := sync.Mutex{}
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{
@@ -653,7 +654,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 
 		signatureSentForPks := make(map[string]struct{})
 		mutex := sync.Mutex{}
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{
@@ -761,7 +762,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 		sr.Header = &block.Header{}
 
 		signatureSentForPks := make(map[string]struct{})
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{
@@ -828,7 +829,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 		sr.Header = &block.Header{}
 
 		signatureSentForPks := make(map[string]struct{})
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{
@@ -896,7 +897,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 
 		signatureSentForPks := make(map[string]struct{})
 		varCalled := false
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{
@@ -962,7 +963,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 
 		signatureSentForPks := make(map[string]struct{})
 		mutex := sync.Mutex{}
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{
@@ -1060,7 +1061,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 		)
 
-		srSignature, _ := bls.NewSubroundSignature(
+		srSignature, _ := v2.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},

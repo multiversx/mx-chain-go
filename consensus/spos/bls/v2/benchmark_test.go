@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -107,7 +108,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 
 	signatureSentForPks := make(map[string]struct{})
 	mutex := sync.Mutex{}
-	srSignature, _ := bls.NewSubroundSignature(
+	srSignature, _ := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{

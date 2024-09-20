@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -118,7 +119,7 @@ type WorkerHandler interface {
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
-	ResetConsensusMessages(currentHash []byte, prevHash []byte)
+	ResetConsensusMessages()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

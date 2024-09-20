@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 )
@@ -453,7 +454,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProofHandler, bool) {
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.checkSignaturesValidity", "error", err.Error())
@@ -590,7 +591,7 @@ func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) e
 	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
 	if err != nil {
 		log.Trace("VerifySignatureShare returned an error: ", err)
-		errSetJob := sr.SetJobDone(pk, SrSignature, false)
+		errSetJob := sr.SetJobDone(pk, bls.SrSignature, false)
 		if errSetJob != nil {
 			return errSetJob
 		}
@@ -621,7 +622,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 	}
 
 	for i, pk := range pubKeys {
-		isJobDone, err := sr.JobDone(pk, SrSignature)
+		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
 		if err != nil || !isJobDone {
 			continue
 		}
@@ -708,8 +709,8 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
-	threshold := sr.Threshold(SrSignature)
-	numValidSigShares := sr.ComputeSize(SrSignature)
+	threshold := sr.Threshold(bls.SrSignature)
+	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 
 	if check.IfNil(sr.Header) {
 		return nil, nil, spos.ErrNilHeader
@@ -720,7 +721,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 			spos.ErrInvalidNumSigShares, numValidSigShares, threshold)
 	}
 
-	bitmap := sr.GenerateBitmap(SrSignature)
+	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		return nil, nil, err
@@ -747,7 +748,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 		nil,
 		pubKey,
 		nil,
-		int(MtBlockHeaderFinalInfo),
+		int(bls.MtBlockHeaderFinalInfo),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		bitmap,
@@ -808,7 +809,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		sender,
 		nil,
-		int(MtInvalidSigners),
+		int(bls.MtInvalidSigners),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
@@ -1089,7 +1090,7 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	consensusGroup := sr.ConsensusGroup()
 	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, bitmap)
 	for _, pubKey := range signers {
-		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
+		isSigJobDone, err := sr.JobDone(pubKey, bls.SrSignature)
 		if err != nil {
 			return err
 		}
@@ -1305,7 +1306,7 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 		return false
 	}
 
-	err = sr.SetJobDone(node, SrSignature, true)
+	err = sr.SetJobDone(node, bls.SrSignature, true)
 	if err != nil {
 		log.Debug("receivedSignature.SetJobDone",
 			"node", pkForLogs,
@@ -1324,9 +1325,9 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) checkReceivedSignatures() bool {
-	threshold := sr.Threshold(SrSignature)
+	threshold := sr.Threshold(bls.SrSignature)
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
-		threshold = sr.FallbackThreshold(SrSignature)
+		threshold = sr.FallbackThreshold(bls.SrSignature)
 		log.Warn("subroundEndRound.checkReceivedSignatures: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
@@ -1338,7 +1339,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 
 	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
 
-	isSelfJobDone := sr.IsSelfJobDone(SrSignature)
+	isSelfJobDone := sr.IsSelfJobDone(bls.SrSignature)
 
 	shouldStopWaitingSignatures := isSelfJobDone && isSignatureCollectionDone
 	if shouldStopWaitingSignatures {
@@ -1359,7 +1360,7 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		node := sr.ConsensusGroup()[i]
 
-		isSignJobDone, err := sr.JobDone(node, SrSignature)
+		isSignJobDone, err := sr.JobDone(node, bls.SrSignature)
 		if err != nil {
 			log.Debug("getNumOfSignaturesCollected.JobDone",
 				"node", node,

@@ -3,6 +3,7 @@ package v2
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 )
 
 // peerMaxMessagesPerSec defines how many messages can be propagated by a pid in a round. The value was chosen by
@@ -40,12 +41,12 @@ func NewConsensusService() (*worker, error) {
 // InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
-	receivedMessages[MtBlockBodyAndHeader] = make([]*consensus.Message, 0)
-	receivedMessages[MtBlockBody] = make([]*consensus.Message, 0)
-	receivedMessages[MtBlockHeader] = make([]*consensus.Message, 0)
-	receivedMessages[MtSignature] = make([]*consensus.Message, 0)
-	receivedMessages[MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
-	receivedMessages[MtInvalidSigners] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtBlockBodyAndHeader] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtBlockBody] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtBlockHeader] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtSignature] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtBlockHeaderFinalInfo] = make([]*consensus.Message, 0)
+	receivedMessages[bls.MtInvalidSigners] = make([]*consensus.Message, 0)
 
 	return receivedMessages
 }
@@ -57,71 +58,71 @@ func (wrk *worker) GetMaxMessagesInARoundPerPeer() uint32 {
 
 // GetStringValue gets the name of the messageType
 func (wrk *worker) GetStringValue(messageType consensus.MessageType) string {
-	return getStringValue(messageType)
+	return bls.GetStringValue(messageType)
 }
 
 // GetSubroundName gets the subround name for the subround id provided
 func (wrk *worker) GetSubroundName(subroundId int) string {
-	return getSubroundName(subroundId)
+	return bls.GetSubroundName(subroundId)
 }
 
 // IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
 func (wrk *worker) IsMessageWithBlockBodyAndHeader(msgType consensus.MessageType) bool {
-	return msgType == MtBlockBodyAndHeader
+	return msgType == bls.MtBlockBodyAndHeader
 }
 
 // IsMessageWithBlockBody returns if the current messageType is about block body
 func (wrk *worker) IsMessageWithBlockBody(msgType consensus.MessageType) bool {
-	return msgType == MtBlockBody
+	return msgType == bls.MtBlockBody
 }
 
 // IsMessageWithBlockHeader returns if the current messageType is about block header
 func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool {
-	return msgType == MtBlockHeader
+	return msgType == bls.MtBlockHeader
 }
 
 // IsMessageWithSignature returns if the current messageType is about signature
 func (wrk *worker) IsMessageWithSignature(msgType consensus.MessageType) bool {
-	return msgType == MtSignature
+	return msgType == bls.MtSignature
 }
 
 // IsMessageWithFinalInfo returns if the current messageType is about header final info
 func (wrk *worker) IsMessageWithFinalInfo(msgType consensus.MessageType) bool {
-	return msgType == MtBlockHeaderFinalInfo
+	return msgType == bls.MtBlockHeaderFinalInfo
 }
 
 // IsMessageWithInvalidSigners returns if the current messageType is about invalid signers
 func (wrk *worker) IsMessageWithInvalidSigners(msgType consensus.MessageType) bool {
-	return msgType == MtInvalidSigners
+	return msgType == bls.MtInvalidSigners
 }
 
 // IsMessageTypeValid returns if the current messageType is valid
 func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
-	isMessageTypeValid := msgType == MtBlockBodyAndHeader ||
-		msgType == MtBlockBody ||
-		msgType == MtBlockHeader ||
-		msgType == MtSignature ||
-		msgType == MtBlockHeaderFinalInfo ||
-		msgType == MtInvalidSigners
+	isMessageTypeValid := msgType == bls.MtBlockBodyAndHeader ||
+		msgType == bls.MtBlockBody ||
+		msgType == bls.MtBlockHeader ||
+		msgType == bls.MtSignature ||
+		msgType == bls.MtBlockHeaderFinalInfo ||
+		msgType == bls.MtInvalidSigners
 
 	return isMessageTypeValid
 }
 
 // IsSubroundSignature returns if the current subround is about signature
 func (wrk *worker) IsSubroundSignature(subroundId int) bool {
-	return subroundId == SrSignature
+	return subroundId == bls.SrSignature
 }
 
 // IsSubroundStartRound returns if the current subround is about start round
 func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
-	return subroundId == SrStartRound
+	return subroundId == bls.SrStartRound
 }
 
 // GetMessageRange provides the MessageType range used in checks by the consensus
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	var v []consensus.MessageType
 
-	for i := MtBlockBodyAndHeader; i <= MtInvalidSigners; i++ {
+	for i := bls.MtBlockBodyAndHeader; i <= bls.MtInvalidSigners; i++ {
 		v = append(v, i)
 	}
 
@@ -131,18 +132,18 @@ func (wrk *worker) GetMessageRange() []consensus.MessageType {
 // CanProceed returns if the current messageType can proceed further if previous subrounds finished
 func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
 	switch msgType {
-	case MtBlockBodyAndHeader:
-		return consensusState.Status(SrStartRound) == spos.SsFinished
-	case MtBlockBody:
-		return consensusState.Status(SrStartRound) == spos.SsFinished
-	case MtBlockHeader:
-		return consensusState.Status(SrStartRound) == spos.SsFinished
-	case MtSignature:
-		return consensusState.Status(SrBlock) == spos.SsFinished
-	case MtBlockHeaderFinalInfo:
-		return consensusState.Status(SrSignature) == spos.SsFinished
-	case MtInvalidSigners:
-		return consensusState.Status(SrSignature) == spos.SsFinished
+	case bls.MtBlockBodyAndHeader:
+		return consensusState.Status(bls.SrStartRound) == spos.SsFinished
+	case bls.MtBlockBody:
+		return consensusState.Status(bls.SrStartRound) == spos.SsFinished
+	case bls.MtBlockHeader:
+		return consensusState.Status(bls.SrStartRound) == spos.SsFinished
+	case bls.MtSignature:
+		return consensusState.Status(bls.SrBlock) == spos.SsFinished
+	case bls.MtBlockHeaderFinalInfo:
+		return consensusState.Status(bls.SrSignature) == spos.SsFinished
+	case bls.MtInvalidSigners:
+		return consensusState.Status(bls.SrSignature) == spos.SsFinished
 	}
 
 	return false
@@ -150,7 +151,7 @@ func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType conse
 
 // GetMaxNumOfMessageTypeAccepted returns the maximum number of accepted consensus message types per round, per public key
 func (wrk *worker) GetMaxNumOfMessageTypeAccepted(msgType consensus.MessageType) uint32 {
-	if msgType == MtSignature {
+	if msgType == bls.MtSignature {
 		return maxNumOfMessageTypeSignatureAccepted
 	}
 

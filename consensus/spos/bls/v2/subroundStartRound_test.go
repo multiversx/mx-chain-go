@@ -9,6 +9,7 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -28,10 +29,10 @@ import (
 
 var expErr = fmt.Errorf("expected error")
 
-func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
-	startRound, err := bls.NewSubroundStartRound(
+func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (v2.SubroundStartRound, error) {
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -39,10 +40,10 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 	return startRound, err
 }
 
-func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.SubroundStartRound {
-	startRound, _ := bls.NewSubroundStartRound(
+func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) v2.SubroundStartRound {
+	startRound, _ := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -73,13 +74,13 @@ func defaultSubround(
 	)
 }
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bls.SubroundStartRound {
+func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) v2.SubroundStartRound {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubround(consensusState, ch, container)
-	srStartRound, _ := bls.NewSubroundStartRound(
+	srStartRound, _ := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -87,7 +88,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 	return srStartRound
 }
 
-func initSubroundStartRound() bls.SubroundStartRound {
+func initSubroundStartRound() v2.SubroundStartRound {
 	container := consensus.InitConsensusCore()
 	return initSubroundStartRoundWithContainer(container)
 }
@@ -117,9 +118,9 @@ func TestNewSubroundStartRound(t *testing.T) {
 	t.Run("nil subround should error", func(t *testing.T) {
 		t.Parallel()
 
-		srStartRound, err := bls.NewSubroundStartRound(
+		srStartRound, err := v2.NewSubroundStartRound(
 			nil,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -130,22 +131,22 @@ func TestNewSubroundStartRound(t *testing.T) {
 	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srStartRound, err := bls.NewSubroundStartRound(
+		srStartRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			nil,
 			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
-		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, v2.ErrNilSentSignatureTracker, err)
 	})
 	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srStartRound, err := bls.NewSubroundStartRound(
+		srStartRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			nil,
 		)
@@ -528,9 +529,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -580,9 +581,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -631,9 +632,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -693,9 +694,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -759,9 +760,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -808,9 +809,9 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *test
 	container.SetBlockchain(chainHandlerMock)
 
 	sr := buildDefaultSubround(container)
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -835,9 +836,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 	container.SetSigningHandler(signingHandlerMock)
 
 	sr := buildDefaultSubround(container)
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -871,9 +872,9 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -915,9 +916,9 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -954,9 +955,9 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -997,9 +998,9 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
 	)
@@ -1049,9 +1050,9 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		sr := buildDefaultSubround(container)
 
-		startRound, err := bls.NewSubroundStartRound(
+		startRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)
@@ -1078,9 +1079,9 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		sr := buildDefaultSubround(container)
 
-		startRound, err := bls.NewSubroundStartRound(
+		startRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 		)

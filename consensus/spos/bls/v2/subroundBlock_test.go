@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -62,20 +63,20 @@ func createDefaultHeader() *block.Header {
 	}
 }
 
-func defaultSubroundBlockFromSubround(sr *spos.Subround) (bls.SubroundBlock, error) {
-	srBlock, err := bls.NewSubroundBlock(
+func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, error) {
+	srBlock, err := v2.NewSubroundBlock(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&mock.SposWorkerMock{},
 	)
 
 	return srBlock, err
 }
 
-func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.SubroundBlock {
-	srBlock, _ := bls.NewSubroundBlock(
+func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.SubroundBlock {
+	srBlock, _ := v2.NewSubroundBlock(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&mock.SposWorkerMock{},
 	)
 
@@ -86,7 +87,7 @@ func initSubroundBlock(
 	blockChain data.ChainHandler,
 	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
-) bls.SubroundBlock {
+) v2.SubroundBlock {
 	if blockChain == nil {
 		blockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
@@ -127,7 +128,7 @@ func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
 func initSubroundBlockWithBlockProcessor(
 	bp *testscommon.BlockProcessorStub,
 	container *consensusMocks.ConsensusCoreMock,
-) bls.SubroundBlock {
+) v2.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
@@ -154,9 +155,9 @@ func initSubroundBlockWithBlockProcessor(
 func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	t.Parallel()
 
-	srBlock, err := bls.NewSubroundBlock(
+	srBlock, err := v2.NewSubroundBlock(
 		nil,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&mock.SposWorkerMock{},
 	)
 	assert.Nil(t, srBlock)
@@ -308,9 +309,9 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 
-	srBlock, err := bls.NewSubroundBlock(
+	srBlock, err := v2.NewSubroundBlock(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		nil,
 	)
 	assert.Nil(t, srBlock)
@@ -483,9 +484,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		ch := make(chan bool, 1)
 
 		baseSr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
-		srBlock, _ := bls.NewSubroundBlock(
+		srBlock, _ := v2.NewSubroundBlock(
 			baseSr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&mock.SposWorkerMock{},
 		)
 		sr := *srBlock

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -221,7 +222,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 		marshalizedHeader,
 		[]byte(leader),
 		nil,
-		int(MtBlockBodyAndHeader),
+		int(bls.MtBlockBodyAndHeader),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
@@ -266,7 +267,7 @@ func (sr *subroundBlock) sendBlockBody(
 		nil,
 		[]byte(leader),
 		nil,
-		int(MtBlockBody),
+		int(bls.MtBlockBody),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,
@@ -342,7 +343,7 @@ func (sr *subroundBlock) sendBlockHeaderBeforeEquivalentProofs(
 		marshalledHeader,
 		[]byte(leader),
 		nil,
-		int(MtBlockHeader),
+		int(bls.MtBlockHeader),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
 		nil,

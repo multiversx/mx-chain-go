@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
@@ -27,7 +28,7 @@ type SposWorkerMock struct {
 	DisplayStatisticsCalled                func()
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
-	ResetConsensusMessagesCalled           func(currentHash []byte, prevHash []byte)
+	ResetConsensusMessagesCalled           func()
 }
 
 // AddReceivedMessageCall -
@@ -104,9 +105,9 @@ func (sposWorkerMock *SposWorkerMock) StartWorking() {
 }
 
 // ResetConsensusMessages -
-func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
+func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
 	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
-		sposWorkerMock.ResetConsensusMessagesCalled(currentHash, prevHash)
+		sposWorkerMock.ResetConsensusMessagesCalled()
 	}
 }
 

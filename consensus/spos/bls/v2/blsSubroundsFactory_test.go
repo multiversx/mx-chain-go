@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -57,11 +58,11 @@ func initWorker() spos.WorkerHandler {
 	return sposWorker
 }
 
-func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock) bls.Factory {
+func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock) v2.Factory {
 	worker := initWorker()
 	consensusState := initConsensusState()
 
-	fct, _ := bls.NewSubroundsFactory(
+	fct, _ := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -75,7 +76,7 @@ func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock)
 	return fct
 }
 
-func initFactory() bls.Factory {
+func initFactory() v2.Factory {
 	container := testscommonConsensus.InitConsensusCore()
 	return initFactoryWithContainer(container)
 }
@@ -111,7 +112,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 	worker := initWorker()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		nil,
 		consensusState,
 		worker,
@@ -132,7 +133,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		nil,
 		worker,
@@ -155,7 +156,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetBlockchain(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -178,7 +179,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetBlockProcessor(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -201,7 +202,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetBootStrapper(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -224,7 +225,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetChronology(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -247,7 +248,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetHasher(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -270,7 +271,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetMarshalizer(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -293,7 +294,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetMultiSignerContainer(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -316,7 +317,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetRoundHandler(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -339,7 +340,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetShardCoordinator(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -362,7 +363,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetSyncTimer(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -385,7 +386,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	worker := initWorker()
 	container.SetValidatorGroupSelector(nil)
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -406,7 +407,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 	container := testscommonConsensus.InitConsensusCore()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		nil,
@@ -428,7 +429,7 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -450,7 +451,7 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -462,7 +463,7 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+	assert.Equal(t, v2.ErrNilSentSignatureTracker, err)
 }
 
 func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
@@ -472,7 +473,7 @@ func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
@@ -502,7 +503,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
-	fct, err := bls.NewSubroundsFactory(
+	fct, err := v2.NewSubroundsFactory(
 		container,
 		consensusState,
 		worker,
