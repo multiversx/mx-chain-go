@@ -100,14 +100,7 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.RoundTimeStamp = sr.RoundHandler().TimeStamp()
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
-	// reset the consensus messages, but still keep the proofs for current hash and previous hash
-	currentHash := sr.Blockchain().GetCurrentBlockHeaderHash()
-	prevHash := make([]byte, 0)
-	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if !check.IfNil(currentHeader) {
-		prevHash = currentHeader.GetPrevHash()
-	}
-	sr.worker.ResetConsensusMessages(currentHash, prevHash)
+	sr.worker.ResetConsensusMessages()
 
 	return true
 }
