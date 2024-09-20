@@ -6,13 +6,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 var log = logger.GetOrCreate("process/smartcontract/builtInFunctions")
@@ -86,12 +87,12 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		"crawlerAllowedAddress", crawlerAllowedAddress,
 	)
 
-	mapDNSV2Addresses, err := addressListToMap(args.DNSV2Addresses, args.PubKeyConverter)
+	mapDNSV2Addresses, err := AddressListToMap(args.DNSV2Addresses, args.PubKeyConverter)
 	if err != nil {
 		return nil, err
 	}
 
-	mapWhiteListedCrossChainAddresses, err := addressListToMap(args.WhiteListedCrossChainAddresses, args.PubKeyConverter)
+	mapWhiteListedCrossChainAddresses, err := AddressListToMap(args.WhiteListedCrossChainAddresses, args.PubKeyConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +128,8 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	return bContainerFactory, nil
 }
 
-func addressListToMap(addresses []string, pubKeyConverter core.PubkeyConverter) (map[string]struct{}, error) {
+// AddressListToMap returns a map of addresses
+func AddressListToMap(addresses []string, pubKeyConverter core.PubkeyConverter) (map[string]struct{}, error) {
 	decodedAddresses, errDecode := factory.DecodeAddresses(pubKeyConverter, addresses)
 	if errDecode != nil {
 		return nil, errDecode
