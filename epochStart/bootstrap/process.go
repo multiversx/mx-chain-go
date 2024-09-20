@@ -153,6 +153,8 @@ type epochStartBootstrap struct {
 	nodeType           core.NodeType
 	startEpoch         uint32
 	shuffledOut        bool
+
+	interceptedDataCache map[string]storage.Cacher
 }
 
 type baseDataInStorage struct {
@@ -191,6 +193,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	InterceptedDataCache            map[string]storage.Cacher
 }
 
 type dataToSync struct {
@@ -243,6 +246,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		stateStatsHandler:               args.StateStatsHandler,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		interceptedDataCache:            args.InterceptedDataCache,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -564,6 +568,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		StartInEpochConfig:      epochStartConfig,
 		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
 		MetaBlockProcessor:      metaBlockProcessor,
+		InterceptedDataCache:    e.interceptedDataCache,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

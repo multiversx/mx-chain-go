@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -37,22 +36,18 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	if val, ok := idv.cache.Get(interceptedData.Hash()); ok {
 		if val == ValidInterceptedData {
-			fmt.Println("it is in the cache: valid")
 			return nil
 		}
 
-		fmt.Println("it is in the cache: invalid")
 		return ErrInvalidInterceptedData
 	}
 
 	err := interceptedData.CheckValidity()
 	if err != nil {
-		fmt.Println("wasnt' in the cache: invalid")
 		idv.cache.Put(interceptedData.Hash(), InvalidInterceptedData, 8)
 		return ErrInvalidInterceptedData
 	}
 
-	fmt.Println("wasnt' in the cache: valid")
 	idv.cache.Put(interceptedData.Hash(), ValidInterceptedData, 100)
 	return nil
 }

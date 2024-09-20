@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -57,7 +56,6 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 		return nil, process.ErrNilPreferredPeersHolder
 	}
 	if check.IfNil(arg.InterceptedDataVerifier) {
-		fmt.Println(arg.Topic)
 		return nil, process.ErrNilInterceptedDataVerifier
 	}
 	if len(arg.CurrentPeerId) == 0 {
@@ -104,7 +102,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	sdi.receivedDebugInterceptedData(interceptedData)
 	err = sdi.interceptedDataVerifier.Verify(interceptedData)
-	fmt.Println(err)
 	if err != nil {
 		sdi.throttler.EndProcessing()
 		sdi.processDebugInterceptedData(interceptedData, err)

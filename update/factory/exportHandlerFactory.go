@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update/genesis"
 	"github.com/multiversx/mx-chain-go/update/storing"
 	"github.com/multiversx/mx-chain-go/update/sync"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("update/factory")
@@ -69,6 +70,7 @@ type ArgsExporter struct {
 	TrieSyncerVersion                int
 	CheckNodesOnDisk                 bool
 	NodeOperationMode                common.NodeOperation
+	InterceptedDataCacheMap          map[string]storage.Cacher
 }
 
 type exportHandlerFactory struct {
@@ -108,6 +110,7 @@ type exportHandlerFactory struct {
 	trieSyncerVersion                int
 	checkNodesOnDisk                 bool
 	nodeOperationMode                common.NodeOperation
+	interceptedDataCacheMap          map[string]storage.Cacher
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -266,6 +269,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		checkNodesOnDisk:                 args.CheckNodesOnDisk,
 		statusCoreComponents:             args.StatusCoreComponents,
 		nodeOperationMode:                args.NodeOperationMode,
+		interceptedDataCacheMap:          args.InterceptedDataCacheMap,
 	}
 
 	return e, nil
@@ -588,6 +592,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
 		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
 		NodeOperationMode:                e.nodeOperationMode,
+		InterceptedDataCache:             e.interceptedDataCacheMap,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

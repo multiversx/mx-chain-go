@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/disabled"
@@ -51,6 +52,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	antifloodHandler       process.P2PAntifloodHandler
 	preferredPeersHolder   update.PreferredPeersHolderHandler
 	nodeOperationMode      common.NodeOperation
+	interceptedDataCache   map[string]storage.Cacher
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -78,6 +80,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	FullArchiveInterceptorsContainer process.InterceptorsContainer
 	AntifloodHandler                 process.P2PAntifloodHandler
 	NodeOperationMode                common.NodeOperation
+	InterceptedDataCache             map[string]storage.Cacher
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -886,7 +889,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createCacheForInterceptor(topi
 		return nil, err
 	}
 
-	//ficf.processedMessagesCacheMap[topic] = internalCache
+	ficf.interceptedDataCache[topic] = internalCache
 	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
 	return verifier, nil
 }

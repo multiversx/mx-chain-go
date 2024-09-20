@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
@@ -45,6 +46,7 @@ type ArgsNewEpochStartMetaSyncer struct {
 	ArgsParser              process.ArgumentsParser
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	MetaBlockProcessor      EpochStartMetaBlockInterceptorProcessor
+	InterceptedDataCache    map[string]storage.Cacher
 }
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
@@ -91,10 +93,15 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 
+	//TODO: maybe move this into a function
 	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
 		DefaultSpan: 30 * time.Second,
 		CacheExpiry: 30 * time.Second,
 	})
+	if err != nil {
+		return nil, err
+	}
+	args.InterceptedDataCache[factory.MetachainBlocksTopic] = internalCache
 	interceptedDataVerifier := interceptors.NewInterceptedDataVerifier(internalCache)
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(

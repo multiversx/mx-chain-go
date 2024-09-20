@@ -168,6 +168,8 @@ type ProcessComponentsFactoryArgs struct {
 
 	GenesisNonce uint64
 	GenesisRound uint64
+
+	InterceptedDataCacheMap map[string]storage.Cacher
 }
 
 type processComponentsFactory struct {
@@ -208,6 +210,8 @@ type processComponentsFactory struct {
 
 	genesisNonce uint64
 	genesisRound uint64
+
+	interceptedDataCacheMap map[string]storage.Cacher
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -248,6 +252,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisNonce:            args.GenesisNonce,
 		genesisRound:            args.GenesisRound,
 		roundConfig:             args.RoundConfig,
+		interceptedDataCacheMap: args.InterceptedDataCacheMap,
 	}, nil
 }
 
@@ -1858,6 +1863,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
+		InterceptedDataCacheMap:          pcf.interceptedDataCacheMap,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }

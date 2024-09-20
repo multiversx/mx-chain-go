@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -56,12 +58,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/syncer"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type nextOperationForNode int
@@ -321,7 +323,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	interceptedDataCache := make(map[string]storage.Cacher)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, interceptedDataCache)
 	if err != nil {
 		return true, err
 	}
@@ -432,6 +435,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
+		interceptedDataCache,
 	)
 	if err != nil {
 		return true, err
@@ -1157,6 +1161,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	interceptedDataCacheMap map[string]storage.Cacher,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1264,6 +1269,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:             historyRepository,
 		FlagsConfig:             *configs.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		InterceptedDataCacheMap: interceptedDataCacheMap,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1377,18 +1383,20 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	interceptedDataCacheMap map[string]storage.Cacher,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               *nr.configs.GeneralConfig,
-		PrefConfig:           *nr.configs.PreferencesConfig,
-		ImportDbConfig:       *nr.configs.ImportDbConfig,
-		FlagsConfig:          *nr.configs.FlagsConfig,
-		WorkingDir:           nr.configs.FlagsConfig.DbDir,
-		CoreComponents:       coreComponents,
-		CryptoComponents:     cryptoComponents,
-		NetworkComponents:    networkComponents,
-		StatusCoreComponents: statusCoreComponents,
+		Config:                  *nr.configs.GeneralConfig,
+		PrefConfig:              *nr.configs.PreferencesConfig,
+		ImportDbConfig:          *nr.configs.ImportDbConfig,
+		FlagsConfig:             *nr.configs.FlagsConfig,
+		WorkingDir:              nr.configs.FlagsConfig.DbDir,
+		CoreComponents:          coreComponents,
+		CryptoComponents:        cryptoComponents,
+		NetworkComponents:       networkComponents,
+		StatusCoreComponents:    statusCoreComponents,
+		InterceptedDataCacheMap: interceptedDataCacheMap,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
