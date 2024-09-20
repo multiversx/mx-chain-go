@@ -239,5 +239,5 @@ func (e *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochSt
 		MetaBlockProcessor:      newEpochStartSovereignBlockProcessor(metaBlockProcessor),
 	}
 
-	return NewEpochStartMetaSyncer(argsEpochStartSyncer)
+	return newEpochStartSovereignSyncer(argsEpochStartSyncer)
 }

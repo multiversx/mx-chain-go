@@ -27,9 +27,7 @@ func createSovEpochStartBlockProcessor() *epochStartSovereignBlockProcessor {
 		2,
 		2,
 	)
-	return &epochStartSovereignBlockProcessor{
-		esmbp,
-	}
+	return newEpochStartSovereignBlockProcessor(esmbp)
 }
 
 func TestEpochStartSovereignBlockProcessor_setNumPeers(t *testing.T) {
@@ -58,5 +56,5 @@ func TestEpochStartSovereignBlockProcessor_getRequestTopic(t *testing.T) {
 	t.Parallel()
 
 	sovProc := createSovEpochStartBlockProcessor()
-	require.Equal(t, fmt.Sprintf("%s_%d", factory.ShardBlocksTopic, core.SovereignChainShardId), sovProc.getRequestTopic())
+	require.Equal(t, fmt.Sprintf("%s_%d", factory.ShardBlocksTopic, core.SovereignChainShardId), sovProc.getTopic())
 }
