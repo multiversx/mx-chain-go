@@ -26,6 +26,9 @@ func NewInterceptedDataVerifier(cache storage.Cacher) *interceptedDataVerifier {
 	return &interceptedDataVerifier{cache: cache}
 }
 
+// Verify will check if the intercepted data has been validated before and put in the time cache.
+// It will retrieve the status in the cache if it exists, otherwise it will validate it and store the status of the
+// validation in the cache. Note that the entries are stored for a set period of time
 func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedData) error {
 	if len(interceptedData.Hash()) == 0 {
 		return nil
@@ -49,6 +52,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 	return nil
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (idv *interceptedDataVerifier) IsInterfaceNil() bool {
 	return idv == nil
 }

@@ -16,23 +16,21 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
 	return interceptors.ArgSingleDataInterceptor{
-		Topic:                     "test topic",
-		DataFactory:               &mock.InterceptedDataFactoryStub{},
-		Processor:                 &mock.InterceptorProcessorStub{},
-		Throttler:                 createMockThrottler(),
-		AntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:          &testscommon.WhiteListHandlerStub{},
-		PreferredPeersHolder:      &p2pmocks.PeersHolderStub{},
-		CurrentPeerId:             "pid",
-		ProcessedMessagesCacheMap: make(map[string]storage.Cacher),
+		Topic:                "test topic",
+		DataFactory:          &mock.InterceptedDataFactoryStub{},
+		Processor:            &mock.InterceptorProcessorStub{},
+		Throttler:            createMockThrottler(),
+		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:        "pid",
+		//ProcessedMessagesCacheMap: make(map[string]storage.Cacher),
 	}
 }
 
@@ -59,6 +57,14 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 	return &mock.InterceptorThrottlerStub{
 		CanProcessCalled: func() bool {
 			return true
+		},
+	}
+}
+
+func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierStub {
+	return &mock.InterceptedDataVerifierStub{
+		VerifyCalled: func(interceptedData process.InterceptedData) error {
+			return nil
 		},
 	}
 }
@@ -513,11 +519,11 @@ func TestSingleDataInterceptor_ProcessSameMessage(t *testing.T) {
 	arg.WhiteListRequest = whiteListHandler
 
 	span := 1 * time.Second
-	c, _ := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: span,
-		CacheExpiry: time.Second,
-	})
-	arg.ProcessedMessagesCacheMap[arg.Topic] = c
+	//c, _ := cache.NewTimeCacher(cache.ArgTimeCacher{
+	//	DefaultSpan: span,
+	//	CacheExpiry: time.Second,
+	//})
+	//arg.ProcessedMessagesCacheMap[arg.Topic] = c
 
 	sdi, _ := interceptors.NewSingleDataInterceptor(arg)
 

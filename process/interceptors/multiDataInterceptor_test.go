@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
@@ -25,16 +24,16 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 	return interceptors.ArgMultiDataInterceptor{
-		Topic:                     "test topic",
-		Marshalizer:               &mock.MarshalizerMock{},
-		DataFactory:               &mock.InterceptedDataFactoryStub{},
-		Processor:                 &mock.InterceptorProcessorStub{},
-		Throttler:                 createMockThrottler(),
-		AntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:          &testscommon.WhiteListHandlerStub{},
-		PreferredPeersHolder:      &p2pmocks.PeersHolderStub{},
-		CurrentPeerId:             "pid",
-		ProcessedMessagesCacheMap: make(map[string]storage.Cacher),
+		Topic:                   "test topic",
+		Marshalizer:             &mock.MarshalizerMock{},
+		DataFactory:             &mock.InterceptedDataFactoryStub{},
+		Processor:               &mock.InterceptorProcessorStub{},
+		Throttler:               createMockThrottler(),
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:        &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:           "pid",
+		InterceptedDataVerifier: &mock.InterceptedDataVerifierStub{},
 	}
 }
 

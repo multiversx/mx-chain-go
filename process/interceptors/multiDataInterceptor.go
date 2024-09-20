@@ -1,7 +1,6 @@
 package interceptors
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -160,7 +159,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
-		fmt.Println(err)
 
 		if !errors.Is(err, ErrInvalidInterceptedData) {
 			listInterceptedData[index] = interceptedData
