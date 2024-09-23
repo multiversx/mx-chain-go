@@ -90,3 +90,7 @@ func (br *baseSovereignRequest) getShardHeaderRequester(_ uint32) (dataRetriever
 func (br *baseSovereignRequest) getValidatorsInfoRequester() (dataRetriever.Requester, error) {
 	return br.requestersFinder.IntraShardRequester(common.ValidatorInfoTopic)
 }
+
+func (br *baseSovereignRequest) getMiniBlocksRequester(_ uint32) (dataRetriever.Requester, error) {
+	return br.requestersFinder.IntraShardRequester(factory.MiniBlocksTopic)
+}

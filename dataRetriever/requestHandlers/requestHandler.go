@@ -227,7 +227,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		"hash", miniblockHash,
 	)
 
-	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
+	requester, err := rrh.baseRequestHandler.getMiniBlocksRequester(destShardID)
 	if err != nil {
 		log.Error("RequestMiniBlock.CrossShardRequester",
 			"error", err.Error(),
@@ -266,7 +266,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		"num mbs", len(unrequestedHashes),
 	)
 
-	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
+	requester, err := rrh.baseRequestHandler.getMiniBlocksRequester(destShardID)
 	if err != nil {
 		log.Error("RequestMiniBlocks.CrossShardRequester",
 			"error", err.Error(),

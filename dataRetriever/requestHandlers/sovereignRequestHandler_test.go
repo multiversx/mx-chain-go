@@ -275,7 +275,7 @@ func TestSovereignResolverRequestHandler_RequestFromDifferentContainersShouldCal
 			switch baseTopic {
 			case factory.ShardBlocksTopic:
 				return &dataRetrieverMocks.HeaderRequesterStub{}, nil
-			case common.ValidatorInfoTopic:
+			case common.ValidatorInfoTopic, factory.MiniBlocksTopic:
 				return &dataRetrieverMocks.HashSliceRequesterStub{}, nil
 			}
 
@@ -325,5 +325,14 @@ func TestSovereignResolverRequestHandler_RequestFromDifferentContainersShouldCal
 
 	sovResolver.RequestValidatorsInfo([][]byte{[]byte("hash")})
 	require.Equal(t, 7, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	expectedTopic = factory.MiniBlocksTopic
+	sovResolver.RequestMiniBlock(core.SovereignChainShardId, []byte("hash"))
+	require.Equal(t, 8, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestMiniBlocks(core.SovereignChainShardId, [][]byte{[]byte("hash")})
+	require.Equal(t, 9, intraShardRequesterCt)
 	require.Zero(t, crossShardRequesterCt)
 }
