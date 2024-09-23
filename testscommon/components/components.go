@@ -1030,12 +1030,12 @@ func GetSovereignProcessComponents(
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
-		log.Error("getProcessComponents NewManagedProcessComponents", "error", err.Error())
+		log.Error("GetSovereignProcessComponents NewManagedProcessComponents", "error", err.Error())
 		return nil
 	}
 	err = managedProcessComponents.Create()
 	if err != nil {
-		log.Error("getProcessComponents Create", "error", err.Error())
+		log.Error("GetSovereignProcessComponents Create", "error", err.Error())
 		return nil
 	}
 	return managedProcessComponents
