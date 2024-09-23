@@ -344,6 +344,9 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	sr.SetConsensusGroup(nextConsensusGroup)
 	sr.SetLeader(leader)
 
+	consensusGroupSizeForEpoch := sr.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(shardId, currentHeader.GetEpoch())
+	sr.SetConsensusGroupSize(consensusGroupSizeForEpoch)
+
 	return nil
 }
 

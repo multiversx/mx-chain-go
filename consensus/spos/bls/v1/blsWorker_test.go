@@ -34,11 +34,11 @@ func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
 
-	indexLeader := 1
+	indexLeader := 0
 	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		consensusGroupSize,
-		eligibleList[indexLeader],
+		eligibleList[1],
 		keysHandler,
 	)
 

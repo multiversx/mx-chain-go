@@ -541,7 +541,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
-					assert.Equal(t, value, "not in consensus group")
+					assert.Equal(t, "not in consensus group", value)
 				}
 			},
 		}
@@ -641,7 +641,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
-					assert.Equal(t, value, "participant")
+					assert.Equal(t, "participant", value)
 				}
 			},
 			IncrementHandler: func(key string) {
@@ -652,6 +652,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		}
 		ch := make(chan bool, 1)
 		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState.SetSelfPubKey("B")
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return string(pkBytes) == consensusState.SelfPubKey()
 		}
@@ -695,15 +696,15 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasMetricConsensusStateCalled = true
-					assert.Equal(t, value, "proposer")
+					assert.Equal(t, "proposer", value)
 				}
 				if key == common.MetricConsensusRoundState {
 					cntMetricConsensusRoundStateCalled++
 					switch cntMetricConsensusRoundStateCalled {
 					case 1:
-						assert.Equal(t, value, "")
+						assert.Equal(t, "", value)
 					case 2:
-						assert.Equal(t, value, "proposed")
+						assert.Equal(t, "proposed", value)
 					default:
 						assert.Fail(t, "should have been called only twice")
 					}
@@ -761,15 +762,15 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasMetricConsensusStateCalled = true
-					assert.Equal(t, value, "proposer")
+					assert.Equal(t, "proposer", value)
 				}
 				if key == common.MetricConsensusRoundState {
 					cntMetricConsensusRoundStateCalled++
 					switch cntMetricConsensusRoundStateCalled {
 					case 1:
-						assert.Equal(t, value, "")
+						assert.Equal(t, "", value)
 					case 2:
-						assert.Equal(t, value, "proposed")
+						assert.Equal(t, "proposed", value)
 					default:
 						assert.Fail(t, "should have been called only twice")
 					}
