@@ -196,6 +196,11 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, nil, err
 	}
 
+	err = micf.generateReceiptNodeInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return micf.mainContainer, micf.fullArchiveContainer, nil
 }
 

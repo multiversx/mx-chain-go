@@ -61,6 +61,15 @@ func (ti *trieInteractor) CreateNewTrie() error {
 	return nil
 }
 
+// SaveNewTrie will save in storage the synced trie
+func (ti *trieInteractor) SaveNewTrie(localTrie common.Trie) error {
+	ti.localTrie = localTrie
+
+	_, err := ti.Save()
+
+	return err
+}
+
 // AddReceiptData will add receipt data in local trie
 func (ti *trieInteractor) AddReceiptData(receiptData state.Receipt) error {
 	receiptDataBytes, err := ti.marshaller.Marshal(receiptData)
@@ -124,6 +133,11 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 	return receiptTrieRootHash, nil
 }
 
+// GetSerializedNode will return the serialized node with the provided hash
+func (ti *trieInteractor) GetSerializedNode(nodeHash []byte) ([]byte, error) {
+	return ti.storage.Get(nodeHash)
+}
+
 func (ti *trieInteractor) saveReceiptTxHashLeafKey(leafHash []byte, leafData []byte) error {
 	receiptData := &state.Receipt{}
 	err := ti.marshaller.Unmarshal(receiptData, leafData)
@@ -133,8 +147,6 @@ func (ti *trieInteractor) saveReceiptTxHashLeafKey(leafHash []byte, leafData []b
 
 	return ti.storage.Put(receiptData.TxHash, leafHash)
 }
-
-// how to recreate the trie ---  check trie/sync.go
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (ti *trieInteractor) IsInterfaceNil() bool {

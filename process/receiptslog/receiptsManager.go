@@ -1,12 +1,16 @@
 package receiptslog
 
 import (
+	"context"
 	"github.com/multiversx/mx-chain-core-go/data/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/trie"
 )
 
 // ArgsReceiptsManager is the structure that holds the components needed to a new receipts manager
 type ArgsReceiptsManager struct {
-	TrieHandler Interactor
+	TrieHandler        Interactor
+	ReceiptsDataSyncer ReceiptsDataSyncer
 }
 
 // ArgsGenerateReceiptsAndSave is the DTO needed to provided input data to generate receipts
@@ -16,7 +20,8 @@ type ArgsGenerateReceiptsAndSave struct {
 }
 
 type receiptsManager struct {
-	trieInteractor Interactor
+	trieInteractor     Interactor
+	receiptsDataSyncer ReceiptsDataSyncer
 }
 
 // NewReceiptsManager will create a new instance of receipts manager
@@ -24,9 +29,13 @@ func NewReceiptsManager(args ArgsReceiptsManager) (*receiptsManager, error) {
 	if args.TrieHandler == nil {
 		return nil, ErrNilTrieInteractor
 	}
+	if args.ReceiptsDataSyncer == nil {
+		return nil, ErrNilReceiptsDataSyncer
+	}
 
 	return &receiptsManager{
-		trieInteractor: args.TrieHandler,
+		trieInteractor:     args.TrieHandler,
+		receiptsDataSyncer: args.ReceiptsDataSyncer,
 	}, nil
 }
 
@@ -56,6 +65,63 @@ func (rm *receiptsManager) GenerateReceiptsTrieAndSaveDataInStorage(args ArgsGen
 }
 
 func (rm *receiptsManager) SyncReceiptsTrie(receiptsRootHash []byte) error {
+	receiptTrieBranchNodesBytes, err := rm.syncBranchNodesData(receiptsRootHash)
+	if err != nil {
+		return err
+	}
+
+	nodesMap, err := rm.trieInteractor.GetBranchNodesMap(receiptTrieBranchNodesBytes)
+	if err != nil {
+		return err
+	}
+
+	leafNodesHashes, err := trie.GetLeafHashesAndPutNodesInRamStorage(nodesMap, nil)
+	if err != nil {
+		return err
+	}
+
+	err = rm.syncLeafNodesAndPutInStorer(leafNodesHashes, nil)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (rm *receiptsManager) syncBranchNodesData(receiptsRootHash []byte) ([]byte, error) {
+	err := rm.receiptsDataSyncer.SyncReceiptsDataFor([][]byte{receiptsRootHash}, context.Background())
+	if err != nil {
+		return nil, err
+	}
+	receiptsDataMap, err := rm.receiptsDataSyncer.GetReceiptsData()
+	if err != nil {
+		return nil, err
+	}
+	rm.receiptsDataSyncer.ClearFields()
+
+	receiptTrieBranchNodesBytes := receiptsDataMap[string(receiptsRootHash)]
+
+	return receiptTrieBranchNodesBytes, nil
+}
+
+func (rm *receiptsManager) syncLeafNodesAndPutInStorer(hashes [][]byte, db storage.Storer) error {
+	err := rm.receiptsDataSyncer.SyncReceiptsDataFor(hashes, context.Background())
+	if err != nil {
+		return err
+	}
+	leafNodesMap, err := rm.receiptsDataSyncer.GetReceiptsData()
+	if err != nil {
+		return err
+	}
+	rm.receiptsDataSyncer.ClearFields()
+
+	for leafHash, leafBytes := range leafNodesMap {
+		err = db.Put([]byte(leafHash), leafBytes)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -791,6 +791,14 @@ func (*extensionNode) getType() string {
 	return ExtensionNodeType
 }
 
+func (en *extensionNode) getChildrenHashes() [][]byte {
+	if len(en.EncodedChild) == 0 {
+		return [][]byte{}
+	}
+
+	return [][]byte{en.EncodedChild}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (en *extensionNode) IsInterfaceNil() bool {
 	return en == nil

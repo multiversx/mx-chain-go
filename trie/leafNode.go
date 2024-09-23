@@ -565,6 +565,10 @@ func (*leafNode) getType() string {
 	return LeafNodeType
 }
 
+func (*leafNode) getChildrenHashes() [][]byte {
+	return [][]byte{}
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil

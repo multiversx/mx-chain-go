@@ -116,8 +116,8 @@ func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHash
 	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix)
 }
 
-// RequestReceipts method ask for receipts from the connected peers
-func (rrh *resolverRequestHandler) RequestReceipts(receiptsHashes [][]byte) {
+// RequestReceiptsTrieNodes method ask for receipts from the connected peers
+func (rrh *resolverRequestHandler) RequestReceiptsTrieNodes(receiptsHashes [][]byte) {
 	rrh.requestByHashes(rrh.shardID, receiptsHashes, factory.ReceiptTopic, uniqueReceiptSuffix)
 }
 
