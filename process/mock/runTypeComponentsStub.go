@@ -100,6 +100,7 @@ func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHa
 	return r.TopicsChecker
 }
 
+// RequestersContainerFactoryCreator -
 func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
 	return r.RequestersContainerFactoryCreatorField
 }
