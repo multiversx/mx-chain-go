@@ -109,3 +109,7 @@ type bootStrapShardProcessorHandler interface {
 	) (map[string]data.HeaderHandler, error)
 	processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error)
 }
+
+type shardTriggerRegistryHandler interface {
+	GetEpochStartHeaderHandler() data.HeaderHandler
+}

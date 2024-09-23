@@ -84,10 +84,8 @@ func TestBootStrapSovereignShardProcessor_requestAndProcessForShard(t *testing.T
 		},
 	}
 
-	// This will not work properly until we have a sovereign shard storage handler and
-	// overwrite SaveDataToStorage, tbd in next PRs
 	err := sovProc.requestAndProcessForShard(make([]*block.MiniBlock, 0))
-	require.NotNil(t, err)
+	require.Nil(t, err)
 }
 
 func TestBootStrapSovereignShardProcessor_computeNumShards(t *testing.T) {
