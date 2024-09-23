@@ -14,7 +14,6 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 )
 
 const (
@@ -27,36 +26,55 @@ func TestSovereignChainSimulator_CreateNftWithManyQuantityShouldFail(t *testing.
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	expectedError := "invalid arguments to process built-in function, invalid quantity for esdt type"
 
-	txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
-	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungibleV2, core.NonFungibleV2.String())
-	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	t.Run("invalid quantity for nft v2 should fail", func(t *testing.T) {
+		t.Parallel()
 
-	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.DynamicNFT, core.DynamicNFT.String())
-	txData = createNftArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+		txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
+		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungibleV2, core.NonFungibleV2.String())
+		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	})
+
+	t.Run("invalid quantity for dynamic nft should fail", func(t *testing.T) {
+		t.Parallel()
+
+		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.DynamicNFT, core.DynamicNFT.String())
+		txData := createNftArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
+		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	})
 }
 
 func TestSovereignChainSimulator_CreateNftWithInvalidTypeShouldFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	expectedError := "invalid arguments to process built-in function, invalid esdt type"
 
-	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
-	txData := createNftArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	t.Run("invalid esdt type fungible should error", func(t *testing.T) {
+		t.Parallel()
+		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
+		txData := createNftArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
+		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	})
 
-	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungible, core.NonFungible.String())
-	txData = createNftArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	t.Run("invalid esdt type NFT should error", func(t *testing.T) {
+		t.Parallel()
+		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungible, core.NonFungible.String())
+		txData := createNftArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
+		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	})
 
-	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.ESDTType(8), core.ESDTType(8).String())
-	txData = createNftArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
-	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	t.Run("invalid esdt type unknown should error", func(t *testing.T) {
+		t.Parallel()
+		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.ESDTType(8), core.ESDTType(8).String())
+		txData := createNftArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
+		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
+	})
 }
 
 func executeSimpleEsdtOperationWithError(
@@ -101,20 +119,8 @@ func executeSimpleEsdtOperationWithError(
 
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	initialAddrBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
-	err = cs.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: initialAddress,
-			Balance: "10000000000000000000000",
-		},
-		{
-			Address: esdtSystemAccount, // init sys account
-		},
-	})
-	require.Nil(t, err)
+	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
 	nonce := uint64(0)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
 
 	contractAddress := chainSim.DeployContract(t, cs, initialAddrBytes, &nonce, systemContractDeploy, "", simpleEsdtTestWasmPath)
 
@@ -126,6 +132,7 @@ func TestChainSimulator_CreateAndBurnAllEsdtTypes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -164,20 +171,8 @@ func TestChainSimulator_CreateAndBurnAllEsdtTypes(t *testing.T) {
 
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	initialAddrBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
-	err = cs.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: initialAddress,
-			Balance: "10000000000000000000000",
-		},
-		{
-			Address: esdtSystemAccount, // init sys account
-		},
-	})
-	require.Nil(t, err)
+	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
 	nonce := uint64(0)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
 
 	contractAddress := chainSim.DeployContract(t, cs, initialAddrBytes, &nonce, systemContractDeploy, "", simpleEsdtTestWasmPath)
 
@@ -258,6 +253,31 @@ func createAllEsdtTypes(
 	return tokens
 }
 
+func createLocalMintArgs(
+	token string,
+	amount *big.Int,
+) string {
+	return "local_mint" +
+		"@" + hex.EncodeToString([]byte(token)) +
+		"@" +
+		"@" + hex.EncodeToString(amount.Bytes())
+}
+
+func createNftArgs(
+	identifier string,
+	nonce uint64,
+	amount *big.Int,
+	esdtType core.ESDTType,
+	creator string,
+) string {
+	return "nft_create" +
+		"@" + hex.EncodeToString([]byte(identifier)) +
+		"@" + getTokenNonce(nonce) +
+		"@" + hex.EncodeToString(amount.Bytes()) +
+		"@" + fmt.Sprintf("%02x", uint32(esdtType)) +
+		"@" + creator
+}
+
 func burnAllEsdtTypes(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
@@ -281,6 +301,7 @@ func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifierAndMakeTransact
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	t.Parallel()
 
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -321,24 +342,9 @@ func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifierAndMakeTransact
 	initialAddrBytes, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
 	bobAddress := "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"
 	bobAddrBytes, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(bobAddress)
-	err = cs.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: initialAddress,
-			Balance: "10000000000000000000000",
-		},
-		{
-			Address: bobAddress,
-			Balance: "10000000000000000000000",
-		},
-		{
-			Address: esdtSystemAccount, // init sys account
-		},
-	})
+	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress, bobAddress)
 	nonce := uint64(0)
 	bobNonce := uint64(0)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
 
 	// deploy the whitelisted contract
 	contractAddress := chainSim.DeployContract(t, cs, initialAddrBytes, &nonce, systemContractDeploy, "", simpleEsdtTestWasmPath)
@@ -361,7 +367,7 @@ func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifierAndMakeTransact
 	// create NFT with same collection identifier as Token
 	nftCollection := tokenIdentifier
 	nftNonce := uint64(5)
-	nftIdentifier := createEsdtIdentifier(nftCollection, nftNonce)
+	nftIdentifier := nftCollection + "-" + hex.EncodeToString(big.NewInt(int64(nftNonce)).Bytes())
 	nftAmount := big.NewInt(1)
 	nftType := core.NonFungibleV2
 	args = createNftArgs(nftCollection, nftNonce, nftAmount, nftType, hex.EncodeToString(initialAddrBytes))
@@ -418,29 +424,4 @@ func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifierAndMakeTransact
 	// the contract should not own any of those tokens
 	chainSim.RequireAccountHasToken(t, cs, tokenIdentifier, contractAddressEncoded, big.NewInt(0))
 	chainSim.RequireAccountHasToken(t, cs, nftIdentifier, contractAddressEncoded, big.NewInt(0))
-}
-
-func createLocalMintArgs(
-	token string,
-	amount *big.Int,
-) string {
-	return "local_mint" +
-		"@" + hex.EncodeToString([]byte(token)) +
-		"@" +
-		"@" + hex.EncodeToString(amount.Bytes())
-}
-
-func createNftArgs(
-	identifier string,
-	nonce uint64,
-	amount *big.Int,
-	esdtType core.ESDTType,
-	creator string,
-) string {
-	return "nft_create" +
-		"@" + hex.EncodeToString([]byte(identifier)) +
-		"@" + getTokenNonce(nonce) +
-		"@" + hex.EncodeToString(amount.Bytes()) +
-		"@" + fmt.Sprintf("%02x", uint32(esdtType)) +
-		"@" + creator
 }

@@ -430,20 +430,13 @@ func TestChainSimulator_ExecuteSameNft2Times(t *testing.T) {
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 	chainSim.SetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
-	nftCollection := "NFTV2-a1b2c3"
-	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
-	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-		Identifier: argsEsdtSafe.ChainPrefix + "-" + nftCollection,
+	nftToken := chainSim.ArgsDepositToken{
+		Identifier: argsEsdtSafe.ChainPrefix + "-NFTV2-a1b2c3",
 		Nonce:      uint64(7),
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungibleV2,
-	})
-	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-		Identifier: argsEsdtSafe.ChainPrefix + "-" + nftCollection,
-		Nonce:      uint64(7),
-		Amount:     big.NewInt(1),
-		Type:       core.NonFungibleV2,
-	})
+	}
+	bridgedInTokens := []chainSim.ArgsDepositToken{nftToken, nftToken} // add same nft 2 times
 
 	// We need to register tokens originated from sovereign (to pay the issue cost)
 	// Only the tokens with sovereign prefix need to be registered (these are the ones that will be minted), the rest will be taken from contract balance

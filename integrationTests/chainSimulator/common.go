@@ -32,6 +32,8 @@ const (
 
 	// OkReturnCode the const for the ok return code
 	OkReturnCode = "ok"
+	// ESDTSystemAccount the bech32 address for esdt system account
+	ESDTSystemAccount = "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t"
 )
 
 var (
@@ -303,6 +305,32 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 
 	require.Fail(t, "could not issue semi fungible")
 	return ""
+}
+
+// InitAddressesAndSysAccState will initialize system account state and other addresses if provided
+func InitAddressesAndSysAccState(
+	t *testing.T,
+	cs ChainSimulator,
+	initialAddresses ...string,
+) {
+	addressesState := []*dtos.AddressState{
+		{
+			Address: ESDTSystemAccount,
+		},
+	}
+	for _, address := range initialAddresses {
+		addressesState = append(addressesState,
+			&dtos.AddressState{
+				Address: address,
+				Balance: "10000000000000000000000",
+			},
+		)
+	}
+	err := cs.SetStateMultiple(addressesState)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 }
 
 // SetEsdtInWallet will add token key in wallet storage without adding key in system account
