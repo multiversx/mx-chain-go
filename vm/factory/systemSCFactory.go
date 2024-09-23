@@ -225,17 +225,18 @@ func (scf *systemSCFactory) createGovernanceContract() (vm.SystemSmartContract, 
 	}
 
 	argsGovernance := systemSmartContracts.ArgsNewGovernanceContract{
-		Eei:                    scf.systemEI,
-		GasCost:                scf.gasCost,
-		GovernanceConfig:       scf.systemSCConfig.GovernanceSystemSCConfig,
-		Marshalizer:            scf.marshalizer,
-		Hasher:                 scf.hasher,
-		GovernanceSCAddress:    vm.GovernanceSCAddress,
-		DelegationMgrSCAddress: vm.DelegationManagerSCAddress,
-		ValidatorSCAddress:     vm.ValidatorSCAddress,
-		EnableEpochsHandler:    scf.enableEpochsHandler,
-		UnBondPeriodInEpochs:   scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
-		OwnerAddress:           ownerAddress,
+		Eei:                          scf.systemEI,
+		GasCost:                      scf.gasCost,
+		GovernanceConfig:             scf.systemSCConfig.GovernanceSystemSCConfig,
+		Marshalizer:                  scf.marshalizer,
+		Hasher:                       scf.hasher,
+		GovernanceSCAddress:          vm.GovernanceSCAddress,
+		DelegationMgrSCAddress:       vm.DelegationManagerSCAddress,
+		ValidatorSCAddress:           vm.ValidatorSCAddress,
+		EnableEpochsHandler:          scf.enableEpochsHandler,
+		UnBondPeriodInEpochs:         scf.systemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs,
+		MaxVotingDelayPeriodInEpochs: scf.systemSCConfig.GovernanceSystemSCConfig.MaxVotingDelayPeriodInEpochs,
+		OwnerAddress:                 ownerAddress,
 	}
 	governance, err := systemSmartContracts.NewGovernanceContract(argsGovernance)
 	return governance, err
