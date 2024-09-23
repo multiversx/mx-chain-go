@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -137,7 +138,7 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	hasProof := sr.worker.HasEquivalentMessage(cnsDta.BlockHeaderHash)
+	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), cnsDta.BlockHeaderHash)
 	if hasProof && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return true
 	}
@@ -325,6 +326,7 @@ func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
 
 func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
 	isFlagEnabledForHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
+	// TODO[cleanup cns finality]: remove this method
 	// if flag is enabled, no need to commit this header, as it will be committed once the proof is available
 	if isFlagEnabledForHeader {
 		return
@@ -424,8 +426,11 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		sr.worker.SetValidEquivalentProof(sr.GetData(), proof)
-		sr.Blockchain().SetCurrentHeaderProof(proof)
+		err = sr.EquivalentProofsPool().AddProof(proof)
+		if err != nil {
+			log.Debug("doEndRoundJobByLeader.AddProof", "error", err)
+			return false
+		}
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -447,19 +452,19 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool) {
+func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProofHandler, bool) {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.checkSignaturesValidity", "error", err.Error())
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	// TODO[cleanup cns finality]: remove this code block
@@ -467,33 +472,33 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 		err = sr.Header.SetPubKeysBitmap(bitmap)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetPubKeysBitmap", "error", err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 
 		err = sr.Header.SetSignature(sig)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetSignature", "error", err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 
 		// Header is complete so the leader can sign it
 		leaderSignature, err := sr.signBlockHeader(sender)
 		if err != nil {
 			log.Error(err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 
 		err = sr.Header.SetLeaderSignature(leaderSignature)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetLeaderSignature", "error", err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -501,7 +506,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 		log.Debug("sendFinalInfo: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	// broadcast header and final info section
@@ -512,12 +517,16 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 	}
 
 	if !sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender) {
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
-	return data.HeaderProof{
-		AggregatedSignature: sig,
+	return &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
+		AggregatedSignature: sig,
+		HeaderHash:          sr.GetData(),
+		HeaderEpoch:         sr.Header.GetEpoch(),
+		HeaderNonce:         sr.Header.GetNonce(),
+		HeaderShardId:       sr.Header.GetShardID(),
 	}, true
 }
 
@@ -528,7 +537,7 @@ func (sr *subroundEndRound) shouldSendFinalInfo() bool {
 	}
 
 	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
-	if sr.worker.HasEquivalentMessage(sr.GetData()) {
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		log.Debug("shouldSendFinalInfo: equivalent message already processed")
 		return false
 	}
@@ -882,12 +891,19 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	isSelfInConsensus := sr.IsSelfInConsensusGroup()
 	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
 	if isSelfInConsensus && cnsDta != nil && isEquivalentMessagesFlagEnabled {
-		proof := data.HeaderProof{
-			AggregatedSignature: cnsDta.AggregateSignature,
+		proof := &block.HeaderProof{
 			PubKeysBitmap:       cnsDta.PubKeysBitmap,
+			AggregatedSignature: cnsDta.AggregateSignature,
+			HeaderHash:          cnsDta.BlockHeaderHash,
+			HeaderEpoch:         header.GetEpoch(),
+			HeaderNonce:         header.GetNonce(),
+			HeaderShardId:       header.GetShardID(),
 		}
-		sr.Blockchain().SetCurrentHeaderProof(proof)
-		sr.worker.SetValidEquivalentProof(cnsDta.BlockHeaderHash, proof)
+		err = sr.EquivalentProofsPool().AddProof(proof)
+		if err != nil {
+			log.Debug("doEndRoundJobByParticipant.AddProof", "error", err)
+			return false
+		}
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)

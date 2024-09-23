@@ -28,9 +28,6 @@ type SposWorkerMock struct {
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 	ResetConsensusMessagesCalled           func(currentHash []byte, prevHash []byte)
-	HasEquivalentMessageCalled             func(headerHash []byte) bool
-	GetEquivalentProofCalled               func(headerHash []byte) (data.HeaderProof, error)
-	SetValidEquivalentProofCalled          func(headerHash []byte, proof data.HeaderProof)
 }
 
 // AddReceivedMessageCall -
@@ -110,29 +107,6 @@ func (sposWorkerMock *SposWorkerMock) StartWorking() {
 func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
 	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
 		sposWorkerMock.ResetConsensusMessagesCalled(currentHash, prevHash)
-	}
-}
-
-// HasEquivalentMessage -
-func (sposWorkerMock *SposWorkerMock) HasEquivalentMessage(headerHash []byte) bool {
-	if sposWorkerMock.HasEquivalentMessageCalled != nil {
-		return sposWorkerMock.HasEquivalentMessageCalled(headerHash)
-	}
-	return false
-}
-
-// GetEquivalentProof -
-func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
-	if sposWorkerMock.GetEquivalentProofCalled != nil {
-		return sposWorkerMock.GetEquivalentProofCalled(headerHash)
-	}
-	return data.HeaderProof{}, nil
-}
-
-// SetValidEquivalentProof -
-func (sposWorkerMock *SposWorkerMock) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof) {
-	if sposWorkerMock.SetValidEquivalentProofCalled != nil {
-		sposWorkerMock.SetValidEquivalentProofCalled(headerHash, proof)
 	}
 }
 

@@ -39,6 +39,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		PeerBlacklistHandler:          consensusCoreMock.PeerBlacklistHandler(),
 		SigningHandler:                consensusCoreMock.SigningHandler(),
 		EnableEpochsHandler:           consensusCoreMock.EnableEpochsHandler(),
+		EquivalentProofsPool:          consensusCoreMock.EquivalentProofsPool(),
 	}
 	return args
 }

@@ -24,6 +24,7 @@ type PoolsHolderStub struct {
 	PeerAuthenticationsCalled    func() storage.Cacher
 	HeartbeatsCalled             func() storage.Cacher
 	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
+	ProofsCalled                 func() dataRetriever.ProofsPool
 	CloseCalled                  func() error
 }
 
@@ -165,6 +166,15 @@ func (holder *PoolsHolderStub) ValidatorsInfo() dataRetriever.ShardedDataCacherN
 	}
 
 	return testscommon.NewShardedDataStub()
+}
+
+// Proofs -
+func (holder *PoolsHolderStub) Proofs() dataRetriever.ProofsPool {
+	if holder.ProofsCalled != nil {
+		return holder.ProofsCalled()
+	}
+
+	return nil
 }
 
 // Close -

@@ -42,21 +42,24 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 	iStr := strconv.Itoa(index)
 	return &validatorDelayArgs{
 		headerHash: []byte("header hash" + iStr),
-		header: &block.Header{
-			PrevRandSeed: []byte("prev rand seed" + iStr),
-			Round:        uint64(0),
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{
-					Hash:            []byte("miniBlockHash0" + iStr),
-					SenderShardID:   0,
-					ReceiverShardID: 0,
-				},
-				{
-					Hash:            []byte("miniBlockHash1" + iStr),
-					SenderShardID:   0,
-					ReceiverShardID: 1,
+		header: &block.HeaderV2{
+			Header: &block.Header{
+				PrevRandSeed: []byte("prev rand seed" + iStr),
+				Round:        uint64(0),
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            []byte("miniBlockHash0" + iStr),
+						SenderShardID:   0,
+						ReceiverShardID: 0,
+					},
+					{
+						Hash:            []byte("miniBlockHash1" + iStr),
+						SenderShardID:   0,
+						ReceiverShardID: 1,
+					},
 				},
 			},
+			PreviousHeaderProof: &block.HeaderProof{},
 		},
 		miniBlocks:       map[uint32][]byte{0: []byte("miniblock data sh0" + iStr), 1: []byte("miniblock data sh1" + iStr)},
 		miniBlockHashes:  map[string]map[string]struct{}{"txBlockBodies_0": {"miniBlockHash0" + iStr: struct{}{}}, "txBlockBodies_0_1": {"miniBlockHash1" + iStr: struct{}{}}},
@@ -1516,7 +1519,7 @@ func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing
 		providedHash := []byte("hdr hash")
 		dbb.InterceptedHeaderData("", providedHash, &block.HeaderV2{
 			Header: &block.Header{},
-			PreviousHeaderProof: &block.PreviousHeaderProof{
+			PreviousHeaderProof: &block.HeaderProof{
 				PubKeysBitmap:       []byte("bitmap"),
 				AggregatedSignature: []byte("agg sig"),
 			},

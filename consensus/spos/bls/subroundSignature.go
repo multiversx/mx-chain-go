@@ -93,27 +93,6 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 
 	isSelfSingleKeyLeader := sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
-	// if single key leader, the signature has been sent on subroundBlock, thus the current round can be marked as finished
-	if isSelfSingleKeyLeader && isFlagActive {
-		leader, err := sr.GetLeader()
-		if err != nil {
-			return false
-		}
-		err = sr.SetJobDone(leader, sr.Current(), true)
-		if err != nil {
-			return false
-		}
-
-		sr.SetStatus(sr.Current(), spos.SsFinished)
-
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
-
-		log.Debug("step 2: subround has been finished for leader",
-			"subround", sr.Name())
-
-		return true
-	}
-
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 	if isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(isSelfSingleKeyLeader, isFlagActive) {

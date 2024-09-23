@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -285,6 +286,9 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 				return nil
 			}
 			return cs
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return proofscache.NewProofsPool()
 		},
 	}
 
