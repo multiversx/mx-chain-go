@@ -574,7 +574,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 		"epoch", rrh.epoch,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+	requester, err := rrh.baseRequestHandler.getValidatorsInfoRequester()
 	if err != nil {
 		log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),
@@ -614,7 +614,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 		"epoch", rrh.epoch,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+	requester, err := rrh.baseRequestHandler.getValidatorsInfoRequester()
 	if err != nil {
 		log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),

@@ -50,4 +50,5 @@ type baseRequestHandler interface {
 	getStartOfEpochMetaBlockRequester(topic string) (dataRetriever.Requester, error)
 	getMetaHeaderRequester() (HeaderRequester, error)
 	getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error)
+	getValidatorsInfoRequester() (dataRetriever.Requester, error)
 }

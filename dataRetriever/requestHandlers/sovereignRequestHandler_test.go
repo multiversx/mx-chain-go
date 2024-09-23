@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -268,9 +269,18 @@ func TestSovereignResolverRequestHandler_RequestFromDifferentContainersShouldCal
 
 	requesterFinder := &dataRetrieverMocks.RequestersFinderStub{
 		IntraShardRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
-			require.Equal(t, expectedTopic, baseTopic)
 			intraShardRequesterCt++
-			return &dataRetrieverMocks.HeaderRequesterStub{}, nil
+			require.Equal(t, expectedTopic, baseTopic)
+
+			switch baseTopic {
+			case factory.ShardBlocksTopic:
+				return &dataRetrieverMocks.HeaderRequesterStub{}, nil
+			case common.ValidatorInfoTopic:
+				return &dataRetrieverMocks.HashSliceRequesterStub{}, nil
+			}
+
+			require.Fail(t, "should not call on other topic")
+			return nil, nil
 		},
 		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 			crossShardRequesterCt++
@@ -306,5 +316,14 @@ func TestSovereignResolverRequestHandler_RequestFromDifferentContainersShouldCal
 
 	sovResolver.RequestShardHeaderByNonce(core.SovereignChainShardId, 0)
 	require.Equal(t, 5, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	expectedTopic = common.ValidatorInfoTopic
+	sovResolver.RequestValidatorInfo([]byte("hash"))
+	require.Equal(t, 6, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestValidatorsInfo([][]byte{[]byte("hash")})
+	require.Equal(t, 7, intraShardRequesterCt)
 	require.Zero(t, crossShardRequesterCt)
 }

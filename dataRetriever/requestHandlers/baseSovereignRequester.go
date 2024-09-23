@@ -3,6 +3,7 @@ package requestHandlers
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -84,4 +85,8 @@ func (br *baseSovereignRequest) getShardHeaderRequester(_ uint32) (dataRetriever
 	}
 
 	return headerRequester, nil
+}
+
+func (br *baseSovereignRequest) getValidatorsInfoRequester() (dataRetriever.Requester, error) {
+	return br.requestersFinder.IntraShardRequester(common.ValidatorInfoTopic)
 }
