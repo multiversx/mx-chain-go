@@ -88,6 +88,8 @@ func createGenesisConfig() config.EnableEpochs {
 		DoubleKeyProtectionEnableEpoch:                    0,
 		ESDTEnableEpoch:                                   unreachableEpoch,
 		GovernanceEnableEpoch:                             unreachableEpoch,
+		GovernanceDisableProposeEnableEpoch:               unreachableEpoch,
+		GovernanceFixesEnableEpoch:                        unreachableEpoch,
 		DelegationManagerEnableEpoch:                      unreachableEpoch,
 		DelegationSmartContractEnableEpoch:                unreachableEpoch,
 		CorrectLastUnjailedEnableEpoch:                    unreachableEpoch,
