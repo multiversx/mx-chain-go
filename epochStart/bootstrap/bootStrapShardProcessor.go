@@ -229,7 +229,7 @@ func (e *bootStrapShardProcessor) createResolversContainer() error {
 		Marshalizer:                         e.coreComponentsHolder.InternalMarshalizer(),
 		DataPools:                           e.dataPool,
 		Uint64ByteSliceConverter:            uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingJobs:          10, // TODO: We need to take this from config
 		NumConcurrentResolvingTrieNodesJobs: 3,
 		DataPacker:                          dataPacker,
 		TriesContainer:                      e.trieContainer,
