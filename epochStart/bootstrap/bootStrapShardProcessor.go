@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	bootStrapFactory "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -441,4 +442,8 @@ func (e *bootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.Start
 
 func (e *bootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
 	return NewEpochStartMetaSyncer(args)
+}
+
+func (e *bootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+	return bootStrapFactory.NewEpochStartInterceptorsContainer(args)
 }

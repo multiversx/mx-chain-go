@@ -13,7 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	bootStrapFactory "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
@@ -244,4 +246,26 @@ func (e *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochSt
 
 func (e *sovereignBootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
 	return newEpochStartSovereignSyncer(args)
+}
+
+func (e *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+	containerFactoryArgs, err := bootStrapFactory.CreateEpochStartContainerFactoryArgs(args)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sp, err := interceptorscontainer.NewShardInterceptorsContainerFactory(*containerFactoryArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interceptorsContainerFactory, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory{
+		ShardContainer:           sp,
+		IncomingHeaderSubscriber: &disabled.IncomingHeaderSubscriber{},
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return interceptorsContainerFactory.Create()
 }
