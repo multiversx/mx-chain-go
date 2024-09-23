@@ -1590,6 +1590,7 @@ func TestGovernanceContract_ClearEndedProposalsNoArguments(t *testing.T) {
 
 	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
+	args.GasCost.MetaChainSystemSCsCost.ClearProposal = 10
 	isCalled := false
 	args.Eei = &mock.SystemEIStub{
 		UseGasCalled: func(gas uint64) error {
@@ -1604,7 +1605,7 @@ func TestGovernanceContract_ClearEndedProposalsNoArguments(t *testing.T) {
 
 	// Assert
 	require.Equal(t, vmcommon.Ok, retCode)
-	require.False(t, isCalled)
+	require.True(t, isCalled)
 }
 
 func TestGovernanceContract_ClearEndedProposalsBadArguments(t *testing.T) {
