@@ -93,7 +93,7 @@ func TestSovereignShardInterceptorsContainerFactory_Create(t *testing.T) {
 		common.PeerAuthenticationTopic:                   {},
 		common.HeartbeatV2Topic + sovShardIDStr:          {},
 		common.ConnectionTopic:                           {},
-		common.ValidatorInfoTopic:                        {},
+		common.ValidatorInfoTopic + sovShardIDStr:        {},
 		factory.ExtendedHeaderProofTopic + sovShardIDStr: {},
 	}
 

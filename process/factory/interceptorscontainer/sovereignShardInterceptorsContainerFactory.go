@@ -3,6 +3,7 @@ package interceptorscontainer
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -82,7 +83,8 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 		return nil, nil, err
 	}
 
-	err = sicf.generateValidatorInfoInterceptor()
+	validatorInfoTopicID := common.ValidatorInfoTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	err = sicf.generateValidatorInfoInterceptor(validatorInfoTopicID)
 	if err != nil {
 		return nil, nil, err
 	}

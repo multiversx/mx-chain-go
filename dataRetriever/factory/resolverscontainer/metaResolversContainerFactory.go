@@ -126,7 +126,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateValidatorInfoResolver()
+	err = mrcf.generateValidatorInfoResolver(common.ValidatorInfoTopic)
 	if err != nil {
 		return nil, err
 	}

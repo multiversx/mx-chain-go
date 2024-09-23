@@ -79,7 +79,7 @@ func TestSovereignShardRequestersContainerFactory_Create(t *testing.T) {
 		factory.ValidatorTrieNodesTopic + sovShardIDStr:  {},
 		factory.AccountTrieNodesTopic + sovShardIDStr:    {},
 		common.PeerAuthenticationTopic:                   {},
-		common.ValidatorInfoTopic:                        {},
+		common.ValidatorInfoTopic + sovShardIDStr:        {},
 		factory.ExtendedHeaderProofTopic + sovShardIDStr: {},
 	}
 	iterateFunc := func(key string, requester dataRetriever.Requester) bool {

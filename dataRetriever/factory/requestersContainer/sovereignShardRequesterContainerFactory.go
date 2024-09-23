@@ -3,6 +3,7 @@ package requesterscontainer
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -75,7 +76,8 @@ func (srcf *sovereignShardRequestersContainerFactory) generateCommonRequesters()
 		return err
 	}
 
-	err = srcf.generateValidatorInfoRequester()
+	validatorInfoTopicID := common.ValidatorInfoTopic + srcf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	err = srcf.generateValidatorInfoRequester(validatorInfoTopicID)
 	if err != nil {
 		return err
 	}
