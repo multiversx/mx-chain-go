@@ -253,6 +253,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
+		InterceptedDataCache:       make(map[string]storage.Cacher),
 	}
 }
 
