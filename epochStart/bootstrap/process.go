@@ -569,7 +569,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		NodeOperationMode:       e.nodeOperationMode,
 	}
 
-	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
+	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = e.bootStrapShardProcessor.createEpochStartInterceptorsContainers(args)
 	if err != nil {
 		return err
 	}

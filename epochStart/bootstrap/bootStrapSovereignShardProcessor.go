@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -262,7 +261,7 @@ func (e *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContainer
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory{
 		ShardContainer:           sp,
-		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
+		IncomingHeaderSubscriber: &disabled.IncomingHeaderSubscriber{},
 	})
 	if err != nil {
 		return nil, nil, err
