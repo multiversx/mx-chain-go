@@ -32,6 +32,7 @@ func (scesb *sovereignChainEpochStartBootstrap) GetShardIDForLatestEpoch() (uint
 	return core.SovereignChainShardId, false, nil
 }
 
-func (e *sovereignChainEpochStartBootstrap) IsInterfaceNil() bool {
-	return e == nil
+// IsInterfaceNil checks if the underlying pointer is nil
+func (scesb *sovereignChainEpochStartBootstrap) IsInterfaceNil() bool {
+	return scesb == nil
 }
