@@ -16,6 +16,11 @@
     ESDTNFTUpdateAttributes  = 50000
     ESDTNFTMultiTransfer     = 200000
     MultiESDTNFTTransfer     = 200000 # should be the same value with the ESDTNFTMultiTransfer
+    ESDTModifyRoyalties      = 500000
+    ESDTModifyCreator        = 500000
+    ESDTNFTRecreate          = 1000000
+    ESDTNFTUpdate            = 1000000
+    ESDTNFTSetNewURIs        = 500000
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
@@ -108,6 +113,7 @@
     GetCallbackClosure   = 10000
     GetCodeMetadata      = 10000
     IsBuiltinFunction    = 10000
+    IsReservedFunctionName = 10000
     
 [EthAPICost]
     UseGas              = 100
@@ -207,6 +213,9 @@
     UnmarshalCompressedECC = 270000
     GenerateKeyECC         = 7000000
     EncodeDERSig           = 10000000
+    VerifySecp256r1        = 2000000
+    VerifyBLSSignatureShare = 2000000
+    VerifyBLSMultiSig      = 2000000
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000

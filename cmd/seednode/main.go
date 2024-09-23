@@ -309,12 +309,21 @@ func displayMessengerInfo(messenger p2p.Messenger) {
 		return strings.Compare(mesConnectedAddrs[i], mesConnectedAddrs[j]) < 0
 	})
 
-	log.Info("known peers", "num peers", len(messenger.Peers()))
-	headerConnectedAddresses := []string{fmt.Sprintf("Seednode is connected to %d peers:", len(mesConnectedAddrs))}
+	protocolIDString := "Valid protocol ID?"
+	log.Info("peers info", "num known peers", len(messenger.Peers()), "num connected peers", len(mesConnectedAddrs))
+	headerConnectedAddresses := []string{"Connected peers", protocolIDString}
 	connAddresses := make([]*display.LineData, len(mesConnectedAddrs))
 
+	yesMarker := "yes"
+	yesMarker = strings.Repeat(" ", (len(protocolIDString)-len(yesMarker))/2) + yesMarker // add padding
+	noMarker := "!!! no !!!"
+	noMarker = strings.Repeat(" ", (len(protocolIDString)-len(noMarker))/2) + noMarker // add padding
 	for idx, address := range mesConnectedAddrs {
-		connAddresses[idx] = display.NewLineData(false, []string{address})
+		marker := noMarker
+		if messenger.HasCompatibleProtocolID(address) {
+			marker = yesMarker
+		}
+		connAddresses[idx] = display.NewLineData(false, []string{address, marker})
 	}
 
 	tbl2, _ := display.CreateTableString(headerConnectedAddresses, connAddresses)

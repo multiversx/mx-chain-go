@@ -40,12 +40,12 @@ type MessengerStub struct {
 	WaitForConnectionsCalled                func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                              func(payload []byte) ([]byte, error)
 	VerifyCalled                            func(payload []byte, pid core.PeerID, signature []byte) error
-	AddPeerTopicNotifierCalled              func(notifier p2p.PeerTopicNotifier) error
 	BroadcastUsingPrivateKeyCalled          func(topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	BroadcastOnChannelUsingPrivateKeyCalled func(channel string, topic string, buff []byte, pid core.PeerID, skBytes []byte)
 	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
 	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	SetDebuggerCalled                       func(debugger p2p.Debugger) error
+	HasCompatibleProtocolIDCalled           func(address string) bool
 }
 
 // ID -
@@ -321,15 +321,6 @@ func (ms *MessengerStub) Verify(payload []byte, pid core.PeerID, signature []byt
 	return nil
 }
 
-// AddPeerTopicNotifier -
-func (ms *MessengerStub) AddPeerTopicNotifier(notifier p2p.PeerTopicNotifier) error {
-	if ms.AddPeerTopicNotifierCalled != nil {
-		return ms.AddPeerTopicNotifierCalled(notifier)
-	}
-
-	return nil
-}
-
 // BroadcastUsingPrivateKey -
 func (ms *MessengerStub) BroadcastUsingPrivateKey(topic string, buff []byte, pid core.PeerID, skBytes []byte) {
 	if ms.BroadcastUsingPrivateKeyCalled != nil {
@@ -367,6 +358,15 @@ func (ms *MessengerStub) SetDebugger(debugger p2p.Debugger) error {
 		return ms.SetDebuggerCalled(debugger)
 	}
 	return nil
+}
+
+// HasCompatibleProtocolID -
+func (ms *MessengerStub) HasCompatibleProtocolID(address string) bool {
+	if ms.HasCompatibleProtocolIDCalled != nil {
+		return ms.HasCompatibleProtocolIDCalled(address)
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

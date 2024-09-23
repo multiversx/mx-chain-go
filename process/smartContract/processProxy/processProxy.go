@@ -50,29 +50,30 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 
 	proxy := &scProcessorProxy{
 		args: scrCommon.ArgsNewSmartContractProcessor{
-			VmContainer:         args.VmContainer,
-			ArgsParser:          args.ArgsParser,
-			Hasher:              args.Hasher,
-			Marshalizer:         args.Marshalizer,
-			AccountsDB:          args.AccountsDB,
-			BlockChainHook:      args.BlockChainHook,
-			BuiltInFunctions:    args.BuiltInFunctions,
-			PubkeyConv:          args.PubkeyConv,
-			ShardCoordinator:    args.ShardCoordinator,
-			ScrForwarder:        args.ScrForwarder,
-			TxFeeHandler:        args.TxFeeHandler,
-			EconomicsFee:        args.EconomicsFee,
-			TxTypeHandler:       args.TxTypeHandler,
-			GasHandler:          args.GasHandler,
-			GasSchedule:         args.GasSchedule,
-			TxLogsProcessor:     args.TxLogsProcessor,
-			BadTxForwarder:      args.BadTxForwarder,
-			EnableRoundsHandler: args.EnableRoundsHandler,
-			EnableEpochsHandler: args.EnableEpochsHandler,
-			EnableEpochs:        args.EnableEpochs,
-			VMOutputCacher:      args.VMOutputCacher,
-			WasmVMChangeLocker:  args.WasmVMChangeLocker,
-			IsGenesisProcessing: args.IsGenesisProcessing,
+			VmContainer:             args.VmContainer,
+			ArgsParser:              args.ArgsParser,
+			Hasher:                  args.Hasher,
+			Marshalizer:             args.Marshalizer,
+			AccountsDB:              args.AccountsDB,
+			BlockChainHook:          args.BlockChainHook,
+			BuiltInFunctions:        args.BuiltInFunctions,
+			PubkeyConv:              args.PubkeyConv,
+			ShardCoordinator:        args.ShardCoordinator,
+			ScrForwarder:            args.ScrForwarder,
+			TxFeeHandler:            args.TxFeeHandler,
+			EconomicsFee:            args.EconomicsFee,
+			TxTypeHandler:           args.TxTypeHandler,
+			GasHandler:              args.GasHandler,
+			GasSchedule:             args.GasSchedule,
+			TxLogsProcessor:         args.TxLogsProcessor,
+			BadTxForwarder:          args.BadTxForwarder,
+			EnableRoundsHandler:     args.EnableRoundsHandler,
+			EnableEpochsHandler:     args.EnableEpochsHandler,
+			EnableEpochs:            args.EnableEpochs,
+			VMOutputCacher:          args.VMOutputCacher,
+			WasmVMChangeLocker:      args.WasmVMChangeLocker,
+			IsGenesisProcessing:     args.IsGenesisProcessing,
+			FailedTxLogsAccumulator: args.FailedTxLogsAccumulator,
 		},
 	}
 	if check.IfNil(epochNotifier) {
@@ -169,11 +170,11 @@ func (proxy *scProcessorProxy) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (proxy *scProcessorProxy) EpochConfirmed(_ uint32, _ uint64) {
+func (proxy *scProcessorProxy) EpochConfirmed(epoch uint32, _ uint64) {
 	proxy.mutRc.Lock()
 	defer proxy.mutRc.Unlock()
 
-	if proxy.args.EnableEpochsHandler.IsFlagEnabled(common.SCProcessorV2Flag) {
+	if proxy.args.EnableEpochsHandler.IsFlagEnabledInEpoch(common.SCProcessorV2Flag, epoch) {
 		proxy.setActiveProcessorV2()
 		return
 	}

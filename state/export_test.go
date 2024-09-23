@@ -90,3 +90,9 @@ func (sm *snapshotsManager) GetLastSnapshotInfo() ([]byte, uint32) {
 func NewNilSnapshotsManager() *snapshotsManager {
 	return nil
 }
+
+// AccountHandlerWithDataTrieMigrationStatus -
+type AccountHandlerWithDataTrieMigrationStatus interface {
+	vmcommon.AccountHandler
+	IsDataTrieMigrated() (bool, error)
+}

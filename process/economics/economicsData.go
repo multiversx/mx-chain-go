@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -27,31 +28,28 @@ var log = logger.GetOrCreate("process/economics")
 type economicsData struct {
 	*gasConfigHandler
 	*rewardsConfigHandler
-	gasPriceModifier            float64
-	minInflation                float64
-	yearSettings                map[uint32]*config.YearSetting
-	mutYearSettings             sync.RWMutex
-	statusHandler               core.AppStatusHandler
-	builtInFunctionsCostHandler BuiltInFunctionsCostHandler
-	enableEpochsHandler         common.EnableEpochsHandler
-	txVersionHandler            process.TxVersionCheckerHandler
-	mut                         sync.RWMutex
+	gasPriceModifier    float64
+	minInflation        float64
+	yearSettings        map[uint32]*config.YearSetting
+	mutYearSettings     sync.RWMutex
+	statusHandler       core.AppStatusHandler
+	enableEpochsHandler common.EnableEpochsHandler
+	txVersionHandler    process.TxVersionCheckerHandler
+	txTypeHandler       process.TxTypeHandler
+	mutTxTypeHandler    sync.RWMutex
+	mut                 sync.RWMutex
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
-	TxVersionChecker            process.TxVersionCheckerHandler
-	BuiltInFunctionsCostHandler BuiltInFunctionsCostHandler
-	Economics                   *config.EconomicsConfig
-	EpochNotifier               process.EpochNotifier
-	EnableEpochsHandler         common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	Economics           *config.EconomicsConfig
+	EpochNotifier       process.EpochNotifier
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewEconomicsData will create an object with information about economics parameters
 func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
-	if check.IfNil(args.BuiltInFunctionsCostHandler) {
-		return nil, process.ErrNilBuiltInFunctionsCostHandler
-	}
 	if check.IfNil(args.TxVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
@@ -75,12 +73,12 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 
 	ed := &economicsData{
-		minInflation:                args.Economics.GlobalSettings.MinimumInflation,
-		gasPriceModifier:            args.Economics.FeeSettings.GasPriceModifier,
-		statusHandler:               statusHandler.NewNilStatusHandler(),
-		builtInFunctionsCostHandler: args.BuiltInFunctionsCostHandler,
-		enableEpochsHandler:         args.EnableEpochsHandler,
-		txVersionHandler:            args.TxVersionChecker,
+		minInflation:        args.Economics.GlobalSettings.MinimumInflation,
+		gasPriceModifier:    args.Economics.FeeSettings.GasPriceModifier,
+		statusHandler:       statusHandler.NewNilStatusHandler(),
+		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionHandler:    args.TxVersionChecker,
+		txTypeHandler:       disabled.NewTxTypeHandler(),
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -141,6 +139,19 @@ func (ed *economicsData) SetStatusHandler(statusHandler core.AppStatusHandler) e
 		return err
 	}
 	return ed.rewardsConfigHandler.setStatusHandler(statusHandler)
+}
+
+// SetTxTypeHandler sets the provided tx type handler
+func (ed *economicsData) SetTxTypeHandler(txTypeHandler process.TxTypeHandler) error {
+	if check.IfNil(txTypeHandler) {
+		return process.ErrNilTxTypeHandler
+	}
+
+	ed.mutTxTypeHandler.Lock()
+	ed.txTypeHandler = txTypeHandler
+	ed.mutTxTypeHandler.Unlock()
+
+	return nil
 }
 
 // LeaderPercentage returns leader reward percentage
@@ -291,6 +302,11 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 
 // ComputeTxFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	if len(tx.GetUserTransactions()) > 0 {
+		_, totalFee, _ := ed.ComputeRelayedTxFees(tx)
+		return totalFee
+	}
+
 	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)
@@ -312,6 +328,56 @@ func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, 
 	}
 
 	return ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+}
+
+// ComputeRelayedTxFees returns the both the total fee for the entire relayed tx and the relayed only fee
+func (ed *economicsData) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+	innerTxs := tx.GetUserTransactions()
+	if len(innerTxs) == 0 {
+		return big.NewInt(0), big.NewInt(0), process.ErrEmptyInnerTransactions
+	}
+
+	feesForInnerTxs := ed.getTotalFeesRequiredForInnerTxs(innerTxs)
+
+	relayerUnguardedMoveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), ed.MinGasLimit())
+	relayerTotalMoveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+	relayerMoveBalanceFeeDiff := big.NewInt(0).Sub(relayerTotalMoveBalanceFee, relayerUnguardedMoveBalanceFee)
+
+	relayerFee := big.NewInt(0).Mul(relayerUnguardedMoveBalanceFee, big.NewInt(int64(len(innerTxs))))
+	relayerFee.Add(relayerFee, relayerMoveBalanceFeeDiff) // add the difference in case of guarded relayed tx
+
+	totalFee := big.NewInt(0).Add(relayerFee, feesForInnerTxs)
+
+	return relayerFee, totalFee, nil
+}
+
+func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.TransactionHandler) *big.Int {
+	totalFees := big.NewInt(0)
+	for _, innerTx := range innerTxs {
+		if ed.isMoveBalance(innerTx) {
+			innerTxFee := ed.ComputeMoveBalanceFee(innerTx)
+			totalFees.Add(totalFees, innerTxFee)
+
+			continue
+		}
+
+		gasToUse := innerTx.GetGasLimit() - ed.ComputeGasLimit(innerTx)
+		moveBalanceUserFee := ed.ComputeMoveBalanceFee(innerTx)
+		processingUserFee := ed.ComputeFeeForProcessing(innerTx, gasToUse)
+		innerTxFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
+
+		totalFees.Add(totalFees, innerTxFee)
+	}
+
+	return totalFees
+}
+
+func (ed *economicsData) isMoveBalance(tx data.TransactionHandler) bool {
+	ed.mutTxTypeHandler.RLock()
+	_, dstTxType := ed.txTypeHandler.ComputeTransactionType(tx)
+	ed.mutTxTypeHandler.RUnlock()
+
+	return dstTxType == process.MoveBalance
 }
 
 // SplitTxGasInCategories returns the gas split per categories
@@ -517,27 +583,17 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 // ComputeGasUsedAndFeeBasedOnRefundValueInEpoch will compute gas used value and transaction fee using refund value from a SCR in a specific epoch
 func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int) {
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
-		if ed.builtInFunctionsCostHandler.IsBuiltInFuncCall(tx) {
-			builtInCost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
-			computedGasLimit := ed.ComputeGasLimitInEpoch(tx, epoch)
-
-			gasLimitWithBuiltInCost := builtInCost + computedGasLimit
-			txFee := ed.ComputeTxFeeBasedOnGasUsedInEpoch(tx, gasLimitWithBuiltInCost, epoch)
-
-			gasLimitWithoutMoveBalance := tx.GetGasLimit() - computedGasLimit
-			// transaction will consume all the gas if sender provided too much gas
-			if isTooMuchGasProvided(gasLimitWithoutMoveBalance, gasLimitWithoutMoveBalance-builtInCost) {
-				return tx.GetGasLimit(), ed.ComputeTxFeeInEpoch(tx, epoch)
-			}
-
-			return gasLimitWithBuiltInCost, txFee
-		}
-
 		txFee := ed.ComputeTxFeeInEpoch(tx, epoch)
+
 		return tx.GetGasLimit(), txFee
 	}
 
 	txFee := ed.ComputeTxFeeInEpoch(tx, epoch)
+
+	if len(tx.GetUserTransactions()) > 0 {
+		gasUnitsUsed := big.NewInt(0).Div(txFee, big.NewInt(0).SetUint64(tx.GetGasPrice()))
+		return gasUnitsUsed.Uint64(), txFee
+	}
 
 	isPenalizedTooMuchGasFlagEnabled := ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.PenalizedTooMuchGasFlag, epoch)
 	isGasPriceModifierFlagEnabled := ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch)
@@ -558,15 +614,6 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.T
 	gasUsed := moveBalanceGasUnits + scOpGasUnits.Uint64()
 
 	return gasUsed, txFee
-}
-
-func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
-	if gasProvided <= gasRemained {
-		return false
-	}
-
-	gasUsed := gasProvided - gasRemained
-	return gasProvided > gasUsed*process.MaxGasFeeHigherFactorAccepted
 }
 
 // ComputeTxFeeBasedOnGasUsed will compute transaction fee

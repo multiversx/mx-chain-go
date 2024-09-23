@@ -174,3 +174,6 @@ var ErrGetWaitingManagedKeys = errors.New("error getting the waiting managed key
 
 // ErrGetWaitingEpochsLeftForPublicKey signals that an error occurred while getting the waiting epochs left for public key
 var ErrGetWaitingEpochsLeftForPublicKey = errors.New("error getting the waiting epochs left for public key")
+
+// ErrRecursiveRelayedTxIsNotAllowed signals that recursive relayed tx is not allowed
+var ErrRecursiveRelayedTxIsNotAllowed = errors.New("recursive relayed tx is not allowed")

@@ -269,13 +269,8 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	return nil
 }
 
-// Recreate returns a new trie that has the given root hash and database
-func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
-	return tr.recreate(root, tr.trieStorage)
-}
-
-// RecreateFromEpoch returns a new trie, given the options
-func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
+// Recreate returns a new trie, given the options
+func (tr *patriciaMerkleTrie) Recreate(options common.RootHashHolder) (common.Trie, error) {
 	if check.IfNil(options) {
 		return nil, ErrNilRootHashHolder
 	}
@@ -399,6 +394,12 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 
 // GetSerializedNode returns the serialized node (if existing) provided the node's hash
 func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte) ([]byte, error) {
+	// TODO: investigate if we can move the critical section behavior in the trie node resolver as this call will compete with a normal trie.Get operation
+	//  which might occur during processing.
+	//  warning: A critical section here or on the trie node resolver must be kept as to not overwhelm the node with requests that affects the block processing flow
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
 	log.Trace("GetSerializedNode", "hash", hash)
 
 	return tr.trieStorage.Get(hash)
@@ -406,6 +407,12 @@ func (tr *patriciaMerkleTrie) GetSerializedNode(hash []byte) ([]byte, error) {
 
 // GetSerializedNodes returns a batch of serialized nodes from the trie, starting from the given hash
 func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend uint64) ([][]byte, uint64, error) {
+	// TODO: investigate if we can move the critical section behavior in the trie node resolver as this call will compete with a normal trie.Get operation
+	//  which might occur during processing.
+	//  warning: A critical section here or on the trie node resolver must be kept as to not overwhelm the node with requests that affects the block processing flow
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 

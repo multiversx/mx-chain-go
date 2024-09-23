@@ -31,12 +31,12 @@ func TestStateStatistics_MethodsShouldNotPanic(t *testing.T) {
 	stats.ResetSnapshot()
 	stats.ResetAll()
 
-	stats.IncrCache()
-	stats.IncrSnapshotCache()
-	stats.IncrSnapshotCache()
-	stats.IncrPersister(1)
-	stats.IncrSnapshotPersister(1)
-	stats.IncrTrie()
+	stats.IncrementCache()
+	stats.IncrementSnapshotCache()
+	stats.IncrementSnapshotCache()
+	stats.IncrementPersister(1)
+	stats.IncrementSnapshotPersister(1)
+	stats.IncrementTrie()
 
 	require.Equal(t, uint64(0), stats.Cache())
 	require.Equal(t, uint64(0), stats.SnapshotCache())

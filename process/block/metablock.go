@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -136,6 +137,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 	}
 
 	mp := metaProcessor{
@@ -437,7 +440,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 	}
 
 	if mp.isRewardsV2Enabled(header) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 		if err != nil {
 			return err
 		}
@@ -452,7 +455,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 			return err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header.Nonce, header.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 		if err != nil {
 			return err
 		}
@@ -869,7 +872,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 
 	var rewardMiniBlocks block.MiniBlockSlice
 	if mp.isRewardsV2Enabled(metaBlock) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -884,7 +887,7 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 			return nil, err
 		}
 
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock.Nonce, metaBlock.Epoch)
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
 		if err != nil {
 			return nil, err
 		}
@@ -1238,6 +1241,11 @@ func (mp *metaProcessor) CommitBlock(
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
+	errNotCritical := mp.checkSentSignaturesAtCommitTime(headerHandler)
+	if errNotCritical != nil {
+		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
+	}
+
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
@@ -1577,7 +1585,8 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),

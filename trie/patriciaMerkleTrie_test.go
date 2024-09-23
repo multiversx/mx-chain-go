@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -388,27 +389,12 @@ func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	rootHash, _ := tr.RootHash()
-	_ = tr.Commit()
-
-	newTr, err := tr.Recreate(rootHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, newTr)
-
-	root, _ := newTr.RootHash()
-	assert.Equal(t, rootHash, root)
-}
-
-func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
-	t.Parallel()
-
 	t.Run("nil options", func(t *testing.T) {
 		t.Parallel()
 
 		tr := initTrie()
 
-		newTr, err := tr.RecreateFromEpoch(nil)
+		newTr, err := tr.Recreate(nil)
 		assert.Nil(t, newTr)
 		assert.Equal(t, trie.ErrNilRootHashHolder, err)
 	})
@@ -420,8 +406,8 @@ func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
 		rootHash, _ := tr.RootHash()
 		_ = tr.Commit()
 
-		rootHashHolder := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
-		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
+		rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+		newTr, err := tr.Recreate(rootHashHolder)
 		assert.Nil(t, err)
 
 		assert.True(t, trie.IsBaseTrieStorageManager(newTr.GetStorageManager()))
@@ -439,7 +425,7 @@ func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
 			HasValue: true,
 		}
 		rootHashHolder := holders.NewRootHashHolder(rootHash, optionalUint32)
-		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
+		newTr, err := tr.Recreate(rootHashHolder)
 		assert.Nil(t, err)
 
 		assert.True(t, trie.IsTrieStorageManagerInEpoch(newTr.GetStorageManager()))
@@ -451,7 +437,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 
 	tr := initTrie()
 
-	newTr, err := tr.Recreate(nil)
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder([]byte{}))
 	assert.Nil(t, err)
 	root, _ := newTr.RootHash()
 	assert.Equal(t, emptyTrieHash, root)
@@ -966,7 +952,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	numOperations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
-	numFunctions := 19
+	numFunctions := 18
 
 	initialRootHash, _ := tr.RootHash()
 
@@ -992,31 +978,28 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				err := tr.Commit()
 				assert.Nil(t, err)
 			case 5:
-				_, err := tr.Recreate(initialRootHash)
-				assert.Nil(t, err)
-			case 6:
 				epoch := core.OptionalUint32{
 					Value:    3,
 					HasValue: true,
 				}
 				rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
-				_, err := tr.RecreateFromEpoch(rootHashHolder)
+				_, err := tr.Recreate(rootHashHolder)
 				assert.Nil(t, err)
-			case 7:
+			case 6:
 				_ = tr.String()
-			case 8:
+			case 7:
 				_ = tr.GetObsoleteHashes()
-			case 9:
+			case 8:
 				_, err := tr.GetDirtyHashes()
 				assert.Nil(t, err)
-			case 10:
+			case 9:
 				_, err := tr.GetSerializedNode(initialRootHash)
 				assert.Nil(t, err)
-			case 11:
+			case 10:
 				size1KB := uint64(1024 * 1024)
 				_, _, err := tr.GetSerializedNodes(initialRootHash, size1KB)
 				assert.Nil(t, err)
-			case 12:
+			case 11:
 				trieIteratorChannels := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, 1000),
 					ErrChan:    errChan.NewErrChanWrapper(),
@@ -1030,20 +1013,20 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 					parsers.NewMainTrieLeafParser(),
 				)
 				assert.Nil(t, err)
-			case 13:
+			case 12:
 				_, err := tr.GetAllHashes()
 				assert.Nil(t, err)
-			case 14:
+			case 13:
 				_, _, _ = tr.GetProof(initialRootHash) // this might error due to concurrent operations that change the roothash
-			case 15:
+			case 14:
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
-			case 16:
+			case 15:
 				sm := tr.GetStorageManager()
 				assert.NotNil(t, sm)
-			case 17:
+			case 16:
 				_ = tr.GetOldRoot()
-			case 18:
+			case 17:
 				trieStatsHandler := tr.(common.TrieStats)
 				_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
 				assert.Nil(t, err)
@@ -1058,64 +1041,56 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	wg.Wait()
 }
 
-func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
+func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing.T) {
 	t.Parallel()
 
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = &storage.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			// gets take a long time
+	numConcurrentCalls := int32(0)
+	testTrieStorageManager := &storageManager.StorageManagerStub{
+		GetCalled: func(bytes []byte) ([]byte, error) {
+			newValue := atomic.AddInt32(&numConcurrentCalls, 1)
+			defer atomic.AddInt32(&numConcurrentCalls, -1)
+
+			assert.Equal(t, int32(1), newValue)
+
+			// get takes a long time
 			time.Sleep(time.Millisecond * 10)
-			return key, nil
+
+			return bytes, nil
 		},
 	}
 
-	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
-	numGoRoutines := 1000
-	wgStart := sync.WaitGroup{}
-	wgStart.Add(numGoRoutines)
-	wgEnd := sync.WaitGroup{}
-	wgEnd.Add(numGoRoutines)
+	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	numGoRoutines := 100
+	wg := sync.WaitGroup{}
+	wg.Add(numGoRoutines)
 
 	for i := 0; i < numGoRoutines; i++ {
 		if i%2 == 0 {
 			go func() {
 				time.Sleep(time.Millisecond * 100)
-				wgStart.Done()
-
 				_, _, _ = tr.GetSerializedNodes([]byte("dog"), 1024)
-				wgEnd.Done()
+				wg.Done()
 			}()
 		} else {
 			go func() {
 				time.Sleep(time.Millisecond * 100)
-				wgStart.Done()
-
 				_, _ = tr.GetSerializedNode([]byte("dog"))
-				wgEnd.Done()
+				wg.Done()
 			}()
 		}
 	}
 
-	wgStart.Wait()
+	wg.Wait()
 	chanClosed := make(chan struct{})
 	go func() {
 		_ = tr.Close()
 		close(chanClosed)
 	}()
 
-	chanGetsEnded := make(chan struct{})
-	go func() {
-		wgEnd.Wait()
-		close(chanGetsEnded)
-	}()
-
 	timeout := time.Second * 10
 	select {
 	case <-chanClosed: // ok
-	case <-chanGetsEnded:
-		assert.Fail(t, "trie should have been closed before all gets ended")
 	case <-time.After(timeout):
 		assert.Fail(t, "timeout waiting for trie to be closed")
 	}
@@ -1391,7 +1366,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		addDefaultDataToTrie(tr)
 		_ = tr.Commit()
 		rootHash, _ := tr.RootHash()
-		collapsedTrie, _ := tr.Recreate(rootHash)
+		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 		dtr := collapsedTrie.(dataTrie)
 		dtm := &trieMock.DataTrieMigratorStub{
 			ConsumeStorageLoadGasCalled: func() bool {
