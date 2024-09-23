@@ -167,7 +167,9 @@ func InitConsensusCore() *ConsensusCoreMock {
 func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
+			return &block.Header{
+				RandSeed: []byte("randSeed"),
+			}
 		},
 	}
 	marshalizerMock := mock.MarshalizerMock{}

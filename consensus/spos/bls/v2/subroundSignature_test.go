@@ -415,7 +415,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
-		sr := *initSubroundSignatureWithContainer(container)
+		sr := initSubroundSignatureWithContainer(container)
 
 		sr.Header = &block.Header{}
 		sr.Data = nil
@@ -489,7 +489,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
-		sr := *initSubroundSignatureWithContainer(container)
+		sr := initSubroundSignatureWithContainer(container)
 
 		sr.Header = &block.Header{}
 		leader, err := sr.GetLeader()
@@ -1087,7 +1087,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := initSubroundSignatureWithContainer(container)
 	signature := []byte("signature")
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.Data,
@@ -1169,7 +1169,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 
 	container := consensusMocks.InitConsensusCore()
 	container.SetSigningHandler(signingHandler)
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := initSubroundSignatureWithContainer(container)
 	sr.Header = &block.Header{}
 
 	signature := []byte("signature")
@@ -1230,7 +1230,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 func TestSubroundSignature_SignaturesCollected(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundSignature()
+	sr := initSubroundSignature()
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrBlock, false)
@@ -1259,7 +1259,7 @@ func TestSubroundSignature_SignaturesCollected(t *testing.T) {
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundSignature()
+	sr := initSubroundSignature()
 	sr.RoundCanceled = true
 	assert.False(t, sr.DoSignatureConsensusCheck())
 }
@@ -1267,7 +1267,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenRoundIs
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenSubroundIsFinished(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundSignature()
+	sr := initSubroundSignature()
 	sr.SetStatus(bls.SrSignature, spos.SsFinished)
 	assert.True(t, sr.DoSignatureConsensusCheck())
 }
@@ -1275,7 +1275,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenSubround
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenSignaturesCollectedReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundSignature()
+	sr := initSubroundSignature()
 
 	for i := 0; i < sr.Threshold(bls.SrSignature); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
@@ -1288,7 +1288,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenSignatur
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenSignaturesCollectedReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundSignature()
+	sr := initSubroundSignature()
 	sr.Header = &block.HeaderV2{Header: createDefaultHeader()}
 	assert.False(t, sr.DoSignatureConsensusCheck())
 }
@@ -1363,7 +1363,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 				return false
 			},
 		})
-		sr := *initSubroundSignatureWithContainer(container)
+		sr := initSubroundSignatureWithContainer(container)
 		sr.WaitingAllSignaturesTimeOut = args.waitingAllSignaturesTimeOut
 
 		if !args.flagActive {
@@ -1394,7 +1394,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 			return false
 		},
 	})
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := initSubroundSignatureWithContainer(container)
 	sr.WaitingAllSignaturesTimeOut = false
 
 	leader, err := sr.GetLeader()
@@ -1417,7 +1417,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 			return true
 		},
 	})
-	sr := *initSubroundSignatureWithContainer(container)
+	sr := initSubroundSignatureWithContainer(container)
 	sr.WaitingAllSignaturesTimeOut = true
 
 	leader, err := sr.GetLeader()
@@ -1435,7 +1435,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqual(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundSignature()
+	sr := initSubroundSignature()
 
 	leader, err := sr.GetLeader()
 	require.Nil(t, err)

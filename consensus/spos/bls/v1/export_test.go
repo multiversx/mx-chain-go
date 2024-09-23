@@ -130,8 +130,8 @@ func (fct *factory) Outport() outport.OutportHandler {
 
 // subroundStartRound
 
-// SubroundStartRound defines a type for the subroundStartRound structure
-type SubroundStartRound *subroundStartRound
+// SubroundStartRound defines an alias to the subroundStartRound structure
+type SubroundStartRound = *subroundStartRound
 
 // DoStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) DoStartRoundJob() bool {
@@ -230,8 +230,8 @@ func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 
 // subroundSignature
 
-// SubroundSignature defines a type for the subroundSignature structure
-type SubroundSignature *subroundSignature
+// SubroundSignature defines an alias for the subroundSignature structure
+type SubroundSignature = *subroundSignature
 
 // DoSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) DoSignatureJob() bool {
@@ -255,8 +255,8 @@ func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 
 // subroundEndRound
 
-// SubroundEndRound defines a type for the subroundEndRound structure
-type SubroundEndRound *subroundEndRound
+// SubroundEndRound defines an alias for the subroundEndRound structure
+type SubroundEndRound = *subroundEndRound
 
 // DoEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) DoEndRoundJob() bool {

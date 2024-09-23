@@ -130,8 +130,8 @@ func (fct *factory) Outport() outport.OutportHandler {
 
 // subroundStartRound
 
-// SubroundStartRound defines a type for the subroundStartRound structure
-type SubroundStartRound *subroundStartRound
+// SubroundStartRound defines an alias for the subroundStartRound structure
+type SubroundStartRound = *subroundStartRound
 
 // DoStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) DoStartRoundJob() bool {
@@ -160,8 +160,8 @@ func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTrack
 
 // subroundBlock
 
-// SubroundBlock defines a type for the subroundBlock structure
-type SubroundBlock *subroundBlock
+// SubroundBlock defines an alias for the subroundBlock structure
+type SubroundBlock = *subroundBlock
 
 // Blockchain gets the ChainHandler stored in the ConsensusCore
 func (sr *subroundBlock) BlockChain() data.ChainHandler {
@@ -235,8 +235,8 @@ func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 
 // subroundSignature
 
-// SubroundSignature defines a type for the subroundSignature structure
-type SubroundSignature *subroundSignature
+// SubroundSignature defines an alias to the subroundSignature structure
+type SubroundSignature = *subroundSignature
 
 // DoSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) DoSignatureJob() bool {

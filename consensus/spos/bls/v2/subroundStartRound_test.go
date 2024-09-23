@@ -294,7 +294,7 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound := *defaultWithoutErrorSubroundStartRoundFromSubround(sr)
+	srStartRound := defaultWithoutErrorSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.DoStartRoundJob()
 	assert.True(t, r)
@@ -303,7 +303,7 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundStartRound()
+	sr := initSubroundStartRound()
 
 	sr.RoundCanceled = true
 
@@ -314,7 +314,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRound
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundIsFinished(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundStartRound()
+	sr := initSubroundStartRound()
 
 	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
@@ -332,7 +332,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
-	sr := *initSubroundStartRoundWithContainer(container)
+	sr := initSubroundStartRoundWithContainer(container)
 	sentTrackerInterface := sr.GetSentSignatureTracker()
 	sentTracker := sentTrackerInterface.(*testscommon.SentSignatureTrackerStub)
 	startRoundCalled := false
@@ -356,7 +356,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 	container.SetBootStrapper(bootstrapperMock)
 	container.SetRoundHandler(initRoundHandlerMock())
 
-	sr := *initSubroundStartRoundWithContainer(container)
+	sr := initSubroundStartRoundWithContainer(container)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)
@@ -373,7 +373,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNot
 	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -391,7 +391,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -408,7 +408,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenMainMachineIsAct
 	container := consensus.InitConsensusCore()
 	container.SetNodeRedundancyHandler(nodeRedundancyMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
@@ -435,7 +435,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	container := consensus.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -451,7 +451,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsen
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound := *defaultWithoutErrorSubroundStartRoundFromSubround(sr)
+	srStartRound := defaultWithoutErrorSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
@@ -469,7 +469,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 	container := consensus.InitConsensusCore()
 	container.SetRoundHandler(roundHandlerMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -487,7 +487,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
@@ -1106,7 +1106,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 	container := consensus.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	err2 := srStartRound.GenerateNextConsensusGroup(0)
 
