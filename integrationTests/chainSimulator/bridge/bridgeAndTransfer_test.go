@@ -153,7 +153,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	// will make a cross shard transaction, then deposit transaction, then same shard transaction with every token
 	for _, token := range groupTokens(bridgedInTokens) {
 		amountToSend := big.NewInt(2)
-		if token.Type == core.NonFungibleV2 || token.Type == core.DynamicNFT {
+		if token.Type == core.NonFungibleV2 || token.Type == core.DynamicNFT || token.Amount.Cmp(big.NewInt(1)) == 0 {
 			amountToSend = big.NewInt(1)
 		}
 		// cross shard transfer
