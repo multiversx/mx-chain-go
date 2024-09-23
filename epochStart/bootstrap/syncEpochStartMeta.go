@@ -102,7 +102,7 @@ func createSingleDataInterceptor(args ArgsNewEpochStartMetaSyncer, topic string)
 		ArgsParser:              args.ArgsParser,
 	}
 
-	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
+	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedShardHeaderDataFactory(&argsInterceptedDataFactory)
 	if err != nil {
 		return nil, err
 	}

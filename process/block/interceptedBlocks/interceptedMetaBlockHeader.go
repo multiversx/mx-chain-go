@@ -56,10 +56,9 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	return inHdr, nil
 }
 
-func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.MetaHeaderHandler, error) {
-	hdr := &block.SovereignChainHeader{
-		//ShardInfo: make([]block.ShardData, 0),
-		Header: &block.Header{},
+func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
+	hdr := &block.MetaBlock{
+		ShardInfo: make([]block.ShardData, 0),
 	}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {
@@ -129,9 +128,9 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 		return false
 	}
 
-	//if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
-	//	return true
-	//}
+	if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
+		return true
+	}
 
 	return false
 }
