@@ -78,14 +78,21 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 		return nil, err
 	}
 
+	currentNodeData, errGet := dfsIterator.GetCurrentNodeInfo()
+	if errGet != nil {
+		return nil, errGet
+	}
+
 	serializedNodes := make([][]byte, 0)
+	serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
+
 	for dfsIterator.HasNext() {
 		err = dfsIterator.Next()
 		if err != nil {
 			return nil, err
 		}
 
-		currentNodeData, errGet := dfsIterator.GetCurrentNodeInfo()
+		currentNodeData, errGet = dfsIterator.GetCurrentNodeInfo()
 		if errGet != nil {
 			return nil, errGet
 		}
