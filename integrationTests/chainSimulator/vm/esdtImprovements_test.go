@@ -4483,7 +4483,6 @@ func TestChainSimulator_dynamicNFT_changeMetaDataForOneNFTShouldNotChangeOtherNo
 	log.Info("transfer nft with nonce 1 - should not merge metaData")
 
 	tx = esdtNFTTransferTx(shard0Nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID)
-	shard0Nonce++
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
