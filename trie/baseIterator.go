@@ -87,16 +87,15 @@ func (it *baseIterator) GetCurrentNodeInfo() (*CurrentNodeInfo, error) {
 		return nil, err
 	}
 
-	var serializedNode []byte
-	if it.currentNode.getType() != LeafNodeType {
-		serializedNode, err = it.currentNode.getEncodedNode()
-		if err != nil {
-			return nil, err
-		}
+	currentNodeHash := it.currentNode.getHash()
+
+	serializedNode, err := it.currentNode.getEncodedNode()
+	if err != nil {
+		return nil, err
 	}
 
 	currentNodeInfo := &CurrentNodeInfo{
-		Hash:           it.currentNode.getHash(),
+		Hash:           currentNodeHash,
 		Value:          it.currentNode.getValue(),
 		SerializedNode: serializedNode,
 		Type:           it.currentNode.getType(),
