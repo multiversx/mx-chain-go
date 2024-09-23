@@ -272,7 +272,7 @@ func TestBootStrapSovereignShardProcessor_createEpochStartInterceptorsContainers
 		common.PeerAuthenticationTopic:                   {},
 		common.HeartbeatV2Topic + sovShardIDStr:          {},
 		common.ConnectionTopic:                           {},
-		common.ValidatorInfoTopic:                        {},
+		common.ValidatorInfoTopic + sovShardIDStr:        {},
 		factory.ExtendedHeaderProofTopic + sovShardIDStr: {},
 	}
 

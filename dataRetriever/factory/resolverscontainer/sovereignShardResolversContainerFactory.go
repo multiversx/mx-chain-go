@@ -65,7 +65,8 @@ func (srcf *sovereignShardResolversContainerFactory) Create() (dataRetriever.Res
 		return nil, err
 	}
 
-	err = srcf.generateValidatorInfoResolver()
+	validatorInfoTopicID := common.ValidatorInfoTopic + srcf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	err = srcf.generateValidatorInfoResolver(validatorInfoTopicID)
 	if err != nil {
 		return nil, err
 	}
