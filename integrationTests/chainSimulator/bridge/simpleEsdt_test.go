@@ -26,55 +26,36 @@ func TestSovereignChainSimulator_CreateNftWithManyQuantityShouldFail(t *testing.
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
 
 	expectedError := "invalid arguments to process built-in function, invalid quantity for esdt type"
 
-	t.Run("invalid quantity for nft v2 should fail", func(t *testing.T) {
-		t.Parallel()
+	txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
+	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungibleV2, core.NonFungibleV2.String())
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
-		txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
-		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungibleV2, core.NonFungibleV2.String())
-		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
-	})
-
-	t.Run("invalid quantity for dynamic nft should fail", func(t *testing.T) {
-		t.Parallel()
-
-		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.DynamicNFT, core.DynamicNFT.String())
-		txData := createNftArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
-		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
-	})
+	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.DynamicNFT, core.DynamicNFT.String())
+	txData = createNftArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 }
 
 func TestSovereignChainSimulator_CreateNftWithInvalidTypeShouldFail(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
 
 	expectedError := "invalid arguments to process built-in function, invalid esdt type"
 
-	t.Run("invalid esdt type fungible should error", func(t *testing.T) {
-		t.Parallel()
-		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
-		txData := createNftArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
-		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
-	})
+	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
+	txData := createNftArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
-	t.Run("invalid esdt type NFT should error", func(t *testing.T) {
-		t.Parallel()
-		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungible, core.NonFungible.String())
-		txData := createNftArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
-		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
-	})
+	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungible, core.NonFungible.String())
+	txData = createNftArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
-	t.Run("invalid esdt type unknown should error", func(t *testing.T) {
-		t.Parallel()
-		expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.ESDTType(8), core.ESDTType(8).String())
-		txData := createNftArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
-		executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
-	})
+	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.ESDTType(8), core.ESDTType(8).String())
+	txData = createNftArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
+	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 }
 
 func executeSimpleEsdtOperationWithError(
@@ -132,7 +113,6 @@ func TestChainSimulator_CreateAndBurnAllEsdtTypes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
 
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
