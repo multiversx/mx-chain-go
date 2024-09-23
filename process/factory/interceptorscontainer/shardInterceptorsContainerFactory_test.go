@@ -88,6 +88,9 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
 	}
+	pools.ReceiptsCalled = func() storage.Cacher {
+		return testscommon.NewCacherStub()
+	}
 	return pools
 }
 
@@ -610,9 +613,11 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorHeartbeat := 1
 		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorReceiptsData := 1
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
+			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
+			numInterceptorReceiptsData
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())
@@ -658,9 +663,11 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorHeartbeat := 1
 		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorReceiptsData := 1
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
+			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
+			numInterceptorReceiptsData
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())

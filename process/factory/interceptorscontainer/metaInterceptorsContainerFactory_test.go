@@ -78,6 +78,9 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
+		ReceiptsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
 	}
 
 	return pools
@@ -605,10 +608,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorsHeartbeatForMetachain := 1
 		numInterceptorsShardValidatorInfoForMetachain := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorReceiptsData := 1
 		totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 			numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 			numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
+			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo + numInterceptorReceiptsData
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())
@@ -655,10 +659,11 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorsHeartbeatForMetachain := 1
 		numInterceptorsShardValidatorInfoForMetachain := 1
 		numInterceptorValidatorInfo := 1
+		numInterceptorReceiptsData := 1
 		totalInterceptors := numInterceptorsMetablock + numInterceptorsShardHeadersForMetachain + numInterceptorsTrieNodes +
 			numInterceptorsTransactionsForMetachain + numInterceptorsUnsignedTxsForMetachain + numInterceptorsMiniBlocksForMetachain +
 			numInterceptorsRewardsTxsForMetachain + numInterceptorsPeerAuthForMetachain + numInterceptorsHeartbeatForMetachain +
-			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo
+			numInterceptorsShardValidatorInfoForMetachain + numInterceptorValidatorInfo + numInterceptorReceiptsData
 
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())

@@ -24,6 +24,10 @@ type RequestHandlerStub struct {
 	RequestValidatorsInfoCalled              func(hashes [][]byte)
 }
 
+// RequestReceiptsTrieNodes -
+func (rhs *RequestHandlerStub) RequestReceiptsTrieNodes(_ [][]byte) {
+}
+
 // SetNumPeersToQuery -
 func (rhs *RequestHandlerStub) SetNumPeersToQuery(key string, intra int, cross int) error {
 	if rhs.SetNumPeersToQueryCalled != nil {
