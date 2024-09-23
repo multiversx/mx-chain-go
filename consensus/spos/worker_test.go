@@ -24,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -85,7 +84,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	}
 	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	blsService, _ := v1.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 	poolAdder := cache.NewCacherMock()
 
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{

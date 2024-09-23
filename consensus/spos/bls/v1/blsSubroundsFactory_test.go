@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMock "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -71,7 +72,7 @@ func initWorker() spos.WorkerHandler {
 
 func initFactoryWithContainer(container *consensusMock.ConsensusCoreMock) v1.Factory {
 	worker := initWorker()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	fct, _ := v1.NewSubroundsFactory(
 		container,
@@ -119,7 +120,7 @@ func TestFactory_GetMessageTypeName(t *testing.T) {
 func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	worker := initWorker()
 
 	fct, err := v1.NewSubroundsFactory(
@@ -159,7 +160,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetBlockchain(nil)
@@ -181,7 +182,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetBlockProcessor(nil)
@@ -203,7 +204,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetBootStrapper(nil)
@@ -225,7 +226,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetChronology(nil)
@@ -247,7 +248,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetHasher(nil)
@@ -269,7 +270,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetMarshalizer(nil)
@@ -291,7 +292,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetMultiSignerContainer(nil)
@@ -313,7 +314,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetRoundHandler(nil)
@@ -335,7 +336,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetShardCoordinator(nil)
@@ -357,7 +358,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetSyncTimer(nil)
@@ -379,7 +380,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 	container.SetValidatorGroupSelector(nil)
@@ -401,7 +402,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 
 	fct, err := v1.NewSubroundsFactory(
@@ -421,7 +422,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 
@@ -442,7 +443,7 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 
@@ -471,7 +472,7 @@ func TestFactory_NewFactoryShouldWork(t *testing.T) {
 func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 	t.Parallel()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
 

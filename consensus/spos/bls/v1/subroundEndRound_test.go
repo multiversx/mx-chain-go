@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -34,7 +35,7 @@ func initSubroundEndRoundWithContainer(
 	appStatusHandler core.AppStatusHandler,
 ) v1.SubroundEndRound {
 	ch := make(chan bool, 1)
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
@@ -72,7 +73,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
@@ -156,7 +157,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -192,7 +193,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -228,7 +229,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -265,7 +266,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -301,7 +302,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -337,7 +338,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -373,7 +374,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -1353,7 +1354,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		sr, _ := spos.NewSubround(
 			bls.SrSignature,
 			bls.SrEndRound,
@@ -1725,7 +1726,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	keysHandler := &testscommon.KeysHandlerStub{}
 	ch := make(chan bool, 1)
-	consensusState := initConsensusStateWithKeysHandler(keysHandler)
+	consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,

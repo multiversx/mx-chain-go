@@ -21,6 +21,7 @@ import (
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -106,7 +107,7 @@ func initSubroundBlock(
 		}
 	}
 
-	consensusState := initConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
 	ch := make(chan bool, 1)
 
 	container.SetBlockchain(blockChain)
@@ -144,7 +145,7 @@ func initSubroundBlockWithBlockProcessor(
 
 	container.SetBlockchain(blockChain)
 	container.SetBlockProcessor(blockProcessorMock)
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -168,7 +169,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -184,7 +185,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -199,7 +200,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 
@@ -214,7 +215,7 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -229,7 +230,7 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -244,7 +245,7 @@ func TestSubroundBlock_NewSubroundBlockNilMultiSignerContainerShouldFail(t *test
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -259,7 +260,7 @@ func TestSubroundBlock_NewSubroundBlockNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -274,7 +275,7 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -289,7 +290,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -304,7 +305,7 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -322,7 +323,7 @@ func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 	srBlock, err := defaultSubroundBlockFromSubround(sr)
@@ -480,7 +481,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		}
 		container.SetBlockchain(chainHandler)
 
-		consensusState := initConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+		consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
 		ch := make(chan bool, 1)
 
 		baseSr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -1423,7 +1424,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDurationWithZeroDurationShould
 
 	container := consensusMocks.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})

@@ -23,6 +23,7 @@ import (
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -74,7 +75,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 	}
 
 	args := cryptoFactory.ArgsSigningHandler{
-		PubKeys: createEligibleListFromMap(mapKeys),
+		PubKeys: initializers.CreateEligibleListFromMap(mapKeys),
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return multiSigHandler, nil
@@ -87,7 +88,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 	require.Nil(b, err)
 
 	container.SetSigningHandler(signingHandler)
-	consensusState := initConsensusStateWithArgs(keysHandlerMock, mapKeys)
+	consensusState := initializers.InitConsensusStateWithArgs(keysHandlerMock, mapKeys)
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(

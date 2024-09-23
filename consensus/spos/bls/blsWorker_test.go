@@ -1,164 +1,21 @@
-package v2_test
+package bls_test
 
 import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 )
-
-func createEligibleList(size int) []string {
-	eligibleList := make([]string, 0)
-	for i := 0; i < size; i++ {
-		eligibleList = append(eligibleList, string([]byte{byte(i + 65)}))
-	}
-	return eligibleList
-}
-
-func createEligibleListFromMap(mapKeys map[string]crypto.PrivateKey) []string {
-	eligibleList := make([]string, 0, len(mapKeys))
-	for key := range mapKeys {
-		eligibleList = append(eligibleList, key)
-	}
-	slices.Sort(eligibleList)
-	return eligibleList
-}
-
-func initConsensusStateWithNodesCoordinator(validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
-	return initConsensusStateWithKeysHandlerAndNodesCoordinator(&testscommon.KeysHandlerStub{}, validatorsGroupSelector)
-}
-
-func initConsensusState() *spos.ConsensusState {
-	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
-}
-
-func initConsensusStateWithArgs(keysHandler consensus.KeysHandler, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
-	return initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler, mapKeys)
-}
-
-func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
-	consensusGroupSize := 9
-	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
-}
-
-func initConsensusStateWithKeysHandlerAndNodesCoordinator(keysHandler consensus.KeysHandler, validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
-	leader, consensusValidators, _ := validatorsGroupSelector.GetConsensusValidatorsPublicKeys([]byte("randomness"), 0, 0, 0)
-	eligibleNodesPubKeys := make(map[string]struct{})
-	for _, key := range consensusValidators {
-		eligibleNodesPubKeys[key] = struct{}{}
-	}
-	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
-}
-
-func initConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler, keys []string) *spos.ConsensusState {
-	numberOfKeys := len(keys)
-	eligibleNodesPubKeys := make(map[string]struct{}, numberOfKeys)
-	for _, key := range keys {
-		eligibleNodesPubKeys[key] = struct{}{}
-	}
-
-	indexLeader := 1
-	rcns, _ := spos.NewRoundConsensus(
-		eligibleNodesPubKeys,
-		numberOfKeys,
-		keys[indexLeader],
-		keysHandler,
-	)
-	rcns.SetConsensusGroup(keys)
-	rcns.ResetRoundState()
-
-	pBFTThreshold := numberOfKeys*2/3 + 1
-	pBFTFallbackThreshold := numberOfKeys*1/2 + 1
-	rthr := spos.NewRoundThreshold()
-	rthr.SetThreshold(1, 1)
-	rthr.SetThreshold(2, pBFTThreshold)
-	rthr.SetFallbackThreshold(1, 1)
-	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
-
-	rstatus := spos.NewRoundStatus()
-	rstatus.ResetRoundStatus()
-	cns := spos.NewConsensusState(
-		rcns,
-		rthr,
-		rstatus,
-	)
-	cns.Data = []byte("X")
-	cns.RoundIndex = 0
-
-	return cns
-}
-
-func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHandler, consensusGroupSize int) *spos.ConsensusState {
-	eligibleList := createEligibleList(consensusGroupSize)
-
-	eligibleNodesPubKeys := make(map[string]struct{})
-	for _, key := range eligibleList {
-		eligibleNodesPubKeys[key] = struct{}{}
-	}
-
-	return createConsensusStateWithNodes(eligibleNodesPubKeys, eligibleList, eligibleList[0], keysHandler)
-}
-
-func initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler consensus.KeysHandler, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
-	eligibleList := createEligibleListFromMap(mapKeys)
-
-	eligibleNodesPubKeys := make(map[string]struct{}, len(eligibleList))
-	for _, key := range eligibleList {
-		eligibleNodesPubKeys[key] = struct{}{}
-	}
-
-	return createConsensusStateWithNodes(eligibleNodesPubKeys, eligibleList, eligibleList[0], keysHandler)
-}
-
-func createConsensusStateWithNodes(eligibleNodesPubKeys map[string]struct{}, consensusValidators []string, leader string, keysHandler consensus.KeysHandler) *spos.ConsensusState {
-	consensusGroupSize := len(consensusValidators)
-	rcns, _ := spos.NewRoundConsensus(
-		eligibleNodesPubKeys,
-		consensusGroupSize,
-		consensusValidators[1],
-		keysHandler,
-	)
-
-	rcns.SetConsensusGroup(consensusValidators)
-	rcns.SetLeader(leader)
-	rcns.ResetRoundState()
-
-	pBFTThreshold := consensusGroupSize*2/3 + 1
-	pBFTFallbackThreshold := consensusGroupSize*1/2 + 1
-
-	rthr := spos.NewRoundThreshold()
-	rthr.SetThreshold(1, 1)
-	rthr.SetThreshold(2, pBFTThreshold)
-	rthr.SetFallbackThreshold(1, 1)
-	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
-
-	rstatus := spos.NewRoundStatus()
-	rstatus.ResetRoundStatus()
-
-	cns := spos.NewConsensusState(
-		rcns,
-		rthr,
-		rstatus,
-	)
-
-	cns.Data = []byte("X")
-	cns.RoundIndex = 0
-	return cns
-}
 
 func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	service, err := v2.NewConsensusService()
+	service, err := bls.NewConsensusService()
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(service))
 }
@@ -166,7 +23,7 @@ func TestWorker_NewConsensusServiceShouldWork(t *testing.T) {
 func TestWorker_InitReceivedMessagesShouldWork(t *testing.T) {
 	t.Parallel()
 
-	bnService, _ := v2.NewConsensusService()
+	bnService, _ := bls.NewConsensusService()
 	messages := bnService.InitReceivedMessages()
 
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
@@ -190,7 +47,7 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 	t.Parallel()
 
 	v := make([]consensus.MessageType, 0)
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
 	messagesRange := blsService.GetMessageRange()
 	assert.NotNil(t, messagesRange)
@@ -208,9 +65,9 @@ func TestWorker_GetMessageRangeShouldWork(t *testing.T) {
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyAndHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBodyAndHeader)
@@ -220,9 +77,9 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyAndHeaderShouldW
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyAndHeaderShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBodyAndHeader)
@@ -232,9 +89,9 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyAndHeaderShou
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBody)
@@ -244,9 +101,9 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockBodyShouldWork(t *te
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockBody)
@@ -256,9 +113,9 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockBodyShouldNotWork
 func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
@@ -268,9 +125,9 @@ func TestWorker_CanProceedWithSrStartRoundFinishedForMtBlockHeaderShouldWork(t *
 func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrStartRound, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeader)
@@ -280,9 +137,9 @@ func TestWorker_CanProceedWithSrStartRoundNotFinishedForMtBlockHeaderShouldNotWo
 func TestWorker_CanProceedWithSrBlockFinishedForMtBlockHeaderShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrBlock, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtSignature)
@@ -292,9 +149,9 @@ func TestWorker_CanProceedWithSrBlockFinishedForMtBlockHeaderShouldWork(t *testi
 func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrBlock, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtSignature)
@@ -304,9 +161,9 @@ func TestWorker_CanProceedWithSrBlockRoundNotFinishedForMtBlockHeaderShouldNotWo
 func TestWorker_CanProceedWithSrSignatureFinishedForMtBlockHeaderFinalInfoShouldWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrSignature, spos.SsFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeaderFinalInfo)
@@ -316,9 +173,9 @@ func TestWorker_CanProceedWithSrSignatureFinishedForMtBlockHeaderFinalInfoShould
 func TestWorker_CanProceedWithSrSignatureRoundNotFinishedForMtBlockHeaderFinalInfoShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
+	blsService, _ := bls.NewConsensusService()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetStatus(bls.SrSignature, spos.SsNotFinished)
 
 	canProceed := blsService.CanProceed(consensusState, bls.MtBlockHeaderFinalInfo)
@@ -328,8 +185,8 @@ func TestWorker_CanProceedWithSrSignatureRoundNotFinishedForMtBlockHeaderFinalIn
 func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
 	t.Parallel()
 
-	blsService, _ := v2.NewConsensusService()
-	consensusState := initConsensusState()
+	blsService, _ := bls.NewConsensusService()
+	consensusState := initializers.InitConsensusState()
 
 	canProceed := blsService.CanProceed(consensusState, -1)
 	assert.False(t, canProceed)
@@ -338,7 +195,7 @@ func TestWorker_CanProceedWitUnkownMessageTypeShouldNotWork(t *testing.T) {
 func TestWorker_GetSubroundName(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	r := service.GetSubroundName(bls.SrStartRound)
 	assert.Equal(t, "(START_ROUND)", r)
@@ -355,7 +212,7 @@ func TestWorker_GetSubroundName(t *testing.T) {
 func TestWorker_GetStringValue(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	r := service.GetStringValue(bls.MtBlockBodyAndHeader)
 	assert.Equal(t, bls.BlockBodyAndHeaderStringValue, r)
@@ -376,7 +233,7 @@ func TestWorker_GetStringValue(t *testing.T) {
 func TestWorker_IsMessageWithBlockBodyAndHeader(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageWithBlockBodyAndHeader(bls.MtBlockBody)
 	assert.False(t, ret)
@@ -391,7 +248,7 @@ func TestWorker_IsMessageWithBlockBodyAndHeader(t *testing.T) {
 func TestWorker_IsMessageWithBlockBody(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageWithBlockBody(bls.MtBlockHeader)
 	assert.False(t, ret)
@@ -403,7 +260,7 @@ func TestWorker_IsMessageWithBlockBody(t *testing.T) {
 func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageWithBlockHeader(bls.MtBlockBody)
 	assert.False(t, ret)
@@ -415,7 +272,7 @@ func TestWorker_IsMessageWithBlockHeader(t *testing.T) {
 func TestWorker_IsMessageWithSignature(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageWithSignature(bls.MtBlockBodyAndHeader)
 	assert.False(t, ret)
@@ -427,7 +284,7 @@ func TestWorker_IsMessageWithSignature(t *testing.T) {
 func TestWorker_IsMessageWithFinalInfo(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageWithFinalInfo(bls.MtSignature)
 	assert.False(t, ret)
@@ -439,7 +296,7 @@ func TestWorker_IsMessageWithFinalInfo(t *testing.T) {
 func TestWorker_IsMessageWithInvalidSigners(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageWithInvalidSigners(bls.MtBlockHeaderFinalInfo)
 	assert.False(t, ret)
@@ -451,7 +308,7 @@ func TestWorker_IsMessageWithInvalidSigners(t *testing.T) {
 func TestWorker_IsSubroundSignature(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsSubroundSignature(bls.SrEndRound)
 	assert.False(t, ret)
@@ -463,7 +320,7 @@ func TestWorker_IsSubroundSignature(t *testing.T) {
 func TestWorker_IsSubroundStartRound(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsSubroundStartRound(bls.SrSignature)
 	assert.False(t, ret)
@@ -475,7 +332,7 @@ func TestWorker_IsSubroundStartRound(t *testing.T) {
 func TestWorker_IsMessageTypeValid(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 
 	ret := service.IsMessageTypeValid(bls.MtBlockBody)
 	assert.True(t, ret)
@@ -487,19 +344,19 @@ func TestWorker_IsMessageTypeValid(t *testing.T) {
 func TestWorker_GetMaxNumOfMessageTypeAccepted(t *testing.T) {
 	t.Parallel()
 
-	service, _ := v2.NewConsensusService()
+	service, _ := bls.NewConsensusService()
 	t.Run("message type signature", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, v2.MaxNumOfMessageTypeSignatureAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtSignature))
+		assert.Equal(t, bls.MaxNumOfMessageTypeSignatureAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtSignature))
 	})
 	t.Run("other message types", func(t *testing.T) {
 		t.Parallel()
 
-		assert.Equal(t, v2.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtUnknown))
-		assert.Equal(t, v2.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockBody))
-		assert.Equal(t, v2.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockHeader))
-		assert.Equal(t, v2.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockBodyAndHeader))
-		assert.Equal(t, v2.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockHeaderFinalInfo))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtUnknown))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockBody))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockHeader))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockBodyAndHeader))
+		assert.Equal(t, bls.DefaultMaxNumOfMessageTypeAccepted, service.GetMaxNumOfMessageTypeAccepted(bls.MtBlockHeaderFinalInfo))
 	})
 }

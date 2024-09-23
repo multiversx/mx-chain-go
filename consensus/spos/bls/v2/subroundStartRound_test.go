@@ -13,6 +13,7 @@ import (
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 
 	"github.com/stretchr/testify/assert"
@@ -75,7 +76,7 @@ func defaultSubround(
 }
 
 func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) v2.SubroundStartRound {
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubround(consensusState, ch, container)
 	srStartRound, _ := v2.NewSubroundStartRound(
@@ -97,7 +98,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 	t.Parallel()
 
 	ch := make(chan bool, 1)
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensus.InitConsensusCore()
 	sr, _ := spos.NewSubround(
 		-1,
@@ -161,7 +162,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -177,7 +178,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstrapperShouldFail(t *te
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -192,7 +193,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	t.Parallel()
 
 	container := consensus.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -209,7 +210,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerContainerShouldFa
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -225,7 +226,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *te
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -241,7 +242,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -257,7 +258,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -273,7 +274,7 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -289,7 +290,7 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -445,7 +446,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsen
 	t.Parallel()
 
 	container := consensus.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetSelfPubKey(consensusState.SelfPubKey() + "X")
 	ch := make(chan bool, 1)
 
@@ -511,7 +512,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		consensusState.SetSelfPubKey("not in consensus")
 		sr, _ := spos.NewSubround(
 			-1,
@@ -563,7 +564,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		consensusState.SetSelfPubKey("B")
 		sr, _ := spos.NewSubround(
 			-1,
@@ -612,7 +613,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return string(pkBytes) == consensusState.SelfPubKey()
 		}
@@ -675,7 +676,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		leader, _ := consensusState.GetLeader()
 		consensusState.SetSelfPubKey(leader)
 		sr, _ := spos.NewSubround(
@@ -738,7 +739,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		leader, _ := consensusState.GetLeader()
 		consensusState.SetSelfPubKey(leader)
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
@@ -775,7 +776,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
 	ch := make(chan bool, 1)
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	sr, _ := spos.NewSubround(
 		-1,
 		bls.SrStartRound,

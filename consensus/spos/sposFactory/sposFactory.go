@@ -89,7 +89,7 @@ func GetBroadcastMessenger(
 		LeaderCacheSize:       maxDelayCacheSize,
 		ValidatorCacheSize:    maxDelayCacheSize,
 		AlarmScheduler:        alarmScheduler,
-		Config: config,
+		Config:                config,
 	}
 
 	delayedBroadcaster, err := broadcast.NewDelayedBlockBroadcaster(dbbArgs)

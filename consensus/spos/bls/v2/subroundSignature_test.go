@@ -23,6 +23,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -30,7 +31,7 @@ import (
 const setThresholdJobsDone = "threshold"
 
 func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreMock) v2.SubroundSignature {
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -69,7 +70,7 @@ func TestNewSubroundSignature(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -165,7 +166,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -201,7 +202,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -236,7 +237,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -271,7 +272,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -307,7 +308,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -342,7 +343,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -377,7 +378,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -520,7 +521,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
@@ -627,7 +628,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 			},
 		}
 		container.SetSigningHandler(signingHandler)
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
@@ -734,7 +735,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 				return make([]byte, 0), expErr
 			},
 		})
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
@@ -801,7 +802,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 				return fmt.Errorf("error")
 			},
 		})
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
@@ -868,7 +869,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 				return nil
 			},
 		})
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
@@ -936,7 +937,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			},
 		}
 		container.SetSigningHandler(signingHandler)
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
@@ -1036,7 +1037,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
-		consensusState := initConsensusStateWithKeysHandler(
+		consensusState := initializers.InitConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 					return true
