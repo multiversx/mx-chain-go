@@ -2,8 +2,10 @@ package bootstrap
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -83,6 +85,7 @@ type RunTypeComponentsHolder interface {
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
 	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
+	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
 	IsInterfaceNil() bool
 }
 
@@ -90,4 +93,19 @@ type RunTypeComponentsHolder interface {
 type ShardForLatestEpochComputer interface {
 	GetShardIDForLatestEpoch() (uint32, bool, error)
 	IsInterfaceNil() bool
+}
+
+type bootStrapShardProcessorHandler interface {
+	requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error
+	computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32
+	createRequestHandler() (process.RequestHandler, error)
+	createResolversContainer() error
+	syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error)
+	syncHeadersFromStorage(
+		meta data.MetaHeaderHandler,
+		syncingShardID uint32,
+		importDBTargetShardID uint32,
+		timeToWaitForRequestedData time.Duration,
+	) (map[string]data.HeaderHandler, error)
+	processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error)
 }
