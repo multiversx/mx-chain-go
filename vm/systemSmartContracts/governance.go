@@ -582,13 +582,10 @@ func (g *governanceContract) updateUserVoteListV2(address []byte, nonce uint64, 
 		return err
 	}
 
-	err = g.saveUserVotesV2(address, userVoteList)
-	if err != nil {
-		return err
-	}
-
 	lastEndedNonce := g.getLastEndedNonce()
-	return g.clearUserVotes(address, lastEndedNonce)
+	g.clearUserVotesForList(userVoteList, lastEndedNonce)
+
+	return g.saveUserVotesV2(address, userVoteList)
 }
 
 func (g *governanceContract) updateUserVotesV1(userVoteList *OngoingVotedList, nonce uint64, direct bool) error {
@@ -732,11 +729,14 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	numAddresses := uint64(len(args.Arguments))
-	if numAddresses == 0 {
-		return vmcommon.Ok
+	perAddressGas := g.gasCost.MetaChainSystemSCsCost.ClearProposal
+	totalGas := numAddresses * perAddressGas
+
+	if totalGas == 0 {
+		totalGas = g.gasCost.MetaChainSystemSCsCost.ClearProposal
 	}
 
-	err := g.eei.UseGas(numAddresses * g.gasCost.MetaChainSystemSCsCost.ClearProposal)
+	err := g.eei.UseGas(totalGas)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
@@ -750,8 +750,31 @@ func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInpu
 			return vmcommon.UserError
 		}
 		err = g.clearUserVotes(voter, lastEndedNonce)
+		if err != nil {
+			g.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
 	}
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) clearUserVotesForList(userVoteList *OngoingVotedListV2, lastEndedNonce uint64) {
+	filteredDirect := make([]uint64, 0)
+	for _, direct := range userVoteList.Direct {
+		if direct > lastEndedNonce {
+			filteredDirect = append(filteredDirect, direct)
+		}
+	}
+	userVoteList.Direct = filteredDirect
+
+	filteredDelegated := make([]*DelegatedWithAddress, 0)
+	for _, delegated := range userVoteList.DelegatedWithAddress {
+		if delegated.Nonce > lastEndedNonce {
+			filteredDelegated = append(filteredDelegated, delegated)
+		}
+	}
+	userVoteList.DelegatedWithAddress = filteredDelegated
 }
 
 func (g *governanceContract) clearUserVotes(address []byte, lastEndedNonce uint64) error {
@@ -759,25 +782,8 @@ func (g *governanceContract) clearUserVotes(address []byte, lastEndedNonce uint6
 	if err != nil {
 		return err
 	}
-
-	clearedUserVoteList := &OngoingVotedListV2{
-		Direct:               make([]uint64, 0),
-		DelegatedWithAddress: make([]*DelegatedWithAddress, 0),
-	}
-
-	for _, delegatedWithAddress := range userVoteList.DelegatedWithAddress {
-		if delegatedWithAddress.Nonce > lastEndedNonce {
-			clearedUserVoteList.DelegatedWithAddress = append(clearedUserVoteList.DelegatedWithAddress, delegatedWithAddress)
-		}
-	}
-
-	for i, direct := range userVoteList.Direct {
-		if direct > lastEndedNonce {
-			clearedUserVoteList.Direct = append(clearedUserVoteList.Direct, userVoteList.Direct[i])
-		}
-	}
-
-	return g.saveUserVotesV2(address, clearedUserVoteList)
+	g.clearUserVotesForList(userVoteList, lastEndedNonce)
+	return g.saveUserVotesV2(address, userVoteList)
 }
 
 func (g *governanceContract) getAccumulatedFees() *big.Int {
@@ -1332,24 +1338,20 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 
 func (g *governanceContract) processLastEndedNonce() {
 	lastEndedNonce := g.getLastEndedNonce()
-	lastEndedNonceBig := big.NewInt(int64(lastEndedNonce))
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
 
-	var activeProposalFound bool
-	for !activeProposalFound {
-		lastEndedNonceBig = lastEndedNonceBig.Add(lastEndedNonceBig, big.NewInt(1))
-		proposal, err := g.getProposalFromNonce(lastEndedNonceBig)
+	maxNoncesToCheck := uint64(1000)
+	nonceFound := big.NewInt(int64(lastEndedNonce))
+	for nonce := lastEndedNonce + 1; nonce < lastEndedNonce+maxNoncesToCheck; nonce++ {
+		nonceBig := big.NewInt(int64(nonce))
+		proposal, err := g.getProposalFromNonce(nonceBig)
 		if err != nil || proposal.EndVoteEpoch >= uint64(currentEpoch) {
-			activeProposalFound = true
+			nonceFound = nonceBig.Sub(nonceBig, big.NewInt(1))
 			break
 		}
 	}
 
-	if activeProposalFound {
-		lastEndedNonceBig = lastEndedNonceBig.Sub(lastEndedNonceBig, big.NewInt(1))
-	}
-
-	g.eei.SetStorage([]byte(lastEndedNonceKey), lastEndedNonceBig.Bytes())
+	g.eei.SetStorage([]byte(lastEndedNonceKey), nonceFound.Bytes())
 }
 
 func (g *governanceContract) getLastEndedNonce() uint64 {
