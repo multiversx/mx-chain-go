@@ -40,22 +40,23 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck   bool
-	TempDir                  string
-	PathToInitialConfig      string
-	NumOfShards              uint32
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	GenesisTimestamp         int64
-	InitialRound             int64
-	InitialEpoch             uint32
-	InitialNonce             uint64
-	RoundDurationInMillis    uint64
-	RoundsPerEpoch           core.OptionalUint64
-	ApiInterface             components.APIConfigurator
-	AlterConfigsFunction     func(cfg *config.Configs)
+	BypassTxSignatureCheck     bool
+	TempDir                    string
+	PathToInitialConfig        string
+	NumOfShards                uint32
+	MinNodesPerShard           uint32
+	MetaChainMinNodes          uint32
+	NumNodesWaitingListShard   uint32
+	NumNodesWaitingListMeta    uint32
+	GenesisTimestamp           int64
+	InitialRound               int64
+	InitialEpoch               uint32
+	InitialNonce               uint64
+	RoundDurationInMillis      uint64
+	RoundsPerEpoch             core.OptionalUint64
+	ApiInterface               components.APIConfigurator
+	AlterConfigsFunction       func(cfg *config.Configs)
+	VmQueryDelayAfterStartInMs uint64
 }
 
 type simulator struct {
@@ -138,7 +139,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			}
 
 			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(currentRootHash)
-			if errRootHash != nil {
+			if errGet != nil {
 				return errGet
 			}
 
@@ -179,19 +180,20 @@ func (s *simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                outputConfigs.Configs,
-		ChanStopNodeProcess:    s.chanStopNodeProcess,
-		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
-		NumShards:              s.numOfShards,
-		GasScheduleFilename:    outputConfigs.GasScheduleFilename,
-		ShardIDStr:             shardIDStr,
-		APIInterface:           args.ApiInterface,
-		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
-		InitialRound:           args.InitialRound,
-		InitialNonce:           args.InitialNonce,
-		MinNodesPerShard:       args.MinNodesPerShard,
-		MinNodesMeta:           args.MetaChainMinNodes,
-		RoundDurationInMillis:  args.RoundDurationInMillis,
+		Configs:                    outputConfigs.Configs,
+		ChanStopNodeProcess:        s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:     s.syncedBroadcastNetwork,
+		NumShards:                  s.numOfShards,
+		GasScheduleFilename:        outputConfigs.GasScheduleFilename,
+		ShardIDStr:                 shardIDStr,
+		APIInterface:               args.ApiInterface,
+		BypassTxSignatureCheck:     args.BypassTxSignatureCheck,
+		InitialRound:               args.InitialRound,
+		InitialNonce:               args.InitialNonce,
+		MinNodesPerShard:           args.MinNodesPerShard,
+		MinNodesMeta:               args.MetaChainMinNodes,
+		RoundDurationInMillis:      args.RoundDurationInMillis,
+		VmQueryDelayAfterStartInMs: args.VmQueryDelayAfterStartInMs,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
@@ -271,6 +273,22 @@ func (s *simulator) incrementRoundOnAllValidators() {
 	for _, node := range s.handlers {
 		node.IncrementRound()
 	}
+}
+
+// ForceChangeOfEpoch will force the change of current epoch
+// This method will call the epoch change trigger and generate block till a new epoch is reached
+func (s *simulator) ForceChangeOfEpoch() error {
+	log.Info("force change of epoch")
+	for shardID, node := range s.nodes {
+		err := node.ForceChangeOfEpoch()
+		if err != nil {
+			return fmt.Errorf("force change of epoch shardID-%d: error-%w", shardID, err)
+		}
+	}
+
+	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+
+	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
