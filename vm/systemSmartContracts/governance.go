@@ -732,14 +732,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	numAddresses := uint64(len(args.Arguments))
-	perAddressGas := g.gasCost.MetaChainSystemSCsCost.ClearProposal
-	totalGas := numAddresses * perAddressGas
-
-	if totalGas == 0 {
-		totalGas = g.gasCost.MetaChainSystemSCsCost.ClearProposal
-	}
-
-	err := g.eei.UseGas(totalGas)
+	err := g.eei.UseGas((numAddresses + 1) * g.gasCost.MetaChainSystemSCsCost.ClearProposal)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
