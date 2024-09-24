@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
 // ShardBootstrap implements the bootstrap mechanism
@@ -61,13 +60,13 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		statusHandler:                arguments.AppStatusHandler,
 		outportHandler:               arguments.OutportHandler,
 		accountsDBSyncer:             arguments.AccountsDBSyncer,
-		validatorStatisticsDBSyncer:  arguments.ValidatorDBSyncer,
 		currentEpochProvider:         arguments.CurrentEpochProvider,
 		isInImportMode:               arguments.IsInImportMode,
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
 		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
+		validatorDBSyncer:            arguments.ValidatorDBSyncer,
 	}
 
 	if base.isInImportMode {
@@ -85,6 +84,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.processAndCommitFunc = base.processAndCommit
 	base.handleScheduledRollBackToHeaderFunc = base.handleScheduledRollBackToHeader
 	base.getRootHashFromBlockFunc = base.getRootHashFromBlock
+	base.syncShardAccountsDBsFunc = base.syncShardAccountsDBs
 
 	// placed in struct fields for performance reasons
 	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
@@ -164,30 +164,11 @@ func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 			return err
 		}
 
-		errSync := boot.syncAccountsDBs(getNodeErr.GetKey(), getNodeErr.GetIdentifier())
+		errSync := boot.syncShardAccountsDBsFunc(getNodeErr.GetKey(), getNodeErr.GetIdentifier())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 
 	return err
-}
-
-func (boot *ShardBootstrap) syncAccountsDBs(key []byte, id string) error {
-	// TODO: refactor this in order to avoid treatment based on identifier
-	switch id {
-	case dataRetriever.UserAccountsUnit.String():
-		log.Error("UserAccountsUnit")
-		return boot.syncUserAccountsState(key)
-	case dataRetriever.PeerAccountsUnit.String():
-		log.Error("PeerAccountsUnit")
-		return boot.syncValidatorAccountsState(key)
-	default:
-		return fmt.Errorf("invalid trie identifier, id: %s", id)
-	}
-}
-
-func (boot *ShardBootstrap) syncValidatorAccountsState(key []byte) error {
-	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 // Close closes the synchronization loop
