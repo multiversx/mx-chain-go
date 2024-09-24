@@ -979,6 +979,9 @@ func TestCreateSyncers(t *testing.T) {
 		HeartbeatsCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},
+		ReceiptsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
 	}
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
@@ -2392,6 +2395,9 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 			return testscommon.NewCacherStub()
 		},
 		HeartbeatsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
+		ReceiptsCalled: func() storage.Cacher {
 			return testscommon.NewCacherStub()
 		},
 	}
