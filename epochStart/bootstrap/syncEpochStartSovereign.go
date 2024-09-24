@@ -13,7 +13,7 @@ func newEpochStartSovereignSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStart
 		return nil, err
 	}
 
-	topicProvider := &sovereignTopicProvider{}
+	topicProvider := newSovereignTopicProvider()
 	baseSyncer.epochStartTopicProviderHandler = topicProvider
 	baseSyncer.singleDataInterceptor, err = createSingleDataInterceptor(args, factory.ShardBlocksTopic)
 	if err != nil {

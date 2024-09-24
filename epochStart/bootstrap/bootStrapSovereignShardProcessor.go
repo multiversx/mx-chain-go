@@ -25,22 +25,22 @@ type sovereignBootStrapShardProcessor struct {
 	*sovereignChainEpochStartBootstrap
 }
 
-func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
+func (sbp *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
 	argsStorageHandler := StorageHandlerArgs{
-		GeneralConfig:                   e.generalConfig,
-		PreferencesConfig:               e.prefsConfig,
-		ShardCoordinator:                e.shardCoordinator,
-		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Hasher:                          e.coreComponentsHolder.Hasher(),
-		CurrentEpoch:                    e.baseData.lastEpoch,
-		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
-		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		NodeProcessingMode:              e.nodeProcessingMode,
-		StateStatsHandler:               e.stateStatsHandler,
-		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
+		GeneralConfig:                   sbp.generalConfig,
+		PreferencesConfig:               sbp.prefsConfig,
+		ShardCoordinator:                sbp.shardCoordinator,
+		PathManagerHandler:              sbp.coreComponentsHolder.PathHandler(),
+		Marshaller:                      sbp.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          sbp.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    sbp.baseData.lastEpoch,
+		Uint64Converter:                 sbp.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                sbp.coreComponentsHolder.NodeTypeProvider(),
+		NodesCoordinatorRegistryFactory: sbp.nodesCoordinatorRegistryFactory,
+		ManagedPeersHolder:              sbp.cryptoComponentsHolder.ManagedPeersHolder(),
+		NodeProcessingMode:              sbp.nodeProcessingMode,
+		StateStatsHandler:               sbp.stateStatsHandler,
+		AdditionalStorageServiceCreator: sbp.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -51,57 +51,57 @@ func (e *sovereignBootStrapShardProcessor) requestAndProcessForShard(peerMiniBlo
 
 	defer sovStorageHandler.CloseStorageService()
 
-	e.closeTrieComponents()
+	sbp.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.generalConfig,
-		e.coreComponentsHolder,
+		sbp.generalConfig,
+		sbp.coreComponentsHolder,
 		sovStorageHandler.storageService,
-		e.stateStatsHandler,
+		sbp.stateStatsHandler,
 	)
 	if err != nil {
 		return err
 	}
 
-	e.trieContainer = triesContainer
-	e.trieStorageManagers = trieStorageManagers
+	sbp.trieContainer = triesContainer
+	sbp.trieStorageManagers = trieStorageManagers
 
-	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", e.epochStartMeta.GetRootHash())
-	err = e.syncUserAccountsState(e.epochStartMeta.GetRootHash())
+	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", sbp.epochStartMeta.GetRootHash())
+	err = sbp.syncUserAccountsState(sbp.epochStartMeta.GetRootHash())
 	if err != nil {
 		return err
 	}
 
-	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState", "validatorRootHash", e.epochStartMeta.GetValidatorStatsRootHash())
-	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState", "validatorRootHash", sbp.epochStartMeta.GetValidatorStatsRootHash())
+	err = sbp.syncValidatorAccountsState(sbp.epochStartMeta.GetValidatorStatsRootHash())
 	if err != nil {
 		return err
 	}
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock: e.epochStartMeta,
-		PreviousEpochStart:  e.prevEpochStartMeta,
-		ShardHeader:         e.epochStartMeta,
-		NodesConfig:         e.nodesConfig,
-		Headers:             e.syncedHeaders,
-		ShardCoordinator:    e.shardCoordinator,
+		EpochStartMetaBlock: sbp.epochStartMeta,
+		PreviousEpochStart:  sbp.prevEpochStartMeta,
+		ShardHeader:         sbp.epochStartMeta,
+		NodesConfig:         sbp.nodesConfig,
+		Headers:             sbp.syncedHeaders,
+		ShardCoordinator:    sbp.shardCoordinator,
 		PendingMiniBlocks:   make(map[string]*block.MiniBlock),
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
 
-	return sovStorageHandler.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
+	return sovStorageHandler.SaveDataToStorage(components, sbp.epochStartMeta, false, make(map[string]*block.MiniBlock))
 }
 
-func (e *sovereignBootStrapShardProcessor) computeNumShards(_ data.MetaHeaderHandler) uint32 {
+func (sbp *sovereignBootStrapShardProcessor) computeNumShards(_ data.MetaHeaderHandler) uint32 {
 	return 1
 }
 
-func (e *sovereignBootStrapShardProcessor) createRequestHandler() (process.RequestHandler, error) {
+func (sbp *sovereignBootStrapShardProcessor) createRequestHandler() (process.RequestHandler, error) {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:                 e.generalConfig.Requesters,
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		RequesterConfig:                 sbp.generalConfig.Requesters,
+		ShardCoordinator:                sbp.shardCoordinator,
+		MainMessenger:                   sbp.mainMessenger,
+		FullArchiveMessenger:            sbp.fullArchiveMessenger,
+		Marshaller:                      sbp.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
 		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
 		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
@@ -110,7 +110,7 @@ func (e *sovereignBootStrapShardProcessor) createRequestHandler() (process.Reque
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
 	}
-	requestersFactory, err := e.runTypeComponents.RequestersContainerFactoryCreator().CreateRequesterContainerFactory(requestersContainerArgs)
+	requestersFactory, err := sbp.runTypeComponents.RequestersContainerFactoryCreator().CreateRequesterContainerFactory(requestersContainerArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -120,16 +120,16 @@ func (e *sovereignBootStrapShardProcessor) createRequestHandler() (process.Reque
 		return nil, err
 	}
 
-	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
+	finder, err := containers.NewRequestersFinder(container, sbp.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(
+	return sbp.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(
 		requestHandlers.RequestHandlerArgs{
 			RequestersFinder:      finder,
 			RequestedItemsHandler: cache.NewTimeCache(timeBetweenRequests),
-			WhiteListHandler:      e.whiteListHandler,
+			WhiteListHandler:      sbp.whiteListHandler,
 			MaxTxsToRequest:       maxToRequest,
 			ShardID:               core.SovereignChainShardId,
 			RequestInterval:       timeBetweenRequests,
@@ -137,89 +137,89 @@ func (e *sovereignBootStrapShardProcessor) createRequestHandler() (process.Reque
 	)
 }
 
-func (e *sovereignBootStrapShardProcessor) createResolversContainer() error {
+func (sbp *sovereignBootStrapShardProcessor) createResolversContainer() error {
 	return nil
 }
 
-func (e *sovereignBootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
-	return e.baseSyncHeaders(meta, DefaultTimeToWaitForRequestedData)
+func (sbp *sovereignBootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+	return sbp.baseSyncHeaders(meta, DefaultTimeToWaitForRequestedData)
 }
 
-func (e *sovereignBootStrapShardProcessor) syncHeadersFromStorage(
+func (sbp *sovereignBootStrapShardProcessor) syncHeadersFromStorage(
 	meta data.MetaHeaderHandler,
 	_ uint32,
 	_ uint32,
 	timeToWaitForRequestedData time.Duration,
 ) (map[string]data.HeaderHandler, error) {
-	return e.baseSyncHeaders(meta, timeToWaitForRequestedData)
+	return sbp.baseSyncHeaders(meta, timeToWaitForRequestedData)
 }
 
-func (e *sovereignBootStrapShardProcessor) baseSyncHeaders(
+func (sbp *sovereignBootStrapShardProcessor) baseSyncHeaders(
 	meta data.MetaHeaderHandler,
 	timeToWaitForRequestedData time.Duration,
 ) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, 1)
 	shardIds := make([]uint32, 0, 1)
-	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
+	if meta.GetEpoch() > sbp.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.SovereignChainShardId)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err := sbp.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	syncedHeaders, err := e.headersSyncer.GetHeaders()
+	syncedHeaders, err := sbp.headersSyncer.GetHeaders()
 	if err != nil {
 		return nil, err
 	}
 
-	if meta.GetEpoch() == e.startEpoch+1 {
+	if meta.GetEpoch() == sbp.startEpoch+1 {
 		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.SovereignChainHeader{}
 	}
 
 	return syncedHeaders, nil
 }
 
-func (e *sovereignBootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, _ uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error) {
+func (sbp *sovereignBootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, _ uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error) {
 	var err error
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                         e.dataPool,
-		Marshalizer:                      e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:                   e.requestHandler,
-		ChanceComputer:                   e.rater,
-		GenesisNodesConfig:               e.genesisNodesConfig,
-		NodeShuffler:                     e.nodeShuffler,
-		Hasher:                           e.coreComponentsHolder.Hasher(),
+		DataPool:                         sbp.dataPool,
+		Marshalizer:                      sbp.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                   sbp.requestHandler,
+		ChanceComputer:                   sbp.rater,
+		GenesisNodesConfig:               sbp.genesisNodesConfig,
+		NodeShuffler:                     sbp.nodeShuffler,
+		Hasher:                           sbp.coreComponentsHolder.Hasher(),
 		PubKey:                           pubKey,
 		ShardIdAsObserver:                core.SovereignChainShardId,
-		ChanNodeStop:                     e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:                 e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:                    e.prefsConfig.FullArchive,
-		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
-		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
-		NodesCoordinatorWithRaterFactory: e.runTypeComponents.NodesCoordinatorWithRaterCreator(),
+		ChanNodeStop:                     sbp.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                 sbp.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                    sbp.prefsConfig.FullArchive,
+		EnableEpochsHandler:              sbp.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  sbp.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorWithRaterFactory: sbp.runTypeComponents.NodesCoordinatorWithRaterCreator(),
 	}
-	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
+	sbp.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// no need to save the peers miniblocks here as they were already fetched from the DB
-	nodesConfig, _, _, err := e.nodesConfigHandler.NodesConfigFromMetaBlock(e.epochStartMeta, e.prevEpochStartMeta)
+	nodesConfig, _, _, err := sbp.nodesConfigHandler.NodesConfigFromMetaBlock(sbp.epochStartMeta, sbp.prevEpochStartMeta)
 	return nodesConfig, core.SovereignChainShardId, err
 }
 
-func (e *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error) {
-	epochStartConfig := e.generalConfig.EpochStartConfig
+func (sbp *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error) {
+	epochStartConfig := sbp.generalConfig.EpochStartConfig
 	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
-		e.mainMessenger,
-		e.requestHandler,
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
+		sbp.mainMessenger,
+		sbp.requestHandler,
+		sbp.coreComponentsHolder.InternalMarshalizer(),
+		sbp.coreComponentsHolder.Hasher(),
 		thresholdForConsideringMetaBlockCorrect,
 		epochStartConfig.MinNumConnectedPeersToStart,
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
@@ -229,26 +229,26 @@ func (e *sovereignBootStrapShardProcessor) createEpochStartMetaSyncer() (epochSt
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    e.coreComponentsHolder,
-		CryptoComponentsHolder:  e.cryptoComponentsHolder,
-		RequestHandler:          e.requestHandler,
-		Messenger:               e.mainMessenger,
-		ShardCoordinator:        e.shardCoordinator,
-		EconomicsData:           e.economicsData,
-		WhitelistHandler:        e.whiteListHandler,
+		CoreComponentsHolder:    sbp.coreComponentsHolder,
+		CryptoComponentsHolder:  sbp.cryptoComponentsHolder,
+		RequestHandler:          sbp.requestHandler,
+		Messenger:               sbp.mainMessenger,
+		ShardCoordinator:        sbp.shardCoordinator,
+		EconomicsData:           sbp.economicsData,
+		WhitelistHandler:        sbp.whiteListHandler,
 		StartInEpochConfig:      epochStartConfig,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		HeaderIntegrityVerifier: sbp.headerIntegrityVerifier,
 		MetaBlockProcessor:      newEpochStartSovereignBlockProcessor(metaBlockProcessor),
 	}
 
 	return newEpochStartSovereignSyncer(argsEpochStartSyncer)
 }
 
-func (e *sovereignBootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
+func (sbp *sovereignBootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
 	return newEpochStartSovereignSyncer(args)
 }
 
-func (e *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	containerFactoryArgs, err := bootStrapFactory.CreateEpochStartContainerFactoryArgs(args)
 	if err != nil {
 		return nil, nil, err
@@ -261,7 +261,7 @@ func (e *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContainer
 
 	interceptorsContainerFactory, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory{
 		ShardContainer:           sp,
-		IncomingHeaderSubscriber: &disabled.IncomingHeaderSubscriber{},
+		IncomingHeaderSubscriber: disabled.NewIncomingHeaderSubscriber(),
 	})
 	if err != nil {
 		return nil, nil, err

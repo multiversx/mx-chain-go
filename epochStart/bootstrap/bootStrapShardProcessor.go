@@ -28,20 +28,20 @@ type bootStrapShardProcessor struct {
 	*epochStartBootstrap
 }
 
-func (e *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
-	epochStartData, err := e.findSelfShardEpochStartData()
+func (bp *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
+	epochStartData, err := bp.findSelfShardEpochStartData()
 	if err != nil {
 		return err
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers(), ctx)
+	err = bp.miniBlocksSyncer.SyncPendingMiniBlocks(epochStartData.GetPendingMiniBlockHeaderHandlers(), ctx)
 	cancel()
 	if err != nil {
 		return err
 	}
 
-	pendingMiniBlocks, err := e.miniBlocksSyncer.GetMiniBlocks()
+	pendingMiniBlocks, err := bp.miniBlocksSyncer.GetMiniBlocks()
 	if err != nil {
 		return err
 	}
@@ -58,30 +58,30 @@ func (e *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*bl
 		firstPendingMetaBlock,
 	}
 
-	e.headersSyncer.ClearFields()
+	bp.headersSyncer.ClearFields()
 	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err = bp.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return err
 	}
 
-	neededHeaders, err := e.headersSyncer.GetHeaders()
+	neededHeaders, err := bp.headersSyncer.GetHeaders()
 	if err != nil {
 		return err
 	}
 	log.Debug("start in epoch bootstrap: SyncMissingHeadersByHash")
 
 	for hash, hdr := range neededHeaders {
-		e.syncedHeaders[hash] = hdr
+		bp.syncedHeaders[hash] = hdr
 	}
 
-	shardNotarizedHeader, ok := e.syncedHeaders[string(epochStartData.GetHeaderHash())].(data.ShardHeaderHandler)
+	shardNotarizedHeader, ok := bp.syncedHeaders[string(epochStartData.GetHeaderHash())].(data.ShardHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	dts, err := e.getDataToSync(
+	dts, err := bp.getDataToSync(
 		epochStartData,
 		shardNotarizedHeader,
 	)
@@ -90,24 +90,24 @@ func (e *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*bl
 	}
 
 	for hash, hdr := range dts.additionalHeaders {
-		e.syncedHeaders[hash] = hdr
+		bp.syncedHeaders[hash] = hdr
 	}
 
 	argsStorageHandler := StorageHandlerArgs{
-		GeneralConfig:                   e.generalConfig,
-		PreferencesConfig:               e.prefsConfig,
-		ShardCoordinator:                e.shardCoordinator,
-		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
-		Hasher:                          e.coreComponentsHolder.Hasher(),
-		CurrentEpoch:                    e.baseData.lastEpoch,
-		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
-		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
-		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		NodeProcessingMode:              e.nodeProcessingMode,
-		StateStatsHandler:               e.stateStatsHandler,
-		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
+		GeneralConfig:                   bp.generalConfig,
+		PreferencesConfig:               bp.prefsConfig,
+		ShardCoordinator:                bp.shardCoordinator,
+		PathManagerHandler:              bp.coreComponentsHolder.PathHandler(),
+		Marshaller:                      bp.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          bp.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    bp.baseData.lastEpoch,
+		Uint64Converter:                 bp.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                bp.coreComponentsHolder.NodeTypeProvider(),
+		NodesCoordinatorRegistryFactory: bp.nodesCoordinatorRegistryFactory,
+		ManagedPeersHolder:              bp.cryptoComponentsHolder.ManagedPeersHolder(),
+		NodeProcessingMode:              bp.nodeProcessingMode,
+		StateStatsHandler:               bp.stateStatsHandler,
+		AdditionalStorageServiceCreator: bp.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -116,34 +116,34 @@ func (e *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*bl
 
 	defer storageHandlerComponent.CloseStorageService()
 
-	e.closeTrieComponents()
+	bp.closeTrieComponents()
 	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
-		e.generalConfig,
-		e.coreComponentsHolder,
+		bp.generalConfig,
+		bp.coreComponentsHolder,
 		storageHandlerComponent.storageService,
-		e.stateStatsHandler,
+		bp.stateStatsHandler,
 	)
 	if err != nil {
 		return err
 	}
 
-	e.trieContainer = triesContainer
-	e.trieStorageManagers = trieStorageManagers
+	bp.trieContainer = triesContainer
+	bp.trieStorageManagers = trieStorageManagers
 
 	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", dts.rootHashToSync)
-	err = e.syncUserAccountsState(dts.rootHashToSync)
+	err = bp.syncUserAccountsState(dts.rootHashToSync)
 	if err != nil {
 		return err
 	}
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock: e.epochStartMeta,
-		PreviousEpochStart:  e.prevEpochStartMeta,
+		EpochStartMetaBlock: bp.epochStartMeta,
+		PreviousEpochStart:  bp.prevEpochStartMeta,
 		ShardHeader:         dts.ownShardHdr,
-		NodesConfig:         e.nodesConfig,
-		Headers:             e.syncedHeaders,
-		ShardCoordinator:    e.shardCoordinator,
+		NodesConfig:         bp.nodesConfig,
+		Headers:             bp.syncedHeaders,
+		ShardCoordinator:    bp.shardCoordinator,
 		PendingMiniBlocks:   pendingMiniBlocks,
 		PeerMiniBlocks:      peerMiniBlocks,
 	}
@@ -156,17 +156,17 @@ func (e *bootStrapShardProcessor) requestAndProcessForShard(peerMiniBlocks []*bl
 	return nil
 }
 
-func (e *bootStrapShardProcessor) computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32 {
+func (bp *bootStrapShardProcessor) computeNumShards(epochStartMeta data.MetaHeaderHandler) uint32 {
 	return uint32(len(epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
 }
 
-func (e *bootStrapShardProcessor) createRequestHandler() (process.RequestHandler, error) {
+func (bp *bootStrapShardProcessor) createRequestHandler() (process.RequestHandler, error) {
 	requestersContainerArgs := requesterscontainer.FactoryArgs{
-		RequesterConfig:                 e.generalConfig.Requesters,
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		RequesterConfig:                 bp.generalConfig.Requesters,
+		ShardCoordinator:                bp.shardCoordinator,
+		MainMessenger:                   bp.mainMessenger,
+		FullArchiveMessenger:            bp.fullArchiveMessenger,
+		Marshaller:                      bp.coreComponentsHolder.InternalMarshalizer(),
 		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
 		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
 		CurrentNetworkEpochProvider:     disabled.NewCurrentNetworkEpochProviderHandler(),
@@ -190,7 +190,7 @@ func (e *bootStrapShardProcessor) createRequestHandler() (process.RequestHandler
 		return nil, err
 	}
 
-	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
+	finder, err := containers.NewRequestersFinder(container, bp.shardCoordinator)
 	if err != nil {
 		return nil, err
 	}
@@ -199,41 +199,41 @@ func (e *bootStrapShardProcessor) createRequestHandler() (process.RequestHandler
 	return requestHandlers.NewResolverRequestHandler(
 		finder,
 		requestedItemsHandler,
-		e.whiteListHandler,
+		bp.whiteListHandler,
 		maxToRequest,
 		core.MetachainShardId,
 		timeBetweenRequests,
 	)
 }
 
-func (e *bootStrapShardProcessor) createResolversContainer() error {
-	dataPacker, err := partitioning.NewSimpleDataPacker(e.coreComponentsHolder.InternalMarshalizer())
+func (bp *bootStrapShardProcessor) createResolversContainer() error {
+	dataPacker, err := partitioning.NewSimpleDataPacker(bp.coreComponentsHolder.InternalMarshalizer())
 	if err != nil {
 		return err
 	}
 
 	storageService := disabled.NewChainStorer()
 
-	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(e.generalConfig.HeartbeatV2.HeartbeatExpiryTimespanInSec)
+	payloadValidator, err := validator.NewPeerAuthenticationPayloadValidator(bp.generalConfig.HeartbeatV2.HeartbeatExpiryTimespanInSec)
 	if err != nil {
 		return err
 	}
 
 	// TODO - create a dedicated request handler to be used when fetching required data with the correct shard coordinator
 	//  this one should only be used before determining the correct shard where the node should reside
-	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
+	log.Debug("epochStartBootstrap.createRequestHandler", "shard", bp.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    e.shardCoordinator,
-		MainMessenger:                       e.mainMessenger,
-		FullArchiveMessenger:                e.fullArchiveMessenger,
+		ShardCoordinator:                    bp.shardCoordinator,
+		MainMessenger:                       bp.mainMessenger,
+		FullArchiveMessenger:                bp.fullArchiveMessenger,
 		Store:                               storageService,
-		Marshalizer:                         e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                           e.dataPool,
+		Marshalizer:                         bp.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                           bp.dataPool,
 		Uint64ByteSliceConverter:            uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingJobs:          10, // TODO: We need to take this from config
 		NumConcurrentResolvingTrieNodesJobs: 3,
 		DataPacker:                          dataPacker,
-		TriesContainer:                      e.trieContainer,
+		TriesContainer:                      bp.trieContainer,
 		SizeCheckDelta:                      0,
 		InputAntifloodHandler:               disabled.NewAntiFloodHandler(),
 		OutputAntifloodHandler:              disabled.NewAntiFloodHandler(),
@@ -254,7 +254,7 @@ func (e *bootStrapShardProcessor) createResolversContainer() error {
 	return resolverFactory.AddShardTrieNodeResolvers(container)
 }
 
-func (e *bootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+func (bp *bootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 
@@ -263,31 +263,31 @@ func (e *bootStrapShardProcessor) syncHeadersFrom(meta data.MetaHeaderHandler) (
 		shardIds = append(shardIds, epochStartData.GetShardID())
 	}
 
-	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
+	if meta.GetEpoch() > bp.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err := bp.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	syncedHeaders, err := e.headersSyncer.GetHeaders()
+	syncedHeaders, err := bp.headersSyncer.GetHeaders()
 	if err != nil {
 		return nil, err
 	}
 
-	if meta.GetEpoch() == e.startEpoch+1 {
+	if meta.GetEpoch() == bp.startEpoch+1 {
 		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
 	}
 
 	return syncedHeaders, nil
 }
 
-func (e *bootStrapShardProcessor) syncHeadersFromStorage(
+func (bp *bootStrapShardProcessor) syncHeadersFromStorage(
 	meta data.MetaHeaderHandler,
 	syncingShardID uint32,
 	importDBTargetShardID uint32,
@@ -307,82 +307,82 @@ func (e *bootStrapShardProcessor) syncHeadersFromStorage(
 		shardIds = append(shardIds, epochStartData.GetShardID())
 	}
 
-	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
+	if meta.GetEpoch() > bp.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.MetachainShardId)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err := bp.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
 	}
 
-	syncedHeaders, err := e.headersSyncer.GetHeaders()
+	syncedHeaders, err := bp.headersSyncer.GetHeaders()
 	if err != nil {
 		return nil, err
 	}
 
-	if meta.GetEpoch() == e.startEpoch+1 {
+	if meta.GetEpoch() == bp.startEpoch+1 {
 		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
 	}
 
 	return syncedHeaders, nil
 }
 
-func (e *bootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error) {
+func (bp *bootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, importDBTargetShardID uint32) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, error) {
 	var err error
-	shardId := e.destinationShardAsObserver
-	if shardId > e.baseData.numberOfShards && shardId != core.MetachainShardId {
-		shardId = e.genesisShardCoordinator.SelfId()
+	shardId := bp.destinationShardAsObserver
+	if shardId > bp.baseData.numberOfShards && shardId != core.MetachainShardId {
+		shardId = bp.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                         e.dataPool,
-		Marshalizer:                      e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:                   e.requestHandler,
-		ChanceComputer:                   e.rater,
-		GenesisNodesConfig:               e.genesisNodesConfig,
-		NodeShuffler:                     e.nodeShuffler,
-		Hasher:                           e.coreComponentsHolder.Hasher(),
+		DataPool:                         bp.dataPool,
+		Marshalizer:                      bp.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                   bp.requestHandler,
+		ChanceComputer:                   bp.rater,
+		GenesisNodesConfig:               bp.genesisNodesConfig,
+		NodeShuffler:                     bp.nodeShuffler,
+		Hasher:                           bp.coreComponentsHolder.Hasher(),
 		PubKey:                           pubKey,
 		ShardIdAsObserver:                shardId,
-		ChanNodeStop:                     e.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:                 e.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:                    e.prefsConfig.FullArchive,
-		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
-		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
-		NodesCoordinatorWithRaterFactory: e.runTypeComponents.NodesCoordinatorWithRaterCreator(),
+		ChanNodeStop:                     bp.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                 bp.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                    bp.prefsConfig.FullArchive,
+		EnableEpochsHandler:              bp.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  bp.nodesCoordinatorRegistryFactory,
+		NodesCoordinatorWithRaterFactory: bp.runTypeComponents.NodesCoordinatorWithRaterCreator(),
 	}
-	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
+	bp.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	clonedHeader := e.epochStartMeta.ShallowClone()
+	clonedHeader := bp.epochStartMeta.ShallowClone()
 	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
 		return nil, 0, fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
-	err = e.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta, importDBTargetShardID)
+	err = bp.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta, importDBTargetShardID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	clonedHeader = e.prevEpochStartMeta.ShallowClone()
+	clonedHeader = bp.prevEpochStartMeta.ShallowClone()
 	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
 	if !ok {
 		return nil, 0, fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
 
-	err = e.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta, importDBTargetShardID)
+	err = bp.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta, importDBTargetShardID)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// no need to save the peers miniblocks here as they were already fetched from the DB
-	nodesConfig, shardId, _, err := e.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
-	return nodesConfig, e.applyShardIDAsObserverIfNeeded(shardId), err
+	nodesConfig, shardId, _, err := bp.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
+	return nodesConfig, bp.applyShardIDAsObserverIfNeeded(shardId), err
 }
 
 // applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
@@ -390,7 +390,7 @@ func (e *bootStrapShardProcessor) processNodesConfigFromStorage(pubKey []byte, i
 // on the available resolver and should be called only from this storage-base bootstrap instance.
 // This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
 // "start of epoch metablock mismatch"
-func (e *bootStrapShardProcessor) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler, importDBTargetShardID uint32) error {
+func (bp *bootStrapShardProcessor) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler, importDBTargetShardID uint32) error {
 	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
 	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
 	var err error
@@ -409,13 +409,13 @@ func (e *bootStrapShardProcessor) applyCurrentShardIDOnMiniblocksCopy(metablock 
 	return err
 }
 
-func (e *bootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error) {
-	epochStartConfig := e.generalConfig.EpochStartConfig
+func (bp *bootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error) {
+	epochStartConfig := bp.generalConfig.EpochStartConfig
 	metaBlockProcessor, err := NewEpochStartMetaBlockProcessor(
-		e.mainMessenger,
-		e.requestHandler,
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
+		bp.mainMessenger,
+		bp.requestHandler,
+		bp.coreComponentsHolder.InternalMarshalizer(),
+		bp.coreComponentsHolder.Hasher(),
 		thresholdForConsideringMetaBlockCorrect,
 		epochStartConfig.MinNumConnectedPeersToStart,
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
@@ -425,25 +425,25 @@ func (e *bootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.Start
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    e.coreComponentsHolder,
-		CryptoComponentsHolder:  e.cryptoComponentsHolder,
-		RequestHandler:          e.requestHandler,
-		Messenger:               e.mainMessenger,
-		ShardCoordinator:        e.shardCoordinator,
-		EconomicsData:           e.economicsData,
-		WhitelistHandler:        e.whiteListHandler,
+		CoreComponentsHolder:    bp.coreComponentsHolder,
+		CryptoComponentsHolder:  bp.cryptoComponentsHolder,
+		RequestHandler:          bp.requestHandler,
+		Messenger:               bp.mainMessenger,
+		ShardCoordinator:        bp.shardCoordinator,
+		EconomicsData:           bp.economicsData,
+		WhitelistHandler:        bp.whiteListHandler,
 		StartInEpochConfig:      epochStartConfig,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
+		HeaderIntegrityVerifier: bp.headerIntegrityVerifier,
 		MetaBlockProcessor:      metaBlockProcessor,
 	}
 
 	return NewEpochStartMetaSyncer(argsEpochStartSyncer)
 }
 
-func (e *bootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
+func (bp *bootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
 	return NewEpochStartMetaSyncer(args)
 }
 
-func (e *bootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
+func (bp *bootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	return bootStrapFactory.NewEpochStartInterceptorsContainer(args)
 }
