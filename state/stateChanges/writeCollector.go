@@ -6,9 +6,10 @@ import (
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var log = logger.GetOrCreate("state/stateChanges")
@@ -42,7 +43,7 @@ func (scc *stateChangesCollector) AddStateChange(stateChange state.StateChange) 
 	defer scc.stateChangesMut.Unlock()
 
 	// TODO: add custom type for stateChange type
-	if stateChange.GetType() == "write" {
+	if stateChange.GetType() == data.Write {
 		scc.stateChanges = append(scc.stateChanges, stateChange)
 	}
 }

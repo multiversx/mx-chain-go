@@ -372,12 +372,12 @@ type StateChangesCollector interface {
 
 // StateChange defines the behaviour of a state change holder
 type StateChange interface {
-	GetType() string
+	GetType() data.ActionType
 	GetIndex() int32
 	GetTxHash() []byte
 	GetMainTrieKey() []byte
 	GetMainTrieVal() []byte
-	GetOperation() string
+	GetOperation() data.Operation
 	GetDataTrieChanges() []*data.DataTrieChange
 
 	SetTxHash(txHash []byte)
