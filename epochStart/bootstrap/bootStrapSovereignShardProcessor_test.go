@@ -216,7 +216,19 @@ func TestBootStrapSovereignShardProcessor_createEpochStartMetaSyncer(t *testing.
 	sovProc := createSovBootStrapProc()
 	epochStartBlockSyncer, err := sovProc.createEpochStartMetaSyncer()
 	require.Nil(t, err)
+	require.Equal(t, "*bootstrap.epochStartSovereignSyncer", fmt.Sprintf("%T", epochStartBlockSyncer))
 
-	epochStartSyncer := epochStartBlockSyncer.(*epochStartMetaSyncer)
+	epochStartSyncer := epochStartBlockSyncer.(*epochStartSovereignSyncer)
 	require.Equal(t, "*bootstrap.epochStartSovereignBlockProcessor", fmt.Sprintf("%T", epochStartSyncer.metaBlockProcessor))
+}
+
+func TestBootStrapSovereignShardProcessor_createStorageEpochStartMetaSyncer(t *testing.T) {
+	t.Parallel()
+
+	sovProc := createSovBootStrapProc()
+
+	args := getEpochStartSyncerArgs()
+	epochStartBlockSyncer, err := sovProc.createStorageEpochStartMetaSyncer(args)
+	require.Nil(t, err)
+	require.Equal(t, "*bootstrap.epochStartSovereignSyncer", fmt.Sprintf("%T", epochStartBlockSyncer))
 }

@@ -438,3 +438,7 @@ func (e *bootStrapShardProcessor) createEpochStartMetaSyncer() (epochStart.Start
 
 	return NewEpochStartMetaSyncer(argsEpochStartSyncer)
 }
+
+func (e *bootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error) {
+	return NewEpochStartMetaSyncer(args)
+}

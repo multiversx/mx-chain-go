@@ -168,7 +168,7 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
 func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (dataCore.MetaHeaderHandler, error) {
-	requestTopic := e.epochStartPeerHandler.getRequestTopic()
+	requestTopic := e.epochStartPeerHandler.getTopic()
 	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(requestTopic)
 	if err != nil {
 		return nil, err
@@ -276,10 +276,10 @@ func (e *epochStartMetaBlockProcessor) setNumPeers(
 	requestHandler RequestHandler,
 	intra int, cross int,
 ) error {
-	return requestHandler.SetNumPeersToQuery(e.getRequestTopic(), intra, cross)
+	return requestHandler.SetNumPeersToQuery(e.getTopic(), intra, cross)
 }
 
-func (e *epochStartMetaBlockProcessor) getRequestTopic() string {
+func (e *epochStartMetaBlockProcessor) getTopic() string {
 	return factory.MetachainBlocksTopic
 }
 
