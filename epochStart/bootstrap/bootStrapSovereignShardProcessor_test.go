@@ -3,11 +3,16 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
+	factoryInterceptors "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -231,4 +236,53 @@ func TestBootStrapSovereignShardProcessor_createStorageEpochStartMetaSyncer(t *t
 	epochStartBlockSyncer, err := sovProc.createStorageEpochStartMetaSyncer(args)
 	require.Nil(t, err)
 	require.Equal(t, "*bootstrap.epochStartSovereignSyncer", fmt.Sprintf("%T", epochStartBlockSyncer))
+}
+
+func TestBootStrapSovereignShardProcessor_createEpochStartInterceptorsContainers(t *testing.T) {
+	t.Parallel()
+
+	sovProc := createSovBootStrapProc()
+	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
+		CoreComponents:          sovProc.coreComponentsHolder,
+		CryptoComponents:        sovProc.cryptoComponentsHolder,
+		Config:                  sovProc.generalConfig,
+		ShardCoordinator:        sovProc.shardCoordinator,
+		MainMessenger:           sovProc.mainMessenger,
+		FullArchiveMessenger:    sovProc.fullArchiveMessenger,
+		DataPool:                dataRetrieverMock.NewPoolsHolderMock(),
+		WhiteListHandler:        sovProc.whiteListHandler,
+		WhiteListerVerifiedTxs:  sovProc.whiteListerVerifiedTxs,
+		ArgumentsParser:         sovProc.argumentsParser,
+		HeaderIntegrityVerifier: sovProc.headerIntegrityVerifier,
+		RequestHandler:          sovProc.requestHandler,
+		SignaturesHandler:       sovProc.mainMessenger,
+		NodeOperationMode:       sovProc.nodeOperationMode,
+	}
+	mainContainer, fullContainer, err := sovProc.createEpochStartInterceptorsContainers(args)
+	require.Nil(t, err)
+
+	sovShardIDStr := fmt.Sprintf("_%d", core.SovereignChainShardId)
+	allKeys := map[string]struct{}{
+		factory.TransactionTopic + sovShardIDStr:         {},
+		factory.UnsignedTransactionTopic + sovShardIDStr: {},
+		factory.ShardBlocksTopic + sovShardIDStr:         {},
+		factory.MiniBlocksTopic + sovShardIDStr:          {},
+		factory.ValidatorTrieNodesTopic + sovShardIDStr:  {},
+		factory.AccountTrieNodesTopic + sovShardIDStr:    {},
+		common.PeerAuthenticationTopic:                   {},
+		common.HeartbeatV2Topic + sovShardIDStr:          {},
+		common.ConnectionTopic:                           {},
+		common.ValidatorInfoTopic:                        {},
+		factory.ExtendedHeaderProofTopic + sovShardIDStr: {},
+	}
+
+	iterateFunc := func(key string, interceptor process.Interceptor) bool {
+		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
+		delete(allKeys, key)
+		return true
+	}
+
+	mainContainer.Iterate(iterateFunc)
+	require.Empty(t, allKeys)
+	require.Zero(t, fullContainer.Len())
 }
