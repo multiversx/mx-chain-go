@@ -93,6 +93,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base.processAndCommitFunc = base.processAndCommit
 	base.handleScheduledRollBackToHeaderFunc = base.handleScheduledRollBackToHeader
 	base.getRootHashFromBlockFunc = base.getRootHashFromBlock
+	base.syncShardAccountsDBsFunc = base.syncShardAccountsDBs
 
 	// placed in struct fields for performance reasons
 	base.headerStore, err = boot.store.GetStorer(dataRetriever.MetaBlockUnit)

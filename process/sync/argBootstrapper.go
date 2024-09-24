@@ -62,5 +62,5 @@ type ArgShardBootstrapper struct {
 type ArgMetaBootstrapper struct {
 	ArgBaseBootstrapper
 	EpochBootstrapper   process.EpochBootstrapper
-	ValidatorAccountsDB state.AccountsAdapter // TODO remove this !!!!!!
+	ValidatorAccountsDB state.AccountsAdapter
 }

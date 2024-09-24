@@ -84,6 +84,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.processAndCommitFunc = base.processAndCommit
 	base.handleScheduledRollBackToHeaderFunc = base.handleScheduledRollBackToHeader
 	base.getRootHashFromBlockFunc = base.getRootHashFromBlock
+	base.syncShardAccountsDBsFunc = base.syncShardAccountsDBs
 
 	// placed in struct fields for performance reasons
 	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
@@ -163,7 +164,7 @@ func (boot *ShardBootstrap) SyncBlock(ctx context.Context) error {
 			return err
 		}
 
-		errSync := boot.syncUserAccountsState(getNodeErr.GetKey())
+		errSync := boot.syncShardAccountsDBsFunc(getNodeErr.GetKey(), getNodeErr.GetIdentifier())
 		boot.handleTrieSyncError(errSync, ctx)
 	}
 

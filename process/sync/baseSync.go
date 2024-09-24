@@ -134,6 +134,7 @@ type baseBootstrap struct {
 	handleScheduledRollBackToHeaderFunc func(header data.HeaderHandler, headerHash []byte) []byte
 	getRootHashFromBlockFunc            func(header data.HeaderHandler, headerHash []byte) []byte
 	doProcessReceivedHeaderJobFunc      func(headerHandler data.HeaderHandler, headerHash []byte)
+	syncShardAccountsDBsFunc            func(key []byte, id string) error
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -1254,6 +1255,10 @@ func (boot *baseBootstrap) syncAccountsDBs(key []byte, id string) error {
 	default:
 		return fmt.Errorf("invalid trie identifier, id: %s", id)
 	}
+}
+
+func (boot *baseBootstrap) syncShardAccountsDBs(key []byte, _ string) error {
+	return boot.syncUserAccountsState(key)
 }
 
 func (boot *baseBootstrap) syncValidatorAccountsState(key []byte) error {
