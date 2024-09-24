@@ -714,11 +714,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.addToAccumulatedFees(baseConfig.LostProposalFee)
 	}
 
-	err = g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	g.eei.Transfer(generalProposal.IssuerAddress, args.RecipientAddr, tokensToReturn, nil, 0)
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
