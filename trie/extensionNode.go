@@ -537,29 +537,33 @@ func (en *extensionNode) getDataWithMatchingPrefix(data []core.TrieData) []core.
 	return dataWithMatchingKey
 }
 
-func (en *extensionNode) delete(data []core.TrieData, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
-	emptyHashes := make([][]byte, 0)
+func (en *extensionNode) delete(
+	data []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) (bool, node, [][]byte) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, fmt.Errorf("delete error %w", err)
+		goRoutinesManager.SetError(fmt.Errorf("delete error %w", err))
+		return false, nil, [][]byte{}
 	}
 
 	dataWithMatchingKey := en.getDataWithMatchingPrefix(data)
 	if len(dataWithMatchingKey) == 0 {
-		return false, en, emptyHashes, nil
+		return false, en, [][]byte{}
 	}
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		goRoutinesManager.SetError(err)
+		return false, nil, [][]byte{}
 	}
 
-	dirty, newNode, oldHashes, err := en.child.delete(dataWithMatchingKey, db)
-	if err != nil {
-		return false, en, emptyHashes, err
+	dirty, newNode, oldHashes := en.child.delete(dataWithMatchingKey, goRoutinesManager, db)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return false, nil, [][]byte{}
 	}
-
 	if !dirty {
-		return false, en, emptyHashes, nil
+		return false, en, [][]byte{}
 	}
 
 	if !en.dirty {
@@ -575,28 +579,32 @@ func (en *extensionNode) delete(data []core.TrieData, db common.TrieStorageInter
 		}
 		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
-		return true, n, oldHashes, nil
+		return true, n, oldHashes
 	case *extensionNode:
 		n, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
-		return true, n, oldHashes, nil
+		return true, n, oldHashes
 	case *branchNode:
 		n, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
-		return true, n, oldHashes, nil
+		return true, n, oldHashes
 	case nil:
-		return true, nil, oldHashes, nil
+		return true, nil, oldHashes
 	default:
-		return false, nil, oldHashes, ErrInvalidNode
+		goRoutinesManager.SetError(ErrInvalidNode)
+		return false, nil, oldHashes
 	}
 }
 

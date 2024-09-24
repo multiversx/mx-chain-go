@@ -336,7 +336,11 @@ func (ln *leafNode) insertInNewBn(
 	return newNode
 }
 
-func (ln *leafNode) delete(data []core.TrieData, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(
+	data []core.TrieData,
+	_ common.TrieGoroutinesManager,
+	_ common.TrieStorageInteractor,
+) (bool, node, [][]byte) {
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {
 			oldHash := make([][]byte, 0)
@@ -344,10 +348,10 @@ func (ln *leafNode) delete(data []core.TrieData, _ common.TrieStorageInteractor)
 				oldHash = append(oldHash, ln.hash)
 			}
 
-			return true, nil, oldHash, nil
+			return true, nil, oldHash
 		}
 	}
-	return false, ln, [][]byte{}, nil
+	return false, ln, [][]byte{}
 }
 
 func (ln *leafNode) reduceNode(pos int) (node, bool, error) {

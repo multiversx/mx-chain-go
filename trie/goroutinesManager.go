@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -16,12 +17,21 @@ type goroutinesManager struct {
 	canProcess bool
 }
 
+// NewGoroutinesManager creates a new GoroutinesManager
 func NewGoroutinesManager(
 	throttler core.Throttler,
 	errorChannel common.BufferedErrChan,
 	chanClose chan struct{},
 ) (common.TrieGoroutinesManager, error) {
-	// TODO: check arguments and add logging in this file
+	if check.IfNil(throttler) {
+		return nil, ErrNilThrottler
+	}
+	if check.IfNil(errorChannel) {
+		return nil, ErrNilBufferedErrChan
+	}
+	if chanClose == nil {
+		return nil, ErrNilChanClose
+	}
 
 	return &goroutinesManager{
 		throttler:    throttler,
@@ -31,6 +41,7 @@ func NewGoroutinesManager(
 	}, nil
 }
 
+// ShouldContinueProcessing checks if the processing should be interrupted
 func (gm *goroutinesManager) ShouldContinueProcessing() bool {
 	select {
 	case <-gm.chanClose:
@@ -43,6 +54,7 @@ func (gm *goroutinesManager) ShouldContinueProcessing() bool {
 	}
 }
 
+// CanStartGoRoutine checks if a new goroutine can be started. If yes, it adds a new goroutine to the throttler
 func (gm *goroutinesManager) CanStartGoRoutine() bool {
 	gm.mutex.Lock()
 	defer gm.mutex.Unlock()
@@ -55,6 +67,7 @@ func (gm *goroutinesManager) CanStartGoRoutine() bool {
 	return true
 }
 
+// EndGoRoutineProcessing ends the processing of a goroutine
 func (gm *goroutinesManager) EndGoRoutineProcessing() {
 	gm.mutex.Lock()
 	defer gm.mutex.Unlock()
@@ -62,6 +75,7 @@ func (gm *goroutinesManager) EndGoRoutineProcessing() {
 	gm.throttler.EndProcessing()
 }
 
+// SetError sets an error in the error channel
 func (gm *goroutinesManager) SetError(err error) {
 	gm.mutex.Lock()
 	defer gm.mutex.Unlock()
@@ -70,10 +84,12 @@ func (gm *goroutinesManager) SetError(err error) {
 	gm.canProcess = false
 }
 
+// GetError gets an error from the error channel
 func (gm *goroutinesManager) GetError() error {
 	return gm.errorChannel.ReadFromChanNonBlocking()
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (gm *goroutinesManager) IsInterfaceNil() bool {
 	return gm == nil
 }

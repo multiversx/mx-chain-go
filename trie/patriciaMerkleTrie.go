@@ -248,10 +248,17 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(data, tr.trieStorage)
+	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
 	if err != nil {
 		return err
 	}
+
+	_, newRoot, oldHashes := tr.root.delete(data, manager, tr.trieStorage)
+	err = manager.GetError()
+	if err != nil {
+		return err
+	}
+
 	tr.root = newRoot
 	tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)

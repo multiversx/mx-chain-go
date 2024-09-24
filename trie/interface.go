@@ -30,7 +30,7 @@ type node interface {
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, db common.TrieStorageInteractor) (node, [][]byte)
-	delete(data []core.TrieData, db common.TrieStorageInteractor) (bool, node, [][]byte, error)
+	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, db common.TrieStorageInteractor) (bool, node, [][]byte)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db common.TrieStorageInteractor)
