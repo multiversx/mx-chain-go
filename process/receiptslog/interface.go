@@ -13,7 +13,7 @@ type Interactor interface {
 	AddReceiptData(receiptData state.Receipt) error
 	Save() ([]byte, error)
 	GetSerializedNode(nodeHash []byte) ([]byte, error)
-	RecreateTrieFromDB(rootHash []byte, db storage.Storer) (common.Trie, error)
+	RecreateTrieFromDB(rootHash []byte, db storage.Persister) (common.Trie, error)
 	SaveNewTrie(localTrie common.Trie) error
 	IsInterfaceNil() bool
 }

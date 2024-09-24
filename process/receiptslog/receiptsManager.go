@@ -6,8 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/state"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -80,18 +80,18 @@ func (rm *receiptsManager) SyncReceiptsTrie(receiptsRootHash []byte) error {
 		return err
 	}
 
-	storerMock := mock.NewStorerMock()
-	leafNodesHashes, err := trie.GetLeafHashesAndPutNodesInRamStorage(nodesMap, storerMock, rm.hasher, rm.marshaller)
+	memoryDB := database.NewMemDB()
+	leafNodesHashes, err := trie.GetLeafHashesAndPutNodesInRamStorage(nodesMap, memoryDB, rm.hasher, rm.marshaller)
 	if err != nil {
 		return err
 	}
 
-	err = rm.syncLeafNodesAndPutInStorer(leafNodesHashes, storerMock)
+	err = rm.syncLeafNodesAndPutInStorer(leafNodesHashes, memoryDB)
 	if err != nil {
 		return err
 	}
 
-	newTrie, err := rm.trieInteractor.RecreateTrieFromDB(receiptsRootHash, storerMock)
+	newTrie, err := rm.trieInteractor.RecreateTrieFromDB(receiptsRootHash, memoryDB)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (rm *receiptsManager) syncBranchNodesData(receiptsRootHash []byte) (map[str
 	return serializedNodes.SerializedNodes, nil
 }
 
-func (rm *receiptsManager) syncLeafNodesAndPutInStorer(hashes [][]byte, db storage.Storer) error {
+func (rm *receiptsManager) syncLeafNodesAndPutInStorer(hashes [][]byte, db storage.Persister) error {
 	err := rm.receiptsDataSyncer.SyncReceiptsDataFor(hashes, context.Background())
 	if err != nil {
 		return err

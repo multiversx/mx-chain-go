@@ -11,7 +11,7 @@ import (
 // GetLeafHashesAndPutNodesInRamStorage will return the leaf node hashes and put the rest of nodes in a storer
 func GetLeafHashesAndPutNodesInRamStorage(
 	branchNodesMap map[string][]byte,
-	db storage.Storer,
+	db storage.Persister,
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 ) ([][]byte, error) {
