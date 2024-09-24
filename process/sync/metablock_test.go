@@ -92,13 +92,13 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper:         argsBaseBootstrapper,
-		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
-		ValidatorAccountsDB:         &stateMock.AccountsStub{},
-		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   &mock.EpochStartTriggerStub{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
 	}
 
 	return argsMetaBootstrapper
@@ -134,7 +134,7 @@ func TestNewMetaBootstrap_NilValidatorDBSyncerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.ValidatorStatisticsDBSyncer = nil
+	args.ValidatorDBSyncer = nil
 
 	bs, err := sync.NewMetaBootstrap(args)
 
@@ -1775,7 +1775,7 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 
 		args := CreateMetaBootstrapMockArguments()
 		accountsSyncCalled := false
-		args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
+		args.ValidatorDBSyncer = &mock.AccountsDBSyncerStub{
 			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 				accountsSyncCalled = true
 				return nil

@@ -219,6 +219,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{

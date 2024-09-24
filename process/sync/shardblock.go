@@ -66,6 +66,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
 		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
+		validatorDBSyncer:            arguments.ValidatorDBSyncer,
 	}
 
 	if base.isInImportMode {

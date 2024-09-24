@@ -114,18 +114,19 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	outportHandler   outport.OutportHandler
-	accountsDBSyncer process.AccountsDBSyncer
+	outportHandler    outport.OutportHandler
+	accountsDBSyncer  process.AccountsDBSyncer
+	validatorDBSyncer process.AccountsDBSyncer
 
-	chRcvMiniBlocks                     chan bool
-	mutRcvMiniBlocks                    sync.Mutex
-	miniBlocksProvider                  process.MiniBlockProvider
-	poolsHolder                         dataRetriever.PoolsHolder
-	mutRequestHeaders                   sync.Mutex
-	cancelFunc                          func()
-	isInImportMode                      bool
-	scheduledTxsExecutionHandler        process.ScheduledTxsExecutionHandler
-	processWaitTime                     time.Duration
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
+	isInImportMode               bool
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	processWaitTime              time.Duration
 
 	repopulateTokensSupplies bool
 
@@ -496,6 +497,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	}
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
+	}
+	if check.IfNil(arguments.ValidatorDBSyncer) {
+		return process.ErrNilAccountsDBSyncer
 	}
 	if arguments.ProcessWaitTime < minimumProcessWaitTime {
 		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
@@ -1236,6 +1240,25 @@ func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 	}
 
 	return tokensSuppliesProc.SaveSupplies()
+}
+
+func (boot *baseBootstrap) syncAccountsDBs(key []byte, id string) error {
+	// TODO: refactor this in order to avoid treatment based on identifier
+	switch id {
+	case dataRetriever.UserAccountsUnit.String():
+		log.Error("UserAccountsUnit")
+		return boot.syncUserAccountsState(key)
+	case dataRetriever.PeerAccountsUnit.String():
+		log.Error("PeerAccountsUnit")
+		return boot.syncValidatorAccountsState(key)
+	default:
+		return fmt.Errorf("invalid trie identifier, id: %s", id)
+	}
+}
+
+func (boot *baseBootstrap) syncValidatorAccountsState(key []byte) error {
+	log.Warn("base sync: started syncValidatorAccountsState")
+	return boot.validatorDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 // Close will close the endless running go routine

@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -12,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
@@ -36,9 +34,6 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 	if check.IfNil(arguments.EpochHandler) {
 		return nil, process.ErrNilEpochHandler
-	}
-	if check.IfNil(arguments.ValidatorStatisticsDBSyncer) {
-		return nil, process.ErrNilAccountsDBSyncer
 	}
 	if check.IfNil(arguments.ValidatorAccountsDB) {
 		return nil, process.ErrNilPeerAccountsAdapter
@@ -78,6 +73,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		validatorDBSyncer:            arguments.ValidatorDBSyncer,
 	}
 
 	if base.isInImportMode {
@@ -85,10 +81,9 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	boot := MetaBootstrap{
-		baseBootstrap:               base,
-		epochBootstrapper:           arguments.EpochBootstrapper,
-		validatorStatisticsDBSyncer: arguments.ValidatorStatisticsDBSyncer,
-		validatorAccountsDB:         arguments.ValidatorAccountsDB,
+		baseBootstrap:       base,
+		epochBootstrapper:   arguments.EpochBootstrapper,
+		validatorAccountsDB: arguments.ValidatorAccountsDB,
 	}
 
 	base.blockBootstrapper = &boot
@@ -197,23 +192,6 @@ func (boot *MetaBootstrap) SyncBlock(ctx context.Context) error {
 	}
 
 	return err
-}
-
-func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
-	// TODO: refactor this in order to avoid treatment based on identifier
-	switch id {
-	case dataRetriever.UserAccountsUnit.String():
-		return boot.syncUserAccountsState(key)
-	case dataRetriever.PeerAccountsUnit.String():
-		return boot.syncValidatorAccountsState(key)
-	default:
-		return fmt.Errorf("invalid trie identifier, id: %s", id)
-	}
-}
-
-func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
-	log.Warn("base sync: started syncValidatorAccountsState")
-	return boot.validatorStatisticsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 // Close closes the synchronization loop

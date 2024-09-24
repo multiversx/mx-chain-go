@@ -88,6 +88,7 @@ func getDefaultArgs() sync.ArgShardBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              time.Second,
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	return sync.ArgShardBootstrapper{
