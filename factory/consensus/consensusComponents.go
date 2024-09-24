@@ -470,11 +470,6 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		return nil, err
 	}
 
-	validatorDBSyncer, err := ccf.createValidatorAccountsSyncer()
-	if err != nil {
-		return nil, err
-	}
-
 	stateNodesNotifierSubscriber, ok := accountsDBSyncer.(common.StateSyncNotifierSubscriber)
 	if !ok {
 		return nil, fmt.Errorf("wrong type conversion for accountsDBSyncer, type: %T", accountsDBSyncer)
