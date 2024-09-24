@@ -37,6 +37,7 @@
     DelegateVote          = 1000000
     RevokeVote            = 500000
     CloseProposal         = 1000000
+    ClearProposal         = 1000000
     ClaimAccumulatedFees  = 1000000
     ChangeConfig          = 50000000
     DelegationOps         = 1000000
