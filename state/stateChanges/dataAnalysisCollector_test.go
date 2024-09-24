@@ -6,10 +6,11 @@ import (
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewDataAnalysisCollector(t *testing.T) {
@@ -41,13 +42,13 @@ func TestDataAnalysisStateChangesCollector_AddStateChange(t *testing.T) {
 	require.Equal(t, 0, len(dsc.stateChanges))
 
 	dsc.AddStateChange(&data.StateChange{
-		Type: "write",
+		Type: data.Write,
 	})
 	dsc.AddStateChange(&data.StateChange{
-		Type: "read",
+		Type: data.Read,
 	})
 	dsc.AddStateChange(&data.StateChange{
-		Type: "write",
+		Type: data.Write,
 	})
 
 	require.Equal(t, 3, len(dsc.stateChanges))
@@ -66,7 +67,7 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 			nil,
 			&state.UserAccountStub{},
 			&data.StateChange{
-				Type:        "saveAccount",
+				Type:        data.Write,
 				Index:       2,
 				TxHash:      []byte("txHash1"),
 				MainTrieKey: []byte("key1"),
@@ -102,7 +103,7 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 			&state.UserAccountStub{},
 			nil,
 			&data.StateChange{
-				Type:        "saveAccount",
+				Type:        data.Write,
 				Index:       2,
 				TxHash:      []byte("txHash1"),
 				MainTrieKey: []byte("key1"),
@@ -162,7 +163,7 @@ func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.
 				},
 			},
 			&data.StateChange{
-				Type:        "saveAccount",
+				Type:        data.Write,
 				Index:       2,
 				TxHash:      []byte("txHash1"),
 				MainTrieKey: []byte("key1"),

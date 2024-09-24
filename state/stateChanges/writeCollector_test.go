@@ -7,15 +7,16 @@ import (
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/stretchr/testify/require"
 )
 
 func getDefaultStateChange() *data.StateChange {
 	return &data.StateChange{
-		Type: "write",
+		Type: data.Write,
 	}
 }
 
@@ -52,7 +53,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
 			scc.AddStateChange(&data.StateChange{
-				Type:        "write",
+				Type:        data.Write,
 				MainTrieKey: []byte(strconv.Itoa(i)),
 			})
 		}
@@ -85,7 +86,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
 			scc.AddStateChange(&data.StateChange{
-				Type:        "write",
+				Type:        data.Write,
 				MainTrieKey: []byte(strconv.Itoa(i)),
 			})
 		}
@@ -107,7 +108,7 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	scc.AddTxHashToCollectedStateChanges([]byte("txHash0"), &transaction.Transaction{})
 
 	stateChange := &data.StateChange{
-		Type:            "write",
+		Type:            data.Write,
 		MainTrieKey:     []byte("mainTrieKey"),
 		MainTrieVal:     []byte("mainTrieVal"),
 		DataTrieChanges: []*data.DataTrieChange{{Key: []byte("dataTrieKey"), Val: []byte("dataTrieVal")}},
@@ -262,7 +263,7 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
 		scc.AddStateChange(&data.StateChange{
-			Type: "write",
+			Type: data.Write,
 			// distribute evenly based on parity of the index
 			TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 		})
@@ -277,20 +278,20 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 	require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
 		"hash0": {
 			[]*data.StateChange{
-				{Type: "write", TxHash: []byte("hash0")},
-				{Type: "write", TxHash: []byte("hash0")},
-				{Type: "write", TxHash: []byte("hash0")},
-				{Type: "write", TxHash: []byte("hash0")},
-				{Type: "write", TxHash: []byte("hash0")},
+				{Type: data.Write, TxHash: []byte("hash0")},
+				{Type: data.Write, TxHash: []byte("hash0")},
+				{Type: data.Write, TxHash: []byte("hash0")},
+				{Type: data.Write, TxHash: []byte("hash0")},
+				{Type: data.Write, TxHash: []byte("hash0")},
 			},
 		},
 		"hash1": {
 			[]*data.StateChange{
-				{Type: "write", TxHash: []byte("hash1")},
-				{Type: "write", TxHash: []byte("hash1")},
-				{Type: "write", TxHash: []byte("hash1")},
-				{Type: "write", TxHash: []byte("hash1")},
-				{Type: "write", TxHash: []byte("hash1")},
+				{Type: data.Write, TxHash: []byte("hash1")},
+				{Type: data.Write, TxHash: []byte("hash1")},
+				{Type: data.Write, TxHash: []byte("hash1")},
+				{Type: data.Write, TxHash: []byte("hash1")},
+				{Type: data.Write, TxHash: []byte("hash1")},
 			},
 		},
 	})
