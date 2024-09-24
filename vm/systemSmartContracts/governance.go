@@ -231,6 +231,11 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		g.eei.AddReturnMessage("changeConfig needs 5 arguments")
 		return vmcommon.UserError
 	}
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.ChangeConfig)
+	if err != nil {
+		g.eei.AddReturnMessage("not enough gas")
+		return vmcommon.OutOfGas
+	}
 
 	proposalFee, okConvert := big.NewInt(0).SetString(string(args.Arguments[0]), conversionBase)
 	if !okConvert || proposalFee.Cmp(zero) <= 0 {
@@ -810,7 +815,7 @@ func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInp
 		g.eei.AddReturnMessage("can be called only by owner")
 		return vmcommon.UserError
 	}
-	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.CloseProposal)
+	err := g.eei.UseGas(g.gasCost.MetaChainSystemSCsCost.ClaimAccumulatedFees)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
