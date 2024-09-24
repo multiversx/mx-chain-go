@@ -742,7 +742,9 @@ func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInpu
 	}
 
 	numAddresses := uint64(len(args.Arguments))
-	err := g.eei.UseGas((numAddresses + 1) * g.gasCost.MetaChainSystemSCsCost.ClearProposal)
+	perAddressGas := g.gasCost.MetaChainSystemSCsCost.ClearProposal
+	baseGas := g.gasCost.MetaChainSystemSCsCost.ClearProposal
+	err := g.eei.UseGas(numAddresses*perAddressGas + baseGas)
 	if err != nil {
 		g.eei.AddReturnMessage("not enough gas")
 		return vmcommon.OutOfGas
