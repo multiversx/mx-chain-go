@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 var _ factory.ComponentHandler = (*managedBootstrapComponents)(nil)
@@ -116,6 +117,18 @@ func (mbf *managedBootstrapComponents) EpochBootstrapParams() factory.BootstrapP
 	}
 
 	return mbf.bootstrapComponents.bootstrapParamsHolder
+}
+
+// NodesCoordinatorRegistryFactory returns the NodesCoordinatorRegistryFactory
+func (mbf *managedBootstrapComponents) NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory {
+	mbf.mutBootstrapComponents.RLock()
+	defer mbf.mutBootstrapComponents.RUnlock()
+
+	if mbf.bootstrapComponents == nil {
+		return nil
+	}
+
+	return mbf.bootstrapComponents.nodesCoordinatorRegistryFactory
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

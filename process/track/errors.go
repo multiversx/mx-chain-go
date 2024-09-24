@@ -30,3 +30,6 @@ var ErrNotarizedHeaderOffsetIsOutOfBound = errors.New("requested offset of the n
 
 // ErrNilRoundHandler signals that a nil roundHandler has been provided
 var ErrNilRoundHandler = errors.New("nil roundHandler")
+
+// ErrNilKeysHandler signals that a nil keys handler was provided
+var ErrNilKeysHandler = errors.New("nil keys handler")

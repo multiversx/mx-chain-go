@@ -7,7 +7,6 @@ import (
 
 // EnableEpochsHandlerMock -
 type EnableEpochsHandlerMock struct {
-	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 	CurrentEpoch                              uint32
@@ -18,8 +17,6 @@ func (mock *EnableEpochsHandlerMock) GetActivationEpoch(flag core.EnableEpochFla
 	switch flag {
 	case common.RefactorPeersMiniBlocksFlag:
 		return mock.RefactorPeersMiniBlocksEnableEpochField
-	case common.WaitingListFixFlag:
-		return mock.WaitingListFixEnableEpochField
 
 	default:
 		return 0
@@ -48,6 +45,16 @@ func (mock *EnableEpochsHandlerMock) GetCurrentEpoch() uint32 {
 
 // FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
 func (mock *EnableEpochsHandlerMock) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
+	return false
+}
+
+// IsRelayedTransactionsV3FlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsV3FlagEnabled() bool {
+	return false
+}
+
+// IsFixRelayedBaseCostFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixRelayedBaseCostFlagEnabled() bool {
 	return false
 }
 

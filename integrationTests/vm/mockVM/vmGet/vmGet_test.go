@@ -29,6 +29,10 @@ import (
 )
 
 func TestVmGetShouldReturnValue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	accnts, destinationAddressBytes, expectedValueForVar := deploySmartContract(t)
 
 	mockVM := vm.CreateOneSCExecutorMockVM(accnts)

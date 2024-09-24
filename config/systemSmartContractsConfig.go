@@ -7,6 +7,7 @@ type SystemSmartContractsConfig struct {
 	StakingSystemSCConfig           StakingSystemSCConfig
 	DelegationManagerSystemSCConfig DelegationManagerSystemSCConfig
 	DelegationSystemSCConfig        DelegationSystemSCConfig
+	SoftAuctionConfig               SoftAuctionConfig
 }
 
 // StakingSystemSCConfig will hold the staking system smart contract settings
@@ -23,6 +24,8 @@ type StakingSystemSCConfig struct {
 	BleedPercentagePerRound              float64
 	MaxNumberOfNodesForStake             uint64
 	ActivateBLSPubKeyMessageVerification bool
+	StakeLimitPercentage                 float64
+	NodeLimitPercentage                  float64
 }
 
 // ESDTSystemSCConfig defines a set of constant to initialize the esdt system smart contract
@@ -71,4 +74,12 @@ type DelegationSystemSCConfig struct {
 	MinServiceFee               uint64
 	MaxServiceFee               uint64
 	AddTokensWhitelistedAddress string
+}
+
+// SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
+type SoftAuctionConfig struct {
+	TopUpStep             string
+	MinTopUp              string
+	MaxTopUp              string
+	MaxNumberOfIterations uint64
 }

@@ -64,7 +64,7 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 // CreateRewardsMiniBlocks proxies the CreateRewardsMiniBlocks method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())
@@ -77,7 +77,7 @@ func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 // VerifyRewardsMiniBlocks proxies the same method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) error {
 	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())

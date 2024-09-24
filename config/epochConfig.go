@@ -45,13 +45,11 @@ type EnableEpochs struct {
 	SaveJailedAlwaysEnableEpoch                              uint32
 	ValidatorToDelegationEnableEpoch                         uint32
 	ReDelegateBelowMinCheckEnableEpoch                       uint32
-	WaitingListFixEnableEpoch                                uint32
 	IncrementSCRNonceInMultiTransferEnableEpoch              uint32
 	ScheduledMiniBlocksEnableEpoch                           uint32
 	ESDTMultiTransferEnableEpoch                             uint32
 	GlobalMintBurnDisableEpoch                               uint32
 	ESDTTransferRoleEnableEpoch                              uint32
-	BuiltInFunctionOnMetaEnableEpoch                         uint32
 	ComputeRewardCheckpointEnableEpoch                       uint32
 	SCRSizeInvariantCheckEnableEpoch                         uint32
 	BackwardCompSaveKeyValueEnableEpoch                      uint32
@@ -104,6 +102,7 @@ type EnableEpochs struct {
 	MultiClaimOnDelegationEnableEpoch                        uint32
 	ChangeUsernameEnableEpoch                                uint32
 	AutoBalanceDataTriesEnableEpoch                          uint32
+	MigrateDataTrieEnableEpoch                               uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch             uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch             uint32
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch          uint32
@@ -111,6 +110,19 @@ type EnableEpochs struct {
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
 	CurrentRandomnessOnSortingEnableEpoch                    uint32
+	StakeLimitsEnableEpoch                                   uint32
+	StakingV4Step1EnableEpoch                                uint32
+	StakingV4Step2EnableEpoch                                uint32
+	StakingV4Step3EnableEpoch                                uint32
+	CleanupAuctionOnLowWaitingListEnableEpoch                uint32
+	AlwaysMergeContextsInEEIEnableEpoch                      uint32
+	DynamicESDTEnableEpoch                                   uint32
+	EGLDInMultiTransferEnableEpoch                           uint32
+	CryptoOpcodesV2EnableEpoch                               uint32
+	UnJailCleanupEnableEpoch                                 uint32
+	RelayedTransactionsV3EnableEpoch                         uint32
+	FixRelayedBaseCostEnableEpoch                            uint32
+	MultiESDTNFTTransferAndExecuteByUserEnableEpoch          uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

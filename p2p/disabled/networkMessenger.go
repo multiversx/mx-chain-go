@@ -175,11 +175,6 @@ func (netMes *networkMessenger) SignUsingPrivateKey(_ []byte, _ []byte) ([]byte,
 	return make([]byte, 0), nil
 }
 
-// AddPeerTopicNotifier returns nil as it is disabled
-func (netMes *networkMessenger) AddPeerTopicNotifier(_ p2p.PeerTopicNotifier) error {
-	return nil
-}
-
 // ProcessReceivedMessage returns nil as it is disabled
 func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
 	return nil
@@ -188,6 +183,11 @@ func (netMes *networkMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.
 // SetDebugger returns nil as it is disabled
 func (netMes *networkMessenger) SetDebugger(_ p2p.Debugger) error {
 	return nil
+}
+
+// HasCompatibleProtocolID returns false as it is disabled
+func (netMes *networkMessenger) HasCompatibleProtocolID(_ string) bool {
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

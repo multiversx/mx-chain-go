@@ -825,7 +825,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, atp)
 
-	res, err := atp.GetTransactionsPoolForSender(sender, "sender,value")
+	res, err := atp.GetTransactionsPoolForSender(sender, "*")
 	require.NoError(t, err)
 	expectedHashes := []string{hex.EncodeToString(txHash0), hex.EncodeToString(txHash1), hex.EncodeToString(txHash2), hex.EncodeToString(txHash3), hex.EncodeToString(txHash4)}
 	expectedValues := []string{"100001", "100002", "100003", "100004", "100005"}

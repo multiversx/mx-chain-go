@@ -31,13 +31,15 @@ func createAccountsRepository(accDB state.AccountsAdapter, blockchain chainData.
 }
 
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(testscommon.CreateMemUnit())
 	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, _ := accDB.Commit()
 
-	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
@@ -67,7 +69,9 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	testNonce := uint64(7)
 	testBalance := big.NewInt(100)
@@ -77,7 +81,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	testPubkey := integrationTests.CreateAccount(accDB, testNonce, testBalance)
 	rootHash, _ := accDB.Commit()
 
-	coreComponents := integrationTests.GetDefaultCoreComponents()
+	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 	coreComponents.AddressPubKeyConverterField = testscommon.RealWorldBech32PubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()

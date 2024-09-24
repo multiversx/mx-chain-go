@@ -54,12 +54,17 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-//
-//	over the None struct.
+// over the None struct.
 type Option func(*Node) error
 
 type filter interface {
 	filter(tokenIdentifier string, esdtData *systemSmartContracts.ESDTDataV2) bool
+}
+
+type accountInfo struct {
+	account         state.UserAccountHandler
+	block           api.BlockInfo
+	accountResponse api.AccountResponse
 }
 
 // Node is a structure that holds all managed components
@@ -288,24 +293,10 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, api.BlockInfo{}, nil
+		return map[string]string{}, blockInfo, nil
 	}
 
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = userAccount.GetAllLeaves(chLeaves, ctx)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
-	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves.LeavesChan {
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+	mapToReturn, err := n.getKeys(userAccount, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -315,6 +306,28 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	return mapToReturn, blockInfo, nil
+}
+
+func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err := userAccount.GetAllLeaves(chLeaves, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mapToReturn := make(map[string]string)
+	for leaf := range chLeaves.LeavesChan {
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
+	}
+
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+	if err != nil {
+		return nil, err
+	}
+	return mapToReturn, nil
 }
 
 // GetValueForKey will return the value for a key from a given account
@@ -785,6 +798,8 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
+		n.coreComponents.EnableEpochsHandler(),
+		n.processComponents.RelayedTxV3Processor(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -878,25 +893,33 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:       txArgs.Nonce,
-		Value:       valAsBigInt,
-		RcvAddr:     receiverAddress,
-		RcvUserName: txArgs.ReceiverUsername,
-		SndAddr:     senderAddress,
-		SndUserName: txArgs.SenderUsername,
-		GasPrice:    txArgs.GasPrice,
-		GasLimit:    txArgs.GasLimit,
-		Data:        txArgs.DataField,
-		Signature:   signatureBytes,
-		ChainID:     []byte(txArgs.ChainID),
-		Version:     txArgs.Version,
-		Options:     txArgs.Options,
+		Nonce:             txArgs.Nonce,
+		Value:             valAsBigInt,
+		RcvAddr:           receiverAddress,
+		RcvUserName:       txArgs.ReceiverUsername,
+		SndAddr:           senderAddress,
+		SndUserName:       txArgs.SenderUsername,
+		GasPrice:          txArgs.GasPrice,
+		GasLimit:          txArgs.GasLimit,
+		Data:              txArgs.DataField,
+		Signature:         signatureBytes,
+		ChainID:           []byte(txArgs.ChainID),
+		Version:           txArgs.Version,
+		Options:           txArgs.Options,
+		InnerTransactions: txArgs.InnerTransactions,
 	}
 
 	if len(txArgs.Guardian) > 0 {
 		err = n.setTxGuardianData(txArgs.Guardian, txArgs.GuardianSigHex, tx)
 		if err != nil {
 			return nil, nil, err
+		}
+	}
+
+	if len(txArgs.Relayer) > 0 {
+		tx.RelayerAddr, err = addrPubKeyConverter.Decode(txArgs.Relayer)
+		if err != nil {
+			return nil, nil, errors.New("could not create relayer address from provided param")
 		}
 	}
 
@@ -931,40 +954,36 @@ func (n *Node) setTxGuardianData(guardian string, guardianSigHex string, tx *tra
 
 // GetAccount will return account details for a given address
 func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
-	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	accInfo, err := n.getAccountInfo(address, options)
 	if err != nil {
-		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
-		if isEmptyAccount {
-			return api.AccountResponse{
-				Address:         address,
-				Balance:         "0",
-				DeveloperReward: "0",
-			}, adaptedBlockInfo, nil
-		}
-
 		return api.AccountResponse{}, api.BlockInfo{}, err
 	}
 
-	ownerAddress := ""
-	if len(account.GetOwnerAddress()) > 0 {
-		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
-		ownerAddress, err = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+	return accInfo.accountResponse, accInfo.block, nil
+}
+
+// GetAccountWithKeys will return account details for a given address including the keys
+func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
+	accInfo, err := n.getAccountInfo(address, options)
+	if err != nil {
+		return api.AccountResponse{}, api.BlockInfo{}, err
+	}
+
+	var keys map[string]string
+	if options.WithKeys {
+		if accInfo.account == nil || accInfo.account.DataTrie() == nil {
+			return accInfo.accountResponse, accInfo.block, nil
+		}
+
+		keys, err = n.getKeys(accInfo.account, ctx)
 		if err != nil {
 			return api.AccountResponse{}, api.BlockInfo{}, err
 		}
 	}
 
-	return api.AccountResponse{
-		Address:         address,
-		Nonce:           account.GetNonce(),
-		Balance:         account.GetBalance().String(),
-		Username:        string(account.GetUserName()),
-		CodeHash:        account.GetCodeHash(),
-		RootHash:        account.GetRootHash(),
-		CodeMetadata:    account.GetCodeMetadata(),
-		DeveloperReward: account.GetDeveloperReward().String(),
-		OwnerAddress:    ownerAddress,
-	}, blockInfo, nil
+	accInfo.accountResponse.Pairs = keys
+
+	return accInfo.accountResponse, accInfo.block, nil
 }
 
 func extractBlockInfoIfNewAccount(err error) (api.BlockInfo, bool) {
@@ -982,6 +1001,58 @@ func extractBlockInfoIfNewAccount(err error) (api.BlockInfo, bool) {
 	}
 
 	return api.BlockInfo{}, false
+}
+
+func (n *Node) getAccountInfo(address string, options api.AccountQueryOptions) (accountInfo, error) {
+	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
+			return accountInfo{
+				accountResponse: api.AccountResponse{
+					Address:         address,
+					Balance:         "0",
+					DeveloperReward: "0",
+				},
+				block:   adaptedBlockInfo,
+				account: account,
+			}, nil
+		}
+		return accountInfo{
+			accountResponse: api.AccountResponse{},
+			block:           api.BlockInfo{},
+			account:         nil,
+		}, err
+	}
+
+	ownerAddress := ""
+	if len(account.GetOwnerAddress()) > 0 {
+		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
+		ownerAddress, err = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		if err != nil {
+			return accountInfo{
+				accountResponse: api.AccountResponse{},
+				block:           api.BlockInfo{},
+				account:         nil,
+			}, err
+		}
+	}
+
+	return accountInfo{
+		accountResponse: api.AccountResponse{
+			Address:         address,
+			Nonce:           account.GetNonce(),
+			Balance:         account.GetBalance().String(),
+			Username:        string(account.GetUserName()),
+			CodeHash:        account.GetCodeHash(),
+			RootHash:        account.GetRootHash(),
+			CodeMetadata:    account.GetCodeMetadata(),
+			DeveloperReward: account.GetDeveloperReward().String(),
+			OwnerAddress:    ownerAddress,
+		},
+		block:   blockInfo,
+		account: account,
+	}, nil
 }
 
 // GetCode returns the code for the given code hash
@@ -1006,6 +1077,11 @@ func (n *Node) GetHeartbeats() []heartbeatData.PubKeyHeartbeat {
 // ValidatorStatisticsApi will return the statistics for all the validators from the initial nodes pub keys
 func (n *Node) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
+}
+
+// AuctionListApi will return the auction list config along with qualified nodes
+func (n *Node) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return n.processComponents.ValidatorsProvider().GetAuctionList()
 }
 
 // DirectTrigger will start the hardfork trigger

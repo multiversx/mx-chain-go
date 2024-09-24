@@ -434,7 +434,7 @@ func (ps *PruningStorer) createAndInitPersister(pd *persisterData) (storage.Pers
 func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
-		ps.stateStatsHandler.IncrCache()
+		ps.stateStatsHandler.IncrementCache()
 		return v.([]byte), nil
 	}
 
@@ -457,7 +457,7 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		// if found in persistence unit, add it to cache and return
 		_ = ps.cacher.Put(key, val, len(val))
 
-		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
+		ps.stateStatsHandler.IncrementPersister(ps.activePersisters[idx].epoch)
 
 		return val, nil
 	}

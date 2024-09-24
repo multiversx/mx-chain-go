@@ -40,7 +40,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		Marshalizer:         &mock.MarshalizerStub{},
 		PeerState:           &stateMock.AccountsStub{},
 		BaseState:           &stateMock.AccountsStub{},
-		ArgParser:           &mock.ArgumentParserMock{},
+		ArgParser:           &testscommon.ArgumentParserMock{},
 		CurrTxs:             &mock.TxForCurrentBlockStub{},
 		RatingsData:         &mock.RatingsInfoMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag),
@@ -227,7 +227,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 		}, nil
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return nil, testError
 	}
@@ -252,7 +252,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 		}, nil
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("aabbcc"), Data: []byte("data1")},
@@ -311,7 +311,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -368,7 +368,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -429,7 +429,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -492,7 +492,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -554,7 +554,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -617,7 +617,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -673,8 +673,10 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		},
 	}
 
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag)
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.PeerState = peerAccountsDB
+	arguments.EnableEpochsHandler = enableEpochsHandler
 	stp, _ := NewStakingToPeer(arguments)
 
 	stakingData := systemSmartContracts.StakedDataV2_0{
@@ -703,11 +705,19 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
+	assert.NoError(t, err)
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
+	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
+	enableEpochsHandler.RemoveActiveFlags(common.StakingV4StartedFlag)
+
 	stakingData.UnStakedNonce = 11
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5)
+	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5, false)
 	stakingData.JailedNonce = 12
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.JailedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
@@ -720,6 +730,12 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
+
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	err = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
+	assert.NoError(t, err)
+	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
+	enableEpochsHandler.RemoveActiveFlags(common.StakingV4StartedFlag)
 
 	stakingData.UnStakedNonce = 15
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
@@ -769,7 +785,7 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(common.JailedList), 5)
+	peerAccount.SetListAndIndex(0, string(common.JailedList), 5, false)
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.InactiveList), peerAccount.GetList())

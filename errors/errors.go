@@ -593,5 +593,11 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
 var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
-// ErrNilTxExecutionOrderHandler signals that a nil tx execution order handler has been provided
-var ErrNilTxExecutionOrderHandler = errors.New("nil tx execution order handler")
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
+var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
+
+// ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
+var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
