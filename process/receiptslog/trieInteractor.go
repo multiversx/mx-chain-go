@@ -72,7 +72,7 @@ func (ti *trieInteractor) SaveNewTrie(localTrie common.Trie) error {
 
 // AddReceiptData will add receipt data in local trie
 func (ti *trieInteractor) AddReceiptData(receiptData state.Receipt) error {
-	receiptDataBytes, err := ti.marshaller.Marshal(receiptData)
+	receiptDataBytes, err := ti.marshaller.Marshal(&receiptData)
 	if err != nil {
 		return err
 	}
@@ -92,8 +92,8 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 		return nil, errGet
 	}
 
-	serializedNodes := make([][]byte, 0)
-	serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
+	serializedNodes := state.NewSerializedNodesMap()
+	serializedNodes.SerializedNodes[string(currentNodeData.Hash)] = currentNodeData.SerializedNode
 
 	for dfsIterator.HasNext() {
 		err = dfsIterator.Next()
@@ -107,7 +107,7 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 		}
 
 		if currentNodeData.Type != trie.LeafNodeType {
-			serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
+			serializedNodes.SerializedNodes[string(currentNodeData.Hash)] = currentNodeData.SerializedNode
 			continue
 		}
 
@@ -122,7 +122,7 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 		}
 	}
 
-	listOfSerializedNodesBytes, err := ti.marshaller.Marshal(&serializedNodes)
+	listOfSerializedNodesBytes, err := ti.marshaller.Marshal(serializedNodes)
 	if err != nil {
 		return nil, err
 	}

@@ -1002,7 +1002,7 @@ func (*branchNode) getType() string {
 func (bn *branchNode) getChildrenHashes() [][]byte {
 	hashes := make([][]byte, 0, len(bn.EncodedChildren))
 	for _, hash := range bn.EncodedChildren {
-		if hash == nil {
+		if hash == nil || len(hash) == 0 {
 			continue
 		}
 		hashes = append(hashes, hash)

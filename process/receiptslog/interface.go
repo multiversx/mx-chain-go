@@ -3,6 +3,8 @@ package receiptslog
 import (
 	"context"
 	"github.com/multiversx/mx-chain-core-go/data/state"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // Interactor defines what a trie interactor should be able to do
@@ -11,7 +13,8 @@ type Interactor interface {
 	AddReceiptData(receiptData state.Receipt) error
 	Save() ([]byte, error)
 	GetSerializedNode(nodeHash []byte) ([]byte, error)
-	GetBranchNodesMap(branchNodesSerialized []byte) (map[string][]byte, error)
+	RecreateTrieFromDB(rootHash []byte, db storage.Storer) (common.Trie, error)
+	SaveNewTrie(localTrie common.Trie) error
 	IsInterfaceNil() bool
 }
 

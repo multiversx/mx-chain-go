@@ -2,7 +2,11 @@ package receiptslog
 
 import (
 	"context"
+
 	"github.com/multiversx/mx-chain-core-go/data/state"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -11,6 +15,8 @@ import (
 type ArgsReceiptsManager struct {
 	TrieHandler        Interactor
 	ReceiptsDataSyncer ReceiptsDataSyncer
+	Marshaller         marshal.Marshalizer
+	Hasher             hashing.Hasher
 }
 
 // ArgsGenerateReceiptsAndSave is the DTO needed to provided input data to generate receipts
@@ -22,6 +28,8 @@ type ArgsGenerateReceiptsAndSave struct {
 type receiptsManager struct {
 	trieInteractor     Interactor
 	receiptsDataSyncer ReceiptsDataSyncer
+	marshaller         marshal.Marshalizer
+	hasher             hashing.Hasher
 }
 
 // NewReceiptsManager will create a new instance of receipts manager
@@ -36,6 +44,8 @@ func NewReceiptsManager(args ArgsReceiptsManager) (*receiptsManager, error) {
 	return &receiptsManager{
 		trieInteractor:     args.TrieHandler,
 		receiptsDataSyncer: args.ReceiptsDataSyncer,
+		marshaller:         args.Marshaller,
+		hasher:             args.Hasher,
 	}, nil
 }
 
@@ -65,30 +75,31 @@ func (rm *receiptsManager) GenerateReceiptsTrieAndSaveDataInStorage(args ArgsGen
 }
 
 func (rm *receiptsManager) SyncReceiptsTrie(receiptsRootHash []byte) error {
-	receiptTrieBranchNodesBytes, err := rm.syncBranchNodesData(receiptsRootHash)
+	nodesMap, err := rm.syncBranchNodesData(receiptsRootHash)
 	if err != nil {
 		return err
 	}
 
-	nodesMap, err := rm.trieInteractor.GetBranchNodesMap(receiptTrieBranchNodesBytes)
+	storerMock := mock.NewStorerMock()
+	leafNodesHashes, err := trie.GetLeafHashesAndPutNodesInRamStorage(nodesMap, storerMock, rm.hasher, rm.marshaller)
 	if err != nil {
 		return err
 	}
 
-	leafNodesHashes, err := trie.GetLeafHashesAndPutNodesInRamStorage(nodesMap, nil)
+	err = rm.syncLeafNodesAndPutInStorer(leafNodesHashes, storerMock)
 	if err != nil {
 		return err
 	}
 
-	err = rm.syncLeafNodesAndPutInStorer(leafNodesHashes, nil)
+	newTrie, err := rm.trieInteractor.RecreateTrieFromDB(receiptsRootHash, storerMock)
 	if err != nil {
 		return err
 	}
 
-	return nil
+	return rm.trieInteractor.SaveNewTrie(newTrie)
 }
 
-func (rm *receiptsManager) syncBranchNodesData(receiptsRootHash []byte) ([]byte, error) {
+func (rm *receiptsManager) syncBranchNodesData(receiptsRootHash []byte) (map[string][]byte, error) {
 	err := rm.receiptsDataSyncer.SyncReceiptsDataFor([][]byte{receiptsRootHash}, context.Background())
 	if err != nil {
 		return nil, err
@@ -101,7 +112,13 @@ func (rm *receiptsManager) syncBranchNodesData(receiptsRootHash []byte) ([]byte,
 
 	receiptTrieBranchNodesBytes := receiptsDataMap[string(receiptsRootHash)]
 
-	return receiptTrieBranchNodesBytes, nil
+	serializedNodes := state.NewSerializedNodesMap()
+	err = rm.marshaller.Unmarshal(serializedNodes, receiptTrieBranchNodesBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return serializedNodes.SerializedNodes, nil
 }
 
 func (rm *receiptsManager) syncLeafNodesAndPutInStorer(hashes [][]byte, db storage.Storer) error {
