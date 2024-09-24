@@ -736,6 +736,11 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 }
 
 func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if args.CallValue.Cmp(zero) != 0 {
+		g.eei.AddReturnMessage("clearEndedProposals callValue expected to be 0")
+		return vmcommon.UserError
+	}
+
 	numAddresses := uint64(len(args.Arguments))
 	err := g.eei.UseGas((numAddresses + 1) * g.gasCost.MetaChainSystemSCsCost.ClearProposal)
 	if err != nil {

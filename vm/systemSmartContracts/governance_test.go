@@ -1649,6 +1649,17 @@ func TestGovernanceContract_CloseProposalAfterGovernanceFixesShouldSetLastEndedN
 	require.Equal(t, uint64(6), lastEndedNonce)
 }
 
+func TestGovernanceContract_ClearEndedProposalsCallValue(t *testing.T) {
+	t.Parallel()
+
+	gsc, _, eei := createGovernanceBlockChainHookStubContextHandler()
+	callInput := createVMInput(big.NewInt(10), "clearEndedProposals", []byte("address"), vm.GovernanceSCAddress, nil)
+	retCode := gsc.Execute(callInput)
+
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.GetReturnMessage(), "clearEndedProposals callValue expected to be 0")
+}
+
 func TestGovernanceContract_ClearEndedProposalsNoArguments(t *testing.T) {
 	t.Parallel()
 
