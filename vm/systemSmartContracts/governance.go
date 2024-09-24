@@ -684,7 +684,12 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
-	if uint64(currentEpoch) <= generalProposal.EndVoteEpoch {
+	voteStarted := uint64(currentEpoch) >= generalProposal.StartVoteEpoch
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
+		voteStarted = true
+	}
+	voteEnded := uint64(currentEpoch) > generalProposal.EndVoteEpoch
+	if voteStarted && !voteEnded {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}
@@ -696,7 +701,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	generalProposal.Passed = g.computeEndResults(generalProposal, baseConfig)
+	generalProposal.Passed = g.computeEndResults(currentEpoch, generalProposal, baseConfig)
 	if err != nil {
 		g.eei.AddReturnMessage("computeEndResults error " + err.Error())
 		return vmcommon.UserError
@@ -1018,7 +1023,13 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
+func (g *governanceContract) computeEndResults(currentEpoch uint32, proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
+	voteStarted := uint64(currentEpoch) >= proposal.StartVoteEpoch
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
+		g.eei.Finish([]byte("Proposal closed before voting started"))
+		return true
+	}
+
 	totalVotes := big.NewInt(0).Add(proposal.Yes, proposal.No)
 	totalVotes.Add(totalVotes, proposal.Veto)
 	totalVotes.Add(totalVotes, proposal.Abstain)
