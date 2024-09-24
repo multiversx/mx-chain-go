@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -189,8 +190,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
-			ConsensusModelType:         consensus.ConsensusModelV1,
+			ShardMessengerFactoryField:                 &factoryMocks.ShardChainMessengerFactoryMock{},
+			ValidatorAccountsSyncerFactoryHandlerField: factory.NewValidatorAccountsSyncerFactory(),
+			ConsensusModelType:                         consensus.ConsensusModelV1,
 		},
 	}
 }

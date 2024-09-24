@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -16,29 +17,31 @@ import (
 
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
-	AdditionalStorageServiceFactory        process.AdditionalStorageServiceCreator
-	ShardCoordinatorFactory                sharding.ShardCoordinatorFactory
-	NodesCoordinatorWithRaterFactory       nodesCoordinator.NodesCoordinatorWithRaterFactory
-	RequestHandlerFactory                  requestHandlers.RequestHandlerCreator
-	AccountCreator                         state.AccountFactory
-	OutGoingOperationsPool                 sovereignBlock.OutGoingOperationsPool
-	DataCodec                              sovereign.DataCodecHandler
-	TopicsChecker                          sovereign.TopicsCheckerHandler
-	RequestersContainerFactoryCreatorField requesterscontainer.RequesterContainerFactoryCreator
+	AdditionalStorageServiceFactory            process.AdditionalStorageServiceCreator
+	ShardCoordinatorFactory                    sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterFactory           nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestHandlerFactory                      requestHandlers.RequestHandlerCreator
+	AccountCreator                             state.AccountFactory
+	OutGoingOperationsPool                     sovereignBlock.OutGoingOperationsPool
+	DataCodec                                  sovereign.DataCodecHandler
+	TopicsChecker                              sovereign.TopicsCheckerHandler
+	RequestersContainerFactoryCreatorField     requesterscontainer.RequesterContainerFactoryCreator
+	ValidatorAccountsSyncerFactoryHandlerField syncerFactory.ValidatorAccountsSyncerFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
-		AdditionalStorageServiceFactory:        &testscommon.AdditionalStorageServiceFactoryMock{},
-		ShardCoordinatorFactory:                sharding.NewMultiShardCoordinatorFactory(),
-		NodesCoordinatorWithRaterFactory:       nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		RequestHandlerFactory:                  requestHandlers.NewResolverRequestHandlerFactory(),
-		AccountCreator:                         &stateMock.AccountsFactoryStub{},
-		OutGoingOperationsPool:                 &sovereignMocks.OutGoingOperationsPoolMock{},
-		DataCodec:                              &sovereignMocks.DataCodecMock{},
-		TopicsChecker:                          &sovereignMocks.TopicsCheckerMock{},
-		RequestersContainerFactoryCreatorField: requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		AdditionalStorageServiceFactory:            &testscommon.AdditionalStorageServiceFactoryMock{},
+		ShardCoordinatorFactory:                    sharding.NewMultiShardCoordinatorFactory(),
+		NodesCoordinatorWithRaterFactory:           nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		RequestHandlerFactory:                      requestHandlers.NewResolverRequestHandlerFactory(),
+		AccountCreator:                             &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:                     &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                                  &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                              &sovereignMocks.TopicsCheckerMock{},
+		RequestersContainerFactoryCreatorField:     requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		ValidatorAccountsSyncerFactoryHandlerField: syncerFactory.NewValidatorAccountsSyncerFactory(),
 	}
 }
 
@@ -48,15 +51,16 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	requestHandlerFactory, _ := requestHandlers.NewSovereignResolverRequestHandlerFactory(rt.RequestHandlerFactory)
 
 	return &RunTypeComponentsStub{
-		AdditionalStorageServiceFactory:        &testscommon.AdditionalStorageServiceFactoryMock{},
-		ShardCoordinatorFactory:                sharding.NewSovereignShardCoordinatorFactory(),
-		NodesCoordinatorWithRaterFactory:       &testscommon.NodesCoordinatorFactoryMock{},
-		RequestHandlerFactory:                  requestHandlerFactory,
-		AccountCreator:                         &stateMock.AccountsFactoryStub{},
-		OutGoingOperationsPool:                 &sovereignMocks.OutGoingOperationsPoolMock{},
-		DataCodec:                              &sovereignMocks.DataCodecMock{},
-		TopicsChecker:                          &sovereignMocks.TopicsCheckerMock{},
-		RequestersContainerFactoryCreatorField: requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
+		AdditionalStorageServiceFactory:            &testscommon.AdditionalStorageServiceFactoryMock{},
+		ShardCoordinatorFactory:                    sharding.NewSovereignShardCoordinatorFactory(),
+		NodesCoordinatorWithRaterFactory:           &testscommon.NodesCoordinatorFactoryMock{},
+		RequestHandlerFactory:                      requestHandlerFactory,
+		AccountCreator:                             &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:                     &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                                  &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                              &sovereignMocks.TopicsCheckerMock{},
+		RequestersContainerFactoryCreatorField:     requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
+		ValidatorAccountsSyncerFactoryHandlerField: syncerFactory.NewSovereignValidatorAccountsSyncerFactory(),
 	}
 }
 
@@ -103,6 +107,10 @@ func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHa
 // RequestersContainerFactoryCreator -
 func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
 	return r.RequestersContainerFactoryCreatorField
+}
+
+func (r *RunTypeComponentsStub) ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler {
+	return r.ValidatorAccountsSyncerFactoryHandlerField
 }
 
 // IsInterfaceNil -

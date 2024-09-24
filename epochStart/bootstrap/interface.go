@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -88,6 +89,7 @@ type RunTypeComponentsHolder interface {
 	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
 	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
 	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
+	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	IsInterfaceNil() bool
 }
 
