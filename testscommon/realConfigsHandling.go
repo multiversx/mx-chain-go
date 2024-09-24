@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 // CreateTestConfigs will try to copy the whole configs directory to a temp directory and return the configs after load
@@ -112,8 +113,9 @@ func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Conf
 			SmartContracts:           newGenesisSmartContractsFilename,
 			ValidatorKey:             "validatorKey.pem",
 		},
-		EpochConfig: epochConfig,
-		RoundConfig: roundConfig,
+		EpochConfig:          epochConfig,
+		RoundConfig:          roundConfig,
+		LightClientP2pConfig: &p2pConfig.P2PConfig{},
 	}, nil
 }
 
