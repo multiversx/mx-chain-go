@@ -127,3 +127,41 @@ func TestTrieInteractor_CreateNewTrieAndSave(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, res)
 }
+
+func TestCreateAndSaveANewTrieOneLeaf(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsTrieInteractor()
+	args.ReceiptDataStorer = mock.NewStorerMock()
+	interactor, err := NewTrieInteractor(args)
+	require.Nil(t, err)
+
+	err = interactor.CreateNewTrie()
+	require.Nil(t, err)
+
+	h1 := []byte("hash1")
+	rec1 := state.Receipt{
+		TxHash: h1,
+	}
+	err = interactor.AddReceiptData(rec1)
+	require.Nil(t, err)
+
+	receiptTrieRootHash, err := interactor.Save()
+	require.Nil(t, err)
+	require.Equal(t, "1a643efd81cc8bc61c3997d65110e6b1b06557e45ad0a1ba2c2d4002aeb07db5", hex.EncodeToString(receiptTrieRootHash))
+
+	// is a key under receipt trie root hash
+	res, err := args.ReceiptDataStorer.Get(receiptTrieRootHash)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+
+	// is data under tx hash1
+	resLeafHash1, err := args.ReceiptDataStorer.Get(h1)
+	require.Nil(t, err)
+	require.NotNil(t, resLeafHash1)
+
+	// is data under leafHash
+	res, err = args.ReceiptDataStorer.Get(resLeafHash1)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+}

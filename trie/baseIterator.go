@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// CurrentNodeInfo contains information about a trie node
 type CurrentNodeInfo struct {
 	Hash           []byte
 	Value          []byte

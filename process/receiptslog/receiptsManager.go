@@ -3,6 +3,7 @@ package receiptslog
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/state"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -34,7 +35,7 @@ type receiptsManager struct {
 
 // NewReceiptsManager will create a new instance of receipts manager
 func NewReceiptsManager(args ArgsReceiptsManager) (*receiptsManager, error) {
-	if args.TrieHandler == nil {
+	if check.IfNil(args.TrieHandler) {
 		return nil, ErrNilTrieInteractor
 	}
 	if args.ReceiptsDataSyncer == nil {
@@ -74,6 +75,7 @@ func (rm *receiptsManager) GenerateReceiptsTrieAndSaveDataInStorage(args ArgsGen
 	return receiptsRootHash, nil
 }
 
+// SyncReceiptsTrie will sync the receipts trie from network
 func (rm *receiptsManager) SyncReceiptsTrie(receiptsRootHash []byte) error {
 	nodesMap, err := rm.syncBranchNodesData(receiptsRootHash)
 	if err != nil {
