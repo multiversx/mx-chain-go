@@ -283,7 +283,7 @@ func checkMetaDataInAccounts(
 		require.Nil(t, esdtData.TokenMetaData)
 
 		// get system account token data
-		esdtValue = getAccountTokenData(t, nodeHandler, esdtSystemAccount, token)
+		esdtValue = getAccountTokenData(t, nodeHandler, chainSim.ESDTSystemAccount, token)
 
 		esdtData = &esdt.ESDigitalToken{}
 		err = nodeHandler.GetCoreComponents().InternalMarshalizer().Unmarshal(esdtData, esdtValue)
@@ -317,7 +317,7 @@ func requireNoTokenDataInSysAccount(
 	nodeHandler process.NodeHandler,
 	token chainSim.ArgsDepositToken,
 ) {
-	accountKeys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(esdtSystemAccount, dataApi.AccountQueryOptions{})
+	accountKeys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(chainSim.ESDTSystemAccount, dataApi.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, accountKeys)
 	require.Empty(t, accountKeys[getTokenKey(token)])

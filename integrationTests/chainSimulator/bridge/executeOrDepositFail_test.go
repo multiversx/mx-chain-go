@@ -371,3 +371,87 @@ func getTokenMetaData(token chainSim.ArgsDepositToken) *esdt.MetaData {
 		Creator: bytes.Repeat([]byte{1}, 32),
 	}
 }
+
+func TestChainSimulator_ExecuteSameNft2Times(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	whiteListedAddress := "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              1,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    uint64(6000),
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses = []string{whiteListedAddress}
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = 0
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	err = cs.GenerateBlocksUntilEpochIsReached(3)
+	require.Nil(t, err)
+
+	nodeHandler := cs.GetNodeHandler(0)
+
+	// Deploy bridge setup
+	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
+	argsEsdtSafe := ArgsEsdtSafe{
+		ChainPrefix:       sovChainPrefix,
+		IssuePaymentToken: "WEGLD-bd4d79",
+	}
+	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	chainSim.RequireAccountHasToken(t, cs, argsEsdtSafe.IssuePaymentToken, initialAddress, big.NewInt(0))
+
+	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
+	require.Equal(t, whiteListedAddress, esdtSafeEncoded)
+
+	wallet, err := cs.GenerateAndMintWalletAddress(0, chainSim.InitialAmount)
+	require.Nil(t, err)
+	nonce := uint64(0)
+	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
+	chainSim.SetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
+
+	nftToken := chainSim.ArgsDepositToken{
+		Identifier: argsEsdtSafe.ChainPrefix + "-NFTV2-a1b2c3",
+		Nonce:      uint64(7),
+		Amount:     big.NewInt(1),
+		Type:       core.NonFungibleV2,
+	}
+	bridgedInTokens := []chainSim.ArgsDepositToken{nftToken, nftToken} // add same nft 2 times
+
+	// We need to register tokens originated from sovereign (to pay the issue cost)
+	// Only the tokens with sovereign prefix need to be registered (these are the ones that will be minted), the rest will be taken from contract balance
+	tokens := getUniquePrefixedTokens(bridgedInTokens, argsEsdtSafe.ChainPrefix)
+	registerSovereignNewTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, argsEsdtSafe.IssuePaymentToken, tokens)
+
+	// execute operation with same NFT token 2 times
+	// 1st create success, 2nd create success, but 2nd create will override the 1st one's metadata, quantity will remain 1
+	// 1st transfer success, 2nd transfer fail because quantity was 1, so the bridge operation will be failed
+	// in the end, the NFT will stay in the bridge contract because transferAndExecuteByUser is not implemented and no "transfer back" event is implemented in the contract
+	// after transferAndExecuteByUser this test will fail because the NFT will be transferred to user account
+	txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, bridgedInTokens, wallet.Bytes, nil)
+	chainSim.RequireInternalVMError(t, txResult, "new NFT data on sender")
+	for _, bridgedInToken := range groupTokens(bridgedInTokens) {
+		checkMetaDataInAccounts(t, cs, bridgedInToken, esdtSafeEncoded, big.NewInt(1))
+		checkMetaDataInAccounts(t, cs, bridgedInToken, wallet.Bech32, big.NewInt(0))
+	}
+}

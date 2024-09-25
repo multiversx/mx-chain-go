@@ -17,8 +17,7 @@ import (
 )
 
 const (
-	esdtSystemAccount = "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t"
-	issuePaymentCost  = "50000000000000000"
+	issuePaymentCost = "50000000000000000"
 )
 
 // ArgsEsdtSafe holds the arguments for esdt safe contract argument
@@ -46,19 +45,14 @@ func initOwnerAndSysAccState(
 	ownerAddress string,
 	argsEsdtSafe ArgsEsdtSafe,
 ) {
+	chainSim.InitAddressesAndSysAccState(t, cs, ownerAddress)
+
 	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + argsEsdtSafe.IssuePaymentToken))
-	err := cs.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: ownerAddress,
-			Balance: "10000000000000000000000",
+	err := cs.SetKeyValueForAddress(chainSim.ESDTSystemAccount,
+		map[string]string{
+			tokenKey: "0400",
 		},
-		{
-			Address: esdtSystemAccount, // init sys account
-			Pairs: map[string]string{
-				tokenKey: "0400",
-			},
-		},
-	})
+	)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
@@ -250,7 +244,12 @@ func getTokenNonce(nonce uint64) string {
 	if nonce == 0 {
 		return ""
 	}
-	return fmt.Sprintf("%02X", nonce)
+
+	hexStr := fmt.Sprintf("%X", nonce)
+	if len(hexStr)%2 != 0 {
+		hexStr = "0" + hexStr
+	}
+	return hexStr
 }
 
 func getUint64Bytes(number uint64) string {

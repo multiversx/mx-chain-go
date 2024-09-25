@@ -28,9 +28,12 @@ const (
 	mockTxSignature                         = "sig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
 	signalError                             = "signalError"
+	internalVMError                         = "internalVMErrors"
 
 	// OkReturnCode the const for the ok return code
 	OkReturnCode = "ok"
+	// ESDTSystemAccount the bech32 address for esdt system account
+	ESDTSystemAccount = "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t"
 )
 
 var (
@@ -151,23 +154,35 @@ func SendTransaction(
 // RequireSuccessfulTransaction require that the transaction doesn't have signal error event
 func RequireSuccessfulTransaction(t *testing.T, txResult *transaction.ApiTransactionResult) {
 	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 	event := getEvent(txResult.Logs, signalError)
 	if event != nil {
 		require.Fail(t, string(event.Topics[1]))
 	}
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 }
 
 // RequireSignalError require that the transaction has specific signal error
 func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
 	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 	event := getEvent(txResult.Logs, signalError)
 	if event == nil {
 		require.Fail(t, "%s event not found", signalError)
 		return
 	}
 	require.Equal(t, error, string(event.Topics[1]))
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+}
+
+// RequireInternalVMError require that the transaction has specific invernal vm error
+func RequireInternalVMError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
+	require.NotNil(t, txResult)
+	event := getEvent(txResult.Logs, internalVMError)
+	if event == nil {
+		require.Fail(t, "%s event not found", internalVMError)
+		return
+	}
+	require.Contains(t, string(event.Data), error)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 }
 
 func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
@@ -213,10 +228,15 @@ func TransferESDT(
 	nonce *uint64,
 	token string,
 	amount *big.Int,
+	args ...[]byte,
 ) {
 	esdtTransferArgs := core.BuiltInFunctionESDTTransfer +
 		"@" + hex.EncodeToString([]byte(token)) +
 		"@" + hex.EncodeToString(amount.Bytes())
+	for _, arg := range args {
+		esdtTransferArgs = esdtTransferArgs +
+			"@" + hex.EncodeToString(arg)
+	}
 	txResult := SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
 	RequireSuccessfulTransaction(t, txResult)
 }
@@ -230,6 +250,7 @@ func TransferESDTNFT(
 	token string,
 	tokenNonce uint64,
 	amount *big.Int,
+	args ...[]byte,
 ) {
 	esdtNftTransferArgs :=
 		core.BuiltInFunctionESDTNFTTransfer +
@@ -237,6 +258,10 @@ func TransferESDTNFT(
 			"@" + hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes()) +
 			"@" + hex.EncodeToString(amount.Bytes()) +
 			"@" + hex.EncodeToString(receiver)
+	for _, arg := range args {
+		esdtNftTransferArgs = esdtNftTransferArgs +
+			"@" + hex.EncodeToString(arg)
+	}
 	txResult := SendTransaction(t, cs, sender, nonce, sender, ZeroValue, esdtNftTransferArgs, uint64(5000000))
 	RequireSuccessfulTransaction(t, txResult)
 }
@@ -280,6 +305,32 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 
 	require.Fail(t, "could not issue semi fungible")
 	return ""
+}
+
+// InitAddressesAndSysAccState will initialize system account state and other addresses if provided
+func InitAddressesAndSysAccState(
+	t *testing.T,
+	cs ChainSimulator,
+	initialAddresses ...string,
+) {
+	addressesState := []*dtos.AddressState{
+		{
+			Address: ESDTSystemAccount,
+		},
+	}
+	for _, address := range initialAddresses {
+		addressesState = append(addressesState,
+			&dtos.AddressState{
+				Address: address,
+				Balance: "10000000000000000000000",
+			},
+		)
+	}
+	err := cs.SetStateMultiple(addressesState)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 }
 
 // SetEsdtInWallet will add token key in wallet storage without adding key in system account
