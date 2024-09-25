@@ -171,9 +171,9 @@ func checkArgs(args ArgsTrieInteractor) error {
 	return nil
 }
 
-func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes [][]byte) error {
+func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes *state.SerializedNodeMap) error {
 	if currentNodeData.Type != trie.LeafNodeType {
-		serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
+		serializedNodes.SerializedNodes[string(currentNodeData.Hash)] = currentNodeData.SerializedNode
 		return nil
 	}
 
