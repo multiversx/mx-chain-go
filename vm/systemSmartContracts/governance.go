@@ -683,13 +683,8 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	currentEpoch := g.eei.BlockChainHook().CurrentEpoch()
-	voteStarted := uint64(currentEpoch) >= generalProposal.StartVoteEpoch
-	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
-		voteStarted = true
-	}
-	voteEnded := uint64(currentEpoch) > generalProposal.EndVoteEpoch
-	if voteStarted && !voteEnded {
+	currentEpoch := uint64(g.eei.BlockChainHook().CurrentEpoch())
+	if g.cannotClose(currentEpoch, generalProposal) {
 		g.eei.AddReturnMessage(fmt.Sprintf("proposal can be closed only after epoch %d", generalProposal.EndVoteEpoch))
 		return vmcommon.UserError
 	}
@@ -734,6 +729,17 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 
 	g.processLastEndedNonce()
 	return vmcommon.Ok
+}
+
+func (g *governanceContract) cannotClose(currentEpoch uint64, proposal *GeneralProposal) bool {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) {
+		return currentEpoch <= proposal.EndVoteEpoch
+	}
+
+	voteStarted := currentEpoch >= proposal.StartVoteEpoch
+	voteEnded := currentEpoch > proposal.EndVoteEpoch
+
+	return voteStarted && !voteEnded
 }
 
 func (g *governanceContract) clearEndedProposals(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -1023,9 +1029,9 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 }
 
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
-func (g *governanceContract) computeEndResults(currentEpoch uint32, proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
-	voteStarted := uint64(currentEpoch) >= proposal.StartVoteEpoch
-	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
+func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
+	voteStarted := currentEpoch >= proposal.StartVoteEpoch
+	if g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFixesFlag) && !voteStarted {
 		g.eei.Finish([]byte("Proposal closed before voting started"))
 		return true
 	}

@@ -1698,6 +1698,30 @@ func TestGovernanceContract_CloseProposalAfterGovernanceFixesShouldSetLastEndedN
 	require.Equal(t, uint64(6), lastEndedNonce)
 }
 
+func TestGovernanceContract_CannotClose(t *testing.T) {
+	t.Parallel()
+
+	args := createMockGovernanceArgs()
+	gsc, _ := NewGovernanceContract(args)
+
+	currentEpoch := uint64(10)
+	closedBeforeStart := &GeneralProposal{
+		Yes:            big.NewInt(20),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(10),
+		StartVoteEpoch: currentEpoch + 1,
+		EndVoteEpoch:   currentEpoch + 10,
+	}
+
+	cannotClose := gsc.cannotClose(currentEpoch, closedBeforeStart)
+	require.True(t, cannotClose)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFixesFlag)
+	cannotClose = gsc.cannotClose(currentEpoch, closedBeforeStart)
+	require.False(t, cannotClose)
+}
+
 func TestGovernanceContract_ClearEndedProposalsCallValue(t *testing.T) {
 	t.Parallel()
 
@@ -2214,13 +2238,28 @@ func TestComputeEndResults(t *testing.T) {
 	}
 	gsc, _ := NewGovernanceContract(args)
 
+	startVoteEpoch := uint64(10)
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFixesFlag)
+	closedBeforeStart := &GeneralProposal{
+		Yes:            big.NewInt(20),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(10),
+		StartVoteEpoch: startVoteEpoch,
+	}
+	passed := gsc.computeEndResults(startVoteEpoch-1, closedBeforeStart, baseConfig)
+	require.True(t, passed)
+	require.Equal(t, "Proposal closed before voting started", retMessage)
+	require.False(t, closedBeforeStart.Passed)
+
+	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	didNotPassQuorum := &GeneralProposal{
 		Yes:     big.NewInt(20),
 		No:      big.NewInt(0),
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
-	passed := gsc.computeEndResults(didNotPassQuorum, baseConfig)
+	passed = gsc.computeEndResults(startVoteEpoch, didNotPassQuorum, baseConfig)
 	require.False(t, passed)
 	require.Equal(t, "Proposal did not reach minQuorum", retMessage)
 	require.False(t, didNotPassQuorum.Passed)
@@ -2231,7 +2270,7 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
-	passed = gsc.computeEndResults(didNotPassVotes, baseConfig)
+	passed = gsc.computeEndResults(startVoteEpoch, didNotPassVotes, baseConfig)
 	require.False(t, passed)
 	require.Equal(t, "Proposal rejected", retMessage)
 	require.False(t, didNotPassVotes.Passed)
@@ -2242,7 +2281,7 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(0),
 		Abstain: big.NewInt(10),
 	}
-	passed = gsc.computeEndResults(didNotPassVotes2, baseConfig)
+	passed = gsc.computeEndResults(startVoteEpoch, didNotPassVotes2, baseConfig)
 	require.False(t, passed)
 	require.Equal(t, "Proposal rejected", retMessage)
 	require.False(t, didNotPassVotes2.Passed)
@@ -2253,7 +2292,7 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(70),
 		Abstain: big.NewInt(10),
 	}
-	passed = gsc.computeEndResults(didNotPassVeto, baseConfig)
+	passed = gsc.computeEndResults(startVoteEpoch, didNotPassVeto, baseConfig)
 	require.False(t, passed)
 	require.Equal(t, "Proposal vetoed", retMessage)
 	require.False(t, didNotPassVeto.Passed)
@@ -2264,7 +2303,7 @@ func TestComputeEndResults(t *testing.T) {
 		Veto:    big.NewInt(10),
 		Abstain: big.NewInt(10),
 	}
-	passed = gsc.computeEndResults(pass, baseConfig)
+	passed = gsc.computeEndResults(startVoteEpoch, pass, baseConfig)
 	require.True(t, passed)
 	require.Equal(t, "Proposal passed", retMessage)
 }
