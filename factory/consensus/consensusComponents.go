@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/proxy"
 	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -280,7 +280,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	subroundsHandlerArgs := &bls.SubroundsHandlerArgs{
+	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
 		Chronology:           cc.chronology,
 		ConsensusCoreHandler: consensusDataContainer,
 		ConsensusState:       consensusState,
@@ -294,7 +294,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		CurrentPid:           ccf.networkComponents.NetworkMessenger().ID(),
 	}
 
-	subroundsHandler, err := bls.NewSubroundsHandler(subroundsHandlerArgs)
+	subroundsHandler, err := proxy.NewSubroundsHandler(subroundsHandlerArgs)
 	if err != nil {
 		return nil, err
 	}
