@@ -84,7 +84,7 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 	}
 
 	serializedNodes := make([][]byte, 0)
-	err = ti.saveNodeData(currentNodeData, serializedNodes)
+	serializedNodes, err = ti.saveNodeData(currentNodeData, serializedNodes)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 			return nil, errGet
 		}
 
-		err = ti.saveNodeData(currentNodeData, serializedNodes)
+		serializedNodes, err = ti.saveNodeData(currentNodeData, serializedNodes)
 		if err != nil {
 			return nil, err
 		}
@@ -157,16 +157,21 @@ func checkArgs(args ArgsTrieInteractor) error {
 	return nil
 }
 
-func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes [][]byte) error {
+func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes [][]byte) ([][]byte, error) {
 	if currentNodeData.Type != trie.LeafNodeType {
 		serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
-		return nil
+		return serializedNodes, nil
 	}
 
 	err := ti.storage.Put(currentNodeData.Hash, currentNodeData.SerializedNode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
+	err = ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	return serializedNodes, nil
 }
