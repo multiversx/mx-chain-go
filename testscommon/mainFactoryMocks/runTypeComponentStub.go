@@ -143,7 +143,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		DataRetrieverContainersSetterField:         &testFactory.DataRetrieverContainersSetterMock{},
 		ShardMessengerFactoryField:                 &testFactory.ShardChainMessengerFactoryMock{},
 		ExportHandlerFactoryCreatorField:           &testFactory.ExportHandlerFactoryCreatorMock{},
-		ValidatorAccountsSyncerFactoryHandlerField: syncerFactory.NewValidatorAccountsSyncerFactory(), // todo here
+		ValidatorAccountsSyncerFactoryHandlerField: &testFactory.ValidatorAccountsSyncerFactoryMock{},
 	}
 }
 
