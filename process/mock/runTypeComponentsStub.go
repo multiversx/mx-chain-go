@@ -109,6 +109,7 @@ func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requestersco
 	return r.RequestersContainerFactoryCreatorField
 }
 
+// ValidatorAccountsSyncerFactoryHandler -
 func (r *RunTypeComponentsStub) ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler {
 	return r.ValidatorAccountsSyncerFactoryHandlerField
 }
