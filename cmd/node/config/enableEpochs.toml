@@ -1,9 +1,9 @@
 [EnableEpochs]
     # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-    SCDeployEnableEpoch = 1
+    SCDeployEnableEpoch = 0
 
     # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-    BuiltInFunctionsEnableEpoch = 1
+    BuiltInFunctionsEnableEpoch = 0
 
     # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
     RelayedTransactionsEnableEpoch = 1
