@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -49,7 +49,10 @@ func NewTrieInteractor(args ArgsTrieInteractor) (*trieInteractor, error) {
 
 // CreateNewTrie will create a new local trie(also will overwrite the old local trie)
 func (ti *trieInteractor) CreateNewTrie() error {
-	disabledStorageManager := &storageManager.StorageManagerStub{}
+	disabledStorageManager, err := NewStorageManagerOnlyGet(database.NewMemDB())
+	if err != nil {
+		return err
+	}
 
 	localTrie, err := trie.NewTrie(disabledStorageManager, ti.marshaller, ti.hasher, ti.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
