@@ -1406,3 +1406,7 @@ type InterceptedDataVerifier interface {
 	Verify(interceptedData InterceptedData) error
 	IsInterfaceNil() bool
 }
+
+type InterceptedDataVerifierFactory interface {
+	Create(topic string) (InterceptedDataVerifier, error)
+}

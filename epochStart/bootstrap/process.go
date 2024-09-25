@@ -154,7 +154,7 @@ type epochStartBootstrap struct {
 	startEpoch         uint32
 	shuffledOut        bool
 
-	interceptedDataCache map[string]storage.Cacher
+	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 type baseDataInStorage struct {
@@ -193,7 +193,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
-	InterceptedDataCache            map[string]storage.Cacher
+	InterceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
 }
 
 type dataToSync struct {
@@ -246,7 +246,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		stateStatsHandler:               args.StateStatsHandler,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
-		interceptedDataCache:            args.InterceptedDataCache,
+		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -558,17 +558,17 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    e.coreComponentsHolder,
-		CryptoComponentsHolder:  e.cryptoComponentsHolder,
-		RequestHandler:          e.requestHandler,
-		Messenger:               e.mainMessenger,
-		ShardCoordinator:        e.shardCoordinator,
-		EconomicsData:           e.economicsData,
-		WhitelistHandler:        e.whiteListHandler,
-		StartInEpochConfig:      epochStartConfig,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		MetaBlockProcessor:      metaBlockProcessor,
-		InterceptedDataCache:    e.interceptedDataCache,
+		CoreComponentsHolder:           e.coreComponentsHolder,
+		CryptoComponentsHolder:         e.cryptoComponentsHolder,
+		RequestHandler:                 e.requestHandler,
+		Messenger:                      e.mainMessenger,
+		ShardCoordinator:               e.shardCoordinator,
+		EconomicsData:                  e.economicsData,
+		WhitelistHandler:               e.whiteListHandler,
+		StartInEpochConfig:             epochStartConfig,
+		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
+		MetaBlockProcessor:             metaBlockProcessor,
+		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {

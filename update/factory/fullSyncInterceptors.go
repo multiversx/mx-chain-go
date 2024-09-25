@@ -80,7 +80,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	FullArchiveInterceptorsContainer process.InterceptorsContainer
 	AntifloodHandler                 process.P2PAntifloodHandler
 	NodeOperationMode                common.NodeOperation
-	InterceptedDataCache             map[string]storage.Cacher
+	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object

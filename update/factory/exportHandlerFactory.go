@@ -70,7 +70,7 @@ type ArgsExporter struct {
 	TrieSyncerVersion                int
 	CheckNodesOnDisk                 bool
 	NodeOperationMode                common.NodeOperation
-	InterceptedDataCacheMap          map[string]storage.Cacher
+	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 }
 
 type exportHandlerFactory struct {
@@ -110,7 +110,7 @@ type exportHandlerFactory struct {
 	trieSyncerVersion                int
 	checkNodesOnDisk                 bool
 	nodeOperationMode                common.NodeOperation
-	interceptedDataCacheMap          map[string]storage.Cacher
+	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -269,7 +269,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		checkNodesOnDisk:                 args.CheckNodesOnDisk,
 		statusCoreComponents:             args.StatusCoreComponents,
 		nodeOperationMode:                args.NodeOperationMode,
-		interceptedDataCacheMap:          args.InterceptedDataCacheMap,
+		interceptedDataVerifierFactory:   args.InterceptedDataVerifierFactory,
 	}
 
 	return e, nil
@@ -592,7 +592,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
 		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
 		NodeOperationMode:                e.nodeOperationMode,
-		InterceptedDataCache:             e.interceptedDataCacheMap,
+		InterceptedDataVerifierFactory:   e.interceptedDataVerifierFactory,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

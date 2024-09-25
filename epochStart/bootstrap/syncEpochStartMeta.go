@@ -18,41 +18,34 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/cache"
-)
-
-const (
-	cacheDefaultSpan   = 30 * time.Second
-	cacheDefaultExpiry = 30 * time.Second
 )
 
 var _ epochStart.StartOfEpochMetaSyncer = (*epochStartMetaSyncer)(nil)
 
 type epochStartMetaSyncer struct {
-	requestHandler          RequestHandler
-	messenger               Messenger
-	marshalizer             marshal.Marshalizer
-	hasher                  hashing.Hasher
-	singleDataInterceptor   process.Interceptor
-	metaBlockProcessor      EpochStartMetaBlockInterceptorProcessor
-	interceptedDataCacheMap map[string]storage.Cacher
+	requestHandler                 RequestHandler
+	messenger                      Messenger
+	marshalizer                    marshal.Marshalizer
+	hasher                         hashing.Hasher
+	singleDataInterceptor          process.Interceptor
+	metaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
+	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 // ArgsNewEpochStartMetaSyncer -
 type ArgsNewEpochStartMetaSyncer struct {
-	CoreComponentsHolder    process.CoreComponentsHolder
-	CryptoComponentsHolder  process.CryptoComponentsHolder
-	RequestHandler          RequestHandler
-	Messenger               Messenger
-	ShardCoordinator        sharding.Coordinator
-	EconomicsData           process.EconomicsDataHandler
-	WhitelistHandler        process.WhiteListHandler
-	StartInEpochConfig      config.EpochStartConfig
-	ArgsParser              process.ArgumentsParser
-	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
-	MetaBlockProcessor      EpochStartMetaBlockInterceptorProcessor
-	InterceptedDataCache    map[string]storage.Cacher
+	CoreComponentsHolder           process.CoreComponentsHolder
+	CryptoComponentsHolder         process.CryptoComponentsHolder
+	RequestHandler                 RequestHandler
+	Messenger                      Messenger
+	ShardCoordinator               sharding.Coordinator
+	EconomicsData                  process.EconomicsDataHandler
+	WhitelistHandler               process.WhiteListHandler
+	StartInEpochConfig             config.EpochStartConfig
+	ArgsParser                     process.ArgumentsParser
+	HeaderIntegrityVerifier        process.HeaderIntegrityVerifier
+	MetaBlockProcessor             EpochStartMetaBlockInterceptorProcessor
+	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 // NewEpochStartMetaSyncer will return a new instance of epochStartMetaSyncer
@@ -74,12 +67,12 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}
 
 	e := &epochStartMetaSyncer{
-		requestHandler:          args.RequestHandler,
-		messenger:               args.Messenger,
-		marshalizer:             args.CoreComponentsHolder.InternalMarshalizer(),
-		hasher:                  args.CoreComponentsHolder.Hasher(),
-		metaBlockProcessor:      args.MetaBlockProcessor,
-		interceptedDataCacheMap: args.InterceptedDataCache,
+		requestHandler:                 args.RequestHandler,
+		messenger:                      args.Messenger,
+		marshalizer:                    args.CoreComponentsHolder.InternalMarshalizer(),
+		hasher:                         args.CoreComponentsHolder.Hasher(),
+		metaBlockProcessor:             args.MetaBlockProcessor,
+		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 	}
 
 	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
@@ -100,7 +93,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := e.createCacheForInterceptor(factory.MetachainBlocksTopic)
+	interceptedDataVerifier, err := e.interceptedDataVerifierFactory.Create(factory.MetachainBlocksTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -167,20 +160,6 @@ func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() erro
 	}
 
 	return nil
-}
-
-func (e *epochStartMetaSyncer) createCacheForInterceptor(topic string) (process.InterceptedDataVerifier, error) {
-	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: cacheDefaultSpan,
-		CacheExpiry: cacheDefaultExpiry,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	e.interceptedDataCacheMap[topic] = internalCache
-	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
-	return verifier, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

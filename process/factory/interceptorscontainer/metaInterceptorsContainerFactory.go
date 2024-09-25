@@ -104,29 +104,29 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	base := &baseInterceptorsContainerFactory{
-		mainContainer:              containers.NewInterceptorsContainer(),
-		fullArchiveContainer:       containers.NewInterceptorsContainer(),
-		shardCoordinator:           args.ShardCoordinator,
-		mainMessenger:              args.MainMessenger,
-		fullArchiveMessenger:       args.FullArchiveMessenger,
-		store:                      args.Store,
-		dataPool:                   args.DataPool,
-		nodesCoordinator:           args.NodesCoordinator,
-		blockBlackList:             args.BlockBlackList,
-		argInterceptorFactory:      argInterceptorFactory,
-		maxTxNonceDeltaAllowed:     args.MaxTxNonceDeltaAllowed,
-		accounts:                   args.Accounts,
-		antifloodHandler:           args.AntifloodHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:       args.PreferredPeersHolder,
-		hasher:                     args.CoreComponents.Hasher(),
-		requestHandler:             args.RequestHandler,
-		mainPeerShardMapper:        args.MainPeerShardMapper,
-		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
-		hardforkTrigger:            args.HardforkTrigger,
-		nodeOperationMode:          args.NodeOperationMode,
-		processedMessagesCacheMap:  args.ProcessedMessagesCacheMap,
+		mainContainer:                  containers.NewInterceptorsContainer(),
+		fullArchiveContainer:           containers.NewInterceptorsContainer(),
+		shardCoordinator:               args.ShardCoordinator,
+		mainMessenger:                  args.MainMessenger,
+		fullArchiveMessenger:           args.FullArchiveMessenger,
+		store:                          args.Store,
+		dataPool:                       args.DataPool,
+		nodesCoordinator:               args.NodesCoordinator,
+		blockBlackList:                 args.BlockBlackList,
+		argInterceptorFactory:          argInterceptorFactory,
+		maxTxNonceDeltaAllowed:         args.MaxTxNonceDeltaAllowed,
+		accounts:                       args.Accounts,
+		antifloodHandler:               args.AntifloodHandler,
+		whiteListHandler:               args.WhiteListHandler,
+		whiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:           args.PreferredPeersHolder,
+		hasher:                         args.CoreComponents.Hasher(),
+		requestHandler:                 args.RequestHandler,
+		mainPeerShardMapper:            args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
+		hardforkTrigger:                args.HardforkTrigger,
+		nodeOperationMode:              args.NodeOperationMode,
+		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -269,7 +269,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := micf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := micf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}

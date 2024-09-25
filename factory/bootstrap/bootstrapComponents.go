@@ -32,17 +32,17 @@ var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config                  config.Config
-	RoundConfig             config.RoundConfig
-	PrefConfig              config.Preferences
-	ImportDbConfig          config.ImportDbConfig
-	FlagsConfig             config.ContextFlagsConfig
-	WorkingDir              string
-	CoreComponents          factory.CoreComponentsHolder
-	CryptoComponents        factory.CryptoComponentsHolder
-	NetworkComponents       factory.NetworkComponentsHolder
-	StatusCoreComponents    factory.StatusCoreComponentsHolder
-	InterceptedDataCacheMap map[string]storage.Cacher
+	Config                         config.Config
+	RoundConfig                    config.RoundConfig
+	PrefConfig                     config.Preferences
+	ImportDbConfig                 config.ImportDbConfig
+	FlagsConfig                    config.ContextFlagsConfig
+	WorkingDir                     string
+	CoreComponents                 factory.CoreComponentsHolder
+	CryptoComponents               factory.CryptoComponentsHolder
+	NetworkComponents              factory.NetworkComponentsHolder
+	StatusCoreComponents           factory.StatusCoreComponentsHolder
+	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 type bootstrapComponentsFactory struct {

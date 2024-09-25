@@ -178,17 +178,17 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    sesb.coreComponentsHolder,
-		CryptoComponentsHolder:  sesb.cryptoComponentsHolder,
-		RequestHandler:          sesb.requestHandler,
-		Messenger:               sesb.mainMessenger,
-		ShardCoordinator:        sesb.shardCoordinator,
-		EconomicsData:           sesb.economicsData,
-		WhitelistHandler:        sesb.whiteListHandler,
-		StartInEpochConfig:      sesb.generalConfig.EpochStartConfig,
-		HeaderIntegrityVerifier: sesb.headerIntegrityVerifier,
-		MetaBlockProcessor:      metablockProcessor,
-		InterceptedDataCache:    sesb.interceptedDataCache,
+		CoreComponentsHolder:           sesb.coreComponentsHolder,
+		CryptoComponentsHolder:         sesb.cryptoComponentsHolder,
+		RequestHandler:                 sesb.requestHandler,
+		Messenger:                      sesb.mainMessenger,
+		ShardCoordinator:               sesb.shardCoordinator,
+		EconomicsData:                  sesb.economicsData,
+		WhitelistHandler:               sesb.whiteListHandler,
+		StartInEpochConfig:             sesb.generalConfig.EpochStartConfig,
+		HeaderIntegrityVerifier:        sesb.headerIntegrityVerifier,
+		MetaBlockProcessor:             metablockProcessor,
+		InterceptedDataVerifierFactory: sesb.interceptedDataVerifierFactory,
 	}
 
 	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)

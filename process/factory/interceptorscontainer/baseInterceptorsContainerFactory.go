@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
@@ -31,35 +30,33 @@ const (
 	minTimespanDurationInSec        = int64(1)
 	errorOnMainNetworkString        = "on main network"
 	errorOnFullArchiveNetworkString = "on full archive network"
-	cacheDefaultSpan                = 30 * time.Second
-	cacheDefaultExpiry              = 30 * time.Second
 )
 
 type baseInterceptorsContainerFactory struct {
-	mainContainer              process.InterceptorsContainer
-	fullArchiveContainer       process.InterceptorsContainer
-	shardCoordinator           sharding.Coordinator
-	accounts                   state.AccountsAdapter
-	store                      dataRetriever.StorageService
-	dataPool                   dataRetriever.PoolsHolder
-	mainMessenger              process.TopicHandler
-	fullArchiveMessenger       process.TopicHandler
-	nodesCoordinator           nodesCoordinator.NodesCoordinator
-	blockBlackList             process.TimeCacher
-	argInterceptorFactory      *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler            process.InterceptorThrottler
-	maxTxNonceDeltaAllowed     int
-	antifloodHandler           process.P2PAntifloodHandler
-	whiteListHandler           process.WhiteListHandler
-	whiteListerVerifiedTxs     process.WhiteListHandler
-	preferredPeersHolder       process.PreferredPeersHolderHandler
-	hasher                     hashing.Hasher
-	requestHandler             process.RequestHandler
-	mainPeerShardMapper        process.PeerShardMapper
-	fullArchivePeerShardMapper process.PeerShardMapper
-	hardforkTrigger            heartbeat.HardforkTrigger
-	nodeOperationMode          common.NodeOperation
-	processedMessagesCacheMap  map[string]storage.Cacher
+	mainContainer                  process.InterceptorsContainer
+	fullArchiveContainer           process.InterceptorsContainer
+	shardCoordinator               sharding.Coordinator
+	accounts                       state.AccountsAdapter
+	store                          dataRetriever.StorageService
+	dataPool                       dataRetriever.PoolsHolder
+	mainMessenger                  process.TopicHandler
+	fullArchiveMessenger           process.TopicHandler
+	nodesCoordinator               nodesCoordinator.NodesCoordinator
+	blockBlackList                 process.TimeCacher
+	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler                process.InterceptorThrottler
+	maxTxNonceDeltaAllowed         int
+	antifloodHandler               process.P2PAntifloodHandler
+	whiteListHandler               process.WhiteListHandler
+	whiteListerVerifiedTxs         process.WhiteListHandler
+	preferredPeersHolder           process.PreferredPeersHolderHandler
+	hasher                         hashing.Hasher
+	requestHandler                 process.RequestHandler
+	mainPeerShardMapper            process.PeerShardMapper
+	fullArchivePeerShardMapper     process.PeerShardMapper
+	hardforkTrigger                heartbeat.HardforkTrigger
+	nodeOperationMode              common.NodeOperation
+	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 func checkBaseParams(
@@ -291,7 +288,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +337,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +386,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -438,7 +435,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	// compose header shard topic, for example: shardBlocks_0_META
 	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(identifierHdr)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifierHdr)
 	if err != nil {
 		return err
 	}
@@ -532,7 +529,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -577,7 +574,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 		return err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(identifierHdr)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifierHdr)
 	if err != nil {
 		return err
 	}
@@ -619,7 +616,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -717,7 +714,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 		return err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(identifierPeerAuthentication)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifierPeerAuthentication)
 	if err != nil {
 		return err
 	}
@@ -782,7 +779,7 @@ func (bicf *baseInterceptorsContainerFactory) createHeartbeatV2Interceptor(
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(identifier)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifier)
 	if err != nil {
 		return nil, err
 	}
@@ -837,7 +834,7 @@ func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(identifier)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifier)
 	if err != nil {
 		return nil, err
 	}
@@ -880,7 +877,7 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 		return err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(identifier)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(identifier)
 	if err != nil {
 		return err
 	}
@@ -924,7 +921,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := bicf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := bicf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -962,16 +959,16 @@ func (bicf *baseInterceptorsContainerFactory) addInterceptorsToContainers(keys [
 	return bicf.fullArchiveContainer.AddMultiple(keys, interceptors)
 }
 
-func (bicf *baseInterceptorsContainerFactory) createCacheForInterceptor(topic string) (process.InterceptedDataVerifier, error) {
-	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: cacheDefaultSpan,
-		CacheExpiry: cacheDefaultExpiry,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	bicf.processedMessagesCacheMap[topic] = internalCache
-	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
-	return verifier, nil
-}
+//func (bicf *baseInterceptorsContainerFactory) createCacheForInterceptor(topic string) (process.InterceptedDataVerifier, error) {
+//	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+//		DefaultSpan: cacheDefaultSpan,
+//		CacheExpiry: cacheDefaultExpiry,
+//	})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	bicf.processedMessagesCacheMap[topic] = internalCache
+//	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
+//	return verifier, nil
+//}
