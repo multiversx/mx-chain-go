@@ -1,6 +1,7 @@
 package receiptslog
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/state"
 )
 
@@ -21,7 +22,7 @@ type receiptsManager struct {
 
 // NewReceiptsManager will create a new instance of receipts manager
 func NewReceiptsManager(args ArgsReceiptsManager) (*receiptsManager, error) {
-	if args.TrieHandler == nil {
+	if check.IfNil(args.TrieHandler) {
 		return nil, ErrNilTrieInteractor
 	}
 
@@ -55,6 +56,7 @@ func (rm *receiptsManager) GenerateReceiptsTrieAndSaveDataInStorage(args ArgsGen
 	return receiptsRootHash, nil
 }
 
+// SyncReceiptsTrie will sync the receipts trie from network
 func (rm *receiptsManager) SyncReceiptsTrie(receiptsRootHash []byte) error {
 	return nil
 }

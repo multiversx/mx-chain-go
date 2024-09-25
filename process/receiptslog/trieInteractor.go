@@ -1,6 +1,7 @@
 package receiptslog
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/state"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -12,8 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
-// TODO check what size to use
-const maxTrieLevelInMemory = 10
+const maxTrieLevelInMemory = 5
 
 // ArgsTrieInteractor is the structure that holds the components needed to a new  trie interactor
 type ArgsTrieInteractor struct {
@@ -84,7 +84,10 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 	}
 
 	serializedNodes := make([][]byte, 0)
-	serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
+	err = ti.saveNodeData(currentNodeData, serializedNodes)
+	if err != nil {
+		return nil, err
+	}
 
 	for dfsIterator.HasNext() {
 		err = dfsIterator.Next()
@@ -97,20 +100,11 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 			return nil, errGet
 		}
 
-		if currentNodeData.Type != trie.LeafNodeType {
-			serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
-			continue
+		err = ti.saveNodeData(currentNodeData, serializedNodes)
+		if err != nil {
+			return nil, err
 		}
 
-		errSave := ti.storage.Put(currentNodeData.Hash, currentNodeData.SerializedNode)
-		if errSave != nil {
-			return nil, errSave
-		}
-
-		errSave = ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
-		if errSave != nil {
-			return nil, errSave
-		}
 	}
 
 	listOfSerializedNodesBytes, err := ti.marshaller.Marshal(&serializedNodes)
@@ -141,26 +135,38 @@ func (ti *trieInteractor) saveReceiptTxHashLeafKey(leafHash []byte, leafData []b
 	return ti.storage.Put(receiptData.TxHash, leafHash)
 }
 
-// how to recreate the trie ---  check trie/sync.go
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ti *trieInteractor) IsInterfaceNil() bool {
 	return ti == nil
 }
 
 func checkArgs(args ArgsTrieInteractor) error {
-	if args.EnableEpochsHandler == nil {
+	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if args.Hasher == nil {
+	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
-	if args.Marshaller == nil {
+	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
 	}
-	if args.ReceiptDataStorer == nil {
+	if check.IfNil(args.ReceiptDataStorer) {
 		return dataRetriever.ErrNilReceiptsStorage
 	}
 
 	return nil
+}
+
+func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes [][]byte) error {
+	if currentNodeData.Type != trie.LeafNodeType {
+		serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
+		return nil
+	}
+
+	err := ti.storage.Put(currentNodeData.Hash, currentNodeData.SerializedNode)
+	if err != nil {
+		return err
+	}
+
+	return ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -13,6 +14,7 @@ type ArgsCreateReceiptsManager struct {
 	Marshaller          marshal.Marshalizer
 	Hasher              hashing.Hasher
 	EnableEpochsHandler common.EnableEpochsHandler
+	RequestHandler      process.RequestHandler
 }
 
 // CreateReceiptsManager will create a new instance of receipts manager
