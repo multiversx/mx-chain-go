@@ -100,7 +100,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		}
 
 		if imh.isMetaHeaderEpochOutOfRange() {
-			log.Trace("InterceptedMetaHeader.Verify",
+			log.Trace("InterceptedMetaHeader.CheckValidity",
 				"trigger epoch", imh.epochStartTrigger.Epoch(),
 				"metaBlock epoch", imh.hdr.GetEpoch(),
 				"error", process.ErrMetaHeaderEpochOutOfRange)

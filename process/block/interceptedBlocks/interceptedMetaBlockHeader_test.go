@@ -99,7 +99,7 @@ func TestNewInterceptedMetaHeader_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Verify
+//------- CheckValidity
 
 func TestInterceptedMetaHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()

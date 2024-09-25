@@ -159,10 +159,8 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+		listInterceptedData[index] = interceptedData
 
-		if !errors.Is(err, ErrInvalidInterceptedData) {
-			listInterceptedData[index] = interceptedData
-		}
 		if err != nil {
 			mdi.throttler.EndProcessing()
 			return err
