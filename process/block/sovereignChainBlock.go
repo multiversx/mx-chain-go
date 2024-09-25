@@ -219,16 +219,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
-		shardHdr, ok := initialHdr.(data.ShardHeaderHandler)
-		if !ok {
-			return nil, nil, fmt.Errorf("invalid header")
-		}
-
-		err = shardHdr.SetEpochStartMetaHash(scbp.epochStartTrigger.EpochStartMetaHdrHash())
-		if err != nil {
-			return nil, nil, err
-		}
-
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 		return initialHdr, &block.Body{}, nil
@@ -998,21 +988,6 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 		return err
 	}
 
-	shardHdr, ok := header.(data.ShardHeaderHandler)
-	if !ok {
-		return fmt.Errorf("invalid header")
-	}
-
-	//conv := uint64ByteSlice.NewBigEndianConverter()
-	//epochBytes :=  conv.ToByteSlice(uint64(header.GetEpoch())
-
-	epochStartHdrHash := make([]byte, 32)
-	epochStartHdrHash[0] = byte(header.GetEpoch())
-	err = shardHdr.SetEpochStartMetaHash(epochStartHdrHash)
-	if err != nil {
-		return err
-	}
-
 	scbp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
 	scbp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
@@ -1559,18 +1534,6 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 		}
 
 		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
-
-		hdrBytes, err := scbp.marshalizer.Marshal(header)
-		if err != nil {
-			return err
-		}
-
-		errNotCritical := scbp.store.Put(dataRetriever.BlockHeaderUnit, header.(data.ShardHeaderHandler).GetEpochStartMetaHash(), hdrBytes)
-		if errNotCritical != nil {
-			log.Error("sovereignChainBlockProcessor.Put")
-			return errNotCritical
-		}
-
 	} else {
 		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
