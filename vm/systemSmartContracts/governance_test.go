@@ -1719,12 +1719,12 @@ func TestGovernanceContract_CannotClose(t *testing.T) {
 	cannotClose := gsc.cannotClose(currentEpoch, closedBeforeStart)
 	require.True(t, cannotClose)
 
+	cannotClose = gsc.cannotClose(endVoteEpoch+1, closedBeforeStart)
+	require.False(t, cannotClose)
+
 	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFixesFlag)
 	cannotClose = gsc.cannotClose(currentEpoch, closedBeforeStart)
 	require.False(t, cannotClose)
-
-	cannotClose = gsc.cannotClose(endVoteEpoch+1, closedBeforeStart)
-	require.True(t, cannotClose)
 }
 
 func TestGovernanceContract_ClearEndedProposalsCallValue(t *testing.T) {
