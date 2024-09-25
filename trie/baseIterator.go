@@ -5,6 +5,14 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// CurrentNodeInfo contains information about a trie node
+type CurrentNodeInfo struct {
+	Hash           []byte
+	Value          []byte
+	SerializedNode []byte
+	Type           string
+}
+
 type baseIterator struct {
 	currentNode node
 	nextNodes   []node
@@ -71,4 +79,28 @@ func (it *baseIterator) GetHash() ([]byte, error) {
 	}
 
 	return it.currentNode.getHash(), nil
+}
+
+// GetCurrentNodeInfo will return information about the current node
+func (it *baseIterator) GetCurrentNodeInfo() (*CurrentNodeInfo, error) {
+	err := it.currentNode.setHash()
+	if err != nil {
+		return nil, err
+	}
+
+	currentNodeHash := it.currentNode.getHash()
+
+	serializedNode, err := it.currentNode.getEncodedNode()
+	if err != nil {
+		return nil, err
+	}
+
+	currentNodeInfo := &CurrentNodeInfo{
+		Hash:           currentNodeHash,
+		Value:          it.currentNode.getValue(),
+		SerializedNode: serializedNode,
+		Type:           it.currentNode.getType(),
+	}
+
+	return currentNodeInfo, nil
 }

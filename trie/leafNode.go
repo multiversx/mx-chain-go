@@ -561,6 +561,10 @@ func (ln *leafNode) collectLeavesForMigration(
 	return migrationArgs.TrieMigrator.AddLeafToMigrationQueue(leafData, migrationArgs.NewVersion)
 }
 
+func (*leafNode) getType() string {
+	return LeafNodeType
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ln *leafNode) IsInterfaceNil() bool {
 	return ln == nil

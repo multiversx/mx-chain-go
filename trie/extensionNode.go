@@ -787,6 +787,10 @@ func (en *extensionNode) collectLeavesForMigration(
 	return en.child.collectLeavesForMigration(migrationArgs, db, keyBuilder.Clone())
 }
 
+func (*extensionNode) getType() string {
+	return ExtensionNodeType
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (en *extensionNode) IsInterfaceNil() bool {
 	return en == nil
