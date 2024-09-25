@@ -856,3 +856,6 @@ var ErrNilBroadCastShardMessengerFactoryHandler = errors.New("nil shard messenge
 
 // ErrNilExportHandlerFactoryCreator signals that a nil export handler factory creator has been provided
 var ErrNilExportHandlerFactoryCreator = errors.New("nil export handler factory creator has been provided")
+
+// ErrNilValidatorAccountsDBSyncerFactory signals that a nil validator accounts db syncer factory has been provided
+var ErrNilValidatorAccountsDBSyncerFactory = errors.New("nil validator accounts db syncer factory has been provided")

@@ -47,6 +47,7 @@ import (
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	updateFactory "github.com/multiversx/mx-chain-go/update/factory/creator"
@@ -118,6 +119,7 @@ type runTypeComponents struct {
 	dataRetrieverContainersSetter           mainFactory.DataRetrieverContainersSetter
 	shardMessengerFactory                   sposFactory.BroadCastShardMessengerFactoryHandler
 	exportHandlerFactoryCreator             mainFactory.ExportHandlerFactoryCreator
+	validatorAccountsSyncerFactoryHandler   syncerFactory.ValidatorAccountsSyncerFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -293,6 +295,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		dataRetrieverContainersSetter:           dataRetriever.NewDataRetrieverContainerSetter(),
 		shardMessengerFactory:                   broadcastFactory.NewShardChainMessengerFactory(),
 		exportHandlerFactoryCreator:             updateFactory.NewExportHandlerFactoryCreator(),
+		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
 	}, nil
 }
 

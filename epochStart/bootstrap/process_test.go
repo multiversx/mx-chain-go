@@ -709,6 +709,18 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilRequesterContainerFactoryCreator))
 	})
+	t.Run("nil ValidatorAccountsSyncerFactoryHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.ValidatorAccountsSyncerFactoryHandlerField = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilValidatorAccountsDBSyncerFactory))
+	})
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {

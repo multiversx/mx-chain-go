@@ -59,6 +59,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/update"
@@ -637,6 +638,7 @@ type RunTypeComponentsHolder interface {
 	DataRetrieverContainersSetter() DataRetrieverContainersSetter
 	BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler
 	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
+	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

@@ -550,7 +550,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: ccf.createArgsBaseAccountsSyncer(trieStorageManager),
 	}
-	return syncer.NewValidatorAccountsSyncer(args)
+	return ccf.runTypeComponents.ValidatorAccountsSyncerFactoryHandler().CreateValidatorAccountsSyncer(args)
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
