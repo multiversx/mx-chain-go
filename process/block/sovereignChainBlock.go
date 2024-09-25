@@ -219,16 +219,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
-		shardHdr, ok := initialHdr.(data.ShardHeaderHandler)
-		if !ok {
-			return nil, nil, err
-		}
-
-		err = shardHdr.SetEpochStartMetaHash(scbp.epochStartTrigger.EpochStartMetaHdrHash())
-		if err != nil {
-			return nil, nil, err
-		}
-
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 		return initialHdr, &block.Body{}, nil
@@ -792,7 +782,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	}
 
 	scbp.epochStartTrigger.Update(shardHeader.GetRound(), shardHeader.GetNonce())
-	err = scbp.checkEpochCorrectness(shardHeader)
+	err = scbp.baseProcessor.checkEpochCorrectness(shardHeader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -860,6 +850,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
+
 	currentRootHash, err := scbp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return err
@@ -937,12 +928,17 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
-	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)
+	body.MiniBlocks = finalMiniBlocks
 
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
 }
 
 func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
+	err := header.SetMiniBlockHeaderHandlers(nil)
+	if err != nil {
+		return err
+	}
+
 	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
 	if err != nil {
 		return err
