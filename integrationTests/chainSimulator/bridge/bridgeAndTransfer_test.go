@@ -13,6 +13,7 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 )
 
 // TODO: MX-15527 Make a similar bridge test with sovereign chain simulator after merging this into feat/chain-go-sdk
@@ -38,7 +39,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              1,
+		NumOfShards:              3,
 		GenesisTimestamp:         time.Now().Unix(),
 		RoundDurationInMillis:    uint64(6000),
 		RoundsPerEpoch:           roundsPerEpoch,
@@ -56,12 +57,10 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocksUntilEpochIsReached(3)
+	err = cs.GenerateBlocksUntilEpochIsReached(4)
 	require.Nil(t, err)
 
-	nodeHandler := cs.GetNodeHandler(0)
-
-	// Deploy bridge setup
+	// Deploy bridge setup on shard 1
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	argsEsdtSafe := ArgsEsdtSafe{
 		ChainPrefix:       "sov1",
@@ -69,6 +68,9 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+
+	addressShardID := chainSim.GetShardForAddress(cs, initialAddress)
+	nodeHandler := cs.GetNodeHandler(addressShardID)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.Equal(t, whiteListedAddress, esdtSafeEncoded)
@@ -79,57 +81,144 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 	chainSim.SetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
-	tokenToBridge := argsEsdtSafe.ChainPrefix + "-SOVT-5d8f56"
-	expectedMintValue := big.NewInt(123)
-
+	// TODO uncomment after rust framework and contract framework will be updated with all esdt types
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-		Identifier: tokenToBridge,
-		Nonce:      0,
-		Amount:     expectedMintValue,
+		Identifier: argsEsdtSafe.ChainPrefix + "-TKN-123456",
+		Nonce:      uint64(0),
+		Amount:     big.NewInt(555666),
 		Type:       core.Fungible,
 	})
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+		Identifier: argsEsdtSafe.ChainPrefix + "-NFTV2-1q2w3e",
+		Nonce:      uint64(3),
+		Amount:     big.NewInt(1),
+		Type:       core.NonFungibleV2,
+	})
+	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-DNFT-ewg43h",
+	//	Nonce:      uint64(6),
+	//	Amount:     big.NewInt(1),
+	//	Type:       core.DynamicNFT,
+	//})
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+		Identifier: argsEsdtSafe.ChainPrefix + "-SFT-gthy55",
+		Nonce:      uint64(52),
+		Amount:     big.NewInt(2156),
+		Type:       core.SemiFungible,
+	})
+	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-DSFT-h6g4g2",
+	//	Nonce:      uint64(33),
+	//	Amount:     big.NewInt(11),
+	//	Type:       core.DynamicSFT,
+	//})
+	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-META-4g543g",
+	//	Nonce:      uint64(57),
+	//	Amount:     big.NewInt(124000),
+	//	Type:       core.MetaFungible,
+	//})
+	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-DMETA-gtr4g2",
+	//	Nonce:      uint64(31),
+	//	Amount:     big.NewInt(14326743),
+	//	Type:       core.DynamicMeta,
+	//})
 
-	// Register the sovereign token in contract
-	registerSovereignNewTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, argsEsdtSafe.IssuePaymentToken, []string{tokenToBridge})
+	// Register the sovereign tokens in contract
+	tokens := getUniquePrefixedTokens(bridgedInTokens, argsEsdtSafe.ChainPrefix)
+	registerSovereignNewTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, argsEsdtSafe.IssuePaymentToken, tokens)
 
-	// We will deposit a prefixed token from a sovereign chain to the main chain,
-	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our address.
+	// We will deposit prefixed tokens from a sovereign chain to the main chain,
+	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our address from another shard.
 	txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, bridgedInTokens, wallet.Bytes, nil)
 	chainSim.RequireSuccessfulTransaction(t, txResult)
-	for _, token := range groupTokens(bridgedInTokens) {
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
+
+	err = cs.GenerateBlocks(3)
+	require.Nil(t, err)
+
+	for _, bridgedInToken := range groupTokens(bridgedInTokens) {
+		checkTokenDataInAccount(t, cs, bridgedInToken, esdtSafeEncoded, big.NewInt(0))       // sender
+		checkTokenDataInAccount(t, cs, bridgedInToken, wallet.Bech32, bridgedInToken.Amount) // receiver
 	}
 
-	amountToDeposit := big.NewInt(23)
-	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
-	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
-		Identifier: tokenToBridge,
-		Nonce:      0,
-		Amount:     amountToDeposit,
-		Type:       core.Fungible,
-	})
-	// We will deposit a prefixed token from main chain to sovereign chain,
-	// expecting these tokens to be burned by the whitelisted ESDT safe sc
-	txResult = Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
-	chainSim.RequireSuccessfulTransaction(t, txResult)
-
-	remainingValueAfterBridge := big.NewInt(0).Sub(expectedMintValue, amountToDeposit)
-	chainSim.RequireAccountHasToken(t, cs, tokenToBridge, wallet.Bech32, remainingValueAfterBridge)
-	chainSim.RequireAccountHasToken(t, cs, tokenToBridge, esdtSafeEncoded, big.NewInt(0))
-
-	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(tokenToBridge)
+	// Generate address in another shard than bridge contract and user wallet
+	receiver, err := cs.GenerateAndMintWalletAddress(2, chainSim.InitialAmount)
 	require.Nil(t, err)
-	require.NotNil(t, tokenSupply)
-	require.Equal(t, amountToDeposit.String(), tokenSupply.Burned)
-
-	// Send some of the bridged prefixed tokens to another address
-	receiver := "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"
-	receiverBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(receiver)
+	receiverNonce := uint64(0)
+	receiver2, err := cs.GenerateAndMintWalletAddress(2, chainSim.InitialAmount)
 	require.Nil(t, err)
 
-	receivedTokens := big.NewInt(11)
-	chainSim.TransferESDT(t, cs, wallet.Bytes, receiverBytes, &nonce, tokenToBridge, receivedTokens)
-	chainSim.RequireAccountHasToken(t, cs, tokenToBridge, receiver, receivedTokens)
-	chainSim.RequireAccountHasToken(t, cs, tokenToBridge, wallet.Bech32, big.NewInt(0).Sub(remainingValueAfterBridge, receivedTokens))
+	// will make a cross shard transaction, then deposit transaction, then same shard transaction with every token
+	for _, token := range groupTokens(bridgedInTokens) {
+		amountToSend := big.NewInt(2)
+		if token.Type == core.NonFungibleV2 || token.Type == core.DynamicNFT || token.Amount.Cmp(big.NewInt(1)) == 0 {
+			amountToSend = big.NewInt(1)
+		}
+		// cross shard transfer
+		receiverToken := transferToken(t, cs, token, wallet, receiver, &nonce, amountToSend)
+		checkTokenDataInAccount(t, cs, token, wallet.Bech32, big.NewInt(0).Sub(token.Amount, receiverToken.Amount))
+		checkTokenDataInAccount(t, cs, token, receiver.Bech32, receiverToken.Amount)
+
+		amountToDeposit := big.NewInt(1)
+		bridgedOutToken := chainSim.ArgsDepositToken{
+			Identifier: token.Identifier,
+			Nonce:      token.Nonce,
+			Amount:     amountToDeposit,
+			Type:       token.Type,
+		}
+
+		// deposit a prefixed token from main chain to sovereign chain,
+		// expecting these tokens to be burned by the whitelisted ESDT safe sc
+		txResult = Deposit(t, cs, receiver.Bytes, &receiverNonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{bridgedOutToken}, receiver.Bytes)
+		chainSim.RequireSuccessfulTransaction(t, txResult)
+
+		remainingTokenAmount := big.NewInt(0).Sub(receiverToken.Amount, amountToDeposit)
+		checkTokenDataInAccount(t, cs, token, receiver.Bech32, remainingTokenAmount)
+		checkTokenDataInAccount(t, cs, token, esdtSafeEncoded, big.NewInt(0))
+		receiverToken.Amount = remainingTokenAmount
+
+		if remainingTokenAmount.Cmp(big.NewInt(0)) > 0 {
+			// same shard transfer
+			transferredToken := transferToken(t, cs, receiverToken, receiver, receiver2, &receiverNonce, remainingTokenAmount)
+			checkTokenDataInAccount(t, cs, transferredToken, receiver.Bech32, big.NewInt(0))
+			checkTokenDataInAccount(t, cs, transferredToken, receiver2.Bech32, remainingTokenAmount)
+		}
+	}
+}
+
+func transferToken(
+	t *testing.T,
+	cs chainSim.ChainSimulator,
+	token chainSim.ArgsDepositToken,
+	sender, receiver dtos.WalletAddress,
+	senderNonce *uint64,
+	amountToSend *big.Int,
+) chainSim.ArgsDepositToken {
+	if token.Type == core.Fungible {
+		chainSim.TransferESDT(t, cs, sender.Bytes, receiver.Bytes, senderNonce, token.Identifier, amountToSend)
+	} else {
+		chainSim.TransferESDTNFT(t, cs, sender.Bytes, receiver.Bytes, senderNonce, token.Identifier, token.Nonce, amountToSend)
+		err := cs.GenerateBlocks(3)
+		require.Nil(t, err)
+	}
+
+	return chainSim.ArgsDepositToken{
+		Identifier: token.Identifier,
+		Nonce:      token.Nonce,
+		Amount:     amountToSend,
+		Type:       token.Type,
+	}
+}
+
+func checkTokenDataInAccount(
+	t *testing.T,
+	cs chainSim.ChainSimulator,
+	token chainSim.ArgsDepositToken,
+	address string,
+	expectedAmount *big.Int,
+) {
+	chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), address, expectedAmount)
+	checkMetaDataInAccounts(t, cs, token, address, expectedAmount)
 }
