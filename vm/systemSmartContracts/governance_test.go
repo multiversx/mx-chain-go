@@ -1716,15 +1716,72 @@ func TestGovernanceContract_CannotClose(t *testing.T) {
 		EndVoteEpoch:   endVoteEpoch,
 	}
 
-	cannotClose := gsc.cannotClose(currentEpoch, closedBeforeStart)
-	require.True(t, cannotClose)
+	t.Run("fixes flag disabled, should return false only after end vote epoch", func(t *testing.T) {
+		t.Run("current epoch is less than start epoch", func(t *testing.T) {
+			t.Parallel()
 
-	cannotClose = gsc.cannotClose(endVoteEpoch+1, closedBeforeStart)
-	require.False(t, cannotClose)
+			cannotClose := gsc.cannotClose(currentEpoch, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is equal with start epoch", func(t *testing.T) {
+			t.Parallel()
 
-	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFixesFlag)
-	cannotClose = gsc.cannotClose(currentEpoch, closedBeforeStart)
-	require.False(t, cannotClose)
+			cannotClose := gsc.cannotClose(startVoteEpoch, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is between start and end epochs", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(currentEpoch+5, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is equal with end epoch", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(endVoteEpoch, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is larger than end epoch", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(endVoteEpoch+1, closedBeforeStart)
+			require.False(t, cannotClose)
+		})
+	})
+	t.Run("fixes flag enabled, should return false only between start and end epoch", func(t *testing.T) {
+		gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFixesFlag)
+
+		t.Run("current epoch is less than start epoch", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(currentEpoch, closedBeforeStart)
+			require.False(t, cannotClose)
+		})
+		t.Run("current epoch is equal with start epoch", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(startVoteEpoch, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is between start and end epochs", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(currentEpoch+5, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is equal with end epoch", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(endVoteEpoch, closedBeforeStart)
+			require.True(t, cannotClose)
+		})
+		t.Run("current epoch is larger than end epoch", func(t *testing.T) {
+			t.Parallel()
+
+			cannotClose := gsc.cannotClose(endVoteEpoch+1, closedBeforeStart)
+			require.False(t, cannotClose)
+		})
+	})
 }
 
 func TestGovernanceContract_ClearEndedProposalsCallValue(t *testing.T) {
