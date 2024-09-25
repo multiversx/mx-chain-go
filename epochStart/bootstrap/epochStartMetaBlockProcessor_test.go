@@ -264,21 +264,29 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 		&hashingMocks.HasherMock{},
 		99,
 		3,
-		3,
+		5,
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
+	confirmationMetaBlock := &block.MetaBlock{
+		Nonce: 11,
+	}
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
 
 	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
 		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
+	for i := 0; i < esmbp.minNumOfPeersToConsiderBlockValid; i++ {
+		_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+	}
+
 	// we need a slightly more time than 1 second in order to also properly test the select branches
-	timeout := time.Second + time.Millisecond*500
+	timeout := 2*time.Second + time.Millisecond*500
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
 	cancel()
@@ -307,10 +315,18 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		Nonce:      10,
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
+	confirmationMetaBlock := &block.MetaBlock{
+		Nonce: 11,
+	}
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
 
 	for i := 0; i < 6; i++ {
 		_ = esmbp.Save(intData, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
+	}
+
+	for i := 0; i < 6; i++ {
+		_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", i)), "")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -351,6 +367,12 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{Round: 1}}},
 	}
 	intData := mock.NewInterceptedMetaBlockMock(expectedMetaBlock, []byte("hash"))
+
+	confirmationMetaBlock := &block.MetaBlock{
+		Nonce: 11,
+	}
+	intData2 := mock.NewInterceptedMetaBlockMock(confirmationMetaBlock, []byte("hash2"))
+
 	go func() {
 		index := 0
 		for {
@@ -360,6 +382,17 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 			index += 2
 		}
 	}()
+
+	go func() {
+		index := 0
+		for {
+			time.Sleep(tts)
+			_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index)), "")
+			_ = esmbp.Save(intData2, core.PeerID(fmt.Sprintf("peer_%d", index+1)), "")
+			index += 2
+		}
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	mb, err := esmbp.GetEpochStartMetaBlock(ctx)
 	cancel()

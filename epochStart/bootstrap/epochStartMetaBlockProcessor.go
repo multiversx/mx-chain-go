@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -41,7 +40,6 @@ type epochStartMetaBlockProcessor struct {
 
 	chanConsensusReached              chan bool
 	chanMetaBlockReached              chan bool
-	chanConfMetaBlockReached          chan bool
 	metaBlock                         data.MetaHeaderHandler
 	peerCountTarget                   int
 	minNumConnectedPeers              int
@@ -93,6 +91,7 @@ func NewEpochStartMetaBlockProcessor(
 		mapReceivedConfMetaBlocks:         make(map[string]data.MetaHeaderHandler),
 		mapConfMetaBlocksFromPeers:        make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
+		chanMetaBlockReached:              make(chan bool, 1),
 	}
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
@@ -239,6 +238,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 
 	chanRequests := time.After(durationBetweenReRequests)
 	chanCheckMaps := time.After(durationBetweenChecks)
+
 	for {
 		select {
 		case <-e.chanConsensusReached:
@@ -272,7 +272,7 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) err
 		case <-e.chanMetaBlockReached:
 			return nil
 		case <-ctx.Done():
-			return fmt.Errorf("did not received epoch start meta block")
+			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
