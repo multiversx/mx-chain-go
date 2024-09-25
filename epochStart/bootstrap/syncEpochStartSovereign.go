@@ -1,6 +1,12 @@
 package bootstrap
 
-import "github.com/multiversx/mx-chain-go/process/factory"
+import (
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+)
 
 type epochStartSovereignSyncer struct {
 	*epochStartMetaSyncer
@@ -15,7 +21,7 @@ func newEpochStartSovereignSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStart
 
 	topicProvider := newSovereignTopicProvider()
 	baseSyncer.epochStartTopicProviderHandler = topicProvider
-	baseSyncer.singleDataInterceptor, err = createSingleDataInterceptor(args, factory.ShardBlocksTopic)
+	baseSyncer.singleDataInterceptor, err = createShardSingleDataInterceptor(args)
 	if err != nil {
 		return nil, err
 	}
@@ -23,4 +29,25 @@ func newEpochStartSovereignSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStart
 	return &epochStartSovereignSyncer{
 		epochStartMetaSyncer: baseSyncer,
 	}, nil
+}
+
+func createShardSingleDataInterceptor(args ArgsNewEpochStartMetaSyncer) (process.Interceptor, error) {
+	argsInterceptedDataFactory := createArgsInterceptedDataFactory(args)
+	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedShardHeaderDataFactory(&argsInterceptedDataFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptors.NewSingleDataInterceptor(
+		interceptors.ArgSingleDataInterceptor{
+			Topic:                factory.ShardBlocksTopic,
+			DataFactory:          interceptedMetaHdrDataFactory,
+			Processor:            args.MetaBlockProcessor,
+			Throttler:            disabled.NewThrottler(),
+			AntifloodHandler:     disabled.NewAntiFloodHandler(),
+			WhiteListRequest:     args.WhitelistHandler,
+			CurrentPeerId:        args.Messenger.ID(),
+			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		},
+	)
 }

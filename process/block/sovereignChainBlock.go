@@ -925,16 +925,10 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		valMB.ReceiverShardID = core.SovereignChainShardId
 	}
 
-	// DUPLICATED MBS
-	//if len(body.MiniBlocks) != 0 {
-	//	log.Error("DUPLICATEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEED")
-	//	return nil
-	//}
-
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
-	body.MiniBlocks = finalMiniBlocks //append(body.MiniBlocks, finalMiniBlocks...)
+	body.MiniBlocks = finalMiniBlocks
 
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
 }

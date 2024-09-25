@@ -53,7 +53,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 		return nil, err
 	}
 
-	e.singleDataInterceptor, err = createSingleDataInterceptor(args, factory.MetachainBlocksTopic)
+	e.singleDataInterceptor, err = createMetaSingleDataInterceptor(args)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +88,29 @@ func newEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	}, nil
 }
 
-func createSingleDataInterceptor(args ArgsNewEpochStartMetaSyncer, topic string) (process.Interceptor, error) {
-	argsInterceptedDataFactory := interceptorsFactory.ArgInterceptedDataFactory{
+func createMetaSingleDataInterceptor(args ArgsNewEpochStartMetaSyncer) (process.Interceptor, error) {
+	argsInterceptedDataFactory := createArgsInterceptedDataFactory(args)
+	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedMetaHeaderDataFactory(&argsInterceptedDataFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return interceptors.NewSingleDataInterceptor(
+		interceptors.ArgSingleDataInterceptor{
+			Topic:                factory.MetachainBlocksTopic,
+			DataFactory:          interceptedMetaHdrDataFactory,
+			Processor:            args.MetaBlockProcessor,
+			Throttler:            disabled.NewThrottler(),
+			AntifloodHandler:     disabled.NewAntiFloodHandler(),
+			WhiteListRequest:     args.WhitelistHandler,
+			CurrentPeerId:        args.Messenger.ID(),
+			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		},
+	)
+}
+
+func createArgsInterceptedDataFactory(args ArgsNewEpochStartMetaSyncer) interceptorsFactory.ArgInterceptedDataFactory {
+	return interceptorsFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponentsHolder,
 		CryptoComponents:        args.CryptoComponentsHolder,
 		ShardCoordinator:        args.ShardCoordinator,
@@ -101,24 +122,6 @@ func createSingleDataInterceptor(args ArgsNewEpochStartMetaSyncer, topic string)
 		EpochStartTrigger:       disabled.NewEpochStartTrigger(),
 		ArgsParser:              args.ArgsParser,
 	}
-
-	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedShardHeaderDataFactory(&argsInterceptedDataFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	return interceptors.NewSingleDataInterceptor(
-		interceptors.ArgSingleDataInterceptor{
-			Topic:                topic,
-			DataFactory:          interceptedMetaHdrDataFactory,
-			Processor:            args.MetaBlockProcessor,
-			Throttler:            disabled.NewThrottler(),
-			AntifloodHandler:     disabled.NewAntiFloodHandler(),
-			WhiteListRequest:     args.WhitelistHandler,
-			CurrentPeerId:        args.Messenger.ID(),
-			PreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		},
-	)
 }
 
 // SyncEpochStartMeta syncs the latest epoch start metablock
