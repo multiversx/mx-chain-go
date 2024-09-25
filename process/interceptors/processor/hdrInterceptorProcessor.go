@@ -16,6 +16,7 @@ var _ process.InterceptorProcessor = (*HdrInterceptorProcessor)(nil)
 // (shard headers, meta headers) structs which satisfy HeaderHandler interface.
 type HdrInterceptorProcessor struct {
 	headers            dataRetriever.HeadersPool
+	proofs             dataRetriever.ProofsPool
 	blackList          process.TimeCacher
 	registeredHandlers []func(topic string, hash []byte, data interface{})
 	mutHandlers        sync.RWMutex
@@ -29,12 +30,16 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 	if check.IfNil(argument.Headers) {
 		return nil, process.ErrNilCacher
 	}
+	if check.IfNil(argument.Proofs) {
+		return nil, process.ErrNilEquivalentProofsPool
+	}
 	if check.IfNil(argument.BlockBlackList) {
 		return nil, process.ErrNilBlackListCacher
 	}
 
 	return &HdrInterceptorProcessor{
 		headers:            argument.Headers,
+		proofs:             argument.Proofs,
 		blackList:          argument.BlockBlackList,
 		registeredHandlers: make([]func(topic string, hash []byte, data interface{}), 0),
 	}, nil
@@ -67,6 +72,8 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 	go hip.notify(interceptedHdr.HeaderHandler(), interceptedHdr.Hash(), topic)
 
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
+
+	_ = hip.proofs.AddProof(interceptedHdr.HeaderHandler().GetPreviousProof())
 
 	return nil
 }

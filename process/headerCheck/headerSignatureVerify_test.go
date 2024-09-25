@@ -722,7 +722,8 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		args := createHeaderSigVerifierArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
+				return flag == common.EquivalentMessagesFlag ||
+					flag == common.FixedOrderInConsensusFlag
 			},
 		}
 
