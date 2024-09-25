@@ -1705,13 +1705,15 @@ func TestGovernanceContract_CannotClose(t *testing.T) {
 	gsc, _ := NewGovernanceContract(args)
 
 	currentEpoch := uint64(10)
+	startVoteEpoch := currentEpoch + 1
+	endVoteEpoch := currentEpoch + 10
 	closedBeforeStart := &GeneralProposal{
 		Yes:            big.NewInt(20),
 		No:             big.NewInt(0),
 		Veto:           big.NewInt(0),
 		Abstain:        big.NewInt(10),
-		StartVoteEpoch: currentEpoch + 1,
-		EndVoteEpoch:   currentEpoch + 10,
+		StartVoteEpoch: startVoteEpoch,
+		EndVoteEpoch:   endVoteEpoch,
 	}
 
 	cannotClose := gsc.cannotClose(currentEpoch, closedBeforeStart)
@@ -1720,6 +1722,9 @@ func TestGovernanceContract_CannotClose(t *testing.T) {
 	gsc.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GovernanceFixesFlag)
 	cannotClose = gsc.cannotClose(currentEpoch, closedBeforeStart)
 	require.False(t, cannotClose)
+
+	cannotClose = gsc.cannotClose(endVoteEpoch+1, closedBeforeStart)
+	require.True(t, cannotClose)
 }
 
 func TestGovernanceContract_ClearEndedProposalsCallValue(t *testing.T) {
