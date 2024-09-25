@@ -99,7 +99,7 @@ func executeSimpleEsdtOperationWithError(
 	systemContractDeploy := chainSim.GetSysContactDeployAddressBytes(t, nodeHandler)
 
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
-	initialAddrBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
+	initialAddrBytes, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
 	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
 	nonce := uint64(0)
 
@@ -150,7 +150,7 @@ func TestChainSimulator_CreateAndBurnAllEsdtTypes(t *testing.T) {
 	systemContractDeploy := chainSim.GetSysContactDeployAddressBytes(t, nodeHandler)
 
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
-	initialAddrBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
+	initialAddrBytes, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
 	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
 	nonce := uint64(0)
 
