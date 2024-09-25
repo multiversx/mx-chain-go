@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -153,47 +154,15 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 		return false
 	}
 
-	signatureShare, ok := sr.getSignatureShare(leader, header, marshalizedHeader)
-	if !ok {
-		return false
-	}
-
 	if sr.couldBeSentTogether(marshalizedBody, marshalizedHeader) {
-		return sr.sendHeaderAndBlockBody(header, body, marshalizedBody, marshalizedHeader, signatureShare)
+		return sr.sendHeaderAndBlockBody(header, body, marshalizedBody, marshalizedHeader)
 	}
 
-	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader, signatureShare) {
+	if !sr.sendBlockBody(body, marshalizedBody) || !sr.sendBlockHeader(header, marshalizedHeader) {
 		return false
 	}
 
 	return true
-}
-
-func (sr *subroundBlock) getSignatureShare(leader string, header data.HeaderHandler, marshalledHeader []byte) ([]byte, bool) {
-	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return nil, true
-	}
-
-	leaderIndex, err := sr.ConsensusGroupIndex(leader)
-	if err != nil {
-		log.Debug("getSignatureShare.ConsensusGroupIndex: leader not in consensus group")
-		return nil, false
-	}
-
-	headerHash := sr.Hasher().Compute(string(marshalledHeader))
-	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-		headerHash,
-		uint16(leaderIndex),
-		header.GetEpoch(),
-		[]byte(leader),
-	)
-	if err != nil {
-		log.Debug("getSignatureShare.CreateSignatureShareForPublicKey", "error", err.Error())
-		return nil, false
-	}
-
-	return signatureShare, true
 }
 
 func (sr *subroundBlock) couldBeSentTogether(marshalizedBody []byte, marshalizedHeader []byte) bool {
@@ -235,7 +204,6 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	bodyHandler data.BodyHandler,
 	marshalizedBody []byte,
 	marshalizedHeader []byte,
-	signature []byte,
 ) bool {
 	headerHash := sr.Hasher().Compute(string(marshalizedHeader))
 
@@ -247,7 +215,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
-		signature,
+		nil,
 		marshalizedBody,
 		marshalizedHeader,
 		[]byte(leader),
@@ -324,10 +292,9 @@ func (sr *subroundBlock) sendBlockBody(
 func (sr *subroundBlock) sendBlockHeader(
 	headerHandler data.HeaderHandler,
 	marshalledHeader []byte,
-	signature []byte,
 ) bool {
 	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
-		return sr.sendBlockHeaderBeforeEquivalentProofs(headerHandler, marshalledHeader, signature)
+		return sr.sendBlockHeaderBeforeEquivalentProofs(headerHandler, marshalledHeader)
 	}
 
 	leader, errGetLeader := sr.GetLeader()
@@ -358,7 +325,6 @@ func (sr *subroundBlock) sendBlockHeader(
 func (sr *subroundBlock) sendBlockHeaderBeforeEquivalentProofs(
 	headerHandler data.HeaderHandler,
 	marshalledHeader []byte,
-	signature []byte,
 ) bool {
 	headerHash := sr.Hasher().Compute(string(marshalledHeader))
 
@@ -370,7 +336,7 @@ func (sr *subroundBlock) sendBlockHeaderBeforeEquivalentProofs(
 
 	cnsMsg := consensus.NewConsensusMessage(
 		headerHash,
-		signature,
+		nil,
 		nil,
 		marshalledHeader,
 		[]byte(leader),
@@ -472,9 +438,13 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	prevBlockProof := sr.Blockchain().GetCurrentHeaderProof()
+	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
+	if err != nil {
+		return false
+	}
+
 	if !isProofEmpty(prevBlockProof) {
-		header.SetPreviousAggregatedSignatureAndBitmap(prevBlockProof.AggregatedSignature, prevBlockProof.PubKeysBitmap)
+		header.SetPreviousProof(prevBlockProof)
 		return true
 	}
 
@@ -491,7 +461,15 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 
 	isFlagEnabledForCurrentHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentHeader.GetEpoch())
 	if !isFlagEnabledForCurrentHeader {
-		header.SetPreviousAggregatedSignatureAndBitmap(currentHeader.GetSignature(), currentHeader.GetPubKeysBitmap())
+		proof := &block.HeaderProof{
+			PubKeysBitmap:       currentHeader.GetSignature(),
+			AggregatedSignature: currentHeader.GetPubKeysBitmap(),
+			HeaderHash:          sr.Blockchain().GetCurrentBlockHeaderHash(),
+			HeaderEpoch:         currentHeader.GetEpoch(),
+			HeaderNonce:         currentHeader.GetNonce(),
+			HeaderShardId:       currentHeader.GetShardID(),
+		}
+		header.SetPreviousProof(proof)
 		return true
 	}
 
@@ -499,8 +477,10 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	return false
 }
 
-func isProofEmpty(proof data.HeaderProof) bool {
-	return len(proof.AggregatedSignature) == 0 || len(proof.PubKeysBitmap) == 0
+func isProofEmpty(proof data.HeaderProofHandler) bool {
+	return len(proof.GetAggregatedSignature()) == 0 ||
+		len(proof.GetPubKeysBitmap()) == 0 ||
+		len(proof.GetHeaderHash()) == 0
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received
@@ -552,10 +532,6 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
-	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
-		return false
-	}
-
 	sr.saveProofForPreviousHeaderIfNeeded()
 
 	log.Debug("step 1: block body and header have been received",
@@ -563,7 +539,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		"hash", cnsDta.BlockHeaderHash)
 
 	sw.Start("processReceivedBlock")
-	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta.RoundIndex, cnsDta.PubKey)
 	sw.Stop("processReceivedBlock")
 
 	sr.PeerHonestyHandler().ChangeScore(
@@ -587,75 +563,23 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 		return
 	}
 
-	proof := sr.Blockchain().GetCurrentHeaderProof()
-	if !isProofEmpty(proof) {
+	proof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
+	if err != nil {
+		log.Debug("saveProofForPreviousHeaderIfNeeded: do not set proof since it was not found")
 		return
 	}
 
-	prevAggSig, prevBitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
-	proof = data.HeaderProof{
-		AggregatedSignature: prevAggSig,
-		PubKeysBitmap:       prevBitmap,
-	}
-	sr.Blockchain().SetCurrentHeaderProof(proof)
-}
-
-func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) error {
-	// TODO[cleanup cns finality]: remove
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		return nil
+	if !isProofEmpty(proof) {
+		log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
+		return
 	}
 
-	if len(signature) == 0 {
-		return spos.ErrNilSignature
-	}
-
-	node := string(nodeKey)
-
-	index, err := sr.ConsensusGroupIndex(node)
+	proof = sr.Header.GetPreviousProof()
+	err = sr.EquivalentProofsPool().AddProof(proof)
 	if err != nil {
-		return err
+		log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err)
+		return
 	}
-
-	err = sr.SigningHandler().StoreSignatureShare(uint16(index), signature)
-	if err != nil {
-		return err
-	}
-
-	err = sr.SetJobDone(node, SrSignature, true)
-	if err != nil {
-		return err
-	}
-
-	sr.PeerHonestyHandler().ChangeScore(
-		node,
-		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.ValidatorPeerHonestyIncreaseFactor,
-	)
-
-	return nil
-}
-
-func (sr *subroundBlock) verifyLeaderSignature(
-	leaderPK []byte,
-	blockHeaderHash []byte,
-	signature []byte,
-) bool {
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		return true
-	}
-
-	err := sr.SigningHandler().VerifySingleSignature(leaderPK, blockHeaderHash, signature)
-	if err != nil {
-		log.Debug("VerifySingleSignature: node provided invalid signature",
-			"pubKey", leaderPK,
-			"blockHeaderHash", blockHeaderHash,
-			"error", err.Error(),
-		)
-		return false
-	}
-
-	return true
 }
 
 func (sr *subroundBlock) isInvalidHeaderOrData() bool {
@@ -692,7 +616,7 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 
 	log.Debug("step 1: block body has been received")
 
-	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta.RoundIndex, cnsDta.PubKey)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -706,7 +630,8 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 // receivedBlockHeader method is called when a block header is received through the block header channel.
 // If the block header is valid, then the validatorRoundStates map corresponding to the node which sent it,
 // is set on true for the subround Block
-func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consensus.Message) bool {
+// TODO[cleanup cns finality]: remove this method
+func (sr *subroundBlock) receivedBlockHeaderBeforeEquivalentProofs(ctx context.Context, cnsDta *consensus.Message) bool {
 	node := string(cnsDta.PubKey)
 
 	if sr.IsConsensusDataSet() {
@@ -740,16 +665,12 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 		return false
 	}
 
-	if !sr.verifyLeaderSignature(cnsDta.PubKey, cnsDta.BlockHeaderHash, cnsDta.SignatureShare) {
-		return false
-	}
-
 	sr.saveProofForPreviousHeaderIfNeeded()
 
 	log.Debug("step 1: block header has been received",
 		"nonce", sr.Header.GetNonce(),
 		"hash", cnsDta.BlockHeaderHash)
-	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta)
+	blockProcessedWithSuccess := sr.processReceivedBlock(ctx, cnsDta.RoundIndex, cnsDta.PubKey)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -760,7 +681,74 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {
+func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
+	if check.IfNil(headerHandler) {
+		return
+	}
+
+	// TODO[cleanup cns finality]: remove this check
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		return
+	}
+
+	if headerHandler.CheckFieldsForNil() != nil {
+		return
+	}
+
+	isLeader := sr.IsSelfLeader()
+	if sr.ConsensusGroup() == nil || isLeader {
+		return
+	}
+
+	if sr.IsConsensusDataSet() {
+		return
+	}
+
+	if sr.IsHeaderAlreadyReceived() {
+		return
+	}
+
+	if sr.IsSelfJobDone(sr.Current()) {
+		return
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
+		return
+	}
+
+	marshalledHeader, err := sr.Marshalizer().Marshal(headerHandler)
+	if err != nil {
+		return
+	}
+
+	sr.Data = sr.Hasher().Compute(string(marshalledHeader))
+	sr.Header = headerHandler
+
+	sr.saveProofForPreviousHeaderIfNeeded()
+
+	log.Debug("step 1: block header has been received",
+		"nonce", sr.Header.GetNonce(),
+		"hash", sr.Data)
+
+	sr.PeerHonestyHandler().ChangeScore(
+		sr.Leader(),
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
+
+	sr.AddReceivedHeader(headerHandler)
+
+	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	defer cancel()
+
+	sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
+}
+
+func (sr *subroundBlock) processReceivedBlock(
+	ctx context.Context,
+	round int64,
+	senderPK []byte,
+) bool {
 	if check.IfNil(sr.Body) {
 		return false
 	}
@@ -774,25 +762,24 @@ func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *conse
 
 	sr.SetProcessingBlock(true)
 
-	shouldNotProcessBlock := sr.ExtendedCalled || cnsDta.RoundIndex < sr.RoundHandler().Index()
+	shouldNotProcessBlock := sr.ExtendedCalled || round < sr.RoundHandler().Index()
 	if shouldNotProcessBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
 			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
-			"cnsDta round", cnsDta.RoundIndex,
+			"cnsDta round", round,
 			"extended called", sr.ExtendedCalled,
 		)
 		return false
 	}
 
-	return sr.processBlock(ctx, cnsDta.RoundIndex, cnsDta.PubKey, cnsDta.SignatureShare)
+	return sr.processBlock(ctx, round, senderPK)
 }
 
 func (sr *subroundBlock) processBlock(
 	ctx context.Context,
 	roundIndex int64,
 	pubkey []byte,
-	signature []byte,
 ) bool {
 	startTime := sr.RoundTimeStamp
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
@@ -822,12 +809,6 @@ func (sr *subroundBlock) processBlock(
 		sr.printCancelRoundLogMessage(ctx, err)
 		sr.RoundCanceled = true
 
-		return false
-	}
-
-	err = sr.saveLeaderSignature(pubkey, signature)
-	if err != nil {
-		sr.printCancelRoundLogMessage(ctx, err)
 		return false
 	}
 

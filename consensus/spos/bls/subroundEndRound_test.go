@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -1030,14 +1031,20 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
-		wasSetCurrentHeaderProofCalled := false
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
 			},
-			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
-				wasSetCurrentHeaderProofCalled = true
+		})
 
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+				assert.Equal(t, hdr.GetPrevHash(), headerHash)
+				return &block.HeaderProof{
+					HeaderHash:          headerHash,
+					AggregatedSignature: providedPrevSig,
+					PubKeysBitmap:       providedPrevBitmap,
+				}, nil
 			},
 		})
 
@@ -1070,15 +1077,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{
-				GetEquivalentProofCalled: func(headerHash []byte) (data.HeaderProof, error) {
-					assert.Equal(t, hdr.GetPrevHash(), headerHash)
-					return data.HeaderProof{
-						AggregatedSignature: providedPrevSig,
-						PubKeysBitmap:       providedPrevBitmap,
-					}, nil
-				},
-			},
+			&mock.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1090,7 +1089,6 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 
 		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
 		assert.True(t, res)
-		assert.True(t, wasSetCurrentHeaderProofCalled)
 	})
 	t.Run("should return false when header is nil", func(t *testing.T) {
 		t.Parallel()
@@ -1193,6 +1191,12 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		})
+
 		ch := make(chan bool, 1)
 		consensusState := initConsensusState()
 		sr, _ := spos.NewSubround(
@@ -1219,11 +1223,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{
-				HasEquivalentMessageCalled: func(headerHash []byte) bool {
-					return true
-				},
-			},
+			&mock.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1550,6 +1550,14 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
+		wasHasEquivalentProofCalled := false
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				wasHasEquivalentProofCalled = true
+				return true
+			},
+		})
+
 		ch := make(chan bool, 1)
 		consensusState := initConsensusState()
 		sr, _ := spos.NewSubround(
@@ -1571,18 +1579,12 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			Header: createDefaultHeader(),
 		}
 
-		wasHasEquivalentProofCalled := false
 		srEndRound, _ := bls.NewSubroundEndRound(
 			sr,
 			bls.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{
-				HasEquivalentMessageCalled: func(headerHash []byte) bool {
-					wasHasEquivalentProofCalled = true
-					return true
-				},
-			},
+			&mock.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1704,16 +1706,10 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		providedPrevSig := []byte("prev sig")
 		providedPrevBitmap := []byte{1, 1, 1, 1, 1, 1, 1, 1, 1}
-		wasSetCurrentHeaderProofCalled := false
 		container := consensusMocks.InitConsensusCore()
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV2{}
-			},
-			SetCurrentHeaderProofCalled: func(proof data.HeaderProof) {
-				wasSetCurrentHeaderProofCalled = true
-				require.NotEqual(t, providedPrevSig, proof.AggregatedSignature)
-				require.NotEqual(t, providedPrevBitmap, proof.PubKeysBitmap)
 			},
 		})
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1722,6 +1718,16 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		wasSetCurrentHeaderProofCalled := false
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			AddProofCalled: func(headerProof data.HeaderProofHandler) error {
+				wasSetCurrentHeaderProofCalled = true
+				require.NotEqual(t, providedPrevSig, headerProof.GetAggregatedSignature())
+				require.NotEqual(t, providedPrevBitmap, headerProof.GetPubKeysBitmap())
+				return nil
+			},
+		})
 
 		ch := make(chan bool, 1)
 		consensusState := initConsensusState()

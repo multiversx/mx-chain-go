@@ -22,53 +22,30 @@ import (
 
 // ConsensusCoreHandler encapsulates all needed data for the Consensus
 type ConsensusCoreHandler interface {
-	// Blockchain gets the ChainHandler stored in the ConsensusCore
 	Blockchain() data.ChainHandler
-	// BlockProcessor gets the BlockProcessor stored in the ConsensusCore
 	BlockProcessor() process.BlockProcessor
-	// BootStrapper gets the Bootstrapper stored in the ConsensusCore
 	BootStrapper() process.Bootstrapper
-	// BroadcastMessenger gets the BroadcastMessenger stored in ConsensusCore
 	BroadcastMessenger() consensus.BroadcastMessenger
-	// Chronology gets the ChronologyHandler stored in the ConsensusCore
 	Chronology() consensus.ChronologyHandler
-	// GetAntiFloodHandler returns the antiflood handler which will be used in subrounds
 	GetAntiFloodHandler() consensus.P2PAntifloodHandler
-	// Hasher gets the Hasher stored in the ConsensusCore
 	Hasher() hashing.Hasher
-	// Marshalizer gets the Marshalizer stored in the ConsensusCore
 	Marshalizer() marshal.Marshalizer
-	// MultiSignerContainer gets the MultiSigner container from the ConsensusCore
 	MultiSignerContainer() cryptoCommon.MultiSignerContainer
-	// RoundHandler gets the RoundHandler stored in the ConsensusCore
 	RoundHandler() consensus.RoundHandler
-	// ShardCoordinator gets the ShardCoordinator stored in the ConsensusCore
 	ShardCoordinator() sharding.Coordinator
-	// SyncTimer gets the SyncTimer stored in the ConsensusCore
 	SyncTimer() ntp.SyncTimer
-	// NodesCoordinator gets the NodesCoordinator stored in the ConsensusCore
 	NodesCoordinator() nodesCoordinator.NodesCoordinator
-	// EpochStartRegistrationHandler gets the RegistrationHandler stored in the ConsensusCore
 	EpochStartRegistrationHandler() epochStart.RegistrationHandler
-	// PeerHonestyHandler returns the peer honesty handler which will be used in subrounds
 	PeerHonestyHandler() consensus.PeerHonestyHandler
-	// HeaderSigVerifier returns the sig verifier handler which will be used in subrounds
 	HeaderSigVerifier() consensus.HeaderSigVerifier
-	// FallbackHeaderValidator returns the fallback header validator handler which will be used in subrounds
 	FallbackHeaderValidator() consensus.FallbackHeaderValidator
-	// NodeRedundancyHandler returns the node redundancy handler which will be used in subrounds
 	NodeRedundancyHandler() consensus.NodeRedundancyHandler
-	// ScheduledProcessor returns the scheduled txs processor
 	ScheduledProcessor() consensus.ScheduledProcessor
-	// MessageSigningHandler returns the p2p signing handler
 	MessageSigningHandler() consensus.P2PSigningHandler
-	// PeerBlacklistHandler return the peer blacklist handler
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
-	// SigningHandler returns the signing handler component
 	SigningHandler() consensus.SigningHandler
-	// EnableEpochsHandler returns the enable epochs handler component
 	EnableEpochsHandler() common.EnableEpochsHandler
-	// IsInterfaceNil returns true if there is no value under the interface
+	EquivalentProofsPool() consensus.EquivalentProofsPool
 	IsInterfaceNil() bool
 }
 
@@ -142,12 +119,6 @@ type WorkerHandler interface {
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 	ResetConsensusMessages(currentHash []byte, prevHash []byte)
-	// HasEquivalentMessage returns true if an equivalent message was received before
-	HasEquivalentMessage(headerHash []byte) bool
-	// GetEquivalentProof returns the equivalent proof for the provided hash
-	GetEquivalentProof(headerHash []byte) (data.HeaderProof, error)
-	// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-	SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -192,6 +163,9 @@ type SentSignaturesTracker interface {
 
 // EquivalentMessagesDebugger defines the specific debugger for equivalent messages
 type EquivalentMessagesDebugger interface {
-	DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]*consensus.EquivalentMessageInfo)
+	UpsertEquivalentMessage(headerHash []byte)
+	DisplayEquivalentMessagesStatistics()
+	ResetEquivalentMessages()
+	DeleteEquivalentMessage(headerHash []byte)
 	IsInterfaceNil() bool
 }
