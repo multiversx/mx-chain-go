@@ -390,6 +390,10 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		}
 		sr.sentSignatureTracker.SignatureSent(pkBytes)
 		leader, err := sr.GetLeader()
+		if err != nil {
+			log.Debug("doSignatureJobForManagedKeys.GetLeader", "error", err.Error())
+			return false
+		}
 
 		isLeader := pk == leader
 		ok := sr.completeSignatureSubRound(pk, isLeader)
