@@ -133,11 +133,11 @@ func (st *sovereignTrigger) revert(header data.HeaderHandler) error {
 
 // receivedMetaBlock is a callback function when a new metablock was received
 // upon receiving checks if trigger can be updated
-func (t *sovereignTrigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
-	t.mutTrigger.Lock()
-	defer t.mutTrigger.Unlock()
+func (st *sovereignTrigger) receivedMetaBlock(headerHandler data.HeaderHandler, _ []byte) {
+	st.mutTrigger.Lock()
+	defer st.mutTrigger.Unlock()
 
-	metaHdr, ok := headerHandler.(*block.SovereignChainHeader)
+	metaHdr, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return
 	}
@@ -146,40 +146,41 @@ func (t *sovereignTrigger) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
-	log.Error("##############################receivedMetaBlock", "epoch", headerHandler.GetEpoch())
-
-	isMetaStartOfEpochForCurrentEpoch := metaHdr.GetEpoch() == t.epoch && metaHdr.IsStartOfEpochBlock()
+	isMetaStartOfEpochForCurrentEpoch := metaHdr.GetEpoch() == st.epoch && metaHdr.IsStartOfEpochBlock()
 	if isMetaStartOfEpochForCurrentEpoch {
-		log.Error("##############################isMetaStartOfEpochForCurrentEpoch")
 		return
 	}
 
-	var err error
-	defer func() {
-		log.LogIfError(err)
-	}()
+	st.updateTriggerFromMeta(metaHdr)
+}
 
-	missingMiniBlocksHashes, blockBody, err := t.PeerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
-	if err != nil {
-		//	t.addMissingMiniBlocks(metaHdr.GetEpoch(), missingMiniBlocksHashes)
-		log.Debug("checkIfTriggerCanBeActivated.SyncMiniBlocks", "num missing mini blocks", len(missingMiniBlocksHashes), "error", err)
+func (st *sovereignTrigger) updateTriggerFromMeta(metaHdr data.MetaHeaderHandler) {
+	if !st.checkIfTriggerCanBeActivated(metaHdr) {
 		return
 	}
 
-	missingValidatorsInfoHashes, validatorsInfo, err := t.PeerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
+	st.epochStartNotifier.NotifyEpochChangeConfirmed(metaHdr.GetEpoch())
+}
+
+func (st *sovereignTrigger) checkIfTriggerCanBeActivated(metaHdr data.HeaderHandler) bool {
+	missingMiniBlocksHashes, blockBody, err := st.PeerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
 	if err != nil {
-		//t.addMissingValidatorsInfo(metaHdr.GetEpoch(), missingValidatorsInfoHashes)
-		log.Debug("checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
-		return
+		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncMiniBlocks", "num missing mini blocks", len(missingMiniBlocksHashes), "error", err)
+		return false
+	}
+
+	missingValidatorsInfoHashes, validatorsInfo, err := st.PeerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
+	if err != nil {
+		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
+		return false
 	}
 
 	for validatorInfoHash, validatorInfo := range validatorsInfo {
-		t.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+		st.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
 	}
 
-	log.Error("##############################receivedMetaBlock", "NotifyAllPrepare", "true")
-
-	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	st.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	return true
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
