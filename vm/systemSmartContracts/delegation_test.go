@@ -2191,6 +2191,72 @@ func TestDelegationSystemSC_ExecuteChangeServiceFee(t *testing.T) {
 	assert.Equal(t, []byte{70}, retrievedServiceFee)
 }
 
+func TestDelegationSystemSC_ExecuteChangeServiceFeeWithCooldownPeriod(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	currentEpoch := uint32(5)
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+	args.Eei = eei
+	args.DelegationSCConfig.IncreaseFeeCoolDownPeriodInEpoch = 30
+
+	vmInput := getDefaultVmInputForFunc("changeServiceFee", [][]byte{big.NewInt(70).Bytes()})
+	d, _ := NewDelegationSystemSC(args)
+	_ = d.saveDelegationContractConfig(&DelegationConfig{})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(0)})
+
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationImprovementsV3Flag)
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	retrievedServiceFee := d.eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, []byte{70}, retrievedServiceFee)
+	assert.Equal(t, []byte(nil), d.eei.GetStorage([]byte(serviceFeeChangeEpochKey)))
+
+	enableEpochsHandler.AddActiveFlags(common.DelegationImprovementsV3Flag)
+	vmInput.Arguments[0] = big.NewInt(50).Bytes()
+
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	retrievedServiceFee = d.eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, []byte{50}, retrievedServiceFee)
+	assert.Equal(t, []byte{5}, d.eei.GetStorage([]byte(serviceFeeChangeEpochKey)))
+
+	currentEpoch = 6
+	vmInput.Arguments[0] = big.NewInt(70).Bytes()
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "cannot increase service fee in the cooldown period, wait 29 more epochs")
+	retrievedServiceFee = d.eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, []byte{50}, retrievedServiceFee)
+	assert.Equal(t, []byte{5}, d.eei.GetStorage([]byte(serviceFeeChangeEpochKey)))
+
+	vmInput.Arguments[0] = big.NewInt(30).Bytes()
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	retrievedServiceFee = d.eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, []byte{30}, retrievedServiceFee)
+	assert.Equal(t, []byte{6}, d.eei.GetStorage([]byte(serviceFeeChangeEpochKey)))
+
+	currentEpoch = currentEpoch + uint32(d.increaseFeeCoolDownPeriodInEpoch)
+	vmInput.Arguments[0] = big.NewInt(70).Bytes()
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	retrievedServiceFee = d.eei.GetStorage([]byte(serviceFeeKey))
+	assert.Equal(t, []byte{70}, retrievedServiceFee)
+	assert.Equal(t, big.NewInt(int64(currentEpoch)).Bytes(), d.eei.GetStorage([]byte(serviceFeeChangeEpochKey)))
+}
+
 func TestDelegationSystemSC_ExecuteModifyTotalDelegationCapUserErrors(t *testing.T) {
 	t.Parallel()
 
@@ -4775,7 +4841,9 @@ func createDefaultEeiArgs() VMContextArgs {
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
-		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MultiClaimOnDelegationFlag),
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.MultiClaimOnDelegationFlag,
+			common.DelegationImprovementsV3Flag),
 	}
 }
 
