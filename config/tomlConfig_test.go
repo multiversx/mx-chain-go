@@ -882,7 +882,7 @@ func TestEnableEpochConfig(t *testing.T) {
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 101
 
 	# DelegationImprovementsV3EnableEpoch represents the epoch when the new delegation features are enabled
-	DelegationImprovementsV3 = 102
+	DelegationImprovementsV3EnableEpoch = 102
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
