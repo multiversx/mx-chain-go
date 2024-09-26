@@ -12,6 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// ArgsSovereignTrigger defines args needed to create a sovereign trigger
+type ArgsSovereignTrigger struct {
+	*ArgsNewMetaEpochStartTrigger
+	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
+}
+
 type sovereignTrigger struct {
 	*trigger
 	currentEpochValidatorInfoPool epochStart.ValidatorInfoCacher
@@ -19,8 +25,12 @@ type sovereignTrigger struct {
 }
 
 // NewSovereignTrigger creates a new sovereign epoch start trigger
-func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger, PeerMiniBlocksSyncer process.ValidatorInfoSyncer) (*sovereignTrigger, error) {
-	metaTrigger, err := newTrigger(args, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{}, dataRetriever.BlockHeaderUnit)
+func NewSovereignTrigger(args ArgsSovereignTrigger) (*sovereignTrigger, error) {
+	if check.IfNil(args.PeerMiniBlocksSyncer) {
+		return nil, epochStart.ErrNilValidatorInfoProcessor
+	}
+
+	metaTrigger, err := newTrigger(args.ArgsNewMetaEpochStartTrigger, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{}, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +38,7 @@ func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger, PeerMiniBlocksSynce
 	st := &sovereignTrigger{
 		trigger:                       metaTrigger,
 		currentEpochValidatorInfoPool: args.DataPool.CurrentEpochValidatorInfo(),
-		PeerMiniBlocksSyncer:          PeerMiniBlocksSyncer,
+		PeerMiniBlocksSyncer:          args.PeerMiniBlocksSyncer,
 	}
 
 	args.DataPool.Headers().RegisterHandler(st.receivedMetaBlock)

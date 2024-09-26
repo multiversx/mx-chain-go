@@ -7,20 +7,36 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func createArgsSovereignTrigger() ArgsSovereignTrigger {
+	return ArgsSovereignTrigger{
+		ArgsNewMetaEpochStartTrigger: createMockEpochStartTriggerArguments(),
+		PeerMiniBlocksSyncer:         &mock.ValidatorInfoSyncerStub{},
+	}
+}
 
 func TestNewSovereignTrigger(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil input, should error", func(t *testing.T) {
-		sovTrigger, err := NewSovereignTrigger(nil)
+	t.Run("nil args meta, should error", func(t *testing.T) {
+		args := createArgsSovereignTrigger()
+		args.ArgsNewMetaEpochStartTrigger = nil
+		sovTrigger, err := NewSovereignTrigger(args)
 		require.Nil(t, sovTrigger)
 		require.Equal(t, epochStart.ErrNilArgsNewMetaEpochStartTrigger, err)
 	})
-
+	t.Run("nil peer mb syncer, should error", func(t *testing.T) {
+		args := createArgsSovereignTrigger()
+		args.PeerMiniBlocksSyncer = nil
+		sovTrigger, err := NewSovereignTrigger(args)
+		require.Nil(t, sovTrigger)
+		require.Equal(t, epochStart.ErrNilValidatorInfoProcessor, err)
+	})
 	t.Run("should work", func(t *testing.T) {
-		args := createMockEpochStartTriggerArguments()
+		args := createArgsSovereignTrigger()
 		sovTrigger, err := NewSovereignTrigger(args)
 		require.Nil(t, err)
 		require.False(t, sovTrigger.IsInterfaceNil())
@@ -31,7 +47,7 @@ func TestNewSovereignTrigger(t *testing.T) {
 }
 
 func TestSovereignTrigger_SetProcessed(t *testing.T) {
-	args := createMockEpochStartTriggerArguments()
+	args := createArgsSovereignTrigger()
 	sovTrigger, _ := NewSovereignTrigger(args)
 
 	// wrong header type, should not update internal data
@@ -48,7 +64,12 @@ func TestSovereignTrigger_RevertStateToBlock(t *testing.T) {
 	t.Parallel()
 
 	triggerFactory := func(arguments *ArgsNewMetaEpochStartTrigger) epochStart.TriggerHandler {
-		sovEpochStartTrigger, _ := NewSovereignTrigger(arguments)
+		argSovTrigger := ArgsSovereignTrigger{
+			ArgsNewMetaEpochStartTrigger: arguments,
+			PeerMiniBlocksSyncer:         &mock.ValidatorInfoSyncerStub{},
+		}
+
+		sovEpochStartTrigger, _ := NewSovereignTrigger(argSovTrigger)
 		return sovEpochStartTrigger
 	}
 	sovMetaHdrFactory := func(round uint64, epoch uint32, isEpochStart bool) data.MetaHeaderHandler {

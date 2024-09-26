@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -57,6 +58,9 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
+			},
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &testscommon.HeadersCacherStub{}
 			},
 		},
 	}
