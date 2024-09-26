@@ -16,7 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -73,7 +74,8 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsS
 		},
 	}
 	args.Messenger = messenger
-	ess, _ := NewEpochStartMetaSyncer(args)
+	ess, err := NewEpochStartMetaSyncer(args)
+	require.NoError(t, err)
 
 	mb, err := ess.SyncEpochStartMeta(time.Second)
 	require.Equal(t, expectedErr, err)
@@ -163,6 +165,8 @@ func getEpochStartSyncerArgs() ArgsNewEpochStartMetaSyncer {
 		},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		MetaBlockProcessor:      &mock.EpochStartMetaBlockProcessorStub{},
-		InterceptedDataCache:    make(map[string]storage.Cacher),
+		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &processMock.InterceptedDataVerifierStub{}, nil
+		}},
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -128,7 +129,9 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
-	args.InterceptedDataCache = make(map[string]storage.Cacher)
+	args.InterceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+		return &processMock.InterceptedDataVerifierStub{}, nil
+	}}
 	sesb, _ := NewStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()

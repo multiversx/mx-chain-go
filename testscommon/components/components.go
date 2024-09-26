@@ -8,6 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
@@ -31,6 +35,8 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -41,9 +47,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("componentsMock")
@@ -607,6 +610,9 @@ func GetProcessArgs(
 				},
 			},
 		},
+		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &processMock.InterceptedDataVerifierStub{}, nil
+		}},
 	}
 }
 

@@ -581,20 +581,21 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:          e.coreComponentsHolder,
-		CryptoComponents:        e.cryptoComponentsHolder,
-		Config:                  e.generalConfig,
-		ShardCoordinator:        e.shardCoordinator,
-		MainMessenger:           e.mainMessenger,
-		FullArchiveMessenger:    e.fullArchiveMessenger,
-		DataPool:                e.dataPool,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		ArgumentsParser:         e.argumentsParser,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		RequestHandler:          e.requestHandler,
-		SignaturesHandler:       e.mainMessenger,
-		NodeOperationMode:       e.nodeOperationMode,
+		CoreComponents:                 e.coreComponentsHolder,
+		CryptoComponents:               e.cryptoComponentsHolder,
+		Config:                         e.generalConfig,
+		ShardCoordinator:               e.shardCoordinator,
+		MainMessenger:                  e.mainMessenger,
+		FullArchiveMessenger:           e.fullArchiveMessenger,
+		DataPool:                       e.dataPool,
+		WhiteListHandler:               e.whiteListHandler,
+		WhiteListerVerifiedTxs:         e.whiteListerVerifiedTxs,
+		ArgumentsParser:                e.argumentsParser,
+		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
+		RequestHandler:                 e.requestHandler,
+		SignaturesHandler:              e.mainMessenger,
+		NodeOperationMode:              e.nodeOperationMode,
+		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 	}
 
 	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)
