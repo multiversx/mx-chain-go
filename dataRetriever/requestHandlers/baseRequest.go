@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -99,4 +100,12 @@ func (br *baseRequest) getShardHeaderRequester(shardID uint32) (dataRetriever.Re
 	}
 
 	return headerRequester, nil
+}
+
+func (br *baseRequest) getValidatorsInfoRequester() (dataRetriever.Requester, error) {
+	return br.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+}
+
+func (br *baseRequest) getMiniBlocksRequester(destShardID uint32) (dataRetriever.Requester, error) {
+	return br.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
 }

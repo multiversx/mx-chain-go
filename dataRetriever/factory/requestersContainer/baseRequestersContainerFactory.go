@@ -107,7 +107,7 @@ func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
 		return err
 	}
 
-	err = brcf.generateValidatorInfoRequester()
+	err = brcf.generateValidatorInfoRequester(common.ValidatorInfoTopic)
 	if err != nil {
 		return err
 	}
@@ -323,8 +323,8 @@ func (brcf *baseRequestersContainerFactory) createTrieNodesRequester(
 	return requesters.NewTrieNodeRequester(arg)
 }
 
-func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() error {
-	identifierValidatorInfo := common.ValidatorInfoTopic
+func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester(topicID string) error {
+	identifierValidatorInfo := topicID
 	shardC := brcf.shardCoordinator
 	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {

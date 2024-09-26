@@ -796,8 +796,8 @@ func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(
 	return bicf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
-	identifier := common.ValidatorInfoTopic
+func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor(topicID string) error {
+	identifier := topicID
 
 	interceptedValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoDataFactory(*bicf.argInterceptorFactory)
 	if err != nil {
