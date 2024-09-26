@@ -334,15 +334,21 @@ func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (n
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(newData []core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
+func (en *extensionNode) insert(
+	newData []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) (node, [][]byte) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return nil, emptyHashes, fmt.Errorf("insert error %w", err)
+		goRoutinesManager.SetError(fmt.Errorf("insert error %w", err))
+		return nil, emptyHashes
 	}
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return nil, emptyHashes, err
+		goRoutinesManager.SetError(err)
+		return nil, emptyHashes
 	}
 
 	keyMatchLen, index := getMinKeyMatchLen(newData, en.Key)
@@ -350,11 +356,11 @@ func (en *extensionNode) insert(newData []core.TrieData, db common.TrieStorageIn
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
-		return en.insertInSameEn(newData, keyMatchLen, db)
+		return en.insertInSameEn(newData, keyMatchLen, goRoutinesManager, db)
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(newData, db, keyMatchLen, index)
+	return en.insertInNewBn(newData, goRoutinesManager, db, keyMatchLen, index)
 }
 
 func getMinKeyMatchLen(newData []core.TrieData, enKey []byte) (int, int) {
@@ -385,17 +391,22 @@ func removeCommonPrefix(newData []core.TrieData, prefixLen int) error {
 	return nil
 }
 
-func (en *extensionNode) insertInSameEn(newData []core.TrieData, keyMatchLen int, db common.TrieStorageInteractor) (node, [][]byte, error) {
+func (en *extensionNode) insertInSameEn(
+	newData []core.TrieData,
+	keyMatchLen int,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) (node, [][]byte) {
 	for i := range newData {
 		newData[i].Key = newData[i].Key[keyMatchLen:]
 	}
-	newNode, oldHashes, err := en.child.insert(newData, db)
-	if err != nil {
-		return nil, [][]byte{}, err
+	newNode, oldHashes := en.child.insert(newData, goRoutinesManager, db)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return newNode, oldHashes
 	}
 
 	if check.IfNil(newNode) {
-		return nil, [][]byte{}, nil
+		return nil, [][]byte{}
 	}
 
 	if !en.dirty {
@@ -404,13 +415,20 @@ func (en *extensionNode) insertInSameEn(newData []core.TrieData, keyMatchLen int
 
 	newEn, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
 
-	return newEn, oldHashes, nil
+	return newEn, oldHashes
 }
 
-func (en *extensionNode) insertInNewBn(newData []core.TrieData, db common.TrieStorageInteractor, keyMatchLen int, index int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(
+	newData []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+	keyMatchLen int,
+	index int,
+) (node, [][]byte) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -418,18 +436,21 @@ func (en *extensionNode) insertInNewBn(newData []core.TrieData, db common.TrieSt
 
 	bn, err := newBranchNode(en.marsh, en.hasher)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
 
 	oldChildPos := en.Key[keyMatchLen]
 	newChildPos := newData[index].Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return nil, [][]byte{}, ErrChildPosOutOfRange
+		goRoutinesManager.SetError(ErrChildPosOutOfRange)
+		return nil, [][]byte{}
 	}
 
 	err = en.insertOldChildInBn(bn, oldChildPos, keyMatchLen)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
 
 	newChild := newData[index]
@@ -437,33 +458,36 @@ func (en *extensionNode) insertInNewBn(newData []core.TrieData, db common.TrieSt
 
 	err = en.insertNewChildInBn(bn, newChild, newChildPos, keyMatchLen)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
 
 	err = removeCommonPrefix(newData, keyMatchLen)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
 
 	var newNode node
 	newNode = bn
 	if len(newData) != 0 {
-		newNode, _, err = bn.insert(newData, db)
-		if err != nil {
-			return nil, [][]byte{}, err
+		newNode, _ = bn.insert(newData, goRoutinesManager, db)
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return nil, [][]byte{}
 		}
 	}
 
 	if keyMatchLen == 0 {
-		return newNode, oldHash, nil
+		return newNode, oldHash
 	}
 
 	newEn, err := newExtensionNode(en.Key[:keyMatchLen], newNode, en.marsh, en.hasher)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
 
-	return newEn, oldHash, nil
+	return newEn, oldHash
 }
 
 func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, keyMatchLen int) error {
@@ -513,29 +537,33 @@ func (en *extensionNode) getDataWithMatchingPrefix(data []core.TrieData) []core.
 	return dataWithMatchingKey
 }
 
-func (en *extensionNode) delete(data []core.TrieData, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
-	emptyHashes := make([][]byte, 0)
+func (en *extensionNode) delete(
+	data []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) (bool, node, [][]byte) {
 	err := en.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, fmt.Errorf("delete error %w", err)
+		goRoutinesManager.SetError(fmt.Errorf("delete error %w", err))
+		return false, nil, [][]byte{}
 	}
 
 	dataWithMatchingKey := en.getDataWithMatchingPrefix(data)
 	if len(dataWithMatchingKey) == 0 {
-		return false, en, emptyHashes, nil
+		return false, en, [][]byte{}
 	}
 	err = resolveIfCollapsed(en, 0, db)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		goRoutinesManager.SetError(err)
+		return false, nil, [][]byte{}
 	}
 
-	dirty, newNode, oldHashes, err := en.child.delete(dataWithMatchingKey, db)
-	if err != nil {
-		return false, en, emptyHashes, err
+	dirty, newNode, oldHashes := en.child.delete(dataWithMatchingKey, goRoutinesManager, db)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return false, nil, [][]byte{}
 	}
-
 	if !dirty {
-		return false, en, emptyHashes, nil
+		return false, en, [][]byte{}
 	}
 
 	if !en.dirty {
@@ -551,28 +579,32 @@ func (en *extensionNode) delete(data []core.TrieData, db common.TrieStorageInter
 		}
 		n, err := newLeafNode(newLeafData, en.marsh, en.hasher)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
-		return true, n, oldHashes, nil
+		return true, n, oldHashes
 	case *extensionNode:
 		n, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
-		return true, n, oldHashes, nil
+		return true, n, oldHashes
 	case *branchNode:
 		n, err := newExtensionNode(en.Key, newNode, en.marsh, en.hasher)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
-		return true, n, oldHashes, nil
+		return true, n, oldHashes
 	case nil:
-		return true, nil, oldHashes, nil
+		return true, nil, oldHashes
 	default:
-		return false, nil, oldHashes, ErrInvalidNode
+		goRoutinesManager.SetError(ErrInvalidNode)
+		return false, nil, oldHashes
 	}
 }
 

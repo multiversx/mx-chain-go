@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -443,55 +444,93 @@ func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (node
 	return bn.children[childPos], key, nil
 }
 
-func (bn *branchNode) insert(newData []core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
-	emptyHashes := make([][]byte, 0)
+func (bn *branchNode) insert(
+	newData []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) (node, [][]byte) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return nil, emptyHashes, fmt.Errorf("insert error %w", err)
+		goRoutinesManager.SetError(fmt.Errorf("insert error %w", err))
+		return nil, [][]byte{}
 	}
 
 	dataForInsertion, err := splitDataForChildren(newData)
 	if err != nil {
-		return nil, emptyHashes, err
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
 	}
+
+	hashesMutex := &sync.Mutex{}
 	modifiedHashes := make([][]byte, 0)
-	bnHasBeenModified := false
+	bnHasBeenModified := &atomic.Flag{}
+	waitGroup := sync.WaitGroup{}
 
 	for childPos := range dataForInsertion {
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return nil, [][]byte{}
+		}
+
 		if len(dataForInsertion[childPos]) == 0 {
 			continue
 		}
-		err = resolveIfCollapsed(bn, byte(childPos), db)
-		if err != nil {
-			return nil, emptyHashes, err
-		}
 
-		if bn.children[childPos] == nil {
-			newModifiedHashes, err := bn.insertOnNilChild(dataForInsertion[childPos], byte(childPos), db)
-			if err != nil {
-				return nil, emptyHashes, err
+		if !goRoutinesManager.CanStartGoRoutine() {
+			newModifiedHashes, bnModified := bn.insertOnChild(dataForInsertion[childPos], childPos, goRoutinesManager, db)
+			if bnModified {
+				bnHasBeenModified.SetValue(true)
 			}
-			modifiedHashes = append(modifiedHashes, newModifiedHashes...)
-			bnHasBeenModified = true
+
+			if len(newModifiedHashes) != 0 {
+				hashesMutex.Lock()
+				modifiedHashes = append(modifiedHashes, newModifiedHashes...)
+				hashesMutex.Unlock()
+			}
 
 			continue
 		}
 
-		dirty, newModifiedHashes, err := bn.insertOnExistingChild(dataForInsertion[childPos], byte(childPos), db)
-		if err != nil {
-			return nil, emptyHashes, err
-		}
-		if dirty {
-			bnHasBeenModified = true
-		}
-		modifiedHashes = append(modifiedHashes, newModifiedHashes...)
+		waitGroup.Add(1)
+		go func(childPos int) {
+			newModifiedHashes, bnModified := bn.insertOnChild(dataForInsertion[childPos], childPos, goRoutinesManager, db)
+			if bnModified {
+				bnHasBeenModified.SetValue(true)
+			}
+			if len(newModifiedHashes) != 0 {
+				hashesMutex.Lock()
+				modifiedHashes = append(modifiedHashes, newModifiedHashes...)
+				hashesMutex.Unlock()
+			}
+			waitGroup.Done()
+		}(childPos)
 	}
 
-	if bnHasBeenModified {
-		return bn, modifiedHashes, nil
+	waitGroup.Wait()
+
+	if bnHasBeenModified.IsSet() {
+		return bn, modifiedHashes
 	}
 
-	return nil, emptyHashes, nil
+	return nil, [][]byte{}
+}
+
+func (bn *branchNode) insertOnChild(
+	dataForInsertion []core.TrieData,
+	childPos int,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) ([][]byte, bool) {
+	err := resolveIfCollapsed(bn, byte(childPos), db)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return nil, false
+	}
+
+	if bn.children[childPos] == nil {
+		return bn.insertOnNilChild(dataForInsertion, byte(childPos), goRoutinesManager, db)
+	}
+
+	return bn.insertOnExistingChild(dataForInsertion, byte(childPos), goRoutinesManager, db)
 }
 
 // the prerequisite for this to work is that the data is already sorted
@@ -532,9 +571,15 @@ func splitDataForChildren(newData []core.TrieData) ([][]core.TrieData, error) {
 	return childrenData, nil
 }
 
-func (bn *branchNode) insertOnNilChild(newData []core.TrieData, childPos byte, db common.TrieStorageInteractor) ([][]byte, error) {
+func (bn *branchNode) insertOnNilChild(
+	newData []core.TrieData,
+	childPos byte,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) ([][]byte, bool) {
 	if len(newData) == 0 {
-		return [][]byte{}, ErrValueTooShort
+		goRoutinesManager.SetError(ErrValueTooShort)
+		return [][]byte{}, false
 	}
 
 	var newNode node
@@ -542,43 +587,50 @@ func (bn *branchNode) insertOnNilChild(newData []core.TrieData, childPos byte, d
 
 	newNode, err := newLeafNode(newData[0], bn.marsh, bn.hasher)
 	if err != nil {
-		return [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return [][]byte{}, false
 	}
 
 	if len(newData) > 1 {
-		newNode, modifiedHashes, err = newNode.insert(newData[1:], db)
-		if check.IfNil(newNode) || err != nil {
-			return [][]byte{}, err
+		newNode, modifiedHashes = newNode.insert(newData[1:], goRoutinesManager, db)
+		if check.IfNil(newNode) {
+			return [][]byte{}, false
 		}
 	}
 
 	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
 	if err != nil {
-		return [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return [][]byte{}, false
 	}
 
-	return modifiedHashes, nil
+	return modifiedHashes, true
 }
 
-func (bn *branchNode) insertOnExistingChild(newData []core.TrieData, childPos byte, db common.TrieStorageInteractor) (bool, [][]byte, error) {
-	newNode, modifiedHashes, err := bn.children[childPos].insert(newData, db)
-	if err != nil {
-		return false, [][]byte{}, err
-	}
-
+func (bn *branchNode) insertOnExistingChild(
+	newData []core.TrieData,
+	childPos byte,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) ([][]byte, bool) {
+	newNode, modifiedHashes := bn.children[childPos].insert(newData, goRoutinesManager, db)
 	if check.IfNil(newNode) {
-		return false, [][]byte{}, nil
+		return [][]byte{}, false
 	}
 
-	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
+	modifiedHashes, err := bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
 	if err != nil {
-		return false, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return [][]byte{}, false
 	}
 
-	return true, modifiedHashes, nil
+	return modifiedHashes, true
 }
 
 func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos byte, newNode node) ([][]byte, error) {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	if !bn.dirty {
 		modifiedHashes = append(modifiedHashes, bn.hash)
 	}
@@ -596,54 +648,66 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos by
 	return modifiedHashes, nil
 }
 
-func (bn *branchNode) delete(data []core.TrieData, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
-	emptyHashes := make([][]byte, 0)
+func (bn *branchNode) delete(
+	data []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) (bool, node, [][]byte) {
 	err := bn.isEmptyOrNil()
 	if err != nil {
-		return false, nil, emptyHashes, fmt.Errorf("delete error %w", err)
+		goRoutinesManager.SetError(fmt.Errorf("delete error %w", err))
+		return false, nil, [][]byte{}
 	}
 
 	dataForRemoval, err := splitDataForChildren(data)
 	if err != nil {
-		return false, nil, emptyHashes, err
+		goRoutinesManager.SetError(err)
+		return false, nil, [][]byte{}
 	}
+
+	hashesMutex := &sync.Mutex{}
 	modifiedHashes := make([][]byte, 0)
 	oldHash := make([]byte, len(bn.hash))
 	copy(oldHash, bn.hash)
-	hasBeenModified := false
+	hasBeenModified := &atomic.Flag{}
+	waitGroup := sync.WaitGroup{}
 
 	for childPos := range dataForRemoval {
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return false, nil, [][]byte{}
+		}
+
 		if len(dataForRemoval[childPos]) == 0 {
 			continue
 		}
-		err = resolveIfCollapsed(bn, byte(childPos), db)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
 
-		if bn.children[childPos] == nil {
+		if !goRoutinesManager.CanStartGoRoutine() {
+			newModifiedHashes := bn.deleteChild(dataForRemoval[childPos], childPos, hasBeenModified, goRoutinesManager, db)
+			if len(newModifiedHashes) != 0 {
+				hashesMutex.Lock()
+				modifiedHashes = append(modifiedHashes, newModifiedHashes...)
+				hashesMutex.Unlock()
+			}
+
 			continue
 		}
 
-		dirty, newNode, oldHashes, err := bn.children[childPos].delete(dataForRemoval[childPos], db)
-		if err != nil {
-			return false, bn, emptyHashes, err
-		}
-		if !dirty {
-			continue
-		}
-
-		hasBeenModified = true
-		err = bn.setNewChild(byte(childPos), newNode)
-		if err != nil {
-			return false, nil, emptyHashes, err
-		}
-
-		modifiedHashes = append(modifiedHashes, oldHashes...)
+		waitGroup.Add(1)
+		go func(childPos int) {
+			newModifiedHashes := bn.deleteChild(dataForRemoval[childPos], childPos, hasBeenModified, goRoutinesManager, db)
+			if len(newModifiedHashes) != 0 {
+				hashesMutex.Lock()
+				modifiedHashes = append(modifiedHashes, newModifiedHashes...)
+				hashesMutex.Unlock()
+			}
+			waitGroup.Done()
+		}(childPos)
 	}
 
-	if !hasBeenModified {
-		return false, bn, emptyHashes, nil
+	waitGroup.Wait()
+
+	if !hasBeenModified.IsSet() {
+		return false, bn, [][]byte{}
 	}
 
 	if len(oldHash) != 0 {
@@ -653,36 +717,74 @@ func (bn *branchNode) delete(data []core.TrieData, db common.TrieStorageInteract
 
 	numChildren, pos := getChildPosition(bn)
 	if numChildren == 0 {
-		return true, nil, modifiedHashes, nil
+		return true, nil, modifiedHashes
 	}
 	if numChildren == 1 {
 		err = resolveIfCollapsed(bn, byte(pos), db)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
 		err = resolveIfCollapsed(bn.children[pos], byte(pos), db)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
 		var newChildHash bool
 		newNode, newChildHash, err := bn.children[pos].reduceNode(pos)
 		if err != nil {
-			return false, nil, emptyHashes, err
+			goRoutinesManager.SetError(err)
+			return false, nil, [][]byte{}
 		}
 
 		if newChildHash && !bn.children[pos].isDirty() {
 			modifiedHashes = append(modifiedHashes, bn.children[pos].getHash())
 		}
 
-		return true, newNode, modifiedHashes, nil
+		return true, newNode, modifiedHashes
 	}
 
-	return true, bn, modifiedHashes, nil
+	return true, bn, modifiedHashes
+}
+
+func (bn *branchNode) deleteChild(
+	dataForRemoval []core.TrieData,
+	childPos int,
+	hasBeenModified *atomic.Flag,
+	goRoutinesManager common.TrieGoroutinesManager,
+	db common.TrieStorageInteractor,
+) [][]byte {
+	err := resolveIfCollapsed(bn, byte(childPos), db)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return [][]byte{}
+	}
+
+	if bn.children[childPos] == nil {
+		return [][]byte{}
+	}
+
+	dirty, newNode, oldHashes := bn.children[childPos].delete(dataForRemoval, goRoutinesManager, db)
+	if !goRoutinesManager.ShouldContinueProcessing() || !dirty {
+		return oldHashes
+	}
+
+	err = bn.setNewChild(byte(childPos), newNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return [][]byte{}
+	}
+
+	hasBeenModified.SetValue(true)
+	return oldHashes
 }
 
 func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	bn.hash = nil
 	bn.children[childPos] = newNode
 	if check.IfNil(newNode) {

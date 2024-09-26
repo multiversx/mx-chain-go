@@ -123,3 +123,12 @@ var ErrNilTrieLeafParser = errors.New("nil trie leaf parser")
 
 // ErrInvalidNodeVersion signals that an invalid node version has been provided
 var ErrInvalidNodeVersion = errors.New("invalid node version provided")
+
+// ErrNilThrottler signals that a nil throttler has been provided
+var ErrNilThrottler = errors.New("nil throttler")
+
+// ErrNilBufferedErrChan signals that a nil buffered error channel has been provided
+var ErrNilBufferedErrChan = errors.New("nil buffered error channel")
+
+// ErrNilChanClose signals that a nil chan close has been provided
+var ErrNilChanClose = errors.New("nil chan close")
