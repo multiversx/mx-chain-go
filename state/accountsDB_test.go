@@ -33,7 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
@@ -86,7 +85,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 }
 
@@ -157,7 +156,7 @@ func getDefaultStateComponents(
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   enableEpochsHandler,
-		StateChangesCollector: stateDisabled.NewDisabledStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -1935,7 +1934,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2017,7 +2016,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2220,7 +2219,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2388,7 +2387,7 @@ func TestAccountsDB_Close(t *testing.T) {
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2677,7 +2676,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -3000,7 +2999,7 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 		Hasher:                hasher,
 		Marshaller:            marshaller,
 		EnableEpochsHandler:   enableEpochsHandler,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
