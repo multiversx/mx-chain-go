@@ -546,7 +546,9 @@ func testCreateMetaTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrOn
 		} else {
 			args.MainMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
 		}
-		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierStub{}, nil
+		}}
 		icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 		mainContainer, fullArchiveConatiner, err := icf.Create()
@@ -562,7 +564,9 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
+	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+		return &mock.InterceptedDataVerifierStub{}, nil
+	}}
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
 	mainContainer, fullArchiveContainer, err := icf.Create()
@@ -595,7 +599,9 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args := getArgumentsMeta(coreComp, cryptoComp)
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
-		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierStub{}, nil
+		}}
 
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 		require.Nil(t, err)
@@ -647,7 +653,9 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.NodeOperationMode = common.FullArchiveMode
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
-		args.ProcessedMessagesCacheMap = make(map[string]storage.Cacher)
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierStub{}, nil
+		}}
 
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 		require.Nil(t, err)

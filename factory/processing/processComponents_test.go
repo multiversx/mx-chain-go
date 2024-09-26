@@ -17,6 +17,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
@@ -29,6 +31,7 @@ import (
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -55,7 +58,6 @@ import (
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -265,6 +267,11 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
+	args.InterceptedDataVerifierFactory = &processMocks.InterceptedDataVerifierFactoryStub{
+		CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &processMocks.InterceptedDataVerifierStub{}, nil
+		},
+	}
 
 	return args
 }

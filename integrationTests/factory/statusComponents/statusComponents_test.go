@@ -13,7 +13,8 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
-	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 )
 
@@ -42,8 +43,10 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	interceptedDataCacheMap := make(map[string]storage.Cacher)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, interceptedDataCacheMap)
+	interceptedDataVerifierFactory := &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+		return &mock.InterceptedDataVerifierStub{}, nil
+	}}
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, interceptedDataVerifierFactory)
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
 	require.Nil(t, err)
@@ -107,7 +110,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinator,
-		interceptedDataCacheMap,
+		interceptedDataVerifierFactory,
 	)
 	require.Nil(t, err)
 	time.Sleep(2 * time.Second)
