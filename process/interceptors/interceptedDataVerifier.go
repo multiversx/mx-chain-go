@@ -3,6 +3,8 @@ package interceptors
 import (
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/core/sync"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -19,16 +21,16 @@ var (
 )
 
 type interceptedDataVerifier struct {
-	//km    sync.KeyRWMutexHandler
+	km    sync.KeyRWMutexHandler
 	cache storage.Cacher
 }
 
 // NewInterceptedDataVerifier creates a new instance of intercepted data verifier
 func NewInterceptedDataVerifier(cache storage.Cacher) *interceptedDataVerifier {
-	//keyRWMutex := sync.NewKeyRWMutex()
+	keyRWMutex := sync.NewKeyRWMutex()
 
 	return &interceptedDataVerifier{
-		//km:    keyRWMutex,
+		km:    keyRWMutex,
 		cache: cache,
 	}
 }
@@ -65,10 +67,10 @@ func (idv *interceptedDataVerifier) IsInterfaceNil() bool {
 }
 
 func (idv *interceptedDataVerifier) checkValidity(interceptedData process.InterceptedData) error {
-	//hash := string(interceptedData.Hash())
+	hash := string(interceptedData.Hash())
 
-	//idv.km.Lock(hash)
-	//defer idv.km.Unlock(hash)
+	idv.km.Lock(hash)
+	defer idv.km.Unlock(hash)
 
 	return interceptedData.CheckValidity()
 }
