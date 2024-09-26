@@ -1247,10 +1247,8 @@ func (boot *baseBootstrap) syncAccountsDBs(key []byte, id string) error {
 	// TODO: refactor this in order to avoid treatment based on identifier
 	switch id {
 	case dataRetriever.UserAccountsUnit.String():
-		log.Error("UserAccountsUnit")
 		return boot.syncUserAccountsState(key)
 	case dataRetriever.PeerAccountsUnit.String():
-		log.Error("PeerAccountsUnit")
 		return boot.syncValidatorAccountsState(key)
 	default:
 		return fmt.Errorf("invalid trie identifier, id: %s", id)
