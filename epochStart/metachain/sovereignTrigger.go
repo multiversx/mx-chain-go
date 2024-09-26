@@ -21,7 +21,7 @@ type ArgsSovereignTrigger struct {
 type sovereignTrigger struct {
 	*trigger
 	currentEpochValidatorInfoPool epochStart.ValidatorInfoCacher
-	PeerMiniBlocksSyncer          process.ValidatorInfoSyncer
+	peerMiniBlocksSyncer          process.ValidatorInfoSyncer
 }
 
 // NewSovereignTrigger creates a new sovereign epoch start trigger
@@ -38,10 +38,10 @@ func NewSovereignTrigger(args ArgsSovereignTrigger) (*sovereignTrigger, error) {
 	st := &sovereignTrigger{
 		trigger:                       metaTrigger,
 		currentEpochValidatorInfoPool: args.DataPool.CurrentEpochValidatorInfo(),
-		PeerMiniBlocksSyncer:          args.PeerMiniBlocksSyncer,
+		peerMiniBlocksSyncer:          args.PeerMiniBlocksSyncer,
 	}
 
-	args.DataPool.Headers().RegisterHandler(st.receivedMetaBlock)
+	args.DataPool.Headers().RegisterHandler(st.receivedBlock)
 
 	return st, nil
 }
@@ -131,45 +131,45 @@ func (st *sovereignTrigger) revert(header data.HeaderHandler) error {
 	return nil
 }
 
-// receivedMetaBlock is a callback function when a new metablock was received
-// upon receiving checks if trigger can be updated
-func (st *sovereignTrigger) receivedMetaBlock(headerHandler data.HeaderHandler, _ []byte) {
+// receivedBlock is a callback function when a new block is received
+// upon receiving checks if trigger can be updated to notify subscribed epoch change handlers
+func (st *sovereignTrigger) receivedBlock(headerHandler data.HeaderHandler, _ []byte) {
 	st.mutTrigger.Lock()
 	defer st.mutTrigger.Unlock()
 
-	metaHdr, ok := headerHandler.(data.MetaHeaderHandler)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return
 	}
 
-	if !metaHdr.IsStartOfEpochBlock() {
+	if !header.IsStartOfEpochBlock() {
 		return
 	}
 
-	isMetaStartOfEpochForCurrentEpoch := metaHdr.GetEpoch() == st.epoch && metaHdr.IsStartOfEpochBlock()
+	isMetaStartOfEpochForCurrentEpoch := header.GetEpoch() == st.epoch && header.IsStartOfEpochBlock()
 	if isMetaStartOfEpochForCurrentEpoch {
 		return
 	}
 
-	st.updateTriggerFromMeta(metaHdr)
+	st.updateTrigger(header)
 }
 
-func (st *sovereignTrigger) updateTriggerFromMeta(metaHdr data.MetaHeaderHandler) {
-	if !st.checkIfTriggerCanBeActivated(metaHdr) {
+func (st *sovereignTrigger) updateTrigger(header data.MetaHeaderHandler) {
+	if !st.checkIfTriggerCanBeActivated(header) {
 		return
 	}
 
-	st.epochStartNotifier.NotifyEpochChangeConfirmed(metaHdr.GetEpoch())
+	st.epochStartNotifier.NotifyEpochChangeConfirmed(header.GetEpoch())
 }
 
-func (st *sovereignTrigger) checkIfTriggerCanBeActivated(metaHdr data.HeaderHandler) bool {
-	missingMiniBlocksHashes, blockBody, err := st.PeerMiniBlocksSyncer.SyncMiniBlocks(metaHdr)
+func (st *sovereignTrigger) checkIfTriggerCanBeActivated(hdr data.HeaderHandler) bool {
+	missingMiniBlocksHashes, blockBody, err := st.peerMiniBlocksSyncer.SyncMiniBlocks(hdr)
 	if err != nil {
 		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncMiniBlocks", "num missing mini blocks", len(missingMiniBlocksHashes), "error", err)
 		return false
 	}
 
-	missingValidatorsInfoHashes, validatorsInfo, err := st.PeerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
+	missingValidatorsInfoHashes, validatorsInfo, err := st.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
 	if err != nil {
 		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
 		return false
@@ -179,7 +179,7 @@ func (st *sovereignTrigger) checkIfTriggerCanBeActivated(metaHdr data.HeaderHand
 		st.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
 	}
 
-	st.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	st.epochStartNotifier.NotifyAllPrepare(hdr, blockBody)
 	return true
 }
 
