@@ -199,7 +199,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 
-	sr.ConsensusState = nil
+	sr.ConsensusStateHandler = nil
 
 	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)
@@ -348,7 +348,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	r = sr.DoBlockJob()
 	assert.True(t, r)
-	assert.Equal(t, uint64(1), sr.Header.GetNonce())
+	assert.Equal(t, uint64(1), sr.GetHeader().GetNonce())
 }
 
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderDataAlreadySet(t *testing.T) {
@@ -362,7 +362,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderDataAlreadySet(t *testing.T) {
 
 	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.Leader()), bls.MtBlockBodyAndHeader)
 
-	sr.Data = []byte("some data")
+	sr.SetData([]byte("some data"))
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 	assert.False(t, r)
 }
@@ -378,7 +378,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderNodeNotLeaderInCurrentRound(t *
 
 	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.ConsensusGroup()[1]), bls.MtBlockBodyAndHeader)
 
-	sr.Data = nil
+	sr.SetData(nil)
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 	assert.False(t, r)
 }
@@ -394,7 +394,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderCannotProcessJobDone(t *testing
 
 	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.Leader()), bls.MtBlockBodyAndHeader)
 
-	sr.Data = nil
+	sr.SetData(nil)
 	_ = sr.SetJobDone(sr.Leader(), bls.SrBlock, true)
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 
@@ -419,7 +419,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderErrorDecoding(t *testing.T) {
 
 	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.Leader()), bls.MtBlockBodyAndHeader)
 
-	sr.Data = nil
+	sr.SetData(nil)
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 
 	assert.False(t, r)
@@ -436,8 +436,8 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderBodyAlreadyReceived(t *testing.
 
 	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.Leader()), bls.MtBlockBodyAndHeader)
 
-	sr.Data = nil
-	sr.Body = &block.Body{}
+	sr.SetData(nil)
+	sr.SetBody(&block.Body{})
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 
 	assert.False(t, r)
@@ -454,8 +454,8 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderHeaderAlreadyReceived(t *testin
 
 	cnsMsg := createConsensusMessage(hdr, blkBody, []byte(sr.Leader()), bls.MtBlockBodyAndHeader)
 
-	sr.Data = nil
-	sr.Header = &block.Header{Nonce: 1}
+	sr.SetData(nil)
+	sr.SetHeader(&block.Header{Nonce: 1})
 	r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 	assert.False(t, r)
 }
@@ -472,7 +472,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		leader, err := sr.GetLeader()
 		require.Nil(t, err)
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(leader), bls.MtBlockBodyAndHeader)
-		sr.Data = nil
+		sr.SetData(nil)
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.True(t, r)
 	})
@@ -484,7 +484,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		leader, err := sr.GetLeader()
 		require.Nil(t, err)
 		cnsMsg := createConsensusMessage(hdr, blkBody, []byte(leader), bls.MtBlockBodyAndHeader)
-		sr.Data = nil
+		sr.SetData(nil)
 		r := sr.ReceivedBlockBodyAndHeader(cnsMsg)
 		assert.False(t, r)
 	})
@@ -541,11 +541,11 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		currentPid,
 		nil,
 	)
-	sr.Body = &block.Body{}
+	sr.SetBody(&block.Body{})
 	r := sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
-	sr.Body = nil
+	sr.SetBody(nil)
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
 	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
@@ -582,12 +582,12 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	sr.Data = nil
-	sr.Header = hdr
+	sr.SetData(nil)
+	sr.SetHeader(hdr)
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
 
-	sr.Header = nil
+	sr.SetHeader(nil)
 	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
 	r = sr.ReceivedBlockHeader(cnsMsg)
 	assert.False(t, r)
@@ -599,8 +599,8 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 
 	sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
 	container.SetBlockProcessor(blockProcessorMock)
-	sr.Data = nil
-	sr.Header = nil
+	sr.SetData(nil)
+	sr.SetHeader(nil)
 	hdr = createDefaultHeader()
 	hdr.Nonce = 1
 	hdrStr, _ = marshallerMock.MarshalizerMock{}.Marshal(hdr)
@@ -665,8 +665,8 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 		currentPid,
 		nil,
 	)
-	sr.Header = hdr
-	sr.Body = blkBody
+	sr.SetHeader(hdr)
+	sr.SetBody(blkBody)
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -694,8 +694,8 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		currentPid,
 		nil,
 	)
-	sr.Header = hdr
-	sr.Body = blkBody
+	sr.SetHeader(hdr)
+	sr.SetBody(blkBody)
 	blockProcessorMock := consensusMock.InitBlockProcessorMock(container.Marshalizer())
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return errors.New("error")
@@ -732,8 +732,8 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 			currentPid,
 			nil,
 		)
-		sr.Header = hdr
-		sr.Body = blkBody
+		sr.SetHeader(hdr)
+		sr.SetBody(blkBody)
 		assert.True(t, sr.ProcessReceivedBlock(cnsMsg))
 	}
 }
@@ -776,7 +776,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled
 	t.Parallel()
 	container := consensusMock.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
 
@@ -1107,8 +1107,8 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 		currentPid,
 		nil,
 	)
-	sr.Header = hdr
-	sr.Body = blkBody
+	sr.SetHeader(hdr)
+	sr.SetBody(blkBody)
 
 	minimumExpectedValue := uint64(delay * 100 / srDuration)
 	_ = sr.ProcessReceivedBlock(cnsMsg)

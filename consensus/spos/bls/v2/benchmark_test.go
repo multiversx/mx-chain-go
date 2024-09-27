@@ -122,7 +122,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 		&nodeMock.ThrottlerStub{},
 	)
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 	sr.SetSelfPubKey("OTHER")
 
 	b.ResetTimer()

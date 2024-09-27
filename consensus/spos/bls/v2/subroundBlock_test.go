@@ -204,7 +204,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
 
-	sr.ConsensusState = nil
+	sr.ConsensusStateHandler = nil
 
 	srBlock, err := defaultSubroundBlockFromSubround(sr)
 	assert.Nil(t, srBlock)

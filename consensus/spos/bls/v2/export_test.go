@@ -47,7 +47,7 @@ func (fct *factory) ChronologyHandler() consensus.ChronologyHandler {
 }
 
 // ConsensusState gets the consensus state struct pointer
-func (fct *factory) ConsensusState() *spos.ConsensusState {
+func (fct *factory) ConsensusState() spos.ConsensusStateHandler {
 	return fct.consensusState
 }
 
