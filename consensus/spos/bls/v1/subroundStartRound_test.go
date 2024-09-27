@@ -234,7 +234,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	sr.ConsensusState = nil
+	sr.ConsensusStateHandler = nil
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
@@ -342,7 +342,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRound
 
 	sr := initSubroundStartRound()
 
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)
