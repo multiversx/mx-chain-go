@@ -154,7 +154,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	sr.ConsensusState = nil
+	sr.ConsensusStateHandler = nil
 	srSignature, err := v1.NewSubroundSignature(
 		sr,
 		extend,
@@ -343,12 +343,12 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundSignatureWithContainer(container)
 
-	sr.Header = &block.Header{}
-	sr.Data = nil
+	sr.SetHeader(&block.Header{})
+	sr.SetData(nil)
 	r := sr.DoSignatureJob()
 	assert.False(t, r)
 
-	sr.Data = []byte("X")
+	sr.SetData([]byte("X"))
 
 	err := errors.New("create signature share error")
 	signingHandler := &consensusMocks.SigningHandlerStub{
@@ -372,14 +372,14 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	assert.True(t, r)
 
 	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-	sr.RoundCanceled = false
+	sr.SetRoundCanceled(false)
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
 
 	sr.SetSelfPubKey(leader)
 	r = sr.DoSignatureJob()
 	assert.True(t, r)
-	assert.False(t, sr.RoundCanceled)
+	assert.False(t, sr.GetRoundCanceled())
 }
 
 func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
@@ -423,12 +423,12 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		},
 	)
 
-	srSignature.Header = &block.Header{}
-	srSignature.Data = nil
+	srSignature.SetHeader(&block.Header{})
+	srSignature.SetData(nil)
 	r := srSignature.DoSignatureJob()
 	assert.False(t, r)
 
-	sr.Data = []byte("X")
+	sr.SetData([]byte("X"))
 
 	err := errors.New("create signature share error")
 	signingHandler := &consensusMocks.SigningHandlerStub{
@@ -452,7 +452,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	assert.True(t, r)
 
 	_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-	sr.RoundCanceled = false
+	sr.SetRoundCanceled(false)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
@@ -460,7 +460,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	sr.SetSelfPubKey(leader)
 	r = srSignature.DoSignatureJob()
 	assert.True(t, r)
-	assert.False(t, sr.RoundCanceled)
+	assert.False(t, sr.GetRoundCanceled())
 	expectedMap := map[string]struct{}{
 		"A": {},
 		"B": {},
@@ -481,7 +481,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	sr := initSubroundSignature()
 	signature := []byte("signature")
 	cnsMsg := consensus.NewConsensusMessage(
-		sr.Data,
+		sr.GetData(),
 		signature,
 		nil,
 		nil,
@@ -497,16 +497,16 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 		nil,
 	)
 
-	sr.Header = &block.Header{}
-	sr.Data = nil
+	sr.SetHeader(&block.Header{})
+	sr.SetData(nil)
 	r := sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
-	sr.Data = []byte("Y")
+	sr.SetData([]byte("Y"))
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
-	sr.Data = []byte("X")
+	sr.SetData([]byte("X"))
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 	leader, err := sr.GetLeader()
@@ -552,11 +552,11 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	container.SetSigningHandler(signingHandler)
 	sr := initSubroundSignatureWithContainer(container)
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	signature := []byte("signature")
 	cnsMsg := consensus.NewConsensusMessage(
-		sr.Data,
+		sr.GetData(),
 		signature,
 		nil,
 		nil,
@@ -572,15 +572,15 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 		nil,
 	)
 
-	sr.Data = nil
+	sr.SetData(nil)
 	r := sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
-	sr.Data = []byte("Y")
+	sr.SetData([]byte("Y"))
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
-	sr.Data = []byte("X")
+	sr.SetData([]byte("X"))
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
@@ -642,7 +642,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenRoundIs
 	t.Parallel()
 
 	sr := initSubroundSignature()
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 	assert.False(t, sr.DoSignatureConsensusCheck())
 }
 
@@ -678,7 +678,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenNotAllS
 
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = false
+	sr.SetWaitingAllSignaturesTimeOut(false)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
@@ -696,7 +696,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenAllSigna
 
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = false
+	sr.SetWaitingAllSignaturesTimeOut(false)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
@@ -714,7 +714,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenEnoughBu
 
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = true
+	sr.SetWaitingAllSignaturesTimeOut(true)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
@@ -737,7 +737,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 		},
 	})
 	sr := initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = false
+	sr.SetWaitingAllSignaturesTimeOut(false)
 
 	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 
@@ -758,7 +758,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 		},
 	})
 	sr := initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = true
+	sr.SetWaitingAllSignaturesTimeOut(true)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
@@ -779,7 +779,7 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
 	cnsMsg := consensus.NewConsensusMessage(
-		append(sr.Data, []byte("X")...),
+		append(sr.GetData(), []byte("X")...),
 		[]byte("signature"),
 		nil,
 		nil,
