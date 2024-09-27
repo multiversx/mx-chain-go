@@ -152,6 +152,8 @@ updateProxyConfigDocker() {
 
   # Truncate config.toml before the [[Observers]] list
   sed -i -n '/\[\[Observers\]\]/q;p' config_edit.toml
+  # Update the number of shards
+  sed -i "s,NumberOfShards =.*$,NumberOfShards = $SHARDCOUNT," config_edit.toml
 
   if [ "$SHARD_OBSERVERCOUNT" -le 0 ]; then
     generateProxyValidatorListDocker config_edit.toml
