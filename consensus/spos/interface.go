@@ -170,3 +170,97 @@ type EquivalentMessagesDebugger interface {
 	DeleteEquivalentMessage(headerHash []byte)
 	IsInterfaceNil() bool
 }
+
+// ConsensusStateHandler encapsulates all needed data for the Consensus
+type ConsensusStateHandler interface {
+	ResetConsensusState()
+	AddReceivedHeader(headerHandler data.HeaderHandler)
+	GetReceivedHeaders() []data.HeaderHandler
+	AddMessageWithSignature(key string, message p2p.MessageP2P)
+	GetMessageWithSignature(key string) (p2p.MessageP2P, bool)
+	IsNodeLeaderInCurrentRound(node string) bool
+	GetLeader() (string, error)
+	GetNextConsensusGroup(
+		randomSource []byte,
+		round uint64,
+		shardId uint32,
+		nodesCoordinator nodesCoordinator.NodesCoordinator,
+		epoch uint32,
+	) (string, []string, error)
+	IsConsensusDataSet() bool
+	IsConsensusDataEqual(data []byte) bool
+	IsJobDone(node string, currentSubroundId int) bool
+	IsSubroundFinished(subroundID int) bool
+	IsNodeSelf(node string) bool
+	IsBlockBodyAlreadyReceived() bool
+	IsHeaderAlreadyReceived() bool
+	CanDoSubroundJob(currentSubroundId int) bool
+	CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int64, currentSubroundId int) bool
+	GenerateBitmap(subroundId int) []byte
+	ProcessingBlock() bool
+	SetProcessingBlock(processingBlock bool)
+	GetData() []byte
+	SetData(data []byte)
+	IsMultiKeyLeaderInCurrentRound() bool
+	IsLeaderJobDone(currentSubroundId int) bool
+	IsMultiKeyJobDone(currentSubroundId int) bool
+	IsSelfJobDone(currentSubroundID int) bool
+	GetMultikeyRedundancyStepInReason() string
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
+	GetRoundCanceled() bool
+	SetRoundCanceled(state bool)
+	GetRoundIndex() int64
+	GetRoundTimeStamp() time.Time
+	GetExtendedCalled() bool
+	GetBody() data.BodyHandler
+	SetBody(body data.BodyHandler)
+	GetHeader() data.HeaderHandler
+	SetHeader(header data.HeaderHandler)
+	GetWaitingAllSignaturesTimeOut() bool
+	SetWaitingAllSignaturesTimeOut(bool)
+	RoundConsensusHandler
+	RoundStatusHandler
+	RoundThresholdHandler
+	IsInterfaceNil() bool
+}
+
+// RoundConsensusHandler encapsulates the methods needed for a consensus round
+type RoundConsensusHandler interface {
+	ConsensusGroupIndex(pubKey string) (int, error)
+	SelfConsensusGroupIndex() (int, error)
+	SetEligibleList(eligibleList map[string]struct{})
+	ConsensusGroup() []string
+	SetConsensusGroup(consensusGroup []string)
+	SetLeader(leader string)
+	ConsensusGroupSize() int
+	SetConsensusGroupSize(consensusGroupSize int)
+	SelfPubKey() string
+	SetSelfPubKey(selfPubKey string)
+	JobDone(key string, subroundId int) (bool, error)
+	SetJobDone(key string, subroundId int, value bool) error
+	SelfJobDone(subroundId int) (bool, error)
+	IsNodeInConsensusGroup(node string) bool
+	IsNodeInEligibleList(node string) bool
+	ComputeSize(subroundId int) int
+	ResetRoundState()
+	IsMultiKeyInConsensusGroup() bool
+	IsKeyManagedBySelf(pkBytes []byte) bool
+	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
+	GetKeysHandler() consensus.KeysHandler
+	Leader() string
+}
+
+// RoundStatusHandler encapsulates the methods needed for the status of a subround
+type RoundStatusHandler interface {
+	Status(subroundId int) SubroundStatus
+	SetStatus(subroundId int, subroundStatus SubroundStatus)
+	ResetRoundStatus()
+}
+
+// RoundThresholdHandler encapsulates the methods needed for the round consensus threshold
+type RoundThresholdHandler interface {
+	Threshold(subroundId int) int
+	SetThreshold(subroundId int, threshold int)
+	FallbackThreshold(subroundId int) int
+	SetFallbackThreshold(subroundId int, threshold int)
+}
