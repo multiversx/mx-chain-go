@@ -3,6 +3,8 @@ package proxy
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -13,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 )
+
+var log = logger.GetOrCreate("consensus/spos/bls/proxy")
 
 // pick up stuff from consensusComponents and intermediate it here
 
@@ -98,7 +102,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		return nil, bls.ErrNilCurrentPid
 	}
 
-	return &SubroundsHandler{
+	subroundHandler := &SubroundsHandler{
 		chronology:           args.Chronology,
 		consensusCoreHandler: args.ConsensusCoreHandler,
 		consensusState:       args.ConsensusState,
@@ -111,7 +115,11 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
 		currentConsensusType: ConsensusNone,
-	}, nil
+	}
+
+	subroundHandler.consensusCoreHandler.EpochStartRegistrationHandler().RegisterHandler(subroundHandler)
+
+	return subroundHandler, nil
 }
 
 // Start starts the sub-rounds handler
@@ -158,6 +166,11 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		return err
 	}
 
+	err = s.chronology.Close()
+	if err != nil {
+		log.Warn("SubroundsHandler.initSubroundsForEpoch: cannot close the chronology", "error", err)
+	}
+
 	fct.SetOutportHandler(s.outportHandler)
 	err = fct.GenerateSubrounds()
 	if err != nil {
@@ -172,4 +185,26 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 // TODO: register to the epoch change event
 func (s *SubroundsHandler) HandleEpochChange(epoch uint32) error {
 	return s.initSubroundsForEpoch(epoch)
+}
+
+// EpochStartAction is called when the epoch starts
+func (s *SubroundsHandler) EpochStartAction(hdr data.HeaderHandler) {
+	err := s.initSubroundsForEpoch(hdr.GetEpoch())
+	if err != nil {
+		log.Error("SubroundsHandler.EpochStartAction: cannot initialize subrounds", "error", err)
+	}
+}
+
+// EpochStartPrepare prepares the subrounds handler for the epoch start
+func (s *SubroundsHandler) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+}
+
+// NotifyOrder returns the order of the subrounds handler
+func (s *SubroundsHandler) NotifyOrder() uint32 {
+	return common.ConsensusHandlerOrder
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *SubroundsHandler) IsInterfaceNil() bool {
+	return s == nil
 }

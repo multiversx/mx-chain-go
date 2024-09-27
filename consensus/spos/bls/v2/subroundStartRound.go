@@ -355,5 +355,5 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 
 // NotifyOrder returns the notification order for a start of epoch event
 func (sr *subroundStartRound) NotifyOrder() uint32 {
-	return common.ConsensusOrder
+	return common.ConsensusStartRoundOrder
 }
