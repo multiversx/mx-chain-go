@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -80,8 +79,8 @@ type ConsensusStateMock struct {
 	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte)
 	GetKeysHandlerCalled                         func() consensus.KeysHandler
 	LeaderCalled                                 func() string
-	StatusCalled                                 func(subroundId int) spos.SubroundStatus
-	SetStatusCalled                              func(subroundId int, subroundStatus spos.SubroundStatus)
+	StatusCalled                                 func(subroundId int) int
+	SetStatusCalled                              func(subroundId int, subroundStatus int)
 	ResetRoundStatusCalled                       func()
 	ThresholdCalled                              func(subroundId int) int
 	FallbackThresholdCalled                      func(subroundId int) int
@@ -318,12 +317,12 @@ func (cnsm *ConsensusStateMock) Leader() string {
 	panic("implement me")
 }
 
-func (cnsm *ConsensusStateMock) Status(subroundId int) spos.SubroundStatus {
+func (cnsm *ConsensusStateMock) Status(subroundId int) int {
 	// TODO implement me
 	panic("implement me")
 }
 
-func (cnsm *ConsensusStateMock) SetStatus(subroundId int, subroundStatus spos.SubroundStatus) {
+func (cnsm *ConsensusStateMock) SetStatus(subroundId int, subroundStatus int) {
 	// TODO implement me
 	panic("implement me")
 }
@@ -489,6 +488,7 @@ func (cnsm *ConsensusStateMock) SetThreshold(subroundId int, threshold int) {
 	}
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (cnsm *ConsensusStateMock) IsInterfaceNil() bool {
 	return cnsm == nil
 }
