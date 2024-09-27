@@ -68,7 +68,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 	srBlock, err := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 	)
 
 	return srBlock, err
@@ -78,7 +78,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 	srBlock, _ := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 	)
 
 	return srBlock
@@ -159,7 +159,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 	srBlock, err := v2.NewSubroundBlock(
 		nil,
 		v2.ProcessingThresholdPercent,
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -488,7 +488,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		srBlock, _ := v2.NewSubroundBlock(
 			baseSr,
 			v2.ProcessingThresholdPercent,
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 		)
 		sr := *srBlock
 

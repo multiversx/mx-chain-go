@@ -75,7 +75,7 @@ func checkNewSubroundEndRoundParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-	if baseSubround.ConsensusState == nil {
+	if check.IfNil(baseSubround.ConsensusStateHandler) {
 		return spos.ErrNilConsensusState
 	}
 

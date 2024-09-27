@@ -15,7 +15,7 @@ import (
 // functionality
 type factory struct {
 	consensusCore  spos.ConsensusCoreHandler
-	consensusState *spos.ConsensusState
+	consensusState spos.ConsensusStateHandler
 	worker         spos.WorkerHandler
 
 	appStatusHandler      core.AppStatusHandler
@@ -29,7 +29,7 @@ type factory struct {
 // NewSubroundsFactory creates a new consensusState object
 func NewSubroundsFactory(
 	consensusDataContainer spos.ConsensusCoreHandler,
-	consensusState *spos.ConsensusState,
+	consensusState spos.ConsensusStateHandler,
 	worker spos.WorkerHandler,
 	chainID []byte,
 	currentPid core.PeerID,
@@ -66,7 +66,7 @@ func NewSubroundsFactory(
 
 func checkNewFactoryParams(
 	container spos.ConsensusCoreHandler,
-	state *spos.ConsensusState,
+	state spos.ConsensusStateHandler,
 	worker spos.WorkerHandler,
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,

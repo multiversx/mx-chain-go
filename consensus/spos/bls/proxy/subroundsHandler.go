@@ -18,13 +18,11 @@ import (
 
 var log = logger.GetOrCreate("consensus/spos/bls/proxy")
 
-// pick up stuff from consensusComponents and intermediate it here
-
 // SubroundsHandlerArgs struct contains the needed data for the SubroundsHandler
 type SubroundsHandlerArgs struct {
 	Chronology           consensus.ChronologyHandler
 	ConsensusCoreHandler spos.ConsensusCoreHandler
-	ConsensusState       *spos.ConsensusState
+	ConsensusState       spos.ConsensusStateHandler
 	Worker               factory.ConsensusWorker
 	SignatureThrottler   core.Throttler
 	AppStatusHandler     core.AppStatusHandler
@@ -48,7 +46,7 @@ type ConsensusStateMachineType int
 type SubroundsHandler struct {
 	chronology           consensus.ChronologyHandler
 	consensusCoreHandler spos.ConsensusCoreHandler
-	consensusState       *spos.ConsensusState
+	consensusState       spos.ConsensusStateHandler
 	worker               factory.ConsensusWorker
 	signatureThrottler   core.Throttler
 	appStatusHandler     core.AppStatusHandler
@@ -73,8 +71,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 	if check.IfNil(args.ConsensusCoreHandler) {
 		return nil, bls.ErrNilConsensusCoreHandler
 	}
-	// TODO: use an interface instead
-	if args.ConsensusState == nil {
+	if check.IfNil(args.ConsensusState) {
 		return nil, bls.ErrNilConsensusState
 	}
 	if check.IfNil(args.Worker) {

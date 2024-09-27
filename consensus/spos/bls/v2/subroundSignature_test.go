@@ -16,7 +16,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
@@ -54,7 +53,7 @@ func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreM
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -96,7 +95,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			nil,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -124,7 +123,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			sr,
 			nil,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -138,7 +137,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -153,7 +152,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			nil,
 		)
 
@@ -190,7 +189,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -225,7 +224,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -260,7 +259,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -296,7 +295,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -331,7 +330,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -366,7 +365,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 		sr,
 		nil,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -401,7 +400,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMock.ThrottlerStub{},
 	)
 
@@ -558,7 +557,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 					mutex.Unlock()
 				},
 			},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -665,7 +664,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 					mutex.Unlock()
 				},
 			},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -771,7 +770,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 					signatureSentForPks[string(pkBytes)] = struct{}{}
 				},
 			},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -838,7 +837,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 					signatureSentForPks[string(pkBytes)] = struct{}{}
 				},
 			},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -907,7 +906,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 					varCalled = true
 				},
 			},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -974,7 +973,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 					mutex.Unlock()
 				},
 			},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{},
 		)
 
@@ -1066,7 +1065,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMock.ThrottlerStub{
 				CanProcessCalled: func() bool {
 					return false

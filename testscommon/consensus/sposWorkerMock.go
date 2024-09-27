@@ -1,4 +1,4 @@
-package mock
+package consensus
 
 import (
 	"context"

@@ -66,7 +66,7 @@ func initSubroundEndRoundWithContainer(
 		v2.ProcessingThresholdPercent,
 		appStatusHandler,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -104,7 +104,7 @@ func initSubroundEndRoundWithContainerAndConsensusState(
 		v2.ProcessingThresholdPercent,
 		appStatusHandler,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		signatureThrottler,
 	)
 
@@ -150,7 +150,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -165,7 +165,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			nil,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -180,7 +180,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -232,7 +232,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -268,7 +268,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -305,7 +305,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -341,7 +341,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -377,7 +377,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -413,7 +413,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -449,7 +449,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilThrottlerShouldFail(t *testing.T
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		nil,
 	)
 
@@ -485,7 +485,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -1079,7 +1079,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1225,7 +1225,7 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1586,7 +1586,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1754,7 +1754,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1878,7 +1878,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -2246,7 +2246,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		v2.ProcessingThresholdPercent,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 

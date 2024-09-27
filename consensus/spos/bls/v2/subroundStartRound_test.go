@@ -35,7 +35,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (v2.SubroundStartR
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 
 	return startRound, err
@@ -46,7 +46,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) v2.Sub
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 
 	return startRound
@@ -83,7 +83,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) v2
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 
 	return srStartRound
@@ -123,7 +123,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			nil,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -136,7 +136,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			nil,
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -534,7 +534,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -586,7 +586,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -637,7 +637,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -699,7 +699,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -765,7 +765,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -814,7 +814,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *test
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -841,7 +841,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -877,7 +877,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -921,7 +921,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -960,7 +960,7 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -1003,7 +1003,7 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 		sr,
 		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -1055,7 +1055,7 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
@@ -1084,7 +1084,7 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 			sr,
 			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
