@@ -199,6 +199,9 @@ var ErrNilAddressPubKeyConverter = errors.New("nil address public key converter"
 // ErrNoTickerWithGivenName signals that ticker does not exist with given name
 var ErrNoTickerWithGivenName = errors.New("no ticker with given name")
 
+// ErrNoTokenIdWithGivenName signals that tokenId does not exist with given name
+var ErrNoTokenIdWithGivenName = errors.New("no token ID with given name")
+
 // ErrInvalidAddress signals that invalid address has been provided
 var ErrInvalidAddress = errors.New("invalid address")
 
