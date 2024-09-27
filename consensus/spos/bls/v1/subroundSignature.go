@@ -62,7 +62,7 @@ func checkNewSubroundSignatureParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-	if baseSubround.ConsensusState == nil {
+	if check.IfNil(baseSubround.ConsensusStateHandler) {
 		return spos.ErrNilConsensusState
 	}
 
@@ -76,7 +76,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
-	if check.IfNil(sr.Header) {
+	if check.IfNil(sr.GetHeader()) {
 		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
 		return false
 	}
@@ -94,7 +94,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
 			uint16(selfIndex),
-			sr.Header.GetEpoch(),
+			sr.GetHeader().GetEpoch(),
 			[]byte(sr.SelfPubKey()),
 		)
 		if err != nil {
@@ -238,7 +238,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 
 // doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 
@@ -252,7 +252,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
 
 	threshold := sr.Threshold(sr.Current())
-	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
+	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
 		threshold = sr.FallbackThreshold(sr.Current())
 		log.Warn("subroundSignature.doSignatureConsensusCheck: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
@@ -263,7 +263,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
-	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
+	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitingAllSignaturesTimeOut()))
 
 	selfJobDone := true
 	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
@@ -334,7 +334,7 @@ func (sr *subroundSignature) waitAllSignatures() {
 		return
 	}
 
-	sr.WaitingAllSignaturesTimeOut = true
+	sr.SetWaitingAllSignaturesTimeOut(true)
 
 	select {
 	case sr.ConsensusChannel() <- true:
@@ -372,7 +372,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
 			uint16(selfIndex),
-			sr.Header.GetEpoch(),
+			sr.GetHeader().GetEpoch(),
 			pkBytes,
 		)
 		if err != nil {

@@ -210,7 +210,9 @@ type ConsensusStateHandler interface {
 	GetRoundCanceled() bool
 	SetRoundCanceled(state bool)
 	GetRoundIndex() int64
+	SetRoundIndex(roundIndex int64)
 	GetRoundTimeStamp() time.Time
+	SetRoundTimeStamp(roundTimeStamp time.Time)
 	GetExtendedCalled() bool
 	GetBody() data.BodyHandler
 	SetBody(body data.BodyHandler)

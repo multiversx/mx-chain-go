@@ -71,7 +71,7 @@ func checkNewSubroundStartRoundParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-	if baseSubround.ConsensusState == nil {
+	if check.IfNil(baseSubround.ConsensusStateHandler) {
 		return spos.ErrNilConsensusState
 	}
 
@@ -96,8 +96,8 @@ func (sr *subroundStartRound) SetOutportHandler(outportHandler outport.OutportHa
 // doStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.ResetConsensusState()
-	sr.RoundIndex = sr.RoundHandler().Index()
-	sr.RoundTimeStamp = sr.RoundHandler().TimeStamp()
+	sr.SetRoundIndex(sr.RoundHandler().Index())
+	sr.SetRoundTimeStamp(sr.RoundHandler().TimeStamp())
 	topic := spos.GetConsensusTopicID(sr.ShardCoordinator())
 	sr.GetAntiFloodHandler().ResetForTopic(topic)
 	sr.worker.ResetConsensusMessages()
@@ -107,7 +107,7 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 
 // doStartRoundConsensusCheck method checks if the consensus is achieved in the subround StartRound
 func (sr *subroundStartRound) doStartRoundConsensusCheck() bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 
@@ -136,7 +136,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			"round index", sr.RoundHandler().Index(),
 			"error", err.Error())
 
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 
 		return false
 	}
@@ -155,7 +155,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if err != nil {
 		log.Debug("initCurrentRound.GetLeader", "error", err.Error())
 
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 
 		return false
 	}
@@ -194,19 +194,19 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
 
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 
 		return false
 	}
 
-	startTime := sr.RoundTimeStamp
+	startTime := sr.GetRoundTimeStamp()
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 
 		return false
 	}
@@ -279,7 +279,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        uint64(sr.RoundTimeStamp.Unix()),
+		Timestamp:        uint64(sr.GetRoundTimeStamp().Unix()),
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,
@@ -306,7 +306,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	leader, nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
-		uint64(sr.RoundIndex),
+		uint64(sr.GetRoundIndex()),
 		shardId,
 		sr.NodesCoordinator(),
 		currentHeader.GetEpoch(),

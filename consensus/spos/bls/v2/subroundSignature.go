@@ -73,7 +73,7 @@ func checkNewSubroundSignatureParams(
 	if baseSubround == nil {
 		return spos.ErrNilSubround
 	}
-	if baseSubround.ConsensusState == nil {
+	if check.IfNil(baseSubround.ConsensusStateHandler) {
 		return spos.ErrNilConsensusState
 	}
 
@@ -87,13 +87,13 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
-	if check.IfNil(sr.Header) {
+	if check.IfNil(sr.GetHeader()) {
 		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
 		return false
 	}
 
 	isSelfSingleKeyLeader := sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
-	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch())
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 	if isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(isSelfSingleKeyLeader, isFlagActive) {
@@ -169,7 +169,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
 	// TODO[cleanup cns finality]: remove this method, received signatures will be handled on subroundEndRound
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
 		return true
 	}
 
@@ -239,7 +239,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 
 // doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 
@@ -247,7 +247,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return true
 	}
 
-	if check.IfNil(sr.Header) {
+	if check.IfNil(sr.GetHeader()) {
 		return false
 	}
 
@@ -261,14 +261,14 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	// TODO[cleanup cns finality]: simply return false and remove the rest of the method. This will be handled by subroundEndRound
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
 		return false
 	}
 
 	isSelfLeader := sr.IsSelfLeader()
 
 	threshold := sr.Threshold(sr.Current())
-	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
+	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
 		threshold = sr.FallbackThreshold(sr.Current())
 		log.Warn("subroundSignature.doSignatureConsensusCheck: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
@@ -279,7 +279,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
-	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
+	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitingAllSignaturesTimeOut())
 	isJobDoneByLeader := isSelfLeader && isSignatureCollectionDone
 
 	isSelfJobDone := sr.IsSelfJobDone(sr.Current())
@@ -347,7 +347,7 @@ func (sr *subroundSignature) waitAllSignatures() {
 		return
 	}
 
-	sr.WaitingAllSignaturesTimeOut = true
+	sr.SetWaitingAllSignaturesTimeOut(true)
 
 	select {
 	case sr.ConsensusChannel() <- true:
@@ -413,14 +413,14 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 
 func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool {
 	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
-	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch())
 
 	pkBytes := []byte(pk)
 
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 		sr.GetData(),
 		uint16(idx),
-		sr.Header.GetEpoch(),
+		sr.GetHeader().GetEpoch(),
 		pkBytes,
 	)
 	if err != nil {
@@ -480,7 +480,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFla
 	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 		sr.GetData(),
 		uint16(selfIndex),
-		sr.Header.GetEpoch(),
+		sr.GetHeader().GetEpoch(),
 		[]byte(sr.SelfPubKey()),
 	)
 	if err != nil {

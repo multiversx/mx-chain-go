@@ -405,9 +405,19 @@ func (cns *ConsensusState) GetRoundIndex() int64 {
 	return cns.RoundIndex
 }
 
+// SetRoundIndex sets the index of the current round
+func (cns *ConsensusState) SetRoundIndex(roundIndex int64) {
+	cns.RoundIndex = roundIndex
+}
+
 // GetRoundTimeStamp returns the time stamp of the current round
 func (cns *ConsensusState) GetRoundTimeStamp() time.Time {
 	return cns.RoundTimeStamp
+}
+
+// SetRoundTimeStamp sets the time stamp of the current round
+func (cns *ConsensusState) SetRoundTimeStamp(roundTimeStamp time.Time) {
+	cns.RoundTimeStamp = roundTimeStamp
 }
 
 // GetExtendedCalled returns the state of the extended called

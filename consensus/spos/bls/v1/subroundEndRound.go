@@ -133,11 +133,11 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 }
 
 func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
-	if check.IfNil(sr.Header) {
+	if check.IfNil(sr.GetHeader()) {
 		return false
 	}
 
-	header := sr.Header.ShallowClone()
+	header := sr.GetHeader().ShallowClone()
 	err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
 	if err != nil {
 		log.Debug("isBlockHeaderFinalInfoValid.SetPubKeysBitmap", "error", err.Error())
@@ -302,7 +302,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	if check.IfNil(sr.Header) {
+	header := sr.GetHeader()
+	if check.IfNil(header) {
 		log.Error("doEndRoundJobByLeader.CheckNilHeader", "error", spos.ErrNilHeader)
 		return false
 	}
@@ -314,13 +315,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	err = sr.Header.SetPubKeysBitmap(bitmap)
+	err = header.SetPubKeysBitmap(bitmap)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetPubKeysBitmap", "error", err.Error())
 		return false
 	}
 
-	err = sr.Header.SetSignature(sig)
+	err = header.SetSignature(sig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetSignature", "error", err.Error())
 		return false
@@ -333,7 +334,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	err = sr.Header.SetLeaderSignature(leaderSignature)
+	err = header.SetLeaderSignature(leaderSignature)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetLeaderSignature", "error", err.Error())
 		return false
@@ -364,13 +365,13 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// broadcast header
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, []byte(leader))
+	err = sr.BroadcastMessenger().BroadcastHeader(header, []byte(leader))
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
 	}
 
 	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.Header, sr.Body)
+	err = sr.BlockProcessor().CommitBlock(header, sr.GetBody())
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
@@ -395,7 +396,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
 	}
 
-	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.Header.GetNonce())
+	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", header.GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
 
 	sr.updateMetricsForLeader()
@@ -404,7 +405,8 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
-	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
+	header := sr.GetHeader()
+	sig, err := sr.SigningHandler().AggregateSigs(bitmap, header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
 
@@ -417,7 +419,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return nil, nil, err
 	}
 
-	err = sr.SigningHandler().Verify(sr.GetData(), bitmap, sr.Header.GetEpoch())
+	err = sr.SigningHandler().Verify(sr.GetData(), bitmap, header.GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
 
@@ -431,7 +433,8 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
 
-	if check.IfNil(sr.Header) {
+	header := sr.GetHeader()
+	if check.IfNil(header) {
 		return nil, spos.ErrNilHeader
 	}
 
@@ -447,7 +450,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {
 		}
 
 		isSuccessfull := true
-		err = sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
+		err = sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), header.GetEpoch())
 		if err != nil {
 			isSuccessfull = false
 
@@ -524,7 +527,8 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	threshold := sr.Threshold(sr.Current())
 	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 
-	if check.IfNil(sr.Header) {
+	header := sr.GetHeader()
+	if check.IfNil(header) {
 		return nil, nil, spos.ErrNilHeader
 	}
 
@@ -539,7 +543,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 		return nil, nil, err
 	}
 
-	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.Header.GetEpoch())
+	sig, err := sr.SigningHandler().AggregateSigs(bitmap, header.GetEpoch())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -559,6 +563,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		return
 	}
 
+	header := sr.GetHeader()
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		nil,
@@ -569,9 +574,9 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 		int(bls.MtBlockHeaderFinalInfo),
 		sr.RoundHandler().Index(),
 		sr.ChainID(),
-		sr.Header.GetPubKeysBitmap(),
-		sr.Header.GetSignature(),
-		sr.Header.GetLeaderSignature(),
+		header.GetPubKeysBitmap(),
+		header.GetSignature(),
+		header.GetLeaderSignature(),
 		sr.GetAssociatedPid([]byte(leader)),
 		nil,
 	)
@@ -583,9 +588,9 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	}
 
 	log.Debug("step 3: block header final info has been sent",
-		"PubKeysBitmap", sr.Header.GetPubKeysBitmap(),
-		"AggregateSignature", sr.Header.GetSignature(),
-		"LeaderSignature", sr.Header.GetLeaderSignature())
+		"PubKeysBitmap", header.GetPubKeysBitmap(),
+		"AggregateSignature", header.GetSignature(),
+		"LeaderSignature", header.GetLeaderSignature())
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
@@ -630,7 +635,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 	if !sr.IsConsensusDataSet() {
@@ -654,13 +659,13 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	sr.SetProcessingBlock(true)
 
-	shouldNotCommitBlock := sr.ExtendedCalled || int64(header.GetRound()) < sr.RoundHandler().Index()
+	shouldNotCommitBlock := sr.GetExtendedCalled() || int64(header.GetRound()) < sr.RoundHandler().Index()
 	if shouldNotCommitBlock {
 		log.Debug("canceled round, extended has been called or round index has been changed",
 			"round", sr.RoundHandler().Index(),
 			"subround", sr.Name(),
 			"header round", header.GetRound(),
-			"extended called", sr.ExtendedCalled,
+			"extended called", sr.GetExtendedCalled(),
 		)
 		return false
 	}
@@ -675,7 +680,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	}
 
 	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(header, sr.Body)
+	err := sr.BlockProcessor().CommitBlock(header, sr.GetBody())
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.CommitMaxTime {
 		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
@@ -717,11 +722,11 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 		return sr.isConsensusHeaderReceived()
 	}
 
-	if check.IfNil(sr.Header) {
+	if check.IfNil(sr.GetHeader()) {
 		return false, nil
 	}
 
-	header := sr.Header.ShallowClone()
+	header := sr.GetHeader().ShallowClone()
 	err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
 	if err != nil {
 		return false, nil
@@ -741,11 +746,11 @@ func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 }
 
 func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandler) {
-	if check.IfNil(sr.Header) {
+	if check.IfNil(sr.GetHeader()) {
 		return false, nil
 	}
 
-	consensusHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.Header)
+	consensusHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.GetHeader())
 	if err != nil {
 		log.Debug("isConsensusHeaderReceived: calculate consensus header hash", "error", err.Error())
 		return false, nil
@@ -789,7 +794,7 @@ func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandle
 }
 
 func (sr *subroundEndRound) signBlockHeader() ([]byte, error) {
-	headerClone := sr.Header.ShallowClone()
+	headerClone := sr.GetHeader().ShallowClone()
 	err := headerClone.SetLeaderSignature(nil)
 	if err != nil {
 		return nil, err
@@ -815,7 +820,7 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 }
 
 func (sr *subroundEndRound) broadcastBlockDataLeader() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return err
 	}
@@ -826,7 +831,7 @@ func (sr *subroundEndRound) broadcastBlockDataLeader() error {
 		return errGetLeader
 	}
 
-	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, []byte(leader))
+	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.GetHeader(), miniBlocks, transactions, []byte(leader))
 }
 
 func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
@@ -846,14 +851,14 @@ func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
 		return err
 	}
 
-	go sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.Header, miniBlocks, transactions, idx, pk)
+	go sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.GetHeader(), miniBlocks, transactions, idx, pk)
 
 	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 
@@ -882,14 +887,14 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 }
 
 func (sr *subroundEndRound) isOutOfTime() bool {
-	startTime := sr.RoundTimeStamp
+	startTime := sr.GetRoundTimeStamp()
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
 		log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 		return true
 	}
 
@@ -910,7 +915,7 @@ func (sr *subroundEndRound) getIndexPkAndDataToBroadcast() (int, []byte, map[uin
 		return -1, nil, nil, nil, err
 	}
 
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return -1, nil, nil, nil, err
 	}
