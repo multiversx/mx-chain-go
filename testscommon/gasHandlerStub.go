@@ -200,3 +200,7 @@ func (ghs *GasHandlerStub) ComputeGasProvidedByTx(txSenderShardId uint32, txRece
 func (ghs *GasHandlerStub) IsInterfaceNil() bool {
 	return ghs == nil
 }
+
+func (ghm *GasHandlerStub) GetMaps() (map[string]uint64, map[string]uint64) {
+	return nil, nil
+}
