@@ -287,9 +287,10 @@ func newAccountCreator(
 	switch accType {
 	case UserAccount:
 		args := factory.ArgsAccountCreator{
-			Hasher:              hasher,
-			Marshaller:          marshaller,
-			EnableEpochsHandler: handler,
+			Hasher:                hasher,
+			Marshaller:            marshaller,
+			EnableEpochsHandler:   handler,
+			StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 		}
 		return factory.NewAccountCreator(args)
 	case ValidatorAccount:

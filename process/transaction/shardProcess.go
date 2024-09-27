@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -210,7 +211,10 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 	)
 
 	// TODO refactor to set the tx hash for the following state changes before the processing occurs
-	defer txProc.accounts.SetTxHashForLatestStateChanges(txHash)
+	defer func() {
+		txProc.accounts.SetTxHashForLatestStateChanges(txHash, tx)
+		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
+	}()
 
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)

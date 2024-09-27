@@ -158,9 +158,10 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	argsAccCreator := stateFactory.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                coreComponents.Hasher(),
+		Marshaller:            coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 
 	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
