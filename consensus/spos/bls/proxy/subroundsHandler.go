@@ -181,12 +181,6 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	return nil
 }
 
-// HandleEpochChange handles the epoch change event
-// TODO: register to the epoch change event
-func (s *SubroundsHandler) HandleEpochChange(epoch uint32) error {
-	return s.initSubroundsForEpoch(epoch)
-}
-
 // EpochStartAction is called when the epoch starts
 func (s *SubroundsHandler) EpochStartAction(hdr data.HeaderHandler) {
 	err := s.initSubroundsForEpoch(hdr.GetEpoch())
