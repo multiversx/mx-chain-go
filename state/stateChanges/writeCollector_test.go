@@ -7,8 +7,9 @@ import (
 
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/stretchr/testify/require"
 )
@@ -276,7 +277,7 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 
 	require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
 		"hash0": {
-			[]*data.StateChange{
+			StateChanges: []*data.StateChange{
 				{Type: "write", TxHash: []byte("hash0")},
 				{Type: "write", TxHash: []byte("hash0")},
 				{Type: "write", TxHash: []byte("hash0")},
@@ -285,7 +286,7 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 			},
 		},
 		"hash1": {
-			[]*data.StateChange{
+			StateChanges: []*data.StateChange{
 				{Type: "write", TxHash: []byte("hash1")},
 				{Type: "write", TxHash: []byte("hash1")},
 				{Type: "write", TxHash: []byte("hash1")},
