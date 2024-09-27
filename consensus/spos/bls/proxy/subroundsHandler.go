@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -66,37 +65,37 @@ const (
 
 func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) {
 	if check.IfNil(args.Chronology) {
-		return nil, bls.ErrNilChronologyHandler
+		return nil, ErrNilChronologyHandler
 	}
 	if check.IfNil(args.ConsensusCoreHandler) {
-		return nil, bls.ErrNilConsensusCoreHandler
+		return nil, ErrNilConsensusCoreHandler
 	}
 	if check.IfNil(args.ConsensusState) {
-		return nil, bls.ErrNilConsensusState
+		return nil, ErrNilConsensusState
 	}
 	if check.IfNil(args.Worker) {
-		return nil, bls.ErrNilWorker
+		return nil, ErrNilWorker
 	}
 	if check.IfNil(args.SignatureThrottler) {
-		return nil, bls.ErrNilSignatureThrottler
+		return nil, ErrNilSignatureThrottler
 	}
 	if check.IfNil(args.AppStatusHandler) {
-		return nil, bls.ErrNilAppStatusHandler
+		return nil, ErrNilAppStatusHandler
 	}
 	if check.IfNil(args.OutportHandler) {
-		return nil, bls.ErrNilOutportHandler
+		return nil, ErrNilOutportHandler
 	}
 	if check.IfNil(args.SentSignatureTracker) {
-		return nil, bls.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, bls.ErrNilEnableEpochsHandler
+		return nil, ErrNilEnableEpochsHandler
 	}
 	if args.ChainID == nil {
-		return nil, bls.ErrNilChainID
+		return nil, ErrNilChainID
 	}
 	if len(args.CurrentPid) == 0 {
-		return nil, bls.ErrNilCurrentPid
+		return nil, ErrNilCurrentPid
 	}
 
 	subroundHandler := &SubroundsHandler{
