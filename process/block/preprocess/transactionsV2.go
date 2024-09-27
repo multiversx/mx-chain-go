@@ -185,7 +185,7 @@ func (txs *transactions) processTransaction(
 		}
 
 		mbInfo.processingInfo.numBadTxs++
-		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
+		log.Debug("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
 		if errRevert != nil && !core.IsClosingError(errRevert) {
@@ -274,11 +274,16 @@ func (txs *transactions) createScheduledMiniBlocks(
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
-
+	log.Debug("createScheduledMiniBlocks", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
 	mbInfo := txs.initCreateScheduledMiniBlocks()
 	for index := range sortedTxs {
 		if !haveTime() && !haveAdditionalTime() {
 			log.Debug("time is out in createScheduledMiniBlocks")
+			break
+		}
+		maxGasLimitForScheduled := uint64(CurrentMaxGasLimitPercentage * float64(txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())))
+		if mbInfo.gasInfo.totalGasConsumedInSelfShard >= maxGasLimitForScheduled {
+			log.Debug("stopped processing transactions because the gas limit is reached", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage, "maxGasLimitForScheduled", maxGasLimitForScheduled)
 			break
 		}
 
