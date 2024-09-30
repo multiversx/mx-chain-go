@@ -1,38 +1,85 @@
 package proxy
 
 import (
+	"sync/atomic"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/require"
 
+	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	mock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-func getDefaultArgumentsSubroundHandler() *SubroundsHandlerArgs {
+func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.ConsensusCoreMock) {
+	x := make(chan bool)
+	chronology := &consensus.ChronologyHandlerMock{}
+	epochsEnable := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	epochStartNotifier := &mock.EpochStartNotifierStub{}
+	consensusState := &consensus.ConsensusStateMock{}
+	worker := &consensus.SposWorkerMock{
+		RemoveAllReceivedMessagesCallsCalled: func() {},
+		GetConsensusStateChangedChannelsCalled: func() chan bool {
+			return x
+		},
+	}
+	antiFloodHandler := &mock2.P2PAntifloodHandlerStub{}
 	handlerArgs := &SubroundsHandlerArgs{
-		Chronology:           &consensus.ChronologyHandlerMock{},
-		ConsensusState:       &consensus.ConsensusStateMock{},
-		Worker:               &consensus.SposWorkerMock{},
+		Chronology:           chronology,
+		ConsensusState:       consensusState,
+		Worker:               worker,
 		SignatureThrottler:   &common.ThrottlerStub{},
 		AppStatusHandler:     &statusHandler.AppStatusHandlerStub{},
 		OutportHandler:       &outportStub.OutportStub{},
 		SentSignatureTracker: &testscommon.SentSignatureTrackerStub{},
-		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:  epochsEnable,
 		ChainID:              []byte("chainID"),
 		CurrentPid:           "peerID",
 	}
 
 	consensusCore := &consensus.ConsensusCoreMock{}
-	consensusCore.SetEpochStartNotifier(&mock.EpochStartNotifierStub{})
+	consensusCore.SetEpochStartNotifier(epochStartNotifier)
+	consensusCore.SetBlockchain(&testscommon.ChainHandlerStub{})
+	consensusCore.SetBlockProcessor(&testscommon.BlockProcessorStub{})
+	consensusCore.SetBootStrapper(&bootstrapperStubs.BootstrapperStub{})
+	consensusCore.SetBroadcastMessenger(&consensus.BroadcastMessengerMock{})
+	consensusCore.SetChronology(chronology)
+	consensusCore.SetAntifloodHandler(antiFloodHandler)
+	consensusCore.SetHasher(&testscommon.HasherStub{})
+	consensusCore.SetMarshalizer(&testscommon.MarshallerStub{})
+	consensusCore.SetMultiSignerContainer(&cryptoMocks.MultiSignerContainerStub{
+		GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			return &cryptoMocks.MultisignerMock{}, nil
+		},
+	})
+	consensusCore.SetRoundHandler(&consensus.RoundHandlerMock{})
+	consensusCore.SetShardCoordinator(&testscommon.ShardsCoordinatorMock{})
+	consensusCore.SetSyncTimer(&testscommon.SyncTimerStub{})
+	consensusCore.SetValidatorGroupSelector(&shardingMocks.NodesCoordinatorMock{})
+	consensusCore.SetPeerHonestyHandler(&testscommon.PeerHonestyHandlerStub{})
+	consensusCore.SetHeaderSigVerifier(&consensus.HeaderSigVerifierMock{})
+	consensusCore.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{})
+	consensusCore.SetNodeRedundancyHandler(&mock2.NodeRedundancyHandlerStub{})
+	consensusCore.SetScheduledProcessor(&consensus.ScheduledProcessorStub{})
+	consensusCore.SetMessageSigningHandler(&mock2.MessageSigningHandlerStub{})
+	consensusCore.SetPeerBlacklistHandler(&mock2.PeerBlacklistHandlerStub{})
+	consensusCore.SetSigningHandler(&consensus.SigningHandlerStub{})
+	consensusCore.SetEnableEpochsHandler(epochsEnable)
+	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 	handlerArgs.ConsensusCoreHandler = consensusCore
 
-	return handlerArgs
+	return handlerArgs, consensusCore
 }
 
 func TestNewSubroundsHandler(t *testing.T) {
@@ -41,7 +88,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil chronology should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.Chronology = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilChronologyHandler, err)
@@ -50,7 +97,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil consensus core should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.ConsensusCoreHandler = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilConsensusCoreHandler, err)
@@ -59,7 +106,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil consensus state should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.ConsensusState = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilConsensusState, err)
@@ -68,7 +115,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.Worker = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilWorker, err)
@@ -77,7 +124,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil signature throttler should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.SignatureThrottler = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilSignatureThrottler, err)
@@ -86,7 +133,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.AppStatusHandler = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilAppStatusHandler, err)
@@ -95,7 +142,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil outport handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.OutportHandler = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilOutportHandler, err)
@@ -104,7 +151,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil sent signature tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.SentSignatureTracker = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilSentSignatureTracker, err)
@@ -113,7 +160,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil enable epochs handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.EnableEpochsHandler = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilEnableEpochsHandler, err)
@@ -122,7 +169,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("nil chain ID should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.ChainID = nil
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilChainID, err)
@@ -131,7 +178,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("empty current PID should error", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		handlerArgs.CurrentPid = ""
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Equal(t, ErrNilCurrentPid, err)
@@ -140,9 +187,133 @@ func TestNewSubroundsHandler(t *testing.T) {
 	t.Run("OK", func(t *testing.T) {
 		t.Parallel()
 
-		handlerArgs := getDefaultArgumentsSubroundHandler()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+	})
+}
+
+func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("equivalent messages not enabled, with previous consensus type not ConsensusV1", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		sh.currentConsensusType = ConsensusNone
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
+	})
+	t.Run("equivalent messages not enabled, with previous consensus type ConsensusV1", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		sh.currentConsensusType = ConsensusV1
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, int32(0), startCalled.Load())
+	})
+	t.Run("equivalent messages enabled, with previous consensus type not ConsensusV2", func(t *testing.T) {
+		t.Parallel()
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		sh.currentConsensusType = ConsensusNone
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, ConsensusV2, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
+	})
+	t.Run("equivalent messages enabled, with previous consensus type ConsensusV2", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		sh.currentConsensusType = ConsensusV2
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, ConsensusV2, sh.currentConsensusType)
+		require.Equal(t, int32(0), startCalled.Load())
 	})
 }
