@@ -2,6 +2,7 @@ package containers
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -49,6 +50,9 @@ func (rc *requestersContainer) Add(key string, requester dataRetriever.Requester
 	if check.IfNil(requester) {
 		return dataRetriever.ErrNilContainerElement
 	}
+
+	log.Error("requestersContainer.Add", "key", key, "requester", fmt.Sprintf("%T", requester))
+	debug.PrintStack()
 
 	ok := rc.objects.Insert(key, requester)
 	if !ok {
