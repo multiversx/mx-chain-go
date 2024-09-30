@@ -179,6 +179,11 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 // EpochStartAction is called when the epoch starts
 func (s *SubroundsHandler) EpochStartAction(hdr data.HeaderHandler) {
+	if check.IfNil(hdr) {
+		log.Error("SubroundsHandler.EpochStartAction: nil header")
+		return
+	}
+
 	err := s.initSubroundsForEpoch(hdr.GetEpoch())
 	if err != nil {
 		log.Error("SubroundsHandler.EpochStartAction: cannot initialize subrounds", "error", err)

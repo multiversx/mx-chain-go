@@ -8,6 +8,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/require"
 
+	chainCommon "github.com/multiversx/mx-chain-go/common"
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
@@ -315,5 +316,128 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, ConsensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(0), startCalled.Load())
+	})
+}
+
+func TestSubroundsHandler_Start(t *testing.T) {
+	t.Parallel()
+
+	// the Start is tested via initSubroundsForEpoch, adding one of the test cases here as well
+	t.Run("equivalent messages not enabled, with previous consensus type not ConsensusV1", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		sh.currentConsensusType = ConsensusNone
+
+		err = sh.Start(0)
+		require.Nil(t, err)
+		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
+	})
+}
+
+func TestSubroundsHandler_NotifyOrder(t *testing.T) {
+	t.Parallel()
+
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+
+		order := sh.NotifyOrder()
+		require.Equal(t, uint32(chainCommon.ConsensusHandlerOrder), order)
+	})
+}
+
+func TestSubroundsHandler_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil handler", func(t *testing.T) {
+		t.Parallel()
+
+		var sh *SubroundsHandler
+		require.True(t, sh.IsInterfaceNil())
+	})
+	t.Run("not nil handler", func(t *testing.T) {
+		t.Parallel()
+
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+
+		require.False(t, sh.IsInterfaceNil())
+	})
+}
+
+func TestSubroundsHandler_EpochStartAction(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil handler does not panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("The code panicked")
+			}
+		}()
+		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		sh.EpochStartAction(&testscommon.HeaderHandlerStub{})
+	})
+
+	// tested through initSubroundsForEpoch
+	t.Run("OK", func(t *testing.T) {
+		t.Parallel()
+
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+
+		sh.currentConsensusType = ConsensusNone
+		sh.EpochStartAction(&testscommon.HeaderHandlerStub{})
+		require.Nil(t, err)
+		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
 	})
 }
