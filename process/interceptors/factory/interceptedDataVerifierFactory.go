@@ -46,3 +46,8 @@ func (idvf *InterceptedDataVerifierFactory) Create(topic string) (process.Interc
 	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
 	return verifier, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (idvf *InterceptedDataVerifierFactory) IsInterfaceNil() bool {
+	return idvf == nil
+}

@@ -17,3 +17,8 @@ func (idvfs *InterceptedDataVerifierFactoryStub) Create(topic string) (process.I
 
 	return nil, nil
 }
+
+// IsInterfaceNil -
+func (idvfs *InterceptedDataVerifierFactoryStub) IsInterfaceNil() bool {
+	return idvfs == nil
+}

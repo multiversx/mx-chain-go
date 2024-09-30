@@ -28,8 +28,11 @@ func defaultInterceptedDataVerifier(span time.Duration) process.InterceptedDataV
 func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
+	checkValidityCounter := atomic.Counter{}
+
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
+			checkValidityCounter.Add(1)
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
@@ -60,13 +63,17 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 	wg.Wait()
 
 	require.Equal(t, int64(0), errCount.Get())
+	require.Equal(t, int64(1), checkValidityCounter.Get())
 }
 
 func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 	t.Parallel()
 
+	checkValidityCounter := atomic.Counter{}
+
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
+			checkValidityCounter.Add(1)
 			return nil
 		},
 		IsForCurrentShardCalled: func() bool {
@@ -93,13 +100,16 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 
 	err := verifier.Verify(interceptedDataWithErr)
 	require.Equal(t, ErrInvalidInterceptedData, err)
+	require.Equal(t, int64(0), checkValidityCounter.Get())
 
 	err = verifier.Verify(interceptedData)
 	// It is still invalid because it has the same hash.
 	require.Equal(t, ErrInvalidInterceptedData, err)
+	require.Equal(t, int64(0), checkValidityCounter.Get())
 
 	<-time.After(defaultSpan + 100*time.Millisecond)
 
 	err = verifier.Verify(interceptedData)
-	require.Nil(t, err)
+	require.NoError(t, err)
+	require.Equal(t, int64(1), checkValidityCounter.Get())
 }

@@ -10,8 +10,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
-	//"github.com/multiversx/mx-chain-go/process"
-	//factory2 "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 )

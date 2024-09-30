@@ -958,17 +958,3 @@ func (bicf *baseInterceptorsContainerFactory) addInterceptorsToContainers(keys [
 
 	return bicf.fullArchiveContainer.AddMultiple(keys, interceptors)
 }
-
-//func (bicf *baseInterceptorsContainerFactory) createCacheForInterceptor(topic string) (process.InterceptedDataVerifier, error) {
-//	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-//		DefaultSpan: cacheDefaultSpan,
-//		CacheExpiry: cacheDefaultExpiry,
-//	})
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	bicf.processedMessagesCacheMap[topic] = internalCache
-//	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
-//	return verifier, nil
-//}

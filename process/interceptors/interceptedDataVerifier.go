@@ -9,11 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-type interceptedDataStatus int
+type interceptedDataStatus int8
 
 const (
 	ValidInterceptedData interceptedDataStatus = iota
 	InvalidInterceptedData
+
+	interceptedDataStatusBytesSize = 8
 )
 
 var (
@@ -39,11 +41,17 @@ func NewInterceptedDataVerifier(cache storage.Cacher) *interceptedDataVerifier {
 // It will retrieve the status in the cache if it exists, otherwise it will validate it and store the status of the
 // validation in the cache. Note that the entries are stored for a set period of time
 func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedData) error {
+	hash := string(interceptedData.Hash())
+
 	if len(interceptedData.Hash()) == 0 {
 		return interceptedData.CheckValidity()
 	}
 
-	if val, ok := idv.cache.Get(interceptedData.Hash()); ok {
+	idv.km.RLock(hash)
+	val, ok := idv.cache.Get(interceptedData.Hash())
+	idv.km.RUnlock(hash)
+
+	if ok {
 		if val == ValidInterceptedData {
 			return nil
 		}
@@ -51,26 +59,20 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 		return ErrInvalidInterceptedData
 	}
 
-	err := idv.checkValidity(interceptedData)
+	err := interceptedData.CheckValidity()
 	if err != nil {
-		idv.cache.Put(interceptedData.Hash(), InvalidInterceptedData, 8)
+		idv.km.Lock(hash)
+		idv.cache.Put(interceptedData.Hash(), InvalidInterceptedData, interceptedDataStatusBytesSize)
+		idv.km.Unlock(hash)
+
 		return ErrInvalidInterceptedData
 	}
 
-	idv.cache.Put(interceptedData.Hash(), ValidInterceptedData, 100)
+	idv.cache.Put(interceptedData.Hash(), ValidInterceptedData, interceptedDataStatusBytesSize)
 	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (idv *interceptedDataVerifier) IsInterfaceNil() bool {
 	return idv == nil
-}
-
-func (idv *interceptedDataVerifier) checkValidity(interceptedData process.InterceptedData) error {
-	hash := string(interceptedData.Hash())
-
-	idv.km.Lock(hash)
-	defer idv.km.Unlock(hash)
-
-	return interceptedData.CheckValidity()
 }
