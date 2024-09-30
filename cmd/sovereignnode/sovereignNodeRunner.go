@@ -713,7 +713,7 @@ func getValidatorAccountSyncer(
 		),
 	}
 
-	return syncer.NewValidatorAccountsSyncer(args)
+	return syncer.NewSovereignValidatorAccountsSyncer(args)
 }
 
 func getUserAccountSyncer(

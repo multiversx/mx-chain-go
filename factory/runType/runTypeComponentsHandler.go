@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
@@ -238,6 +239,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.exportHandlerFactoryCreator) {
 		return errors.ErrNilExportHandlerFactoryCreator
+	}
+	if check.IfNil(mrc.validatorAccountsSyncerFactoryHandler) {
+		return errors.ErrNilValidatorAccountsDBSyncerFactory
 	}
 
 	return nil
@@ -793,6 +797,18 @@ func (mrc *managedRunTypeComponents) ExportHandlerFactoryCreator() factory.Expor
 	}
 
 	return mrc.runTypeComponents.exportHandlerFactoryCreator
+}
+
+// ValidatorAccountsSyncerFactoryHandler returns validator accounts syncer factory handler
+func (mrc *managedRunTypeComponents) ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.validatorAccountsSyncerFactoryHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

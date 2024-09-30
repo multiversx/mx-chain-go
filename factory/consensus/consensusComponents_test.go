@@ -189,8 +189,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
-			ConsensusModelType:         consensus.ConsensusModelV1,
+			ShardMessengerFactoryField:                 &factoryMocks.ShardChainMessengerFactoryMock{},
+			ValidatorAccountsSyncerFactoryHandlerField: &factoryMocks.ValidatorAccountsSyncerFactoryMock{},
+			ConsensusModelType:                         consensus.ConsensusModelV1,
 		},
 	}
 }

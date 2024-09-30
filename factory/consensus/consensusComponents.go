@@ -479,6 +479,11 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		return nil, err
 	}
 
+	validatorDBSyncer, err := ccf.createValidatorAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
@@ -508,6 +513,7 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		ValidatorDBSyncer:            validatorDBSyncer,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -544,7 +550,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: ccf.createArgsBaseAccountsSyncer(trieStorageManager),
 	}
-	return syncer.NewValidatorAccountsSyncer(args)
+	return ccf.runTypeComponents.ValidatorAccountsSyncerFactoryHandler().CreateValidatorAccountsSyncer(args)
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
@@ -638,13 +644,13 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		ValidatorDBSyncer:            validatorAccountsDBSyncer,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper:         argsBaseBootstrapper,
-		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
-		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
-		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   ccf.processComponents.EpochStartTrigger(),
+		ValidatorAccountsDB: ccf.stateComponents.PeerAccounts(),
 	}
 
 	return sync.NewMetaBootstrap(argsMetaBootstrapper)

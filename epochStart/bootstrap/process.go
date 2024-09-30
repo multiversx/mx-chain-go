@@ -1021,7 +1021,7 @@ func (e *epochStartBootstrap) syncValidatorAccountsState(rootHash []byte) error 
 			EnableEpochsHandler:               e.coreComponentsHolder.EnableEpochsHandler(),
 		},
 	}
-	accountsDBSyncer, err := syncer.NewValidatorAccountsSyncer(argsValidatorAccountsSyncer)
+	accountsDBSyncer, err := e.runTypeComponents.ValidatorAccountsSyncerFactoryHandler().CreateValidatorAccountsSyncer(argsValidatorAccountsSyncer)
 	if err != nil {
 		return err
 	}
