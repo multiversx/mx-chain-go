@@ -3,6 +3,7 @@ package mock
 import (
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
@@ -10,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -17,31 +19,33 @@ import (
 
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
-	AdditionalStorageServiceFactory            process.AdditionalStorageServiceCreator
-	ShardCoordinatorFactory                    sharding.ShardCoordinatorFactory
-	NodesCoordinatorWithRaterFactory           nodesCoordinator.NodesCoordinatorWithRaterFactory
-	RequestHandlerFactory                      requestHandlers.RequestHandlerCreator
-	AccountCreator                             state.AccountFactory
-	OutGoingOperationsPool                     sovereignBlock.OutGoingOperationsPool
-	DataCodec                                  sovereign.DataCodecHandler
-	TopicsChecker                              sovereign.TopicsCheckerHandler
-	RequestersContainerFactoryCreatorField     requesterscontainer.RequesterContainerFactoryCreator
-	ValidatorAccountsSyncerFactoryHandlerField syncerFactory.ValidatorAccountsSyncerFactoryHandler
+	AdditionalStorageServiceFactory             process.AdditionalStorageServiceCreator
+	ShardCoordinatorFactory                     sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterFactory            nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestHandlerFactory                       requestHandlers.RequestHandlerCreator
+	AccountCreator                              state.AccountFactory
+	OutGoingOperationsPool                      sovereignBlock.OutGoingOperationsPool
+	DataCodec                                   sovereign.DataCodecHandler
+	TopicsChecker                               sovereign.TopicsCheckerHandler
+	RequestersContainerFactoryCreatorField      requesterscontainer.RequesterContainerFactoryCreator
+	ValidatorAccountsSyncerFactoryHandlerField  syncerFactory.ValidatorAccountsSyncerFactoryHandler
+	ShardRequestersContainerCreatorHandlerField storageRequestFactory.ShardRequestersContainerCreatorHandler
 }
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
-		AdditionalStorageServiceFactory:            &testscommon.AdditionalStorageServiceFactoryMock{},
-		ShardCoordinatorFactory:                    sharding.NewMultiShardCoordinatorFactory(),
-		NodesCoordinatorWithRaterFactory:           nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		RequestHandlerFactory:                      requestHandlers.NewResolverRequestHandlerFactory(),
-		AccountCreator:                             &stateMock.AccountsFactoryStub{},
-		OutGoingOperationsPool:                     &sovereignMocks.OutGoingOperationsPoolMock{},
-		DataCodec:                                  &sovereignMocks.DataCodecMock{},
-		TopicsChecker:                              &sovereignMocks.TopicsCheckerMock{},
-		RequestersContainerFactoryCreatorField:     requesterscontainer.NewShardRequestersContainerFactoryCreator(),
-		ValidatorAccountsSyncerFactoryHandlerField: syncerFactory.NewValidatorAccountsSyncerFactory(),
+		AdditionalStorageServiceFactory:             &testscommon.AdditionalStorageServiceFactoryMock{},
+		ShardCoordinatorFactory:                     sharding.NewMultiShardCoordinatorFactory(),
+		NodesCoordinatorWithRaterFactory:            nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		RequestHandlerFactory:                       requestHandlers.NewResolverRequestHandlerFactory(),
+		AccountCreator:                              &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:                      &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                                   &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                               &sovereignMocks.TopicsCheckerMock{},
+		RequestersContainerFactoryCreatorField:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		ValidatorAccountsSyncerFactoryHandlerField:  syncerFactory.NewValidatorAccountsSyncerFactory(),
+		ShardRequestersContainerCreatorHandlerField: storageRequestFactory.NewShardRequestersContainerCreator(),
 	}
 }
 
@@ -49,18 +53,20 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	rt := NewRunTypeComponentsStub()
 	requestHandlerFactory, _ := requestHandlers.NewSovereignResolverRequestHandlerFactory(rt.RequestHandlerFactory)
+	additionalStorageFactory, _ := factory.NewSovereignAdditionalStorageServiceFactory()
 
 	return &RunTypeComponentsStub{
-		AdditionalStorageServiceFactory:            &testscommon.AdditionalStorageServiceFactoryMock{},
-		ShardCoordinatorFactory:                    sharding.NewSovereignShardCoordinatorFactory(),
-		NodesCoordinatorWithRaterFactory:           &testscommon.NodesCoordinatorFactoryMock{},
-		RequestHandlerFactory:                      requestHandlerFactory,
-		AccountCreator:                             &stateMock.AccountsFactoryStub{},
-		OutGoingOperationsPool:                     &sovereignMocks.OutGoingOperationsPoolMock{},
-		DataCodec:                                  &sovereignMocks.DataCodecMock{},
-		TopicsChecker:                              &sovereignMocks.TopicsCheckerMock{},
-		RequestersContainerFactoryCreatorField:     requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
-		ValidatorAccountsSyncerFactoryHandlerField: syncerFactory.NewSovereignValidatorAccountsSyncerFactory(),
+		AdditionalStorageServiceFactory:             additionalStorageFactory,
+		ShardCoordinatorFactory:                     sharding.NewSovereignShardCoordinatorFactory(),
+		NodesCoordinatorWithRaterFactory:            &testscommon.NodesCoordinatorFactoryMock{},
+		RequestHandlerFactory:                       requestHandlerFactory,
+		AccountCreator:                              &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:                      &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                                   &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                               &sovereignMocks.TopicsCheckerMock{},
+		RequestersContainerFactoryCreatorField:      requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
+		ValidatorAccountsSyncerFactoryHandlerField:  syncerFactory.NewSovereignValidatorAccountsSyncerFactory(),
+		ShardRequestersContainerCreatorHandlerField: storageRequestFactory.NewSovereignShardRequestersContainerCreator(),
 	}
 }
 
@@ -112,6 +118,11 @@ func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requestersco
 // ValidatorAccountsSyncerFactoryHandler -
 func (r *RunTypeComponentsStub) ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler {
 	return r.ValidatorAccountsSyncerFactoryHandlerField
+}
+
+// ShardRequestersContainerCreatorHandler -
+func (r *RunTypeComponentsStub) ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler {
+	return r.ShardRequestersContainerCreatorHandlerField
 }
 
 // IsInterfaceNil -

@@ -24,6 +24,7 @@ import (
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -639,6 +640,7 @@ type RunTypeComponentsHolder interface {
 	BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler
 	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
+	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

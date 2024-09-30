@@ -9,6 +9,7 @@ import (
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -809,6 +810,18 @@ func (mrc *managedRunTypeComponents) ValidatorAccountsSyncerFactoryHandler() syn
 	}
 
 	return mrc.runTypeComponents.validatorAccountsSyncerFactoryHandler
+}
+
+// ShardRequestersContainerCreatorHandler returns shard requesters container creator handler
+func (mrc *managedRunTypeComponents) ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardRequestersContainerCreatorHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

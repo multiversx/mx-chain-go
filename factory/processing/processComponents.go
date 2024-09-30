@@ -1609,7 +1609,7 @@ func (pcf *processComponentsFactory) createStorageRequestersForShard(
 		StateStatsHandler:        pcf.statusCoreComponents.StateStatsHandler(),
 	}
 
-	return storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
+	return pcf.runTypeComponents.ShardRequestersContainerCreatorHandler().CreateShardRequestersContainerFactory(requestersContainerFactoryArgs)
 }
 
 func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(

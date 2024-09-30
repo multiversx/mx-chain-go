@@ -11,6 +11,7 @@ import (
 	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -270,5 +271,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		shardMessengerFactory:                   broadcastFactory.NewSovereignShardChainMessengerFactory(),
 		exportHandlerFactoryCreator:             updateFactory.NewSovereignExportHandlerFactoryCreator(),
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewSovereignValidatorAccountsSyncerFactory(),
+		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewSovereignShardRequestersContainerCreator(),
 	}, nil
 }
