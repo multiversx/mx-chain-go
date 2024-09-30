@@ -87,284 +87,430 @@ type ConsensusStateMock struct {
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
 }
 
+// AddReceivedHeader -
 func (cnsm *ConsensusStateMock) AddReceivedHeader(headerHandler data.HeaderHandler) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.AddReceivedHeaderCalled != nil {
+		cnsm.AddReceivedHeaderCalled(headerHandler)
+	}
 }
 
+// GetReceivedHeaders -
 func (cnsm *ConsensusStateMock) GetReceivedHeaders() []data.HeaderHandler {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetReceivedHeadersCalled != nil {
+		return cnsm.GetReceivedHeadersCalled()
+	}
+	return nil
 }
 
+// AddMessageWithSignature -
 func (cnsm *ConsensusStateMock) AddMessageWithSignature(key string, message p2p.MessageP2P) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.AddMessageWithSignatureCalled != nil {
+		cnsm.AddMessageWithSignatureCalled(key, message)
+	}
 }
 
+// GetMessageWithSignature -
 func (cnsm *ConsensusStateMock) GetMessageWithSignature(key string) (p2p.MessageP2P, bool) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetMessageWithSignatureCalled != nil {
+		return cnsm.GetMessageWithSignatureCalled(key)
+	}
+	return nil, false
 }
 
+// IsSubroundFinished -
 func (cnsm *ConsensusStateMock) IsSubroundFinished(subroundID int) bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsSubroundFinishedCalled != nil {
+		return cnsm.IsSubroundFinishedCalled(subroundID)
+	}
+	return false
 }
 
+// GetData -
 func (cnsm *ConsensusStateMock) GetData() []byte {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetDataCalled != nil {
+		return cnsm.GetDataCalled()
+	}
+	return nil
 }
 
+// SetData -
 func (cnsm *ConsensusStateMock) SetData(data []byte) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetDataCalled != nil {
+		cnsm.SetDataCalled(data)
+	}
 }
 
+// IsMultiKeyLeaderInCurrentRound -
 func (cnsm *ConsensusStateMock) IsMultiKeyLeaderInCurrentRound() bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsMultiKeyLeaderInCurrentRoundCalled != nil {
+		return cnsm.IsMultiKeyLeaderInCurrentRoundCalled()
+	}
+	return false
 }
 
+// IsLeaderJobDone -
 func (cnsm *ConsensusStateMock) IsLeaderJobDone(currentSubroundId int) bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsLeaderJobDoneCalled != nil {
+		return cnsm.IsLeaderJobDoneCalled(currentSubroundId)
+	}
+	return false
 }
 
+// IsMultiKeyJobDone -
 func (cnsm *ConsensusStateMock) IsMultiKeyJobDone(currentSubroundId int) bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsMultiKeyJobDoneCalled != nil {
+		return cnsm.IsMultiKeyJobDoneCalled(currentSubroundId)
+	}
+	return false
 }
 
+// GetMultikeyRedundancyStepInReason -
 func (cnsm *ConsensusStateMock) GetMultikeyRedundancyStepInReason() string {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetMultikeyRedundancyStepInReasonCalled != nil {
+		return cnsm.GetMultikeyRedundancyStepInReasonCalled()
+	}
+	return ""
 }
 
+// ResetRoundsWithoutReceivedMessages -
 func (cnsm *ConsensusStateMock) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ResetRoundsWithoutReceivedMessagesCalled != nil {
+		cnsm.ResetRoundsWithoutReceivedMessagesCalled(pkBytes, pid)
+	}
 }
 
+// GetRoundCanceled -
 func (cnsm *ConsensusStateMock) GetRoundCanceled() bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetRoundCanceledCalled != nil {
+		return cnsm.GetRoundCanceledCalled()
+	}
+	return false
 }
 
+// SetRoundCanceled -
 func (cnsm *ConsensusStateMock) SetRoundCanceled(state bool) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetRoundCanceledCalled != nil {
+		cnsm.SetRoundCanceledCalled(state)
+	}
 }
 
+// GetRoundIndex -
 func (cnsm *ConsensusStateMock) GetRoundIndex() int64 {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetRoundIndexCalled != nil {
+		return cnsm.GetRoundIndexCalled()
+	}
+	return 0
 }
 
+// SetRoundIndex -
 func (cnsm *ConsensusStateMock) SetRoundIndex(roundIndex int64) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetRoundIndexCalled != nil {
+		cnsm.SetRoundIndexCalled(roundIndex)
+	}
 }
 
+// GetRoundTimeStamp -
 func (cnsm *ConsensusStateMock) GetRoundTimeStamp() time.Time {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetRoundTimeStampCalled != nil {
+		return cnsm.GetRoundTimeStampCalled()
+	}
+	return time.Time{}
 }
 
+// SetRoundTimeStamp -
 func (cnsm *ConsensusStateMock) SetRoundTimeStamp(roundTimeStamp time.Time) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetRoundTimeStampCalled != nil {
+		cnsm.SetRoundTimeStampCalled(roundTimeStamp)
+	}
 }
 
+// GetExtendedCalled -
 func (cnsm *ConsensusStateMock) GetExtendedCalled() bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetExtendedCalledCalled != nil {
+		return cnsm.GetExtendedCalledCalled()
+	}
+	return false
 }
 
+// GetBody -
 func (cnsm *ConsensusStateMock) GetBody() data.BodyHandler {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetBodyCalled != nil {
+		return cnsm.GetBodyCalled()
+	}
+	return nil
 }
 
+// SetBody -
 func (cnsm *ConsensusStateMock) SetBody(body data.BodyHandler) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetBodyCalled != nil {
+		cnsm.SetBodyCalled(body)
+	}
 }
 
+// GetHeader -
 func (cnsm *ConsensusStateMock) GetHeader() data.HeaderHandler {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetHeaderCalled != nil {
+		return cnsm.GetHeaderCalled()
+	}
+	return nil
 }
 
+// SetHeader -
 func (cnsm *ConsensusStateMock) SetHeader(header data.HeaderHandler) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetHeaderCalled != nil {
+		cnsm.SetHeaderCalled(header)
+	}
 }
 
+// GetWaitingAllSignaturesTimeOut -
 func (cnsm *ConsensusStateMock) GetWaitingAllSignaturesTimeOut() bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetWaitingAllSignaturesTimeOutCalled != nil {
+		return cnsm.GetWaitingAllSignaturesTimeOutCalled()
+	}
+	return false
 }
 
+// SetWaitingAllSignaturesTimeOut -
 func (cnsm *ConsensusStateMock) SetWaitingAllSignaturesTimeOut(b bool) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetWaitingAllSignaturesTimeOutCalled != nil {
+		cnsm.SetWaitingAllSignaturesTimeOutCalled(b)
+	}
 }
 
+// ConsensusGroupIndex -
 func (cnsm *ConsensusStateMock) ConsensusGroupIndex(pubKey string) (int, error) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ConsensusGroupIndexCalled != nil {
+		return cnsm.ConsensusGroupIndexCalled(pubKey)
+	}
+	return 0, nil
 }
 
+// SelfConsensusGroupIndex -
 func (cnsm *ConsensusStateMock) SelfConsensusGroupIndex() (int, error) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SelfConsensusGroupIndexCalled != nil {
+		return cnsm.SelfConsensusGroupIndexCalled()
+	}
+	return 0, nil
 }
 
+// SetEligibleList -
 func (cnsm *ConsensusStateMock) SetEligibleList(eligibleList map[string]struct{}) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetEligibleListCalled != nil {
+		cnsm.SetEligibleListCalled(eligibleList)
+	}
 }
 
+// ConsensusGroup -
 func (cnsm *ConsensusStateMock) ConsensusGroup() []string {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ConsensusGroupCalled != nil {
+		return cnsm.ConsensusGroupCalled()
+	}
+	return nil
 }
 
+// SetConsensusGroup -
 func (cnsm *ConsensusStateMock) SetConsensusGroup(consensusGroup []string) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetConsensusGroupCalled != nil {
+		cnsm.SetConsensusGroupCalled(consensusGroup)
+	}
 }
 
+// SetLeader -
 func (cnsm *ConsensusStateMock) SetLeader(leader string) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetLeaderCalled != nil {
+		cnsm.SetLeaderCalled(leader)
+	}
 }
 
+// SetConsensusGroupSize -
 func (cnsm *ConsensusStateMock) SetConsensusGroupSize(consensusGroupSize int) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetConsensusGroupSizeCalled != nil {
+		cnsm.SetConsensusGroupSizeCalled(consensusGroupSize)
+	}
 }
 
+// SelfPubKey -
 func (cnsm *ConsensusStateMock) SelfPubKey() string {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SelfPubKeyCalled != nil {
+		return cnsm.SelfPubKeyCalled()
+	}
+	return ""
 }
 
+// SetSelfPubKey -
 func (cnsm *ConsensusStateMock) SetSelfPubKey(selfPubKey string) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetSelfPubKeyCalled != nil {
+		cnsm.SetSelfPubKeyCalled(selfPubKey)
+	}
 }
 
+// JobDone -
 func (cnsm *ConsensusStateMock) JobDone(key string, subroundId int) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.JobDoneCalled != nil {
+		return cnsm.JobDoneCalled(key, subroundId)
+	}
+	return false, nil
 }
 
+// SetJobDone -
 func (cnsm *ConsensusStateMock) SetJobDone(key string, subroundId int, value bool) error {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetJobDoneCalled != nil {
+		return cnsm.SetJobDoneCalled(key, subroundId, value)
+	}
+	return nil
 }
 
+// SelfJobDone -
 func (cnsm *ConsensusStateMock) SelfJobDone(subroundId int) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SelfJobDoneCalled != nil {
+		return cnsm.SelfJobDoneCalled(subroundId)
+	}
+	return false, nil
 }
 
+// IsNodeInConsensusGroup -
 func (cnsm *ConsensusStateMock) IsNodeInConsensusGroup(node string) bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsNodeInConsensusGroupCalled != nil {
+		return cnsm.IsNodeInConsensusGroupCalled(node)
+	}
+	return false
 }
 
+// IsNodeInEligibleList -
 func (cnsm *ConsensusStateMock) IsNodeInEligibleList(node string) bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsNodeInEligibleListCalled != nil {
+		return cnsm.IsNodeInEligibleListCalled(node)
+	}
+	return false
 }
 
+// ComputeSize -
 func (cnsm *ConsensusStateMock) ComputeSize(subroundId int) int {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ComputeSizeCalled != nil {
+		return cnsm.ComputeSizeCalled(subroundId)
+	}
+	return 0
 }
 
+// ResetRoundState -
 func (cnsm *ConsensusStateMock) ResetRoundState() {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ResetRoundStateCalled != nil {
+		cnsm.ResetRoundStateCalled()
+	}
 }
 
+// IsMultiKeyInConsensusGroup -
 func (cnsm *ConsensusStateMock) IsMultiKeyInConsensusGroup() bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsMultiKeyInConsensusGroupCalled != nil {
+		return cnsm.IsMultiKeyInConsensusGroupCalled()
+	}
+	return false
 }
 
+// IsKeyManagedBySelf -
 func (cnsm *ConsensusStateMock) IsKeyManagedBySelf(pkBytes []byte) bool {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IsKeyManagedBySelfCalled != nil {
+		return cnsm.IsKeyManagedBySelfCalled(pkBytes)
+	}
+	return false
 }
 
+// IncrementRoundsWithoutReceivedMessages -
 func (cnsm *ConsensusStateMock) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.IncrementRoundsWithoutReceivedMessagesCalled != nil {
+		cnsm.IncrementRoundsWithoutReceivedMessagesCalled(pkBytes)
+	}
 }
 
+// GetKeysHandler -
 func (cnsm *ConsensusStateMock) GetKeysHandler() consensus.KeysHandler {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.GetKeysHandlerCalled != nil {
+		return cnsm.GetKeysHandlerCalled()
+	}
+	return nil
 }
 
+// Leader -
 func (cnsm *ConsensusStateMock) Leader() string {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.LeaderCalled != nil {
+		return cnsm.LeaderCalled()
+	}
+	return ""
 }
 
+// Status -
 func (cnsm *ConsensusStateMock) Status(subroundId int) int {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.StatusCalled != nil {
+		return cnsm.StatusCalled(subroundId)
+	}
+	return 0
 }
 
+// SetStatus -
 func (cnsm *ConsensusStateMock) SetStatus(subroundId int, subroundStatus int) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetStatusCalled != nil {
+		cnsm.SetStatusCalled(subroundId, subroundStatus)
+	}
 }
 
+// ResetRoundStatus -
 func (cnsm *ConsensusStateMock) ResetRoundStatus() {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ResetRoundStatusCalled != nil {
+		cnsm.ResetRoundStatusCalled()
+	}
 }
 
+// Threshold -
 func (cnsm *ConsensusStateMock) Threshold(subroundId int) int {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.ThresholdCalled != nil {
+		return cnsm.ThresholdCalled(subroundId)
+	}
+	return 0
 }
 
+// FallbackThreshold -
 func (cnsm *ConsensusStateMock) FallbackThreshold(subroundId int) int {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.FallbackThresholdCalled != nil {
+		return cnsm.FallbackThresholdCalled(subroundId)
+	}
+	return 0
 }
 
 func (cnsm *ConsensusStateMock) SetFallbackThreshold(subroundId int, threshold int) {
-	// TODO implement me
-	panic("implement me")
+	if cnsm.SetFallbackThresholdCalled != nil {
+		cnsm.SetFallbackThresholdCalled(subroundId, threshold)
+	}
 }
 
 // ResetConsensusState -
 func (cnsm *ConsensusStateMock) ResetConsensusState() {
-	cnsm.ResetConsensusStateCalled()
+	if cnsm.ResetConsensusStateCalled != nil {
+		cnsm.ResetConsensusStateCalled()
+	}
 }
 
 // IsNodeLeaderInCurrentRound -
 func (cnsm *ConsensusStateMock) IsNodeLeaderInCurrentRound(node string) bool {
-	return cnsm.IsNodeLeaderInCurrentRoundCalled(node)
+	if cnsm.IsNodeLeaderInCurrentRoundCalled != nil {
+		return cnsm.IsNodeLeaderInCurrentRoundCalled(node)
+	}
+	return false
 }
 
 // IsSelfLeaderInCurrentRound -
 func (cnsm *ConsensusStateMock) IsSelfLeaderInCurrentRound() bool {
-	return cnsm.IsSelfLeaderInCurrentRoundCalled()
+	if cnsm.IsSelfLeaderInCurrentRoundCalled != nil {
+		return cnsm.IsSelfLeaderInCurrentRoundCalled()
+	}
+	return false
 }
 
 // GetLeader -
 func (cnsm *ConsensusStateMock) GetLeader() (string, error) {
-	return cnsm.GetLeaderCalled()
+	if cnsm.GetLeaderCalled != nil {
+		return cnsm.GetLeaderCalled()
+	}
+	return "", nil
 }
 
 // GetNextConsensusGroup -
@@ -375,22 +521,34 @@ func (cnsm *ConsensusStateMock) GetNextConsensusGroup(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	epoch uint32,
 ) (string, []string, error) {
-	return cnsm.GetNextConsensusGroupCalled(randomSource, round, shardId, nodesCoordinator, epoch)
+	if cnsm.GetNextConsensusGroupCalled != nil {
+		return cnsm.GetNextConsensusGroupCalled(randomSource, round, shardId, nodesCoordinator, epoch)
+	}
+	return "", nil, nil
 }
 
 // IsConsensusDataSet -
 func (cnsm *ConsensusStateMock) IsConsensusDataSet() bool {
-	return cnsm.IsConsensusDataSetCalled()
+	if cnsm.IsConsensusDataSetCalled != nil {
+		return cnsm.IsConsensusDataSetCalled()
+	}
+	return false
 }
 
 // IsConsensusDataEqual -
 func (cnsm *ConsensusStateMock) IsConsensusDataEqual(data []byte) bool {
-	return cnsm.IsConsensusDataEqualCalled(data)
+	if cnsm.IsConsensusDataEqualCalled != nil {
+		return cnsm.IsConsensusDataEqualCalled(data)
+	}
+	return false
 }
 
 // IsJobDone -
 func (cnsm *ConsensusStateMock) IsJobDone(node string, currentSubroundId int) bool {
-	return cnsm.IsJobDoneCalled(node, currentSubroundId)
+	if cnsm.IsJobDoneCalled != nil {
+		return cnsm.IsJobDoneCalled(node, currentSubroundId)
+	}
+	return false
 }
 
 // IsSelfJobDone -
