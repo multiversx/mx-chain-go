@@ -27,6 +27,7 @@ const serviceFeeChangeEpochKey = "serviceFeeChangeEpoch"
 const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
+const lastMigratePrefix = "lastMigrate"
 const maxNumOfUnStakedFunds = 50
 
 const initFromValidatorData = "initFromValidatorData"
@@ -60,6 +61,7 @@ type delegation struct {
 	maxServiceFee                    uint64
 	unBondPeriodInEpochs             uint32
 	increaseFeeCoolDownPeriodInEpoch uint64
+	migrateCoolDownPeriodInEpoch     uint64
 	nodePrice                        *big.Int
 	unJailPrice                      *big.Int
 	minStakeValue                    *big.Int
@@ -148,6 +150,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		sigVerifier:                      args.SigVerifier,
 		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
 		increaseFeeCoolDownPeriodInEpoch: args.DelegationSCConfig.IncreaseFeeCoolDownPeriodInEpoch,
+		migrateCoolDownPeriodInEpoch:     args.DelegationSCConfig.MigrateCoolDownPeriodInEpoch,
 		endOfEpochAddr:                   args.EndOfEpochAddress,
 		governanceSCAddr:                 args.GovernanceSCAddress,
 		addTokensAddr:                    args.AddTokensAddress,
@@ -2602,6 +2605,20 @@ func (d *delegation) checkArgsForMovingDelelegation(args *vmcommon.ContractCallI
 	return vmcommon.Ok
 }
 
+func (d *delegation) checkCoolDownPeriodForMigration(delegatorAddress []byte) vmcommon.ReturnCode {
+	lastMoveEpochData := d.eei.GetStorage([]byte(lastMigratePrefix + string(delegatorAddress)))
+	lastMoveEpoch := big.NewInt(0).SetBytes(lastMoveEpochData).Uint64()
+
+	epochDifference := uint64(d.eei.BlockChainHook().CurrentEpoch()) - lastMoveEpoch
+	if lastMoveEpoch == 0 || epochDifference < d.migrateCoolDownPeriodInEpoch {
+		waitTime := big.NewInt(int64(d.increaseFeeCoolDownPeriodInEpoch - epochDifference)).String()
+		d.eei.AddReturnMessage("cannot increase service fee in the cooldown period, wait " + waitTime + " more epochs")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
 func (d *delegation) removeDelegationFromSource(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	returnCode := d.checkArgsForMovingDelelegation(args)
 	if returnCode != vmcommon.Ok {
@@ -2610,6 +2627,11 @@ func (d *delegation) removeDelegationFromSource(args *vmcommon.ContractCallInput
 
 	delegatorAddress := args.Arguments[0]
 	valueToMove := big.NewInt(0).SetBytes(args.Arguments[1])
+
+	returnCode = d.checkCoolDownPeriodForMigration(delegatorAddress)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
 
 	delegator, activeFund, _, returnCode := d.checkUnDelegateConditionsForAddress(delegatorAddress, valueToMove)
 	if returnCode != vmcommon.Ok {
@@ -2723,6 +2745,7 @@ func (d *delegation) moveDelegationToDestination(args *vmcommon.ContractCallInpu
 		return vmcommon.UserError
 	}
 
+	d.eei.SetStorage([]byte(lastMigratePrefix+string(delegatorAddress)), big.NewInt(int64(d.eei.BlockChainHook().CurrentEpoch())).Bytes())
 	err = d.addToActiveFund(delegatorAddress, delegator, valueToMove, dStatus, isNew)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
