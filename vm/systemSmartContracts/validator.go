@@ -122,6 +122,7 @@ func NewValidatorSmartContract(
 		common.MultiClaimOnDelegationFlag,
 		common.DelegationManagerFlag,
 		common.UnBondTokensV2Flag,
+		common.DelegationImprovementsV3Flag,
 	})
 	if err != nil {
 		return nil, err
@@ -259,6 +260,8 @@ func (v *validatorSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 		return v.mergeValidatorData(args)
 	case "changeOwnerOfValidatorData":
 		return v.changeOwnerOfValidatorData(args)
+	case "moveStakeFromValidatorToValidator":
+		return v.moveStakeFromValidatorToValidator(args)
 	}
 
 	v.eei.AddReturnMessage("invalid method to call")
@@ -2184,6 +2187,107 @@ func (v *validatorSC) changeOwnerAndRewardAddressOnStaking(registrationData *Val
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		return vmOutput.ReturnCode
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) checkArgsForMoveStakeFromValidatorToValidator(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !v.enableEpochsHandler.IsFlagEnabled(common.DelegationImprovementsV3Flag) {
+		v.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	err := v.eei.UseGas(v.gasCost.MetaChainSystemSCsCost.UnStakeTokens)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if !bytes.Equal(args.CallerAddr, v.delegationMgrSCAddress) {
+		v.eei.AddReturnMessage("invalid caller address")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		v.eei.AddReturnMessage("callValue must be 0")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 3 {
+		v.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	validatorA := args.Arguments[0]
+	validatorB := args.Arguments[1]
+	if len(validatorA) != len(args.CallerAddr) || len(validatorB) != len(args.CallerAddr) {
+		v.eei.AddReturnMessage("invalid argument, wanted an address for the first and second argument")
+		return vmcommon.UserError
+	}
+	if !core.IsSmartContractAddress(validatorB) {
+		v.eei.AddReturnMessage("destination address must be a delegation smart contract")
+		return vmcommon.UserError
+	}
+	if bytes.Equal(validatorA, validatorB) {
+		v.eei.AddReturnMessage("sender and destination addresses are equal")
+		return vmcommon.UserError
+	}
+	if !core.IsSmartContractAddress(validatorA) {
+		v.eei.AddReturnMessage("sender address must be a delegation smart contract")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (v *validatorSC) moveStakeFromValidatorToValidator(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := v.checkArgsForMoveStakeFromValidatorToValidator(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	validatorA := args.Arguments[0]
+	validatorB := args.Arguments[1]
+	stakeToMove := big.NewInt(0).SetBytes(args.Arguments[2])
+
+	validatorDataA, err := v.getOrCreateRegistrationData(validatorA)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	validatorDataB, err := v.getOrCreateRegistrationData(validatorB)
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	minUnstakeValue, err := v.getMinUnStakeTokensValue()
+	if err != nil {
+		v.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	unstakeValueIsOk := stakeToMove.Cmp(minUnstakeValue) >= 0 || stakeToMove.Cmp(validatorDataA.TotalStakeValue) == 0
+	if !unstakeValueIsOk {
+		v.eei.AddReturnMessage("can not unstake the provided value either because is under the minimum threshold or " +
+			"is not the value left to be unStaked")
+		return vmcommon.UserError
+	}
+
+	validatorDataA.TotalStakeValue.Sub(validatorDataA.TotalStakeValue, stakeToMove)
+	if validatorDataA.NumRegistered > 0 && validatorDataA.TotalStakeValue.Cmp(v.minDeposit) < 0 {
+		v.eei.AddReturnMessage("cannot move tokens, the validator would remain without min deposit, nodes are still active")
+		return vmcommon.UserError
+	}
+
+	validatorDataB.TotalStakeValue.Add(validatorDataB.TotalStakeValue, stakeToMove)
+
+	err = v.saveRegistrationData(validatorA, validatorDataA)
+	if err != nil {
+		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
+	}
+
+	err = v.saveRegistrationData(validatorB, validatorDataB)
+	if err != nil {
+		v.eei.AddReturnMessage("cannot save registration data: error " + err.Error())
+		return vmcommon.UserError
 	}
 
 	return vmcommon.Ok

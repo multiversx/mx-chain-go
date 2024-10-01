@@ -80,6 +80,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		common.ValidatorToDelegationFlag,
 		common.FixDelegationChangeOwnerOnAccountFlag,
 		common.MultiClaimOnDelegationFlag,
+		common.DelegationImprovementsV3Flag,
 	})
 	if err != nil {
 		return nil, err
@@ -157,6 +158,8 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.claimMulti(args)
 	case "reDelegateMulti":
 		return d.reDelegateMulti(args)
+	case "changeProvider":
+		return d.changeStakingProvider(args)
 	}
 
 	d.eei.AddReturnMessage("invalid function to call")
@@ -548,6 +551,67 @@ func (d *delegationManager) reDelegateMulti(args *vmcommon.ContractCallInput) vm
 	logs := d.eei.GetLogs()
 	totalReDelegated := getTotalReDelegatedFromLogs(logs)
 	d.eei.Finish(totalReDelegated.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationImprovementsV3Flag) {
+		d.eei.AddReturnMessage("invalid function to call")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 3 {
+		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	amount := args.Arguments[0]
+	delegationAddrA := args.Arguments[1]
+	delegationAddrB := args.Arguments[2]
+
+	if !core.IsSmartContractAddress(delegationAddrA) || !core.IsSmartContractAddress(delegationAddrB) {
+		d.eei.AddReturnMessage("input argument missmatch, not an address")
+		return vmcommon.UserError
+	}
+
+	// step 1
+	removeDelegation := []byte("removeDelegationFromSource@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
+	vmOutput, err := d.eei.ExecuteOnDestContext(delegationAddrA, args.RecipientAddr, big.NewInt(0), removeDelegation)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	// step 2
+	moveDelegation := []byte("moveDelegationToDestination@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
+	vmOutput, err = d.eei.ExecuteOnDestContext(delegationAddrB, args.RecipientAddr, big.NewInt(0), moveDelegation)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
+
+	// step 3
+	moveStake := []byte("moveDelegationToDestination@" + hex.EncodeToString(amount) +
+		"@" + hex.EncodeToString(delegationAddrA) + "@" + hex.EncodeToString(delegationAddrB))
+	vmOutput, err = d.eei.ExecuteOnDestContext(d.validatorSCAddr, args.RecipientAddr, big.NewInt(0), moveStake)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return vmOutput.ReturnCode
+	}
 
 	return vmcommon.Ok
 }

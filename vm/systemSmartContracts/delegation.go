@@ -289,6 +289,10 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.changeOwner(args)
 	case "synchronizeOwner":
 		return d.synchronizeOwner(args)
+	case "removeDelegationFromSource":
+		return d.removeDelegationFromSource(args)
+	case "moveDelegationToDestination":
+		return d.moveDelegationToDestination(args)
 	}
 
 	d.eei.AddReturnMessage(args.Function + " is an unknown function")
@@ -1653,7 +1657,7 @@ func (d *delegation) checkActiveFund(delegator *DelegatorData) error {
 	return nil
 }
 
-func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) checkMinDelegationAmount(amount *big.Int) vmcommon.ReturnCode {
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
@@ -1661,11 +1665,21 @@ func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnC
 	}
 
 	minDelegationAmount := delegationManagement.MinDelegationAmount
-	if args.CallValue.Cmp(minDelegationAmount) < 0 {
+	if amount.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("delegate value must be higher than minDelegationAmount " + minDelegationAmount.String())
 		return vmcommon.UserError
 	}
-	err = d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) delegate(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkMinDelegationAmount(args.CallValue)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
@@ -1764,36 +1778,34 @@ func (d *delegation) unDelegate(args *vmcommon.ContractCallInput) vmcommon.Retur
 	return d.unDelegateValueFromAddress(args, valueToUnDelegate, args.CallerAddr, args.RecipientAddr)
 }
 
-func (d *delegation) unDelegateValueFromAddress(
-	args *vmcommon.ContractCallInput,
-	valueToUnDelegate *big.Int,
+func (d *delegation) checkUnDelegateConditionsForAddress(
 	delegatorAddress []byte,
-	contractAddress []byte,
-) vmcommon.ReturnCode {
+	valueToUnDelegate *big.Int,
+) (*DelegatorData, *Fund, *big.Int, vmcommon.ReturnCode) {
 	isNew, delegator, err := d.getOrCreateDelegatorData(delegatorAddress)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
 	if isNew {
 		d.eei.AddReturnMessage("caller is not a delegator")
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
 
 	activeFund, err := d.getFund(delegator.ActiveFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
 	if activeFund.Value.Cmp(valueToUnDelegate) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate")
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
 
 	delegationManagement, err := getDelegationManagement(d.eei, d.marshalizer, d.delegationMgrSCAddress)
 	if err != nil {
 		d.eei.AddReturnMessage("error getting minimum delegation amount " + err.Error())
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
 
 	minDelegationAmount := delegationManagement.MinDelegationAmount
@@ -1801,15 +1813,30 @@ func (d *delegation) unDelegateValueFromAddress(
 	remainedFund := big.NewInt(0).Sub(activeFund.Value, valueToUnDelegate)
 	if remainedFund.Cmp(zero) > 0 && remainedFund.Cmp(minDelegationAmount) < 0 {
 		d.eei.AddReturnMessage("invalid value to undelegate - need to undelegate all - do not leave dust behind")
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
 
 	err = d.checkOwnerCanUnDelegate(delegatorAddress, activeFund, valueToUnDelegate)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return nil, nil, nil, vmcommon.UserError
 	}
-	err = d.computeAndUpdateRewards(delegatorAddress, delegator)
+
+	return delegator, activeFund, remainedFund, vmcommon.Ok
+}
+
+func (d *delegation) unDelegateValueFromAddress(
+	args *vmcommon.ContractCallInput,
+	valueToUnDelegate *big.Int,
+	delegatorAddress []byte,
+	contractAddress []byte,
+) vmcommon.ReturnCode {
+	delegator, activeFund, remainedFund, returnCode := d.checkUnDelegateConditionsForAddress(delegatorAddress, valueToUnDelegate)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.computeAndUpdateRewards(delegatorAddress, delegator)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -2537,6 +2564,189 @@ func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcomm
 	status.UnStakedKeys = unStakedKeys
 	status.NotStakedKeys = notStakedKeys
 	err = d.saveDelegationStatus(status)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) checkArgsForMovingDelelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationImprovementsV3Flag) {
+		d.eei.AddReturnMessage(args.Function + " is an unknown function")
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+	if !bytes.Equal(args.CallerAddr, d.delegationMgrSCAddress) {
+		d.eei.AddReturnMessage("invalid caller address")
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("invalid call value")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 2 {
+		d.eei.AddReturnMessage("invalid number of arguments")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments[0]) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage("first argument is not an address")
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) removeDelegationFromSource(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgsForMovingDelelegation(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	delegatorAddress := args.Arguments[0]
+	valueToMove := big.NewInt(0).SetBytes(args.Arguments[1])
+
+	delegator, activeFund, _, returnCode := d.checkUnDelegateConditionsForAddress(delegatorAddress, valueToMove)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err := d.computeAndUpdateRewards(delegatorAddress, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	activeFund.Value.Sub(activeFund.Value, valueToMove)
+	err = d.saveFund(delegator.ActiveFund, activeFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if activeFund.Value.Cmp(zero) == 0 {
+		delegator.ActiveFund = nil
+	}
+
+	globalFund.TotalActive.Sub(globalFund.TotalActive, valueToMove)
+	err = d.saveGlobalFundData(globalFund)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegatorData(delegatorAddress, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegation) getDelegationContractData() (*DelegationContractStatus, *DelegationConfig, *GlobalFundData, error) {
+	dStatus, err := d.getDelegationStatus()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	dConfig, err := d.getDelegationContractConfig()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	globalFund, err := d.getGlobalFundData()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return dStatus, dConfig, globalFund, nil
+}
+
+func (d *delegation) moveDelegationToDestination(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.checkArgsForMovingDelelegation(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	delegatorAddress := args.Arguments[0]
+	valueToMove := big.NewInt(0).SetBytes(args.Arguments[1])
+
+	returnCode = d.checkMinDelegationAmount(valueToMove)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	dStatus, dConfig, globalFund, err := d.getDelegationContractData()
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.checkAndUpdateOwnerInitialFunds(dConfig, delegatorAddress, valueToMove)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	isNew, delegator, err := d.getOrCreateDelegatorData(delegatorAddress)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	if isNew {
+		delegator.RewardsCheckpoint = d.eei.BlockChainHook().CurrentEpoch() + 1
+		delegator.UnClaimedRewards = big.NewInt(0)
+	} else {
+		err = d.computeAndUpdateRewards(delegatorAddress, delegator)
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	globalFund.TotalActive.Add(globalFund.TotalActive, valueToMove)
+	withDelegationCap := dConfig.MaxDelegationCap.Cmp(zero) != 0
+	if withDelegationCap && globalFund.TotalActive.Cmp(dConfig.MaxDelegationCap) > 0 {
+		d.eei.AddReturnMessage("total delegation cap reached")
+		return vmcommon.UserError
+	}
+
+	err = d.addToActiveFund(delegatorAddress, delegator, valueToMove, dStatus, isNew)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.checkActiveFund(delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegatorData(delegatorAddress, delegator)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	err = d.saveDelegationStatus(dStatus)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	err = d.saveGlobalFundData(globalFund)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
