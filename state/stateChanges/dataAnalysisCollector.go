@@ -134,9 +134,7 @@ func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]dataAna
 	dataAnalysisStateChangesForTxs := make([]dataAnalysisStateChangesForTx, 0)
 
 	for _, stateChangeForTx := range stateChangesForTxs {
-		txHash := string(stateChangeForTx.TxHash)
-
-		cachedTx, txOk := scc.cachedTxs[txHash]
+		cachedTx, txOk := scc.cachedTxs[string(stateChangeForTx.TxHash)]
 		if !txOk {
 			return nil, fmt.Errorf("did not find tx in cache")
 		}

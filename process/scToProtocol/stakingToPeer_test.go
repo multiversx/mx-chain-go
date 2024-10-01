@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -67,7 +66,7 @@ func createStakingScAccount() state.UserAccountHandler {
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		stateChanges.NewStateChangesCollector(),
+		&stateMock.StateChangesCollectorStub{},
 	)
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})
