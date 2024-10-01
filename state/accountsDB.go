@@ -210,14 +210,14 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	stateChange := &stateChange.StateChange{
-		Type:            "read",
+	sc := &stateChange.StateChange{
+		Type:            stateChange.Read,
 		MainTrieKey:     codeHash,
 		MainTrieVal:     val,
-		Operation:       "getCode",
+		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
-	adb.stateChangesCollector.AddStateChange(stateChange)
+	adb.stateChangesCollector.AddStateChange(sc)
 
 	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
@@ -285,15 +285,15 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return err
 	}
 
-	stateChange := &stateChange.StateChange{
-		Type:            "write",
+	sc := &stateChange.StateChange{
+		Type:            stateChange.Write,
 		MainTrieKey:     account.AddressBytes(),
 		MainTrieVal:     marshalledAccount,
 		DataTrieChanges: newDataTrieValues,
-		Operation:       "saveAccount",
+		Operation:       stateChange.SaveAccount,
 	}
 
-	adb.stateChangesCollector.AddSaveAccountStateChange(oldAccount, account, stateChange)
+	adb.stateChangesCollector.AddSaveAccountStateChange(oldAccount, account, sc)
 
 	return nil
 }
@@ -373,10 +373,10 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	sc := &stateChange.StateChange{
-		Type:            "read",
+		Type:            stateChange.Read,
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     nil,
-		Operation:       "getCode",
+		Operation:       stateChange.GetCode,
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(sc)
@@ -393,10 +393,10 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		}
 
 		sc1 := &stateChange.StateChange{
-			Type:            "write",
+			Type:            stateChange.Write,
 			MainTrieKey:     oldCodeHash,
 			MainTrieVal:     nil,
-			Operation:       "writeCode",
+			Operation:       stateChange.WriteCode,
 			DataTrieChanges: nil,
 		}
 		adb.stateChangesCollector.AddStateChange(sc1)
@@ -411,10 +411,10 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	sc = &stateChange.StateChange{
-		Type:            "write",
+		Type:            stateChange.Write,
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,
-		Operation:       "writeCode",
+		Operation:       stateChange.WriteCode,
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(sc)
@@ -445,10 +445,10 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 
 	sc := &stateChange.StateChange{
-		Type:            "write",
+		Type:            stateChange.Write,
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
-		Operation:       "writeCode",
+		Operation:       stateChange.WriteCode,
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(sc)
@@ -654,9 +654,9 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	adb.journalize(entry)
 
 	sc := &stateChange.StateChange{
-		Type:            "write",
+		Type:            stateChange.Write,
 		MainTrieKey:     baseAcc.AddressBytes(),
-		Operation:       "removeDataTrie",
+		Operation:       stateChange.RemoveDataTrie,
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(sc)
@@ -720,10 +720,10 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 	}
 
 	stateChange := &stateChange.StateChange{
-		Type:            "read",
+		Type:            stateChange.Read,
 		MainTrieKey:     address,
 		MainTrieVal:     val,
-		Operation:       "getAccount",
+		Operation:       stateChange.GetAccount,
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
