@@ -31,7 +31,7 @@ func ComputeConnectedPeers(
 	computeConnectedPeers(appStatusHandler, netMessenger, suffix)
 }
 
-// MakerHostDriversArgs -
+// MakeHostDriversArgs -
 func (scf *statusComponentsFactory) MakeHostDriversArgs() ([]outportDriverFactory.ArgsHostDriverFactory, error) {
 	return scf.makeHostDriversArgs()
 }
