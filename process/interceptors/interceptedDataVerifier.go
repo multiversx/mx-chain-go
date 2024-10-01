@@ -47,11 +47,10 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 		return interceptedData.CheckValidity()
 	}
 
-	idv.km.RLock(hash)
-	val, ok := idv.cache.Get(interceptedData.Hash())
-	idv.km.RUnlock(hash)
+	idv.km.Lock(hash)
+	defer idv.km.Unlock(hash)
 
-	if ok {
+	if val, ok := idv.cache.Get(interceptedData.Hash()); ok {
 		if val == ValidInterceptedData {
 			return nil
 		}
@@ -61,10 +60,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	err := interceptedData.CheckValidity()
 	if err != nil {
-		idv.km.Lock(hash)
 		idv.cache.Put(interceptedData.Hash(), InvalidInterceptedData, interceptedDataStatusBytesSize)
-		idv.km.Unlock(hash)
-
 		return ErrInvalidInterceptedData
 	}
 

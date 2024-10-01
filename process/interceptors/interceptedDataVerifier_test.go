@@ -1,7 +1,6 @@
 package interceptors
 
 import (
-	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -46,7 +45,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
 	err := verifier.Verify(interceptedData)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	errCount := atomic.Counter{}
 	wg := sync.WaitGroup{}
@@ -74,19 +73,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
 			checkValidityCounter.Add(1)
-			return nil
-		},
-		IsForCurrentShardCalled: func() bool {
-			return false
-		},
-		HashCalled: func() []byte {
-			return []byte("hash")
-		},
-	}
-
-	interceptedDataWithErr := &testscommon.InterceptedDataStub{
-		CheckValidityCalled: func() error {
-			return errors.New("error")
+			return ErrInvalidInterceptedData
 		},
 		IsForCurrentShardCalled: func() bool {
 			return false
@@ -98,18 +85,105 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-	err := verifier.Verify(interceptedDataWithErr)
+	err := verifier.Verify(interceptedData)
 	require.Equal(t, ErrInvalidInterceptedData, err)
-	require.Equal(t, int64(0), checkValidityCounter.Get())
 
-	err = verifier.Verify(interceptedData)
-	// It is still invalid because it has the same hash.
-	require.Equal(t, ErrInvalidInterceptedData, err)
-	require.Equal(t, int64(0), checkValidityCounter.Get())
+	errCount := atomic.Counter{}
+	wg := sync.WaitGroup{}
+	for i := 0; i < 3; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := verifier.Verify(interceptedData)
+			if err != nil {
+				errCount.Add(1)
+			}
+		}()
+	}
+	wg.Wait()
 
-	<-time.After(defaultSpan + 100*time.Millisecond)
-
-	err = verifier.Verify(interceptedData)
-	require.NoError(t, err)
+	require.Equal(t, int64(3), errCount.Get())
 	require.Equal(t, int64(1), checkValidityCounter.Get())
+}
+
+func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
+	t.Parallel()
+
+	t.Run("expiry on valid data", func(t *testing.T) {
+		expiryTestDuration := defaultSpan * 2
+
+		checkValidityCounter := atomic.Counter{}
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				checkValidityCounter.Add(1)
+				return nil
+			},
+			IsForCurrentShardCalled: func() bool {
+				return false
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(expiryTestDuration)
+
+		// First retrieval, check validity is reached.
+		err := verifier.Verify(interceptedData)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), checkValidityCounter.Get())
+
+		// Second retrieval should be from the cache.
+		err = verifier.Verify(interceptedData)
+		require.NoError(t, err)
+		require.Equal(t, int64(1), checkValidityCounter.Get())
+
+		// Wait for the cache expiry
+		<-time.After(expiryTestDuration + 100*time.Millisecond)
+
+		// Third retrieval should reach validity check again.
+		err = verifier.Verify(interceptedData)
+		require.NoError(t, err)
+		require.Equal(t, int64(2), checkValidityCounter.Get())
+	})
+
+	t.Run("expiry on invalid data", func(t *testing.T) {
+		expiryTestDuration := defaultSpan * 2
+
+		checkValidityCounter := atomic.Counter{}
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				checkValidityCounter.Add(1)
+				return ErrInvalidInterceptedData
+			},
+			IsForCurrentShardCalled: func() bool {
+				return false
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(expiryTestDuration)
+
+		// First retrieval, check validity is reached.
+		err := verifier.Verify(interceptedData)
+		require.Equal(t, ErrInvalidInterceptedData, err)
+		require.Equal(t, int64(1), checkValidityCounter.Get())
+
+		// Second retrieval should be from the cache.
+		err = verifier.Verify(interceptedData)
+		require.Equal(t, ErrInvalidInterceptedData, err)
+		require.Equal(t, int64(1), checkValidityCounter.Get())
+
+		// Wait for the cache expiry
+		<-time.After(expiryTestDuration + 100*time.Millisecond)
+
+		// Third retrieval should reach validity check again.
+		err = verifier.Verify(interceptedData)
+		require.Equal(t, ErrInvalidInterceptedData, err)
+		require.Equal(t, int64(2), checkValidityCounter.Get())
+	})
 }
