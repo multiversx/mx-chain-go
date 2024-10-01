@@ -32,14 +32,14 @@ type SubroundsHandlerArgs struct {
 	CurrentPid           core.PeerID
 }
 
-// SubroundsFactory defines the methods needed to generate the subrounds
-type SubroundsFactory interface {
+// subroundsFactory defines the methods needed to generate the subrounds
+type subroundsFactory interface {
 	GenerateSubrounds() error
 	SetOutportHandler(driver outport.OutportHandler)
 	IsInterfaceNil() bool
 }
 
-type ConsensusStateMachineType int
+type consensusStateMachineType int
 
 // SubroundsHandler struct contains the needed data for the SubroundsHandler
 type SubroundsHandler struct {
@@ -54,48 +54,20 @@ type SubroundsHandler struct {
 	enableEpochsHandler  core.EnableEpochsHandler
 	chainID              []byte
 	currentPid           core.PeerID
-	currentConsensusType ConsensusStateMachineType
+	currentConsensusType consensusStateMachineType
 }
 
 const (
-	ConsensusNone ConsensusStateMachineType = iota
-	ConsensusV1
-	ConsensusV2
+	consensusNone consensusStateMachineType = iota
+	consensusV1
+	consensusV2
 )
 
+// NewSubroundsHandler creates a new SubroundsHandler object
 func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) {
-	if check.IfNil(args.Chronology) {
-		return nil, ErrNilChronologyHandler
-	}
-	if check.IfNil(args.ConsensusCoreHandler) {
-		return nil, ErrNilConsensusCoreHandler
-	}
-	if check.IfNil(args.ConsensusState) {
-		return nil, ErrNilConsensusState
-	}
-	if check.IfNil(args.Worker) {
-		return nil, ErrNilWorker
-	}
-	if check.IfNil(args.SignatureThrottler) {
-		return nil, ErrNilSignatureThrottler
-	}
-	if check.IfNil(args.AppStatusHandler) {
-		return nil, ErrNilAppStatusHandler
-	}
-	if check.IfNil(args.OutportHandler) {
-		return nil, ErrNilOutportHandler
-	}
-	if check.IfNil(args.SentSignatureTracker) {
-		return nil, ErrNilSentSignatureTracker
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return nil, ErrNilEnableEpochsHandler
-	}
-	if args.ChainID == nil {
-		return nil, ErrNilChainID
-	}
-	if len(args.CurrentPid) == 0 {
-		return nil, ErrNilCurrentPid
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	subroundHandler := &SubroundsHandler{
@@ -110,12 +82,49 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		enableEpochsHandler:  args.EnableEpochsHandler,
 		chainID:              args.ChainID,
 		currentPid:           args.CurrentPid,
-		currentConsensusType: ConsensusNone,
+		currentConsensusType: consensusNone,
 	}
 
 	subroundHandler.consensusCoreHandler.EpochStartRegistrationHandler().RegisterHandler(subroundHandler)
 
 	return subroundHandler, nil
+}
+
+func checkArgs(args *SubroundsHandlerArgs) error {
+	if check.IfNil(args.Chronology) {
+		return ErrNilChronologyHandler
+	}
+	if check.IfNil(args.ConsensusCoreHandler) {
+		return ErrNilConsensusCoreHandler
+	}
+	if check.IfNil(args.ConsensusState) {
+		return ErrNilConsensusState
+	}
+	if check.IfNil(args.Worker) {
+		return ErrNilWorker
+	}
+	if check.IfNil(args.SignatureThrottler) {
+		return ErrNilSignatureThrottler
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.OutportHandler) {
+		return ErrNilOutportHandler
+	}
+	if check.IfNil(args.SentSignatureTracker) {
+		return ErrNilSentSignatureTracker
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return ErrNilEnableEpochsHandler
+	}
+	if args.ChainID == nil {
+		return ErrNilChainID
+	}
+	if len(args.CurrentPid) == 0 {
+		return ErrNilCurrentPid
+	}
+	return nil
 }
 
 // Start starts the sub-rounds handler
@@ -125,13 +134,13 @@ func (s *SubroundsHandler) Start(epoch uint32) error {
 
 func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 	var err error
-	var fct SubroundsFactory
+	var fct subroundsFactory
 	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
-		if s.currentConsensusType == ConsensusV2 {
+		if s.currentConsensusType == consensusV2 {
 			return nil
 		}
 
-		s.currentConsensusType = ConsensusV2
+		s.currentConsensusType = consensusV2
 		fct, err = v2.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,
@@ -143,11 +152,11 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.signatureThrottler,
 		)
 	} else {
-		if s.currentConsensusType == ConsensusV1 {
+		if s.currentConsensusType == consensusV1 {
 			return nil
 		}
 
-		s.currentConsensusType = ConsensusV1
+		s.currentConsensusType = consensusV1
 		fct, err = v1.NewSubroundsFactory(
 			s.consensusCoreHandler,
 			s.consensusState,

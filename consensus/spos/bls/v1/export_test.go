@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
+// ProcessingThresholdPercent exports the internal processingThresholdPercent
 const ProcessingThresholdPercent = processingThresholdPercent
 
 // factory

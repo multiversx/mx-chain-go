@@ -18,6 +18,7 @@ func createEligibleList(size int) []string {
 	return eligibleList
 }
 
+// CreateEligibleListFromMap creates a list of eligible nodes from a map of private keys
 func CreateEligibleListFromMap(mapKeys map[string]crypto.PrivateKey) []string {
 	eligibleList := make([]string, 0, len(mapKeys))
 	for key := range mapKeys {
@@ -27,18 +28,22 @@ func CreateEligibleListFromMap(mapKeys map[string]crypto.PrivateKey) []string {
 	return eligibleList
 }
 
+// InitConsensusStateWithNodesCoordinator creates a consensus state with a nodes coordinator
 func InitConsensusStateWithNodesCoordinator(validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
 	return initConsensusStateWithKeysHandlerAndNodesCoordinator(&testscommon.KeysHandlerStub{}, validatorsGroupSelector)
 }
 
+// InitConsensusState creates a consensus state
 func InitConsensusState() *spos.ConsensusState {
 	return InitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
 
+// InitConsensusStateWithArgs creates a consensus state the given arguments
 func InitConsensusStateWithArgs(keysHandler consensus.KeysHandler, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
 	return initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler, mapKeys)
 }
 
+// InitConsensusStateWithKeysHandler creates a consensus state with a keys handler
 func InitConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
 	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
@@ -53,6 +58,7 @@ func initConsensusStateWithKeysHandlerAndNodesCoordinator(keysHandler consensus.
 	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
 }
 
+// InitConsensusStateWithArgsVerifySignature creates a consensus state with the given arguments for signature verification
 func InitConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler, keys []string) *spos.ConsensusState {
 	numberOfKeys := len(keys)
 	eligibleNodesPubKeys := make(map[string]struct{}, numberOfKeys)

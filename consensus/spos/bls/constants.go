@@ -56,6 +56,7 @@ const (
 	BlockDefaultStringValue = "Undefined message type"
 )
 
+// GetStringValue returns the string value of a given MessageType
 func GetStringValue(msgType consensus.MessageType) string {
 	switch msgType {
 	case MtBlockBodyAndHeader:

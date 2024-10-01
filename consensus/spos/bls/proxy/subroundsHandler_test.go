@@ -198,7 +198,7 @@ func TestNewSubroundsHandler(t *testing.T) {
 func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 	t.Parallel()
 
-	t.Run("equivalent messages not enabled, with previous consensus type not ConsensusV1", func(t *testing.T) {
+	t.Run("equivalent messages not enabled, with previous consensus type not consensusV1", func(t *testing.T) {
 		t.Parallel()
 
 		startCalled := atomic.Int32{}
@@ -221,14 +221,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
-		sh.currentConsensusType = ConsensusNone
+		sh.currentConsensusType = consensusNone
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
-		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
 	})
-	t.Run("equivalent messages not enabled, with previous consensus type ConsensusV1", func(t *testing.T) {
+	t.Run("equivalent messages not enabled, with previous consensus type consensusV1", func(t *testing.T) {
 		t.Parallel()
 
 		startCalled := atomic.Int32{}
@@ -251,14 +251,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
-		sh.currentConsensusType = ConsensusV1
+		sh.currentConsensusType = consensusV1
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
-		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(0), startCalled.Load())
 	})
-	t.Run("equivalent messages enabled, with previous consensus type not ConsensusV2", func(t *testing.T) {
+	t.Run("equivalent messages enabled, with previous consensus type not consensusV2", func(t *testing.T) {
 		t.Parallel()
 		startCalled := atomic.Int32{}
 		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
@@ -280,14 +280,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
-		sh.currentConsensusType = ConsensusNone
+		sh.currentConsensusType = consensusNone
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
-		require.Equal(t, ConsensusV2, sh.currentConsensusType)
+		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
 	})
-	t.Run("equivalent messages enabled, with previous consensus type ConsensusV2", func(t *testing.T) {
+	t.Run("equivalent messages enabled, with previous consensus type consensusV2", func(t *testing.T) {
 		t.Parallel()
 
 		startCalled := atomic.Int32{}
@@ -310,11 +310,11 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
-		sh.currentConsensusType = ConsensusV2
+		sh.currentConsensusType = consensusV2
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
-		require.Equal(t, ConsensusV2, sh.currentConsensusType)
+		require.Equal(t, consensusV2, sh.currentConsensusType)
 		require.Equal(t, int32(0), startCalled.Load())
 	})
 }
@@ -323,7 +323,7 @@ func TestSubroundsHandler_Start(t *testing.T) {
 	t.Parallel()
 
 	// the Start is tested via initSubroundsForEpoch, adding one of the test cases here as well
-	t.Run("equivalent messages not enabled, with previous consensus type not ConsensusV1", func(t *testing.T) {
+	t.Run("equivalent messages not enabled, with previous consensus type not consensusV1", func(t *testing.T) {
 		t.Parallel()
 
 		startCalled := atomic.Int32{}
@@ -346,11 +346,11 @@ func TestSubroundsHandler_Start(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
-		sh.currentConsensusType = ConsensusNone
+		sh.currentConsensusType = consensusNone
 
 		err = sh.Start(0)
 		require.Nil(t, err)
-		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
 	})
 }
@@ -358,17 +358,13 @@ func TestSubroundsHandler_Start(t *testing.T) {
 func TestSubroundsHandler_NotifyOrder(t *testing.T) {
 	t.Parallel()
 
-	t.Run("OK", func(t *testing.T) {
-		t.Parallel()
+	handlerArgs, _ := getDefaultArgumentsSubroundHandler()
+	sh, err := NewSubroundsHandler(handlerArgs)
+	require.Nil(t, err)
+	require.NotNil(t, sh)
 
-		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
-		sh, err := NewSubroundsHandler(handlerArgs)
-		require.Nil(t, err)
-		require.NotNil(t, sh)
-
-		order := sh.NotifyOrder()
-		require.Equal(t, uint32(chainCommon.ConsensusHandlerOrder), order)
-	})
+	order := sh.NotifyOrder()
+	require.Equal(t, uint32(chainCommon.ConsensusHandlerOrder), order)
 }
 
 func TestSubroundsHandler_IsInterfaceNil(t *testing.T) {
@@ -434,10 +430,10 @@ func TestSubroundsHandler_EpochStartAction(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, sh)
 
-		sh.currentConsensusType = ConsensusNone
+		sh.currentConsensusType = consensusNone
 		sh.EpochStartAction(&testscommon.HeaderHandlerStub{})
 		require.Nil(t, err)
-		require.Equal(t, ConsensusV1, sh.currentConsensusType)
+		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
 	})
 }
