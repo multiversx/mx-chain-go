@@ -146,7 +146,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ShardMessengerFactoryField:                  &testFactory.ShardChainMessengerFactoryMock{},
 		ExportHandlerFactoryCreatorField:            &testFactory.ExportHandlerFactoryCreatorMock{},
 		ValidatorAccountsSyncerFactoryHandlerField:  &testFactory.ValidatorAccountsSyncerFactoryMock{},
-		ShardRequestersContainerCreatorHandlerField: storageRequestFactory.NewShardRequestersContainerCreator(), // todo: replace here
+		ShardRequestersContainerCreatorHandlerField: &testFactory.ShardRequestersContainerCreatorMock{},
 	}
 }
 

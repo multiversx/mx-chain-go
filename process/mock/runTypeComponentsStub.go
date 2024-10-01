@@ -53,10 +53,9 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	rt := NewRunTypeComponentsStub()
 	requestHandlerFactory, _ := requestHandlers.NewSovereignResolverRequestHandlerFactory(rt.RequestHandlerFactory)
-	additionalStorageFactory, _ := factory.NewSovereignAdditionalStorageServiceFactory()
 
 	return &RunTypeComponentsStub{
-		AdditionalStorageServiceFactory:             additionalStorageFactory,
+		AdditionalStorageServiceFactory:             factory.NewSovereignAdditionalStorageServiceFactory(),
 		ShardCoordinatorFactory:                     sharding.NewSovereignShardCoordinatorFactory(),
 		NodesCoordinatorWithRaterFactory:            &testscommon.NodesCoordinatorFactoryMock{},
 		RequestHandlerFactory:                       requestHandlerFactory,

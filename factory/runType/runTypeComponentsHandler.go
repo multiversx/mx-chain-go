@@ -244,6 +244,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.validatorAccountsSyncerFactoryHandler) {
 		return errors.ErrNilValidatorAccountsDBSyncerFactory
 	}
+	if check.IfNil(mrc.shardRequestersContainerCreatorHandler) {
+		return errors.ErrNilShardRequestersContainerCreatorHandler
+	}
 
 	return nil
 }

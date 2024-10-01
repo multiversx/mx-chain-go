@@ -150,11 +150,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignValidatorStatisticsProcessorFactory failed: %w", err)
 	}
 
-	additionalStorageServiceCreator, err := storageFactory.NewSovereignAdditionalStorageServiceFactory()
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
-	}
-
 	scProcessorCreator, err := processorV2.NewSovereignSCProcessFactory(rtc.scProcessorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSCProcessFactory failed: %w", err)
@@ -236,7 +231,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
 		transactionCoordinatorCreator:           transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:         additionalStorageServiceCreator,
+		additionalStorageServiceCreator:         storageFactory.NewSovereignAdditionalStorageServiceFactory(),
 		scProcessorCreator:                      scProcessorCreator,
 		scResultPreProcessorCreator:             scResultPreProcessorCreator,
 		consensusModel:                          consensus.ConsensusModelV2,
