@@ -42,6 +42,39 @@ func TestDefaultScoreComputer_computeRawScore(t *testing.T) {
 }
 
 func TestDefaultScoreComputer_computeScore(t *testing.T) {
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	worstPpu := computeWorstPpu(gasHandler)
+	excellentPpu := float64(gasHandler.MinGasPrice()) * excellentGasPriceFactor
+
+	require.Equal(t, 0, computeScoreGivenAvgPpu(worstPpu))
+	require.Equal(t, 11, computeScoreGivenAvgPpu(worstPpu*2))
+	require.Equal(t, 31, computeScoreGivenAvgPpu(worstPpu*7))
+	require.Equal(t, 74, computeScoreGivenAvgPpu(worstPpu*100))
+	require.Equal(t, 90, computeScoreGivenAvgPpu(worstPpu*270))
+	require.Equal(t, 99, computeScoreGivenAvgPpu(worstPpu*495))
+	require.Equal(t, 100, computeScoreGivenAvgPpu(worstPpu*500))
+
+	require.Equal(t, 55, computeScoreGivenAvgPpu(excellentPpu/16))
+	require.Equal(t, 66, computeScoreGivenAvgPpu(excellentPpu/8))
+	require.Equal(t, 77, computeScoreGivenAvgPpu(excellentPpu/4))
+	require.Equal(t, 88, computeScoreGivenAvgPpu(excellentPpu/2))
+	require.Equal(t, 99, computeScoreGivenAvgPpu(excellentPpu))
+	require.Equal(t, 100, computeScoreGivenAvgPpu(excellentPpu+1))
+}
+
+func computeScoreGivenAvgPpu(avgPpu float64) int {
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	computer := newDefaultScoreComputer(gasHandler)
+
+	return computer.computeScore(senderScoreParams{
+		avgPpuNumerator:             avgPpu,
+		avgPpuDenominator:           1,
+		isAccountNonceKnown:         true,
+		hasSpotlessSequenceOfNonces: true,
+	})
+}
+
+func TestDefaultScoreComputer_computeScore_consideringOneTransaction(t *testing.T) {
 	// Simple transfers:
 	require.Equal(t, 74, computeScoreOfTransaction(0, 50000, oneBillion))
 	require.Equal(t, 80, computeScoreOfTransaction(0, 50000, 1.5*oneBillion))
