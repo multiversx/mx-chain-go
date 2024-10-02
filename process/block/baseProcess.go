@@ -60,6 +60,7 @@ type nonceAndHashInfo struct {
 
 type hdrInfo struct {
 	usedInBlock bool
+	hasProof    bool
 	hdr         data.HeaderHandler
 }
 
@@ -123,6 +124,8 @@ type baseProcessor struct {
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
+
+	proofsPool dataRetriever.ProofsPool
 }
 
 type bootStorerDataArgs struct {
@@ -639,7 +642,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if headerInfo.usedInBlock != usedInBlock {
+		if headerInfo.usedInBlock != usedInBlock || !headerInfo.hasProof {
 			continue
 		}
 
@@ -978,8 +981,8 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 
 	err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 	if err != nil {
-		log.Warn("%w: failed to cleanup notarized proofs behind nonce %d on shardID %d",
-			err, noncesToPrevFinal, bp.shardCoordinator.SelfId())
+		log.Warn(fmt.Sprintf("%s: failed to cleanup notarized proofs behind nonce %d on shardID %d",
+			err.Error(), noncesToPrevFinal, bp.shardCoordinator.SelfId()))
 	}
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -2166,4 +2169,18 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) isFirstBlockAfterEquivalentMessagesFlag(header data.HeaderHandler) bool {
+	isStartOfEpochBlock := header.IsStartOfEpochBlock()
+	isBlockInActivationEpoch := header.GetEpoch() == bp.enableEpochsHandler.GetCurrentEpoch()
+
+	return isBlockInActivationEpoch && isStartOfEpochBlock
+}
+
+func (bp *baseProcessor) shouldConsiderProofsForNotarization(header data.HeaderHandler) bool {
+	isEquivalentMessagesFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+	isFirstBlockAfterEquivalentMessagesFlag := bp.isFirstBlockAfterEquivalentMessagesFlag(header)
+
+	return isEquivalentMessagesFlagEnabledForHeader && !isFirstBlockAfterEquivalentMessagesFlag
 }
