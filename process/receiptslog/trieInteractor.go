@@ -6,10 +6,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
@@ -49,7 +50,10 @@ func NewTrieInteractor(args ArgsTrieInteractor) (*trieInteractor, error) {
 
 // CreateNewTrie will create a new local trie(also will overwrite the old local trie)
 func (ti *trieInteractor) CreateNewTrie() error {
-	disabledStorageManager := &storageManager.StorageManagerStub{}
+	disabledStorageManager, err := NewStorageManagerOnlyGet(database.NewMemDB())
+	if err != nil {
+		return err
+	}
 
 	localTrie, err := trie.NewTrie(disabledStorageManager, ti.marshaller, ti.hasher, ti.enableEpochsHandler, maxTrieLevelInMemory)
 	if err != nil {
@@ -61,9 +65,16 @@ func (ti *trieInteractor) CreateNewTrie() error {
 	return nil
 }
 
+// SaveNewTrie will save in storage the synced trie
+func (ti *trieInteractor) SaveNewTrie(localTrie common.Trie) ([]byte, error) {
+	ti.localTrie = localTrie
+
+	return ti.Save()
+}
+
 // AddReceiptData will add receipt data in local trie
 func (ti *trieInteractor) AddReceiptData(receiptData state.Receipt) error {
-	receiptDataBytes, err := ti.marshaller.Marshal(receiptData)
+	receiptDataBytes, err := ti.marshaller.Marshal(&receiptData)
 	if err != nil {
 		return err
 	}
@@ -83,8 +94,8 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 		return nil, errGet
 	}
 
-	serializedNodes := make([][]byte, 0)
-	serializedNodes, err = ti.saveNodeData(currentNodeData, serializedNodes)
+	serializedNodes := state.NewSerializedNodesMap()
+	err = ti.saveNodeData(currentNodeData, serializedNodes)
 	if err != nil {
 		return nil, err
 	}
@@ -100,14 +111,14 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 			return nil, errGet
 		}
 
-		serializedNodes, err = ti.saveNodeData(currentNodeData, serializedNodes)
+		err = ti.saveNodeData(currentNodeData, serializedNodes)
 		if err != nil {
 			return nil, err
 		}
 
 	}
 
-	listOfSerializedNodesBytes, err := ti.marshaller.Marshal(&serializedNodes)
+	listOfSerializedNodesBytes, err := ti.marshaller.Marshal(serializedNodes)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +136,11 @@ func (ti *trieInteractor) Save() ([]byte, error) {
 	return receiptTrieRootHash, nil
 }
 
+// GetSerializedNode will return the serialized node with the provided hash
+func (ti *trieInteractor) GetSerializedNode(nodeHash []byte) ([]byte, error) {
+	return ti.storage.Get(nodeHash)
+}
+
 func (ti *trieInteractor) saveReceiptTxHashLeafKey(leafHash []byte, leafData []byte) error {
 	receiptData := &state.Receipt{}
 	err := ti.marshaller.Unmarshal(receiptData, leafData)
@@ -133,11 +149,6 @@ func (ti *trieInteractor) saveReceiptTxHashLeafKey(leafHash []byte, leafData []b
 	}
 
 	return ti.storage.Put(receiptData.TxHash, leafHash)
-}
-
-// IsInterfaceNil returns true if there is no value under the interface
-func (ti *trieInteractor) IsInterfaceNil() bool {
-	return ti == nil
 }
 
 func checkArgs(args ArgsTrieInteractor) error {
@@ -157,21 +168,37 @@ func checkArgs(args ArgsTrieInteractor) error {
 	return nil
 }
 
-func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes [][]byte) ([][]byte, error) {
+// RecreateTrieFromDB will recreate the trie from the provided storer
+func (ti *trieInteractor) RecreateTrieFromDB(rootHash []byte, db storage.Persister) (common.Trie, error) {
+	storageManager, err := NewStorageManagerOnlyGet(db)
+	if err != nil {
+		return nil, err
+	}
+
+	localTrie, err := trie.NewTrie(storageManager, ti.marshaller, ti.hasher, ti.enableEpochsHandler, maxTrieLevelInMemory)
+	if err != nil {
+		return nil, err
+	}
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	return localTrie.Recreate(rootHashHolder)
+}
+
+func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes *state.SerializedNodeMap) error {
 	if currentNodeData.Type != trie.LeafNodeType {
-		serializedNodes = append(serializedNodes, currentNodeData.SerializedNode)
-		return serializedNodes, nil
+		serializedNodes.SerializedNodes[string(currentNodeData.Hash)] = currentNodeData.SerializedNode
+		return nil
 	}
 
 	err := ti.storage.Put(currentNodeData.Hash, currentNodeData.SerializedNode)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
-	if err != nil {
-		return nil, err
-	}
+	return ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
+}
 
-	return serializedNodes, nil
+// IsInterfaceNil returns true if there is no value under the interface
+func (ti *trieInteractor) IsInterfaceNil() bool {
+	return ti == nil
 }

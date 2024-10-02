@@ -6,6 +6,10 @@ import "time"
 type RequestHandler struct {
 }
 
+// RequestReceiptsTrieNodes -
+func (r *RequestHandler) RequestReceiptsTrieNodes(_ [][]byte) {
+}
+
 // SetEpoch does nothing
 func (r *RequestHandler) SetEpoch(_ uint32) {
 }

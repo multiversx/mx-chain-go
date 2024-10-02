@@ -213,6 +213,50 @@ func createTopicAndAssignHandlerOnMessenger(
 	return messenger.RegisterMessageProcessor(topic, common.DefaultInterceptorsIdentifier, interceptor)
 }
 
+func (bicf *baseInterceptorsContainerFactory) generateReceiptNodeInterceptor() error {
+	shardC := bicf.shardCoordinator
+
+	keys := make([]string, 0)
+	interceptorsSlice := make([]process.Interceptor, 0)
+
+	receiptNodesInterceptorProcessor, err := processor.NewReceiptsNodesInterceptorProcessor(bicf.dataPool.Receipts())
+	if err != nil {
+		return err
+	}
+
+	interceptedTrieNodeFactory, err := interceptorFactory.NewInterceptedTrieNodeDataFactory(bicf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+
+	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
+	topic := factory.ReceiptTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	multiDataInterceptor, err := interceptors.NewMultiDataInterceptor(interceptors.ArgMultiDataInterceptor{
+		Topic:                topic,
+		Marshalizer:          internalMarshaller,
+		DataFactory:          interceptedTrieNodeFactory,
+		Processor:            receiptNodesInterceptorProcessor,
+		Throttler:            bicf.globalThrottler,
+		AntifloodHandler:     bicf.antifloodHandler,
+		WhiteListRequest:     bicf.whiteListHandler,
+		CurrentPeerId:        bicf.mainMessenger.ID(),
+		PreferredPeersHolder: bicf.preferredPeersHolder,
+	})
+	if err != nil {
+		return err
+	}
+
+	interceptor, err := bicf.createTopicAndAssignHandler(topic, multiDataInterceptor, true)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, topic)
+	interceptorsSlice = append(interceptorsSlice, interceptor)
+
+	return bicf.addInterceptorsToContainers(keys, interceptorsSlice)
+}
+
 // ------- Tx interceptors
 
 func (bicf *baseInterceptorsContainerFactory) generateTxInterceptors() error {

@@ -56,6 +56,7 @@ type node interface {
 	sizeInBytes() int
 	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error
 	getType() string
+	getChildrenHashes() [][]byte
 
 	IsInterfaceNil() bool
 }

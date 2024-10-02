@@ -195,6 +195,11 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, nil, err
 	}
 
+	err = sicf.generateReceiptNodeInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
 }
 

@@ -600,6 +600,7 @@ type RequestHandler interface {
 	RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32)
 	CreateTrieNodeIdentifier(requestHash []byte, chunkIndex uint32) []byte
 	RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte)
+	RequestReceiptsTrieNodes(receiptsHashes [][]byte)
 	RequestValidatorInfo(hash []byte)
 	RequestValidatorsInfo(hashes [][]byte)
 	IsInterfaceNil() bool

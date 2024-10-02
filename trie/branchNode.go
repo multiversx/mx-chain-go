@@ -999,6 +999,18 @@ func (*branchNode) getType() string {
 	return BranchNodeType
 }
 
+func (bn *branchNode) getChildrenHashes() [][]byte {
+	hashes := make([][]byte, 0, len(bn.EncodedChildren))
+	for _, hash := range bn.EncodedChildren {
+		if len(hash) == 0 {
+			continue
+		}
+		hashes = append(hashes, hash)
+	}
+
+	return hashes
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *branchNode) IsInterfaceNil() bool {
 	return bn == nil
