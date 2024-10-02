@@ -124,6 +124,8 @@ func checkArgs(args *SubroundsHandlerArgs) error {
 	if len(args.CurrentPid) == 0 {
 		return ErrNilCurrentPid
 	}
+	// outport handler can be nil if not configured so no need to check it
+
 	return nil
 }
 
@@ -150,6 +152,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.appStatusHandler,
 			s.sentSignatureTracker,
 			s.signatureThrottler,
+			s.outportHandler,
 		)
 	} else {
 		if s.currentConsensusType == consensusV1 {
@@ -165,6 +168,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.currentPid,
 			s.appStatusHandler,
 			s.sentSignatureTracker,
+			s.outportHandler,
 		)
 	}
 	if err != nil {
@@ -176,7 +180,6 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		log.Warn("SubroundsHandler.initSubroundsForEpoch: cannot close the chronology", "error", err)
 	}
 
-	fct.SetOutportHandler(s.outportHandler)
 	err = fct.GenerateSubrounds()
 	if err != nil {
 		return err

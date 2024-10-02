@@ -71,6 +71,7 @@ func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock)
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	return fct
@@ -121,6 +122,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -142,6 +144,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -165,6 +168,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -188,6 +192,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -211,6 +216,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -234,6 +240,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -257,6 +264,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -280,6 +288,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -303,6 +312,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -326,6 +336,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -349,6 +360,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -372,6 +384,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -395,6 +408,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -416,6 +430,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -438,6 +453,7 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 		nil,
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -460,6 +476,7 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		nil,
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)
@@ -481,6 +498,7 @@ func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		nil,
 		nil,
 	)
 
@@ -512,6 +530,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&dataRetrieverMocks.ThrottlerStub{},
+		nil,
 	)
 
 	assert.Nil(t, fct)

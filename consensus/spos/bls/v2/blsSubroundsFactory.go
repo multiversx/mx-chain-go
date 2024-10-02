@@ -36,7 +36,9 @@ func NewSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	signatureThrottler core.Throttler,
+	outportHandler outport.OutportHandler,
 ) (*factory, error) {
+	// no need to check the outport handler, it can be nil
 	err := checkNewFactoryParams(
 		consensusDataContainer,
 		consensusState,
@@ -59,6 +61,7 @@ func NewSubroundsFactory(
 		currentPid:            currentPid,
 		sentSignaturesTracker: sentSignaturesTracker,
 		signatureThrottler:    signatureThrottler,
+		outportHandler:        outportHandler,
 	}
 
 	return &fct, nil
