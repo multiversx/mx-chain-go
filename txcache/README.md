@@ -35,6 +35,12 @@ How is the size of a sender batch computed?
    - `numPerBatch = baseNumPerSenderBatch * scoreDivision`
    - `gasPerBatch = baseGasPerSenderBatch * scoreDivision`
 
+Examples:
+ - for `score == 100`, we have `numPerBatch == 100` and `gasPerBatch == 120000000`
+ - for `score == 74`, we have `numPerBatch == 74` and `gasPerBatch == 88800000`
+ - for `score == 1`, we have `numPerBatch == 1` and `gasPerBatch == 1200000`
+ - for `score == 0`, we have `numPerBatch == 1` and `gasPerBatch == 1`
+
 ### Paragraph 3
 
 The mempool selects transactions as follows:
@@ -51,11 +57,33 @@ Within a _selection pass_, a batch of transactions from a sender is selected as 
  - go through the list of transactions of the sender (sorted by nonce, ascending) and select the first `numPerBatch` transactions that fit within `gasPerBatch`.
  - in following passes (within the same selection session), the batch selection algorithm will continue from the last selected transaction of the sender (think of it as a cursor).
 
+### Score computation
+
+The score of a sender it's computed based on her transactions (as found in the mempool) and the account nonce (as learned through the _account nonce notifications_).
+
+The score is strongly correlated with the average price paid by the sender per unit of computation - we'll call this **avgPpu**, as a property of the sender.
+
+Additionally, we define two global properties: `worstPpu` and `excellentPpu`. A sender with an `avgPpu` of `excellentPpu + 1` gets the maximum score, while a sender with an `avgPpu` of `worstPpu` gets the minimum score.
+
+`worstPpu` is computed as the average price per unit of the "worst" possible transaction - minimum gas price, maximum gas limit, and minimum data size (thus abusing the Protocol gas price subvention):
+
+```
+worstPpu = (50000 * 1_000_000_000 + (600_000_000 - 50000) * (1_000_000_000 / 100)) / 600_000_000
+         = 10082500
+```
+
+`excellentPpu` is set to `minGasPrice` times a _chosen_ factor:
+
+```
+excellentPpu = 1_000_000_000 * 5 = 5_000_000_000
+```
 ### Account nonce notifications
 
 ### Transactions addition
 
 ### Transactions removal
+
+### Transactions eviction
 
 ### Monitoring and diagnostics
 
