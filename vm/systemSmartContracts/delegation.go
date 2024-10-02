@@ -128,6 +128,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		common.StakingV2FlagAfterEpoch,
 		common.FixDelegationChangeOwnerOnAccountFlag,
 		common.MultiClaimOnDelegationFlag,
+		common.DelegationImprovementsV3Flag,
 	})
 	if err != nil {
 		return nil, err
@@ -2058,6 +2059,10 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 	if len(args.Arguments) != 0 {
 		d.eei.AddReturnMessage("wrong number of arguments")
 		return vmcommon.FunctionWrongSignature
+	}
+	if args.CallValue.Cmp(zero) != 0 && d.enableEpochsHandler.IsFlagEnabled(common.DelegationImprovementsV3Flag) {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
 	}
 
 	isNew, delegator, err := d.getOrCreateDelegatorData(args.CallerAddr)

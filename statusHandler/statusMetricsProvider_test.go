@@ -401,6 +401,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricEGLDInMultiTransferEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricCryptoOpcodesV2EnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDelegationImprovementsV3EnableEpoch, uint64(4))
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -531,6 +532,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricEGLDInMultiTransferEnableEpoch:                           uint64(4),
 		common.MetricCryptoOpcodesV2EnableEpoch:                               uint64(4),
 		common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch:          uint64(4),
+		common.MetricDelegationImprovementsV3EnableEpoch:                      uint64(4),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{

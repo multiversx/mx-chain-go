@@ -56,6 +56,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			common.ValidatorToDelegationFlag,
 			common.ReDelegateBelowMinCheckFlag,
 			common.MultiClaimOnDelegationFlag,
+			common.DelegationImprovementsV3Flag,
 		),
 	}
 }
@@ -2419,6 +2420,18 @@ func TestDelegation_ExecuteClaimRewardsUserErrors(t *testing.T) {
 	output = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, "caller is not a delegator"))
+
+	vmInput.CallValue = big.NewInt(1)
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "call value must be zero"))
+
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationImprovementsV3Flag)
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.False(t, strings.Contains(eei.returnMessage, "call value must be zero"))
 }
 
 func TestDelegation_ExecuteClaimRewards(t *testing.T) {

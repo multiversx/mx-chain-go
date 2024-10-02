@@ -734,6 +734,9 @@ const (
 	// MetricCryptoOpcodesV2EnableEpoch represents the epoch when crypto opcodes v2 feature is enabled
 	MetricCryptoOpcodesV2EnableEpoch = "erd_crypto_opcodes_v2_enable_epoch"
 
+	// MetricDelegationImprovementsV3EnableEpoch represents the epoch when delegation improvements v3 functions are enabled
+	MetricDelegationImprovementsV3EnableEpoch = "erd_delegation_improvements_v3_enable_epoch"
+
 	// MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign opcodes are enabled
 	MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch = "erd_multi_esdt_transfer_execute_by_user_enable_epoch"
 
@@ -1232,6 +1235,7 @@ const (
 	UnJailCleanupFlag                                  core.EnableEpochFlag = "UnJailCleanupFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
+	DelegationImprovementsV3Flag                       core.EnableEpochFlag = "DelegationImprovementsV3Flag"
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
