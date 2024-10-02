@@ -23,6 +23,7 @@ const delegationMetaData = "delegationMetaData"
 const lastFundKey = "lastFund"
 const globalFundKey = "globalFund"
 const serviceFeeKey = "serviceFee"
+const serviceFeeChangeEpochKey = "serviceFeeChangeEpoch"
 const totalActiveKey = "totalActive"
 const rewardKeyPrefix = "reward"
 const fundKeyPrefix = "fund"
@@ -45,24 +46,25 @@ const (
 )
 
 type delegation struct {
-	eei                    vm.SystemEI
-	sigVerifier            vm.MessageSignVerifier
-	delegationMgrSCAddress []byte
-	stakingSCAddr          []byte
-	validatorSCAddr        []byte
-	endOfEpochAddr         []byte
-	governanceSCAddr       []byte
-	addTokensAddr          []byte
-	gasCost                vm.GasCost
-	marshalizer            marshal.Marshalizer
-	minServiceFee          uint64
-	maxServiceFee          uint64
-	unBondPeriodInEpochs   uint32
-	nodePrice              *big.Int
-	unJailPrice            *big.Int
-	minStakeValue          *big.Int
-	enableEpochsHandler    common.EnableEpochsHandler
-	mutExecution           sync.RWMutex
+	eei                              vm.SystemEI
+	sigVerifier                      vm.MessageSignVerifier
+	delegationMgrSCAddress           []byte
+	stakingSCAddr                    []byte
+	validatorSCAddr                  []byte
+	endOfEpochAddr                   []byte
+	governanceSCAddr                 []byte
+	addTokensAddr                    []byte
+	gasCost                          vm.GasCost
+	marshalizer                      marshal.Marshalizer
+	minServiceFee                    uint64
+	maxServiceFee                    uint64
+	unBondPeriodInEpochs             uint32
+	increaseFeeCoolDownPeriodInEpoch uint64
+	nodePrice                        *big.Int
+	unJailPrice                      *big.Int
+	minStakeValue                    *big.Int
+	enableEpochsHandler              common.EnableEpochsHandler
+	mutExecution                     sync.RWMutex
 }
 
 // ArgsNewDelegation defines the arguments to create the delegation smart contract
@@ -135,20 +137,21 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 	}
 
 	d := &delegation{
-		eei:                    args.Eei,
-		stakingSCAddr:          args.StakingSCAddress,
-		validatorSCAddr:        args.ValidatorSCAddress,
-		delegationMgrSCAddress: args.DelegationMgrSCAddress,
-		gasCost:                args.GasCost,
-		marshalizer:            args.Marshalizer,
-		minServiceFee:          args.DelegationSCConfig.MinServiceFee,
-		maxServiceFee:          args.DelegationSCConfig.MaxServiceFee,
-		sigVerifier:            args.SigVerifier,
-		unBondPeriodInEpochs:   args.StakingSCConfig.UnBondPeriodInEpochs,
-		endOfEpochAddr:         args.EndOfEpochAddress,
-		governanceSCAddr:       args.GovernanceSCAddress,
-		addTokensAddr:          args.AddTokensAddress,
-		enableEpochsHandler:    args.EnableEpochsHandler,
+		eei:                              args.Eei,
+		stakingSCAddr:                    args.StakingSCAddress,
+		validatorSCAddr:                  args.ValidatorSCAddress,
+		delegationMgrSCAddress:           args.DelegationMgrSCAddress,
+		gasCost:                          args.GasCost,
+		marshalizer:                      args.Marshalizer,
+		minServiceFee:                    args.DelegationSCConfig.MinServiceFee,
+		maxServiceFee:                    args.DelegationSCConfig.MaxServiceFee,
+		sigVerifier:                      args.SigVerifier,
+		unBondPeriodInEpochs:             args.StakingSCConfig.UnBondPeriodInEpochs,
+		increaseFeeCoolDownPeriodInEpoch: args.DelegationSCConfig.IncreaseFeeCoolDownPeriodInEpoch,
+		endOfEpochAddr:                   args.EndOfEpochAddress,
+		governanceSCAddr:                 args.GovernanceSCAddress,
+		addTokensAddr:                    args.AddTokensAddress,
+		enableEpochsHandler:              args.EnableEpochsHandler,
 	}
 
 	var okValue bool
@@ -846,6 +849,25 @@ func (d *delegation) changeServiceFee(args *vmcommon.ContractCallInput) vmcommon
 	if newServiceFee < d.minServiceFee || newServiceFee > d.maxServiceFee {
 		d.eei.AddReturnMessage("new service fee out of bounds")
 		return vmcommon.UserError
+	}
+
+	if d.enableEpochsHandler.IsFlagEnabled(common.DelegationImprovementsV3Flag) {
+		currentEpoch := uint64(d.eei.BlockChainHook().CurrentEpoch())
+		serviceFeeData := d.eei.GetStorage([]byte(serviceFeeKey))
+		currentServiceFee := big.NewInt(0).SetBytes(serviceFeeData)
+
+		if newServiceFeeBigInt.Cmp(currentServiceFee) > 0 {
+			lastServiceChangeEpoch := big.NewInt(0).SetBytes(d.eei.GetStorage([]byte(serviceFeeChangeEpochKey))).Uint64()
+			epochDifference := currentEpoch - lastServiceChangeEpoch
+
+			if lastServiceChangeEpoch > 0 && epochDifference < d.increaseFeeCoolDownPeriodInEpoch {
+				waitTime := big.NewInt(int64(d.increaseFeeCoolDownPeriodInEpoch - epochDifference)).String()
+				d.eei.AddReturnMessage("cannot increase service fee in the cooldown period, wait " + waitTime + " more epochs")
+				return vmcommon.UserError
+			}
+		}
+
+		d.eei.SetStorage([]byte(serviceFeeChangeEpochKey), big.NewInt(0).SetUint64(currentEpoch).Bytes())
 	}
 
 	d.createAndAddLogEntry(args, args.Arguments[0])

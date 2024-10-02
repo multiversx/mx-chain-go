@@ -70,9 +70,9 @@ type DelegationManagerSystemSCConfig struct {
 
 // DelegationSystemSCConfig defines a set of constants to initialize the delegation system smart contract
 type DelegationSystemSCConfig struct {
-	MinServiceFee               uint64
-	MaxServiceFee               uint64
-	AddTokensWhitelistedAddress string
+	MinServiceFee                    uint64
+	MaxServiceFee                    uint64
+	IncreaseFeeCoolDownPeriodInEpoch uint64
 }
 
 // SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
