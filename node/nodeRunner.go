@@ -324,7 +324,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating bootstrap components")
 	interceptedDataVerifierFactory := factory.NewInterceptedDataVerifierFactory(factory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheExpiryInSec),
+		CacheSpan:   time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheSpanInSec),
 		CacheExpiry: time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheExpiryInSec),
 	})
 	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, interceptedDataVerifierFactory)
