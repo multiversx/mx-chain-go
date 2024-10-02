@@ -2,6 +2,7 @@ package testscommon
 
 import "context"
 
+// ReceiptsDataSyncerStub -
 type ReceiptsDataSyncerStub struct {
 	GetReceiptsDataCalled     func() (map[string][]byte, error)
 	SyncReceiptsDataForCalled func(hashes [][]byte, ctx context.Context) error

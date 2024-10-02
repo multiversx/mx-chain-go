@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -65,12 +66,10 @@ func (ti *trieInteractor) CreateNewTrie() error {
 }
 
 // SaveNewTrie will save in storage the synced trie
-func (ti *trieInteractor) SaveNewTrie(localTrie common.Trie) error {
+func (ti *trieInteractor) SaveNewTrie(localTrie common.Trie) ([]byte, error) {
 	ti.localTrie = localTrie
 
-	_, err := ti.Save()
-
-	return err
+	return ti.Save()
 }
 
 // AddReceiptData will add receipt data in local trie
@@ -152,11 +151,6 @@ func (ti *trieInteractor) saveReceiptTxHashLeafKey(leafHash []byte, leafData []b
 	return ti.storage.Put(receiptData.TxHash, leafHash)
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (ti *trieInteractor) IsInterfaceNil() bool {
-	return ti == nil
-}
-
 func checkArgs(args ArgsTrieInteractor) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
@@ -174,6 +168,22 @@ func checkArgs(args ArgsTrieInteractor) error {
 	return nil
 }
 
+// RecreateTrieFromDB will recreate the trie from the provided storer
+func (ti *trieInteractor) RecreateTrieFromDB(rootHash []byte, db storage.Persister) (common.Trie, error) {
+	storageManager, err := NewStorageManagerOnlyGet(db)
+	if err != nil {
+		return nil, err
+	}
+
+	localTrie, err := trie.NewTrie(storageManager, ti.marshaller, ti.hasher, ti.enableEpochsHandler, maxTrieLevelInMemory)
+	if err != nil {
+		return nil, err
+	}
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	return localTrie.Recreate(rootHashHolder)
+}
+
 func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, serializedNodes *state.SerializedNodeMap) error {
 	if currentNodeData.Type != trie.LeafNodeType {
 		serializedNodes.SerializedNodes[string(currentNodeData.Hash)] = currentNodeData.SerializedNode
@@ -186,4 +196,9 @@ func (ti *trieInteractor) saveNodeData(currentNodeData *trie.CurrentNodeInfo, se
 	}
 
 	return ti.saveReceiptTxHashLeafKey(currentNodeData.Hash, currentNodeData.Value)
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (ti *trieInteractor) IsInterfaceNil() bool {
+	return ti == nil
 }

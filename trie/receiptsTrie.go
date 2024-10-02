@@ -1,8 +1,6 @@
 package trie
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -22,14 +20,12 @@ func GetLeafHashesAndPutNodesInRamStorage(
 			return nil, err
 		}
 
-		hashes := decodedNode.getChildrenHashes()
-		if len(hashes) == 0 {
+		childrenHashes := decodedNode.getChildrenHashes()
+		if len(childrenHashes) == 0 {
 			continue
 		}
 
-		leafHashes = append(leafHashes, hashes...)
-
-		fmt.Println("here", len(nodeHash), len([]byte(nodeHash)))
+		leafHashes = append(leafHashes, getLeafHashesFromChildrenHashes(childrenHashes, branchNodesMap)...)
 
 		err = db.Put([]byte(nodeHash), branchNodeSerialized)
 		if err != nil {
@@ -38,4 +34,18 @@ func GetLeafHashesAndPutNodesInRamStorage(
 	}
 
 	return leafHashes, nil
+}
+
+func getLeafHashesFromChildrenHashes(childrenHashes [][]byte, nodesMap map[string][]byte) [][]byte {
+	leafHashes := make([][]byte, 0)
+	for _, childHash := range childrenHashes {
+		_, isBranchNodeOrExtensionNode := nodesMap[string(childHash)]
+		if isBranchNodeOrExtensionNode {
+			continue
+		}
+
+		leafHashes = append(leafHashes, childHash)
+	}
+
+	return leafHashes
 }

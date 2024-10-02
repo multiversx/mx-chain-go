@@ -14,7 +14,7 @@ type Interactor interface {
 	Save() ([]byte, error)
 	GetSerializedNode(nodeHash []byte) ([]byte, error)
 	RecreateTrieFromDB(rootHash []byte, db storage.Persister) (common.Trie, error)
-	SaveNewTrie(localTrie common.Trie) error
+	SaveNewTrie(localTrie common.Trie) ([]byte, error)
 	IsInterfaceNil() bool
 }
 

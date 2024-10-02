@@ -10,6 +10,7 @@ type storageManagerOnlyGet struct {
 	db storage.Persister
 }
 
+// NewStorageManagerOnlyGet will create a new instance of storageManagerOnlyGet
 func NewStorageManagerOnlyGet(db storage.Persister) (*storageManagerOnlyGet, error) {
 	return &storageManagerOnlyGet{
 		db: db,
@@ -61,6 +62,7 @@ func (s storageManagerOnlyGet) GetFromCurrentEpoch(_ []byte) ([]byte, error) {
 	return nil, nil
 }
 
+// PutInEpochWithoutCache -
 func (s storageManagerOnlyGet) PutInEpochWithoutCache(_ []byte, _ []byte, _ uint32) error {
 	return nil
 }
@@ -97,6 +99,7 @@ func (s storageManagerOnlyGet) RemoveFromAllActiveEpochs(_ []byte) error {
 	return nil
 }
 
+// SetEpochForPutOperation -
 func (s storageManagerOnlyGet) SetEpochForPutOperation(_ uint32) {
 }
 
