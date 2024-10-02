@@ -1508,6 +1508,13 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		"nonce", highestFinalBlockNonce,
 	)
 
+	err = scbp.saveSovereignMetricsForCommittedBlock(
+		logger.DisplayByteSlice(headerHash),
+		highestFinalBlockNonce,
+		headerHandler)
+	if err != nil {
+		return err
+	}
 	// TODO: MX-15748 Analyse if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() from metablock.go
 	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
@@ -1806,6 +1813,28 @@ func (scbp *sovereignChainBlockProcessor) saveExtendedShardHeader(header data.He
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveExtendedShardHeader", "elapsed time", elapsedTime)
 	}
+}
+
+func (scbp *sovereignChainBlockProcessor) saveSovereignMetricsForCommittedBlock(
+	currentBlockHash string,
+	highestFinalBlockNonce uint64,
+	shardHeader data.HeaderHandler,
+) error {
+	baseSaveMetricsForCommittedShardBlock(
+		scbp.nodesCoordinator,
+		scbp.appStatusHandler,
+		currentBlockHash,
+		highestFinalBlockNonce,
+		shardHeader,
+		scbp.managedPeersHolder,
+	)
+	lastMainChainHdr, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+	if err != nil {
+		return err
+	}
+
+	scbp.appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("mainChain %d", lastMainChainHdr.GetNonce()))
+	return nil
 }
 
 // RestoreBlockIntoPools restores block into pools
