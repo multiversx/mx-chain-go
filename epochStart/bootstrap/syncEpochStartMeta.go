@@ -65,6 +65,9 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 	if check.IfNil(args.MetaBlockProcessor) {
 		return nil, epochStart.ErrNilMetablockProcessor
 	}
+	if check.IfNil(args.InterceptedDataVerifierFactory) {
+		return nil, epochStart.ErrNilInterceptedDataVerifierFactory
+	}
 
 	e := &epochStartMetaSyncer{
 		requestHandler:                 args.RequestHandler,

@@ -239,6 +239,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 // ErrNilMetablockProcessor signals that a nil metablock processor was provided
 var ErrNilMetablockProcessor = errors.New("nil metablock processor")
 
+// ErrNilInterceptedDataVerifierFactory signals that a nil intercepted data verifier factory was provided
+var ErrNilInterceptedDataVerifierFactory = errors.New("nil intercepted data verifier factory")
+
 // ErrCouldNotInitDelegationSystemSC signals that delegation system sc init failed
 var ErrCouldNotInitDelegationSystemSC = errors.New("could not init delegation system sc")
 

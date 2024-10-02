@@ -81,6 +81,9 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.PeerSignatureHandler) {
 		return nil, process.ErrNilPeerSignatureHandler
 	}
+	if check.IfNil(args.InterceptedDataVerifierFactory) {
+		return nil, process.ErrNilInterceptedDataVerifierFactory
+	}
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}

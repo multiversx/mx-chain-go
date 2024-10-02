@@ -323,11 +323,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	interceptedDataVerifierFactory := factory.NewInterceptedDataVerifierFactory(factory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheSpanInSec),
-		CacheExpiry: time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheExpiryInSec),
-	})
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, interceptedDataVerifierFactory)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
 	if err != nil {
 		return true, err
 	}
@@ -438,7 +434,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
-		interceptedDataVerifierFactory,
 	)
 	if err != nil {
 		return true, err
@@ -1164,7 +1159,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
-	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := nr.configs
 	configurationPaths := nr.configs.ConfigurationPathsHolder
@@ -1243,6 +1237,11 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
+
+	interceptedDataVerifierFactory := factory.NewInterceptedDataVerifierFactory(factory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheExpiryInSec),
+		CacheExpiry: time.Duration(nr.configs.GeneralConfig.InterceptedDataVerifier.CacheExpiryInSec),
+	})
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                         *configs.GeneralConfig,
@@ -1386,20 +1385,18 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
-	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                         *nr.configs.GeneralConfig,
-		PrefConfig:                     *nr.configs.PreferencesConfig,
-		ImportDbConfig:                 *nr.configs.ImportDbConfig,
-		FlagsConfig:                    *nr.configs.FlagsConfig,
-		WorkingDir:                     nr.configs.FlagsConfig.DbDir,
-		CoreComponents:                 coreComponents,
-		CryptoComponents:               cryptoComponents,
-		NetworkComponents:              networkComponents,
-		StatusCoreComponents:           statusCoreComponents,
-		InterceptedDataVerifierFactory: interceptedDataVerifierFactory,
+		Config:               *nr.configs.GeneralConfig,
+		PrefConfig:           *nr.configs.PreferencesConfig,
+		ImportDbConfig:       *nr.configs.ImportDbConfig,
+		FlagsConfig:          *nr.configs.FlagsConfig,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
