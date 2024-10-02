@@ -829,7 +829,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 }
 
 func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 	if !sr.IsConsensusDataSet() {
@@ -1074,7 +1074,7 @@ func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
 func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 
@@ -1119,7 +1119,7 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 		return true
 	}
 
@@ -1238,7 +1238,7 @@ func (sr *subroundEndRound) waitAllSignatures() {
 		return
 	}
 
-	sr.WaitingAllSignaturesTimeOut = true
+	sr.SetWaitAllSignaturesTimeout(true)
 
 	select {
 	case sr.ConsensusChannel() <- true:
@@ -1336,7 +1336,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
-	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
+	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitAllSignaturesTimeout())
 
 	isSelfJobDone := sr.IsSelfJobDone(SrSignature)
 

@@ -469,14 +469,14 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 			},
 		})
 		_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-		sr.RoundCanceled = false
+		sr.SetRoundCanceled(false)
 		leader, err := sr.GetLeader()
 		assert.Nil(t, err)
 
 		sr.SetSelfPubKey(leader)
 		r = sr.DoSignatureJob()
 		assert.True(t, r)
-		assert.False(t, sr.RoundCanceled)
+		assert.False(t, sr.GetRoundCanceled())
 	})
 	t.Run("with equivalent messages flag active should work", func(t *testing.T) {
 		t.Parallel()
@@ -503,7 +503,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		r := sr.DoSignatureJob()
 		assert.True(t, r)
 
-		assert.False(t, sr.RoundCanceled)
+		assert.False(t, sr.GetRoundCanceled())
 		assert.Nil(t, err)
 		leaderJobDone, err := sr.JobDone(leader, bls.SrSignature)
 		assert.NoError(t, err)
@@ -589,13 +589,13 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		assert.True(t, r)
 
 		_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-		sr.RoundCanceled = false
+		sr.SetRoundCanceled(false)
 		leader, err := sr.GetLeader()
 		assert.Nil(t, err)
 		sr.SetSelfPubKey(leader)
 		r = srSignature.DoSignatureJob()
 		assert.True(t, r)
-		assert.False(t, sr.RoundCanceled)
+		assert.False(t, sr.GetRoundCanceled())
 		expectedMap := map[string]struct{}{
 			"A": {},
 			"B": {},
@@ -683,7 +683,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		r := srSignature.DoSignatureJob()
 		assert.True(t, r)
 
-		assert.False(t, sr.RoundCanceled)
+		assert.False(t, sr.GetRoundCanceled())
 		assert.True(t, sr.IsSubroundFinished(bls.SrSignature))
 
 		for _, pk := range sr.ConsensusGroup() {
@@ -1259,7 +1259,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenRoundIs
 	t.Parallel()
 
 	sr := *initSubroundSignature()
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 	assert.False(t, sr.DoSignatureConsensusCheck())
 }
 
@@ -1363,7 +1363,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 			},
 		})
 		sr := *initSubroundSignatureWithContainer(container)
-		sr.WaitingAllSignaturesTimeOut = args.waitingAllSignaturesTimeOut
+		sr.SetWaitAllSignaturesTimeout(args.waitingAllSignaturesTimeOut)
 
 		if !args.flagActive {
 			leader, err := sr.GetLeader()
@@ -1394,7 +1394,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 		},
 	})
 	sr := *initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = false
+	sr.SetWaitAllSignaturesTimeout(false)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)
@@ -1417,7 +1417,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 		},
 	})
 	sr := *initSubroundSignatureWithContainer(container)
-	sr.WaitingAllSignaturesTimeOut = true
+	sr.SetWaitAllSignaturesTimeout(true)
 
 	leader, err := sr.GetLeader()
 	assert.Nil(t, err)

@@ -1,9 +1,14 @@
 package mock
 
-import "time"
+import (
+	"sync"
+	"time"
+)
 
 // RoundHandlerMock -
 type RoundHandlerMock struct {
+	mut sync.RWMutex
+
 	IndexField          int64
 	TimeStampField      time.Time
 	TimeDurationField   time.Duration
@@ -21,7 +26,18 @@ func (mock *RoundHandlerMock) BeforeGenesis() bool {
 
 // Index -
 func (mock *RoundHandlerMock) Index() int64 {
+	mock.mut.RLock()
+	defer mock.mut.RUnlock()
+
 	return mock.IndexField
+}
+
+// SetIndex -
+func (mock *RoundHandlerMock) SetIndex(index int64) {
+	mock.mut.Lock()
+	defer mock.mut.Unlock()
+
+	mock.IndexField = index
 }
 
 // UpdateRound -

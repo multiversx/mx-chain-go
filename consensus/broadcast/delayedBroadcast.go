@@ -174,6 +174,9 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *shared.Validato
 		return spos.ErrNilHeaderHash
 	}
 
+	dbb.mutDataForBroadcast.Lock()
+	defer dbb.mutDataForBroadcast.Unlock()
+
 	log.Trace("delayedBlockBroadcaster.SetHeaderForValidator",
 		"nbDelayedBroadcastData", len(dbb.delayedBroadcastData),
 		"nbValBroadcastData", len(dbb.valBroadcastData),
@@ -188,7 +191,9 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *shared.Validato
 		}
 
 		duration := validatorDelayPerOrder * time.Duration(vData.Order)
+
 		dbb.valHeaderBroadcastData = append(dbb.valHeaderBroadcastData, vData)
+
 		alarmID := prefixHeaderAlarm + hex.EncodeToString(vData.HeaderHash)
 		dbb.alarm.Add(dbb.headerAlarmExpired, duration, alarmID)
 		log.Trace("delayedBlockBroadcaster.SetHeaderForValidator: header alarm has been set",

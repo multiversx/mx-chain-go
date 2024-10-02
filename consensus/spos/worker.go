@@ -594,7 +594,7 @@ func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 		return ErrMessageFromItself
 	}
 
-	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
+	if wrk.consensusState.GetRoundCanceled() && wrk.consensusState.GetRoundIndex() == cnsDta.RoundIndex {
 		return ErrRoundCanceled
 	}
 
@@ -630,7 +630,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		if cnsDta == nil {
 			continue
 		}
-		if wrk.consensusState.RoundIndex != cnsDta.RoundIndex {
+		if wrk.consensusState.GetRoundIndex() != cnsDta.RoundIndex {
 			continue
 		}
 

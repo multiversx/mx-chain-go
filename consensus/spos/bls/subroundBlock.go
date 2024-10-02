@@ -807,7 +807,7 @@ func (sr *subroundBlock) processBlock(
 
 	if err != nil {
 		sr.printCancelRoundLogMessage(ctx, err)
-		sr.RoundCanceled = true
+		sr.SetRoundCanceled(true)
 
 		return false
 	}
@@ -849,7 +849,7 @@ func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, me
 
 // doBlockConsensusCheck method checks if the consensus in the subround Block is achieved
 func (sr *subroundBlock) doBlockConsensusCheck() bool {
-	if sr.RoundCanceled {
+	if sr.GetRoundCanceled() {
 		return false
 	}
 

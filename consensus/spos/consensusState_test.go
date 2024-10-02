@@ -70,13 +70,13 @@ func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cns := internalInitConsensusState()
-	cns.RoundCanceled = true
+	cns.SetRoundCanceled(true)
 	cns.ExtendedCalled = true
-	cns.WaitingAllSignaturesTimeOut = true
+	cns.SetWaitAllSignaturesTimeout(true)
 	cns.ResetConsensusState()
-	assert.False(t, cns.RoundCanceled)
+	assert.False(t, cns.GetRoundCanceled())
 	assert.False(t, cns.ExtendedCalled)
-	assert.False(t, cns.WaitingAllSignaturesTimeOut)
+	assert.False(t, cns.GetWaitAllSignaturesTimeout())
 }
 
 func TestConsensusState_IsNodeLeaderInCurrentRoundShouldReturnFalseWhenGetLeaderErr(t *testing.T) {

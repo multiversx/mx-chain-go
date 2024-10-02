@@ -17,6 +17,8 @@ import (
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -44,7 +46,6 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -189,7 +190,10 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
-	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, genericEpochNotifier)
+
+	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache, enableEpochsHandler)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
@@ -371,6 +375,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	waitingMap map[uint32][]nodesCoordinator.Validator,
 	pkBytes []byte,
 	cache storage.Cacher,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
@@ -395,7 +400,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
 		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:                   false,
-		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler:             enableEpochsHandler,
 		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
 		ShardIDAsObserver:               tcn.ShardCoordinator.SelfId(),
 		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},

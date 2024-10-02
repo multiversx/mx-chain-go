@@ -2520,7 +2520,7 @@ func emptyDataPool(sdp dataRetriever.PoolsHolder) {
 // UpdateRound updates the round for every node
 func UpdateRound(nodes []*TestProcessorNode, round uint64) {
 	for _, n := range nodes {
-		n.RoundHandler.IndexField = int64(round)
+		n.RoundHandler.SetIndex(int64(round))
 	}
 
 	// this delay is needed in order for the round to be properly updated in the nodes
