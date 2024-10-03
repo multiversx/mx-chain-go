@@ -128,8 +128,8 @@ func (mcm *metaChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof
 		return err
 	}
 
-	shardIdentifier := mcm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	mcm.broadcast(common.EquivalentProofsTopic+shardIdentifier, msgProof, pkBytes)
+	identifierMetaAll := mcm.shardCoordinator.CommunicationIdentifier(core.AllShardId)
+	mcm.broadcast(common.EquivalentProofsTopic+identifierMetaAll, msgProof, pkBytes)
 
 	return nil
 }

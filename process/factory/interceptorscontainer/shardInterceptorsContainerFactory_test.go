@@ -614,7 +614,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorHeartbeat := 1
 		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
-		numInterceptorEquivalentProofs := 1
+		numInterceptorEquivalentProofs := 2
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
 			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
@@ -664,7 +664,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		numInterceptorHeartbeat := 1
 		numInterceptorsShardValidatorInfo := 1
 		numInterceptorValidatorInfo := 1
-		numInterceptorEquivalentProofs := 1
+		numInterceptorEquivalentProofs := 2
 		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
 			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
 			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
