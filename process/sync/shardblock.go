@@ -27,6 +27,9 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilHeadersDataPool
 	}
+	if check.IfNil(arguments.PoolsHolder.Proofs()) {
+		return nil, process.ErrNilProofsPool
+	}
 	if check.IfNil(arguments.PoolsHolder.MiniBlocks()) {
 		return nil, process.ErrNilTxBlockBody
 	}
@@ -41,6 +44,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		blockProcessor:               arguments.BlockProcessor,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
+		proofs:                       arguments.PoolsHolder.Proofs(),
 		roundHandler:                 arguments.RoundHandler,
 		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,

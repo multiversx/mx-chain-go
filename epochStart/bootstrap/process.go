@@ -121,6 +121,8 @@ type epochStartBootstrap struct {
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          common.NodeOperation
 	stateStatsHandler          common.StateStatisticsHandler
+	enableEpochsHandler        common.EnableEpochsHandler
+
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -190,6 +192,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	EnableEpochsHandler             common.EnableEpochsHandler
 }
 
 type dataToSync struct {
@@ -242,6 +245,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		stateStatsHandler:               args.StateStatsHandler,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {

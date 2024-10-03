@@ -222,6 +222,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

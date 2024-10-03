@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -94,6 +95,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
