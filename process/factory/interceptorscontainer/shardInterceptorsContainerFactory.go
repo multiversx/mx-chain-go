@@ -251,14 +251,22 @@ func (sicf *shardInterceptorsContainerFactory) generateEquivalentProofsIntercept
 	shardC := sicf.shardCoordinator
 
 	// equivalent proofs shard topic, for example: equivalentProofs_0_META
-	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierEquivalentProofsShardMeta := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
-	interceptor, err := sicf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
+	interceptorShardMeta, err := sicf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofsShardMeta)
 	if err != nil {
 		return err
 	}
 
-	return sicf.addInterceptorsToContainers([]string{identifierEquivalentProofs}, []process.Interceptor{interceptor})
+	// equivalent proofs _ALL topic, to listen for meta proofs, example: equivalentProofs_META_ALL
+	identifierEquivalentProofsMetaAll := common.EquivalentProofsTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.AllShardId)
+
+	interceptorMetaAll, err := sicf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofsMetaAll)
+	if err != nil {
+		return err
+	}
+
+	return sicf.addInterceptorsToContainers([]string{identifierEquivalentProofsShardMeta, identifierEquivalentProofsMetaAll}, []process.Interceptor{interceptorShardMeta, interceptorMetaAll})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

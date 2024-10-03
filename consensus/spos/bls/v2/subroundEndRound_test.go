@@ -969,10 +969,8 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	leaderSigInHdr := []byte("leader sig")
 	container := consensusMocks.InitConsensusCore()
 	messenger := &consensusMocks.BroadcastMessengerMock{
-		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+		PrepareBroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, consensusIndex int, pkBytes []byte) {
 			chanRcv <- true
-			assert.Equal(t, message.LeaderSignature, leaderSigInHdr)
-			return nil
 		},
 	}
 	container.SetBroadcastMessenger(messenger)
