@@ -149,7 +149,7 @@ func (st *sovereignTrigger) receivedBlock(headerHandler data.HeaderHandler, _ []
 		return
 	}
 
-	isMetaStartOfEpochForCurrentEpoch := header.GetEpoch() == st.epoch && header.IsStartOfEpochBlock()
+	isMetaStartOfEpochForCurrentEpoch := header.GetEpoch() == st.epoch
 	if isMetaStartOfEpochForCurrentEpoch {
 		return
 	}
