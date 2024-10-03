@@ -2526,7 +2526,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	require.Equal(t, 0, len(unQualified))
 
 	// stake 16 mode nodes, these will go to auction list
-	staking.StakeNodes(t, cs, 17)
+	staking.StakeNodes(t, cs, metachainNode, 17)
 
 	epochToCheck += 1
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
@@ -2558,7 +2558,7 @@ func checkKeysNotInMap(t *testing.T, m map[uint32][][]byte, keys []string) {
 }
 
 func stakeOneNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
-	txStake := staking.CreateStakeTransaction(t, cs)
+	txStake, _ := staking.CreateStakeTransaction(t, cs)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
