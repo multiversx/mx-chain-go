@@ -5494,9 +5494,21 @@ func TestDelegationSystemSC_ExecuteMoveDelegationToDestination(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, output)
 	require.Equal(t, eei.returnMessage, "total delegation cap reached")
 
+	_ = d.saveDelegatorData(vmInput.Arguments[0], &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+
 	_ = d.saveDelegationContractConfig(&DelegationConfig{InitialOwnerFunds: big.NewInt(100), MaxDelegationCap: big.NewInt(10000)})
 	eei.returnMessage = ""
 	output = d.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, output)
 
+	fund, _ := d.getFund(fundKey)
+	require.Equal(t, fund.Value, big.NewInt(200))
+
+	globalFund, _ := d.getGlobalFundData()
+	require.Equal(t, globalFund.TotalActive, big.NewInt(200))
 }
