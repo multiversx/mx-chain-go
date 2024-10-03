@@ -265,34 +265,36 @@ func (dbb *delayedBlockBroadcaster) SetFinalProofForValidator(
 	isProofValid := len(proof.AggregatedSignature) > 0 &&
 		len(proof.PubKeysBitmap) > 0 &&
 		len(proof.HeaderHash) > 0
-	if isProofValid {
-		if dbb.cacheConsensusMessages.Has(proof.HeaderHash) {
-			return nil
-		}
-
-		duration := dbb.getBroadcastDelayForIndex(consensusIndex)
-		alarmID := prefixConsensusMessageAlarm + hex.EncodeToString(proof.HeaderHash)
-
-		vProof := &validatorProof{
-			proof:   proof,
-			pkBytes: pkBytes,
-		}
-		dbb.mutBroadcastFinalProof.Lock()
-		dbb.valBroadcastFinalProof[alarmID] = vProof
-		dbb.mutBroadcastFinalProof.Unlock()
-
-		dbb.alarm.Add(dbb.finalProofAlarmExpired, duration, alarmID)
-		log.Trace("delayedBlockBroadcaster.SetFinalProofForValidator: final proof alarm has been set",
-			"validatorConsensusOrder", consensusIndex,
-			"headerHash", proof.HeaderHash,
-			"alarmID", alarmID,
-			"duration", duration,
-		)
-	} else {
+	if !isProofValid {
 		log.Trace("delayedBlockBroadcaster.SetFinalProofForValidator: consensus message alarm has not been set",
 			"validatorConsensusOrder", consensusIndex,
 		)
+
+		return nil
 	}
+
+	if dbb.cacheConsensusMessages.Has(proof.HeaderHash) {
+		return nil
+	}
+
+	duration := dbb.getBroadcastDelayForIndex(consensusIndex)
+	alarmID := prefixConsensusMessageAlarm + hex.EncodeToString(proof.HeaderHash)
+
+	vProof := &validatorProof{
+		proof:   proof,
+		pkBytes: pkBytes,
+	}
+	dbb.mutBroadcastFinalProof.Lock()
+	dbb.valBroadcastFinalProof[alarmID] = vProof
+	dbb.mutBroadcastFinalProof.Unlock()
+
+	dbb.alarm.Add(dbb.finalProofAlarmExpired, duration, alarmID)
+	log.Trace("delayedBlockBroadcaster.SetFinalProofForValidator: final proof alarm has been set",
+		"validatorConsensusOrder", consensusIndex,
+		"headerHash", proof.HeaderHash,
+		"alarmID", alarmID,
+		"duration", duration,
+	)
 
 	return nil
 }
