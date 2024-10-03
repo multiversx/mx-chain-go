@@ -164,9 +164,9 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 		cancelFunc:          cancelFunc,
 	}
 
-	if scf.shardCoordinator.SelfId() == core.MetachainShardId {
-		scf.epochStartNotifier.RegisterHandler(statusComponentsInstance.epochStartEventHandler())
-	}
+	//if scf.shardCoordinator.SelfId() == core.MetachainShardId {
+	scf.epochStartNotifier.RegisterHandler(statusComponentsInstance.epochStartEventHandler())
+	//}
 
 	return statusComponentsInstance, nil
 }
