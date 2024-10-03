@@ -320,6 +320,11 @@ func (cns *ConsensusState) GetData() []byte {
 	return cns.Data
 }
 
+// SetData sets the Data of the consensusState
+func (cns *ConsensusState) SetData(data []byte) {
+	cns.Data = data
+}
+
 // IsMultiKeyLeaderInCurrentRound method checks if one of the nodes which are controlled by this instance
 // is leader in the current round
 func (cns *ConsensusState) IsMultiKeyLeaderInCurrentRound() bool {
@@ -343,9 +348,9 @@ func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
 	return cns.IsJobDone(leader, currentSubroundId)
 }
 
-// isMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
+// IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
 // the current subround and false otherwise
-func (cns *ConsensusState) isMultiKeyJobDone(currentSubroundId int) bool {
+func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
 	for _, validator := range cns.consensusGroup {
 		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
 			continue
@@ -368,7 +373,7 @@ func (cns *ConsensusState) IsSelfJobDone(currentSubroundID int) bool {
 
 	multiKeyJobDone := true
 	if cns.IsMultiKeyInConsensusGroup() {
-		multiKeyJobDone = cns.isMultiKeyJobDone(currentSubroundID)
+		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundID)
 	}
 
 	return selfJobDone && multiKeyJobDone
@@ -383,4 +388,79 @@ func (cns *ConsensusState) GetMultikeyRedundancyStepInReason() string {
 // providing also the peer ID from the received message
 func (cns *ConsensusState) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {
 	cns.keysHandler.ResetRoundsWithoutReceivedMessages(pkBytes, pid)
+}
+
+// GetRoundCanceled returns the state of the current round
+func (cns *ConsensusState) GetRoundCanceled() bool {
+	return cns.RoundCanceled
+}
+
+// SetRoundCanceled sets the state of the current round
+func (cns *ConsensusState) SetRoundCanceled(roundCanceled bool) {
+	cns.RoundCanceled = roundCanceled
+}
+
+// GetRoundIndex returns the index of the current round
+func (cns *ConsensusState) GetRoundIndex() int64 {
+	return cns.RoundIndex
+}
+
+// SetRoundIndex sets the index of the current round
+func (cns *ConsensusState) SetRoundIndex(roundIndex int64) {
+	cns.RoundIndex = roundIndex
+}
+
+// GetRoundTimeStamp returns the time stamp of the current round
+func (cns *ConsensusState) GetRoundTimeStamp() time.Time {
+	return cns.RoundTimeStamp
+}
+
+// SetRoundTimeStamp sets the time stamp of the current round
+func (cns *ConsensusState) SetRoundTimeStamp(roundTimeStamp time.Time) {
+	cns.RoundTimeStamp = roundTimeStamp
+}
+
+// GetExtendedCalled returns the state of the extended called
+func (cns *ConsensusState) GetExtendedCalled() bool {
+	return cns.ExtendedCalled
+}
+
+// SetExtendedCalled sets the state of the extended called
+func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
+	cns.ExtendedCalled = extendedCalled
+}
+
+// GetBody returns the body of the current round
+func (cns *ConsensusState) GetBody() data.BodyHandler {
+	return cns.Body
+}
+
+// SetBody sets the body of the current round
+func (cns *ConsensusState) SetBody(body data.BodyHandler) {
+	cns.Body = body
+}
+
+// GetHeader returns the header of the current round
+func (cns *ConsensusState) GetHeader() data.HeaderHandler {
+	return cns.Header
+}
+
+// GetWaitingAllSignaturesTimeOut returns the state of the waiting all signatures time out
+func (cns *ConsensusState) GetWaitingAllSignaturesTimeOut() bool {
+	return cns.WaitingAllSignaturesTimeOut
+}
+
+// SetWaitingAllSignaturesTimeOut sets the state of the waiting all signatures time out
+func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTimeOut bool) {
+	cns.WaitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+}
+
+// SetHeader sets the header of the current round
+func (cns *ConsensusState) SetHeader(header data.HeaderHandler) {
+	cns.Header = header
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cns *ConsensusState) IsInterfaceNil() bool {
+	return cns == nil
 }

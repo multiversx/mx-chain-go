@@ -1,10 +1,11 @@
-package mock
+package consensus
 
 import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
@@ -27,13 +28,15 @@ type SposWorkerMock struct {
 	DisplayStatisticsCalled                func()
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
-	ResetConsensusMessagesCalled           func(currentHash []byte, prevHash []byte)
+	ResetConsensusMessagesCalled           func()
 }
 
 // AddReceivedMessageCall -
 func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consensus.MessageType,
 	receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
-	sposWorkerMock.AddReceivedMessageCallCalled(messageType, receivedMessageCall)
+	if sposWorkerMock.AddReceivedMessageCallCalled != nil {
+		sposWorkerMock.AddReceivedMessageCallCalled(messageType, receivedMessageCall)
+	}
 }
 
 // AddReceivedHeaderHandler -
@@ -45,32 +48,49 @@ func (sposWorkerMock *SposWorkerMock) AddReceivedHeaderHandler(handler func(data
 
 // RemoveAllReceivedMessagesCalls -
 func (sposWorkerMock *SposWorkerMock) RemoveAllReceivedMessagesCalls() {
-	sposWorkerMock.RemoveAllReceivedMessagesCallsCalled()
+	if sposWorkerMock.RemoveAllReceivedMessagesCallsCalled != nil {
+		sposWorkerMock.RemoveAllReceivedMessagesCallsCalled()
+	}
 }
 
 // ProcessReceivedMessage -
 func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
-	return sposWorkerMock.ProcessReceivedMessageCalled(message)
+	if sposWorkerMock.ProcessReceivedMessageCalled == nil {
+		return sposWorkerMock.ProcessReceivedMessageCalled(message)
+	}
+	return nil
 }
 
 // SendConsensusMessage -
 func (sposWorkerMock *SposWorkerMock) SendConsensusMessage(cnsDta *consensus.Message) bool {
-	return sposWorkerMock.SendConsensusMessageCalled(cnsDta)
+	if sposWorkerMock.SendConsensusMessageCalled != nil {
+		return sposWorkerMock.SendConsensusMessageCalled(cnsDta)
+	}
+	return false
 }
 
 // Extend -
 func (sposWorkerMock *SposWorkerMock) Extend(subroundId int) {
-	sposWorkerMock.ExtendCalled(subroundId)
+	if sposWorkerMock.ExtendCalled != nil {
+		sposWorkerMock.ExtendCalled(subroundId)
+	}
 }
 
 // GetConsensusStateChangedChannel -
 func (sposWorkerMock *SposWorkerMock) GetConsensusStateChangedChannel() chan bool {
-	return sposWorkerMock.GetConsensusStateChangedChannelsCalled()
+	if sposWorkerMock.GetConsensusStateChangedChannelsCalled != nil {
+		return sposWorkerMock.GetConsensusStateChangedChannelsCalled()
+	}
+
+	return nil
 }
 
 // BroadcastBlock -
 func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler) error {
-	return sposWorkerMock.GetBroadcastBlockCalled(body, header)
+	if sposWorkerMock.GetBroadcastBlockCalled != nil {
+		return sposWorkerMock.GetBroadcastBlockCalled(body, header)
+	}
+	return nil
 }
 
 // ExecuteStoredMessages -
@@ -104,9 +124,9 @@ func (sposWorkerMock *SposWorkerMock) StartWorking() {
 }
 
 // ResetConsensusMessages -
-func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
+func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
 	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
-		sposWorkerMock.ResetConsensusMessagesCalled(currentHash, prevHash)
+		sposWorkerMock.ResetConsensusMessagesCalled()
 	}
 }
 

@@ -1,4 +1,4 @@
-package mock
+package common
 
 // ThrottlerStub -
 type ThrottlerStub struct {
