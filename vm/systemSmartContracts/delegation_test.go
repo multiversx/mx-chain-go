@@ -5373,10 +5373,16 @@ func TestDelegationSystemSC_ExecuteRemoveDelegationFromSource(t *testing.T) {
 	require.Equal(t, vmcommon.UserError, output)
 	require.Equal(t, eei.returnMessage, "invalid value to undelegate")
 
-	vmInput.Arguments[1] = big.NewInt(100).Bytes()
+	vmInput.Arguments[1] = big.NewInt(50).Bytes()
 	eei.returnMessage = ""
 	output = d.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, output)
+
+	fund, _ := d.getFund(fundKey)
+	require.Equal(t, fund.Value, big.NewInt(50))
+
+	globalFund, _ := d.getGlobalFundData()
+	require.Equal(t, globalFund.TotalActive, big.NewInt(50))
 }
 
 func TestDelegationSystemSC_ExecuteMoveDelegationToDestination(t *testing.T) {
@@ -5492,4 +5498,5 @@ func TestDelegationSystemSC_ExecuteMoveDelegationToDestination(t *testing.T) {
 	eei.returnMessage = ""
 	output = d.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, output)
+
 }

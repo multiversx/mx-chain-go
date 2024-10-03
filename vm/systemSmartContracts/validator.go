@@ -2220,16 +2220,16 @@ func (v *validatorSC) checkArgsForMoveStakeFromValidatorToValidator(args *vmcomm
 		v.eei.AddReturnMessage("invalid argument, wanted an address for the first and second argument")
 		return vmcommon.UserError
 	}
-	if !core.IsSmartContractAddress(validatorB) {
-		v.eei.AddReturnMessage("destination address must be a delegation smart contract")
+	if !core.IsSmartContractAddress(validatorA) {
+		v.eei.AddReturnMessage("sender address must be a delegation smart contract")
 		return vmcommon.UserError
 	}
 	if bytes.Equal(validatorA, validatorB) {
 		v.eei.AddReturnMessage("sender and destination addresses are equal")
 		return vmcommon.UserError
 	}
-	if !core.IsSmartContractAddress(validatorA) {
-		v.eei.AddReturnMessage("sender address must be a delegation smart contract")
+	if !core.IsSmartContractAddress(validatorB) {
+		v.eei.AddReturnMessage("destination address must be a delegation smart contract")
 		return vmcommon.UserError
 	}
 
@@ -2271,6 +2271,10 @@ func (v *validatorSC) moveStakeFromValidatorToValidator(args *vmcommon.ContractC
 	}
 
 	validatorDataA.TotalStakeValue.Sub(validatorDataA.TotalStakeValue, stakeToMove)
+	if validatorDataA.TotalStakeValue.Cmp(zero) < 0 {
+		v.eei.AddReturnMessage("cannot move tokens, not enough active stake")
+		return vmcommon.UserError
+	}
 	if validatorDataA.NumRegistered > 0 && validatorDataA.TotalStakeValue.Cmp(v.minDeposit) < 0 {
 		v.eei.AddReturnMessage("cannot move tokens, the validator would remain without min deposit, nodes are still active")
 		return vmcommon.UserError
