@@ -66,14 +66,17 @@ func (rcns *roundConsensus) SetEligibleList(eligibleList map[string]struct{}) {
 
 // ConsensusGroup returns the consensus group ID's
 func (rcns *roundConsensus) ConsensusGroup() []string {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	return rcns.consensusGroup
 }
 
 // SetConsensusGroup sets the consensus group ID's
 func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
-	rcns.consensusGroup = consensusGroup
-
 	rcns.mut.Lock()
+
+	rcns.consensusGroup = consensusGroup
 
 	rcns.validatorRoundStates = make(map[string]*roundState)
 
@@ -86,11 +89,17 @@ func (rcns *roundConsensus) SetConsensusGroup(consensusGroup []string) {
 
 // Leader returns the leader for the current consensus
 func (rcns *roundConsensus) Leader() string {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	return rcns.leader
 }
 
 // SetLeader sets the leader for the current consensus
 func (rcns *roundConsensus) SetLeader(leader string) {
+	rcns.mut.Lock()
+	defer rcns.mut.Unlock()
+
 	rcns.leader = leader
 }
 
@@ -156,6 +165,9 @@ func (rcns *roundConsensus) SelfJobDone(subroundId int) (bool, error) {
 
 // IsNodeInConsensusGroup method checks if the node is part of consensus group of the current round
 func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	for i := 0; i < len(rcns.consensusGroup); i++ {
 		if rcns.consensusGroup[i] == node {
 			return true
@@ -177,6 +189,9 @@ func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
 // ComputeSize method returns the number of messages received from the nodes belonging to the current jobDone group
 // related to this subround
 func (rcns *roundConsensus) ComputeSize(subroundId int) int {
+	rcns.mut.RLock()
+	defer rcns.mut.RUnlock()
+
 	n := 0
 
 	for i := 0; i < len(rcns.consensusGroup); i++ {

@@ -159,13 +159,13 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 
-	if cmv.consensusState.RoundIndex+1 < cnsMsg.RoundIndex {
+	if cmv.consensusState.GetRoundIndex()+1 < cnsMsg.RoundIndex {
 		log.Trace("received message from consensus topic has a future round",
 			"msg type", cmv.consensusService.GetStringValue(msgType),
 			"from", cnsMsg.PubKey,
 			"header hash", cnsMsg.BlockHeaderHash,
 			"msg round", cnsMsg.RoundIndex,
-			"round", cmv.consensusState.RoundIndex,
+			"round", cmv.consensusState.GetRoundIndex(),
 		)
 
 		return fmt.Errorf("%w : received message from consensus topic has a future round: %d",
@@ -173,13 +173,13 @@ func (cmv *consensusMessageValidator) checkConsensusMessageValidity(cnsMsg *cons
 			cnsMsg.RoundIndex)
 	}
 
-	if cmv.consensusState.RoundIndex > cnsMsg.RoundIndex {
+	if cmv.consensusState.GetRoundIndex() > cnsMsg.RoundIndex {
 		log.Trace("received message from consensus topic has a past round",
 			"msg type", cmv.consensusService.GetStringValue(msgType),
 			"from", cnsMsg.PubKey,
 			"header hash", cnsMsg.BlockHeaderHash,
 			"msg round", cnsMsg.RoundIndex,
-			"round", cmv.consensusState.RoundIndex,
+			"round", cmv.consensusState.GetRoundIndex(),
 		)
 
 		return fmt.Errorf("%w : received message from consensus topic has a past round: %d",
