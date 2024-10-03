@@ -35,7 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -609,7 +608,6 @@ func GetProcessArgs(
 				},
 			},
 		},
-		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
 	}
 }
 

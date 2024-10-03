@@ -18,6 +18,11 @@ func (idvfs *InterceptedDataVerifierFactoryMock) Create(topic string) (process.I
 	return &InterceptedDataVerifierMock{}, nil
 }
 
+// Close -
+func (idvfs *InterceptedDataVerifierFactoryMock) Close() error {
+	return nil
+}
+
 // IsInterfaceNil -
 func (idvfs *InterceptedDataVerifierFactoryMock) IsInterfaceNil() bool {
 	return idvfs == nil

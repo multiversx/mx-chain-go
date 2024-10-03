@@ -31,7 +31,6 @@ import (
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -267,11 +266,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
-	args.InterceptedDataVerifierFactory = &processMocks.InterceptedDataVerifierFactoryMock{
-		CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &processMocks.InterceptedDataVerifierMock{}, nil
-		},
-	}
 
 	return args
 }

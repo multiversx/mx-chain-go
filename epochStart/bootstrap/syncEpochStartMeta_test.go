@@ -50,6 +50,12 @@ func TestNewEpochStartMetaSyncer_NilsShouldError(t *testing.T) {
 	ess, err = NewEpochStartMetaSyncer(args)
 	assert.True(t, check.IfNil(ess))
 	assert.Equal(t, epochStart.ErrNilMetablockProcessor, err)
+
+	args = getEpochStartSyncerArgs()
+	args.InterceptedDataVerifierFactory = nil
+	ess, err = NewEpochStartMetaSyncer(args)
+	assert.True(t, check.IfNil(ess))
+	assert.Equal(t, epochStart.ErrNilInterceptedDataVerifierFactory, err)
 }
 
 func TestNewEpochStartMetaSyncer_ShouldWork(t *testing.T) {

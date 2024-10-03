@@ -57,6 +57,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -133,6 +134,7 @@ type processComponents struct {
 	receiptsRepository               mainFactory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
+	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -168,8 +170,6 @@ type ProcessComponentsFactoryArgs struct {
 
 	GenesisNonce uint64
 	GenesisRound uint64
-
-	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 type processComponentsFactory struct {
@@ -221,6 +221,11 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		return nil, err
 	}
 
+	interceptedDataVerifierFactory := interceptorFactory.NewInterceptedDataVerifierFactory(interceptorFactory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Duration(args.Config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(args.Config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+	})
+
 	return &processComponentsFactory{
 		config:                         args.Config,
 		epochConfig:                    args.EpochConfig,
@@ -252,7 +257,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisNonce:                   args.GenesisNonce,
 		genesisRound:                   args.GenesisRound,
 		roundConfig:                    args.RoundConfig,
-		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		interceptedDataVerifierFactory: interceptedDataVerifierFactory,
 	}, nil
 }
 
@@ -769,6 +774,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:                   pcf.accountsParser,
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
+		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
 	}, nil
 }
 
@@ -2054,6 +2060,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.txsSender) {
 		log.LogIfError(pc.txsSender.Close())
+	}
+	if !check.IfNil(pc.interceptedDataVerifierFactory) {
+		log.LogIfError(pc.interceptedDataVerifierFactory.Close())
 	}
 
 	return nil

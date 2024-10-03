@@ -1411,5 +1411,6 @@ type InterceptedDataVerifier interface {
 // InterceptedDataVerifierFactory defines a component that is able to create intercepted data verifiers
 type InterceptedDataVerifierFactory interface {
 	Create(topic string) (InterceptedDataVerifier, error)
+	Close() error
 	IsInterfaceNil() bool
 }

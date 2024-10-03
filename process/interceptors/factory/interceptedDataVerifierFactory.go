@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -51,6 +52,17 @@ func (idvf *interceptedDataVerifierFactory) Create(topic string) (process.Interc
 	idvf.mutex.Unlock()
 
 	return interceptors.NewInterceptedDataVerifier(internalCache)
+}
+
+func (idvf *interceptedDataVerifierFactory) Close() error {
+	for topic, cacher := range idvf.interceptedDataVerifierMap {
+		err := cacher.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close cacher on topic %q: %w", topic, err)
+		}
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

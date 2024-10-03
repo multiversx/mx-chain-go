@@ -996,9 +996,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
-	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-		return &processMock.InterceptedDataVerifierMock{}, nil
-	}}
+	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{}
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)
