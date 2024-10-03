@@ -1,4 +1,4 @@
-package bls
+package v1
 
 import (
 	"context"
@@ -19,9 +19,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
+// ProcessingThresholdPercent exports the internal processingThresholdPercent
 const ProcessingThresholdPercent = processingThresholdPercent
-const DefaultMaxNumOfMessageTypeAccepted = defaultMaxNumOfMessageTypeAccepted
-const MaxNumOfMessageTypeSignatureAccepted = maxNumOfMessageTypeSignatureAccepted
 
 // factory
 
@@ -49,7 +48,7 @@ func (fct *factory) ChronologyHandler() consensus.ChronologyHandler {
 }
 
 // ConsensusState gets the consensus state struct pointer
-func (fct *factory) ConsensusState() *spos.ConsensusState {
+func (fct *factory) ConsensusState() spos.ConsensusStateHandler {
 	return fct.consensusState
 }
 
@@ -130,8 +129,8 @@ func (fct *factory) Outport() outport.OutportHandler {
 
 // subroundStartRound
 
-// SubroundStartRound defines a type for the subroundStartRound structure
-type SubroundStartRound *subroundStartRound
+// SubroundStartRound defines an alias to the subroundStartRound structure
+type SubroundStartRound = *subroundStartRound
 
 // DoStartRoundJob method does the job of the subround StartRound
 func (sr *subroundStartRound) DoStartRoundJob() bool {
@@ -161,7 +160,7 @@ func (sr *subroundStartRound) GetSentSignatureTracker() spos.SentSignaturesTrack
 // subroundBlock
 
 // SubroundBlock defines a type for the subroundBlock structure
-type SubroundBlock *subroundBlock
+type SubroundBlock = *subroundBlock
 
 // Blockchain gets the ChainHandler stored in the ConsensusCore
 func (sr *subroundBlock) BlockChain() data.ChainHandler {
@@ -175,7 +174,7 @@ func (sr *subroundBlock) DoBlockJob() bool {
 
 // ProcessReceivedBlock method processes the received proposed block in the subround Block
 func (sr *subroundBlock) ProcessReceivedBlock(cnsDta *consensus.Message) bool {
-	return sr.processReceivedBlock(context.Background(), cnsDta.RoundIndex, cnsDta.PubKey)
+	return sr.processReceivedBlock(context.Background(), cnsDta)
 }
 
 // DoBlockConsensusCheck method checks if the consensus in the subround Block is achieved
@@ -218,14 +217,9 @@ func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockBody(context.Background(), cnsDta)
 }
 
-// ReceivedBlockHeaderBeforeEquivalentProofs method is called when a block header is received through the block header channel
-func (sr *subroundBlock) ReceivedBlockHeaderBeforeEquivalentProofs(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeaderBeforeEquivalentProofs(context.Background(), cnsDta)
-}
-
 // ReceivedBlockHeader method is called when a block header is received through the block header channel
-func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
-	sr.receivedBlockHeader(header)
+func (sr *subroundBlock) ReceivedBlockHeader(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeader(context.Background(), cnsDta)
 }
 
 // ReceivedBlockBodyAndHeader is called when both a header and block body have been received
@@ -235,8 +229,8 @@ func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) b
 
 // subroundSignature
 
-// SubroundSignature defines a type for the subroundSignature structure
-type SubroundSignature *subroundSignature
+// SubroundSignature defines an alias for the subroundSignature structure
+type SubroundSignature = *subroundSignature
 
 // DoSignatureJob method does the job of the subround Signature
 func (sr *subroundSignature) DoSignatureJob() bool {
@@ -260,7 +254,7 @@ func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 
 // subroundEndRound
 
-// SubroundEndRound defines a type for the subroundEndRound structure
+// SubroundEndRound defines an alias for the subroundEndRound structure
 type SubroundEndRound = *subroundEndRound
 
 // DoEndRoundJob method does the job of the subround EndRound
@@ -294,8 +288,8 @@ func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 }
 
 // CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
-func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte, pk []byte) {
-	sr.createAndBroadcastHeaderFinalInfoForKey(signature, bitmap, leaderSignature, pk)
+func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
+	sr.createAndBroadcastHeaderFinalInfo()
 }
 
 // ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
@@ -319,8 +313,8 @@ func (sr *subroundEndRound) IsOutOfTime() bool {
 }
 
 // VerifyNodesOnAggSigFail calls the unexported verifyNodesOnAggSigFail function
-func (sr *subroundEndRound) VerifyNodesOnAggSigFail(ctx context.Context) ([]string, error) {
-	return sr.verifyNodesOnAggSigFail(ctx)
+func (sr *subroundEndRound) VerifyNodesOnAggSigFail() ([]string, error) {
+	return sr.verifyNodesOnAggSigFail()
 }
 
 // ComputeAggSigOnValidNodes calls the unexported computeAggSigOnValidNodes function
@@ -356,29 +350,4 @@ func (sr *subroundEndRound) GetFullMessagesForInvalidSigners(invalidPubKeys []st
 // GetSentSignatureTracker returns the subroundEndRound's SentSignaturesTracker instance
 func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker {
 	return sr.sentSignatureTracker
-}
-
-// GetStringValue calls the unexported getStringValue function
-func GetStringValue(messageType consensus.MessageType) string {
-	return getStringValue(messageType)
-}
-
-// ChangeEpoch calls the unexported changeEpoch function
-func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
-	sr.changeEpoch(epoch)
-}
-
-// IndexRoundIfNeeded calls the unexported indexRoundIfNeeded function
-func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
-	sr.indexRoundIfNeeded(pubKeys)
-}
-
-// SendSignatureForManagedKey calls the unexported sendSignatureForManagedKey function
-func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool {
-	return sr.sendSignatureForManagedKey(idx, pk)
-}
-
-// DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
-func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
-	return sr.doSignatureJobForManagedKeys(ctx)
 }

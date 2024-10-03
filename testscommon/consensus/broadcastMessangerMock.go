@@ -2,21 +2,23 @@ package consensus
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
 // BroadcastMessengerMock -
 type BroadcastMessengerMock struct {
-	BroadcastBlockCalled                        func(data.BodyHandler, data.HeaderHandler) error
-	BroadcastHeaderCalled                       func(data.HeaderHandler, []byte) error
-	PrepareBroadcastBlockDataValidatorCalled    func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte) error
-	PrepareBroadcastHeaderValidatorCalled       func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte)
-	BroadcastMiniBlocksCalled                   func(map[uint32][]byte, []byte) error
-	BroadcastTransactionsCalled                 func(map[string][][]byte, []byte) error
-	BroadcastConsensusMessageCalled             func(*consensus.Message) error
-	BroadcastBlockDataLeaderCalled              func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, pkBytes []byte) error
-	PrepareBroadcastFinalConsensusMessageCalled func(message *consensus.Message, consensusIndex int)
+	BroadcastBlockCalled                     func(data.BodyHandler, data.HeaderHandler) error
+	BroadcastHeaderCalled                    func(data.HeaderHandler, []byte) error
+	BroadcastEquivalentProofCalled           func(proof data.HeaderProofHandler, pkBytes []byte) error
+	PrepareBroadcastBlockDataValidatorCalled func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte) error
+	PrepareBroadcastHeaderValidatorCalled    func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte)
+	BroadcastMiniBlocksCalled                func(map[uint32][]byte, []byte) error
+	BroadcastTransactionsCalled              func(map[string][][]byte, []byte) error
+	BroadcastConsensusMessageCalled          func(*consensus.Message) error
+	BroadcastBlockDataLeaderCalled           func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, pkBytes []byte) error
+	PrepareBroadcastEquivalentProofCalled    func(proof data.HeaderProofHandler, consensusIndex int, pkBytes []byte)
 }
 
 // BroadcastBlock -
@@ -116,10 +118,22 @@ func (bmm *BroadcastMessengerMock) BroadcastHeader(headerhandler data.HeaderHand
 	return nil
 }
 
-// PrepareBroadcastFinalConsensusMessage -
-func (bmm *BroadcastMessengerMock) PrepareBroadcastFinalConsensusMessage(message *consensus.Message, consensusIndex int) {
-	if bmm.PrepareBroadcastFinalConsensusMessageCalled != nil {
-		bmm.PrepareBroadcastFinalConsensusMessageCalled(message, consensusIndex)
+// BroadcastEquivalentProof -
+func (bmm *BroadcastMessengerMock) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
+	if bmm.BroadcastEquivalentProofCalled != nil {
+		return bmm.BroadcastEquivalentProofCalled(proof, pkBytes)
+	}
+	return nil
+}
+
+// PrepareBroadcastEquivalentProof -
+func (bmm *BroadcastMessengerMock) PrepareBroadcastEquivalentProof(
+	proof *block.HeaderProof,
+	consensusIndex int,
+	pkBytes []byte,
+) {
+	if bmm.PrepareBroadcastEquivalentProofCalled != nil {
+		bmm.PrepareBroadcastEquivalentProofCalled(proof, consensusIndex, pkBytes)
 	}
 }
 

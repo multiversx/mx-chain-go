@@ -82,7 +82,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 			return nil
 		},
 	}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
 	poolAdder := cache.NewCacherMock()
@@ -97,33 +97,32 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:           blsService,
-		BlockChain:                 blockchainMock,
-		BlockProcessor:             blockProcessor,
-		ScheduledProcessor:         scheduledProcessor,
-		Bootstrapper:               bootstrapperMock,
-		BroadcastMessenger:         broadcastMessengerMock,
-		ConsensusState:             consensusState,
-		ForkDetector:               forkDetectorMock,
-		Marshalizer:                marshalizerMock,
-		Hasher:                     hasher,
-		RoundHandler:               roundHandlerMock,
-		ShardCoordinator:           shardCoordinatorMock,
-		PeerSignatureHandler:       peerSigHandler,
-		SyncTimer:                  syncTimerMock,
-		HeaderSigVerifier:          &consensusMocks.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier:    &testscommon.HeaderVersionHandlerStub{},
-		ChainID:                    chainID,
-		NetworkShardingCollector:   &p2pmocks.NetworkShardingCollectorStub{},
-		AntifloodHandler:           createMockP2PAntifloodHandler(),
-		PoolAdder:                  poolAdder,
-		SignatureSize:              SignatureSize,
-		PublicKeySize:              PublicKeySize,
-		AppStatusHandler:           appStatusHandler,
-		NodeRedundancyHandler:      &mock.NodeRedundancyHandlerStub{},
-		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
-		EquivalentMessagesDebugger: &consensusMocks.EquivalentMessagesDebuggerStub{},
-		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ConsensusService:         blsService,
+		BlockChain:               blockchainMock,
+		BlockProcessor:           blockProcessor,
+		ScheduledProcessor:       scheduledProcessor,
+		Bootstrapper:             bootstrapperMock,
+		BroadcastMessenger:       broadcastMessengerMock,
+		ConsensusState:           consensusState,
+		ForkDetector:             forkDetectorMock,
+		Marshalizer:              marshalizerMock,
+		Hasher:                   hasher,
+		RoundHandler:             roundHandlerMock,
+		ShardCoordinator:         shardCoordinatorMock,
+		PeerSignatureHandler:     peerSigHandler,
+		SyncTimer:                syncTimerMock,
+		HeaderSigVerifier:        &consensusMocks.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:  &testscommon.HeaderVersionHandlerStub{},
+		ChainID:                  chainID,
+		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
+		AntifloodHandler:         createMockP2PAntifloodHandler(),
+		PoolAdder:                poolAdder,
+		SignatureSize:            SignatureSize,
+		PublicKeySize:            PublicKeySize,
+		AppStatusHandler:         appStatusHandler,
+		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
+		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return workerArgs
@@ -149,8 +148,8 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	return sposWorker
 }
 
-func initRoundHandlerMock() *mock.RoundHandlerMock {
-	return &mock.RoundHandlerMock{
+func initRoundHandlerMock() *consensusMocks.RoundHandlerMock {
+	return &consensusMocks.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -378,17 +377,6 @@ func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
-}
-
-func TestWorker_NewWorkerPoolEquivalentMessagesDebuggerNilShouldFail(t *testing.T) {
-	t.Parallel()
-
-	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	workerArgs.EquivalentMessagesDebugger = nil
-	wrk, err := spos.NewWorker(workerArgs)
-
-	assert.Nil(t, wrk)
-	assert.Equal(t, spos.ErrNilEquivalentMessagesDebugger, err)
 }
 
 func TestWorker_NewWorkerPoolEnableEpochsHandlerNilShouldFail(t *testing.T) {
@@ -797,7 +785,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		},
 	})
 
-	wrk.SetRoundHandler(&mock.RoundHandlerMock{
+	wrk.SetRoundHandler(&consensusMocks.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration

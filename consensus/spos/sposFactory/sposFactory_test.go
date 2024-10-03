@@ -12,17 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
-	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
-
-var currentPid = core.PeerID("pid")
 
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 	t.Parallel()
@@ -40,102 +34,6 @@ func TestGetConsensusCoreFactory_BlsShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(csf))
-}
-
-func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
-	t.Parallel()
-
-	worker := &mock.SposWorkerMock{}
-	consensusType := consensus.BlsConsensusType
-	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-	chainID := []byte("chain-id")
-	indexer := &outport.OutportStub{}
-	sf, err := sposFactory.GetSubroundsFactory(
-		nil,
-		&spos.ConsensusState{},
-		worker,
-		consensusType,
-		statusHandler,
-		indexer,
-		&testscommon.SentSignatureTrackerStub{},
-		chainID,
-		currentPid,
-		&dataRetrieverMocks.ThrottlerStub{},
-	)
-
-	assert.Nil(t, sf)
-	assert.Equal(t, spos.ErrNilConsensusCore, err)
-}
-
-func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	consensusCore := testscommonConsensus.InitConsensusCore()
-	worker := &mock.SposWorkerMock{}
-	consensusType := consensus.BlsConsensusType
-	chainID := []byte("chain-id")
-	indexer := &outport.OutportStub{}
-	sf, err := sposFactory.GetSubroundsFactory(
-		consensusCore,
-		&spos.ConsensusState{},
-		worker,
-		consensusType,
-		nil,
-		indexer,
-		&testscommon.SentSignatureTrackerStub{},
-		chainID,
-		currentPid,
-		&dataRetrieverMocks.ThrottlerStub{},
-	)
-
-	assert.Nil(t, sf)
-	assert.Equal(t, spos.ErrNilAppStatusHandler, err)
-}
-
-func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
-	t.Parallel()
-
-	consensusCore := testscommonConsensus.InitConsensusCore()
-	worker := &mock.SposWorkerMock{}
-	consensusType := consensus.BlsConsensusType
-	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-	chainID := []byte("chain-id")
-	indexer := &outport.OutportStub{}
-	sf, err := sposFactory.GetSubroundsFactory(
-		consensusCore,
-		&spos.ConsensusState{},
-		worker,
-		consensusType,
-		statusHandler,
-		indexer,
-		&testscommon.SentSignatureTrackerStub{},
-		chainID,
-		currentPid,
-		&dataRetrieverMocks.ThrottlerStub{},
-	)
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(sf))
-}
-
-func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	consensusType := "invalid"
-	sf, err := sposFactory.GetSubroundsFactory(
-		nil,
-		nil,
-		nil,
-		consensusType,
-		nil,
-		nil,
-		nil,
-		nil,
-		currentPid,
-		&dataRetrieverMocks.ThrottlerStub{},
-	)
-
-	assert.Nil(t, sf)
-	assert.Equal(t, sposFactory.ErrInvalidConsensusType, err)
 }
 
 func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {

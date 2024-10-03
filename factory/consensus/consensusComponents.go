@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/proxy"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -181,42 +181,33 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	equivalentMesaggesDebbuger, err := debug.NewEquivalentMessagesDebugger(
-		ccf.dataComponents.Datapool().Proofs(),
-		ccf.processComponents.ShardCoordinator(),
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	workerArgs := &spos.WorkerArgs{
-		ConsensusService:           consensusService,
-		BlockChain:                 ccf.dataComponents.Blockchain(),
-		BlockProcessor:             ccf.processComponents.BlockProcessor(),
-		ScheduledProcessor:         ccf.scheduledProcessor,
-		Bootstrapper:               cc.bootstrapper,
-		BroadcastMessenger:         cc.broadcastMessenger,
-		ConsensusState:             consensusState,
-		ForkDetector:               ccf.processComponents.ForkDetector(),
-		PeerSignatureHandler:       ccf.cryptoComponents.PeerSignatureHandler(),
-		Marshalizer:                marshalizer,
-		Hasher:                     ccf.coreComponents.Hasher(),
-		RoundHandler:               ccf.processComponents.RoundHandler(),
-		ShardCoordinator:           ccf.processComponents.ShardCoordinator(),
-		SyncTimer:                  ccf.coreComponents.SyncTimer(),
-		HeaderSigVerifier:          ccf.processComponents.HeaderSigVerifier(),
-		HeaderIntegrityVerifier:    ccf.processComponents.HeaderIntegrityVerifier(),
-		ChainID:                    []byte(ccf.coreComponents.ChainID()),
-		NetworkShardingCollector:   ccf.processComponents.PeerShardMapper(),
-		AntifloodHandler:           ccf.networkComponents.InputAntiFloodHandler(),
-		PoolAdder:                  ccf.dataComponents.Datapool().MiniBlocks(),
-		SignatureSize:              ccf.config.ValidatorPubkeyConverter.SignatureLength,
-		PublicKeySize:              ccf.config.ValidatorPubkeyConverter.Length,
-		AppStatusHandler:           ccf.statusCoreComponents.AppStatusHandler(),
-		NodeRedundancyHandler:      ccf.processComponents.NodeRedundancyHandler(),
-		PeerBlacklistHandler:       cc.peerBlacklistHandler,
-		EquivalentMessagesDebugger: equivalentMesaggesDebbuger,
-		EnableEpochsHandler:        ccf.coreComponents.EnableEpochsHandler(),
+		ConsensusService:         consensusService,
+		BlockChain:               ccf.dataComponents.Blockchain(),
+		BlockProcessor:           ccf.processComponents.BlockProcessor(),
+		ScheduledProcessor:       ccf.scheduledProcessor,
+		Bootstrapper:             cc.bootstrapper,
+		BroadcastMessenger:       cc.broadcastMessenger,
+		ConsensusState:           consensusState,
+		ForkDetector:             ccf.processComponents.ForkDetector(),
+		PeerSignatureHandler:     ccf.cryptoComponents.PeerSignatureHandler(),
+		Marshalizer:              marshalizer,
+		Hasher:                   ccf.coreComponents.Hasher(),
+		RoundHandler:             ccf.processComponents.RoundHandler(),
+		ShardCoordinator:         ccf.processComponents.ShardCoordinator(),
+		SyncTimer:                ccf.coreComponents.SyncTimer(),
+		HeaderSigVerifier:        ccf.processComponents.HeaderSigVerifier(),
+		HeaderIntegrityVerifier:  ccf.processComponents.HeaderIntegrityVerifier(),
+		ChainID:                  []byte(ccf.coreComponents.ChainID()),
+		NetworkShardingCollector: ccf.processComponents.PeerShardMapper(),
+		AntifloodHandler:         ccf.networkComponents.InputAntiFloodHandler(),
+		PoolAdder:                ccf.dataComponents.Datapool().MiniBlocks(),
+		SignatureSize:            ccf.config.ValidatorPubkeyConverter.SignatureLength,
+		PublicKeySize:            ccf.config.ValidatorPubkeyConverter.Length,
+		AppStatusHandler:         ccf.statusCoreComponents.AppStatusHandler(),
+		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
+		PeerBlacklistHandler:     cc.peerBlacklistHandler,
+		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -279,28 +270,29 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		cc.worker,
-		ccf.config.Consensus.Type,
-		ccf.statusCoreComponents.AppStatusHandler(),
-		ccf.statusComponents.OutportHandler(),
-		ccf.processComponents.SentSignaturesTracker(),
-		[]byte(ccf.coreComponents.ChainID()),
-		ccf.networkComponents.NetworkMessenger().ID(),
-		signatureThrottler,
-	)
+	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
+		Chronology:           cc.chronology,
+		ConsensusCoreHandler: consensusDataContainer,
+		ConsensusState:       consensusState,
+		Worker:               cc.worker,
+		SignatureThrottler:   signatureThrottler,
+		AppStatusHandler:     ccf.statusCoreComponents.AppStatusHandler(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
+		SentSignatureTracker: ccf.processComponents.SentSignaturesTracker(),
+		EnableEpochsHandler:  ccf.coreComponents.EnableEpochsHandler(),
+		ChainID:              []byte(ccf.coreComponents.ChainID()),
+		CurrentPid:           ccf.networkComponents.NetworkMessenger().ID(),
+	}
+
+	subroundsHandler, err := proxy.NewSubroundsHandler(subroundsHandlerArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = fct.GenerateSubrounds()
+	err = subroundsHandler.Start(epoch)
 	if err != nil {
 		return nil, err
 	}
-
-	cc.chronology.StartRounds()
 
 	err = ccf.addCloserInstances(cc.chronology, cc.bootstrapper, cc.worker, ccf.coreComponents.SyncTimer())
 	if err != nil {

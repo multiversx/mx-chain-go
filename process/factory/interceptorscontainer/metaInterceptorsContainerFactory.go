@@ -343,7 +343,7 @@ func (micf *metaInterceptorsContainerFactory) generateEquivalentProofsIntercepto
 	interceptorSlice := make([]process.Interceptor, noOfShards+1)
 
 	for idx := uint32(0); idx < noOfShards; idx++ {
-		// equivalent proofs shard topic, for example: equivalentProofs_0_META
+		// equivalent proofs shard topic, to listen for shard proofs, for example: equivalentProofs_0_META
 		identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(idx)
 		interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
 		if err != nil {
@@ -354,8 +354,8 @@ func (micf *metaInterceptorsContainerFactory) generateEquivalentProofsIntercepto
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	// equivalent proofs meta topic, equivalentProofs_META
-	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	// equivalent proofs meta all topic, equivalentProofs_META_ALL
+	identifierEquivalentProofs := common.EquivalentProofsTopic + shardC.CommunicationIdentifier(core.AllShardId)
 
 	interceptor, err := micf.createOneShardEquivalentProofsInterceptor(identifierEquivalentProofs)
 	if err != nil {

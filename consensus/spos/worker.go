@@ -37,26 +37,24 @@ const redundancySingleKeySteppedIn = "single-key node stepped in"
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
-	consensusService           ConsensusService
-	blockChain                 data.ChainHandler
-	blockProcessor             process.BlockProcessor
-	scheduledProcessor         consensus.ScheduledProcessor
-	bootstrapper               process.Bootstrapper
-	broadcastMessenger         consensus.BroadcastMessenger
-	consensusState             *ConsensusState
-	forkDetector               process.ForkDetector
-	marshalizer                marshal.Marshalizer
-	hasher                     hashing.Hasher
-	roundHandler               consensus.RoundHandler
-	shardCoordinator           sharding.Coordinator
-	peerSignatureHandler       crypto.PeerSignatureHandler
-	syncTimer                  ntp.SyncTimer
-	headerSigVerifier          HeaderSigVerifier
-	headerIntegrityVerifier    process.HeaderIntegrityVerifier
-	appStatusHandler           core.AppStatusHandler
-	enableEpochsHandler        common.EnableEpochsHandler
-	equivalentProofsPool       consensus.EquivalentProofsPool
-	equivalentMessagesDebugger EquivalentMessagesDebugger
+	consensusService        ConsensusService
+	blockChain              data.ChainHandler
+	blockProcessor          process.BlockProcessor
+	scheduledProcessor      consensus.ScheduledProcessor
+	bootstrapper            process.Bootstrapper
+	broadcastMessenger      consensus.BroadcastMessenger
+	consensusState          *ConsensusState
+	forkDetector            process.ForkDetector
+	marshalizer             marshal.Marshalizer
+	hasher                  hashing.Hasher
+	roundHandler            consensus.RoundHandler
+	shardCoordinator        sharding.Coordinator
+	peerSignatureHandler    crypto.PeerSignatureHandler
+	syncTimer               ntp.SyncTimer
+	headerSigVerifier       HeaderSigVerifier
+	headerIntegrityVerifier process.HeaderIntegrityVerifier
+	appStatusHandler        core.AppStatusHandler
+	enableEpochsHandler     common.EnableEpochsHandler
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -87,33 +85,32 @@ type Worker struct {
 
 // WorkerArgs holds the consensus worker arguments
 type WorkerArgs struct {
-	ConsensusService           ConsensusService
-	BlockChain                 data.ChainHandler
-	BlockProcessor             process.BlockProcessor
-	ScheduledProcessor         consensus.ScheduledProcessor
-	Bootstrapper               process.Bootstrapper
-	BroadcastMessenger         consensus.BroadcastMessenger
-	ConsensusState             *ConsensusState
-	ForkDetector               process.ForkDetector
-	Marshalizer                marshal.Marshalizer
-	Hasher                     hashing.Hasher
-	RoundHandler               consensus.RoundHandler
-	ShardCoordinator           sharding.Coordinator
-	PeerSignatureHandler       crypto.PeerSignatureHandler
-	SyncTimer                  ntp.SyncTimer
-	HeaderSigVerifier          HeaderSigVerifier
-	HeaderIntegrityVerifier    process.HeaderIntegrityVerifier
-	ChainID                    []byte
-	NetworkShardingCollector   consensus.NetworkShardingCollector
-	AntifloodHandler           consensus.P2PAntifloodHandler
-	PoolAdder                  PoolAdder
-	SignatureSize              int
-	PublicKeySize              int
-	AppStatusHandler           core.AppStatusHandler
-	NodeRedundancyHandler      consensus.NodeRedundancyHandler
-	PeerBlacklistHandler       consensus.PeerBlacklistHandler
-	EquivalentMessagesDebugger EquivalentMessagesDebugger
-	EnableEpochsHandler        common.EnableEpochsHandler
+	ConsensusService         ConsensusService
+	BlockChain               data.ChainHandler
+	BlockProcessor           process.BlockProcessor
+	ScheduledProcessor       consensus.ScheduledProcessor
+	Bootstrapper             process.Bootstrapper
+	BroadcastMessenger       consensus.BroadcastMessenger
+	ConsensusState           *ConsensusState
+	ForkDetector             process.ForkDetector
+	Marshalizer              marshal.Marshalizer
+	Hasher                   hashing.Hasher
+	RoundHandler             consensus.RoundHandler
+	ShardCoordinator         sharding.Coordinator
+	PeerSignatureHandler     crypto.PeerSignatureHandler
+	SyncTimer                ntp.SyncTimer
+	HeaderSigVerifier        HeaderSigVerifier
+	HeaderIntegrityVerifier  process.HeaderIntegrityVerifier
+	ChainID                  []byte
+	NetworkShardingCollector consensus.NetworkShardingCollector
+	AntifloodHandler         consensus.P2PAntifloodHandler
+	PoolAdder                PoolAdder
+	SignatureSize            int
+	PublicKeySize            int
+	AppStatusHandler         core.AppStatusHandler
+	NodeRedundancyHandler    consensus.NodeRedundancyHandler
+	PeerBlacklistHandler     consensus.PeerBlacklistHandler
+	EnableEpochsHandler      common.EnableEpochsHandler
 }
 
 // NewWorker creates a new Worker object
@@ -142,31 +139,30 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 	}
 
 	wrk := Worker{
-		consensusService:           args.ConsensusService,
-		blockChain:                 args.BlockChain,
-		blockProcessor:             args.BlockProcessor,
-		scheduledProcessor:         args.ScheduledProcessor,
-		bootstrapper:               args.Bootstrapper,
-		broadcastMessenger:         args.BroadcastMessenger,
-		consensusState:             args.ConsensusState,
-		forkDetector:               args.ForkDetector,
-		marshalizer:                args.Marshalizer,
-		hasher:                     args.Hasher,
-		roundHandler:               args.RoundHandler,
-		shardCoordinator:           args.ShardCoordinator,
-		peerSignatureHandler:       args.PeerSignatureHandler,
-		syncTimer:                  args.SyncTimer,
-		headerSigVerifier:          args.HeaderSigVerifier,
-		headerIntegrityVerifier:    args.HeaderIntegrityVerifier,
-		appStatusHandler:           args.AppStatusHandler,
-		networkShardingCollector:   args.NetworkShardingCollector,
-		antifloodHandler:           args.AntifloodHandler,
-		poolAdder:                  args.PoolAdder,
-		nodeRedundancyHandler:      args.NodeRedundancyHandler,
-		peerBlacklistHandler:       args.PeerBlacklistHandler,
-		closer:                     closing.NewSafeChanCloser(),
-		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
-		enableEpochsHandler:        args.EnableEpochsHandler,
+		consensusService:         args.ConsensusService,
+		blockChain:               args.BlockChain,
+		blockProcessor:           args.BlockProcessor,
+		scheduledProcessor:       args.ScheduledProcessor,
+		bootstrapper:             args.Bootstrapper,
+		broadcastMessenger:       args.BroadcastMessenger,
+		consensusState:           args.ConsensusState,
+		forkDetector:             args.ForkDetector,
+		marshalizer:              args.Marshalizer,
+		hasher:                   args.Hasher,
+		roundHandler:             args.RoundHandler,
+		shardCoordinator:         args.ShardCoordinator,
+		peerSignatureHandler:     args.PeerSignatureHandler,
+		syncTimer:                args.SyncTimer,
+		headerSigVerifier:        args.HeaderSigVerifier,
+		headerIntegrityVerifier:  args.HeaderIntegrityVerifier,
+		appStatusHandler:         args.AppStatusHandler,
+		networkShardingCollector: args.NetworkShardingCollector,
+		antifloodHandler:         args.AntifloodHandler,
+		poolAdder:                args.PoolAdder,
+		nodeRedundancyHandler:    args.NodeRedundancyHandler,
+		peerBlacklistHandler:     args.PeerBlacklistHandler,
+		closer:                   closing.NewSafeChanCloser(),
+		enableEpochsHandler:      args.EnableEpochsHandler,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -266,9 +262,6 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PeerBlacklistHandler) {
 		return ErrNilPeerBlacklistHandler
-	}
-	if check.IfNil(args.EquivalentMessagesDebugger) {
-		return ErrNilEquivalentMessagesDebugger
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
@@ -405,7 +398,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		)
 	}
 
-	err = wrk.checkValidityAndProcessEquivalentMessages(cnsMsg, message)
+	err = wrk.checkValidityAndProcessFinalInfo(cnsMsg, message)
 	if err != nil {
 		return err
 	}
@@ -719,8 +712,6 @@ func (wrk *Worker) DisplayStatistics() {
 	wrk.mapDisplayHashConsensusMessage = make(map[string][]*consensus.Message)
 
 	wrk.mutDisplayHashConsensusMessage.Unlock()
-
-	wrk.equivalentMessagesDebugger.DisplayEquivalentMessagesStatistics()
 }
 
 // GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -751,12 +742,11 @@ func (wrk *Worker) Close() error {
 }
 
 // ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
-func (wrk *Worker) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
+func (wrk *Worker) ResetConsensusMessages() {
 	wrk.consensusMessageValidator.resetConsensusMessages()
-	wrk.equivalentMessagesDebugger.ResetEquivalentMessages()
 }
 
-func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {
+func (wrk *Worker) checkValidityAndProcessFinalInfo(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 
 	log.Trace("received message from consensus topic",
@@ -767,80 +757,7 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 		"size", len(p2pMessage.Data()),
 	)
 
-	if !wrk.shouldVerifyEquivalentMessages(msgType) {
-		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
-	}
-
-	err := wrk.processEquivalentMessage(cnsMsg)
-	if err != nil {
-		return err
-	}
-
-	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
-	if err != nil {
-		wrk.processInvalidEquivalentMessage(cnsMsg.BlockHeaderHash)
-		return err
-	}
-
-	return nil
-}
-
-func (wrk *Worker) processInvalidEquivalentMessage(blockHeaderHash []byte) {
-	wrk.equivalentMessagesDebugger.DeleteEquivalentMessage(blockHeaderHash)
-}
-
-func (wrk *Worker) checkFinalInfoFromSelf(cnsDta *consensus.Message) bool {
-	msgType := consensus.MessageType(cnsDta.MsgType)
-	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
-		return false
-	}
-
-	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
-		return true
-	}
-
-	return false
-}
-
-func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
-	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
-		return false
-	}
-
-	if check.IfNil(wrk.consensusState.Header) {
-		return false
-	}
-
-	return wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch())
-}
-
-// TODO: this will be handled in a separate intereceptor for equivalent proofs
-func (wrk *Worker) processEquivalentMessage(cnsMsg *consensus.Message) error {
-	// if the received final info is from self, simply return nil to allow further broadcast
-	// the proof was already validated
-	if wrk.checkFinalInfoFromSelf(cnsMsg) {
-		return nil
-	}
-
-	hdrHash := cnsMsg.BlockHeaderHash
-	hasProof := wrk.equivalentProofsPool.HasProof(wrk.shardCoordinator.SelfId(), hdrHash)
-
-	wrk.equivalentMessagesDebugger.UpsertEquivalentMessage(hdrHash)
-
-	if hasProof {
-		return ErrEquivalentMessageAlreadyReceived
-	}
-
-	return wrk.verifyEquivalentMessageSignature(cnsMsg)
-}
-
-func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) error {
-	if check.IfNil(wrk.consensusState.Header) {
-		return ErrNilHeader
-	}
-
-	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.AggregateSignature)
+	return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

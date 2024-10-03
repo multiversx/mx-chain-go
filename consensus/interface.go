@@ -6,7 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -61,13 +63,14 @@ type ChronologyHandler interface {
 type BroadcastMessenger interface {
 	BroadcastBlock(data.BodyHandler, data.HeaderHandler) error
 	BroadcastHeader(data.HeaderHandler, []byte) error
+	BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error
 	BroadcastMiniBlocks(map[uint32][]byte, []byte) error
 	BroadcastTransactions(map[string][][]byte, []byte) error
 	BroadcastConsensusMessage(*Message) error
 	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
 	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
-	PrepareBroadcastFinalConsensusMessage(message *Message, consensusIndex int)
+	PrepareBroadcastEquivalentProof(proof *block.HeaderProof, consensusIndex int, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 

@@ -749,7 +749,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 10 {
+			if cnt >= 10 {
 				return nil // createConsensusTopic fails
 			}
 			return testscommon.NewMultiShardsCoordinatorMock(2)
@@ -838,28 +838,6 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cc, err := ccf.Create()
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), "signing handler"))
-		require.Nil(t, cc)
-	})
-	t.Run("GetSubroundsFactory failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		statusCoreCompStub, ok := args.StatusCoreComponents.(*factoryMocks.StatusCoreComponentsStub)
-		require.True(t, ok)
-		cnt := 0
-		statusCoreCompStub.AppStatusHandlerCalled = func() core.AppStatusHandler {
-			cnt++
-			if cnt > 4 {
-				return nil
-			}
-			return &statusHandler.AppStatusHandlerStub{}
-		}
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
-		require.NotNil(t, ccf)
-
-		cc, err := ccf.Create()
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "AppStatusHandler"))
 		require.Nil(t, cc)
 	})
 	t.Run("addCloserInstances failure should error", func(t *testing.T) {
