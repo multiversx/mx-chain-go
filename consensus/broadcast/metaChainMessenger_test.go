@@ -403,7 +403,12 @@ func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) 
 	args := createDefaultMetaChainArgs()
 	varModified := false
 	delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
-		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error, consensusMessageBroadcast func(message *consensus.Message) error) error {
+		SetBroadcastHandlersCalled: func(
+			mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+			txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+			equivalentProofsBroadcast func(proof *block.HeaderProof, pkBytes []byte) error,
+			consensusMessageBroadcast func(message *consensus.Message) error) error {
 			varModified = true
 			return expectedErr
 		},

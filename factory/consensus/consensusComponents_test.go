@@ -749,7 +749,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 10 {
+			if cnt >= 10 {
 				return nil // createConsensusTopic fails
 			}
 			return testscommon.NewMultiShardsCoordinatorMock(2)

@@ -250,15 +250,6 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 // ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
 var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
 
-// ErrMissingEquivalentProof signals that the equivalent proof is missing
-var ErrMissingEquivalentProof = errors.New("missing equivalent proof")
-
-// ErrEquivalentProofNotValidated signals that the equivalent proof has not been validated
-var ErrEquivalentProofNotValidated = errors.New("equivalent proof not validated")
-
-// ErrNilEquivalentMessagesDebugger signals that a nil equivalent messages debugger has been provided
-var ErrNilEquivalentMessagesDebugger = errors.New("nil equivalent messages debugger")
-
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
@@ -271,8 +262,8 @@ var ErrNilThrottler = errors.New("nil throttler")
 // ErrTimeIsOut signals that time is out
 var ErrTimeIsOut = errors.New("time is out")
 
-// ErrNilConsensusMessage signals that a nil consensus message has been provided
-var ErrNilConsensusMessage = errors.New("nil consensus message")
-
 // ErrNilEquivalentProofPool signals that a nil proof pool has been provided
 var ErrNilEquivalentProofPool = errors.New("nil equivalent proof pool")
+
+// ErrNilHeaderProof signals that a nil header proof has been provided
+var ErrNilHeaderProof = errors.New("nil header proof")
