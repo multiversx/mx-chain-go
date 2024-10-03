@@ -5261,3 +5261,235 @@ func addValidatorAndStakingScToVmContextWithBlsKeys(eei *vmContext, blsKeys [][]
 		return nil, nil
 	}})
 }
+
+func TestDelegationSystemSC_ExecuteRemoveDelegationFromSource(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	currentEpoch := uint32(5)
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+
+	args.Eei = eei
+
+	vmInput := getDefaultVmInputForFunc("removeDelegationFromSource", [][]byte{})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(0)})
+
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationImprovementsV3Flag)
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "removeDelegationFromSource is an unknown function")
+
+	eei.returnMessage = ""
+	enableEpochsHandler.AddActiveFlags(common.DelegationImprovementsV3Flag)
+
+	eei.gasRemaining = 0
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 1
+
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.OutOfGas, output)
+	require.Equal(t, eei.returnMessage, vm.ErrNotEnoughGas.Error())
+
+	eei.gasRemaining = 100
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid caller address")
+
+	vmInput.CallerAddr = d.delegationMgrSCAddress
+	vmInput.CallValue = big.NewInt(10)
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid call value")
+
+	vmInput.CallValue = big.NewInt(0)
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = [][]byte{{1}, {2}}
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "first argument is not an address")
+
+	vmInput.Arguments[0] = bytes.Repeat([]byte{1}, 32)
+	d.eei.SetStorage([]byte(lastMigratePrefix+string(vmInput.Arguments[0])), big.NewInt(1).Bytes())
+	d.migrateCoolDownPeriodInEpoch = 5
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "cannot increase service fee in the cooldown period, wait 1 more epochs")
+
+	currentEpoch = 10
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "caller is not a delegator")
+
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	_ = d.saveDelegatorData(vmInput.Arguments[0], &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(100),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+	})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
+
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(50),
+		MinDelegationAmount: big.NewInt(50),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	vmInput.Arguments[1] = big.NewInt(200).Bytes()
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid value to undelegate")
+
+	vmInput.Arguments[1] = big.NewInt(100).Bytes()
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+}
+
+func TestDelegationSystemSC_ExecuteMoveDelegationToDestination(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+
+	createDelegationManagerConfig(eei, args.Marshalizer, big.NewInt(10))
+
+	delegationsMap := map[string][]byte{}
+	delegationsMap[ownerKey] = []byte("owner")
+	eei.storageUpdate[string(eei.scAddress)] = delegationsMap
+	currentEpoch := uint32(5)
+	eei.blockChainHook = &mock.BlockChainHookStub{
+		CurrentEpochCalled: func() uint32 {
+			return currentEpoch
+		},
+	}
+
+	args.Eei = eei
+
+	vmInput := getDefaultVmInputForFunc("moveDelegationToDestination", [][]byte{})
+	d, _ := NewDelegationSystemSC(args)
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{InitialOwnerFunds: big.NewInt(100), MaxDelegationCap: big.NewInt(100)})
+	_ = d.saveGlobalFundData(&GlobalFundData{TotalActive: big.NewInt(0)})
+
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationImprovementsV3Flag)
+
+	output := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "moveDelegationToDestination is an unknown function")
+
+	eei.returnMessage = ""
+	enableEpochsHandler.AddActiveFlags(common.DelegationImprovementsV3Flag)
+
+	eei.gasRemaining = 0
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 1
+
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.OutOfGas, output)
+	require.Equal(t, eei.returnMessage, vm.ErrNotEnoughGas.Error())
+
+	eei.gasRemaining = 100
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid caller address")
+
+	vmInput.CallerAddr = d.delegationMgrSCAddress
+	vmInput.CallValue = big.NewInt(10)
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid call value")
+
+	vmInput.CallValue = big.NewInt(0)
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = [][]byte{{1}, {2}}
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "first argument is not an address")
+
+	fundKey := append([]byte(fundKeyPrefix), []byte{1}...)
+	_ = d.saveDelegatorData(vmInput.Arguments[0], &DelegatorData{
+		ActiveFund:            fundKey,
+		UnStakedFunds:         [][]byte{},
+		UnClaimedRewards:      big.NewInt(0),
+		TotalCumulatedRewards: big.NewInt(0),
+	})
+	_ = d.saveFund(fundKey, &Fund{
+		Value: big.NewInt(100),
+	})
+	_ = d.saveGlobalFundData(&GlobalFundData{
+		TotalActive:   big.NewInt(100),
+		TotalUnStaked: big.NewInt(0),
+	})
+	d.eei.SetStorage([]byte(lastFundKey), fundKey)
+
+	managementData := &DelegationManagement{
+		MinDeposit:          big.NewInt(50),
+		MinDelegationAmount: big.NewInt(50),
+	}
+	marshaledData, _ := d.marshalizer.Marshal(managementData)
+	eei.SetStorageForAddress(d.delegationMgrSCAddress, []byte(delegationManagementKey), marshaledData)
+
+	eei.returnMessage = ""
+	vmInput.Arguments[0] = bytes.Repeat([]byte{1}, 32)
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "delegate value must be higher than minDelegationAmount 50")
+
+	eei.returnMessage = ""
+	vmInput.Arguments[1] = big.NewInt(100).Bytes()
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "data was not found under requested key delegation status")
+
+	_ = d.saveDelegationStatus(&DelegationContractStatus{NumUsers: 1})
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, output)
+	require.Equal(t, eei.returnMessage, "total delegation cap reached")
+
+	_ = d.saveDelegationContractConfig(&DelegationConfig{InitialOwnerFunds: big.NewInt(100), MaxDelegationCap: big.NewInt(10000)})
+	eei.returnMessage = ""
+	output = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+}

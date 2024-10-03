@@ -2611,7 +2611,7 @@ func (d *delegation) checkCoolDownPeriodForMigration(delegatorAddress []byte) vm
 
 	epochDifference := uint64(d.eei.BlockChainHook().CurrentEpoch()) - lastMoveEpoch
 	if lastMoveEpoch == 0 || epochDifference < d.migrateCoolDownPeriodInEpoch {
-		waitTime := big.NewInt(int64(d.increaseFeeCoolDownPeriodInEpoch - epochDifference)).String()
+		waitTime := big.NewInt(int64(d.migrateCoolDownPeriodInEpoch - epochDifference)).String()
 		d.eei.AddReturnMessage("cannot increase service fee in the cooldown period, wait " + waitTime + " more epochs")
 		return vmcommon.UserError
 	}

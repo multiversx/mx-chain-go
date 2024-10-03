@@ -570,6 +570,10 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
 	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage("invalid call value")
+		return vmcommon.UserError
+	}
 
 	amount := args.Arguments[0]
 	delegationAddrA := args.Arguments[1]

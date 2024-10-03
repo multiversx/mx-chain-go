@@ -1374,6 +1374,15 @@ func TestDelegationManagerSystemSC_ChangeStakingProvider(t *testing.T) {
 	eei.gasRemaining = 10
 	eei.returnMessage = ""
 
+	vmInput.CallValue = big.NewInt(10)
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "invalid call value")
+
+	eei.gasRemaining = 10
+	eei.returnMessage = ""
+
+	vmInput.CallValue = big.NewInt(0)
 	returnCode = d.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, eei.returnMessage, "input argument missmatch, not an address")
