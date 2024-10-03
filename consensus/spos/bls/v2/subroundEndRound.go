@@ -741,46 +741,21 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 }
 
 func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []byte, bitmap []byte, leaderSignature []byte, pubKey []byte) bool {
-	cnsMsg := consensus.NewConsensusMessage(
-		sr.GetData(),
-		nil,
-		nil,
-		nil,
-		pubKey,
-		nil,
-		int(bls.MtBlockHeaderFinalInfo),
-		sr.RoundHandler().Index(),
-		sr.ChainID(),
-		bitmap,
-		signature,
-		leaderSignature,
-		sr.GetAssociatedPid(pubKey),
-		nil,
-	)
-
 	index, err := sr.ConsensusGroupIndex(string(pubKey))
 	if err != nil {
 		log.Debug("createAndBroadcastHeaderFinalInfoForKey.ConsensusGroupIndex", "error", err.Error())
 		return false
 	}
 
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
-		if err != nil {
-			log.Debug("createAndBroadcastHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
-			return false
-		}
-
-		log.Debug("step 3: block header final info has been sent",
-			"PubKeysBitmap", bitmap,
-			"AggregateSignature", signature,
-			"LeaderSignature", leaderSignature)
-
-		return true
+	headerProof := &block.HeaderProof{
+		AggregatedSignature: signature,
+		PubKeysBitmap:       bitmap,
+		HeaderHash:          sr.GetData(),
+		HeaderEpoch:         sr.GetHeader().GetEpoch(),
 	}
 
-	sr.BroadcastMessenger().PrepareBroadcastFinalConsensusMessage(cnsMsg, index)
-	log.Debug("step 3: block header final info has been sent to delayed broadcaster",
+	sr.BroadcastMessenger().PrepareBroadcastEquivalentProof(headerProof, index, pubKey)
+	log.Debug("step 3: block header proof has been sent to delayed broadcaster",
 		"PubKeysBitmap", bitmap,
 		"AggregateSignature", signature,
 		"LeaderSignature", leaderSignature,

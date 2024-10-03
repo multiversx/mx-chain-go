@@ -18,8 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
-var currentPid = core.PeerID("pid")
-
 func TestGetConsensusCoreFactory_InvalidTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
