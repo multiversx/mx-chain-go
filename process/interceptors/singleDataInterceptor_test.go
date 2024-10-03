@@ -59,8 +59,8 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 	}
 }
 
-func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierStub {
-	return &mock.InterceptedDataVerifierStub{
+func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierMock {
+	return &mock.InterceptedDataVerifierMock{
 		VerifyCalled: func(interceptedData process.InterceptedData) error {
 			return interceptedData.CheckValidity()
 		},
@@ -153,6 +153,17 @@ func TestNewSingleDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewSingleDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.InterceptedDataVerifier = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilInterceptedDataVerifier, err)
 }
 
 func TestNewSingleDataInterceptor(t *testing.T) {

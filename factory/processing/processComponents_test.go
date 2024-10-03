@@ -267,9 +267,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
-	args.InterceptedDataVerifierFactory = &processMocks.InterceptedDataVerifierFactoryStub{
+	args.InterceptedDataVerifierFactory = &processMocks.InterceptedDataVerifierFactoryMock{
 		CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &processMocks.InterceptedDataVerifierStub{}, nil
+			return &processMocks.InterceptedDataVerifierMock{}, nil
 		},
 	}
 

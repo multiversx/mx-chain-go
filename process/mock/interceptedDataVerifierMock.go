@@ -4,13 +4,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// InterceptedDataVerifierStub -
-type InterceptedDataVerifierStub struct {
+// InterceptedDataVerifierMock -
+type InterceptedDataVerifierMock struct {
 	VerifyCalled func(interceptedData process.InterceptedData) error
 }
 
 // Verify -
-func (idv *InterceptedDataVerifierStub) Verify(interceptedData process.InterceptedData) error {
+func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.InterceptedData) error {
 	if idv.VerifyCalled != nil {
 		return idv.VerifyCalled(interceptedData)
 	}
@@ -19,6 +19,6 @@ func (idv *InterceptedDataVerifierStub) Verify(interceptedData process.Intercept
 }
 
 // IsInterfaceNil -
-func (idv *InterceptedDataVerifierStub) IsInterfaceNil() bool {
+func (idv *InterceptedDataVerifierMock) IsInterfaceNil() bool {
 	return idv == nil
 }

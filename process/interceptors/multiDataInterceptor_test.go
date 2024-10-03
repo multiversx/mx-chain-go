@@ -33,7 +33,7 @@ func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 		WhiteListRequest:        &testscommon.WhiteListHandlerStub{},
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
-		InterceptedDataVerifier: &mock.InterceptedDataVerifierStub{},
+		InterceptedDataVerifier: &mock.InterceptedDataVerifierMock{},
 	}
 }
 
@@ -68,6 +68,17 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 
 	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilInterceptedDataFactory, err)
+}
+
+func TestNewMultiDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.InterceptedDataVerifier = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilInterceptedDataVerifier, err)
 }
 
 func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing.T) {
@@ -357,7 +368,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
-	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierStub{
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
 		VerifyCalled: func(interceptedData process.InterceptedData) error {
 			return interceptedData.CheckValidity()
 		},
@@ -614,7 +625,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 			return true
 		},
 	}
-	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierStub{
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
 		VerifyCalled: func(interceptedData process.InterceptedData) error {
 			return interceptedData.CheckValidity()
 		},

@@ -546,8 +546,8 @@ func testCreateMetaTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrOn
 		} else {
 			args.MainMessenger = createMetaStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
 		}
-		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &mock.InterceptedDataVerifierStub{}, nil
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierMock{}, nil
 		}}
 		icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -564,8 +564,8 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-		return &mock.InterceptedDataVerifierStub{}, nil
+	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+		return &mock.InterceptedDataVerifierMock{}, nil
 	}}
 	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
 
@@ -599,8 +599,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args := getArgumentsMeta(coreComp, cryptoComp)
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
-		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &mock.InterceptedDataVerifierStub{}, nil
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierMock{}, nil
 		}}
 
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
@@ -653,8 +653,8 @@ func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.NodeOperationMode = common.FullArchiveMode
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
-		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &mock.InterceptedDataVerifierStub{}, nil
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierMock{}, nil
 		}}
 
 		icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)

@@ -2,7 +2,6 @@ package factory
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -21,8 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/disabled"
 )
@@ -33,26 +30,26 @@ const numGoRoutines = 2000
 
 // fullSyncInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type fullSyncInterceptorsContainerFactory struct {
-	mainContainer          process.InterceptorsContainer
-	fullArchiveContainer   process.InterceptorsContainer
-	shardCoordinator       sharding.Coordinator
-	accounts               state.AccountsAdapter
-	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.PoolsHolder
-	mainMessenger          process.TopicHandler
-	fullArchiveMessenger   process.TopicHandler
-	nodesCoordinator       nodesCoordinator.NodesCoordinator
-	blockBlackList         process.TimeCacher
-	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler        process.InterceptorThrottler
-	maxTxNonceDeltaAllowed int
-	addressPubkeyConv      core.PubkeyConverter
-	whiteListHandler       update.WhiteListHandler
-	whiteListerVerifiedTxs update.WhiteListHandler
-	antifloodHandler       process.P2PAntifloodHandler
-	preferredPeersHolder   update.PreferredPeersHolderHandler
-	nodeOperationMode      common.NodeOperation
-	interceptedDataCache   map[string]storage.Cacher
+	mainContainer                  process.InterceptorsContainer
+	fullArchiveContainer           process.InterceptorsContainer
+	shardCoordinator               sharding.Coordinator
+	accounts                       state.AccountsAdapter
+	store                          dataRetriever.StorageService
+	dataPool                       dataRetriever.PoolsHolder
+	mainMessenger                  process.TopicHandler
+	fullArchiveMessenger           process.TopicHandler
+	nodesCoordinator               nodesCoordinator.NodesCoordinator
+	blockBlackList                 process.TimeCacher
+	argInterceptorFactory          *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler                process.InterceptorThrottler
+	maxTxNonceDeltaAllowed         int
+	addressPubkeyConv              core.PubkeyConverter
+	whiteListHandler               update.WhiteListHandler
+	whiteListerVerifiedTxs         update.WhiteListHandler
+	antifloodHandler               process.P2PAntifloodHandler
+	preferredPeersHolder           update.PreferredPeersHolderHandler
+	nodeOperationMode              common.NodeOperation
+	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -138,6 +135,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if check.IfNil(args.InterceptedDataVerifierFactory) {
+		return nil, process.ErrNilInterceptedDataVerifierFactory
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponents,
@@ -170,8 +170,9 @@ func NewFullSyncInterceptorsContainerFactory(
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
 		//TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
-		preferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		nodeOperationMode:    args.NodeOperationMode,
+		preferredPeersHolder:           disabled.NewPreferredPeersHolder(),
+		nodeOperationMode:              args.NodeOperationMode,
+		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -355,7 +356,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +564,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -604,7 +605,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -645,7 +646,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -724,7 +725,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -769,7 +770,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		return err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(identifierHdr)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(identifierHdr)
 	if err != nil {
 		return err
 	}
@@ -811,7 +812,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 		return nil, err
 	}
 
-	interceptedDataVerifier, err := ficf.createCacheForInterceptor(topic)
+	interceptedDataVerifier, err := ficf.interceptedDataVerifierFactory.Create(topic)
 	if err != nil {
 		return nil, err
 	}
@@ -859,7 +860,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 		if err != nil {
 			return err
 		}
-
 		keys[int(idx)] = identifierScr
 		interceptorSlice[int(idx)] = interceptor
 	}
@@ -878,20 +878,6 @@ func (ficf *fullSyncInterceptorsContainerFactory) addInterceptorsToContainers(ke
 	}
 
 	return ficf.fullArchiveContainer.AddMultiple(keys, interceptors)
-}
-
-func (ficf *fullSyncInterceptorsContainerFactory) createCacheForInterceptor(topic string) (process.InterceptedDataVerifier, error) {
-	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: 30 * time.Second,
-		CacheExpiry: 30 * time.Second,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	ficf.interceptedDataCache[topic] = internalCache
-	verifier := interceptors.NewInterceptedDataVerifier(internalCache)
-	return verifier, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -497,8 +497,8 @@ func testCreateShardTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrO
 
 		coreComp, cryptoComp := createMockComponentHolders()
 		args := getArgumentsShard(coreComp, cryptoComp)
-		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &mock.InterceptedDataVerifierStub{}, nil
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierMock{}, nil
 		}}
 		if strings.Contains(t.Name(), "full_archive") {
 			args.NodeOperationMode = common.FullArchiveMode
@@ -566,8 +566,8 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		},
 	}
 	args.WhiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
-	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-		return &mock.InterceptedDataVerifierStub{}, nil
+	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+		return &mock.InterceptedDataVerifierMock{}, nil
 	}}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
@@ -604,8 +604,8 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
-		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &mock.InterceptedDataVerifierStub{}, nil
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierMock{}, nil
 		}}
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
@@ -657,8 +657,8 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
-		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &mock.InterceptedDataVerifierStub{}, nil
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+			return &mock.InterceptedDataVerifierMock{}, nil
 		}}
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)

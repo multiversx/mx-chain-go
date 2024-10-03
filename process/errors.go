@@ -1257,5 +1257,11 @@ var ErrNilEquivalentProofsPool = errors.New("nil equivalent proofs pool")
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 
+// ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
+var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
+
 // ErrFlagNotActive signals that a flag is not active
 var ErrFlagNotActive = errors.New("flag not active")
+
+// ErrInvalidInterceptedData signals that an invalid data has been intercepted
+var ErrInvalidInterceptedData = errors.New("invalid intercepted data")

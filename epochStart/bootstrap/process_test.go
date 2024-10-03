@@ -252,11 +252,9 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
-		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-			return &processMock.InterceptedDataVerifierStub{}, nil
-		}},
+		TrieSyncStatisticsProvider:     &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:              disabledStatistics.NewStateStatistics(),
+		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
 	}
 }
 
@@ -998,8 +996,8 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
-	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryStub{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
-		return &processMock.InterceptedDataVerifierStub{}, nil
+	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{CreateCalled: func(topic string) (process.InterceptedDataVerifier, error) {
+		return &processMock.InterceptedDataVerifierMock{}, nil
 	}}
 
 	err := epochStartProvider.createSyncers()

@@ -1402,11 +1402,13 @@ type SentSignaturesTracker interface {
 	IsInterfaceNil() bool
 }
 
+// InterceptedDataVerifier defines a component able to verify intercepted data validity
 type InterceptedDataVerifier interface {
 	Verify(interceptedData InterceptedData) error
 	IsInterfaceNil() bool
 }
 
+// InterceptedDataVerifierFactory defines a component that is able to create intercepted data verifiers
 type InterceptedDataVerifierFactory interface {
 	Create(topic string) (InterceptedDataVerifier, error)
 	IsInterfaceNil() bool
