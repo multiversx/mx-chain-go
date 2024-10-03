@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -270,14 +271,4 @@ func (cmv *consensusMessageValidator) GetNumOfMessageTypeForPublicKey(pk []byte,
 // ResetConsensusMessages -
 func (cmv *consensusMessageValidator) ResetConsensusMessages() {
 	cmv.resetConsensusMessages()
-}
-
-// IsSelfLeaderInCurrentRound -
-func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
-	return sr.isSelfLeaderInCurrentRound()
-}
-
-// IsMultiKeyJobDone -
-func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
-	return cns.isMultiKeyJobDone(currentSubroundId)
 }

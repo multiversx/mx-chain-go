@@ -9,6 +9,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -16,8 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var chainID = []byte("chain ID")
@@ -594,7 +595,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensus.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
@@ -632,7 +633,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 	sr.Check = nil
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensus.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
@@ -681,7 +682,7 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensus.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
@@ -728,7 +729,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	}
 
 	maxTime := time.Now().Add(2000 * time.Millisecond)
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensus.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}

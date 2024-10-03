@@ -1,4 +1,4 @@
-package bls
+package v1
 
 import "errors"
 

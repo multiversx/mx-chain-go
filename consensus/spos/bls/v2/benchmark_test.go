@@ -1,4 +1,4 @@
-package bls_test
+package v2_test
 
 import (
 	"context"
@@ -15,13 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
-	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	nodeMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -73,7 +74,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 	}
 
 	args := cryptoFactory.ArgsSigningHandler{
-		PubKeys: createEligibleListFromMap(mapKeys),
+		PubKeys: initializers.CreateEligibleListFromMap(mapKeys),
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
 			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return multiSigHandler, nil
@@ -86,7 +87,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 	require.Nil(b, err)
 
 	container.SetSigningHandler(signingHandler)
-	consensusState := initConsensusStateWithArgs(keysHandlerMock, mapKeys)
+	consensusState := initializers.InitConsensusStateWithArgs(keysHandlerMock, mapKeys)
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -107,7 +108,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 
 	signatureSentForPks := make(map[string]struct{})
 	mutex := sync.Mutex{}
-	srSignature, _ := bls.NewSubroundSignature(
+	srSignature, _ := v2.NewSubroundSignature(
 		sr,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{
@@ -117,11 +118,11 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 				mutex.Unlock()
 			},
 		},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 		&nodeMock.ThrottlerStub{},
 	)
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 	sr.SetSelfPubKey("OTHER")
 
 	b.ResetTimer()
