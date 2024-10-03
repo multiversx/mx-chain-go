@@ -167,7 +167,9 @@ func InitConsensusCore() *ConsensusCoreMock {
 func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{}
+			return &block.Header{
+				RandSeed: []byte("randSeed"),
+			}
 		},
 	}
 	marshalizerMock := mock.MarshalizerMock{}
@@ -181,9 +183,9 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
 			defaultSelectionChances := uint32(1)

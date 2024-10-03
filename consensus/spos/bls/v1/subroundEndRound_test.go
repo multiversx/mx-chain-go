@@ -1,10 +1,8 @@
-package bls_test
+package v1_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
-	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -17,19 +15,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	v1 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v1"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -37,9 +33,9 @@ import (
 func initSubroundEndRoundWithContainer(
 	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
-) bls.SubroundEndRound {
+) v1.SubroundEndRound {
 	ch := make(chan bool, 1)
-	consensusState := initConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	consensusState := initializers.InitConsensusState()
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
@@ -55,74 +51,29 @@ func initSubroundEndRoundWithContainer(
 		currentPid,
 		appStatusHandler,
 	)
-	sr.Header = &block.HeaderV2{
-		Header: createDefaultHeader(),
-	}
 
-	srEndRound, _ := bls.NewSubroundEndRound(
+	srEndRound, _ := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		appStatusHandler,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	return srEndRound
 }
 
-func initSubroundEndRoundWithContainerAndConsensusState(
-	container *consensusMocks.ConsensusCoreMock,
-	appStatusHandler core.AppStatusHandler,
-	consensusState *spos.ConsensusState,
-	signatureThrottler core.Throttler,
-) bls.SubroundEndRound {
-	ch := make(chan bool, 1)
-	sr, _ := spos.NewSubround(
-		bls.SrSignature,
-		bls.SrEndRound,
-		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
-		"(END_ROUND)",
-		consensusState,
-		ch,
-		executeStoredMessages,
-		container,
-		chainID,
-		currentPid,
-		appStatusHandler,
-	)
-	sr.Header = &block.HeaderV2{
-		Header: createDefaultHeader(),
-	}
-
-	srEndRound, _ := bls.NewSubroundEndRound(
-		sr,
-		bls.ProcessingThresholdPercent,
-		appStatusHandler,
-		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		signatureThrottler,
-	)
-
-	return srEndRound
-}
-
-func initSubroundEndRound(appStatusHandler core.AppStatusHandler) bls.SubroundEndRound {
+func initSubroundEndRound(appStatusHandler core.AppStatusHandler) v1.SubroundEndRound {
 	container := consensusMocks.InitConsensusCore()
-	sr := initSubroundEndRoundWithContainer(container, appStatusHandler)
-	sr.Header = &block.HeaderV2{
-		Header: createDefaultHeader(),
-	}
-	return sr
+	return initSubroundEndRoundWithContainer(container, appStatusHandler)
 }
 
 func TestNewSubroundEndRound(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
@@ -143,28 +94,43 @@ func TestNewSubroundEndRound(t *testing.T) {
 	t.Run("nil subround should error", func(t *testing.T) {
 		t.Parallel()
 
-		srEndRound, err := bls.NewSubroundEndRound(
+		srEndRound, err := v1.NewSubroundEndRound(
 			nil,
-			bls.ProcessingThresholdPercent,
+			extend,
+			v1.ProcessingThresholdPercent,
+			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srEndRound)
 		assert.Equal(t, spos.ErrNilSubround, err)
 	})
+	t.Run("nil extend function handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		srEndRound, err := v1.NewSubroundEndRound(
+			sr,
+			nil,
+			v1.ProcessingThresholdPercent,
+			displayStatistics,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{},
+		)
+
+		assert.Nil(t, srEndRound)
+		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
+	})
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		srEndRound, err := bls.NewSubroundEndRound(
+		srEndRound, err := v1.NewSubroundEndRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			extend,
+			v1.ProcessingThresholdPercent,
+			displayStatistics,
 			nil,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srEndRound)
@@ -173,32 +139,17 @@ func TestNewSubroundEndRound(t *testing.T) {
 	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srEndRound, err := bls.NewSubroundEndRound(
+		srEndRound, err := v1.NewSubroundEndRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			extend,
+			v1.ProcessingThresholdPercent,
+			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srEndRound)
-		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
-	})
-	t.Run("nil worker should error", func(t *testing.T) {
-		t.Parallel()
-
-		srEndRound, err := bls.NewSubroundEndRound(
-			sr,
-			bls.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{},
-			nil,
-			&dataRetrieverMocks.ThrottlerStub{},
-		)
-
-		assert.Nil(t, srEndRound)
-		assert.Equal(t, spos.ErrNilWorker, err)
+		assert.Equal(t, v1.ErrNilSentSignatureTracker, err)
 	})
 }
 
@@ -206,7 +157,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -225,13 +176,13 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetBlockchain(nil)
-	srEndRound, err := bls.NewSubroundEndRound(
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -242,7 +193,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -261,13 +212,13 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetBlockProcessor(nil)
-	srEndRound, err := bls.NewSubroundEndRound(
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -278,7 +229,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -297,14 +248,14 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	sr.ConsensusState = nil
-	srEndRound, err := bls.NewSubroundEndRound(
+	sr.ConsensusStateHandler = nil
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -315,7 +266,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -334,13 +285,13 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
-	srEndRound, err := bls.NewSubroundEndRound(
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -351,7 +302,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -370,13 +321,13 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetRoundHandler(nil)
-	srEndRound, err := bls.NewSubroundEndRound(
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -387,7 +338,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -406,60 +357,24 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	container.SetSyncTimer(nil)
-	srEndRound, err := bls.NewSubroundEndRound(
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
 	assert.Equal(t, spos.ErrNilSyncTimer, err)
 }
 
-func TestSubroundEndRound_NewSubroundEndRoundNilThrottlerShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
-	ch := make(chan bool, 1)
-
-	sr, _ := spos.NewSubround(
-		bls.SrSignature,
-		bls.SrEndRound,
-		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
-		"(END_ROUND)",
-		consensusState,
-		ch,
-		executeStoredMessages,
-		container,
-		chainID,
-		currentPid,
-		&statusHandler.AppStatusHandlerStub{},
-	)
-
-	srEndRound, err := bls.NewSubroundEndRound(
-		sr,
-		bls.ProcessingThresholdPercent,
-		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		nil,
-	)
-
-	assert.True(t, check.IfNil(srEndRound))
-	assert.Equal(t, err, spos.ErrNilThrottler)
-}
-
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
@@ -478,28 +393,17 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	srEndRound, err := bls.NewSubroundEndRound(
+	srEndRound, err := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
 	assert.Nil(t, err)
-}
-
-func TestSubroundEndRound_DoEndRoundJobNilHeaderShouldFail(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	sr.Header = nil
-
-	r := sr.DoEndRoundJob()
-	assert.False(t, r)
 }
 
 func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T) {
@@ -514,11 +418,12 @@ func TestSubroundEndRound_DoEndRoundJobErrAggregatingSigShouldFail(t *testing.T)
 	}
 	container.SetSigningHandler(signingHandler)
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	assert.True(t, sr.IsSelfLeader())
+	assert.True(t, sr.IsSelfLeaderInCurrentRound())
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
 }
@@ -529,6 +434,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
 	blProcMock := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	blProcMock.CommitBlockCalled = func(
@@ -539,7 +445,7 @@ func TestSubroundEndRound_DoEndRoundJobErrCommitBlockShouldFail(t *testing.T) {
 	}
 
 	container.SetBlockProcessor(blProcMock)
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.False(t, r)
@@ -551,16 +457,17 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
 	remainingTime := time.Millisecond
-	roundHandlerMock := &mock.RoundHandlerMock{
+	roundHandlerMock := &consensusMocks.RoundHandlerMock{
 		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 			return remainingTime
 		},
 	}
 
 	container.SetRoundHandler(roundHandlerMock)
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -583,8 +490,9 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	container.SetBroadcastMessenger(bm)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -617,8 +525,9 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	container.SetBroadcastMessenger(bm)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -652,8 +561,9 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 	container.SetBroadcastMessenger(bm)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -688,8 +598,9 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 	container.SetBroadcastMessenger(bm)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -709,8 +620,9 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 	container.SetBroadcastMessenger(bm)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
@@ -737,19 +649,20 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 	container.SetBroadcastMessenger(bm)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
+	sr.SetLeader("A")
 
-	sr.Header = &block.Header{Nonce: 5}
+	sr.SetHeader(&block.Header{Nonce: 5})
 
 	r := sr.DoEndRoundJob()
 	assert.True(t, r)
-	assert.Equal(t, expectedSignature, sr.Header.GetLeaderSignature())
+	assert.Equal(t, expectedSignature, sr.GetHeader().GetLeaderSignature())
 }
 
 func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.False(t, ok)
@@ -798,7 +711,7 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_RoundCanceledShouldReturnFa
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 
 	cnsData := consensus.Message{}
 	res := sr.DoEndRoundJobByParticipant(&cnsData)
@@ -809,7 +722,7 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusDataNotSetShouldRe
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Data = nil
+	sr.SetData(nil)
 
 	cnsData := consensus.Message{}
 	res := sr.DoEndRoundJobByParticipant(&cnsData)
@@ -846,7 +759,6 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusHeaderNotReceivedS
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Header = nil
 
 	// set previous as finished
 	sr.SetStatus(2, spos.SsFinished)
@@ -864,7 +776,7 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_ShouldReturnTrue(t *testing
 
 	hdr := &block.Header{Nonce: 37}
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Header = hdr
+	sr.SetHeader(hdr)
 	sr.AddReceivedHeader(hdr)
 
 	// set previous as finished
@@ -883,7 +795,7 @@ func TestSubroundEndRound_IsConsensusHeaderReceived_NoReceivedHeadersShouldRetur
 
 	hdr := &block.Header{Nonce: 37}
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Header = hdr
+	sr.SetHeader(hdr)
 
 	res, retHdr := sr.IsConsensusHeaderReceived()
 	assert.False(t, res)
@@ -897,7 +809,7 @@ func TestSubroundEndRound_IsConsensusHeaderReceived_HeaderNotReceivedShouldRetur
 	hdrToSearchFor := &block.Header{Nonce: 38}
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
 	sr.AddReceivedHeader(hdr)
-	sr.Header = hdrToSearchFor
+	sr.SetHeader(hdrToSearchFor)
 
 	res, retHdr := sr.IsConsensusHeaderReceived()
 	assert.False(t, res)
@@ -909,7 +821,7 @@ func TestSubroundEndRound_IsConsensusHeaderReceivedShouldReturnTrue(t *testing.T
 
 	hdr := &block.Header{Nonce: 37}
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Header = hdr
+	sr.SetHeader(hdr)
 	sr.AddReceivedHeader(hdr)
 
 	res, retHdr := sr.IsConsensusHeaderReceived()
@@ -921,7 +833,6 @@ func TestSubroundEndRound_HaveConsensusHeaderWithFullInfoNilHdrShouldNotWork(t *
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Header = nil
 
 	cnsData := consensus.Message{}
 
@@ -945,7 +856,7 @@ func TestSubroundEndRound_HaveConsensusHeaderWithFullInfoShouldWork(t *testing.T
 		LeaderSignature: originalLeaderSig,
 	}
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.Header = &hdr
+	sr.SetHeader(&hdr)
 
 	cnsData := consensus.Message{
 		PubKeysBitmap:      newPubKeyBitMap,
@@ -975,12 +886,9 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	}
 	container.SetBroadcastMessenger(messenger)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	sr.Header = &block.Header{LeaderSignature: leaderSigInHdr}
+	sr.SetHeader(&block.Header{LeaderSignature: leaderSigInHdr})
 
-	leader, err := sr.GetLeader()
-	assert.Nil(t, err)
-
-	sr.CreateAndBroadcastHeaderFinalInfo([]byte("sig"), []byte("bitmap"), leaderSigInHdr, []byte(leader))
+	sr.CreateAndBroadcastHeaderFinalInfo()
 
 	select {
 	case <-chanRcv:
@@ -989,253 +897,50 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	}
 }
 
-func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
+func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
+	hdr := &block.Header{Nonce: 37}
+	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+	sr.SetHeader(hdr)
+	sr.AddReceivedHeader(hdr)
 
-		hdr := &block.Header{Nonce: 37}
-		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-		sr.Header = hdr
-		sr.AddReceivedHeader(hdr)
+	sr.SetStatus(2, spos.SsFinished)
+	sr.SetStatus(3, spos.SsNotFinished)
 
-		sr.SetStatus(2, spos.SsFinished)
-		sr.SetStatus(3, spos.SsNotFinished)
+	cnsData := consensus.Message{
+		// apply the data which is mocked in consensus state so the checks will pass
+		BlockHeaderHash: []byte("X"),
+		PubKey:          []byte("A"),
+	}
 
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
+	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+	assert.True(t, res)
+}
 
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.True(t, res)
-	})
-	t.Run("should work with equivalent messages flag on", func(t *testing.T) {
-		t.Parallel()
+func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinalInfoIsNotValid(t *testing.T) {
+	t.Parallel()
 
-		providedPrevSig := []byte("prev sig")
-		providedPrevBitmap := []byte{1, 1, 1, 1}
-		hdr := &block.HeaderV2{
-			Header:                   createDefaultHeader(),
-			ScheduledRootHash:        []byte("sch root hash"),
-			ScheduledAccumulatedFees: big.NewInt(0),
-			ScheduledDeveloperFees:   big.NewInt(0),
-			PreviousHeaderProof:      nil,
-		}
-		container := consensusMocks.InitConsensusCore()
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-		container.SetBlockchain(&testscommon.ChainHandlerStub{
-			GetGenesisHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{}
-			},
-		})
+	container := consensusMocks.InitConsensusCore()
 
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
-				assert.Equal(t, hdr.GetPrevHash(), headerHash)
-				return &block.HeaderProof{
-					HeaderHash:          headerHash,
-					AggregatedSignature: providedPrevSig,
-					PubKeysBitmap:       providedPrevBitmap,
-				}, nil
-			},
-		})
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
+		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
+			return errors.New("error")
+		},
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			return errors.New("error")
+		},
+	}
 
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		ch := make(chan bool, 1)
-		consensusState := initConsensusState()
-		sr, _ := spos.NewSubround(
-			bls.SrSignature,
-			bls.SrEndRound,
-			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
-			"(END_ROUND)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		srEndRound, _ := bls.NewSubroundEndRound(
-			sr,
-			bls.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
-		)
-
-		srEndRound.Header = hdr
-		srEndRound.AddReceivedHeader(hdr)
-
-		srEndRound.SetStatus(2, spos.SsFinished)
-		srEndRound.SetStatus(3, spos.SsNotFinished)
-
-		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.True(t, res)
-	})
-	t.Run("should return false when header is nil", func(t *testing.T) {
-		t.Parallel()
-
-		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-		sr.Header = nil
-
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("should return false when final info is not valid", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-
-		headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
-			VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
-				return errors.New("error")
-			},
-			VerifySignatureCalled: func(header data.HeaderHandler) error {
-				return errors.New("error")
-			},
-		}
-
-		container.SetHeaderSigVerifier(headerSigVerifier)
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		sr.Header = &block.Header{}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("should return false when consensus data is not set", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.Data = nil
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("should return false when sender is not in consensus group", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("OTHER"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("should return false when sender is self", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.SetSelfPubKey("A")
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("should return false when different data is received", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.Data = []byte("Y")
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.False(t, res)
-	})
-	t.Run("should return true when final info already received", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				return true
-			},
-		})
-
-		ch := make(chan bool, 1)
-		consensusState := initConsensusState()
-		sr, _ := spos.NewSubround(
-			bls.SrSignature,
-			bls.SrEndRound,
-			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
-			"(END_ROUND)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-		sr.Header = &block.HeaderV2{
-			Header: createDefaultHeader(),
-		}
-
-		srEndRound, _ := bls.NewSubroundEndRound(
-			sr,
-			bls.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
-		)
-
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
-		assert.True(t, res)
-	})
+	container.SetHeaderSigVerifier(headerSigVerifier)
+	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+	cnsData := consensus.Message{
+		BlockHeaderHash: []byte("X"),
+		PubKey:          []byte("A"),
+	}
+	sr.SetHeader(&block.Header{})
+	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+	assert.False(t, res)
 }
 
 func TestSubroundEndRound_IsOutOfTimeShouldReturnFalse(t *testing.T) {
@@ -1252,7 +957,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	// update roundHandler's mock, so it will calculate for real the duration
 	container := consensusMocks.InitConsensusCore()
-	roundHandler := mock.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+	roundHandler := consensusMocks.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()
 		elapsedTime := currentTime.Sub(startTime)
 		remainingTime := maxTime - elapsedTime
@@ -1262,7 +967,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 	container.SetRoundHandler(&roundHandler)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-	sr.RoundTimeStamp = time.Now().AddDate(0, 0, -1)
+	sr.SetRoundTimeStamp(time.Now().AddDate(0, 0, -1))
 
 	res := sr.IsOutOfTime()
 	assert.True(t, res)
@@ -1285,7 +990,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 	container.SetHeaderSigVerifier(headerSigVerifier)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	cnsDta := &consensus.Message{}
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
 	assert.False(t, isValid)
 }
@@ -1307,7 +1012,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerify
 	container.SetHeaderSigVerifier(headerSigVerifier)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	cnsDta := &consensus.Message{}
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
 	assert.False(t, isValid)
 }
@@ -1329,7 +1034,7 @@ func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing
 	container.SetHeaderSigVerifier(headerSigVerifier)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	cnsDta := &consensus.Message{}
-	sr.Header = &block.Header{}
+	sr.SetHeader(&block.Header{})
 	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
 	assert.True(t, isValid)
 }
@@ -1343,6 +1048,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
+		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, expectedErr
@@ -1351,12 +1057,10 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		container.SetSigningHandler(signingHandler)
 
-		sr.Header = &block.Header{}
-		leader, err := sr.GetLeader()
-		require.Nil(t, err)
-		_ = sr.SetJobDone(leader, bls.SrSignature, true)
+		sr.SetHeader(&block.Header{})
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
-		_, err = sr.VerifyNodesOnAggSigFail(context.TODO())
+		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1366,6 +1070,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
+		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
@@ -1375,63 +1080,16 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 			},
 		}
 
-		sr.Header = &block.Header{}
-		leader, err := sr.GetLeader()
-		require.Nil(t, err)
-		_ = sr.SetJobDone(leader, bls.SrSignature, true)
+		sr.SetHeader(&block.Header{})
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		container.SetSigningHandler(signingHandler)
-		_, err = sr.VerifyNodesOnAggSigFail(context.TODO())
+
+		_, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
 
-		isJobDone, err := sr.JobDone(leader, bls.SrSignature)
+		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
 		require.Nil(t, err)
 		require.False(t, isJobDone)
-	})
-
-	t.Run("fail to verify signature share, an element will return an error on SignatureShare, should not panic", func(t *testing.T) {
-		t.Parallel()
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		signingHandler := &consensusMocks.SigningHandlerStub{
-			SignatureShareCalled: func(index uint16) ([]byte, error) {
-				if index < 8 {
-					return nil, nil
-				}
-				return nil, expectedErr
-			},
-			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-				time.Sleep(100 * time.Millisecond)
-				return expectedErr
-			},
-			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
-				return nil
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-
-		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[2], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[3], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[4], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[5], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[6], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[7], bls.SrSignature, true)
-		_ = sr.SetJobDone(sr.ConsensusGroup()[8], bls.SrSignature, true)
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					t.Error("Should not panic")
-				}
-			}()
-			invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
-			time.Sleep(200 * time.Millisecond)
-			require.Equal(t, err, expectedErr)
-			require.Nil(t, invalidSigners)
-		}()
-		time.Sleep(time.Second)
-
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -1452,10 +1110,11 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		}
 		container.SetSigningHandler(signingHandler)
 
-		sr.Header = &block.Header{}
+		sr.SetHeader(&block.Header{})
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
-		invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
+
+		invalidSigners, err := sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
 		require.NotNil(t, invalidSigners)
 	})
@@ -1469,7 +1128,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.Header = &block.Header{}
+		sr.SetHeader(&block.Header{})
 		sr.SetThreshold(bls.SrEndRound, 2)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
@@ -1482,6 +1141,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
+		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 				return nil, expectedErr
@@ -1489,10 +1149,8 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		}
 		container.SetSigningHandler(signingHandler)
 
-		sr.Header = &block.Header{}
-		for _, participant := range sr.ConsensusGroup() {
-			_ = sr.SetJobDone(participant, bls.SrSignature, true)
-		}
+		sr.SetHeader(&block.Header{})
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.Equal(t, expectedErr, err)
@@ -1504,16 +1162,15 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
+		expectedErr := errors.New("exptected error")
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SetAggregatedSigCalled: func(_ []byte) error {
 				return expectedErr
 			},
 		}
 		container.SetSigningHandler(signingHandler)
-		sr.Header = &block.Header{}
-		for _, participant := range sr.ConsensusGroup() {
-			_ = sr.SetJobDone(participant, bls.SrSignature, true)
-		}
+		sr.SetHeader(&block.Header{})
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.Equal(t, expectedErr, err)
@@ -1524,10 +1181,8 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.Header = &block.Header{}
-		for _, participant := range sr.ConsensusGroup() {
-			_ = sr.SetJobDone(participant, bls.SrSignature, true)
-		}
+		sr.SetHeader(&block.Header{})
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 
 		bitmap, sig, err := sr.ComputeAggSigOnValidNodes()
 		require.NotNil(t, bitmap)
@@ -1536,74 +1191,15 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 	})
 }
 
-func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
+func TestSubroundEndRound_DoEndRoundJobByLeaderVerificationFail(t *testing.T) {
 	t.Parallel()
 
-	t.Run("equivalent messages flag enabled and message already received", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-
-		wasHasEquivalentProofCalled := false
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				wasHasEquivalentProofCalled = true
-				return true
-			},
-		})
-
-		ch := make(chan bool, 1)
-		consensusState := initConsensusState()
-		sr, _ := spos.NewSubround(
-			bls.SrSignature,
-			bls.SrEndRound,
-			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
-			"(END_ROUND)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-		sr.Header = &block.HeaderV2{
-			Header: createDefaultHeader(),
-		}
-
-		srEndRound, _ := bls.NewSubroundEndRound(
-			sr,
-			bls.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
-		)
-
-		srEndRound.SetThreshold(bls.SrSignature, 2)
-
-		for _, participant := range srEndRound.ConsensusGroup() {
-			_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
-		}
-
-		r := srEndRound.DoEndRoundJobByLeader()
-		require.False(t, r)
-		require.True(t, wasHasEquivalentProofCalled)
-	})
 	t.Run("not enough valid signature shares", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		mutex := &sync.Mutex{}
+
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -1611,22 +1207,18 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 				return nil, nil
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-				mutex.Lock()
-				defer mutex.Unlock()
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
-					return expectedErr
+					return errors.New("expected error")
 				}
 
 				verifySigShareNumCalls++
 				return nil
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
-				mutex.Lock()
-				defer mutex.Unlock()
 				if verifyFirstCall {
 					verifyFirstCall = false
-					return expectedErr
+					return errors.New("expected error")
 				}
 
 				return nil
@@ -1640,7 +1232,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
 
-		sr.Header = &block.Header{}
+		sr.SetHeader(&block.Header{})
 
 		r := sr.DoEndRoundJobByLeader()
 		require.False(t, r)
@@ -1649,36 +1241,31 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		assert.Equal(t, 2, verifySigShareNumCalls)
 	})
 
-	t.Run("should work without equivalent messages flag active", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		verifySigShareNumCalls := 0
-		mutex := &sync.Mutex{}
 		verifyFirstCall := true
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-				mutex.Lock()
-				defer mutex.Unlock()
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
-					return expectedErr
+					return errors.New("expected error")
 				}
 
 				verifySigShareNumCalls++
 				return nil
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
-				mutex.Lock()
-				defer mutex.Unlock()
 				if verifyFirstCall {
 					verifyFirstCall = false
-					return expectedErr
+					return errors.New("expected error")
 				}
 
 				return nil
@@ -1689,90 +1276,17 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		sr.SetThreshold(bls.SrEndRound, 2)
 
-		for _, participant := range sr.ConsensusGroup() {
-			_ = sr.SetJobDone(participant, bls.SrSignature, true)
-		}
+		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
+		_ = sr.SetJobDone(sr.ConsensusGroup()[2], bls.SrSignature, true)
 
-		sr.Header = &block.Header{}
+		sr.SetHeader(&block.Header{})
 
 		r := sr.DoEndRoundJobByLeader()
 		require.True(t, r)
 
 		assert.False(t, verifyFirstCall)
-		assert.Equal(t, 9, verifySigShareNumCalls)
-	})
-	t.Run("should work with equivalent messages flag active", func(t *testing.T) {
-		t.Parallel()
-
-		providedPrevSig := []byte("prev sig")
-		providedPrevBitmap := []byte{1, 1, 1, 1, 1, 1, 1, 1, 1}
-		container := consensusMocks.InitConsensusCore()
-		container.SetBlockchain(&testscommon.ChainHandlerStub{
-			GetGenesisHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{}
-			},
-		})
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-
-		wasSetCurrentHeaderProofCalled := false
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			AddProofCalled: func(headerProof data.HeaderProofHandler) error {
-				wasSetCurrentHeaderProofCalled = true
-				require.NotEqual(t, providedPrevSig, headerProof.GetAggregatedSignature())
-				require.NotEqual(t, providedPrevBitmap, headerProof.GetPubKeysBitmap())
-				return nil
-			},
-		})
-
-		ch := make(chan bool, 1)
-		consensusState := initConsensusState()
-		sr, _ := spos.NewSubround(
-			bls.SrSignature,
-			bls.SrEndRound,
-			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
-			"(END_ROUND)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		srEndRound, _ := bls.NewSubroundEndRound(
-			sr,
-			bls.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
-		)
-
-		srEndRound.SetThreshold(bls.SrEndRound, 2)
-
-		for _, participant := range srEndRound.ConsensusGroup() {
-			_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
-		}
-
-		srEndRound.Header = &block.HeaderV2{
-			Header:                   createDefaultHeader(),
-			ScheduledRootHash:        []byte("sch root hash"),
-			ScheduledAccumulatedFees: big.NewInt(0),
-			ScheduledDeveloperFees:   big.NewInt(0),
-			PreviousHeaderProof:      nil,
-		}
-
-		r := srEndRound.DoEndRoundJobByLeader()
-		require.True(t, r)
-		require.True(t, wasSetCurrentHeaderProofCalled)
+		assert.Equal(t, 3, verifySigShareNumCalls)
 	})
 }
 
@@ -1785,7 +1299,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.ConsensusState.Data = nil
+		sr.ConsensusStateHandler.SetData(nil)
 
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
@@ -1795,22 +1309,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
-	t.Run("consensus header is not set", func(t *testing.T) {
-		t.Parallel()
 
-		container := consensusMocks.InitConsensusCore()
-
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.Header = nil
-
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedInvalidSignersInfo(&cnsData)
-		assert.False(t, res)
-	})
 	t.Run("received message node is not leader in current round", func(t *testing.T) {
 		t.Parallel()
 
@@ -1834,6 +1333,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetSelfPubKey("A")
+		sr.SetLeader("A")
 
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
@@ -1854,7 +1354,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		sr, _ := spos.NewSubround(
 			bls.SrSignature,
 			bls.SrEndRound,
@@ -1871,13 +1371,13 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 		)
 
-		srEndRound, _ := bls.NewSubroundEndRound(
+		srEndRound, _ := v1.NewSubroundEndRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			extend,
+			v1.ProcessingThresholdPercent,
+			displayStatistics,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
 		srEndRound.SetSelfPubKey("A")
@@ -1906,6 +1406,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
+
 	t.Run("process received message verification failed, different round index", func(t *testing.T) {
 		t.Parallel()
 
@@ -1922,6 +1423,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
+
 	t.Run("empty invalid signers", func(t *testing.T) {
 		t.Parallel()
 
@@ -1937,9 +1439,11 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
+
 	t.Run("invalid signers data", func(t *testing.T) {
 		t.Parallel()
 
+		expectedErr := errors.New("expected error")
 		messageSigningHandler := &mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
 				return nil, expectedErr
@@ -1959,15 +1463,14 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.Header = &block.HeaderV2{
-			Header: createDefaultHeader(),
-		}
+
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
@@ -2152,6 +1655,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 		container.SetBroadcastMessenger(messenger)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetSelfPubKey("A")
+		sr.SetLeader("A")
 
 		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
 
@@ -2222,7 +1726,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	keysHandler := &testscommon.KeysHandlerStub{}
 	ch := make(chan bool, 1)
-	consensusState := initConsensusStateWithKeysHandler(keysHandler)
+	consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
@@ -2239,13 +1743,13 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 
-	srEndRound, _ := bls.NewSubroundEndRound(
+	srEndRound, _ := v1.NewSubroundEndRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		extend,
+		v1.ProcessingThresholdPercent,
+		displayStatistics,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
-		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {

@@ -1,4 +1,4 @@
-package bls_test
+package v2_test
 
 import (
 	"fmt"
@@ -9,9 +9,11 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 
+	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 
 	"github.com/stretchr/testify/assert"
@@ -28,23 +30,23 @@ import (
 
 var expErr = fmt.Errorf("expected error")
 
-func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
-	startRound, err := bls.NewSubroundStartRound(
+func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (v2.SubroundStartRound, error) {
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 
 	return startRound, err
 }
 
-func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.SubroundStartRound {
-	startRound, _ := bls.NewSubroundStartRound(
+func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) v2.SubroundStartRound {
+	startRound, _ := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 
 	return startRound
@@ -73,21 +75,21 @@ func defaultSubround(
 	)
 }
 
-func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bls.SubroundStartRound {
-	consensusState := initConsensusState()
+func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) v2.SubroundStartRound {
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubround(consensusState, ch, container)
-	srStartRound, _ := bls.NewSubroundStartRound(
+	srStartRound, _ := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 
 	return srStartRound
 }
 
-func initSubroundStartRound() bls.SubroundStartRound {
+func initSubroundStartRound() v2.SubroundStartRound {
 	container := consensus.InitConsensusCore()
 	return initSubroundStartRoundWithContainer(container)
 }
@@ -96,7 +98,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 	t.Parallel()
 
 	ch := make(chan bool, 1)
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	container := consensus.InitConsensusCore()
 	sr, _ := spos.NewSubround(
 		-1,
@@ -117,11 +119,11 @@ func TestNewSubroundStartRound(t *testing.T) {
 	t.Run("nil subround should error", func(t *testing.T) {
 		t.Parallel()
 
-		srStartRound, err := bls.NewSubroundStartRound(
+		srStartRound, err := v2.NewSubroundStartRound(
 			nil,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -130,22 +132,22 @@ func TestNewSubroundStartRound(t *testing.T) {
 	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srStartRound, err := bls.NewSubroundStartRound(
+		srStartRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			nil,
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
-		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, v2.ErrNilSentSignatureTracker, err)
 	})
 	t.Run("nil worker should error", func(t *testing.T) {
 		t.Parallel()
 
-		srStartRound, err := bls.NewSubroundStartRound(
+		srStartRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
 			nil,
 		)
@@ -160,7 +162,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *test
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -176,7 +178,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilBootstrapperShouldFail(t *te
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -191,12 +193,12 @@ func TestSubroundStartRound_NewSubroundStartRoundNilConsensusStateShouldFail(t *
 	t.Parallel()
 
 	container := consensus.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	sr.ConsensusState = nil
+	sr.ConsensusStateHandler = nil
 	srStartRound, err := defaultSubroundStartRoundFromSubround(sr)
 
 	assert.Nil(t, srStartRound)
@@ -208,7 +210,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilMultiSignerContainerShouldFa
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -224,7 +226,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilRoundHandlerShouldFail(t *te
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -240,7 +242,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilSyncTimerShouldFail(t *testi
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -256,7 +258,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -272,7 +274,7 @@ func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
@@ -288,12 +290,12 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 
 	container := consensus.InitConsensusCore()
 
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound := *defaultWithoutErrorSubroundStartRoundFromSubround(sr)
+	srStartRound := defaultWithoutErrorSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.DoStartRoundJob()
 	assert.True(t, r)
@@ -302,9 +304,9 @@ func TestSubroundStartRound_DoStartRoundShouldReturnTrue(t *testing.T) {
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundStartRound()
+	sr := initSubroundStartRound()
 
-	sr.RoundCanceled = true
+	sr.SetRoundCanceled(true)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)
@@ -313,7 +315,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRound
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundIsFinished(t *testing.T) {
 	t.Parallel()
 
-	sr := *initSubroundStartRound()
+	sr := initSubroundStartRound()
 
 	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
@@ -331,7 +333,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
-	sr := *initSubroundStartRoundWithContainer(container)
+	sr := initSubroundStartRoundWithContainer(container)
 	sentTrackerInterface := sr.GetSentSignatureTracker()
 	sentTracker := sentTrackerInterface.(*testscommon.SentSignatureTrackerStub)
 	startRoundCalled := false
@@ -355,7 +357,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 	container.SetBootStrapper(bootstrapperMock)
 	container.SetRoundHandler(initRoundHandlerMock())
 
-	sr := *initSubroundStartRoundWithContainer(container)
+	sr := initSubroundStartRoundWithContainer(container)
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)
@@ -372,7 +374,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNot
 	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -390,7 +392,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -407,7 +409,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenMainMachineIsAct
 	container := consensus.InitConsensusCore()
 	container.SetNodeRedundancyHandler(nodeRedundancyMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
@@ -434,7 +436,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	container := consensus.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -444,13 +446,13 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrueWhenIsNotInTheConsen
 	t.Parallel()
 
 	container := consensus.InitConsensusCore()
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	consensusState.SetSelfPubKey(consensusState.SelfPubKey() + "X")
 	ch := make(chan bool, 1)
 
 	sr, _ := defaultSubround(consensusState, ch, container)
 
-	srStartRound := *defaultWithoutErrorSubroundStartRoundFromSubround(sr)
+	srStartRound := defaultWithoutErrorSubroundStartRoundFromSubround(sr)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
@@ -468,7 +470,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 	container := consensus.InitConsensusCore()
 	container.SetRoundHandler(roundHandlerMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.False(t, r)
@@ -486,7 +488,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(bootstrapperMock)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	r := srStartRound.InitCurrentRound()
 	assert.True(t, r)
@@ -505,12 +507,12 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
-					assert.Equal(t, value, "not in consensus group")
+					assert.Equal(t, "not in consensus group", value)
 				}
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		consensusState.SetSelfPubKey("not in consensus")
 		sr, _ := spos.NewSubround(
 			-1,
@@ -528,11 +530,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -562,7 +564,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		consensusState.SetSelfPubKey("B")
 		sr, _ := spos.NewSubround(
 			-1,
@@ -580,11 +582,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -601,7 +603,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasCalled = true
-					assert.Equal(t, value, "participant")
+					assert.Equal(t, "participant", value)
 				}
 			},
 			IncrementHandler: func(key string) {
@@ -611,7 +613,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
 			return string(pkBytes) == consensusState.SelfPubKey()
 		}
@@ -631,11 +633,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -653,15 +655,15 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasMetricConsensusStateCalled = true
-					assert.Equal(t, value, "proposer")
+					assert.Equal(t, "proposer", value)
 				}
 				if key == common.MetricConsensusRoundState {
 					cntMetricConsensusRoundStateCalled++
 					switch cntMetricConsensusRoundStateCalled {
 					case 1:
-						assert.Equal(t, value, "")
+						assert.Equal(t, "", value)
 					case 2:
-						assert.Equal(t, value, "proposed")
+						assert.Equal(t, "proposed", value)
 					default:
 						assert.Fail(t, "should have been called only twice")
 					}
@@ -674,7 +676,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		leader, _ := consensusState.GetLeader()
 		consensusState.SetSelfPubKey(leader)
 		sr, _ := spos.NewSubround(
@@ -693,11 +695,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -716,15 +718,15 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			SetStringValueHandler: func(key string, value string) {
 				if key == common.MetricConsensusState {
 					wasMetricConsensusStateCalled = true
-					assert.Equal(t, value, "proposer")
+					assert.Equal(t, "proposer", value)
 				}
 				if key == common.MetricConsensusRoundState {
 					cntMetricConsensusRoundStateCalled++
 					switch cntMetricConsensusRoundStateCalled {
 					case 1:
-						assert.Equal(t, value, "")
+						assert.Equal(t, "", value)
 					case 2:
-						assert.Equal(t, value, "proposed")
+						assert.Equal(t, "proposed", value)
 					default:
 						assert.Fail(t, "should have been called only twice")
 					}
@@ -737,7 +739,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			},
 		}
 		ch := make(chan bool, 1)
-		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		consensusState := initializers.InitConsensusStateWithKeysHandler(keysHandler)
 		leader, _ := consensusState.GetLeader()
 		consensusState.SetSelfPubKey(leader)
 		keysHandler.IsKeyManagedByCurrentNodeCalled = func(pkBytes []byte) bool {
@@ -759,11 +761,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			appStatusHandler,
 		)
 
-		srStartRound, _ := bls.NewSubroundStartRound(
+		srStartRound, _ := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -774,7 +776,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
 	ch := make(chan bool, 1)
-	consensusState := initConsensusState()
+	consensusState := initializers.InitConsensusState()
 	sr, _ := spos.NewSubround(
 		-1,
 		bls.SrStartRound,
@@ -808,11 +810,11 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *test
 	container.SetBlockchain(chainHandlerMock)
 
 	sr := buildDefaultSubround(container)
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -835,11 +837,11 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 	container.SetSigningHandler(signingHandlerMock)
 
 	sr := buildDefaultSubround(container)
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -871,11 +873,11 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -915,11 +917,11 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -954,11 +956,11 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -997,11 +999,11 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 
 	sr := buildDefaultSubround(container)
 
-	startRound, err := bls.NewSubroundStartRound(
+	startRound, err := v2.NewSubroundStartRound(
 		sr,
-		bls.ProcessingThresholdPercent,
+		v2.ProcessingThresholdPercent,
 		&testscommon.SentSignatureTrackerStub{},
-		&mock.SposWorkerMock{},
+		&consensus.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -1049,11 +1051,11 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		sr := buildDefaultSubround(container)
 
-		startRound, err := bls.NewSubroundStartRound(
+		startRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
@@ -1078,11 +1080,11 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		sr := buildDefaultSubround(container)
 
-		startRound, err := bls.NewSubroundStartRound(
+		startRound, err := v2.NewSubroundStartRound(
 			sr,
-			bls.ProcessingThresholdPercent,
+			v2.ProcessingThresholdPercent,
 			&testscommon.SentSignatureTrackerStub{},
-			&mock.SposWorkerMock{},
+			&consensus.SposWorkerMock{},
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
@@ -1105,7 +1107,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 	container := consensus.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
-	srStartRound := *initSubroundStartRoundWithContainer(container)
+	srStartRound := initSubroundStartRoundWithContainer(container)
 
 	err2 := srStartRound.GenerateNextConsensusGroup(0)
 

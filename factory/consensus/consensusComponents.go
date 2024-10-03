@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/proxy"
 	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -279,28 +280,29 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	fct, err := sposFactory.GetSubroundsFactory(
-		consensusDataContainer,
-		consensusState,
-		cc.worker,
-		ccf.config.Consensus.Type,
-		ccf.statusCoreComponents.AppStatusHandler(),
-		ccf.statusComponents.OutportHandler(),
-		ccf.processComponents.SentSignaturesTracker(),
-		[]byte(ccf.coreComponents.ChainID()),
-		ccf.networkComponents.NetworkMessenger().ID(),
-		signatureThrottler,
-	)
+	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
+		Chronology:           cc.chronology,
+		ConsensusCoreHandler: consensusDataContainer,
+		ConsensusState:       consensusState,
+		Worker:               cc.worker,
+		SignatureThrottler:   signatureThrottler,
+		AppStatusHandler:     ccf.statusCoreComponents.AppStatusHandler(),
+		OutportHandler:       ccf.statusComponents.OutportHandler(),
+		SentSignatureTracker: ccf.processComponents.SentSignaturesTracker(),
+		EnableEpochsHandler:  ccf.coreComponents.EnableEpochsHandler(),
+		ChainID:              []byte(ccf.coreComponents.ChainID()),
+		CurrentPid:           ccf.networkComponents.NetworkMessenger().ID(),
+	}
+
+	subroundsHandler, err := proxy.NewSubroundsHandler(subroundsHandlerArgs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = fct.GenerateSubrounds()
+	err = subroundsHandler.Start(epoch)
 	if err != nil {
 		return nil, err
 	}
-
-	cc.chronology.StartRounds()
 
 	err = ccf.addCloserInstances(cc.chronology, cc.bootstrapper, cc.worker, ccf.coreComponents.SyncTimer())
 	if err != nil {

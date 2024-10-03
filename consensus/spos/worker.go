@@ -751,7 +751,7 @@ func (wrk *Worker) Close() error {
 }
 
 // ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
-func (wrk *Worker) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
+func (wrk *Worker) ResetConsensusMessages() {
 	wrk.consensusMessageValidator.resetConsensusMessages()
 	wrk.equivalentMessagesDebugger.ResetEquivalentMessages()
 }
