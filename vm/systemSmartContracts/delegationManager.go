@@ -19,6 +19,7 @@ import (
 
 const delegationManagementKey = "delegationManagement"
 const delegationContractsList = "delegationContracts"
+const maxAmountLength = 32
 
 var nextAddressAdd = big.NewInt(1 << 24)
 
@@ -158,7 +159,7 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.claimMulti(args)
 	case "reDelegateMulti":
 		return d.reDelegateMulti(args)
-	case "changeProvider":
+	case "changeStakingProvider":
 		return d.changeStakingProvider(args)
 	}
 
@@ -567,7 +568,7 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
+		return vmcommon.OutOfGas
 	}
 
 	amount := args.Arguments[0]
@@ -578,8 +579,16 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 		d.eei.AddReturnMessage("input argument missmatch, not an address")
 		return vmcommon.UserError
 	}
+	if bytes.Equal(delegationAddrA, delegationAddrB) {
+		d.eei.AddReturnMessage("invalid addresses, they are equal")
+		return vmcommon.UserError
+	}
+	if len(amount) > maxAmountLength {
+		d.eei.AddReturnMessage("invalid amount, too long")
+		return vmcommon.UserError
+	}
 
-	// step 1
+	// step 1 - remove delegation from source SP
 	removeDelegation := []byte("removeDelegationFromSource@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
 	vmOutput, err := d.eei.ExecuteOnDestContext(delegationAddrA, args.RecipientAddr, big.NewInt(0), removeDelegation)
 	if err != nil {
@@ -590,7 +599,7 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 		return vmOutput.ReturnCode
 	}
 
-	// step 2
+	// step 2 - add delegation to destination SP
 	moveDelegation := []byte("moveDelegationToDestination@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
 	vmOutput, err = d.eei.ExecuteOnDestContext(delegationAddrB, args.RecipientAddr, big.NewInt(0), moveDelegation)
 	if err != nil {
@@ -601,8 +610,8 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 		return vmOutput.ReturnCode
 	}
 
-	// step 3
-	moveStake := []byte("moveDelegationToDestination@" + hex.EncodeToString(amount) +
+	// step 3 - move funds internally in the validator SC between the 2 SPs
+	moveStake := []byte("moveStakeFromValidatorToValidator@" + hex.EncodeToString(amount) +
 		"@" + hex.EncodeToString(delegationAddrA) + "@" + hex.EncodeToString(delegationAddrB))
 	vmOutput, err = d.eei.ExecuteOnDestContext(d.validatorSCAddr, args.RecipientAddr, big.NewInt(0), moveStake)
 	if err != nil {
