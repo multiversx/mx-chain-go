@@ -42,8 +42,6 @@ type ConsensusState struct {
 	*roundConsensus
 	*roundThreshold
 	*roundStatus
-
-	mutState sync.RWMutex
 }
 
 // NewConsensusState creates a new ConsensusState object
@@ -64,54 +62,6 @@ func NewConsensusState(
 	return &cns
 }
 
-// GetRoundIndex will return round index
-func (cns *ConsensusState) GetRoundIndex() int64 {
-	cns.mutState.RLock()
-	defer cns.mutState.RUnlock()
-
-	return cns.RoundIndex
-}
-
-// SetRoundIndex will set round index
-func (cns *ConsensusState) SetRoundIndex(index int64) {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
-
-	cns.RoundIndex = index
-}
-
-// GetRoundCanceled will return round canceled state
-func (cns *ConsensusState) GetRoundCanceled() bool {
-	cns.mutState.RLock()
-	defer cns.mutState.RUnlock()
-
-	return cns.RoundCanceled
-}
-
-// SetRoundCanceled will set round canceled
-func (cns *ConsensusState) SetRoundCanceled(state bool) {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
-
-	cns.RoundCanceled = state
-}
-
-// GetWaitAllSignaturesTimeout will return wait all signatures timeout state
-func (cns *ConsensusState) GetWaitAllSignaturesTimeout() bool {
-	cns.mutState.RLock()
-	defer cns.mutState.RUnlock()
-
-	return cns.WaitingAllSignaturesTimeOut
-}
-
-// SetWaitAllSignaturesTimeout will set wait all signatures timeout state
-func (cns *ConsensusState) SetWaitAllSignaturesTimeout(state bool) {
-	cns.mutState.Lock()
-	defer cns.mutState.Unlock()
-
-	cns.WaitingAllSignaturesTimeOut = state
-}
-
 // ResetConsensusState method resets all the consensus data
 func (cns *ConsensusState) ResetConsensusState() {
 	cns.Body = nil
@@ -121,9 +71,9 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.initReceivedHeaders()
 	cns.initReceivedMessagesWithSig()
 
-	cns.SetRoundCanceled(false)
+	cns.RoundCanceled = false
 	cns.ExtendedCalled = false
-	cns.SetWaitAllSignaturesTimeout(false)
+	cns.WaitingAllSignaturesTimeOut = false
 
 	cns.ResetRoundStatus()
 	cns.ResetRoundState()

@@ -1067,7 +1067,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled
 	t.Parallel()
 	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	sr.SetRoundCanceled(true)
+	sr.RoundCanceled = true
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
 

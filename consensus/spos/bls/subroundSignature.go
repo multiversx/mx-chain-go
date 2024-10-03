@@ -238,7 +238,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 
 // doSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) doSignatureConsensusCheck() bool {
-	if sr.GetRoundCanceled() {
+	if sr.RoundCanceled {
 		return false
 	}
 
@@ -278,7 +278,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
-	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitAllSignaturesTimeout())
+	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
 	isJobDoneByLeader := isSelfLeader && isSignatureCollectionDone
 
 	isSelfJobDone := sr.IsSelfJobDone(sr.Current())
@@ -346,7 +346,7 @@ func (sr *subroundSignature) waitAllSignatures() {
 		return
 	}
 
-	sr.SetWaitAllSignaturesTimeout(true)
+	sr.WaitingAllSignaturesTimeOut = true
 
 	select {
 	case sr.ConsensusChannel() <- true:
@@ -434,7 +434,6 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 	}
 
 	isCurrentManagedKeyLeader := pk == leader
-
 	// TODO[cleanup cns finality]: update the check
 	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
 	shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||

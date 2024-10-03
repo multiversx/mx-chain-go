@@ -304,7 +304,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenRound
 
 	sr := *initSubroundStartRound()
 
-	sr.SetRoundCanceled(true)
+	sr.RoundCanceled = true
 
 	ok := sr.DoStartRoundConsensusCheck()
 	assert.False(t, ok)

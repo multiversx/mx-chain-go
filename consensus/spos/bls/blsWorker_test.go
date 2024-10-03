@@ -91,7 +91,7 @@ func initConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler
 		rstatus,
 	)
 	cns.Data = []byte("X")
-	cns.SetRoundIndex(0)
+	cns.RoundIndex = 0
 
 	return cns
 }
@@ -150,7 +150,7 @@ func createConsensusStateWithNodes(eligibleNodesPubKeys map[string]struct{}, con
 	)
 
 	cns.Data = []byte("X")
-	cns.SetRoundIndex(0)
+	cns.RoundIndex = 0
 	return cns
 }
 

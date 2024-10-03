@@ -749,7 +749,7 @@ func TestSubroundEndRound_DoEndRoundConsensusCheckShouldReturnFalseWhenRoundIsCa
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetRoundCanceled(true)
+	sr.RoundCanceled = true
 
 	ok := sr.DoEndRoundConsensusCheck()
 	assert.False(t, ok)
@@ -798,7 +798,7 @@ func TestSubroundEndRound_DoEndRoundJobByParticipant_RoundCanceledShouldReturnFa
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetRoundCanceled(true)
+	sr.RoundCanceled = true
 
 	cnsData := consensus.Message{}
 	res := sr.DoEndRoundJobByParticipant(&cnsData)

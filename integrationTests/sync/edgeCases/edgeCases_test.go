@@ -85,7 +85,7 @@ func TestSyncMetaNodeIsSyncingReceivedHigherRoundBlockFromShard(t *testing.T) {
 		WithSync:             true,
 	})
 	nodes = append(nodes, syncMetaNode)
-	syncMetaNode.RoundHandler.SetIndex(int64(round))
+	syncMetaNode.RoundHandler.IndexField = int64(round)
 
 	syncNodesSlice := []*integrationTests.TestProcessorNode{syncMetaNode}
 	for _, n := range nodes {

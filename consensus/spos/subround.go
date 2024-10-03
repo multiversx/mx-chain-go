@@ -150,7 +150,7 @@ func (sr *Subround) DoWork(ctx context.Context, roundHandler consensus.RoundHand
 			}
 		case <-time.After(roundHandler.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
-				sr.SetRoundCanceled(true)
+				sr.RoundCanceled = true
 				sr.Extend(sr.current)
 			}
 

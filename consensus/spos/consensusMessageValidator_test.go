@@ -765,7 +765,7 @@ func TestCheckConsensusMessageValidity_ErrMessageForPastRound(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.ConsensusState.SetRoundIndex(100)
+	consensusMessageValidatorArgs.ConsensusState.RoundIndex = 100
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	headerBytes := make([]byte, 100)
@@ -788,7 +788,7 @@ func TestCheckConsensusMessageValidity_ErrMessageTypeLimitReached(t *testing.T) 
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.ConsensusState.SetRoundIndex(10)
+	consensusMessageValidatorArgs.ConsensusState.RoundIndex = 10
 
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 	pubKey := []byte(consensusMessageValidatorArgs.ConsensusState.ConsensusGroup()[0])
@@ -834,7 +834,7 @@ func createMockConsensusMessage(args spos.ArgsConsensusMessageValidator, pubKey 
 		MsgType:         int64(msgType),
 		PubKey:          pubKey,
 		Signature:       createDummyByteSlice(SignatureSize),
-		RoundIndex:      args.ConsensusState.GetRoundIndex(),
+		RoundIndex:      args.ConsensusState.RoundIndex,
 		BlockHeaderHash: createDummyByteSlice(args.HeaderHashSize),
 	}
 }
@@ -853,7 +853,7 @@ func TestCheckConsensusMessageValidity_InvalidSignature(t *testing.T) {
 	consensusMessageValidatorArgs.PeerSignatureHandler = &mock.PeerSignatureHandler{
 		Signer: signer,
 	}
-	consensusMessageValidatorArgs.ConsensusState.SetRoundIndex(10)
+	consensusMessageValidatorArgs.ConsensusState.RoundIndex = 10
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	headerBytes := make([]byte, 100)
@@ -876,7 +876,7 @@ func TestCheckConsensusMessageValidity_Ok(t *testing.T) {
 	t.Parallel()
 
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	consensusMessageValidatorArgs.ConsensusState.SetRoundIndex(10)
+	consensusMessageValidatorArgs.ConsensusState.RoundIndex = 10
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
 
 	headerBytes := make([]byte, 100)
