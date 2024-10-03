@@ -225,8 +225,6 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	heartbeatPool, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	proofsPool := proofscache.NewProofsPool()
-
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -244,7 +242,6 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		PeerAuthentications:       peerAuthPool,
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
-		Proofs:                    proofsPool,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

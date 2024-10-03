@@ -976,14 +976,10 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		highestPrevFinalBlockNonce,
 	)
 
-	if bp.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
-		if err != nil {
-			log.Warn("failed to cleanup notarized proofs behind nonce",
-				"nonce", noncesToPrevFinal,
-				"shardID", bp.shardCoordinator.SelfId(),
-				"error", err)
-		}
+	err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
+	if err != nil {
+		log.Warn("%w: failed to cleanup notarized proofs behind nonce %d on shardID %d",
+			err, noncesToPrevFinal, bp.shardCoordinator.SelfId())
 	}
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1015,14 +1011,10 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		crossNotarizedHeader.GetNonce(),
 	)
 
-	if bp.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
-		if err != nil {
-			log.Warn("failed to cleanup notarized proofs behind nonce",
-				"nonce", noncesToPrevFinal,
-				"shardID", shardID,
-				"error", err)
-		}
+	err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
+	if err != nil {
+		log.Warn("%w: failed to cleanup notarized proofs behind nonce %d on shardID %d",
+			err, noncesToPrevFinal, shardID)
 	}
 }
 
