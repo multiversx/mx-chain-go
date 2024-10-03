@@ -843,8 +843,10 @@ const (
 	ChainParametersOrder
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
 	NodesCoordinatorOrder
-	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
-	ConsensusOrder
+	// ConsensusHandlerOrder defines the order in which ConsensusHandler is notified of a start of epoch event
+	ConsensusHandlerOrder
+	// ConsensusStartRoundOrder defines the order in which Consensus StartRound subround is notified of a start of epoch event
+	ConsensusStartRoundOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which indexer is notified of a start of epoch event

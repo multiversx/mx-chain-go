@@ -82,7 +82,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 			return nil
 		},
 	}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
 	poolAdder := cache.NewCacherMock()
@@ -149,8 +149,8 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	return sposWorker
 }
 
-func initRoundHandlerMock() *mock.RoundHandlerMock {
-	return &mock.RoundHandlerMock{
+func initRoundHandlerMock() *consensusMocks.RoundHandlerMock {
+	return &consensusMocks.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -797,7 +797,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		},
 	})
 
-	wrk.SetRoundHandler(&mock.RoundHandlerMock{
+	wrk.SetRoundHandler(&consensusMocks.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration
