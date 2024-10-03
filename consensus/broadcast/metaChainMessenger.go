@@ -48,7 +48,12 @@ func NewMetaChainMessenger(
 		commonMessenger: cm,
 	}
 
-	err = mcm.delayedBlockBroadcaster.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader, mcm.BroadcastConsensusMessage)
+	err = mcm.delayedBlockBroadcaster.SetBroadcastHandlers(
+		mcm.BroadcastMiniBlocks,
+		mcm.BroadcastTransactions,
+		mcm.BroadcastHeader,
+		mcm.BroadcastEquivalentProof,
+		mcm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +113,22 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByte
 	}
 
 	mcm.broadcast(factory.MetachainBlocksTopic, msgHeader, pkBytes)
+
+	return nil
+}
+
+// BroadcastEquivalentProof will broadcast the proof for a header on the metachain common topic
+func (mcm *metaChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
+	if check.IfNilReflect(proof) {
+		return spos.ErrNilHeader
+	}
+
+	msgProof, err := mcm.marshalizer.Marshal(proof)
+	if err != nil {
+		return err
+	}
+
+	mcm.broadcast(common.EquivalentProofsTopic, msgProof, pkBytes)
 
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -186,11 +187,15 @@ func (cm *commonMessenger) BroadcastBlockData(
 	}
 }
 
-// PrepareBroadcastFinalConsensusMessage prepares the validator final info data broadcast for when its turn comes
-func (cm *commonMessenger) PrepareBroadcastFinalConsensusMessage(message *consensus.Message, consensusIndex int) {
-	err := cm.delayedBlockBroadcaster.SetFinalConsensusMessageForValidator(message, consensusIndex)
+// PrepareBroadcastEquivalentProof prepares the validator final info data broadcast for when its turn comes
+func (cm *commonMessenger) PrepareBroadcastEquivalentProof(
+	proof *block.HeaderProof,
+	consensusIndex int,
+	pkBytes []byte,
+) {
+	err := cm.delayedBlockBroadcaster.SetFinalProofForValidator(proof, consensusIndex, pkBytes)
 	if err != nil {
-		log.Error("commonMessenger.PrepareBroadcastFinalConsensusMessage", "error", err)
+		log.Error("commonMessenger.PrepareBroadcastEquivalentProof", "error", err)
 	}
 }
 

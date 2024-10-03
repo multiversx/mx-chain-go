@@ -52,7 +52,12 @@ func NewShardChainMessenger(
 		commonMessenger: cm,
 	}
 
-	err = scm.delayedBlockBroadcaster.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader, scm.BroadcastConsensusMessage)
+	err = scm.delayedBlockBroadcaster.SetBroadcastHandlers(
+		scm.BroadcastMiniBlocks,
+		scm.BroadcastTransactions,
+		scm.BroadcastHeader,
+		scm.BroadcastEquivalentProof,
+		scm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +124,23 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByt
 
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	scm.broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader, pkBytes)
+
+	return nil
+}
+
+// BroadcastEquivalentProof will broadcast the proof for a header on the shard metachain common topic
+func (scm *shardChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
+	if check.IfNilReflect(proof) {
+		return spos.ErrNilHeader
+	}
+
+	msgProof, err := scm.marshalizer.Marshal(proof)
+	if err != nil {
+		return err
+	}
+
+	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	scm.broadcast(common.EquivalentProofsTopic+shardIdentifier, msgProof, pkBytes)
 
 	return nil
 }

@@ -162,15 +162,6 @@ type SentSignaturesTracker interface {
 	IsInterfaceNil() bool
 }
 
-// EquivalentMessagesDebugger defines the specific debugger for equivalent messages
-type EquivalentMessagesDebugger interface {
-	UpsertEquivalentMessage(headerHash []byte)
-	DisplayEquivalentMessagesStatistics()
-	ResetEquivalentMessages()
-	DeleteEquivalentMessage(headerHash []byte)
-	IsInterfaceNil() bool
-}
-
 // ConsensusStateHandler encapsulates all needed data for the Consensus
 type ConsensusStateHandler interface {
 	ResetConsensusState()
