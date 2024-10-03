@@ -187,7 +187,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 	}
 }
 
-// PrepareBroadcastEquivalentProof prepares the validator final info data broadcast for when its turn comes
+// PrepareBroadcastEquivalentProof sets the proof into the delayed block broadcaster
 func (cm *commonMessenger) PrepareBroadcastEquivalentProof(
 	proof *block.HeaderProof,
 	consensusIndex int,
@@ -244,4 +244,19 @@ func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) 
 	}
 
 	cm.messenger.BroadcastUsingPrivateKey(topic, data, pid, skBytes)
+}
+
+func (cm *commonMessenger) broadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte, topic string) error {
+	if check.IfNilReflect(proof) {
+		return spos.ErrNilHeaderProof
+	}
+
+	msgProof, err := cm.marshalizer.Marshal(proof)
+	if err != nil {
+		return err
+	}
+
+	cm.broadcast(topic, msgProof, pkBytes)
+
+	return nil
 }

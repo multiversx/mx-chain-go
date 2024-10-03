@@ -119,19 +119,10 @@ func (mcm *metaChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByte
 
 // BroadcastEquivalentProof will broadcast the proof for a header on the metachain common topic
 func (mcm *metaChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
-	if check.IfNilReflect(proof) {
-		return spos.ErrNilHeader
-	}
-
-	msgProof, err := mcm.marshalizer.Marshal(proof)
-	if err != nil {
-		return err
-	}
-
 	identifierMetaAll := mcm.shardCoordinator.CommunicationIdentifier(core.AllShardId)
-	mcm.broadcast(common.EquivalentProofsTopic+identifierMetaAll, msgProof, pkBytes)
+	topic := common.EquivalentProofsTopic + identifierMetaAll
 
-	return nil
+	return mcm.broadcastEquivalentProof(proof, pkBytes, topic)
 }
 
 // BroadcastBlockDataLeader broadcasts the block data as consensus group leader

@@ -130,19 +130,10 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByt
 
 // BroadcastEquivalentProof will broadcast the proof for a header on the shard metachain common topic
 func (scm *shardChainMessenger) BroadcastEquivalentProof(proof *block.HeaderProof, pkBytes []byte) error {
-	if check.IfNilReflect(proof) {
-		return spos.ErrNilHeader
-	}
-
-	msgProof, err := scm.marshalizer.Marshal(proof)
-	if err != nil {
-		return err
-	}
-
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	scm.broadcast(common.EquivalentProofsTopic+shardIdentifier, msgProof, pkBytes)
+	topic := common.EquivalentProofsTopic + shardIdentifier
 
-	return nil
+	return scm.broadcastEquivalentProof(proof, pkBytes, topic)
 }
 
 // BroadcastBlockDataLeader broadcasts the block data as consensus group leader
