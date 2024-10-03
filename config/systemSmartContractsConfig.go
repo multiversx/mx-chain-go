@@ -73,6 +73,7 @@ type DelegationSystemSCConfig struct {
 	MinServiceFee                    uint64
 	MaxServiceFee                    uint64
 	IncreaseFeeCoolDownPeriodInEpoch uint64
+	MigrateCoolDownPeriodInEpoch     uint64
 }
 
 // SoftAuctionConfig represents the config options for soft auction selecting used in staking v4
