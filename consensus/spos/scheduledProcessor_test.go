@@ -8,9 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,7 +32,7 @@ func TestNewScheduledProcessorWrapper_NilSyncTimerShouldErr(t *testing.T) {
 	args := ScheduledProcessorWrapperArgs{
 		SyncTimer:                nil,
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -42,9 +44,9 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                &mock.SyncTimerMock{},
+		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                nil,
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -56,7 +58,7 @@ func TestNewScheduledProcessorWrapper_NilRoundTimeDurationHandlerShouldErr(t *te
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                &mock.SyncTimerMock{},
+		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                &testscommon.BlockProcessorStub{},
 		RoundTimeDurationHandler: nil,
 	}
@@ -70,9 +72,9 @@ func TestNewScheduledProcessorWrapper_NilBlockProcessorOK(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                &mock.SyncTimerMock{},
+		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -85,14 +87,14 @@ func TestScheduledProcessorWrapper_IsProcessedOKEarlyExit(t *testing.T) {
 
 	called := atomic.Flag{}
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{
+		SyncTimer: &consensus.SyncTimerMock{
 			CurrentTimeCalled: func() time.Time {
 				called.SetValue(true)
 				return time.Now()
 			},
 		},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, err := NewScheduledProcessorWrapper(args)
@@ -112,13 +114,13 @@ func TestScheduledProcessorWrapper_IsProcessedOKEarlyExit(t *testing.T) {
 
 func defaultScheduledProcessorWrapperArgs() ScheduledProcessorWrapperArgs {
 	return ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{
+		SyncTimer: &consensus.SyncTimerMock{
 			CurrentTimeCalled: func() time.Time {
 				return time.Now()
 			},
 		},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 }
 
@@ -227,9 +229,9 @@ func TestScheduledProcessorWrapper_StatusGetterAndSetter(t *testing.T) {
 	t.Parallel()
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer:                &mock.SyncTimerMock{},
+		SyncTimer:                &consensus.SyncTimerMock{},
 		Processor:                &testscommon.BlockProcessorStub{},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -250,14 +252,14 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV1ProcessingOK(
 
 	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{},
+		SyncTimer: &consensus.SyncTimerMock{},
 		Processor: &testscommon.BlockProcessorStub{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 				processScheduledCalled.SetValue(true)
 				return nil
 			},
 		},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -276,14 +278,14 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingWit
 
 	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{},
+		SyncTimer: &consensus.SyncTimerMock{},
 		Processor: &testscommon.BlockProcessorStub{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 				processScheduledCalled.SetValue(true)
 				return errors.New("processing error")
 			},
 		},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -304,14 +306,14 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ProcessingOK(
 
 	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{},
+		SyncTimer: &consensus.SyncTimerMock{},
 		Processor: &testscommon.BlockProcessorStub{
 			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 				processScheduledCalled.SetValue(true)
 				return nil
 			},
 		},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	sp, _ := NewScheduledProcessorWrapper(args)
@@ -333,7 +335,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 	processScheduledCalled := atomic.Flag{}
 
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{
+		SyncTimer: &consensus.SyncTimerMock{
 			CurrentTimeCalled: func() time.Time {
 				return time.Now()
 			},
@@ -350,7 +352,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopped(
 				}
 			},
 		},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	spw, err := NewScheduledProcessorWrapper(args)
@@ -374,7 +376,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 
 	processScheduledCalled := atomic.Flag{}
 	args := ScheduledProcessorWrapperArgs{
-		SyncTimer: &mock.SyncTimerMock{
+		SyncTimer: &consensus.SyncTimerMock{
 			CurrentTimeCalled: func() time.Time {
 				return time.Now()
 			},
@@ -386,7 +388,7 @@ func TestScheduledProcessorWrapper_StartScheduledProcessingHeaderV2ForceStopAfte
 				return nil
 			},
 		},
-		RoundTimeDurationHandler: &mock.RoundHandlerMock{},
+		RoundTimeDurationHandler: &consensus.RoundHandlerMock{},
 	}
 
 	spw, err := NewScheduledProcessorWrapper(args)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -22,7 +23,7 @@ const (
 // situation of the Subround and Check function will decide if in this Subround the consensus is achieved
 type Subround struct {
 	ConsensusCoreHandler
-	*ConsensusState
+	ConsensusStateHandler
 
 	previous   int
 	current    int
@@ -50,7 +51,7 @@ func NewSubround(
 	startTime int64,
 	endTime int64,
 	name string,
-	consensusState *ConsensusState,
+	consensusState ConsensusStateHandler,
 	consensusStateChangedChannel chan bool,
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
@@ -72,7 +73,7 @@ func NewSubround(
 
 	sr := Subround{
 		ConsensusCoreHandler:         container,
-		ConsensusState:               consensusState,
+		ConsensusStateHandler:        consensusState,
 		previous:                     previous,
 		current:                      current,
 		next:                         next,
@@ -93,7 +94,7 @@ func NewSubround(
 }
 
 func checkNewSubroundParams(
-	state *ConsensusState,
+	state ConsensusStateHandler,
 	consensusStateChangedChannel chan bool,
 	executeStoredMessages func(),
 	container ConsensusCoreHandler,
@@ -150,7 +151,7 @@ func (sr *Subround) DoWork(ctx context.Context, roundHandler consensus.RoundHand
 			}
 		case <-time.After(roundHandler.RemainingTime(startTime, maxTime)):
 			if sr.Extend != nil {
-				sr.RoundCanceled = true
+				sr.SetRoundCanceled(true)
 				sr.Extend(sr.current)
 			}
 
@@ -211,7 +212,7 @@ func (sr *Subround) ConsensusChannel() chan bool {
 
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes
 func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
-	return sr.keysHandler.GetAssociatedPid(pkBytes)
+	return sr.GetKeysHandler().GetAssociatedPid(pkBytes)
 }
 
 // ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
@@ -235,11 +236,11 @@ func (sr *Subround) IsSelfInConsensusGroup() bool {
 // IsSelfLeader returns true is the current node is leader is single key or in
 // multi-key mode
 func (sr *Subround) IsSelfLeader() bool {
-	return sr.isSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	return sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
 }
 
-// isSelfLeaderInCurrentRound method checks if the current node is leader in the current round
-func (sr *Subround) isSelfLeaderInCurrentRound() bool {
+// IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
+func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
 	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 }
 
@@ -249,7 +250,7 @@ func (sr *Subround) GetLeaderStartRoundMessage() string {
 	if sr.IsMultiKeyLeaderInCurrentRound() {
 		return multiKeyStartMsg
 	}
-	if sr.isSelfLeaderInCurrentRound() {
+	if sr.IsSelfLeaderInCurrentRound() {
 		return singleKeyStartMsg
 	}
 

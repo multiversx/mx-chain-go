@@ -234,3 +234,8 @@ func (rcns *roundConsensus) IsKeyManagedBySelf(pkBytes []byte) bool {
 func (rcns *roundConsensus) IncrementRoundsWithoutReceivedMessages(pkBytes []byte) {
 	rcns.keysHandler.IncrementRoundsWithoutReceivedMessages(pkBytes)
 }
+
+// GetKeysHandler returns the keysHandler instance
+func (rcns *roundConsensus) GetKeysHandler() consensus.KeysHandler {
+	return rcns.keysHandler
+}

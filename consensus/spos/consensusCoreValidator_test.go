@@ -25,9 +25,9 @@ func initConsensusDataContainer() *ConsensusCore {
 	chronologyHandlerMock := consensusMocks.InitChronologyHandlerMock()
 	multiSignerMock := cryptoMocks.NewMultiSigner()
 	hasherMock := &hashingMocks.HasherMock{}
-	roundHandlerMock := &mock.RoundHandlerMock{}
+	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
