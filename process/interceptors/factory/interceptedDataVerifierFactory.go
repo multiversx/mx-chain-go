@@ -54,6 +54,7 @@ func (idvf *interceptedDataVerifierFactory) Create(topic string) (process.Interc
 	return interceptors.NewInterceptedDataVerifier(internalCache)
 }
 
+// Close will close all the sweeping routines created by the cache.
 func (idvf *interceptedDataVerifierFactory) Close() error {
 	for topic, cacher := range idvf.interceptedDataVerifierMap {
 		err := cacher.Close()
