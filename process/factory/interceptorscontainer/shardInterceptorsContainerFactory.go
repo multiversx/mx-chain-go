@@ -7,7 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -81,6 +83,9 @@ func NewShardInterceptorsContainerFactory(
 	if check.IfNil(args.PeerSignatureHandler) {
 		return nil, process.ErrNilPeerSignatureHandler
 	}
+	if check.IfNil(args.InterceptedDataVerifierFactory) {
+		return nil, process.ErrNilInterceptedDataVerifierFactory
+	}
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
@@ -104,28 +109,29 @@ func NewShardInterceptorsContainerFactory(
 	}
 
 	base := &baseInterceptorsContainerFactory{
-		mainContainer:              containers.NewInterceptorsContainer(),
-		fullArchiveContainer:       containers.NewInterceptorsContainer(),
-		accounts:                   args.Accounts,
-		shardCoordinator:           args.ShardCoordinator,
-		mainMessenger:              args.MainMessenger,
-		fullArchiveMessenger:       args.FullArchiveMessenger,
-		store:                      args.Store,
-		dataPool:                   args.DataPool,
-		nodesCoordinator:           args.NodesCoordinator,
-		argInterceptorFactory:      argInterceptorFactory,
-		blockBlackList:             args.BlockBlackList,
-		maxTxNonceDeltaAllowed:     args.MaxTxNonceDeltaAllowed,
-		antifloodHandler:           args.AntifloodHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:       args.PreferredPeersHolder,
-		hasher:                     args.CoreComponents.Hasher(),
-		requestHandler:             args.RequestHandler,
-		mainPeerShardMapper:        args.MainPeerShardMapper,
-		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
-		hardforkTrigger:            args.HardforkTrigger,
-		nodeOperationMode:          args.NodeOperationMode,
+		mainContainer:                  containers.NewInterceptorsContainer(),
+		fullArchiveContainer:           containers.NewInterceptorsContainer(),
+		accounts:                       args.Accounts,
+		shardCoordinator:               args.ShardCoordinator,
+		mainMessenger:                  args.MainMessenger,
+		fullArchiveMessenger:           args.FullArchiveMessenger,
+		store:                          args.Store,
+		dataPool:                       args.DataPool,
+		nodesCoordinator:               args.NodesCoordinator,
+		argInterceptorFactory:          argInterceptorFactory,
+		blockBlackList:                 args.BlockBlackList,
+		maxTxNonceDeltaAllowed:         args.MaxTxNonceDeltaAllowed,
+		antifloodHandler:               args.AntifloodHandler,
+		whiteListHandler:               args.WhiteListHandler,
+		whiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:           args.PreferredPeersHolder,
+		hasher:                         args.CoreComponents.Hasher(),
+		requestHandler:                 args.RequestHandler,
+		mainPeerShardMapper:            args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
+		hardforkTrigger:                args.HardforkTrigger,
+		nodeOperationMode:              args.NodeOperationMode,
+		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 	}
 
 	icf := &shardInterceptorsContainerFactory{

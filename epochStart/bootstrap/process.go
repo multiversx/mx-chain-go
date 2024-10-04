@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -52,7 +54,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
@@ -154,6 +155,8 @@ type epochStartBootstrap struct {
 	nodeType           core.NodeType
 	startEpoch         uint32
 	shuffledOut        bool
+
+	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 type baseDataInStorage struct {
@@ -193,6 +196,7 @@ type ArgsEpochStartBootstrap struct {
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 	EnableEpochsHandler             common.EnableEpochsHandler
+	InterceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
 }
 
 type dataToSync struct {
@@ -246,6 +250,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		enableEpochsHandler:             args.EnableEpochsHandler,
+		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -557,16 +562,17 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    e.coreComponentsHolder,
-		CryptoComponentsHolder:  e.cryptoComponentsHolder,
-		RequestHandler:          e.requestHandler,
-		Messenger:               e.mainMessenger,
-		ShardCoordinator:        e.shardCoordinator,
-		EconomicsData:           e.economicsData,
-		WhitelistHandler:        e.whiteListHandler,
-		StartInEpochConfig:      epochStartConfig,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		MetaBlockProcessor:      metaBlockProcessor,
+		CoreComponentsHolder:           e.coreComponentsHolder,
+		CryptoComponentsHolder:         e.cryptoComponentsHolder,
+		RequestHandler:                 e.requestHandler,
+		Messenger:                      e.mainMessenger,
+		ShardCoordinator:               e.shardCoordinator,
+		EconomicsData:                  e.economicsData,
+		WhitelistHandler:               e.whiteListHandler,
+		StartInEpochConfig:             epochStartConfig,
+		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
+		MetaBlockProcessor:             metaBlockProcessor,
+		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 	}
 	e.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
@@ -579,20 +585,21 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 func (e *epochStartBootstrap) createSyncers() error {
 	var err error
 	args := factoryInterceptors.ArgsEpochStartInterceptorContainer{
-		CoreComponents:          e.coreComponentsHolder,
-		CryptoComponents:        e.cryptoComponentsHolder,
-		Config:                  e.generalConfig,
-		ShardCoordinator:        e.shardCoordinator,
-		MainMessenger:           e.mainMessenger,
-		FullArchiveMessenger:    e.fullArchiveMessenger,
-		DataPool:                e.dataPool,
-		WhiteListHandler:        e.whiteListHandler,
-		WhiteListerVerifiedTxs:  e.whiteListerVerifiedTxs,
-		ArgumentsParser:         e.argumentsParser,
-		HeaderIntegrityVerifier: e.headerIntegrityVerifier,
-		RequestHandler:          e.requestHandler,
-		SignaturesHandler:       e.mainMessenger,
-		NodeOperationMode:       e.nodeOperationMode,
+		CoreComponents:                 e.coreComponentsHolder,
+		CryptoComponents:               e.cryptoComponentsHolder,
+		Config:                         e.generalConfig,
+		ShardCoordinator:               e.shardCoordinator,
+		MainMessenger:                  e.mainMessenger,
+		FullArchiveMessenger:           e.fullArchiveMessenger,
+		DataPool:                       e.dataPool,
+		WhiteListHandler:               e.whiteListHandler,
+		WhiteListerVerifiedTxs:         e.whiteListerVerifiedTxs,
+		ArgumentsParser:                e.argumentsParser,
+		HeaderIntegrityVerifier:        e.headerIntegrityVerifier,
+		RequestHandler:                 e.requestHandler,
+		SignaturesHandler:              e.mainMessenger,
+		NodeOperationMode:              e.nodeOperationMode,
+		InterceptedDataVerifierFactory: e.interceptedDataVerifierFactory,
 	}
 
 	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = factoryInterceptors.NewEpochStartInterceptorsContainer(args)

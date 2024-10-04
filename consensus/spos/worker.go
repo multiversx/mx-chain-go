@@ -587,7 +587,7 @@ func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 		return ErrMessageFromItself
 	}
 
-	if wrk.consensusState.RoundCanceled && wrk.consensusState.RoundIndex == cnsDta.RoundIndex {
+	if wrk.consensusState.GetRoundCanceled() && wrk.consensusState.GetRoundIndex() == cnsDta.RoundIndex {
 		return ErrRoundCanceled
 	}
 
@@ -623,7 +623,7 @@ func (wrk *Worker) executeMessage(cnsDtaList []*consensus.Message) {
 		if cnsDta == nil {
 			continue
 		}
-		if wrk.consensusState.RoundIndex != cnsDta.RoundIndex {
+		if wrk.consensusState.GetRoundIndex() != cnsDta.RoundIndex {
 			continue
 		}
 
@@ -674,7 +674,7 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 // Extend does an extension for the subround with subroundId
 func (wrk *Worker) Extend(subroundId int) {
-	wrk.consensusState.ExtendedCalled = true
+	wrk.consensusState.SetExtendedCalled(true)
 	log.Debug("extend function is called",
 		"subround", wrk.consensusService.GetSubroundName(subroundId))
 

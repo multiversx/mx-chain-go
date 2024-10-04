@@ -4,8 +4,9 @@ import (
 	"io"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/update"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/update"
 )
 
 // NetworkShardingCollector defines the updating methods used by the network sharding component

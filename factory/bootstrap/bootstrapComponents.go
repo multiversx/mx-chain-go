@@ -6,6 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -24,23 +26,23 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config               config.Config
-	RoundConfig          config.RoundConfig
-	PrefConfig           config.Preferences
-	ImportDbConfig       config.ImportDbConfig
-	FlagsConfig          config.ContextFlagsConfig
-	WorkingDir           string
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
+	Config                         config.Config
+	RoundConfig                    config.RoundConfig
+	PrefConfig                     config.Preferences
+	ImportDbConfig                 config.ImportDbConfig
+	FlagsConfig                    config.ContextFlagsConfig
+	WorkingDir                     string
+	CoreComponents                 factory.CoreComponentsHolder
+	CryptoComponents               factory.CryptoComponentsHolder
+	NetworkComponents              factory.NetworkComponentsHolder
+	StatusCoreComponents           factory.StatusCoreComponentsHolder
+	InterceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 }
 
 type bootstrapComponentsFactory struct {

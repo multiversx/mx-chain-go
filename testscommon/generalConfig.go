@@ -441,6 +441,10 @@ func GetGeneralConfig() config.Config {
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
 		},
+		InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+			CacheSpanInSec:   1,
+			CacheExpiryInSec: 1,
+		},
 	}
 }
 

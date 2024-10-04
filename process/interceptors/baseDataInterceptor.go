@@ -6,19 +6,21 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 type baseDataInterceptor struct {
-	throttler            process.InterceptorThrottler
-	antifloodHandler     process.P2PAntifloodHandler
-	topic                string
-	currentPeerId        core.PeerID
-	processor            process.InterceptorProcessor
-	mutDebugHandler      sync.RWMutex
-	debugHandler         process.InterceptedDebugger
-	preferredPeersHolder process.PreferredPeersHolderHandler
+	throttler               process.InterceptorThrottler
+	antifloodHandler        process.P2PAntifloodHandler
+	topic                   string
+	currentPeerId           core.PeerID
+	processor               process.InterceptorProcessor
+	mutDebugHandler         sync.RWMutex
+	debugHandler            process.InterceptedDebugger
+	preferredPeersHolder    process.PreferredPeersHolderHandler
+	interceptedDataVerifier process.InterceptedDataVerifier
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {

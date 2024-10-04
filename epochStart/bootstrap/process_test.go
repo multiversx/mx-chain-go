@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -251,9 +252,10 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
-		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TrieSyncStatisticsProvider:     &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:              disabledStatistics.NewStateStatistics(),
+		EnableEpochsHandler:            &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
 	}
 }
 
@@ -995,6 +997,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.whiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.storageService = &storageMocks.ChainStorerStub{}
+	epochStartProvider.interceptedDataVerifierFactory = &processMock.InterceptedDataVerifierFactoryMock{}
 
 	err := epochStartProvider.createSyncers()
 	assert.Nil(t, err)

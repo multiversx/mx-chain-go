@@ -699,6 +699,9 @@ var ErrNilWhiteListHandler = errors.New("nil whitelist handler")
 // ErrNilPreferredPeersHolder signals that preferred peers holder is nil
 var ErrNilPreferredPeersHolder = errors.New("nil preferred peers holder")
 
+// ErrNilInterceptedDataVerifier signals that intercepted data verifier is nil
+var ErrNilInterceptedDataVerifier = errors.New("nil intercepted data verifier")
+
 // ErrMiniBlocksInWrongOrder signals the miniblocks are in wrong order
 var ErrMiniBlocksInWrongOrder = errors.New("miniblocks in wrong order, should have been only from me")
 
@@ -1098,6 +1101,9 @@ var ErrInvalidExpiryTimespan = errors.New("invalid expiry timespan")
 // ErrNilPeerSignatureHandler signals that a nil peer signature handler was provided
 var ErrNilPeerSignatureHandler = errors.New("nil peer signature handler")
 
+// ErrNilInterceptedDataVerifierFactory signals that a nil intercepted data verifier factory was provided
+var ErrNilInterceptedDataVerifierFactory = errors.New("nil intercepted data verifier factory")
+
 // ErrNilPeerAuthenticationCacher signals that a nil peer authentication cacher was provided
 var ErrNilPeerAuthenticationCacher = errors.New("nil peer authentication cacher")
 
@@ -1254,5 +1260,11 @@ var ErrNilEquivalentProofsPool = errors.New("nil equivalent proofs pool")
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 
+// ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
+var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
+
 // ErrFlagNotActive signals that a flag is not active
 var ErrFlagNotActive = errors.New("flag not active")
+
+// ErrInvalidInterceptedData signals that an invalid data has been intercepted
+var ErrInvalidInterceptedData = errors.New("invalid intercepted data")

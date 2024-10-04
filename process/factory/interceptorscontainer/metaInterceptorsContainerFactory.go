@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -80,6 +81,9 @@ func NewMetaInterceptorsContainerFactory(
 	if check.IfNil(args.PeerSignatureHandler) {
 		return nil, process.ErrNilPeerSignatureHandler
 	}
+	if check.IfNil(args.InterceptedDataVerifierFactory) {
+		return nil, process.ErrNilInterceptedDataVerifierFactory
+	}
 	if args.HeartbeatExpiryTimespanInSec < minTimespanDurationInSec {
 		return nil, process.ErrInvalidExpiryTimespan
 	}
@@ -103,28 +107,29 @@ func NewMetaInterceptorsContainerFactory(
 	}
 
 	base := &baseInterceptorsContainerFactory{
-		mainContainer:              containers.NewInterceptorsContainer(),
-		fullArchiveContainer:       containers.NewInterceptorsContainer(),
-		shardCoordinator:           args.ShardCoordinator,
-		mainMessenger:              args.MainMessenger,
-		fullArchiveMessenger:       args.FullArchiveMessenger,
-		store:                      args.Store,
-		dataPool:                   args.DataPool,
-		nodesCoordinator:           args.NodesCoordinator,
-		blockBlackList:             args.BlockBlackList,
-		argInterceptorFactory:      argInterceptorFactory,
-		maxTxNonceDeltaAllowed:     args.MaxTxNonceDeltaAllowed,
-		accounts:                   args.Accounts,
-		antifloodHandler:           args.AntifloodHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		preferredPeersHolder:       args.PreferredPeersHolder,
-		hasher:                     args.CoreComponents.Hasher(),
-		requestHandler:             args.RequestHandler,
-		mainPeerShardMapper:        args.MainPeerShardMapper,
-		fullArchivePeerShardMapper: args.FullArchivePeerShardMapper,
-		hardforkTrigger:            args.HardforkTrigger,
-		nodeOperationMode:          args.NodeOperationMode,
+		mainContainer:                  containers.NewInterceptorsContainer(),
+		fullArchiveContainer:           containers.NewInterceptorsContainer(),
+		shardCoordinator:               args.ShardCoordinator,
+		mainMessenger:                  args.MainMessenger,
+		fullArchiveMessenger:           args.FullArchiveMessenger,
+		store:                          args.Store,
+		dataPool:                       args.DataPool,
+		nodesCoordinator:               args.NodesCoordinator,
+		blockBlackList:                 args.BlockBlackList,
+		argInterceptorFactory:          argInterceptorFactory,
+		maxTxNonceDeltaAllowed:         args.MaxTxNonceDeltaAllowed,
+		accounts:                       args.Accounts,
+		antifloodHandler:               args.AntifloodHandler,
+		whiteListHandler:               args.WhiteListHandler,
+		whiteListerVerifiedTxs:         args.WhiteListerVerifiedTxs,
+		preferredPeersHolder:           args.PreferredPeersHolder,
+		hasher:                         args.CoreComponents.Hasher(),
+		requestHandler:                 args.RequestHandler,
+		mainPeerShardMapper:            args.MainPeerShardMapper,
+		fullArchivePeerShardMapper:     args.FullArchivePeerShardMapper,
+		hardforkTrigger:                args.HardforkTrigger,
+		nodeOperationMode:              args.NodeOperationMode,
+		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -268,16 +273,22 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 		return nil, err
 	}
 
+	interceptedDataVerifier, err := micf.interceptedDataVerifierFactory.Create(topic)
+	if err != nil {
+		return nil, err
+	}
+
 	interceptor, err := processInterceptors.NewSingleDataInterceptor(
 		processInterceptors.ArgSingleDataInterceptor{
-			Topic:                topic,
-			DataFactory:          hdrFactory,
-			Processor:            hdrProcessor,
-			Throttler:            micf.globalThrottler,
-			AntifloodHandler:     micf.antifloodHandler,
-			WhiteListRequest:     micf.whiteListHandler,
-			CurrentPeerId:        micf.mainMessenger.ID(),
-			PreferredPeersHolder: micf.preferredPeersHolder,
+			Topic:                   topic,
+			DataFactory:             hdrFactory,
+			Processor:               hdrProcessor,
+			Throttler:               micf.globalThrottler,
+			AntifloodHandler:        micf.antifloodHandler,
+			WhiteListRequest:        micf.whiteListHandler,
+			CurrentPeerId:           micf.mainMessenger.ID(),
+			PreferredPeersHolder:    micf.preferredPeersHolder,
+			InterceptedDataVerifier: interceptedDataVerifier,
 		},
 	)
 	if err != nil {

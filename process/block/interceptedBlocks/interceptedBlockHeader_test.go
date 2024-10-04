@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
@@ -18,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
@@ -173,7 +174,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 	assert.True(t, inHdr.IsForCurrentShard())
 }
 
-//------- CheckValidity
+//------- Verify
 
 func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()
