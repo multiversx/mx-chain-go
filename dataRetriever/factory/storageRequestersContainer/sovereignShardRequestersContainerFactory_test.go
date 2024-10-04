@@ -22,7 +22,7 @@ func TestNewSovereignShardRequestersContainerFactory(t *testing.T) {
 		require.Nil(t, sovContainer)
 		require.Equal(t, errorsMx.ErrNilShardRequesterContainerFactory, err)
 	})
-	t.Run("nil input, should fail", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		args := getArgumentsShard()
 		shardContainer, _ := storagerequesterscontainer.NewShardRequestersContainerFactory(args)
 		sovContainer, err := storagerequesterscontainer.NewSovereignShardRequestersContainerFactory(shardContainer)
