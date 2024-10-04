@@ -507,7 +507,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 
 	innerTx2 := generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, big.NewInt(0), string(txDataField), 60_000_000)
 	innerTx2.RelayerAddr = relayer.Bytes
-	nonce++
 
 	innerTxs := []*transaction.Transaction{innerTx1, innerTx2}
 
