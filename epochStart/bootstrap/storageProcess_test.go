@@ -349,7 +349,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
+			metaBlock,
+			0,
+			sesb.importDbConfig.ImportDBTargetShardID,
+			sesb.timeToWaitForRequestedData,
+		)
 		assert.Nil(t, syncedHeaders)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -377,7 +382,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
+			metaBlock,
+			0,
+			sesb.importDbConfig.ImportDBTargetShardID,
+			sesb.timeToWaitForRequestedData,
+		)
 		assert.Nil(t, syncedHeaders)
 		assert.Equal(t, expectedErr, err)
 	})
@@ -422,7 +432,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			string(hdrHash2): &block.MetaBlock{},
 		}
 
-		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
+			metaBlock,
+			0,
+			sesb.importDbConfig.ImportDBTargetShardID,
+			sesb.timeToWaitForRequestedData,
+		)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedSyncedHeader, syncedHeaders)
 	})
@@ -452,7 +467,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
+		syncedHeaders, err := sesb.bootStrapShardProcessor.syncHeadersFromStorage(
+			metaBlock,
+			0,
+			sesb.importDbConfig.ImportDBTargetShardID,
+			sesb.timeToWaitForRequestedData,
+		)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedHeaders, syncedHeaders)
 	})
@@ -515,45 +535,12 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	sesb.epochStartMeta = metaBlock
 	sesb.prevEpochStartMeta = metaBlock
 
-	err := sesb.processNodesConfig([]byte("pubkey"))
+	var err error
+	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.bootStrapShardProcessor.processNodesConfigFromStorage([]byte("pubkey"), sesb.importDbConfig.ImportDBTargetShardID)
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodesConfig, sesb.nodesConfig)
 	assert.Equal(t, sesb.baseData.shardId, args.DestinationShardAsObserver)
-}
-
-func TestStorageEpochStartBootstrap_applyCurrentShardIDOnMiniblocksCopy(t *testing.T) {
-	t.Parallel()
-
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GeneralConfig = testscommon.GetGeneralConfig()
-
-	expectedShardId := uint32(3)
-	args.ImportDbConfig = config.ImportDbConfig{
-		ImportDBTargetShardID: expectedShardId,
-	}
-	sesb, _ := NewStorageEpochStartBootstrap(args)
-
-	metaBlock := &block.MetaBlock{
-		Epoch: 2,
-		MiniBlockHeaders: []block.MiniBlockHeader{
-			{
-				Hash:          []byte("hdrHash1"),
-				SenderShardID: 1,
-			},
-			{
-				Hash:          []byte("hdrHash2"),
-				SenderShardID: 2,
-			},
-		},
-	}
-	err := sesb.applyCurrentShardIDOnMiniblocksCopy(metaBlock)
-
-	assert.Nil(t, err)
-	for _, miniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
-		assert.Equal(t, expectedShardId, miniBlock.GetSenderShardID())
-	}
 }
 
 func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {

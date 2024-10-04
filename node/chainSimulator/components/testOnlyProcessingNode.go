@@ -367,6 +367,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
+		node.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	)
 	if err != nil {
 		return err

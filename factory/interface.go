@@ -19,6 +19,7 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
@@ -58,6 +59,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/update"
@@ -634,6 +636,9 @@ type RunTypeComponentsHolder interface {
 	SystemSCProcessorFactory() SystemSCProcessorFactory
 	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	DataRetrieverContainersSetter() DataRetrieverContainersSetter
+	BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler
+	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
+	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -695,5 +700,11 @@ type DataRetrieverContainersSetter interface {
 		resolversContainer dataRetriever.ResolversContainer,
 		requestersContainer dataRetriever.RequestersContainer,
 	) error
+	IsInterfaceNil() bool
+}
+
+// ExportHandlerFactoryCreator should create an export factory handler
+type ExportHandlerFactoryCreator interface {
+	CreateExportFactoryHandler(args ArgsExporter) (update.ExportFactoryHandler, error)
 	IsInterfaceNil() bool
 }

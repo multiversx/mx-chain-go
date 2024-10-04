@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -35,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
@@ -231,6 +233,15 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.dataRetrieverContainersSetter) {
 		return errors.ErrNilDataRetrieverContainersSetter
+	}
+	if check.IfNil(mrc.shardMessengerFactory) {
+		return errors.ErrNilBroadCastShardMessengerFactoryHandler
+	}
+	if check.IfNil(mrc.exportHandlerFactoryCreator) {
+		return errors.ErrNilExportHandlerFactoryCreator
+	}
+	if check.IfNil(mrc.validatorAccountsSyncerFactoryHandler) {
+		return errors.ErrNilValidatorAccountsDBSyncerFactory
 	}
 
 	return nil
@@ -762,6 +773,42 @@ func (mrc *managedRunTypeComponents) DataRetrieverContainersSetter() factory.Dat
 	}
 
 	return mrc.runTypeComponents.dataRetrieverContainersSetter
+}
+
+// BroadCastShardMessengerFactoryHandler returns the shard broadcast messenger factory
+func (mrc *managedRunTypeComponents) BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardMessengerFactory
+}
+
+// ExportHandlerFactoryCreator returns the export handler factory creator
+func (mrc *managedRunTypeComponents) ExportHandlerFactoryCreator() factory.ExportHandlerFactoryCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.exportHandlerFactoryCreator
+}
+
+// ValidatorAccountsSyncerFactoryHandler returns validator accounts syncer factory handler
+func (mrc *managedRunTypeComponents) ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.validatorAccountsSyncerFactoryHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

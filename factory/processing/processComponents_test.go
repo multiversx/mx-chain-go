@@ -1047,6 +1047,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilDataRetrieverContainersSetter))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil ExportHandlerFactoryCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ExportHandlerFactoryCreatorField = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilExportHandlerFactoryCreator))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1066,49 +1077,52 @@ func getSovereignRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub
 
 func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.RunTypeComponentsStub {
 	return &mainFactoryMocks.RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:              rt.BlockChainHookHandlerCreator(),
-		BlockProcessorFactory:                     rt.BlockProcessorCreator(),
-		BlockTrackerFactory:                       rt.BlockTrackerCreator(),
-		BootstrapperFromStorageFactory:            rt.BootstrapperFromStorageCreator(),
-		EpochStartBootstrapperFactory:             rt.EpochStartBootstrapperCreator(),
-		ForkDetectorFactory:                       rt.ForkDetectorCreator(),
-		HeaderValidatorFactory:                    rt.HeaderValidatorCreator(),
-		RequestHandlerFactory:                     rt.RequestHandlerCreator(),
-		ScheduledTxsExecutionFactory:              rt.ScheduledTxsExecutionCreator(),
-		TransactionCoordinatorFactory:             rt.TransactionCoordinatorCreator(),
-		ValidatorStatisticsProcessorFactory:       rt.ValidatorStatisticsProcessorCreator(),
-		AdditionalStorageServiceFactory:           rt.AdditionalStorageServiceCreator(),
-		SCProcessorFactory:                        rt.SCProcessorCreator(),
-		ConsensusModelType:                        rt.ConsensusModel(),
-		BootstrapperFactory:                       rt.BootstrapperCreator(),
-		SCResultsPreProcessorFactory:              rt.SCResultsPreProcessorCreator(),
-		VmContainerMetaFactory:                    rt.VmContainerMetaFactoryCreator(),
-		VmContainerShardFactory:                   rt.VmContainerShardFactoryCreator(),
-		AccountParser:                             rt.AccountsParser(),
-		AccountCreator:                            rt.AccountsCreator(),
-		VMContextCreatorHandler:                   rt.VMContextCreator(),
-		OutGoingOperationsPool:                    rt.OutGoingOperationsPoolHandler(),
-		DataCodec:                                 rt.DataCodecHandler(),
-		TopicsChecker:                             rt.TopicsCheckerHandler(),
-		ShardCoordinatorFactory:                   rt.ShardCoordinatorCreator(),
-		RequestersContainerFactory:                rt.RequestersContainerFactoryCreator(),
-		InterceptorsContainerFactory:              rt.InterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactory:            rt.ShardResolversContainerFactoryCreator(),
-		TxPreProcessorFactory:                     rt.TxPreProcessorCreator(),
-		ExtraHeaderSigVerifier:                    rt.ExtraHeaderSigVerifierHolder(),
-		GenesisBlockFactory:                       rt.GenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:                   rt.GenesisMetaBlockCheckerCreator(),
-		NodesSetupCheckerFactoryField:             rt.NodesSetupCheckerFactory(),
-		EpochStartTriggerFactoryField:             rt.EpochStartTriggerFactory(),
-		LatestDataProviderFactoryField:            rt.LatestDataProviderFactory(),
-		StakingToPeerFactoryField:                 rt.StakingToPeerFactory(),
-		ValidatorInfoCreatorFactoryField:          rt.ValidatorInfoCreatorFactory(),
-		APIProcessorCompsCreatorHandlerField:      rt.ApiProcessorCompsCreatorHandler(),
-		EndOfEpochEconomicsFactoryHandlerField:    rt.EndOfEpochEconomicsFactoryHandler(),
-		RewardsCreatorFactoryField:                rt.RewardsCreatorFactory(),
-		SystemSCProcessorFactoryField:             rt.SystemSCProcessorFactory(),
-		PreProcessorsContainerFactoryCreatorField: rt.PreProcessorsContainerFactoryCreator(),
-		DataRetrieverContainersSetterField:        rt.DataRetrieverContainersSetter(),
+		BlockChainHookHandlerFactory:               rt.BlockChainHookHandlerCreator(),
+		BlockProcessorFactory:                      rt.BlockProcessorCreator(),
+		BlockTrackerFactory:                        rt.BlockTrackerCreator(),
+		BootstrapperFromStorageFactory:             rt.BootstrapperFromStorageCreator(),
+		EpochStartBootstrapperFactory:              rt.EpochStartBootstrapperCreator(),
+		ForkDetectorFactory:                        rt.ForkDetectorCreator(),
+		HeaderValidatorFactory:                     rt.HeaderValidatorCreator(),
+		RequestHandlerFactory:                      rt.RequestHandlerCreator(),
+		ScheduledTxsExecutionFactory:               rt.ScheduledTxsExecutionCreator(),
+		TransactionCoordinatorFactory:              rt.TransactionCoordinatorCreator(),
+		ValidatorStatisticsProcessorFactory:        rt.ValidatorStatisticsProcessorCreator(),
+		AdditionalStorageServiceFactory:            rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                         rt.SCProcessorCreator(),
+		ConsensusModelType:                         rt.ConsensusModel(),
+		BootstrapperFactory:                        rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:               rt.SCResultsPreProcessorCreator(),
+		VmContainerMetaFactory:                     rt.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory:                    rt.VmContainerShardFactoryCreator(),
+		AccountParser:                              rt.AccountsParser(),
+		AccountCreator:                             rt.AccountsCreator(),
+		VMContextCreatorHandler:                    rt.VMContextCreator(),
+		OutGoingOperationsPool:                     rt.OutGoingOperationsPoolHandler(),
+		DataCodec:                                  rt.DataCodecHandler(),
+		TopicsChecker:                              rt.TopicsCheckerHandler(),
+		ShardCoordinatorFactory:                    rt.ShardCoordinatorCreator(),
+		RequestersContainerFactory:                 rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:               rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:             rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:                      rt.TxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:                     rt.ExtraHeaderSigVerifierHolder(),
+		GenesisBlockFactory:                        rt.GenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:                    rt.GenesisMetaBlockCheckerCreator(),
+		NodesSetupCheckerFactoryField:              rt.NodesSetupCheckerFactory(),
+		EpochStartTriggerFactoryField:              rt.EpochStartTriggerFactory(),
+		LatestDataProviderFactoryField:             rt.LatestDataProviderFactory(),
+		StakingToPeerFactoryField:                  rt.StakingToPeerFactory(),
+		ValidatorInfoCreatorFactoryField:           rt.ValidatorInfoCreatorFactory(),
+		APIProcessorCompsCreatorHandlerField:       rt.ApiProcessorCompsCreatorHandler(),
+		EndOfEpochEconomicsFactoryHandlerField:     rt.EndOfEpochEconomicsFactoryHandler(),
+		RewardsCreatorFactoryField:                 rt.RewardsCreatorFactory(),
+		SystemSCProcessorFactoryField:              rt.SystemSCProcessorFactory(),
+		PreProcessorsContainerFactoryCreatorField:  rt.PreProcessorsContainerFactoryCreator(),
+		DataRetrieverContainersSetterField:         rt.DataRetrieverContainersSetter(),
+		ShardMessengerFactoryField:                 rt.BroadCastShardMessengerFactoryHandler(),
+		ExportHandlerFactoryCreatorField:           rt.ExportHandlerFactoryCreator(),
+		ValidatorAccountsSyncerFactoryHandlerField: rt.ValidatorAccountsSyncerFactoryHandler(),
 	}
 }
 

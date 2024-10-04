@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -256,4 +257,82 @@ func TestSovereignResolverRequestHandler_RequestTrieNodes(t *testing.T) {
 	}
 
 	require.True(t, wasDataRequested)
+}
+
+func TestSovereignResolverRequestHandler_RequestFromDifferentContainersShouldCallShardBlocksTopic(t *testing.T) {
+	t.Parallel()
+
+	expectedTopic := factory.ShardBlocksTopic
+
+	intraShardRequesterCt := 0
+	crossShardRequesterCt := 0
+
+	requesterFinder := &dataRetrieverMocks.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+			intraShardRequesterCt++
+			require.Equal(t, expectedTopic, baseTopic)
+
+			switch baseTopic {
+			case factory.ShardBlocksTopic:
+				return &dataRetrieverMocks.HeaderRequesterStub{}, nil
+			case common.ValidatorInfoTopic, factory.MiniBlocksTopic:
+				return &dataRetrieverMocks.HashSliceRequesterStub{}, nil
+			}
+
+			require.Fail(t, "should not call on other topic")
+			return nil, nil
+		},
+		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+			crossShardRequesterCt++
+			return &dataRetrieverMocks.HeaderRequesterStub{}, nil
+		},
+	}
+
+	resolver, _ := NewResolverRequestHandler(
+		requesterFinder,
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		core.SovereignChainShardId,
+		time.Second,
+	)
+	sovResolver, _ := NewSovereignResolverRequestHandler(resolver)
+
+	sovResolver.RequestStartOfEpochMetaBlock(0)
+	require.Equal(t, 1, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestMetaHeader([]byte("hash"))
+	require.Equal(t, 2, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestMetaHeaderByNonce(0)
+	require.Equal(t, 3, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestShardHeader(core.SovereignChainShardId, []byte("hash"))
+	require.Equal(t, 4, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestShardHeaderByNonce(core.SovereignChainShardId, 0)
+	require.Equal(t, 5, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	expectedTopic = common.ValidatorInfoTopic
+	sovResolver.RequestValidatorInfo([]byte("hash"))
+	require.Equal(t, 6, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestValidatorsInfo([][]byte{[]byte("hash")})
+	require.Equal(t, 7, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	expectedTopic = factory.MiniBlocksTopic
+	sovResolver.RequestMiniBlock(core.SovereignChainShardId, []byte("hash"))
+	require.Equal(t, 8, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestMiniBlocks(core.SovereignChainShardId, [][]byte{[]byte("hash")})
+	require.Equal(t, 9, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
 }

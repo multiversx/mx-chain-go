@@ -850,3 +850,12 @@ var ErrNilPreProcessorsContainerFactoryCreator = errors.New("nil pre-processors 
 
 // ErrNilDataRetrieverContainersSetter signals that a nil data retriever container setter has been provided
 var ErrNilDataRetrieverContainersSetter = errors.New("nil data retriever container setter has been provided")
+
+// ErrNilBroadCastShardMessengerFactoryHandler signals that a nil shard messenger factory has been provided
+var ErrNilBroadCastShardMessengerFactoryHandler = errors.New("nil shard messenger factory has been provided")
+
+// ErrNilExportHandlerFactoryCreator signals that a nil export handler factory creator has been provided
+var ErrNilExportHandlerFactoryCreator = errors.New("nil export handler factory creator has been provided")
+
+// ErrNilValidatorAccountsDBSyncerFactory signals that a nil validator accounts db syncer factory has been provided
+var ErrNilValidatorAccountsDBSyncerFactory = errors.New("nil validator accounts db syncer factory has been provided")

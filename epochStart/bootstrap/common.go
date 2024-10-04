@@ -140,6 +140,12 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRequestHandlerCreator)
 	}
+	if check.IfNil(args.RunTypeComponents.RequestersContainerFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRequesterContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ValidatorAccountsSyncerFactoryHandler()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilValidatorAccountsDBSyncerFactory)
+	}
 
 	return nil
 }

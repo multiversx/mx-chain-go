@@ -9,22 +9,44 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
 )
+
+// ArgsSovereignTrigger defines args needed to create a sovereign trigger
+type ArgsSovereignTrigger struct {
+	*ArgsNewMetaEpochStartTrigger
+	ValidatorInfoSyncer process.ValidatorInfoSyncer
+}
 
 type sovereignTrigger struct {
 	*trigger
+	currentEpochValidatorInfoPool epochStart.ValidatorInfoCacher
+	validatorInfoSyncer           process.ValidatorInfoSyncer
 }
 
 // NewSovereignTrigger creates a new sovereign epoch start trigger
-func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger) (*sovereignTrigger, error) {
-	metaTrigger, err := newTrigger(args, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{}, dataRetriever.BlockHeaderUnit)
+func NewSovereignTrigger(args ArgsSovereignTrigger) (*sovereignTrigger, error) {
+	metaTrigger, err := newTrigger(args.ArgsNewMetaEpochStartTrigger, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{}, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return &sovereignTrigger{
-		trigger: metaTrigger,
-	}, nil
+	if check.IfNil(args.ValidatorInfoSyncer) {
+		return nil, epochStart.ErrNilValidatorInfoSyncer
+	}
+	if check.IfNil(args.DataPool.Headers()) {
+		return nil, process.ErrNilHeadersDataPool
+	}
+
+	st := &sovereignTrigger{
+		trigger:                       metaTrigger,
+		currentEpochValidatorInfoPool: args.DataPool.CurrentEpochValidatorInfo(),
+		validatorInfoSyncer:           args.ValidatorInfoSyncer,
+	}
+
+	args.DataPool.Headers().RegisterHandler(st.receivedBlock)
+
+	return st, nil
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
@@ -110,6 +132,58 @@ func (st *sovereignTrigger) revert(header data.HeaderHandler) error {
 
 	st.baseRevert(epochStartSovMeta, sovMetaHdr)
 	return nil
+}
+
+// receivedBlock is a callback function when a new block is received
+// upon receiving checks if trigger can be updated to notify subscribed epoch change handlers
+func (st *sovereignTrigger) receivedBlock(headerHandler data.HeaderHandler, _ []byte) {
+	st.mutTrigger.Lock()
+	defer st.mutTrigger.Unlock()
+
+	header, ok := headerHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return
+	}
+
+	if !header.IsStartOfEpochBlock() {
+		return
+	}
+
+	isMetaStartOfEpochForCurrentEpoch := header.GetEpoch() == st.epoch
+	if isMetaStartOfEpochForCurrentEpoch {
+		return
+	}
+
+	st.updateTrigger(header)
+}
+
+func (st *sovereignTrigger) updateTrigger(header data.MetaHeaderHandler) {
+	if !st.checkIfTriggerCanBeActivated(header) {
+		return
+	}
+
+	st.epochStartNotifier.NotifyEpochChangeConfirmed(header.GetEpoch())
+}
+
+func (st *sovereignTrigger) checkIfTriggerCanBeActivated(hdr data.HeaderHandler) bool {
+	missingMiniBlocksHashes, blockBody, err := st.validatorInfoSyncer.SyncMiniBlocks(hdr)
+	if err != nil {
+		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncMiniBlocks", "num missing mini blocks", len(missingMiniBlocksHashes), "error", err)
+		return false
+	}
+
+	missingValidatorsInfoHashes, validatorsInfo, err := st.validatorInfoSyncer.SyncValidatorsInfo(blockBody)
+	if err != nil {
+		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
+		return false
+	}
+
+	for validatorInfoHash, validatorInfo := range validatorsInfo {
+		st.currentEpochValidatorInfoPool.AddValidatorInfo([]byte(validatorInfoHash), validatorInfo)
+	}
+
+	st.epochStartNotifier.NotifyAllPrepare(hdr, blockBody)
+	return true
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
