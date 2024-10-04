@@ -12,6 +12,7 @@ import (
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -120,6 +121,7 @@ type runTypeComponents struct {
 	shardMessengerFactory                   sposFactory.BroadCastShardMessengerFactoryHandler
 	exportHandlerFactoryCreator             mainFactory.ExportHandlerFactoryCreator
 	validatorAccountsSyncerFactoryHandler   syncerFactory.ValidatorAccountsSyncerFactoryHandler
+	shardRequestersContainerCreatorHandler  storageRequestFactory.ShardRequestersContainerCreatorHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -296,6 +298,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		shardMessengerFactory:                   broadcastFactory.NewShardChainMessengerFactory(),
 		exportHandlerFactoryCreator:             updateFactory.NewExportHandlerFactoryCreator(),
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
+		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
 	}, nil
 }
 

@@ -859,3 +859,6 @@ var ErrNilExportHandlerFactoryCreator = errors.New("nil export handler factory c
 
 // ErrNilValidatorAccountsDBSyncerFactory signals that a nil validator accounts db syncer factory has been provided
 var ErrNilValidatorAccountsDBSyncerFactory = errors.New("nil validator accounts db syncer factory has been provided")
+
+// ErrNilShardRequestersContainerCreatorHandler signals that a nil shard requesters container creator has been provided
+var ErrNilShardRequestersContainerCreatorHandler = errors.New("nil shard requesters container creator has been provided")

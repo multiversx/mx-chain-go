@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	bootStrapFactory "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
@@ -90,6 +91,7 @@ type RunTypeComponentsHolder interface {
 	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
 	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
+	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
 	IsInterfaceNil() bool
 }
 
