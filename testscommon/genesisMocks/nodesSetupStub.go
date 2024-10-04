@@ -1,6 +1,7 @@
 package genesisMocks
 
 import (
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
@@ -27,6 +28,7 @@ type NodesSetupStub struct {
 	MinMetaHysteresisNodesCalled              func() uint32
 	GetChainIdCalled                          func() string
 	GetMinTransactionVersionCalled            func() uint32
+	ExportNodesConfigCalled                   func() config.NodesConfig
 }
 
 // InitialNodesPubKeys -
@@ -201,6 +203,15 @@ func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
 		return n.MinMetaHysteresisNodesCalled()
 	}
 	return 1
+}
+
+// ExportNodesConfig -
+func (n *NodesSetupStub) ExportNodesConfig() config.NodesConfig {
+	if n.ExportNodesConfigCalled != nil {
+		return n.ExportNodesConfigCalled()
+	}
+
+	return config.NodesConfig{}
 }
 
 // IsInterfaceNil -

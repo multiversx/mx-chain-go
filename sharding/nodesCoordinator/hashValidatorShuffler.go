@@ -20,10 +20,6 @@ var _ NodesShuffler = (*randHashShuffler)(nil)
 
 // NodesShufflerArgs defines the arguments required to create a nodes shuffler
 type NodesShufflerArgs struct {
-	NodesShard           uint32
-	NodesMeta            uint32
-	Hysteresis           float32
-	Adaptivity           bool
 	ShuffleBetweenShards bool
 	MaxNodesEnableConfig []config.MaxNodesChangeConfig
 	EnableEpochsHandler  common.EnableEpochsHandler
@@ -65,16 +61,11 @@ type randHashShuffler struct {
 	// when reinitialization of node in new shard is implemented
 	shuffleBetweenShards bool
 
-	adaptivity                bool
-	nodesShard                uint32
-	nodesMeta                 uint32
-	shardHysteresis           uint32
-	metaHysteresis            uint32
-	activeNodesConfig         config.MaxNodesChangeConfig
-	availableNodesConfigs     []config.MaxNodesChangeConfig
-	mutShufflerParams         sync.RWMutex
-	validatorDistributor      ValidatorsDistributor
-	enableEpochsHandler       common.EnableEpochsHandler
+	activeNodesConfig       config.MaxNodesChangeConfig
+	availableNodesConfigs   []config.MaxNodesChangeConfig
+	mutShufflerParams       sync.RWMutex
+	validatorDistributor    ValidatorsDistributor
+	enableEpochsHandler     common.EnableEpochsHandler
 	stakingV4Step2EnableEpoch uint32
 	flagStakingV4Step2        atomic.Flag
 	stakingV4Step3EnableEpoch uint32
@@ -118,8 +109,6 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 		stakingV4Step3EnableEpoch: args.EnableEpochs.StakingV4Step3EnableEpoch,
 	}
 
-	rxs.UpdateParams(args.NodesShard, args.NodesMeta, args.Hysteresis, args.Adaptivity)
-
 	if rxs.shuffleBetweenShards {
 		rxs.validatorDistributor = &CrossShardValidatorDistributor{}
 	} else {
@@ -131,52 +120,34 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	return rxs, nil
 }
 
-// UpdateParams updates the shuffler parameters
-// Should be called when new params are agreed through governance
-func (rhs *randHashShuffler) UpdateParams(
-	nodesShard uint32,
-	nodesMeta uint32,
-	hysteresis float32,
-	adaptivity bool,
-) {
-	// TODO: are there constraints we want to enforce? e.g min/max hysteresis
-	shardHysteresis := uint32(float32(nodesShard) * hysteresis)
-	metaHysteresis := uint32(float32(nodesMeta) * hysteresis)
-
-	rhs.mutShufflerParams.Lock()
-	rhs.shardHysteresis = shardHysteresis
-	rhs.metaHysteresis = metaHysteresis
-	rhs.nodesShard = nodesShard
-	rhs.nodesMeta = nodesMeta
-	rhs.adaptivity = adaptivity
-	rhs.mutShufflerParams.Unlock()
-}
-
 // UpdateNodeLists shuffles the nodes and returns the lists with the new nodes configuration
 // The function needs to ensure that:
-//  1. Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
-//  2. The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
-//     pools and leaving nodes list (if remaining nodes can still sustain the shard)
-//  3. shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
-//  4. Old waiting nodes list for each shard will be added to the remaining eligible nodes list
-//  5. The new nodes are equally distributed among the existing shards into waiting lists
-//  6. The shuffled out nodes are distributed among the existing shards into waiting lists.
-//     We may have three situations:
-//     a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
-//     we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
-//     that will be split.
-//     b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
-//     execute the shard merge
-//     c)  No change in the number of shards then nothing extra needs to be done
+//      1.  Old eligible nodes list will have up to shuffleOutThreshold percent nodes shuffled out from each shard
+//      2.  The leaving nodes are checked against the eligible nodes and waiting nodes and removed if present from the
+//          pools and leaving nodes list (if remaining nodes can still sustain the shard)
+//      3.  shuffledOutNodes = oldEligibleNodes + waitingListNodes - minNbNodesPerShard (for each shard)
+//      4.  Old waiting nodes list for each shard will be added to the remaining eligible nodes list
+//      5.  The new nodes are equally distributed among the existing shards into waiting lists
+//      6.  The shuffled out nodes are distributed among the existing shards into waiting lists.
+//          We may have three situations:
+//          a)  In case (shuffled out nodes + new nodes) > (nbShards * perShardHysteresis + minNodesPerShard) then
+//              we need to prepare for a split event, so a higher percentage of nodes need to be directed to the shard
+//              that will be split.
+//          b)  In case (shuffled out nodes + new nodes) < (nbShards * perShardHysteresis) then we can immediately
+//              execute the shard merge
+//          c)  No change in the number of shards then nothing extra needs to be done
 func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
-	rhs.updateShufflerConfig(args.Epoch)
+	chainParameters := args.ChainParameters
+
+	rhs.UpdateShufflerConfig(args.Epoch, chainParameters)
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
 	waitingAfterReshard := copyValidatorMap(args.Waiting)
 
-	args.AdditionalLeaving = removeDupplicates(args.UnStakeLeaving, args.AdditionalLeaving)
+	args.AdditionalLeaving = removeDuplicates(args.UnStakeLeaving, args.AdditionalLeaving)
 	totalLeavingNum := len(args.AdditionalLeaving) + len(args.UnStakeLeaving)
 
 	newNbShards := rhs.computeNewShards(
+		chainParameters,
 		args.Eligible,
 		args.Waiting,
 		len(args.NewNodes),
@@ -185,10 +156,10 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	)
 
 	rhs.mutShufflerParams.RLock()
-	canSplit := rhs.adaptivity && newNbShards > args.NbShards
-	canMerge := rhs.adaptivity && newNbShards < args.NbShards
-	nodesPerShard := rhs.nodesShard
-	nodesMeta := rhs.nodesMeta
+	canSplit := chainParameters.Adaptivity && newNbShards > args.NbShards
+	canMerge := chainParameters.Adaptivity && newNbShards < args.NbShards
+	nodesPerShard := chainParameters.ShardMinNumNodes
+	nodesMeta := chainParameters.MetachainMinNumNodes
 	rhs.mutShufflerParams.RUnlock()
 
 	if canSplit {
@@ -219,7 +190,7 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	})
 }
 
-func removeDupplicates(unstake []Validator, additionalLeaving []Validator) []Validator {
+func removeDuplicates(unstake []Validator, additionalLeaving []Validator) []Validator {
 	additionalCopy := make([]Validator, 0, len(additionalLeaving))
 	additionalCopy = append(additionalCopy, additionalLeaving...)
 
@@ -451,6 +422,7 @@ func removeLeavingNodesFromValidatorMaps(
 
 // computeNewShards determines the new number of shards based on the number of nodes in the network
 func (rhs *randHashShuffler) computeNewShards(
+	chainParameters config.ChainParametersByEpochConfig,
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	numNewNodes int,
@@ -468,10 +440,10 @@ func (rhs *randHashShuffler) computeNewShards(
 	nodesNewEpoch := uint32(nbEligible + nbWaiting + numNewNodes - numLeavingNodes)
 
 	rhs.mutShufflerParams.RLock()
-	maxNodesMeta := rhs.nodesMeta + rhs.metaHysteresis
-	maxNodesShard := rhs.nodesShard + rhs.shardHysteresis
+	maxNodesMeta := chainParameters.MetachainMinNumNodes + rhs.metaHysteresis(chainParameters)
+	maxNodesShard := chainParameters.ShardMinNumNodes + rhs.shardHysteresis(chainParameters)
 	nodesForSplit := (nbShards+1)*maxNodesShard + maxNodesMeta
-	nodesForMerge := nbShards*rhs.nodesShard + rhs.nodesMeta
+	nodesForMerge := nbShards*chainParameters.ShardMinNumNodes + chainParameters.MetachainMinNumNodes
 	rhs.mutShufflerParams.RUnlock()
 
 	nbShardsNew := nbShards
@@ -487,6 +459,14 @@ func (rhs *randHashShuffler) computeNewShards(
 	}
 
 	return nbShardsNew
+}
+
+func (rhs *randHashShuffler) metaHysteresis(chainParameters config.ChainParametersByEpochConfig) uint32 {
+	return uint32(chainParameters.Hysteresis * float32(chainParameters.MetachainMinNumNodes))
+}
+
+func (rhs *randHashShuffler) shardHysteresis(chainParameters config.ChainParametersByEpochConfig) uint32 {
+	return uint32(chainParameters.Hysteresis * float32(chainParameters.ShardMinNumNodes))
 }
 
 // shuffleOutNodes shuffles the list of eligible validators in each shard and returns the map of shuffled out
@@ -828,11 +808,11 @@ func sortKeys(nodes map[uint32][]Validator) []uint32 {
 	return keys
 }
 
-// updateShufflerConfig updates the shuffler config according to the current epoch.
-func (rhs *randHashShuffler) updateShufflerConfig(epoch uint32) {
+// UpdateShufflerConfig updates the shuffler config according to the current epoch.
+func (rhs *randHashShuffler) UpdateShufflerConfig(epoch uint32, chainParameters config.ChainParametersByEpochConfig) {
 	rhs.mutShufflerParams.Lock()
 	defer rhs.mutShufflerParams.Unlock()
-	rhs.activeNodesConfig.NodesToShufflePerShard = rhs.nodesShard
+	rhs.activeNodesConfig.NodesToShufflePerShard = chainParameters.ShardMinNumNodes
 	for _, maxNodesConfig := range rhs.availableNodesConfigs {
 		if epoch >= maxNodesConfig.EpochEnable {
 			rhs.activeNodesConfig = maxNodesConfig

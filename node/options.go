@@ -210,18 +210,6 @@ func WithRoundDuration(roundDuration uint64) Option {
 	}
 }
 
-// WithConsensusGroupSize sets up the consensus group size option for the Node
-func WithConsensusGroupSize(consensusGroupSize int) Option {
-	return func(n *Node) error {
-		if consensusGroupSize < 1 {
-			return ErrNegativeOrZeroConsensusGroupSize
-		}
-		log.Info("consensus group", "size", consensusGroupSize)
-		n.consensusGroupSize = consensusGroupSize
-		return nil
-	}
-}
-
 // WithGenesisTime sets up the genesis time option for the Node
 func WithGenesisTime(genesisTime time.Time) Option {
 	return func(n *Node) error {
