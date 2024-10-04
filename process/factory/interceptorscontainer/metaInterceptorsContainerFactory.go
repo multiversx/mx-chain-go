@@ -261,6 +261,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        micf.dataPool.Headers(),
 		BlockBlackList: micf.blockBlackList,
+		Proofs:         micf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

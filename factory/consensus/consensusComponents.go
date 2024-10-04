@@ -499,6 +499,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{

@@ -1,6 +1,8 @@
 package interceptorscontainer
 
 import (
+	"runtime/debug"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
@@ -197,6 +199,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 
 	err = sicf.generateEquivalentProofsInterceptor()
 	if err != nil {
+		debug.PrintStack()
 		return nil, nil, err
 	}
 

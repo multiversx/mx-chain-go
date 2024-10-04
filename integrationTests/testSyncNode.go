@@ -176,6 +176,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{

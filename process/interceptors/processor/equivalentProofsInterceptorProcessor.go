@@ -1,6 +1,8 @@
 package processor
 
 import (
+	"runtime/debug"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -34,6 +36,7 @@ func NewEquivalentProofsInterceptorProcessor(args ArgEquivalentProofsInterceptor
 
 func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) error {
 	if check.IfNil(args.EquivalentProofsPool) {
+		debug.PrintStack()
 		return process.ErrNilEquivalentProofsPool
 	}
 	if check.IfNil(args.Marshaller) {
@@ -56,9 +59,7 @@ func (epip *equivalentProofsInterceptorProcessor) Save(data process.InterceptedD
 		return process.ErrWrongTypeAssertion
 	}
 
-	epip.equivalentProofsPool.AddNotarizedProof(interceptedProof.GetProof())
-
-	return nil
+	return epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
 }
 
 // RegisterHandler registers a callback function to be notified of incoming equivalent proofs

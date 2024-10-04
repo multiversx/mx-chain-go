@@ -70,6 +70,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
 		repopulateTokensSupplies:     arguments.RepopulateTokensSupplies,
+		enableEpochsHandler:          arguments.EnableEpochsHandler,
 	}
 
 	if base.isInImportMode {

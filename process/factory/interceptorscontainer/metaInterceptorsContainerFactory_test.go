@@ -80,6 +80,9 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
 	}
 
 	return pools
@@ -561,13 +564,14 @@ func TestMetaInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsMeta(coreComp, cryptoComp)
-	icf, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	icf, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(args)
+	require.Nil(t, err)
 
 	mainContainer, fullArchiveContainer, err := icf.Create()
+	require.Nil(t, err)
 
 	assert.NotNil(t, mainContainer)
 	assert.NotNil(t, fullArchiveContainer)
-	assert.Nil(t, err)
 }
 
 func TestMetaInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
