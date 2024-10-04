@@ -356,6 +356,18 @@ func TestNewShardInterceptorsContainerFactory_NilValidityAttesterShouldErr(t *te
 	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
+func TestNewShardInterceptorsContainerFactory_NilInterceptedDataVerifierFactory(t *testing.T) {
+	t.Parallel()
+
+	coreComp, cryptoComp := createMockComponentHolders()
+	args := getArgumentsShard(coreComp, cryptoComp)
+	args.InterceptedDataVerifierFactory = nil
+	icf, err := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
+
+	assert.Nil(t, icf)
+	assert.Equal(t, process.ErrNilInterceptedDataVerifierFactory, err)
+}
+
 func TestNewShardInterceptorsContainerFactory_InvalidChainIDShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -497,6 +509,7 @@ func testCreateShardTopicShouldFail(matchStrToErrOnCreate string, matchStrToErrO
 
 		coreComp, cryptoComp := createMockComponentHolders()
 		args := getArgumentsShard(coreComp, cryptoComp)
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{}
 		if strings.Contains(t.Name(), "full_archive") {
 			args.NodeOperationMode = common.FullArchiveMode
 			args.FullArchiveMessenger = createShardStubTopicHandler(matchStrToErrOnCreate, matchStrToErrOnRegister)
@@ -563,6 +576,7 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 		},
 	}
 	args.WhiteListerVerifiedTxs = &testscommon.WhiteListHandlerStub{}
+	args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{}
 
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -598,6 +612,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{}
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -648,6 +663,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 		args.ShardCoordinator = shardCoordinator
 		args.NodesCoordinator = nodesCoordinator
 		args.PreferredPeersHolder = &p2pmocks.PeersHolderStub{}
+		args.InterceptedDataVerifierFactory = &mock.InterceptedDataVerifierFactoryMock{}
 
 		icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
@@ -712,34 +728,35 @@ func getArgumentsShard(
 	cryptoComp *mock.CryptoComponentsMock,
 ) interceptorscontainer.CommonInterceptorsContainerFactoryArgs {
 	return interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-		CoreComponents:               coreComp,
-		CryptoComponents:             cryptoComp,
-		Accounts:                     &stateMock.AccountsStub{},
-		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
-		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
-		MainMessenger:                &mock.TopicHandlerStub{},
-		FullArchiveMessenger:         &mock.TopicHandlerStub{},
-		Store:                        createShardStore(),
-		DataPool:                     createShardDataPools(),
-		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
-		TxFeeHandler:                 &economicsmocks.EconomicsHandlerStub{},
-		BlockBlackList:               &testscommon.TimeCacheStub{},
-		HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
-		SizeCheckDelta:               0,
-		ValidityAttester:             &mock.ValidityAttesterStub{},
-		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-		AntifloodHandler:             &mock.P2PAntifloodHandlerStub{},
-		WhiteListHandler:             &testscommon.WhiteListHandlerStub{},
-		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
-		ArgumentsParser:              &mock.ArgumentParserMock{},
-		PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
-		RequestHandler:               &testscommon.RequestHandlerStub{},
-		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
-		SignaturesHandler:            &mock.SignaturesHandlerStub{},
-		HeartbeatExpiryTimespanInSec: 30,
-		MainPeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
-		FullArchivePeerShardMapper:   &p2pmocks.NetworkShardingCollectorStub{},
-		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
+		CoreComponents:                 coreComp,
+		CryptoComponents:               cryptoComp,
+		Accounts:                       &stateMock.AccountsStub{},
+		ShardCoordinator:               mock.NewOneShardCoordinatorMock(),
+		NodesCoordinator:               shardingMocks.NewNodesCoordinatorMock(),
+		MainMessenger:                  &mock.TopicHandlerStub{},
+		FullArchiveMessenger:           &mock.TopicHandlerStub{},
+		Store:                          createShardStore(),
+		DataPool:                       createShardDataPools(),
+		MaxTxNonceDeltaAllowed:         maxTxNonceDeltaAllowed,
+		TxFeeHandler:                   &economicsmocks.EconomicsHandlerStub{},
+		BlockBlackList:                 &testscommon.TimeCacheStub{},
+		HeaderSigVerifier:              &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:        &mock.HeaderIntegrityVerifierStub{},
+		SizeCheckDelta:                 0,
+		ValidityAttester:               &mock.ValidityAttesterStub{},
+		EpochStartTrigger:              &mock.EpochStartTriggerStub{},
+		AntifloodHandler:               &mock.P2PAntifloodHandlerStub{},
+		WhiteListHandler:               &testscommon.WhiteListHandlerStub{},
+		WhiteListerVerifiedTxs:         &testscommon.WhiteListHandlerStub{},
+		ArgumentsParser:                &mock.ArgumentParserMock{},
+		PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+		RequestHandler:                 &testscommon.RequestHandlerStub{},
+		PeerSignatureHandler:           &mock.PeerSignatureHandlerStub{},
+		SignaturesHandler:              &mock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:   30,
+		MainPeerShardMapper:            &p2pmocks.NetworkShardingCollectorStub{},
+		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
+		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
+		InterceptedDataVerifierFactory: &mock.InterceptedDataVerifierFactoryMock{},
 	}
 }

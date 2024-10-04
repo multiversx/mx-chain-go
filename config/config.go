@@ -229,6 +229,8 @@ type Config struct {
 	PoolsCleanersConfig       PoolsCleanersConfig
 	Redundancy                RedundancyConfig
 	ConsensusGradualBroadcast ConsensusGradualBroadcastConfig
+
+	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -678,4 +680,10 @@ type IndexBroadcastDelay struct {
 // ConsensusGradualBroadcastConfig holds the configuration for the consensus final info gradual broadcast
 type ConsensusGradualBroadcastConfig struct {
 	GradualIndexBroadcastDelay []IndexBroadcastDelay
+}
+
+// InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
+type InterceptedDataVerifierConfig struct {
+	CacheSpanInSec   uint64
+	CacheExpiryInSec uint64
 }
