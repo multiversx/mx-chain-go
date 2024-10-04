@@ -4083,21 +4083,24 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1), SndAddr: bytes.Repeat([]byte{1}, 32)}
 	scrHash := []byte("hash")
 
-	logHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	logHash, originalTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, logHash)
+	assert.Equal(t, scrHash, originalTxHash)
 	assert.False(t, isRelayed)
 
 	scr.OriginalTxHash = []byte("originalHash")
 	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
 	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
 	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)
-	logHash, isRelayed = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	logHash, originalTxHash, isRelayed = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scr.OriginalTxHash, logHash)
+	assert.Equal(t, scr.OriginalTxHash, originalTxHash)
 	assert.True(t, isRelayed)
 
 	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
-	logHash, _ = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	logHash, originalTxHash, _ = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, logHash)
+	assert.Equal(t, scr.OriginalTxHash, originalTxHash)
 }
 
 func TestProcess_createCompletedTxEvent(t *testing.T) {

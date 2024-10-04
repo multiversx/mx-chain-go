@@ -1,6 +1,7 @@
 package relayedTx
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
@@ -21,6 +22,7 @@ import (
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -413,6 +415,124 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBal
 	expectedBalanceRelayerAfter := big.NewInt(0).Sub(balanceRelayerBefore, consumedRelayedFee)
 	require.Equal(t, balanceOwnerBefore.String(), balanceOwnerAfter.String())
 	require.Equal(t, expectedBalanceRelayerAfter.String(), balanceRelayerAfter.String())
+}
+
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRolesFailure(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	baseIssuingCost := "5000000000000000000"
+	cs := startChainSimulator(t, func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = 2
+	})
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(100000))
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	address, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	// register dynamic NFT
+	nftTicker := []byte("NFTTICKER")
+	nftTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(nftTokenName)),
+			[]byte(hex.EncodeToString(nftTicker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+			[]byte(hex.EncodeToString([]byte("canPause"))),
+			[]byte(hex.EncodeToString([]byte("true"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	nonce := uint64(0)
+	tx := generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, callValue, string(txDataField), 100_000_000)
+	nonce++
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	// Set role first time
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+	}
+	txDataBytes := [][]byte{
+		[]byte("setSpecialRole"),
+		[]byte(hex.EncodeToString(nftTokenID)),
+		[]byte(hex.EncodeToString(address.Bytes)),
+	}
+
+	for _, role := range roles {
+		txDataBytes = append(txDataBytes, []byte(hex.EncodeToString(role)))
+	}
+
+	txDataField = bytes.Join(
+		txDataBytes,
+		[]byte("@"),
+	)
+
+	tx = generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, big.NewInt(0), string(txDataField), 60_000_000)
+	nonce++
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	// try to set role again through relayed v3
+	// try twice same transaction inside the same relayed tx
+	innerTx1 := generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, big.NewInt(0), string(txDataField), 60_000_000)
+	innerTx1.RelayerAddr = relayer.Bytes
+	nonce++
+
+	innerTx2 := generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, big.NewInt(0), string(txDataField), 60_000_000)
+	innerTx2.RelayerAddr = relayer.Bytes
+	nonce++
+
+	innerTxs := []*transaction.Transaction{innerTx1, innerTx2}
+
+	relayedTxGasLimit := uint64(0)
+	for _, inner := range innerTxs {
+		relayedTxGasLimit += minGasLimit + inner.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+	require.Equal(t, "success", result.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.NoError(t, err)
+
+	for _, scr := range result.SmartContractResults {
+		scrResult, errGetTx := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetTransaction(scr.Hash, true)
+		require.NoError(t, errGetTx)
+		require.NotNil(t, scrResult.Logs)
+		require.Equal(t, 1, len(scrResult.Logs.Events))
+		require.Equal(t, 2, len(scrResult.Logs.Events[0].Topics))
+		require.Contains(t, string(scrResult.Logs.Events[0].Topics[1]), vm.ErrNFTCreateRoleAlreadyExists.Error())
+	}
 }
 
 func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
