@@ -33,7 +33,7 @@ func (pp *proofsPool) AddProof(
 	shardID := headerProof.GetHeaderShardId()
 	headerHash := headerProof.GetHeaderHash()
 
-	hasProof := pp.HasProof(shardID, headerProof.GetHeaderHash())
+	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
 		log.Trace("there was already a valid proof for header, headerHash: %s", headerHash)
 		return nil
@@ -47,6 +47,14 @@ func (pp *proofsPool) AddProof(
 		proofsPerShard = newProofsCache()
 		pp.cache[shardID] = proofsPerShard
 	}
+
+	log.Trace("added proof to pool",
+		"header hash", headerProof.GetHeaderHash(),
+		"epoch", headerProof.GetHeaderEpoch(),
+		"nonce", headerProof.GetHeaderNonce(),
+		"shardID", headerProof.GetHeaderShardId(),
+		"pubKeys bitmap", headerProof.GetPubKeysBitmap(),
+	)
 
 	proofsPerShard.addProof(headerProof)
 
@@ -67,6 +75,11 @@ func (pp *proofsPool) CleanupProofsBehindNonce(shardID uint32, nonce uint64) err
 		return fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
 	}
 
+	log.Trace("cleanup proofs behind nonce",
+		"nonce", nonce,
+		"shardID", shardID,
+	)
+
 	proofsPerShard.cleanupProofsBehindNonce(nonce)
 
 	return nil
@@ -77,8 +90,17 @@ func (pp *proofsPool) GetProof(
 	shardID uint32,
 	headerHash []byte,
 ) (data.HeaderProofHandler, error) {
+	if headerHash == nil {
+		return nil, fmt.Errorf("nil header hash")
+	}
+
 	pp.mutCache.RLock()
 	defer pp.mutCache.RUnlock()
+
+	log.Trace("trying to get proof",
+		"headerHash", headerHash,
+		"shardID", shardID,
+	)
 
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {

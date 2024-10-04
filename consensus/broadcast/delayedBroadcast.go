@@ -180,6 +180,9 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *shared.Validato
 		return spos.ErrNilHeaderHash
 	}
 
+	dbb.mutDataForBroadcast.Lock()
+	defer dbb.mutDataForBroadcast.Unlock()
+
 	log.Trace("delayedBlockBroadcaster.SetHeaderForValidator",
 		"nbDelayedBroadcastData", len(dbb.delayedBroadcastData),
 		"nbValBroadcastData", len(dbb.valBroadcastData),

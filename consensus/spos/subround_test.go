@@ -90,7 +90,7 @@ func initConsensusState() *spos.ConsensusState {
 	)
 
 	cns.Data = []byte("X")
-	cns.RoundIndex = 0
+	cns.SetRoundIndex(0)
 	return cns
 }
 
