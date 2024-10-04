@@ -55,6 +55,7 @@ const (
 	generalSCRIdentifier = "writeLog"
 	signalError          = "signalError"
 	completedTxEvent     = "completedTxEvent"
+	outcomeEmittedEvent  = "outcomeEmitted"
 	returnOkData         = "@6f6b"
 )
 
@@ -543,6 +544,8 @@ func (sc *scProcessor) finishSCExecution(
 	if completedTxLog != nil {
 		vmOutput.Logs = append(vmOutput.Logs, completedTxLog)
 	}
+
+	appendOutcomeEmittedEvent(vmOutput, tx)
 
 	ignorableError := sc.txLogsProcessor.SaveLog(txHash, tx, vmOutput.Logs)
 	if ignorableError != nil {
@@ -1882,6 +1885,8 @@ func (sc *scProcessor) doDeploySmartContract(
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return 0, err
 	}
+
+	appendOutcomeEmittedEvent(vmOutput, tx)
 
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, 0)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
