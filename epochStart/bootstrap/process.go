@@ -556,6 +556,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		thresholdForConsideringMetaBlockCorrect,
 		epochStartConfig.MinNumConnectedPeersToStart,
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
+		e.enableEpochsHandler,
 	)
 	if err != nil {
 		return err

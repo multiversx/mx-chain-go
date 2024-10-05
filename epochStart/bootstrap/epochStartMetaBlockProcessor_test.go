@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMessengerShouldErr(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMessenger, err)
@@ -45,6 +47,7 @@ func TestNewEpochStartMetaBlockProcessor_NilRequestHandlerShouldErr(t *testing.T
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilRequestHandler, err)
@@ -62,6 +65,7 @@ func TestNewEpochStartMetaBlockProcessor_NilMarshalizerShouldErr(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
@@ -79,6 +83,7 @@ func TestNewEpochStartMetaBlockProcessor_NilHasherShouldErr(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrNilHasher, err)
@@ -96,6 +101,7 @@ func TestNewEpochStartMetaBlockProcessor_InvalidConsensusPercentageShouldErr(t *
 		101,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Equal(t, epochStart.ErrInvalidConsensusThreshold, err)
@@ -116,6 +122,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWork(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.NoError(t, err)
@@ -152,6 +159,7 @@ func TestNewEpochStartMetaBlockProcessorOkValsShouldWorkAfterMoreTriesWaitingFor
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.NoError(t, err)
@@ -172,6 +180,7 @@ func TestEpochStartMetaBlockProcessor_Validate(t *testing.T) {
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Nil(t, esmbp.Validate(nil, ""))
@@ -191,6 +200,7 @@ func TestEpochStartMetaBlockProcessor_SaveNilInterceptedDataShouldNotReturnError
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	err := esmbp.Save(nil, "peer0", "")
@@ -212,6 +222,7 @@ func TestEpochStartMetaBlockProcessor_SaveOkInterceptedDataShouldWork(t *testing
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	assert.Zero(t, len(esmbp.GetMapMetaBlock()))
@@ -241,6 +252,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldTimeOut(t *tes
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
@@ -265,6 +277,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldReturnMostRece
 		99,
 		3,
 		5,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -309,6 +322,7 @@ func TestEpochStartMetaBlockProcessor_GetEpochStartMetaBlockShouldWorkFromFirstT
 		50,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 
 	expectedMetaBlock := &block.MetaBlock{
@@ -361,6 +375,7 @@ func testEpochStartMbIsReceivedWithSleepBetweenReceivedMessages(t *testing.T, tt
 		64,
 		3,
 		3,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 	expectedMetaBlock := &block.MetaBlock{
 		Nonce:      10,

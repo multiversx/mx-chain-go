@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -26,10 +27,12 @@ const minNumConnectedPeers = 1
 var _ process.InterceptorProcessor = (*epochStartMetaBlockProcessor)(nil)
 
 type epochStartMetaBlockProcessor struct {
-	messenger              Messenger
-	requestHandler         RequestHandler
-	marshalizer            marshal.Marshalizer
-	hasher                 hashing.Hasher
+	messenger           Messenger
+	requestHandler      RequestHandler
+	marshalizer         marshal.Marshalizer
+	hasher              hashing.Hasher
+	enableEpochsHandler common.EnableEpochsHandler
+
 	mutReceivedMetaBlocks  sync.RWMutex
 	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers map[string][]core.PeerID
@@ -40,6 +43,7 @@ type epochStartMetaBlockProcessor struct {
 
 	chanConsensusReached              chan bool
 	chanMetaBlockReached              chan bool
+	chanConfMetaBlockReached          chan bool
 	metaBlock                         data.MetaHeaderHandler
 	peerCountTarget                   int
 	minNumConnectedPeers              int
@@ -55,6 +59,7 @@ func NewEpochStartMetaBlockProcessor(
 	consensusPercentage uint8,
 	minNumConnectedPeersConfig int,
 	minNumOfPeersToConsiderBlockValidConfig int,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*epochStartMetaBlockProcessor, error) {
 	if check.IfNil(messenger) {
 		return nil, epochStart.ErrNilMessenger
@@ -77,6 +82,9 @@ func NewEpochStartMetaBlockProcessor(
 	if minNumOfPeersToConsiderBlockValidConfig < minNumPeersToConsiderMetaBlockValid {
 		return nil, epochStart.ErrNotEnoughNumOfPeersToConsiderBlockValid
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, epochStart.ErrNilEnableEpochsHandler
+	}
 
 	processor := &epochStartMetaBlockProcessor{
 		messenger:                         messenger,
@@ -85,6 +93,7 @@ func NewEpochStartMetaBlockProcessor(
 		hasher:                            hasher,
 		minNumConnectedPeers:              minNumConnectedPeersConfig,
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
+		enableEpochsHandler:               enableEpochsHandler,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
@@ -92,6 +101,7 @@ func NewEpochStartMetaBlockProcessor(
 		mapConfMetaBlocksFromPeers:        make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 		chanMetaBlockReached:              make(chan bool, 1),
+		chanConfMetaBlockReached:          make(chan bool, 1),
 	}
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
@@ -168,10 +178,15 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	}
 
 	log.Debug("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
+
 	return nil
 }
 
 func (e *epochStartMetaBlockProcessor) isEpochStartConfirmationBlock(metaBlock data.HeaderHandler) bool {
+	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+		return false
+	}
+
 	startOfEpochMetaBlock, err := e.getMostReceivedMetaBlock()
 	if err != nil {
 		return false
@@ -227,16 +242,11 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		return nil, err
 	}
 
-	if check.IfNil(e.metaBlock) {
-		return nil, epochStart.ErrNilMetaBlock
-	}
-
-	err = e.requestConfirmationMetaBlock(e.metaBlock.GetNonce())
+	err = e.waitForConfMetaBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	chanRequests := time.After(durationBetweenReRequests)
 	chanCheckMaps := time.After(durationBetweenChecks)
 
 	for {
@@ -245,12 +255,6 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 			return e.metaBlock, nil
 		case <-ctx.Done():
 			return e.getMostReceivedMetaBlock()
-		case <-chanRequests:
-			err = e.requestConfirmationMetaBlock(e.metaBlock.GetNonce())
-			if err != nil {
-				return nil, err
-			}
-			chanRequests = time.After(durationBetweenReRequests)
 		case <-chanCheckMaps:
 			e.checkMaps()
 			chanCheckMaps = time.After(durationBetweenChecks)
@@ -281,6 +285,42 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) err
 			chanRequests = time.After(durationBetweenReRequests)
 		case <-chanCheckMaps:
 			e.checkMetaBlockMaps()
+			chanCheckMaps = time.After(durationBetweenChecks)
+		}
+	}
+}
+
+func (e *epochStartMetaBlockProcessor) waitForConfMetaBlock(ctx context.Context) error {
+	if check.IfNil(e.metaBlock) {
+		return epochStart.ErrNilMetaBlock
+	}
+
+	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, e.metaBlock.GetEpoch()) {
+		return nil
+	}
+
+	err := e.requestConfirmationMetaBlock(e.metaBlock.GetNonce())
+	if err != nil {
+		return err
+	}
+
+	chanRequests := time.After(durationBetweenReRequests)
+	chanCheckMaps := time.After(durationBetweenChecks)
+
+	for {
+		select {
+		case <-e.chanConfMetaBlockReached:
+			return nil
+		case <-ctx.Done():
+			return epochStart.ErrTimeoutWaitingForMetaBlock
+		case <-chanRequests:
+			err = e.requestConfirmationMetaBlock(e.metaBlock.GetNonce())
+			if err != nil {
+				return err
+			}
+			chanRequests = time.After(durationBetweenReRequests)
+		case <-chanCheckMaps:
+			e.checkConfMetaBlockMaps()
 			chanCheckMaps = time.After(durationBetweenChecks)
 		}
 	}
@@ -334,45 +374,54 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 
-	for hash, peersList := range e.mapMetaBlocksFromPeers {
-		log.Debug("metablock from peers", "num peers", len(peersList), "target", e.peerCountTarget, "hash", []byte(hash))
-		metaBlockFound := e.processMetaBlockEntry(peersList, hash)
-		if metaBlockFound {
-			e.metaBlock = e.mapReceivedMetaBlocks[hash]
-			e.chanMetaBlockReached <- true
-			break
-		}
+	hash, metaBlockFound := e.checkReceivedMetaBlock(e.mapMetaBlocksFromPeers)
+	if metaBlockFound {
+		e.metaBlock = e.mapReceivedMetaBlocks[hash]
+		e.chanMetaBlockReached <- true
+	}
+}
+
+func (e *epochStartMetaBlockProcessor) checkConfMetaBlockMaps() {
+	e.mutReceivedConfMetaBlocks.RLock()
+	defer e.mutReceivedConfMetaBlocks.RUnlock()
+
+	_, confMetaBlockFound := e.checkReceivedMetaBlock(e.mapConfMetaBlocksFromPeers)
+	if confMetaBlockFound {
+		e.chanConfMetaBlockReached <- true
 	}
 }
 
 func (e *epochStartMetaBlockProcessor) checkMaps() {
 	e.mutReceivedMetaBlocks.RLock()
-	defer e.mutReceivedMetaBlocks.RUnlock()
+	_, metaBlockFound := e.checkReceivedMetaBlock(e.mapMetaBlocksFromPeers)
+	e.mutReceivedMetaBlocks.RUnlock()
 
-	metaBlockFound := e.checkReceivedMetaBlock(e.mapMetaBlocksFromPeers)
-	confMetaBlockFound := e.checkReceivedMetaBlock(e.mapConfMetaBlocksFromPeers)
+	consensusReached := metaBlockFound
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, e.metaBlock.GetEpoch()) {
+		e.mutReceivedConfMetaBlocks.RLock()
+		_, confMetaBlockFound := e.checkReceivedMetaBlock(e.mapConfMetaBlocksFromPeers)
+		e.mutReceivedConfMetaBlocks.RUnlock()
 
-	// no need to check proof here since it is check in interceptor
-	if metaBlockFound && confMetaBlockFound {
+		consensusReached = metaBlockFound && confMetaBlockFound
+	}
+
+	// no need to check proof here since it is checked in interceptor
+	if consensusReached {
 		e.chanConsensusReached <- true
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) checkReceivedMetaBlock(blocksFromPeers map[string][]core.PeerID) bool {
+func (e *epochStartMetaBlockProcessor) checkReceivedMetaBlock(blocksFromPeers map[string][]core.PeerID) (string, bool) {
 	for hash, peersList := range blocksFromPeers {
 		log.Debug("metablock from peers", "num peers", len(peersList), "target", e.peerCountTarget, "hash", []byte(hash))
 
 		metaBlockFound := e.processMetaBlockEntry(peersList, hash)
 		if metaBlockFound {
-			return true
+			return hash, true
 		}
 	}
 
-	return false
-}
-
-func (e *epochStartMetaBlockProcessor) checkMetaBlockProof() bool {
-	return true
+	return "", false
 }
 
 func (e *epochStartMetaBlockProcessor) processMetaBlockEntry(
