@@ -37,6 +37,8 @@ type epochStartMetaBlockProcessor struct {
 	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers map[string][]core.PeerID
 
+	// TODO: refactor to use a separate component for meta block sync handling
+	//	for epoch start metablock and epoch start confirmation block
 	mutReceivedConfMetaBlocks  sync.RWMutex
 	mapReceivedConfMetaBlocks  map[string]data.MetaHeaderHandler
 	mapConfMetaBlocksFromPeers map[string][]core.PeerID
