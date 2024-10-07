@@ -61,6 +61,7 @@ type ProcessComponentsStub struct {
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
+	RelayedTxV3ProcessorField            process.RelayedTxV3Processor
 }
 
 // Create -
@@ -300,6 +301,11 @@ func (pcs *ProcessComponentsStub) SentSignaturesTracker() process.SentSignatures
 // EpochSystemSCProcessor -
 func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return pcs.EpochSystemSCProcessorInternal
+}
+
+// RelayedTxV3Processor -
+func (pcs *ProcessComponentsStub) RelayedTxV3Processor() process.RelayedTxV3Processor {
+	return pcs.RelayedTxV3ProcessorField
 }
 
 // IsInterfaceNil -

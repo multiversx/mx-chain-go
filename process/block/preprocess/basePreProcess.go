@@ -498,9 +498,9 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
+func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte, mbHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
-	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
+	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash, mbHash)
 	return snapshot
 }
 

@@ -36,6 +36,7 @@ type coreComponentsHandler interface {
 	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EconomicsData() process.EconomicsDataHandler
 	Rater() sharding.PeerAccountListAndRatingHandler
 	IsInterfaceNil() bool
 }

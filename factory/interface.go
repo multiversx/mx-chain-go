@@ -340,6 +340,7 @@ type ProcessComponentsHolder interface {
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
+	RelayedTxV3Processor() process.RelayedTxV3Processor
 	IsInterfaceNil() bool
 }
 

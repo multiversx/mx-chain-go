@@ -116,16 +116,15 @@ func TestOverrideConfigValues(t *testing.T) {
 	})
 
 	t.Run("should work for enableRounds.toml", func(t *testing.T) {
-		// TODO: fix this test
-		t.Skip("skipped, as this test requires the fix from this PR: https://github.com/multiversx/mx-chain-go/pull/5851")
-
 		t.Parallel()
 
 		configs := &config.Configs{RoundConfig: &config.RoundConfig{}}
+		value := make(map[string]config.ActivationRoundByName)
+		value["DisableAsyncCallV1"] = config.ActivationRoundByName{Round: "37"}
 
-		err := OverrideConfigValues([]config.OverridableConfig{{Path: "RoundActivations.DisableAsyncCallV1.Round", Value: "37", File: "enableRounds.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "RoundActivations", Value: value, File: "enableRounds.toml"}}, configs)
 		require.NoError(t, err)
-		require.Equal(t, uint32(37), configs.RoundConfig.RoundActivations["DisableAsyncCallV1"])
+		require.Equal(t, "37", configs.RoundConfig.RoundActivations["DisableAsyncCallV1"].Round)
 	})
 
 	t.Run("should work for ratings.toml", func(t *testing.T) {

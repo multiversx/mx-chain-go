@@ -23,7 +23,13 @@ type CoreComponentsMock struct {
 	StatHandler              core.AppStatusHandler
 	EnableEpochsHandlerField common.EnableEpochsHandler
 	TxVersionCheck           process.TxVersionCheckerHandler
+	EconomicsDataField       process.EconomicsDataHandler
 	RaterField               sharding.PeerAccountListAndRatingHandler
+}
+
+// EconomicsData -
+func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
+	return ccm.EconomicsDataField
 }
 
 // InternalMarshalizer -

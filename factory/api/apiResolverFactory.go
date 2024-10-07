@@ -180,7 +180,11 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.BootstrapComponents.GuardedAccountHandler(),
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
-		convertedDNSV2Addresses,
+		args.Configs.GeneralConfig.BuiltInFunctions.DNSV2Addresses,
+		convertedDNSV2Addresses, // TODO: MariusC check this//args.Configs.GeneralConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
+		[]byte(args.Configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		pkConverter,
+
 	)
 	if err != nil {
 		return nil, err
@@ -263,6 +267,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
+		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
+		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -409,7 +415,10 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		args.guardedAccountHandler,
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
-		convertedDNSV2Addresses,
+		args.generalConfig.BuiltInFunctions.DNSV2Addresses,
+		convertedDNSV2Addresses, // TODO: MARIUSC // args.generalConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
+		[]byte(args.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		pkConverter,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -667,32 +676,34 @@ func newStoragePruningManager(args scQueryElementArgs) (state.StoragePruningMana
 func createBuiltinFuncs(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	marshalizer marshal.Marshalizer,
-	accnts state.AccountsAdapter,
+	accounts state.AccountsAdapter,
 	shardCoordinator sharding.Coordinator,
 	epochNotifier vmcommon.EpochNotifier,
 	enableEpochsHandler vmcommon.EnableEpochsHandler,
 	guardedAccountHandler vmcommon.GuardedAccountHandler,
 	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
-	dnsV2Addresses [][]byte,
+	dnsV2Addresses []string,
+	whiteListedCrossChainAddresses []string,
+	selfESDTPrefix []byte,
+	pubKeyConverter core.PubkeyConverter,
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	mapDNSV2Addresses := make(map[string]struct{})
-	for _, address := range dnsV2Addresses {
-		mapDNSV2Addresses[string(address)] = struct{}{}
-	}
-
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         mapDNSV2Addresses,
-		Marshalizer:               marshalizer,
-		Accounts:                  accnts,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             epochNotifier,
-		EnableEpochsHandler:       enableEpochsHandler,
-		GuardedAccountHandler:     guardedAccountHandler,
-		AutomaticCrawlerAddresses: automaticCrawlerAddresses,
-		MaxNumNodesInTransferRole: maxNumAddressesInTransferRole,
+		GasSchedule:                    gasScheduleNotifier,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 dnsV2Addresses,
+		WhiteListedCrossChainAddresses: whiteListedCrossChainAddresses,
+		EnableUserNameChange:           false,
+		Marshalizer:                    marshalizer,
+		Accounts:                       accounts,
+		ShardCoordinator:               shardCoordinator,
+		EpochNotifier:                  epochNotifier,
+		EnableEpochsHandler:            enableEpochsHandler,
+		GuardedAccountHandler:          guardedAccountHandler,
+		AutomaticCrawlerAddresses:      automaticCrawlerAddresses,
+		MaxNumAddressesInTransferRole:  maxNumAddressesInTransferRole,
+		SelfESDTPrefix:                 selfESDTPrefix,
+		PubKeyConverter:                pubKeyConverter,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }

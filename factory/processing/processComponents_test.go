@@ -4,10 +4,22 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
@@ -50,17 +62,6 @@ import (
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
-
-	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
-	coreData "github.com/multiversx/mx-chain-core-go/data"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
-	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -1272,6 +1273,30 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args.Config.Debug.Process.Enabled = true
 		args.Config.Debug.Process.PollingTimeInSeconds = 0
 		testCreateWithArgs(t, args, "PollingTimeInSeconds")
+	})
+	t.Run("AddressListToMap should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		decodeCounter := 0
+		decodeErr := fmt.Errorf("decode error")
+		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
+		coreCompStub.AddressPubKeyConverterCalled = func() core.PubkeyConverter {
+			return &testscommon.PubkeyConverterStub{
+				LenCalled: func() int {
+					return addrPubKeyConv.Len()
+				},
+				DecodeCalled: func(humanReadable string) ([]byte, error) {
+					decodeCounter++
+					if decodeCounter == 14 {
+						return nil, decodeErr
+					}
+					return addrPubKeyConv.Decode(humanReadable)
+				},
+			}
+		}
+		args.CoreData = coreCompStub
+		testCreateWithArgs(t, args, decodeErr.Error())
 	})
 	t.Run("nodesSetupChecker.Check fails should error", func(t *testing.T) {
 		t.Parallel()
