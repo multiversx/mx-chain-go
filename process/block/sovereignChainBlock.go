@@ -1515,6 +1515,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 	if err != nil {
 		return err
 	}
+
 	// TODO: MX-15748 Analyse if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() from metablock.go
 	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
