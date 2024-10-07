@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -19,7 +20,7 @@ import (
 func createArgsSovereignTrigger() ArgsSovereignTrigger {
 	return ArgsSovereignTrigger{
 		ArgsNewMetaEpochStartTrigger: createMockEpochStartTriggerArguments(),
-		PeerMiniBlocksSyncer:         &mock.ValidatorInfoSyncerStub{},
+		ValidatorInfoSyncer:          &mock.ValidatorInfoSyncerStub{},
 	}
 }
 
@@ -33,12 +34,26 @@ func TestNewSovereignTrigger(t *testing.T) {
 		require.Nil(t, sovTrigger)
 		require.Equal(t, epochStart.ErrNilArgsNewMetaEpochStartTrigger, err)
 	})
-	t.Run("nil peer mb syncer, should error", func(t *testing.T) {
+	t.Run("nil validator info syncer, should error", func(t *testing.T) {
 		args := createArgsSovereignTrigger()
-		args.PeerMiniBlocksSyncer = nil
+		args.ValidatorInfoSyncer = nil
 		sovTrigger, err := NewSovereignTrigger(args)
 		require.Nil(t, sovTrigger)
-		require.Equal(t, epochStart.ErrNilValidatorInfoProcessor, err)
+		require.Equal(t, epochStart.ErrNilValidatorInfoSyncer, err)
+	})
+	t.Run("nil headers pool, should error", func(t *testing.T) {
+		args := createArgsSovereignTrigger()
+		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+				return &vic.ValidatorInfoCacherStub{}
+			},
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return nil
+			},
+		}
+		sovTrigger, err := NewSovereignTrigger(args)
+		require.Nil(t, sovTrigger)
+		require.Equal(t, process.ErrNilHeadersDataPool, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		args := createArgsSovereignTrigger()
@@ -86,7 +101,7 @@ func TestSovereignTrigger_RevertStateToBlock(t *testing.T) {
 	triggerFactory := func(arguments *ArgsNewMetaEpochStartTrigger) epochStart.TriggerHandler {
 		argSovTrigger := ArgsSovereignTrigger{
 			ArgsNewMetaEpochStartTrigger: arguments,
-			PeerMiniBlocksSyncer:         &mock.ValidatorInfoSyncerStub{},
+			ValidatorInfoSyncer:          &mock.ValidatorInfoSyncerStub{},
 		}
 
 		sovEpochStartTrigger, _ := NewSovereignTrigger(argSovTrigger)
@@ -133,7 +148,7 @@ func TestSovereignTrigger_receivedBlock(t *testing.T) {
 
 	wasSyncValidatorsCalled := false
 	wasSyncMBCalled := false
-	args.PeerMiniBlocksSyncer = &mock.ValidatorInfoSyncerStub{
+	args.ValidatorInfoSyncer = &mock.ValidatorInfoSyncerStub{
 		SyncValidatorsInfoCalled: func(body data.BodyHandler) ([][]byte, map[string]*state.ShardValidatorInfo, error) {
 			wasSyncValidatorsCalled = true
 			return nil, validatorsInfo, nil
