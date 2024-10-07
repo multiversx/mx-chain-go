@@ -15,30 +15,33 @@ import (
 // ArgsSovereignTrigger defines args needed to create a sovereign trigger
 type ArgsSovereignTrigger struct {
 	*ArgsNewMetaEpochStartTrigger
-	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
+	ValidatorInfoSyncer process.ValidatorInfoSyncer
 }
 
 type sovereignTrigger struct {
 	*trigger
 	currentEpochValidatorInfoPool epochStart.ValidatorInfoCacher
-	peerMiniBlocksSyncer          process.ValidatorInfoSyncer
+	validatorInfoSyncer           process.ValidatorInfoSyncer
 }
 
 // NewSovereignTrigger creates a new sovereign epoch start trigger
 func NewSovereignTrigger(args ArgsSovereignTrigger) (*sovereignTrigger, error) {
-	if check.IfNil(args.PeerMiniBlocksSyncer) {
-		return nil, epochStart.ErrNilValidatorInfoProcessor
-	}
-
 	metaTrigger, err := newTrigger(args.ArgsNewMetaEpochStartTrigger, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{}, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
 
+	if check.IfNil(args.ValidatorInfoSyncer) {
+		return nil, epochStart.ErrNilValidatorInfoSyncer
+	}
+	if check.IfNil(args.DataPool.Headers()) {
+		return nil, process.ErrNilHeadersDataPool
+	}
+
 	st := &sovereignTrigger{
 		trigger:                       metaTrigger,
 		currentEpochValidatorInfoPool: args.DataPool.CurrentEpochValidatorInfo(),
-		peerMiniBlocksSyncer:          args.PeerMiniBlocksSyncer,
+		validatorInfoSyncer:           args.ValidatorInfoSyncer,
 	}
 
 	args.DataPool.Headers().RegisterHandler(st.receivedBlock)
@@ -146,7 +149,7 @@ func (st *sovereignTrigger) receivedBlock(headerHandler data.HeaderHandler, _ []
 		return
 	}
 
-	isMetaStartOfEpochForCurrentEpoch := header.GetEpoch() == st.epoch && header.IsStartOfEpochBlock()
+	isMetaStartOfEpochForCurrentEpoch := header.GetEpoch() == st.epoch
 	if isMetaStartOfEpochForCurrentEpoch {
 		return
 	}
@@ -163,13 +166,13 @@ func (st *sovereignTrigger) updateTrigger(header data.MetaHeaderHandler) {
 }
 
 func (st *sovereignTrigger) checkIfTriggerCanBeActivated(hdr data.HeaderHandler) bool {
-	missingMiniBlocksHashes, blockBody, err := st.peerMiniBlocksSyncer.SyncMiniBlocks(hdr)
+	missingMiniBlocksHashes, blockBody, err := st.validatorInfoSyncer.SyncMiniBlocks(hdr)
 	if err != nil {
 		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncMiniBlocks", "num missing mini blocks", len(missingMiniBlocksHashes), "error", err)
 		return false
 	}
 
-	missingValidatorsInfoHashes, validatorsInfo, err := st.peerMiniBlocksSyncer.SyncValidatorsInfo(blockBody)
+	missingValidatorsInfoHashes, validatorsInfo, err := st.validatorInfoSyncer.SyncValidatorsInfo(blockBody)
 	if err != nil {
 		log.Error("sovereignTrigger.checkIfTriggerCanBeActivated.SyncValidatorsInfo", "num missing validators info", len(missingValidatorsInfoHashes), "error", err)
 		return false
