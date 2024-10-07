@@ -126,7 +126,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Configs.GeneralConfig.WhiteListPool.Capacity))
 	if err != nil {
 		return nil, err
 
@@ -136,7 +136,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	lruCacheTx, err := cache.NewLRUCache(int(args.Configs.GeneralConfig.WhiteListerVerifiedTxs.Capacity))
 	if err != nil {
 		return nil, err
 

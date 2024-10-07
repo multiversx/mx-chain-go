@@ -53,7 +53,6 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         6,
-			ConsensusGroupSize:       6,
 			NumNodesWaitingListShard: 2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				newCfg := config.EnableEpochs{}

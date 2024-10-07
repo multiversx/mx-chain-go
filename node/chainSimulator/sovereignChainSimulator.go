@@ -1,6 +1,10 @@
 package chainSimulator
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+)
 
 type sovereignChainSimulator struct {
 	*simulator
@@ -8,7 +12,11 @@ type sovereignChainSimulator struct {
 
 // NewSovereignChainSimulator creates a sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsChainSimulator) (*sovereignChainSimulator, error) {
-	cs, err := NewChainSimulator(args)
+	cs, err := NewBaseChainSimulator(ArgsBaseChainSimulator{
+		ArgsChainSimulator:          args,
+		ConsensusGroupSize:          configs.ChainSimulatorConsensusGroupSize,
+		MetaChainConsensusGroupSize: 0,
+	})
 	if err != nil {
 		return nil, err
 	}
