@@ -640,14 +640,15 @@ func (boot *baseBootstrap) syncBlock() error {
 		return err
 	}
 
+	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
+
 	if boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		err = boot.proofs.AddProof(header.GetPreviousProof())
-		if err != nil {
-			log.Warn("failed to add proof to pool", "header nonce", header.GetNonce())
+		// process block only if there is a proof for it
+		hasProof := boot.proofs.HasProof(header.GetShardID(), header.GetPrevHash())
+		if !hasProof {
+			return fmt.Errorf("process sync: did not have proof for header")
 		}
 	}
-
-	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
 	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
 	if err != nil {
