@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
+// CreateSaveValidatorsPubKeysEventHandler creates an epoch start action handler able to save validators pub keys
+// in outport handler
 func CreateSaveValidatorsPubKeysEventHandler(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	outportHandler outport.OutportHandler,
