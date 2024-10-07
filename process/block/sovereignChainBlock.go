@@ -794,12 +794,8 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 			return
 		}
 
-		if !check.IfNil(shardHeader) {
-			go getMetricsFromHeader(headerHandler.ShallowClone(), uint64(txCounts.GetTotal()), scbp.marshalizer, scbp.appStatusHandler)
-		}
-		if !check.IfNil(newBody) {
-			go getMetricsFromBlockBody(newBody, scbp.marshalizer, scbp.appStatusHandler)
-		}
+		go getMetricsFromHeader(shardHeader.ShallowClone(), uint64(txCounts.GetTotal()), scbp.marshalizer, scbp.appStatusHandler)
+		go getMetricsFromBlockBody(newBody, scbp.marshalizer, scbp.appStatusHandler)
 	}()
 
 	if shardHeader.IsStartOfEpochBlock() {
