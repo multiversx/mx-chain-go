@@ -102,7 +102,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.Empty(t, accFeesInEpoch.Bytes())
 	require.Empty(t, devFeesInEpoch.Bytes())
 
-	staking.StakeNodes(t, cs, 10)
+	staking.StakeNodes(t, cs, nodeHandler, 10)
 	err = nodeHandler.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 
