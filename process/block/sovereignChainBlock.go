@@ -727,14 +727,10 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	go getMetricsFromBlockBody(body, scbp.marshalizer, scbp.appStatusHandler)
-
 	txCounts, rewardCounts, unsignedCounts := scbp.txCounter.getPoolCounts(scbp.dataPool)
 	log.Debug("total txs in pool", "counts", txCounts.String())
 	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
 	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
-
-	go getMetricsFromHeader(headerHandler.ShallowClone(), uint64(txCounts.GetTotal()), scbp.marshalizer, scbp.appStatusHandler)
 
 	err = scbp.createBlockStarted()
 	if err != nil {
@@ -792,6 +788,20 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
+	newBody := body
+	defer func() {
+		if err != nil {
+			return
+		}
+
+		if !check.IfNil(shardHeader) {
+			go getMetricsFromHeader(headerHandler.ShallowClone(), uint64(txCounts.GetTotal()), scbp.marshalizer, scbp.appStatusHandler)
+		}
+		if !check.IfNil(newBody) {
+			go getMetricsFromBlockBody(newBody, scbp.marshalizer, scbp.appStatusHandler)
+		}
+	}()
+
 	if shardHeader.IsStartOfEpochBlock() {
 		err = scbp.processEpochStartMetaBlock(shardHeader, body)
 		if err != nil {
@@ -807,7 +817,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		}
 	}()
 
-	newBody, err := scbp.processSovereignBlockTransactions(headerHandler, body, haveTime)
+	newBody, err = scbp.processSovereignBlockTransactions(headerHandler, body, haveTime)
 	if err != nil {
 		return nil, nil, err
 	}
