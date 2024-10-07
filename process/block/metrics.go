@@ -84,7 +84,7 @@ func getMetricsFromHeader(
 	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxWithDst)
 }
 
-func saveMetricsForCommittedShardBlock(
+func saveMetricsForCommittedShardAndCrossBlock(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
 	currentBlockHash string,
@@ -93,12 +93,23 @@ func saveMetricsForCommittedShardBlock(
 	shardHeader data.HeaderHandler,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
+	baseSaveMetricsForCommittedShardBlock(nodesCoordinator, appStatusHandler, currentBlockHash, highestFinalBlockNonce, shardHeader, managedPeersHolder)
+	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
+}
+
+func baseSaveMetricsForCommittedShardBlock(
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	appStatusHandler core.AppStatusHandler,
+	currentBlockHash string,
+	highestFinalBlockNonce uint64,
+	shardHeader data.HeaderHandler,
+	managedPeersHolder common.ManagedPeersHolder,
+) {
 	incrementMetricCountConsensusAcceptedBlocks(shardHeader, shardHeader.GetEpoch(), nodesCoordinator, appStatusHandler, managedPeersHolder)
 	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
-	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
-	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
 }
 
 func saveMetricsForCommitMetachainBlock(

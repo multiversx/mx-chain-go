@@ -1043,7 +1043,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	saveMetricsForCommittedShardBlock(
+	saveMetricsForCommittedShardAndCrossBlock(
 		sp.nodesCoordinator,
 		sp.appStatusHandler,
 		logger.DisplayByteSlice(headerHash),
