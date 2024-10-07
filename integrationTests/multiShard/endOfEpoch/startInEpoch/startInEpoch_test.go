@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -284,6 +285,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabled.NewStateStatistics(),
+		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

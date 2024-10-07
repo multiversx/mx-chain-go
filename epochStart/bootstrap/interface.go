@@ -49,6 +49,7 @@ type Messenger interface {
 // RequestHandler defines which methods a request handler should implement
 type RequestHandler interface {
 	RequestStartOfEpochMetaBlock(epoch uint32)
+	RequestMetaHeaderByNonce(nonce uint64)
 	SetNumPeersToQuery(topic string, intra int, cross int) error
 	GetNumPeersToQuery(topic string) (int, int, error)
 	IsInterfaceNil() bool

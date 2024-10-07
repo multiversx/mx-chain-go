@@ -10,14 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgEquivalentProofsInterceptorProcessor() ArgEquivalentProofsInterceptorProcessor {
 	return ArgEquivalentProofsInterceptorProcessor{
-		EquivalentProofsPool: &processMocks.EquivalentProofsPoolMock{},
+		EquivalentProofsPool: &dataRetriever.ProofsPoolMock{},
 		Marshaller:           &marshallerMock.MarshalizerMock{},
 	}
 }
@@ -91,9 +91,10 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 
 		wasCalled := false
 		args := createMockArgEquivalentProofsInterceptorProcessor()
-		args.EquivalentProofsPool = &processMocks.EquivalentProofsPoolMock{
-			AddNotarizedProofCalled: func(notarizedProof data.HeaderProofHandler) {
+		args.EquivalentProofsPool = &dataRetriever.ProofsPoolMock{
+			AddProofCalled: func(notarizedProof data.HeaderProofHandler) error {
 				wasCalled = true
+				return nil
 			},
 		}
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
