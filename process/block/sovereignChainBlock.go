@@ -1522,7 +1522,19 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	scbp.indexValidatorsRatingIfNeeded(headerHandler)
+
 	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) indexValidatorsRatingIfNeeded(
+	header data.HeaderHandler,
+) {
+	if !scbp.outportHandler.HasDrivers() {
+		return
+	}
+
+	indexValidatorsRating(scbp.outportHandler, scbp.validatorStatisticsProcessor, header)
 }
 
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {

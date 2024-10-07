@@ -225,6 +225,10 @@ func indexValidatorsRating(
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
+	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
 	// TODO use validatorInfoProvider  to get information about rating
 	latestHash, err := valStatProc.RootHash()
 	if err != nil {

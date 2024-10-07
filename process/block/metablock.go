@@ -636,11 +636,6 @@ func (mp *metaProcessor) indexBlock(
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)
-
-	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
-		return
-	}
-
 	indexValidatorsRating(mp.outportHandler, mp.validatorStatisticsProcessor, metaBlock)
 }
 

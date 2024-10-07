@@ -2,15 +2,10 @@ package status
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/outport"
 	outportDriverFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
-
-// EpochStartEventHandler -
-func (pc *statusComponents) EpochStartEventHandler() epochStart.ActionHandler {
-	return pc.epochStartEventHandler()
-}
 
 // ComputeNumConnectedPeers -
 func ComputeNumConnectedPeers(
@@ -33,4 +28,9 @@ func ComputeConnectedPeers(
 // MakeHostDriversArgs -
 func (scf *statusComponentsFactory) MakeHostDriversArgs() ([]outportDriverFactory.ArgsHostDriverFactory, error) {
 	return scf.makeHostDriversArgs()
+}
+
+// EpochStartEventHandler -
+func (pc *statusComponents) OutportHandler() outport.OutportHandler {
+	return pc.outportHandler
 }

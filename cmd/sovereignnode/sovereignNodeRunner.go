@@ -1231,10 +1231,15 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 	if err != nil {
 		return nil, err
 	}
+
 	err = managedStatusComponents.Create()
 	if err != nil {
 		return nil, err
 	}
+
+	saveValidatorsPubKeysEvent := statusComp.CreateSaveValidatorsPubKeysEventHandler(nodesCoordinator, managedStatusComponents.OutportHandler())
+	managedCoreComponents.EpochStartNotifierWithConfirm().RegisterHandler(saveValidatorsPubKeysEvent)
+
 	return managedStatusComponents, nil
 }
 
