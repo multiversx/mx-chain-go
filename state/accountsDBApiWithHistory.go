@@ -94,12 +94,7 @@ func (accountsDB *accountsDBApiWithHistory) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApiWithHistory) RecreateTrie(_ []byte) error {
-	return ErrOperationNotPermitted
-}
-
-// RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApiWithHistory) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+func (accountsDB *accountsDBApiWithHistory) RecreateTrie(_ common.RootHashHolder) error {
 	return ErrOperationNotPermitted
 }
 
@@ -228,7 +223,7 @@ func (accountsDB *accountsDBApiWithHistory) shouldRecreateTrieUnprotected(rootHa
 }
 
 func (accountsDB *accountsDBApiWithHistory) recreateTrieUnprotected(options common.RootHashHolder) error {
-	err := accountsDB.innerAccountsAdapter.RecreateTrieFromEpoch(options)
+	err := accountsDB.innerAccountsAdapter.RecreateTrie(options)
 	if err != nil {
 		return err
 	}

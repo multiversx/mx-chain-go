@@ -44,6 +44,7 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag),
 		txVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		guardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		txTypeHandler:       &testscommon.TxTypeHandlerMock{},
 	}
 
 	return &baseProc
@@ -212,6 +213,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag),
 		txVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		guardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		txTypeHandler:       &testscommon.TxTypeHandlerMock{},
 	}
 
 	notGuardedAccount := &stateMock.UserAccountStub{}

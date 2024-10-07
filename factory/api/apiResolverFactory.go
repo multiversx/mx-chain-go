@@ -244,6 +244,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
+		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
+		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -529,6 +531,7 @@ func createShardVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBl
 		WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              args.coreComponents.Hasher(),
+		PubKeyConverter:     args.coreComponents.AddressPubKeyConverter(),
 	}
 
 	log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)

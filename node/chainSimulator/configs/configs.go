@@ -11,13 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
-	shardingCore "github.com/multiversx/mx-chain-core-go/core/sharding"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
@@ -26,6 +19,14 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	shardingCore "github.com/multiversx/mx-chain-core-go/core/sharding"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 )
 
 var oneEgld = big.NewInt(1000000000000000000)
@@ -35,23 +36,27 @@ const (
 	// ChainID contains the chain id
 	ChainID = "chain"
 
-	allValidatorsPemFileName = "allValidatorsKeys.pem"
+	// ChainSimulatorConsensusGroupSize defines the size of the consensus group for chain simulator
+	ChainSimulatorConsensusGroupSize = 1
+	allValidatorsPemFileName         = "allValidatorsKeys.pem"
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
-	NumOfShards              uint32
-	OriginalConfigsPath      string
-	GenesisTimeStamp         int64
-	RoundDurationInMillis    uint64
-	TempDir                  string
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	InitialEpoch             uint32
-	RoundsPerEpoch           core.OptionalUint64
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	AlterConfigsFunction     func(cfg *config.Configs)
+	NumOfShards                 uint32
+	OriginalConfigsPath         string
+	GenesisTimeStamp            int64
+	RoundDurationInMillis       uint64
+	TempDir                     string
+	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
+	MetaChainMinNodes           uint32
+	MetaChainConsensusGroupSize uint32
+	InitialEpoch                uint32
+	RoundsPerEpoch              core.OptionalUint64
+	NumNodesWaitingListShard    uint32
+	NumNodesWaitingListMeta     uint32
+	AlterConfigsFunction        func(cfg *config.Configs)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -116,6 +121,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
+	configs.GeneralConfig.EpochStartConfig.MinRoundsBetweenEpochs = 1
 
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
@@ -274,9 +280,8 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
-	// TODO fix this to can be configurable
-	nodes.ConsensusGroupSize = 1
-	nodes.MetaChainConsensusGroupSize = 1
+	nodes.ConsensusGroupSize = args.ConsensusGroupSize
+	nodes.MetaChainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard

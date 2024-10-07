@@ -39,6 +39,12 @@ func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx dat
 	vmInput.CallerAddr = tx.GetSndAddr()
 	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
 	vmInput.GasPrice = tx.GetGasPrice()
+
+	relayedTx, isRelayed := isRelayedTx(tx)
+	if isRelayed {
+		vmInput.RelayerAddr = relayedTx.RelayerAddr
+	}
+
 	vmInput.GasProvided, err = sc.prepareGasProvided(tx)
 	if err != nil {
 		return err

@@ -27,6 +27,11 @@ type NodeHandlerMock struct {
 	CloseCalled                   func() error
 }
 
+// ForceChangeOfEpoch -
+func (mock *NodeHandlerMock) ForceChangeOfEpoch() error {
+	return nil
+}
+
 // GetProcessComponents -
 func (mock *NodeHandlerMock) GetProcessComponents() factory.ProcessComponentsHolder {
 	if mock.GetProcessComponentsCalled != nil {

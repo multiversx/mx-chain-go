@@ -13,6 +13,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -32,15 +39,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const setGuardianCost = 250000
@@ -83,7 +85,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 
 	return scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
-		ArgsParser:  &mock.ArgumentParserMock{},
+		ArgsParser:  &testscommon.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		AccountsDB: &stateMock.AccountsStub{
@@ -114,11 +116,12 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
-		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCDeployFlag),
-		WasmVMChangeLocker:  &sync.RWMutex{},
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		GasSchedule:             testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCDeployFlag),
+		WasmVMChangeLocker:      &sync.RWMutex{},
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 }
 
@@ -457,7 +460,7 @@ func TestGasScheduleChangeShouldWork(t *testing.T) {
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
@@ -631,13 +634,13 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	scrAdded := false
 	badTxAdded := false
 	arguments.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			badTxAdded = true
 			return nil
 		},
 	}
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			scrAdded = true
 			return nil
 		},
@@ -887,7 +890,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -909,7 +912,7 @@ func TestScProcessor_DeploySmartContractNilTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -931,7 +934,7 @@ func TestScProcessor_DeploySmartContractNotEmptyDestinationAddress(t *testing.T)
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -954,7 +957,7 @@ func TestScProcessor_DeploySmartContractCalculateHashFails(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -986,7 +989,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 	expectedError := errors.New("expected error")
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1017,7 +1020,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeSaveAccountsFails(t *testing
 	expectedError := errors.New("expected error")
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1380,7 +1383,7 @@ func TestScProcessor_DeploySmartContractAddIntermediateTxFails(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			return expectedError
 		},
 	}
@@ -1415,7 +1418,7 @@ func TestScProcessor_DeploySmartContractComputeRewardsFails(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			return expectedError
 		},
 	}
@@ -1476,7 +1479,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1500,7 +1503,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1533,7 +1536,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1565,7 +1568,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
@@ -1702,7 +1705,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -1735,7 +1738,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 	slCalled := false
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -1772,7 +1775,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1800,7 +1803,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1824,7 +1827,7 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1851,7 +1854,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1915,7 +1918,7 @@ func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1944,7 +1947,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1974,7 +1977,7 @@ func TestScProcessor_InitializeVMInputFromTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2011,7 +2014,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2040,7 +2043,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -2084,7 +2087,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2115,7 +2118,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2147,7 +2150,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2180,7 +2183,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2215,7 +2218,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2250,7 +2253,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2289,7 +2292,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -4395,7 +4398,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	})
 	t.Run("", func(t *testing.T) {
 		argsCopy := arguments
-		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 				return "", nil, expectedErr
 			},
@@ -4406,7 +4409,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	})
 	t.Run("expected builtin function different than the parsed function name should return error", func(t *testing.T) {
 		argsCopy := arguments
-		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 				return "differentFunction", nil, nil
 			},
@@ -4417,7 +4420,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	})
 	t.Run("prepare gas provided with error should error", func(t *testing.T) {
 		argsCopy := arguments
-		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 				return "SetGuardian", nil, nil
 			},
@@ -4435,7 +4438,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	})
 	t.Run("builtin function not found should error", func(t *testing.T) {
 		argsCopy := arguments
-		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 				return "SetGuardian", nil, nil
 			},
@@ -4456,7 +4459,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	})
 	t.Run("builtin function not supporting executable check should error", func(t *testing.T) {
 		argsCopy := arguments
-		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 				return "SetGuardian", nil, nil
 			},
@@ -4476,7 +4479,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	})
 	t.Run("OK", func(t *testing.T) {
 		argsCopy := arguments
-		argsCopy.ArgsParser = &mock.ArgumentParserMock{
+		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 				return "SetGuardian", nil, nil
 			},

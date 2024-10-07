@@ -17,6 +17,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -887,10 +888,10 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 }
 
 // RevertPeerState takes the current and previous headers and undos the peer state
-//
-//	for all of the consensus members
+// for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
-	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(header.GetValidatorStatsRootHash())
+	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
 
 func (vs *validatorStatistics) updateShardDataPeerState(

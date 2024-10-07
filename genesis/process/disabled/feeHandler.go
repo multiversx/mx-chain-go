@@ -183,6 +183,11 @@ func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithF
 	return big.NewInt(0)
 }
 
+// ComputeRelayedTxFees returns 0 and 0
+func (fh *FeeHandler) ComputeRelayedTxFees(_ data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+	return big.NewInt(0), big.NewInt(0), nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (fh *FeeHandler) IsInterfaceNil() bool {
 	return fh == nil

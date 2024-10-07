@@ -38,6 +38,19 @@ func TestPersisterCreator_Create(t *testing.T) {
 		require.Equal(t, storage.ErrInvalidFilePath, err)
 	})
 
+	t.Run("use tmp as file path", func(t *testing.T) {
+		t.Parallel()
+
+		conf := createDefaultDBConfig()
+		conf.UseTmpAsFilePath = true
+
+		pc := factory.NewPersisterCreator(conf)
+
+		p, err := pc.Create("path1")
+		require.Nil(t, err)
+		require.NotNil(t, p)
+	})
+
 	t.Run("should create non sharded persister", func(t *testing.T) {
 		t.Parallel()
 

@@ -53,6 +53,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -224,7 +225,7 @@ func (context *TestContext) initFeeHandlers() {
 				RewardsConfigByEpoch: []config.EpochRewardSettings{
 					{
 						LeaderPercentage:                 0.1,
-						DeveloperPercentage:              0.0,
+						DeveloperPercentage:              0.3,
 						ProtocolSustainabilityPercentage: 0,
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "1000000",
@@ -319,6 +320,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
@@ -334,6 +336,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              hasher,
+		PubKeyConverter:     pkConverter,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -389,37 +392,40 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:     context.TxLogsProcessor,
-		EnableRoundsHandler: context.EnableRoundsHandler,
-		EnableEpochsHandler: context.EnableEpochsHandler,
-		WasmVMChangeLocker:  context.WasmVMChangeLocker,
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		GasSchedule:             mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:         context.TxLogsProcessor,
+		EnableRoundsHandler:     context.EnableRoundsHandler,
+		EnableEpochsHandler:     context.EnableEpochsHandler,
+		WasmVMChangeLocker:      context.WasmVMChangeLocker,
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	context.ScProcessor, err = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:            context.Accounts,
-		Hasher:              hasher,
-		PubkeyConv:          pkConverter,
-		Marshalizer:         marshalizer,
-		SignMarshalizer:     marshalizer,
-		ShardCoordinator:    oneShardCoordinator,
-		ScProcessor:         context.ScProcessor,
-		TxFeeHandler:        context.UnsignexTxHandler,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        context.EconomicsFee,
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: context.EnableRoundsHandler,
-		EnableEpochsHandler: context.EnableEpochsHandler,
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:     context.TxLogsProcessor,
+		Accounts:                context.Accounts,
+		Hasher:                  hasher,
+		PubkeyConv:              pkConverter,
+		Marshalizer:             marshalizer,
+		SignMarshalizer:         marshalizer,
+		ShardCoordinator:        oneShardCoordinator,
+		ScProcessor:             context.ScProcessor,
+		TxFeeHandler:            context.UnsignexTxHandler,
+		TxTypeHandler:           txTypeHandler,
+		EconomicsFee:            context.EconomicsFee,
+		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:              smartContract.NewArgumentParser(),
+		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:     context.EnableRoundsHandler,
+		EnableEpochsHandler:     context.EnableEpochsHandler,
+		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:         context.TxLogsProcessor,
+		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
@@ -493,12 +499,18 @@ func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticip
 	participant.BalanceSnapshot = context.GetAccountBalance(participant)
 }
 
-// GetAccountBalance -
-func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
-	account, err := context.Accounts.GetExistingAccount(participant.Address)
+// GetAccount -
+func (context *TestContext) GetAccount(address []byte) state.UserAccountHandler {
+	account, err := context.Accounts.GetExistingAccount(address)
 	require.Nil(context.T, err)
 	accountAsUser := account.(state.UserAccountHandler)
-	return accountAsUser.GetBalance()
+	return accountAsUser
+}
+
+// GetAccountBalance -
+func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
+	account := context.GetAccount(participant.Address)
+	return account.GetBalance()
 }
 
 // GetAccountBalanceDelta -

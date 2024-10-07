@@ -33,7 +33,10 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
-	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
+	vmConfig := &config.VirtualMachineConfig{
+		WasmVMVersions:                    []config.WasmVMVersionByEpoch{arwenVersion},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
+	}
 	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,

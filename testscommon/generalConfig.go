@@ -380,12 +380,22 @@ func GetGeneralConfig() config.Config {
 				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "*"},
 				},
+				TransferAndExecuteByUserAddresses: []string{
+					"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+					"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+					"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
+				},
 			},
 			Querying: config.QueryVirtualMachineConfig{
 				NumConcurrentVMs: 1,
 				VirtualMachineConfig: config.VirtualMachineConfig{
 					WasmVMVersions: []config.WasmVMVersionByEpoch{
 						{StartEpoch: 0, Version: "*"},
+					},
+					TransferAndExecuteByUserAddresses: []string{
+						"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", //shard 0
+						"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
+						"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 					},
 				},
 			},
@@ -418,6 +428,9 @@ func GetGeneralConfig() config.Config {
 		},
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
+		},
+		RelayedTransactionConfig: config.RelayedTransactionConfig{
+			MaxTransactionsAllowed: 10,
 		},
 	}
 }

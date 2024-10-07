@@ -32,6 +32,7 @@ func makeVMConfig() config.VirtualMachineConfig {
 			{StartEpoch: 12, Version: "v1.3"},
 			{StartEpoch: 14, Version: "v1.4"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 	}
 }
 
@@ -48,6 +49,7 @@ func createMockVMAccountsArguments() ArgVMContainerFactory {
 		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		Hasher:              &hashingMocks.HasherMock{},
+		PubKeyConverter:     testscommon.RealWorldBech32PubkeyConverter,
 	}
 }
 
@@ -137,6 +139,33 @@ func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHasher, err)
 }
 
+func TestNewVMContainerFactory_NilPubKeyConverterShouldErr(t *testing.T) {
+	args := createMockVMAccountsArguments()
+	args.PubKeyConverter = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+}
+
+func TestNewVMContainerFactory_EmptyOpcodeAddressListErr(t *testing.T) {
+	args := createMockVMAccountsArguments()
+	args.Config.TransferAndExecuteByUserAddresses = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrTransferAndExecuteByUserAddressesAreNil, err)
+}
+
+func TestNewVMContainerFactory_WrongAddressErr(t *testing.T) {
+	args := createMockVMAccountsArguments()
+	args.Config.TransferAndExecuteByUserAddresses = []string{"just"}
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, err.Error(), "invalid bech32 string length 4")
+}
+
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	if runtime.GOARCH == "arm64" {
 		t.Skip("skipping test on arm64")
@@ -175,6 +204,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
+
+	assert.Equal(t, len(vmf.mapOpcodeAddressIsAllowed), 1)
+	assert.Equal(t, len(vmf.mapOpcodeAddressIsAllowed[managedMultiTransferESDTNFTExecuteByUser]), 1)
 }
 
 func TestVmContainerFactory_ResolveWasmVMVersion(t *testing.T) {

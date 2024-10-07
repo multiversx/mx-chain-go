@@ -194,6 +194,7 @@ func CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(numOfShards int, ena
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"},
 		},
 	)
 
