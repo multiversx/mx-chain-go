@@ -446,7 +446,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		Hasher:                  pcf.coreData.Hasher(),
 		Marshalizer:             pcf.coreData.InternalMarshalizer(),
 		AccountsDB:              accountsAdapter,
-		BlockChainHook:          vmContainvmFactoryerFactory.BlockChainHookImpl(),
+		BlockChainHook:          vmFactory.BlockChainHookImpl(),
 		BuiltInFunctions:        builtInFuncFactory.BuiltInFunctionContainer(),
 		PubkeyConv:              pcf.coreData.AddressPubKeyConverter(),
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),

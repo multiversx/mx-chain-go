@@ -6,11 +6,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
-	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -130,7 +130,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 
 // AddressListToMap returns a map of addresses
 func AddressListToMap(addresses []string, pubKeyConverter core.PubkeyConverter) (map[string]struct{}, error) {
-	decodedAddresses, errDecode := factory.DecodeAddresses(pubKeyConverter, addresses)
+	decodedAddresses, errDecode := addressDecoder.DecodeAddresses(pubKeyConverter, addresses)
 	if errDecode != nil {
 		return nil, errDecode
 	}

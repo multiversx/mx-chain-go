@@ -180,7 +180,7 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
 	}
-	if check.IfNil(m.processComponents.relayedTxV3Processor) {
+	if check.IfNil(mpc.processComponents.relayedTxV3Processor) {
 		return errors.ErrNilRelayedTxV3Processor
 	}
 

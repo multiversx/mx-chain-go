@@ -1353,7 +1353,6 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
-	// TODO: MariusC
 	convertedDNSV2Addresses, err := addressDecoder.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.config.BuiltInFunctions.DNSV2Addresses,

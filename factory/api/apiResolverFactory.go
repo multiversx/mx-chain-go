@@ -164,12 +164,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, errDecode
 	}
 
-	dnsV2AddressesStrings := args.Configs.GeneralConfig.BuiltInFunctions.DNSV2Addresses
-	convertedDNSV2Addresses, errDecode := addressDecoder.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
-	if errDecode != nil {
-		return nil, errDecode
-	}
-
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -181,10 +175,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 		args.Configs.GeneralConfig.BuiltInFunctions.DNSV2Addresses,
-		convertedDNSV2Addresses, // TODO: MariusC check this//args.Configs.GeneralConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
+		args.Configs.GeneralConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
 		[]byte(args.Configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
 		pkConverter,
-
 	)
 	if err != nil {
 		return nil, err
@@ -389,12 +382,6 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		return nil, nil, errDecode
 	}
 
-	dnsV2AddressesStrings := args.generalConfig.BuiltInFunctions.DNSV2Addresses
-	convertedDNSV2Addresses, errDecode := addressDecoder.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
-	if errDecode != nil {
-		return nil, nil, errDecode
-	}
-
 	apiBlockchain, err := createBlockchainForScQuery(selfShardID)
 	if err != nil {
 		return nil, nil, err
@@ -416,7 +403,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 		args.generalConfig.BuiltInFunctions.DNSV2Addresses,
-		convertedDNSV2Addresses, // TODO: MARIUSC // args.generalConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
+		args.generalConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
 		[]byte(args.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
 		pkConverter,
 	)
