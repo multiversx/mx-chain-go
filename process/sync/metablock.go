@@ -16,9 +16,8 @@ import (
 // MetaBootstrap implements the bootstrap mechanism
 type MetaBootstrap struct {
 	*baseBootstrap
-	epochBootstrapper           process.EpochBootstrapper
-	validatorStatisticsDBSyncer process.AccountsDBSyncer
-	validatorAccountsDB         state.AccountsAdapter
+	epochBootstrapper   process.EpochBootstrapper
+	validatorAccountsDB state.AccountsAdapter
 }
 
 // NewMetaBootstrap creates a new Bootstrap object
