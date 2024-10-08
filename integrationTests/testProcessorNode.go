@@ -111,7 +111,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
-	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -3354,46 +3353,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsV3EnableEpoch:                  UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-	}
-}
-
-// GetDefaultRunTypeComponents -
-func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
-	rt := components.GetRunTypeComponents()
-	return &mainFactoryMocks.RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
-		BlockProcessorFactory:               rt.BlockProcessorCreator(),
-		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
-		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
-		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
-		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
-		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
-		RequestHandlerFactory:               rt.RequestHandlerCreator(),
-		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
-		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
-		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
-		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
-		SCProcessorFactory:                  rt.SCProcessorCreator(),
-		BootstrapperFactory:                 rt.BootstrapperCreator(),
-		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
-		AccountParser:                       rt.AccountsParser(),
-		AccountCreator:                      rt.AccountsCreator(),
-		VMContextCreatorHandler:             systemSmartContracts.NewVMContextCreator(),
-		ConsensusModelType:                  consensusModel,
-		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
-		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
-		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
-		DataCodec:                           rt.DataCodecHandler(),
-		TopicsChecker:                       rt.TopicsCheckerHandler(),
-		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
-		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
-		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
-		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
-		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
-		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
-		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }
 
