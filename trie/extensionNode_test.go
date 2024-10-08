@@ -864,7 +864,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	ExecuteUpdatesFromBatch(tr)
-	_ = tr.root.setRootHash()
+	_ = tr.GetRootNode().setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
@@ -872,7 +872,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 		nodesCacher.Put(n.hash, n, len(n.GetSerialized()))
 	}
 
-	en := getCollapsedEn(t, tr.root)
+	en := getCollapsedEn(t, tr.GetRootNode())
 
 	getNode := func(hash []byte) (node, error) {
 		cacheData, _ := nodesCacher.Get(hash)

@@ -51,7 +51,6 @@ type Trie interface {
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
-	GetAllHashes() ([][]byte, error)
 	GetProof(key []byte) ([][]byte, []byte, error)
 	VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManager() StorageManager

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -78,16 +79,16 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 	trieStorage, _ := NewTrieStorageManager(args)
 	th, _ := throttler.NewNumGoRoutinesThrottler(5)
 	tr := &patriciaMerkleTrie{
-		trieStorage:          trieStorage,
-		marshalizer:          args.Marshalizer,
-		hasher:               args.Hasher,
-		oldHashes:            make([][]byte, 0),
-		oldRoot:              make([]byte, 0),
-		maxTrieLevelInMemory: 5,
-		chanClose:            make(chan struct{}),
-		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		batchManager:         trieBatchManager.NewTrieBatchManager(),
-		goroutinesThrottler:  th,
+		trieStorage:             trieStorage,
+		marshalizer:             args.Marshalizer,
+		hasher:                  args.Hasher,
+		maxTrieLevelInMemory:    5,
+		chanClose:               make(chan struct{}),
+		enableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		batchManager:            trieBatchManager.NewTrieBatchManager(),
+		goroutinesThrottler:     th,
+		RootManager:             NewRootManager(),
+		trieOperationInProgress: &atomic.Flag{},
 	}
 
 	return tr, trieStorage
@@ -217,10 +218,12 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	ExecuteUpdatesFromBatch(tr1)
 	ExecuteUpdatesFromBatch(tr2)
 
-	err := tr1.root.setRootHash()
-	_ = tr2.root.setHash()
+	rootNode1 := tr1.GetRootNode()
+	rootNode2 := tr2.GetRootNode()
+	err := rootNode1.setRootHash()
+	_ = rootNode2.setHash()
 	assert.Nil(t, err)
-	assert.Equal(t, tr1.root.getHash(), tr2.root.getHash())
+	assert.Equal(t, rootNode1.getHash(), rootNode2.getHash())
 }
 
 func TestBranchNode_setRootHashCollapsedNode(t *testing.T) {
@@ -1156,7 +1159,8 @@ func TestBranchNode_loadChildren(t *testing.T) {
 
 	marsh, hasher := getTestMarshalizerAndHasher()
 	tr := initTrie()
-	_ = tr.root.setRootHash()
+	rootNode := tr.GetRootNode()
+	_ = rootNode.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
@@ -1167,7 +1171,7 @@ func TestBranchNode_loadChildren(t *testing.T) {
 	firstChildIndex := 5
 	secondChildIndex := 7
 
-	bn := getCollapsedBn(t, tr.root)
+	bn := getCollapsedBn(t, rootNode)
 
 	getNode := func(hash []byte) (node, error) {
 		cacheData, _ := nodesCacher.Get(hash)
@@ -1200,16 +1204,16 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("zzz"), []byte("zzz"))
 	_ = tr.Commit()
 
-	tr.root, _ = tr.root.getCollapsed()
+	collapsedRoot, _ := tr.GetRootNode().getCollapsed()
 	tr.Delete([]byte("zzz"))
 	ExecuteUpdatesFromBatch(tr)
 
-	assert.True(t, tr.root.isDirty())
-	assert.True(t, tr.root.isCollapsed())
+	assert.True(t, collapsedRoot.isDirty())
+	assert.True(t, collapsedRoot.isCollapsed())
 
 	_ = tr.Commit()
 
-	assert.False(t, tr.root.isDirty())
+	assert.False(t, collapsedRoot.isDirty())
 }
 
 func BenchmarkMarshallNodeJson(b *testing.B) {
