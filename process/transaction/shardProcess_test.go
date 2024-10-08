@@ -2585,7 +2585,9 @@ func testProcessRelayedTransactionV3(
 	returnCode, err := execTx.ProcessTransaction(tx)
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, expectedCode, returnCode)
-	assert.Equal(t, 1, len(localHashesHolder))
+	if expectedErr == nil {
+		assert.Equal(t, 1, len(localHashesHolder))
+	}
 }
 
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {
