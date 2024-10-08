@@ -2523,6 +2523,8 @@ func checkKeysNotInMap(t *testing.T, m map[uint32][][]byte, keys []string) {
 
 func stakeOneNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
 	txStake, _ := staking.CreateStakeTransaction(t, cs)
+	require.Nil(t, cs.GenerateBlocks(1))
+
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
