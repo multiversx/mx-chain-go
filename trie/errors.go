@@ -132,3 +132,6 @@ var ErrNilBufferedErrChan = errors.New("nil buffered error channel")
 
 // ErrNilChanClose signals that a nil chan close has been provided
 var ErrNilChanClose = errors.New("nil chan close")
+
+// ErrInvalidTypeConversion signals that an invalid type conversion has been provided
+var ErrInvalidTypeConversion = errors.New("invalid type conversion")

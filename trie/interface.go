@@ -110,3 +110,12 @@ type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
 }
+
+type RootManager interface {
+	GetRootNode() node
+	SetNewRootNode(newRoot node)
+	SetDataForRootChange(newRoot node, oldRootHash []byte, oldHashes [][]byte)
+	ResetCollectedHashes()
+	GetOldHashes() [][]byte
+	GetOldRootHash() []byte
+}

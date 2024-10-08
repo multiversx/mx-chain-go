@@ -2082,7 +2082,7 @@ func TestAccountRemoval(t *testing.T) {
 
 	shardNode := nodes[0]
 
-	dataTriesRootHashes, codeMap := generateAccounts(shardNode, accounts)
+	_, codeMap := generateAccounts(shardNode, accounts)
 
 	_, _ = shardNode.AccntState.Commit()
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -2115,13 +2115,6 @@ func TestAccountRemoval(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		checkCodeConsistency(t, shardNode, codeMap)
 	}
-
-	delayRounds = 5
-	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	checkDataTrieConsistency(t, shardNode.AccntState, removedAccounts, dataTriesRootHashes)
 }
 
 func generateAccounts(

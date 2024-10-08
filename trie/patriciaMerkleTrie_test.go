@@ -523,26 +523,6 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	assert.Equal(t, len(oldHashes), len(newHashes))
 }
 
-func TestPatriciaMerkleTrie_GetAllHashesSetsHashes(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-
-	hashes, err := tr.GetAllHashes()
-	assert.Nil(t, err)
-	assert.Equal(t, 6, len(hashes))
-}
-
-func TestPatriciaMerkleTrie_GetAllHashesEmtyTrie(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-
-	hashes, err := tr.GetAllHashes()
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(hashes))
-}
-
 func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 	t.Parallel()
 
@@ -971,7 +951,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	numOperations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
-	numFunctions := 19
+	numFunctions := 18
 
 	initialRootHash, _ := tr.RootHash()
 
@@ -1035,19 +1015,16 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				)
 				assert.Nil(t, err)
 			case 13:
-				_, err := tr.GetAllHashes()
-				assert.Nil(t, err)
-			case 14:
 				_, _, _ = tr.GetProof(initialRootHash) // this might error due to concurrent operations that change the roothash
-			case 15:
+			case 14:
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
-			case 16:
+			case 15:
 				sm := tr.GetStorageManager()
 				assert.NotNil(t, sm)
-			case 17:
+			case 16:
 				_ = tr.GetOldRoot()
-			case 18:
+			case 17:
 				trieStatsHandler := tr.(common.TrieStats)
 				_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
 				assert.Nil(t, err)
@@ -1175,6 +1152,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtm := &trieMock.DataTrieMigratorStub{
 			ConsumeStorageLoadGasCalled: func() bool {
@@ -1210,6 +1188,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		_ = dtr.UpdateWithVersion(key, value, core.NotSpecified)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtm := &trieMock.DataTrieMigratorStub{
 			AddLeafToMigrationQueueCalled: func(leafData core.TrieData, newLeafVersion core.TrieNodeVersion) (bool, error) {
@@ -1243,6 +1222,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		)
 		addDefaultDataToTrie(tr)
+		trie.ExecuteUpdatesFromBatch(tr)
 
 		dtr := tr.(dataTrie)
 		numLoads := 0
@@ -1285,6 +1265,8 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		)
 		addDefaultDataToTrie(tr)
+		trie.ExecuteUpdatesFromBatch(tr)
+
 		dtr := tr.(dataTrie)
 		numLoads := 0
 		numAddLeafToMigrationQueueCalled := 0
@@ -1427,6 +1409,8 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.NotSpecified)
+		trie.ExecuteUpdatesFromBatch(tr)
+
 		dtm := &trieMock.DataTrieMigratorStub{
 			ConsumeStorageLoadGasCalled: func() bool {
 				numLoadsCalled++
@@ -1465,6 +1449,8 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		_ = dtr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("ddog"), []byte("puppy"), core.AutoBalanceEnabled)
 		_ = dtr.UpdateWithVersion([]byte("doe"), []byte("cat"), core.AutoBalanceEnabled)
+		trie.ExecuteUpdatesFromBatch(tr)
+
 		dtm := &trieMock.DataTrieMigratorStub{
 			ConsumeStorageLoadGasCalled: func() bool {
 				numLoadsCalled++

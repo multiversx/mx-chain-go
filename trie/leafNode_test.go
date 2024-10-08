@@ -615,13 +615,13 @@ func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash := tr.root.getHash()
+	rootHash := tr.GetRootNode().getHash()
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
-	assert.False(t, tr.root.isDirty())
-	assert.Equal(t, rootHash, tr.root.getHash())
-	assert.Equal(t, [][]byte{}, tr.oldHashes)
+	assert.False(t, tr.GetRootNode().isDirty())
+	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
 func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
@@ -631,13 +631,13 @@ func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("log"), []byte("wood"))
 	_ = tr.Commit()
-	rootHash := tr.root.getHash()
+	rootHash := tr.GetRootNode().getHash()
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
-	assert.False(t, tr.root.isDirty())
-	assert.Equal(t, rootHash, tr.root.getHash())
-	assert.Equal(t, [][]byte{}, tr.oldHashes)
+	assert.False(t, tr.GetRootNode().isDirty())
+	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
 func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
@@ -646,13 +646,13 @@ func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Commit()
-	rootHash := tr.root.getHash()
+	rootHash := tr.GetRootNode().getHash()
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	ExecuteUpdatesFromBatch(tr)
-	assert.False(t, tr.root.isDirty())
-	assert.Equal(t, rootHash, tr.root.getHash())
-	assert.Equal(t, [][]byte{}, tr.oldHashes)
+	assert.False(t, tr.GetRootNode().isDirty())
+	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
 func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
@@ -660,13 +660,13 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 
 	tr := initTrie()
 	_ = tr.Commit()
-	rootHash := tr.root.getHash()
+	rootHash := tr.GetRootNode().getHash()
 
 	_ = tr.Update([]byte("ddoe"), []byte{})
 	ExecuteUpdatesFromBatch(tr)
-	assert.False(t, tr.root.isDirty())
-	assert.Equal(t, rootHash, tr.root.getHash())
-	assert.Equal(t, [][]byte{}, tr.oldHashes)
+	assert.False(t, tr.GetRootNode().isDirty())
+	assert.Equal(t, rootHash, tr.GetRootNode().getHash())
+	assert.Equal(t, [][]byte{}, tr.GetOldHashes())
 }
 
 func TestLeafNode_newLeafNodeNilMarshalizerShouldErr(t *testing.T) {
