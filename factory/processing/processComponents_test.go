@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -1288,7 +1289,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				},
 				DecodeCalled: func(humanReadable string) ([]byte, error) {
 					decodeCounter++
-					if decodeCounter == 14 {
+					if decodeCounter == 7 {
 						return nil, decodeErr
 					}
 					return addrPubKeyConv.Decode(humanReadable)
@@ -1625,8 +1626,8 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		pc, err := pcf.Create()
 
-		assert.NotNil(t, pc)
-		assert.Nil(t, err)
+		require.NotNil(t, pc)
+		require.Nil(t, err)
 	})
 
 	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
