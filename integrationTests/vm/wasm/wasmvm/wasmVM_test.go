@@ -648,6 +648,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 	txProc, _ := processTransaction.NewTxProcessor(argsNewTxProcessor)
 

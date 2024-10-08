@@ -1271,3 +1271,6 @@ var ErrMultipleRelayedTxTypesIsNotAllowed = errors.New("multiple relayed tx type
 
 // ErrEmptyInnerTransactions signals that the inner transactions slice is empty
 var ErrEmptyInnerTransactions = errors.New("empty inner transactions")
+
+// ErrNilTxHashesHolder signals that a nil transaction hashes holder has been provided
+var ErrNilTxHashesHolder = errors.New("nil transaction hashes holder")

@@ -23,7 +23,7 @@ type HistoryRepository interface {
 		createdIntraShardMiniBlocks []*block.MiniBlock,
 		logs []*data.LogData) error
 	OnNotarizedBlocks(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte)
-	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error)
+	GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, []byte, error)
 	GetEpochByHash(hash []byte) (uint32, error)
 	GetResultsHashesByTxHash(txHash []byte, epoch uint32) (*ResultsHashesByTxHash, error)
 	RevertBlock(blockHeader data.HeaderHandler, blockBody data.BodyHandler) error

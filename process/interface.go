@@ -1367,3 +1367,11 @@ type RelayedTxV3Processor interface {
 	CheckRelayedTx(tx *transaction.Transaction) error
 	IsInterfaceNil() bool
 }
+
+// TransactionHashesHolder defines a component able to hold transaction hashes
+type TransactionHashesHolder interface {
+	Append(hash []byte)
+	GetAllHashes() [][]byte
+	Reset()
+	IsInterfaceNil() bool
+}

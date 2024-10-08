@@ -250,6 +250,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	relayedTxHash := result.Hash
+
 	providedInnerTxHashes := getInnerTxsHashes(t, relayerShardNode, innerTxs)
 
 	require.Zero(t, len(result.SmartContractResults))
@@ -264,6 +266,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 
 		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
+
+		require.Equal(t, relayedTxHash, result.OriginalTransactionHash)
+		require.Equal(t, relayedTxHash, result.PreviousTransactionHash)
 
 		for _, scr := range result.SmartContractResults {
 			if len(scr.ReturnMessage) == 0 {
@@ -378,6 +383,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	relayedTxHash := result.Hash
+
 	checkSum(t, scShardNodeHandler, scAddressBytes, owner.Bytes, 4)
 
 	providedInnerTxHashes := getInnerTxsHashes(t, relayerShardNode, innerTxs)
@@ -389,6 +396,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 
 		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
+
+		require.Equal(t, relayedTxHash, result.OriginalTransactionHash)
+		require.Equal(t, relayedTxHash, result.PreviousTransactionHash)
 
 		switch idx {
 		case 0, 1, 3, 5: // sc calls ok
@@ -773,6 +783,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	relayedTxHash := result.Hash
+
 	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
@@ -786,6 +798,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 
 		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
+
+		require.Equal(t, relayedTxHash, result.OriginalTransactionHash)
+		require.Equal(t, relayedTxHash, result.PreviousTransactionHash)
 
 		require.Equal(t, 1, len(result.SmartContractResults))
 		switch idx {

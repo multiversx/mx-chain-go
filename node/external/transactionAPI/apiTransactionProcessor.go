@@ -112,7 +112,7 @@ func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash strin
 		return nil, fmt.Errorf("cannot return smat contract results: %w", ErrDBLookExtensionIsNotEnabled)
 	}
 
-	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
+	miniblockMetadata, _, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -514,7 +514,7 @@ func (atp *apiTransactionProcessor) computeTimestampForRound(round uint64) int64
 }
 
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
+	miniblockMetadata, parentTxHash, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -536,6 +536,11 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
+	}
+
+	if len(parentTxHash) > 0 {
+		tx.OriginalTransactionHash = hex.EncodeToString(parentTxHash)
+		tx.PreviousTransactionHash = hex.EncodeToString(parentTxHash)
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)

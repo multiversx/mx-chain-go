@@ -498,6 +498,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GuardianChecker:      guardedAccountHandler,
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -917,6 +918,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		GuardianChecker:      guardianChecker,
 		TxLogsProcessor:      logProc,
 		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

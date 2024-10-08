@@ -307,6 +307,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
 		TxLogsProcessor:      pcf.txLogsProcessor,
 		RelayedTxV3Processor: relayedTxV3Processor,
+		InnerTxsHashesHolder: transaction.NewTxHashesHolder(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

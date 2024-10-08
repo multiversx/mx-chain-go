@@ -276,26 +276,35 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 	}
 
 	for _, innerTx := range txInfoFromMap.tx.GetUserTransactions() {
-		innerTxHash, errCalculateHash := core.CalculateHash(bpp.marshalizer, bpp.hasher, innerTx)
-		if errCalculateHash != nil {
-			log.Warn("basePreProcess.saveTransactionToStorage: calculate inner tx hash", "txHash", txHash, "error", errCalculateHash)
-			continue
-		}
+		bpp.saveInnerTxToStorage(txHash, innerTx, store, dataUnit)
+	}
+}
 
-		buffInner, errMarshal := bpp.marshalizer.Marshal(innerTx)
-		if errMarshal != nil {
-			log.Warn("basePreProcess.saveTransactionToStorage: Marshal inner tx", "txHash", txHash, "error", errMarshal)
-			continue
-		}
+func (bpp *basePreProcess) saveInnerTxToStorage(
+	relayedTxHash []byte,
+	innerTx data.TransactionHandler,
+	store dataRetriever.StorageService,
+	dataUnit dataRetriever.UnitType,
+) {
+	innerTxHash, errCalculateHash := core.CalculateHash(bpp.marshalizer, bpp.hasher, innerTx)
+	if errCalculateHash != nil {
+		log.Warn("basePreProcess.saveInnerTxToStorage: calculate inner tx hash", "relayedTxHash", relayedTxHash, "error", errCalculateHash)
+		return
+	}
 
-		errNotCritical = store.Put(dataUnit, innerTxHash, buffInner)
-		if errNotCritical != nil {
-			log.Debug("basePreProcess.saveTransactionToStorage: Put inner tx",
-				"txHash", txHash,
-				"dataUnit", dataUnit,
-				"error", errNotCritical,
-			)
-		}
+	buffInner, errMarshal := bpp.marshalizer.Marshal(innerTx)
+	if errMarshal != nil {
+		log.Warn("basePreProcess.saveInnerTxToStorage: Marshal inner tx", "relayedTxHash", relayedTxHash, "error", errMarshal)
+		return
+	}
+
+	errNotCritical := store.Put(dataUnit, innerTxHash, buffInner)
+	if errNotCritical != nil {
+		log.Debug("basePreProcess.saveInnerTxToStorage: Put inner tx",
+			"txHash", relayedTxHash,
+			"dataUnit", dataUnit,
+			"error", errNotCritical,
+		)
 	}
 }
 

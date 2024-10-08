@@ -99,6 +99,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		EnableRoundsHandler:  &testscommon.EnableRoundsHandlerStub{},
 		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 	return args
 }
@@ -338,6 +339,17 @@ func TestNewTxProcessor_NilRelayedTxV3ProcessorShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilRelayedTxV3Processor, err)
+	assert.Nil(t, txProc)
+}
+
+func TestNewTxProcessor_NilInnerTxsHashesHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForTxProcessor()
+	args.InnerTxsHashesHolder = nil
+	txProc, err := txproc.NewTxProcessor(args)
+
+	assert.Equal(t, process.ErrNilTxHashesHolder, err)
 	assert.Nil(t, txProc)
 }
 
@@ -2510,6 +2522,16 @@ func testProcessRelayedTransactionV3(
 		return nil, errors.New("failure")
 	}
 
+	localHashesHolder := make([][]byte, 0)
+	txHashesHolder := &processMocks.TransactionHashesHolderMock{
+		AppendCalled: func(hash []byte) {
+			localHashesHolder = append(localHashesHolder, hash)
+		},
+		GetAllHashesCalled: func() [][]byte {
+			return localHashesHolder
+		},
+	}
+
 	scProcessorMock := &testscommon.SCProcessorMock{}
 	shardC, _ := sharding.NewMultiShardCoordinator(1, 0)
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshaller)
@@ -2556,12 +2578,14 @@ func testProcessRelayedTransactionV3(
 		ShardCoordinator:       args.ShardCoordinator,
 		MaxTransactionsAllowed: 10,
 	})
+	args.InnerTxsHashesHolder = txHashesHolder
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
 	returnCode, err := execTx.ProcessTransaction(tx)
 	assert.Equal(t, expectedErr, err)
 	assert.Equal(t, expectedCode, returnCode)
+	assert.Equal(t, 1, len(localHashesHolder))
 }
 
 func TestTxProcessor_ProcessRelayedTransaction(t *testing.T) {

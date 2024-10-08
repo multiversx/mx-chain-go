@@ -1066,6 +1066,7 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 		GuardianChecker:      &guardianMocks.GuardedAccountHandlerStub{},
 		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
 		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

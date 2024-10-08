@@ -328,8 +328,8 @@ func TestNode_GetSCRs(t *testing.T) {
 	}
 
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
-		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-			return &dblookupext.MiniblockMetadata{}, nil
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+			return &dblookupext.MiniblockMetadata{}, nil, nil
 		},
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return resultHashesByTxHash, nil
@@ -538,8 +538,8 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	}
 
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
-		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-			return &dblookupext.MiniblockMetadata{}, nil
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+			return &dblookupext.MiniblockMetadata{}, nil, nil
 		},
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return resultHashesByTxHash, nil
@@ -711,8 +711,8 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-		return nil, fmt.Errorf("fooError")
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+		return nil, nil, fmt.Errorf("fooError")
 	}
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, tx)
@@ -722,8 +722,8 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 
 	// Badly serialized transaction
 	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-		return &dblookupext.MiniblockMetadata{}, nil
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+		return &dblookupext.MiniblockMetadata{}, nil, nil
 	}
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
@@ -1178,7 +1178,7 @@ func setupGetMiniblockMetadataByTxHash(
 	headerHash []byte,
 	headerNonce uint64,
 ) {
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
 		return &dblookupext.MiniblockMetadata{
 			Type:               int32(blockType),
 			SourceShardID:      sourceShard,
@@ -1186,7 +1186,7 @@ func setupGetMiniblockMetadataByTxHash(
 			Epoch:              epoch,
 			HeaderNonce:        headerNonce,
 			HeaderHash:         headerHash,
-		}, nil
+		}, nil, nil
 	}
 }
 

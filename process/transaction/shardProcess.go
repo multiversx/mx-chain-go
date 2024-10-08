@@ -40,16 +40,16 @@ type relayedFees struct {
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler           process.TransactionFeeHandler
-	receiptForwarder       process.IntermediateTransactionHandler
-	badTxForwarder         process.IntermediateTransactionHandler
-	argsParser             process.ArgumentsParser
-	scrForwarder           process.IntermediateTransactionHandler
-	signMarshalizer        marshal.Marshalizer
-	enableEpochsHandler    common.EnableEpochsHandler
-	txLogsProcessor        process.TransactionLogProcessor
-	relayedTxV3Processor   process.RelayedTxV3Processor
-	relayedTxV3InnerHashes [][]byte
+	txFeeHandler         process.TransactionFeeHandler
+	receiptForwarder     process.IntermediateTransactionHandler
+	badTxForwarder       process.IntermediateTransactionHandler
+	argsParser           process.ArgumentsParser
+	scrForwarder         process.IntermediateTransactionHandler
+	signMarshalizer      marshal.Marshalizer
+	enableEpochsHandler  common.EnableEpochsHandler
+	txLogsProcessor      process.TransactionLogProcessor
+	relayedTxV3Processor process.RelayedTxV3Processor
+	innerTxsHashesHolder process.TransactionHashesHolder
 }
 
 // ArgsNewTxProcessor defines the arguments needed for new tx processor
@@ -74,6 +74,7 @@ type ArgsNewTxProcessor struct {
 	GuardianChecker      process.GuardianChecker
 	TxLogsProcessor      process.TransactionLogProcessor
 	RelayedTxV3Processor process.RelayedTxV3Processor
+	InnerTxsHashesHolder process.TransactionHashesHolder
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -150,6 +151,9 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.RelayedTxV3Processor) {
 		return nil, process.ErrNilRelayedTxV3Processor
 	}
+	if check.IfNil(args.InnerTxsHashesHolder) {
+		return nil, process.ErrNilTxHashesHolder
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -166,17 +170,17 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	txProc := &txProcessor{
-		baseTxProcessor:        baseTxProcess,
-		txFeeHandler:           args.TxFeeHandler,
-		receiptForwarder:       args.ReceiptForwarder,
-		badTxForwarder:         args.BadTxForwarder,
-		argsParser:             args.ArgsParser,
-		scrForwarder:           args.ScrForwarder,
-		signMarshalizer:        args.SignMarshalizer,
-		enableEpochsHandler:    args.EnableEpochsHandler,
-		txLogsProcessor:        args.TxLogsProcessor,
-		relayedTxV3Processor:   args.RelayedTxV3Processor,
-		relayedTxV3InnerHashes: make([][]byte, 0),
+		baseTxProcessor:      baseTxProcess,
+		txFeeHandler:         args.TxFeeHandler,
+		receiptForwarder:     args.ReceiptForwarder,
+		badTxForwarder:       args.BadTxForwarder,
+		argsParser:           args.ArgsParser,
+		scrForwarder:         args.ScrForwarder,
+		signMarshalizer:      args.SignMarshalizer,
+		enableEpochsHandler:  args.EnableEpochsHandler,
+		txLogsProcessor:      args.TxLogsProcessor,
+		relayedTxV3Processor: args.RelayedTxV3Processor,
+		innerTxsHashesHolder: args.InnerTxsHashesHolder,
 	}
 
 	return txProc, nil
@@ -728,7 +732,7 @@ func (txProc *txProcessor) processRelayedTxV3(
 	}
 
 	innerTxs := tx.GetInnerTransactions()
-	txProc.relayedTxV3InnerHashes = make([][]byte, 0)
+	txProc.innerTxsHashesHolder.Reset()
 
 	relayedTxHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
@@ -777,30 +781,27 @@ func (txProc *txProcessor) processRelayedTxV3(
 func (txProc *txProcessor) processInnerTx(
 	tx *transaction.Transaction,
 	innerTx *transaction.Transaction,
-	originalTxHash []byte,
+	relayedTxHash []byte,
 	innerTxIdx int,
 ) (*big.Int, vmcommon.ReturnCode, error) {
 
 	txFee := txProc.computeInnerTxFee(innerTx)
 
-	innerTxHash := originalTxHash
+	originalTxHash, err := txProc.getOriginalTxHashForInnerTxOfRelayedV3(relayedTxHash, innerTx)
+	if err != nil {
+		return txFee, vmcommon.UserError, txProc.executeFailedRelayedUserTx(
+			innerTx,
+			innerTx.RelayerAddr,
+			big.NewInt(0),
+			tx.Nonce,
+			tx,
+			originalTxHash,
+			err.Error(),
+			innerTxIdx)
+	}
 
-	var err error
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.HashForInnerTransactionFlag) {
-		innerTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, innerTx)
-		if err != nil {
-			return txFee, vmcommon.UserError, txProc.executeFailedRelayedUserTx(
-				innerTx,
-				innerTx.RelayerAddr,
-				big.NewInt(0),
-				tx.Nonce,
-				tx,
-				originalTxHash,
-				err.Error(),
-				innerTxIdx)
-		}
-
-		txProc.relayedTxV3InnerHashes = append(txProc.relayedTxV3InnerHashes, innerTxHash)
+	if !bytes.Equal(relayedTxHash, originalTxHash) {
+		txProc.innerTxsHashesHolder.Append(originalTxHash)
 	}
 
 	acntSnd, err := txProc.getAccountFromAddress(innerTx.SndAddr)
@@ -811,7 +812,7 @@ func (txProc *txProcessor) processInnerTx(
 			big.NewInt(0),
 			tx.Nonce,
 			tx,
-			innerTxHash,
+			originalTxHash,
 			err.Error(),
 			innerTxIdx)
 	}
@@ -823,7 +824,7 @@ func (txProc *txProcessor) processInnerTx(
 			big.NewInt(0),
 			tx.Nonce,
 			tx,
-			innerTxHash,
+			originalTxHash,
 			process.ErrRelayedTxV3SenderShardMismatch.Error(),
 			innerTxIdx)
 	}
@@ -837,12 +838,12 @@ func (txProc *txProcessor) processInnerTx(
 			big.NewInt(0),
 			tx.Nonce,
 			tx,
-			innerTxHash,
+			originalTxHash,
 			err.Error(),
 			innerTxIdx)
 	}
 
-	result, err := txProc.processUserTx(tx, innerTx, tx.Value, tx.Nonce, innerTxHash, innerTxIdx)
+	result, err := txProc.processUserTx(tx, innerTx, tx.Value, tx.Nonce, originalTxHash, innerTxIdx)
 	return txFee, result, err
 }
 
@@ -1308,14 +1309,15 @@ func (txProc *txProcessor) createCompleteEventLog(scr data.TransactionHandler, o
 }
 
 func (txProc *txProcessor) createCompletedRelayedTxV3EventLog(tx data.TransactionHandler, originalTxHash []byte) {
-	if len(txProc.relayedTxV3InnerHashes) == 0 {
+	innerTxHashes := txProc.innerTxsHashesHolder.GetAllHashes()
+	if len(innerTxHashes) == 0 {
 		return
 	}
 
 	completedTxLog := &vmcommon.LogEntry{
 		Identifier: []byte(core.CompletedTxEventIdentifier),
 		Address:    tx.GetSndAddr(),
-		Topics:     txProc.relayedTxV3InnerHashes,
+		Topics:     innerTxHashes,
 	}
 
 	ignorableError := txProc.txLogsProcessor.SaveLog(originalTxHash, tx, []*vmcommon.LogEntry{completedTxLog})
@@ -1323,7 +1325,15 @@ func (txProc *txProcessor) createCompletedRelayedTxV3EventLog(tx data.Transactio
 		log.Debug("txProcessor.createCompletedRelayedTxV3EventLog txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
-	txProc.relayedTxV3InnerHashes = make([][]byte, 0)
+	txProc.innerTxsHashesHolder.Reset()
+}
+
+func (txProc *txProcessor) getOriginalTxHashForInnerTxOfRelayedV3(originalTxHash []byte, innerTx *transaction.Transaction) ([]byte, error) {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.HashForInnerTransactionFlag) {
+		return originalTxHash, nil
+	}
+
+	return core.CalculateHash(txProc.marshalizer, txProc.hasher, innerTx)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

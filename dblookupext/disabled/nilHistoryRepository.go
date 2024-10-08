@@ -38,8 +38,8 @@ func (nhr *nilHistoryRepository) OnNotarizedBlocks(_ uint32, _ []data.HeaderHand
 }
 
 // GetMiniblockMetadataByTxHash does nothing
-func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblookupext.MiniblockMetadata, error) {
-	return nil, nil
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+	return nil, nil, nil
 }
 
 // GetEpochByHash returns a not implemented error

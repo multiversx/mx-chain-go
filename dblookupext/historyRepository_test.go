@@ -204,24 +204,25 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 		txResultsFromPool, nil, nil, nil, nil,
 	)
 
-	metadata, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
+	metadata, _, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
 	require.Nil(t, err)
 	require.Equal(t, 42, int(metadata.Epoch))
 	require.Equal(t, 4321, int(metadata.Round))
 
-	metadata, err = repo.GetMiniblockMetadataByTxHash([]byte("txB"))
+	metadata, _, err = repo.GetMiniblockMetadataByTxHash([]byte("txB"))
 	require.Nil(t, err)
 	require.Equal(t, 42, int(metadata.Epoch))
 	require.Equal(t, 4321, int(metadata.Round))
 
-	_, err = repo.GetMiniblockMetadataByTxHash([]byte("foobar"))
+	_, _, err = repo.GetMiniblockMetadataByTxHash([]byte("foobar"))
 	require.NotNil(t, err)
 
-	_, err = repo.GetMiniblockMetadataByTxHash(innerTxHashTooBigRelayedHash)
+	_, _, err = repo.GetMiniblockMetadataByTxHash(innerTxHashTooBigRelayedHash)
 	require.Equal(t, ErrInvalidHashSize, err)
 
-	metadata, err = repo.GetMiniblockMetadataByTxHash(innerTxHash)
+	metadata, parentTxHash, err := repo.GetMiniblockMetadataByTxHash(innerTxHash)
 	require.NoError(t, err)
+	require.Equal(t, relayedTxHash, parentTxHash)
 	require.Equal(t, 42, int(metadata.Epoch))
 	require.Equal(t, 4321, int(metadata.Round))
 }

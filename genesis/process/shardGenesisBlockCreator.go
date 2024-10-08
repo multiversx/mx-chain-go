@@ -571,6 +571,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GuardianChecker:      disabledGuardian.NewDisabledGuardedAccountHandler(),
 		TxLogsProcessor:      arg.TxLogsProcessor,
 		RelayedTxV3Processor: processDisabled.NewRelayedTxV3Processor(),
+		InnerTxsHashesHolder: transaction.NewTxHashesHolder(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

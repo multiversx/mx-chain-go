@@ -1754,6 +1754,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxVersionChecker:     &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:      tpn.TransactionLogProcessor,
 		RelayedTxV3Processor: relayedV3TxProcessor,
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 	tpn.TxProcessor, _ = transaction.NewTxProcessor(argsNewTxProcessor)
 	scheduledSCRsStorer, _ := tpn.Storage.GetStorer(dataRetriever.ScheduledSCRsUnit)

@@ -399,6 +399,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		GuardianChecker:      pcf.bootstrapComponents.GuardedAccountHandler(),
 		TxLogsProcessor:      txLogsProcessor,
 		RelayedTxV3Processor: relayedTxV3Processor,
+		InnerTxsHashesHolder: transaction.NewTxHashesHolder(),
 	}
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)

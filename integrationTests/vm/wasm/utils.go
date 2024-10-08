@@ -424,6 +424,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GuardianChecker:      &guardianMocks.GuardedAccountHandlerStub{},
 		TxLogsProcessor:      context.TxLogsProcessor,
 		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
+		InnerTxsHashesHolder: &processMocks.TransactionHashesHolderMock{},
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
