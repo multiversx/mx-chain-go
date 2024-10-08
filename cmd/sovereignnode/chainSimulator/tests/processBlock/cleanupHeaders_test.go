@@ -31,7 +31,6 @@ func TestSovereignChainSimulator_NoCrossHeadersReceived(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 		},
 	})
 	require.Nil(t, err)
@@ -82,7 +81,6 @@ func TestSovereignChainSimulator_BlockTrackerPoolsCleanup(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 		},
 	})
 	require.Nil(t, err)

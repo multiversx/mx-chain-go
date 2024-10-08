@@ -119,6 +119,10 @@ func StakeNodes(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, 
 		stakedBlsKeys = append(stakedBlsKeys, blsKeyBytes)
 	}
 
+	// Set state from CreateStakeTransaction needs an extra generated block to save state
+	err := cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTxs)

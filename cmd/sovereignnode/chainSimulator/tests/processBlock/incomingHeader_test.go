@@ -49,7 +49,6 @@ func TestSovereignChainSimulator_IncomingHeader(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 		},
 	})
 	require.Nil(t, err)
