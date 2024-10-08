@@ -201,6 +201,8 @@ updateProxyConfig() {
 
   # Truncate config.toml before the [[Observers]] list
   sed -i -n '/\[\[Observers\]\]/q;p' config_edit.toml
+  # Update the number of shards
+  sed -i "s,NumberOfShards =.*$,NumberOfShards = $SHARDCOUNT," config_edit.toml
   
   updateTOMLValue config_edit.toml "ServerPort" $PORT_PROXY
   generateProxyObserverList config_edit.toml
