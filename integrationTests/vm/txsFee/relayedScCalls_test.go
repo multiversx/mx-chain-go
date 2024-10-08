@@ -32,7 +32,7 @@ func testRelayedScCallShouldWork(
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-			FixRelayedBaseCostEnableEpoch:                   relayedFixActivationEpoch,
+			RelayedTransactionsV3EnableEpoch:                relayedFixActivationEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -90,7 +90,7 @@ func testRelayedScCallContractNotFoundShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			RelayedTransactionsV3EnableEpoch: relayedFixActivationEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -200,7 +200,7 @@ func testRelayedScCallInsufficientGasLimitShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			RelayedTransactionsV3EnableEpoch: relayedFixActivationEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()

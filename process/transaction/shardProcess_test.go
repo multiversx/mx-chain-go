@@ -79,27 +79,26 @@ func createAccountStub(sndAddr, rcvAddr []byte,
 
 func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 	args := txproc.ArgsNewTxProcessor{
-		Accounts:                &stateMock.AccountsStub{},
-		Hasher:                  &hashingMocks.HasherMock{},
-		PubkeyConv:              createMockPubKeyConverter(),
-		Marshalizer:             &mock.MarshalizerMock{},
-		SignMarshalizer:         &mock.MarshalizerMock{},
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
-		ScProcessor:             &testscommon.SCProcessorMock{},
-		TxFeeHandler:            &mock.FeeAccumulatorStub{},
-		TxTypeHandler:           &testscommon.TxTypeHandlerMock{},
-		EconomicsFee:            feeHandlerMock(),
-		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:              &testscommon.ArgumentParserMock{},
-		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.FixRelayedBaseCostFlag),
-		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
-		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
-		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
-		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
-		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
-		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
+		Accounts:             &stateMock.AccountsStub{},
+		Hasher:               &hashingMocks.HasherMock{},
+		PubkeyConv:           createMockPubKeyConverter(),
+		Marshalizer:          &mock.MarshalizerMock{},
+		SignMarshalizer:      &mock.MarshalizerMock{},
+		ShardCoordinator:     mock.NewOneShardCoordinatorMock(),
+		ScProcessor:          &testscommon.SCProcessorMock{},
+		TxFeeHandler:         &mock.FeeAccumulatorStub{},
+		TxTypeHandler:        &testscommon.TxTypeHandlerMock{},
+		EconomicsFee:         feeHandlerMock(),
+		ReceiptForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:       &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:           &testscommon.ArgumentParserMock{},
+		ScrForwarder:         &mock.IntermediateTransactionHandlerMock{},
+		EnableEpochsHandler:  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.RelayedTransactionsV3Flag),
+		GuardianChecker:      &guardianMocks.GuardedAccountHandlerStub{},
+		TxVersionChecker:     &testscommon.TxVersionCheckerStub{},
+		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+		EnableRoundsHandler:  &testscommon.EnableRoundsHandlerStub{},
+		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
 	}
 	return args
 }
@@ -339,17 +338,6 @@ func TestNewTxProcessor_NilRelayedTxV3ProcessorShouldErr(t *testing.T) {
 	txProc, err := txproc.NewTxProcessor(args)
 
 	assert.Equal(t, process.ErrNilRelayedTxV3Processor, err)
-	assert.Nil(t, txProc)
-}
-
-func TestNewTxProcessor_NilFailedTxLogsAccumulatorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForTxProcessor()
-	args.FailedTxLogsAccumulator = nil
-	txProc, err := txproc.NewTxProcessor(args)
-
-	assert.Equal(t, process.ErrNilFailedTxLogsAccumulator, err)
 	assert.Nil(t, txProc)
 }
 
@@ -2239,7 +2227,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.TxTypeHandler = txTypeHandler
 		args.PubkeyConv = pubKeyConverter
 		args.ArgsParser = smartContract.NewArgumentParser()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag)
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(1)
@@ -2362,7 +2350,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.TxTypeHandler = txTypeHandler
 		args.PubkeyConv = pubKeyConverter
 		args.ArgsParser = smartContract.NewArgumentParser()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag)
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(int64(tx.GetGasPrice() * tx.GetGasLimit()))
@@ -2382,18 +2370,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 			ShardCoordinator:       args.ShardCoordinator,
 			MaxTransactionsAllowed: 10,
 		})
-		wasGetLogsCalled := false
-		wasRemoveCalled := false
-		args.FailedTxLogsAccumulator = &processMocks.FailedTxLogsAccumulatorMock{
-			GetLogsCalled: func(txHash []byte) (data.TransactionHandler, []*vmcommon.LogEntry, bool) {
-				wasGetLogsCalled = true
 
-				return &smartContractResult.SmartContractResult{}, []*vmcommon.LogEntry{}, true
-			},
-			RemoveCalled: func(txHash []byte) {
-				wasRemoveCalled = true
-			},
-		}
 		execTx, _ := txproc.NewTxProcessor(args)
 
 		txCopy := *tx
@@ -2402,8 +2379,6 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		returnCode, err := execTx.ProcessTransaction(&txCopy)
 		assert.NoError(t, err)
 		assert.Equal(t, vmcommon.Ok, returnCode)
-		assert.True(t, wasGetLogsCalled)
-		assert.True(t, wasRemoveCalled)
 	})
 	t.Run("fees consumed mismatch should error", func(t *testing.T) {
 		t.Parallel()
@@ -2449,7 +2424,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.TxTypeHandler = txTypeHandler
 		args.PubkeyConv = pubKeyConverter
 		args.ArgsParser = smartContract.NewArgumentParser()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag)
 		increasingFee := big.NewInt(0)
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
@@ -2555,7 +2530,7 @@ func testProcessRelayedTransactionV3(
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.HashForInnerTransactionFlag)
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(4)
@@ -3846,8 +3821,8 @@ func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 		originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
 		assert.Nil(t, err)
 		numLogsSaved := 0
-		args.FailedTxLogsAccumulator = &processMocks.FailedTxLogsAccumulatorMock{
-			SaveLogsCalled: func(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error {
+		args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error {
 				assert.Equal(t, originalTxHash, txHash)
 				assert.Equal(t, originalTx, tx)
 				assert.Equal(t, 1, len(logs))
@@ -3922,8 +3897,6 @@ func TestTxProcessor_ProcessMoveBalanceToNonPayableContract(t *testing.T) {
 	}
 	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
 		common.RelayedTransactionsV3Flag,
-		common.FixRelayedBaseCostFlag,
-		common.FixRelayedMoveBalanceToNonPayableSCFlag,
 	)
 	args.ScProcessor = &testscommon.SCProcessorMock{
 		IsPayableCalled: func(sndAddress, recvAddress []byte) (bool, error) {

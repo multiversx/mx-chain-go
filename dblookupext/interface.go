@@ -17,6 +17,7 @@ type HistoryRepository interface {
 	RecordBlock(blockHeaderHash []byte,
 		blockHeader data.HeaderHandler,
 		blockBody data.BodyHandler,
+		txResultsFromPool map[string]data.TransactionHandler,
 		scrResultsFromPool map[string]data.TransactionHandler,
 		receiptsFromPool map[string]data.TransactionHandler,
 		createdIntraShardMiniBlocks []*block.MiniBlock,

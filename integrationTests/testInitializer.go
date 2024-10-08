@@ -1056,17 +1056,16 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
-		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:              smartContract.NewArgumentParser(),
-		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
-		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
-		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
+		ReceiptForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:       &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:           smartContract.NewArgumentParser(),
+		ScrForwarder:         &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:  &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxVersionChecker:     &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:      &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

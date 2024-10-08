@@ -1700,12 +1700,22 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 }
 
 func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeader data.HeaderHandler, blockBody data.BodyHandler) {
+	txsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock)
 	scrResultsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	receiptsFromPool := bp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
 	logs := bp.txCoordinator.GetAllCurrentLogs()
 	intraMiniBlocks := bp.txCoordinator.GetCreatedInShardMiniBlocks()
 
-	err := bp.historyRepo.RecordBlock(blockHeaderHash, blockHeader, blockBody, scrResultsFromPool, receiptsFromPool, intraMiniBlocks, logs)
+	err := bp.historyRepo.RecordBlock(
+		blockHeaderHash,
+		blockHeader,
+		blockBody,
+		txsFromPool,
+		scrResultsFromPool,
+		receiptsFromPool,
+		intraMiniBlocks,
+		logs,
+	)
 	if err != nil {
 		logLevel := logger.LogError
 		if core.IsClosingError(err) {

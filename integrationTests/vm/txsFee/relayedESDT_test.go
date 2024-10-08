@@ -29,7 +29,7 @@ func testRelayedESDTTransferShouldWork(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			RelayedTransactionsV3EnableEpoch: relayedFixActivationEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -91,7 +91,7 @@ func testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			RelayedTransactionsV3EnableEpoch: relayedFixActivationEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()

@@ -1,6 +1,7 @@
 package dblookupext
 
 import (
+	"bytes"
 	"errors"
 	"sync"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common/mock"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	epochStartMocks "github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -108,7 +110,7 @@ func TestHistoryRepository_RecordBlockInvalidBlockRoundByHashStorerExpectError(t
 	repo, err := NewHistoryRepository(args)
 	require.Nil(t, err)
 
-	err = repo.RecordBlock([]byte("headerHash"), &block.Header{}, &block.Body{}, nil, nil, nil, nil)
+	err = repo.RecordBlock([]byte("headerHash"), &block.Header{}, &block.Body{}, nil, nil, nil, nil, nil)
 	require.Equal(t, err, errPut)
 }
 
@@ -140,7 +142,7 @@ func TestHistoryRepository_RecordBlock(t *testing.T) {
 		},
 	}
 
-	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil, nil, nil)
+	err = repo.RecordBlock(headerHash, blockHeader, blockBody, nil, nil, nil, nil, nil)
 	require.Nil(t, err)
 	// Two miniblocks
 	require.Equal(t, 2, repo.miniblocksMetadataStorer.(*genericMocks.StorerMock).GetCurrentEpochData().Len())
@@ -159,13 +161,36 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 	repo, err := NewHistoryRepository(args)
 	require.Nil(t, err)
 
+	relayedTxHash := bytes.Repeat([]byte{1}, 32)
 	miniblockA := &block.MiniBlock{
 		Type:     block.TxBlock,
-		TxHashes: [][]byte{[]byte("txA")},
+		TxHashes: [][]byte{[]byte("txA"), relayedTxHash},
 	}
 	miniblockB := &block.MiniBlock{
 		Type:     block.InvalidBlock,
 		TxHashes: [][]byte{[]byte("txB")},
+	}
+
+	tooBigHash := bytes.Repeat([]byte{1}, 50)
+	providedInnerTxTooBigHash := &transaction.Transaction{
+		Nonce: 123456,
+	}
+	innerTxHashTooBigRelayedHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, providedInnerTxTooBigHash)
+	require.NoError(t, err)
+
+	providedInnerTx := &transaction.Transaction{
+		Nonce: 123,
+	}
+	innerTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, providedInnerTx)
+	require.NoError(t, err)
+
+	txResultsFromPool := map[string]data.TransactionHandler{
+		string(relayedTxHash): &transaction.Transaction{
+			InnerTransactions: []*transaction.Transaction{providedInnerTx},
+		},
+		string(tooBigHash): &transaction.Transaction{
+			InnerTransactions: []*transaction.Transaction{providedInnerTxTooBigHash},
+		},
 	}
 
 	_ = repo.RecordBlock([]byte("fooblock"),
@@ -176,7 +201,7 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 				miniblockB,
 			},
 		},
-		nil, nil, nil, nil,
+		txResultsFromPool, nil, nil, nil, nil,
 	)
 
 	metadata, err := repo.GetMiniblockMetadataByTxHash([]byte("txA"))
@@ -191,6 +216,14 @@ func TestHistoryRepository_GetMiniblockMetadata(t *testing.T) {
 
 	_, err = repo.GetMiniblockMetadataByTxHash([]byte("foobar"))
 	require.NotNil(t, err)
+
+	_, err = repo.GetMiniblockMetadataByTxHash(innerTxHashTooBigRelayedHash)
+	require.Equal(t, ErrInvalidHashSize, err)
+
+	metadata, err = repo.GetMiniblockMetadataByTxHash(innerTxHash)
+	require.NoError(t, err)
+	require.Equal(t, 42, int(metadata.Epoch))
+	require.Equal(t, 4321, int(metadata.Round))
 }
 
 func TestHistoryRepository_GetEpochForHash(t *testing.T) {
@@ -214,7 +247,7 @@ func TestHistoryRepository_GetEpochForHash(t *testing.T) {
 			miniblockA,
 			miniblockB,
 		},
-	}, nil, nil, nil, nil)
+	}, nil, nil, nil, nil, nil)
 
 	// Get epoch by block hash
 	epoch, err := repo.GetEpochByHash([]byte("fooblock"))
@@ -272,7 +305,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 				miniblockB,
 				miniblockC,
 			},
-		}, nil, nil, nil, nil,
+		}, nil, nil, nil, nil, nil,
 	)
 
 	// Check "notarization coordinates"
@@ -472,7 +505,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
 			},
-		}, nil, nil, nil, nil,
+		}, nil, nil, nil, nil, nil,
 	)
 	_ = repo.RecordBlock([]byte("barBlock"),
 		&block.Header{Epoch: 42, Round: 4322},
@@ -480,7 +513,7 @@ func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestinatio
 			MiniBlocks: []*block.MiniBlock{
 				miniblockB,
 			},
-		}, nil, nil, nil, nil,
+		}, nil, nil, nil, nil, nil,
 	)
 
 	// Notifications have not been cleared after record block
@@ -527,7 +560,7 @@ func TestHistoryRepository_OnNotarizedBlocksCrossEpoch(t *testing.T) {
 			MiniBlocks: []*block.MiniBlock{
 				miniblockA,
 			},
-		}, nil, nil, nil, nil,
+		}, nil, nil, nil, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification, in the next epoch
@@ -584,7 +617,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 			MiniBlocks: []*block.MiniBlock{
 				miniblock,
 			},
-		}, nil, nil, nil, nil,
+		}, nil, nil, nil, nil, nil,
 	)
 
 	// Let's go to next epoch
@@ -597,7 +630,7 @@ func TestHistoryRepository_CommitOnForkThenNewEpochThenCommit(t *testing.T) {
 			MiniBlocks: []*block.MiniBlock{
 				miniblock,
 			},
-		}, nil, nil, nil, nil,
+		}, nil, nil, nil, nil, nil,
 	)
 
 	// Now let's receive a metablock and the "notarized" notification
@@ -711,7 +744,7 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 					MiniBlocks: []*block.MiniBlock{
 						miniblock,
 					},
-				}, nil, nil, nil, nil,
+				}, nil, nil, nil, nil, nil,
 			)
 		}
 

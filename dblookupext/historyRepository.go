@@ -126,10 +126,12 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	blockHeader data.HeaderHandler,
 	blockBody data.BodyHandler,
+	txResultsFromPool map[string]data.TransactionHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
 	createdIntraShardMiniBlocks []*block.MiniBlock,
-	logs []*data.LogData) error {
+	logs []*data.LogData,
+) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
@@ -165,6 +167,30 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 		if err != nil {
 			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record in shard miniblock",
 				"type", miniBlock.Type, "error", err)
+		}
+	}
+
+	for txHash, tx := range txResultsFromPool {
+		innerTxs := tx.GetUserTransactions()
+		if len(innerTxs) == 0 {
+			continue
+		}
+
+		for _, innerTx := range innerTxs {
+			innerTxHash, errCalculateHash := core.CalculateHash(hr.marshalizer, hr.hasher, innerTx)
+			if errCalculateHash != nil {
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errCalculateHash, "CalculateHash for inner tx",
+					"txHash", txHash, "err", errCalculateHash)
+				continue
+			}
+
+			relayedHashPrefix := []byte{byte(RelayedTxHash)}
+			relayedTxHash := append(relayedHashPrefix, []byte(txHash)...)
+			errPut := hr.miniblockHashByTxHashIndex.Put(innerTxHash, relayedTxHash)
+			if errPut != nil {
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errPut, "miniblockHashByTxHashIndex.Put() innerTxHash-relayedTxHash pair",
+					"txHash", txHash, "innerTxHash", innerTxHash, "err", errPut)
+			}
 		}
 	}
 
@@ -265,7 +291,29 @@ func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*Miniblo
 		return nil, err
 	}
 
-	return hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	hashSize := hr.hasher.Size()
+	if len(miniblockHash) == hashSize {
+		return hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	}
+
+	prefixedHashSize := hashSize + 1
+	if len(miniblockHash) != prefixedHashSize {
+		return nil, ErrInvalidHashSize
+	}
+
+	prefix := miniblockHash[0]
+	actualHash := miniblockHash[1:]
+	switch prefix {
+	case byte(RelayedTxHash):
+		miniblockHash, err = hr.miniblockHashByTxHashIndex.Get(actualHash)
+		if err != nil {
+			return nil, err
+		}
+
+		return hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	default:
+		return nil, ErrInvalidHash
+	}
 }
 
 func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *MiniblockMetadata) error {

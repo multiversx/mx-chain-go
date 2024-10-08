@@ -270,6 +270,33 @@ func (bpp *basePreProcess) saveTransactionToStorage(
 			"error", errNotCritical,
 		)
 	}
+
+	if len(txInfoFromMap.tx.GetUserTransactions()) == 0 {
+		return
+	}
+
+	for _, innerTx := range txInfoFromMap.tx.GetUserTransactions() {
+		innerTxHash, errCalculateHash := core.CalculateHash(bpp.marshalizer, bpp.hasher, innerTx)
+		if errCalculateHash != nil {
+			log.Warn("basePreProcess.saveTransactionToStorage: calculate inner tx hash", "txHash", txHash, "error", errCalculateHash)
+			continue
+		}
+
+		buffInner, errMarshal := bpp.marshalizer.Marshal(innerTx)
+		if errMarshal != nil {
+			log.Warn("basePreProcess.saveTransactionToStorage: Marshal inner tx", "txHash", txHash, "error", errMarshal)
+			continue
+		}
+
+		errNotCritical = store.Put(dataUnit, innerTxHash, buffInner)
+		if errNotCritical != nil {
+			log.Debug("basePreProcess.saveTransactionToStorage: Put inner tx",
+				"txHash", txHash,
+				"dataUnit", dataUnit,
+				"error", errNotCritical,
+			)
+		}
+	}
 }
 
 func (bpp *basePreProcess) baseReceivedTransaction(

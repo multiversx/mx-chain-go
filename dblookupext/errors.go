@@ -20,3 +20,9 @@ func newErrCannotSaveEpochByHash(what string, hash []byte, originalErr error) er
 func newErrCannotSaveMiniblockMetadata(hash []byte, originalErr error) error {
 	return fmt.Errorf("cannot save miniblock metadata, hash [%s]: %w", hex.EncodeToString(hash), originalErr)
 }
+
+// ErrInvalidHashSize signals that an invalid hash size has been provided
+var ErrInvalidHashSize = errors.New("invalid hash size")
+
+// ErrInvalidHash signals that an invalid hash has been provided
+var ErrInvalidHash = errors.New("invalid hash")
