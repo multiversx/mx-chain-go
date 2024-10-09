@@ -539,8 +539,9 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	}
 
 	if len(parentTxHash) > 0 {
-		tx.OriginalTransactionHash = hex.EncodeToString(parentTxHash)
-		tx.PreviousTransactionHash = hex.EncodeToString(parentTxHash)
+		encodedParentTxHash := hex.EncodeToString(parentTxHash)
+		tx.OriginalTransactionHash = encodedParentTxHash
+		tx.PreviousTransactionHash = encodedParentTxHash
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
