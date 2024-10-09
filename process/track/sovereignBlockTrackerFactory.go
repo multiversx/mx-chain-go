@@ -6,16 +6,18 @@ import (
 )
 
 type sovereignBlockTrackerFactory struct {
-	blockTrackerCreator BlockTrackerCreator
+	blockTrackerCreator             BlockTrackerCreator
+	mainChainNotarizationStartRound uint64
 }
 
 // NewSovereignBlockTrackerFactory creates a new shard block tracker factory for sovereign chain
-func NewSovereignBlockTrackerFactory(btc BlockTrackerCreator) (*sovereignBlockTrackerFactory, error) {
+func NewSovereignBlockTrackerFactory(btc BlockTrackerCreator, mainChainNotarizationStartRound uint64) (*sovereignBlockTrackerFactory, error) {
 	if check.IfNil(btc) {
 		return nil, process.ErrNilBlockTrackerCreator
 	}
 	return &sovereignBlockTrackerFactory{
-		blockTrackerCreator: btc,
+		blockTrackerCreator:             btc,
+		mainChainNotarizationStartRound: mainChainNotarizationStartRound,
 	}, nil
 }
 
@@ -30,7 +32,7 @@ func (sbtcf *sovereignBlockTrackerFactory) CreateBlockTracker(argBaseTracker Arg
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return NewSovereignChainShardBlockTrack(shardBlockTracker)
+	return NewSovereignChainShardBlockTrack(shardBlockTracker, sbtcf.mainChainNotarizationStartRound)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -829,14 +829,14 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 		return err
 	}
 
-	log.Trace("checkExtendedShardHeadersValidity", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
+	log.Error("checkExtendedShardHeadersValidity", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 	extendedShardHdrs := scbp.sortExtendedShardHeadersForCurrentBlockByNonce()
 	if len(extendedShardHdrs) == 0 {
 		return nil
 	}
 
 	for _, extendedShardHdr := range extendedShardHdrs {
-		log.Trace("checkExtendedShardHeadersValidity", "extendedShardHeader nonce", extendedShardHdr.GetNonce())
+		log.Error("checkExtendedShardHeadersValidity", "extendedShardHeader nonce", extendedShardHdr.GetNonce())
 		err = scbp.headerValidator.IsHeaderConstructionValid(extendedShardHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkExtendedShardHeadersValidity -> isHdrConstructionValid", err)
