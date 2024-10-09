@@ -130,7 +130,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
 		InitialRound:                0,
 		NodesSetupPath:              "../../../sharding/mock/testdata/nodesSetupMock.json",
-		GasScheduleFilename:         "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+		GasScheduleFilename:         "../../../cmd/node/config/gasSchedules/gasScheduleV8.toml",
 		NumShards:                   3,
 		WorkingDir:                  ".",
 		MinNodesPerShard:            1,

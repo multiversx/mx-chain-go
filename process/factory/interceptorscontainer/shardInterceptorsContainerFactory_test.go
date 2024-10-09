@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -727,7 +728,7 @@ func getArgumentsShard(
 		AntifloodHandler:             &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:             &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
-		ArgumentsParser:              &mock.ArgumentParserMock{},
+		ArgumentsParser:              &testscommon.ArgumentParserMock{},
 		PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
@@ -736,5 +737,6 @@ func getArgumentsShard(
 		MainPeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
 		FullArchivePeerShardMapper:   &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
+		RelayedTxV3Processor:         &processMocks.RelayedTxV3ProcessorMock{},
 	}
 }

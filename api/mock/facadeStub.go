@@ -97,6 +97,16 @@ type FacadeStub struct {
 	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
 	P2PPrometheusMetricsEnabledCalled           func() bool
 	AuctionListHandler                          func() ([]*common.AuctionListValidatorAPIResponse, error)
+	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+}
+
+// GetSCRsByTxHash -
+func (f *FacadeStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	if f.GetSCRsByTxHashCalled != nil {
+		return f.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
 }
 
 // GetTokenSupply -

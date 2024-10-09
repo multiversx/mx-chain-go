@@ -1,0 +1,316 @@
+name: Chain Simulator Build and Integration Test
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'master'
+      - 'rc/*'
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  build-and-test:
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')) ||
+      github.event_name == 'workflow_dispatch'
+
+    strategy:
+      matrix:
+        #TODO Include Macos support later on
+        runs-on: [ubuntu-latest]
+    runs-on: ${{ matrix.runs-on }}
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      TARGET_BRANCH: ""
+      MX_CHAIN_GO_TARGET_BRANCH: ""
+      MX_CHAIN_SIMULATOR_TARGET_BRANCH: ""
+      MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
+
+    steps:
+      - name: Determine Target Branches
+        id: target_branch
+        run: |
+          echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
+
+          # Default target branches based on the PR base branch
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+          else
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+          fi
+
+          # Always set MX_CHAIN_GO_TARGET_BRANCH based on the PR base branch
+          echo "MX_CHAIN_GO_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+
+
+      - name: Fetch and Parse Last Comment for Branches
+        uses: actions/github-script@v7
+        id: fetch_and_parse_last_comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Get the latest comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const lastComment = comments.data.pop(); // Get the last comment
+
+            if (lastComment && lastComment.body.includes('Run Tests:')) {
+              const body = lastComment.body.trim();
+              core.setOutput('latest_comment', body);
+
+              // Parse the branches from the last comment
+              const simulatorBranchMatch = body.match(/mx-chain-simulator-go:\s*(\S+)/);
+              const testingSuiteBranchMatch = body.match(/mx-chain-testing-suite:\s*(\S+)/);
+
+              // Override the target branches if specified
+              if (simulatorBranchMatch) {
+                core.exportVariable('MX_CHAIN_SIMULATOR_TARGET_BRANCH', simulatorBranchMatch[1]);
+              }
+              if (testingSuiteBranchMatch) {
+                core.exportVariable('MX_CHAIN_TESTING_SUITE_TARGET_BRANCH', testingSuiteBranchMatch[1]);
+              }
+            } else {
+              core.info('The last comment does not contain "Run Tests:". Skipping branch override.');
+            }
+      
+
+      - name: Print Target Branches
+        run: |
+          echo "Current branch mx-chain-go: ${{ env.CURRENT_BRANCH }}"
+          echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
+          echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
+          echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
+
+      - name: Set up Go 1.20.7
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20.7
+        id: go
+
+      - name: Checkout mx-chain-go
+        uses: actions/checkout@v4
+        with:
+          repository: 'multiversx/mx-chain-go'
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          path: 'mx-chain-go'
+
+      - name: Get Latest mx-chain-go Commit Hash
+        run: |
+          cd mx-chain-go
+          current_branch=$(git symbolic-ref --short HEAD)
+          echo "CURRENT_BRANCH=${current_branch}" >> $GITHUB_ENV
+          git fetch origin ${current_branch} --prune
+          latest_commit_hash=$(git rev-parse origin/${current_branch})
+          echo "LATEST_COMMIT_HASH=${latest_commit_hash}" >> $GITHUB_ENV
+          echo "Latest commit hash: ${latest_commit_hash}"
+
+      - name: Checkout mx-chain-simulator-go
+        uses: actions/checkout@v4
+        with:
+          repository: 'multiversx/mx-chain-simulator-go'
+          ref: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH || github.event.pull_request.base.ref }}
+          path: 'mx-chain-simulator-go'
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install Python Dependencies and Update go.mod
+        run: |
+          cd mx-chain-simulator-go
+          pip install -r scripts/update-go-mod/requirements.txt
+          python scripts/update-go-mod/update-go-mod.py $LATEST_COMMIT_HASH
+
+      - name: Run go build
+        run: |
+          cd mx-chain-simulator-go/cmd/chainsimulator
+          go build
+          echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
+
+      - name: Checkout mx-chain-testing-suite
+        uses: actions/checkout@v4
+        with:
+          repository: 'multiversx/mx-chain-testing-suite'
+          path: 'mx-chain-testing-suite'
+          fetch-depth: 0
+          ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH || github.event.pull_request.base.ref }}
+          token: ${{ secrets.MVX_TESTER_GH_TOKEN }}
+
+      - name: Install Dependencies
+        run: |
+          pip install -r mx-chain-testing-suite/requirements.txt
+          echo "PYTHONPATH=mx-chain-testing-suite" >> $GITHUB_ENV
+
+
+      - name: Run tests and generate HTML report
+        run: |
+          set +e
+          pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
+          PYTEST_EXIT_CODE=$?
+          set -e
+          echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> $GITHUB_ENV
+          echo "Pytest exit code: $PYTEST_EXIT_CODE"
+          if [ -f "report.html" ]; then
+            echo "Report generated successfully."
+            mkdir -p ./reports
+            mv report.html ./reports/
+          else
+            echo "Report not found."
+          fi
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: pytest-report-${{ github.run_id }}
+          path: reports/report.html
+
+      - name: Deploy Report to GitHub Pages
+        if: always()
+        id: deploy_report
+        run: |
+          # Navigate to the mx-chain-testing-suite directory
+          cd mx-chain-testing-suite
+
+          # Configure Git user
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+
+          # Check if the report exists
+          if [ -f "../reports/report.html" ]; then
+            # Ensure we're on the 'gh-pages' branch and up to date
+            git fetch --all
+            git checkout gh-pages || git checkout --orphan gh-pages
+
+            # Create a new directory for the report based on the current timestamp
+            TIMESTAMP=$(date +'%d%m%Y-%H%M%S')
+            echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+            REPORT_DIR="reports/${BRANCH_NAME}/${TIMESTAMP}"
+            mkdir -p $REPORT_DIR
+
+            # Move the report into the new directory
+            cp ../reports/report.html $REPORT_DIR/index.html
+
+            # Add and commit only the new report
+            git add $REPORT_DIR/index.html
+            git commit -m "Deploy Test Report at $BRANCH_NAME/$TIMESTAMP"
+
+            # Set remote URL with authentication token
+            git remote set-url origin https://x-access-token:${{ secrets.MVX_TESTER_GH_TOKEN }}@github.com/multiversx/mx-chain-testing-suite.git
+
+            # Push changes to the remote 'gh-pages' branch
+            git push --force origin gh-pages
+          else
+            echo "Report file not found, skipping deployment."
+          fi
+
+
+      - name: Update Index Page
+        if: always()
+        run: |
+          cd mx-chain-testing-suite
+          git fetch --all
+          git checkout gh-pages || git checkout --orphan gh-pages
+          if [ -d "docs" ]; then
+            cd docs
+            echo "<html><body><h1>Test Reports</h1><ul>" > index.html
+            for report in $(ls ../reports); do
+              echo "<li><a href='../reports/$report/index.html'>Report - $report</a></li>" >> index.html
+            done
+            echo "</ul></body></html>" >> index.html
+            git add index.html
+            git commit -m "Update Index of Reports"
+            git push origin gh-pages --force
+          else
+            mkdir -p docs
+            cd docs
+            echo "<html><body><h1>Test Reports</h1><ul>" > index.html
+            echo "</ul></body></html>" >> index.html
+            echo "Docs directory was not found and has been created."
+          fi
+
+      - name: Comment PR with report link or error message
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          TIMESTAMP: ${{ env.TIMESTAMP }}
+          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+          CURRENT_BRANCH: ${{ env.CURRENT_BRANCH }}
+          MX_CHAIN_GO_TARGET_BRANCH: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}
+          MX_CHAIN_SIMULATOR_TARGET_BRANCH: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}
+          MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
+          LATEST_COMMIT_HASH: ${{ env.LATEST_COMMIT_HASH }}
+          PYTEST_EXIT_CODE: ${{ env.PYTEST_EXIT_CODE }}
+
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const timestamp = process.env.TIMESTAMP;
+            const branchName = process.env.BRANCH_NAME;
+            const currentBranch = process.env.CURRENT_BRANCH;
+            const goTargetBranch = process.env.MX_CHAIN_GO_TARGET_BRANCH;
+            const simulatorTargetBranch = process.env.MX_CHAIN_SIMULATOR_TARGET_BRANCH;
+            const testingSuiteTargetBranch = process.env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH;
+            const commitHash = process.env.LATEST_COMMIT_HASH;
+            const exitCode = process.env.PYTEST_EXIT_CODE;
+            const issue_number = context.issue.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            let message;
+
+            if (timestamp && branchName && timestamp !== "" && branchName !== "") {
+              const reportUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/${timestamp}/index.html`;
+              message = `
+              📊 **MultiversX Automated Test Report:** [View Report](${reportUrl})
+            
+              🔄 **Build Details:**
+              - **mx-chain-go Commit Hash:** \`${commitHash}\`
+              - **Current Branch:** \`${currentBranch}\`
+              - **mx-chain-go Target Branch:** \`${goTargetBranch}\`
+              - **mx-chain-simulator-go Target Branch:** \`${simulatorTargetBranch}\`
+              - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
+            
+              🚀 **Environment Variables:**
+            - **TIMESTAMP:** \`${timestamp}\`
+            - **PYTEST_EXIT_CODE:** \`${exitCode}\`
+              🎉 **MultiversX CI/CD Workflow Complete!**
+              `;
+            } else {
+              message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease checkout gh action logs for details";
+            }
+
+            github.rest.issues.createComment({
+              issue_number: issue_number,
+              owner: owner,
+              repo: repo,
+              body: message
+            });
+
+      - name: Fail job if tests failed
+        if: always()
+        run: |
+          if [ "${{ env.PYTEST_EXIT_CODE }}" != "0" ]; then
+            echo "Tests failed with exit code ${{ env.PYTEST_EXIT_CODE }}"
+            exit 1
+          else
+            echo "Tests passed successfully."
+          fi

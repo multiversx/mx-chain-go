@@ -7,10 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -38,7 +40,13 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -68,7 +76,13 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -111,7 +125,13 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -149,7 +169,13 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -197,7 +223,13 @@ func TestNFTTransferWithScCall(t *testing.T) {
 	computer := fee.NewTestFeeComputer(feeComp)
 	req.Nil(err)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -220,4 +252,160 @@ func TestNFTTransferWithScCall(t *testing.T) {
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
 	req.Equal(uint64(55_000_000), tx.GasUsed)
 	req.Equal("822250000000000", tx.Fee)
+}
+
+func TestComputeAndAttachGasUsedAndFeeTransactionWithMultipleScrWithRefund(t *testing.T) {
+	t.Parallel()
+
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag
+		},
+	}))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
+
+	txWithSRefundSCR := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithSRefundSCR, "testData/scInvokingWithMultipleRefunds.json")
+	require.NoError(t, err)
+
+	txWithSRefundSCR.Fee = ""
+	txWithSRefundSCR.GasUsed = 0
+
+	snd, _ := pubKeyConverter.Decode(txWithSRefundSCR.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithSRefundSCR.Receiver)
+	val, _ := big.NewInt(0).SetString(txWithSRefundSCR.Value, 10)
+	txWithSRefundSCR.Tx = &transaction.Transaction{
+		Nonce:    txWithSRefundSCR.Nonce,
+		Value:    val,
+		RcvAddr:  rcv,
+		SndAddr:  snd,
+		GasPrice: txWithSRefundSCR.GasPrice,
+		GasLimit: txWithSRefundSCR.GasLimit,
+		Data:     txWithSRefundSCR.Data,
+	}
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
+	require.Equal(t, uint64(20313408), txWithSRefundSCR.GasUsed)
+	require.Equal(t, "319459080000000", txWithSRefundSCR.Fee)
+}
+
+func TestComputeAndAttachGasUsedAndFeeRelayedV3WithRefund(t *testing.T) {
+	t.Parallel()
+
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag
+		},
+	}))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
+
+	txWithSRefundSCR := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithSRefundSCR, "testData/relayedV3WithOneRefund.json")
+	require.NoError(t, err)
+
+	txWithSRefundSCR.Fee = ""
+	txWithSRefundSCR.GasUsed = 0
+
+	innerTxs := make([]*transaction.Transaction, 0, len(txWithSRefundSCR.InnerTransactions))
+	for _, innerTx := range txWithSRefundSCR.InnerTransactions {
+		snd, _ := pubKeyConverter.Decode(innerTx.Sender)
+		rcv, _ := pubKeyConverter.Decode(innerTx.Receiver)
+		val, _ := big.NewInt(0).SetString(innerTx.Value, 10)
+
+		innerTxs = append(innerTxs, &transaction.Transaction{
+			Nonce:    innerTx.Nonce,
+			Value:    val,
+			RcvAddr:  rcv,
+			SndAddr:  snd,
+			GasPrice: innerTx.GasPrice,
+			GasLimit: innerTx.GasLimit,
+			Data:     innerTx.Data,
+		})
+	}
+
+	snd, _ := pubKeyConverter.Decode(txWithSRefundSCR.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithSRefundSCR.Receiver)
+	val, _ := big.NewInt(0).SetString(txWithSRefundSCR.Value, 10)
+	txWithSRefundSCR.Tx = &transaction.Transaction{
+		Nonce:             txWithSRefundSCR.Nonce,
+		Value:             val,
+		RcvAddr:           rcv,
+		SndAddr:           snd,
+		GasPrice:          txWithSRefundSCR.GasPrice,
+		GasLimit:          txWithSRefundSCR.GasLimit,
+		Data:              txWithSRefundSCR.Data,
+		InnerTransactions: innerTxs,
+	}
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
+	require.Equal(t, uint64(55149500), txWithSRefundSCR.GasUsed)
+	require.Equal(t, "699500000000000", txWithSRefundSCR.Fee)
+}
+
+func TestComputeAndAttachGasUsedAndFeeFailedRelayedV1(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag
+		},
+	}
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		smartContract.NewArgumentParser(),
+		&marshal.JsonMarshalizer{},
+		enableEpochsHandler,
+	)
+
+	txWithSRefundSCR := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithSRefundSCR, "testData/failedRelayedV1.json")
+	require.NoError(t, err)
+
+	snd, _ := pubKeyConverter.Decode(txWithSRefundSCR.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithSRefundSCR.Receiver)
+	val, _ := big.NewInt(0).SetString(txWithSRefundSCR.Value, 10)
+	txWithSRefundSCR.Tx = &transaction.Transaction{
+		Nonce:    txWithSRefundSCR.Nonce,
+		Value:    val,
+		RcvAddr:  rcv,
+		SndAddr:  snd,
+		GasPrice: txWithSRefundSCR.GasPrice,
+		GasLimit: txWithSRefundSCR.GasLimit,
+		Data:     txWithSRefundSCR.Data,
+	}
+
+	txWithSRefundSCR.InitiallyPaidFee = ""
+	txWithSRefundSCR.Fee = ""
+	txWithSRefundSCR.GasUsed = 0
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
+	require.Equal(t, uint64(1274230), txWithSRefundSCR.GasUsed)
+	require.Equal(t, "1274230000000000", txWithSRefundSCR.Fee)
+	require.Equal(t, "1274230000000000", txWithSRefundSCR.InitiallyPaidFee)
 }

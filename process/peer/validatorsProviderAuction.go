@@ -27,9 +27,10 @@ func (vp *validatorsProvider) GetAuctionList() ([]*common.AuctionListValidatorAP
 }
 
 func (vp *validatorsProvider) updateAuctionListCacheIfNeeded() error {
-	vp.auctionMutex.RLock()
+	vp.auctionMutex.Lock()
+	defer vp.auctionMutex.Unlock()
+
 	shouldUpdate := time.Since(vp.lastAuctionCacheUpdate) > vp.cacheRefreshIntervalDuration
-	vp.auctionMutex.RUnlock()
 
 	if shouldUpdate {
 		return vp.updateAuctionListCache()
@@ -38,6 +39,7 @@ func (vp *validatorsProvider) updateAuctionListCacheIfNeeded() error {
 	return nil
 }
 
+// this func should be called under mutex protection
 func (vp *validatorsProvider) updateAuctionListCache() error {
 	rootHash := vp.validatorStatistics.LastFinalizedRootHash()
 	if len(rootHash) == 0 {
@@ -49,19 +51,15 @@ func (vp *validatorsProvider) updateAuctionListCache() error {
 		return err
 	}
 
-	vp.auctionMutex.Lock()
 	vp.cachedRandomness = rootHash
-	vp.auctionMutex.Unlock()
 
 	newCache, err := vp.createValidatorsAuctionCache(validatorsMap)
 	if err != nil {
 		return err
 	}
 
-	vp.auctionMutex.Lock()
 	vp.lastAuctionCacheUpdate = time.Now()
 	vp.cachedAuctionValidators = newCache
-	vp.auctionMutex.Unlock()
 
 	return nil
 }
@@ -96,10 +94,9 @@ func (vp *validatorsProvider) fillAllValidatorsInfo(validatorsMap state.ShardVal
 	return err
 }
 
+// this func should be called under mutex protection
 func (vp *validatorsProvider) getSelectedNodesFromAuction(validatorsMap state.ShardValidatorsInfoMapHandler) ([]state.ValidatorInfoHandler, error) {
-	vp.auctionMutex.RLock()
 	randomness := vp.cachedRandomness
-	vp.auctionMutex.RUnlock()
 
 	err := vp.auctionListSelector.SelectNodesFromAuctionList(validatorsMap, randomness)
 	if err != nil {

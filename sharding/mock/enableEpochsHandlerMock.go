@@ -48,6 +48,16 @@ func (mock *EnableEpochsHandlerMock) FixGasRemainingForSaveKeyValueBuiltinFuncti
 	return false
 }
 
+// IsRelayedTransactionsV3FlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsV3FlagEnabled() bool {
+	return false
+}
+
+// IsFixRelayedBaseCostFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixRelayedBaseCostFlagEnabled() bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (mock *EnableEpochsHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

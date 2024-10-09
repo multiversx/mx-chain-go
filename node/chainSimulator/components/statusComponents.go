@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/appStatusPolling"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
@@ -34,7 +35,7 @@ type statusComponentsHolder struct {
 }
 
 // CreateStatusComponents will create a new instance of status components holder
-func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int, external config.ExternalConfig) (*statusComponentsHolder, error) {
+func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int, external config.ExternalConfig, coreComponents process.CoreComponentsHolder) (*statusComponentsHolder, error) {
 	if check.IfNil(appStatusHandler) {
 		return nil, core.ErrNilAppStatusHandler
 	}
@@ -51,11 +52,12 @@ func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandl
 		return nil, err
 	}
 	instance.outportHandler, err = factory.CreateOutport(&factory.OutportFactoryArgs{
-		IsImportDB:               false,
-		ShardID:                  shardID,
-		RetrialInterval:          time.Second,
-		HostDriversArgs:          hostDriverArgs,
-		EventNotifierFactoryArgs: &factory.EventNotifierFactoryArgs{},
+		IsImportDB:                false,
+		ShardID:                   shardID,
+		RetrialInterval:           time.Second,
+		HostDriversArgs:           hostDriverArgs,
+		EventNotifierFactoryArgs:  &factory.EventNotifierFactoryArgs{},
+		ElasticIndexerFactoryArgs: makeElasticIndexerArgs(external, coreComponents),
 	})
 	if err != nil {
 		return nil, err
@@ -88,6 +90,26 @@ func makeHostDriversArgs(external config.ExternalConfig) ([]factory.ArgsHostDriv
 	}
 
 	return argsHostDriverFactorySlice, nil
+}
+
+func makeElasticIndexerArgs(external config.ExternalConfig, coreComponents process.CoreComponentsHolder) indexerFactory.ArgsIndexerFactory {
+	elasticSearchConfig := external.ElasticSearchConnector
+	return indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
+		Url:                      elasticSearchConfig.URL,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		Marshalizer:              coreComponents.InternalMarshalizer(),
+		Hasher:                   coreComponents.Hasher(),
+		AddressPubkeyConverter:   coreComponents.AddressPubKeyConverter(),
+		ValidatorPubkeyConverter: coreComponents.ValidatorPubKeyConverter(),
+		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
+		Denomination:             18,
+		UseKibana:                elasticSearchConfig.UseKibana,
+		ImportDB:                 false,
+		HeaderMarshaller:         coreComponents.InternalMarshalizer(),
+	}
 }
 
 // OutportHandler will return the outport handler

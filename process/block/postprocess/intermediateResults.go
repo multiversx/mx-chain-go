@@ -12,11 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
@@ -89,7 +90,7 @@ func NewIntermediateResultsProcessor(
 		shardCoordinator:   args.Coordinator,
 		store:              args.Store,
 		storageType:        dataRetriever.UnsignedTransactionUnit,
-		mapProcessedResult: make(map[string][][]byte),
+		mapProcessedResult: make(map[string]*processedResult),
 		economicsFee:       args.EconomicsFee,
 	}
 
@@ -241,7 +242,7 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 }
 
 // AddIntermediateTransactions adds smart contract results from smart contract processing for cross-shard calls
-func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.TransactionHandler, key []byte) error {
 	irp.mutInterResultsForBlock.Lock()
 	defer irp.mutInterResultsForBlock.Unlock()
 
@@ -265,7 +266,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		}
 
 		if log.GetLevel() == logger.LogTrace {
-			//spew.Sdump is very useful when debugging errors like `receipts hash mismatch`
+			// spew.Sdump is very useful when debugging errors like `receipts hash mismatch`
 			log.Trace("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value,
 				"dump", spew.Sdump(addScr))
 		}
@@ -273,7 +274,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		sndShId, dstShId := irp.getShardIdsFromAddresses(addScr.SndAddr, addScr.RcvAddr)
 
 		irp.executionOrderHandler.Add(scrHash)
-		irp.addIntermediateTxToResultsForBlock(addScr, scrHash, sndShId, dstShId)
+		irp.addIntermediateTxToResultsForBlock(addScr, scrHash, sndShId, dstShId, key)
 	}
 
 	return nil

@@ -327,7 +327,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		Address: "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj",
 		Nonce:   &nonce,
 		Balance: "1000000000000000000",
-		Keys: map[string]string{
+		Pairs: map[string]string{
 			"01": "02",
 		},
 	}

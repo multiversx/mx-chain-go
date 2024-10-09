@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -24,7 +25,7 @@ func TestAsyncCallLegacy(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -71,7 +72,7 @@ func TestAsyncCallMulti(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -122,7 +123,7 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -183,7 +184,7 @@ func TestAsyncCallTransferESDTAndExecute_Success(t *testing.T) {
 }
 
 func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -276,7 +277,7 @@ func deployForwarderAndTestContract(
 
 	forwarderSCAddress := utils.DoDeploySecond(t, testContext, pathToForwarder, ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(0))
 
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance, uint32(core.Fungible))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -297,15 +298,15 @@ func TestAsyncCallMulti_CrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -387,15 +388,15 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer childShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -479,15 +480,15 @@ func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
 }
 
 func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer vaultShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -514,7 +515,7 @@ func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int,
 	pathToContract = "testdata/forwarderQueue/forwarder-queue-promises.wasm"
 	forwarderSCAddress := utils.DoDeploySecond(t, forwarderShard, pathToContract, forwarderOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
 
-	utils.CreateAccountWithESDTBalance(t, forwarderShard.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, forwarderShard.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance, uint32(core.Fungible))
 
 	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0, esdtBalance)
 

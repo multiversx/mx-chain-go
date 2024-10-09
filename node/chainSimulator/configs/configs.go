@@ -37,7 +37,9 @@ const (
 	// ChainID contains the chain id
 	ChainID = "chain"
 
-	allValidatorsPemFileName = "allValidatorsKeys.pem"
+	// ChainSimulatorConsensusGroupSize defines the size of the consensus group for chain simulator
+	ChainSimulatorConsensusGroupSize = 1
+	allValidatorsPemFileName         = "allValidatorsKeys.pem"
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
@@ -120,6 +122,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
+	configs.GeneralConfig.EpochStartConfig.MinRoundsBetweenEpochs = 1
 
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)

@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -240,8 +241,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	runTypeComponents := GetDefaultRunTypeComponents(args.ConsensusModel)
-
 	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
@@ -345,7 +344,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	var err error
 	tcn.Node, err = node.NewNode(
-		node.WithRunTypeComponents(runTypeComponents),
+		node.WithRunTypeComponents(components.GetRunTypeComponents()),
 		node.WithCoreComponents(coreComponents),
 		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),

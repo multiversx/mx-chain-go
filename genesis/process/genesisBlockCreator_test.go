@@ -93,6 +93,7 @@ func createArgument(
 			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EconomicsDataField:       &economicsmocks.EconomicsHandlerMock{},
 			RaterField:               &testscommon.RaterMock{},
 		},
 		Data: &mock.DataComponentsMock{
@@ -333,7 +334,8 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		arg.Core = &mock.CoreComponentsMock{
-			AddrPubKeyConv: nil,
+			AddrPubKeyConv:     nil,
+			EconomicsDataField: &economicsmocks.EconomicsHandlerMock{},
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)

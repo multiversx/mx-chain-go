@@ -23,7 +23,8 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 		2,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
@@ -31,7 +32,8 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 		1,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextInner.Close()
 

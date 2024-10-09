@@ -202,7 +202,7 @@ func sendRegisterUserNameAsRelayedTx(
 	for i, player := range players {
 		userName := generateNewUserName()
 		scAddress := selectDNSAddressFromUserName(sortedDNSAddresses, userName)
-		_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, []byte(scAddress), dnsRegisterValue,
+		_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, []byte(scAddress), dnsRegisterValue,
 			gasLimit, []byte("register@"+hex.EncodeToString([]byte(userName))))
 		userNames[i] = userName
 	}

@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -67,26 +68,27 @@ func createSovereignSmartContractProcessorArguments() scrCommon.ArgsNewSmartCont
 	txTypeHandler := createTxTypeHandler(builtInFuncContainer)
 
 	return scrCommon.ArgsNewSmartContractProcessor{
-		VmContainer:         &mock.VMContainerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &marshal.GogoProtoMarshalizer{},
-		AccountsDB:          accAdapter,
-		BlockChainHook:      sovBlock,
-		BuiltInFunctions:    builtInFuncContainer,
-		PubkeyConv:          sovPubKeyConv,
-		ShardCoordinator:    sovShardCoord,
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		TxFeeHandler:        &mock.FeeAccumulatorStub{},
-		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		TxTypeHandler:       txTypeHandler,
-		GasHandler:          &testscommon.GasHandlerStub{},
-		EnableEpochsHandler: sovEnableEpochsHandler,
-		GasSchedule:         testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
-		WasmVMChangeLocker:  &sync.RWMutex{},
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VmContainer:             &mock.VMContainerMock{},
+		ArgsParser:              smartContract.NewArgumentParser(),
+		Hasher:                  &hashingMocks.HasherMock{},
+		Marshalizer:             &marshal.GogoProtoMarshalizer{},
+		AccountsDB:              accAdapter,
+		BlockChainHook:          sovBlock,
+		BuiltInFunctions:        builtInFuncContainer,
+		PubkeyConv:              sovPubKeyConv,
+		ShardCoordinator:        sovShardCoord,
+		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
+		TxFeeHandler:            &mock.FeeAccumulatorStub{},
+		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		TxTypeHandler:           txTypeHandler,
+		GasHandler:              &testscommon.GasHandlerStub{},
+		EnableEpochsHandler:     sovEnableEpochsHandler,
+		GasSchedule:             testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
+		WasmVMChangeLocker:      &sync.RWMutex{},
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 }
 
@@ -126,11 +128,12 @@ func createAccountsDB() *state.AccountsDB {
 
 func createESDTDataStorage(accountsDB state.AccountsAdapter) vmcommon.ESDTNFTStorageHandler {
 	esdtDataStorage, _ := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		Accounts:              accountsDB,
-		GlobalSettingsHandler: &mockVm.GlobalSettingsHandlerStub{},
-		Marshalizer:           sovMarshaller,
-		EnableEpochsHandler:   sovEnableEpochsHandler,
-		ShardCoordinator:      sovShardCoord,
+		Accounts:                      accountsDB,
+		GlobalSettingsHandler:         &mockVm.GlobalSettingsHandlerStub{},
+		Marshalizer:                   sovMarshaller,
+		EnableEpochsHandler:           sovEnableEpochsHandler,
+		ShardCoordinator:              sovShardCoord,
+		CrossChainTokenCheckerHandler: &mockVm.CrossChainTokenCheckerMock{},
 	})
 
 	return esdtDataStorage

@@ -1,6 +1,8 @@
 package chainSimulator
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type sovereignChainSimulator struct {
 	*simulator
@@ -8,7 +10,11 @@ type sovereignChainSimulator struct {
 
 // NewSovereignChainSimulator creates a sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsChainSimulator) (*sovereignChainSimulator, error) {
-	cs, err := NewChainSimulator(args)
+	cs, err := NewBaseChainSimulator(ArgsBaseChainSimulator{
+		ArgsChainSimulator:          args,
+		ConsensusGroupSize:          args.MinNodesPerShard,
+		MetaChainConsensusGroupSize: 0,
+	})
 	if err != nil {
 		return nil, err
 	}

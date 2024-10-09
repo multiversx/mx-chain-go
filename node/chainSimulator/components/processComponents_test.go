@@ -72,7 +72,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 					GasScheduleByEpochs: []config.GasScheduleByEpochs{
 						{
 							StartEpoch: 0,
-							FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+							FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV8.toml",
 						},
 					},
 				},
@@ -408,6 +408,7 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
 	require.NotNil(t, comp.EpochSystemSCProcessor())
+	require.NotNil(t, comp.RelayedTxV3Processor())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 

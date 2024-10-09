@@ -580,7 +580,24 @@ func (sdp *stakingDataProvider) GetCurrentEpochValidatorStats() epochStart.Valid
 	sdp.mutStakingData.RLock()
 	defer sdp.mutStakingData.RUnlock()
 
-	return sdp.validatorStatsInEpoch
+	return copyValidatorStatsInEpoch(sdp.validatorStatsInEpoch)
+}
+
+func copyValidatorStatsInEpoch(oldInstance epochStart.ValidatorStatsInEpoch) epochStart.ValidatorStatsInEpoch {
+	return epochStart.ValidatorStatsInEpoch{
+		Eligible: copyMap(oldInstance.Eligible),
+		Waiting:  copyMap(oldInstance.Waiting),
+		Leaving:  copyMap(oldInstance.Leaving),
+	}
+}
+
+func copyMap(oldMap map[uint32]int) map[uint32]int {
+	newMap := make(map[uint32]int, len(oldMap))
+	for key, value := range oldMap {
+		newMap[key] = value
+	}
+
+	return newMap
 }
 
 // IsInterfaceNil return true if underlying object is nil

@@ -800,6 +800,12 @@ var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")
 // ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
 var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
 
+// ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
+var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
+
+// ErrInvalidTokenPrefix signals that an invalid token prefix has been provided
+var ErrInvalidTokenPrefix = errors.New("invalid token prefix, should have max 4 (lowercase/alphanumeric) characters")
+
 // ErrNilBlockChainHookCreator signals that a nil blockchain hook creator has been provided
 var ErrNilBlockChainHookCreator = errors.New("nil blockchain hook creator has been provided")
 

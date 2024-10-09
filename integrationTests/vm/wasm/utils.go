@@ -53,6 +53,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -75,6 +76,9 @@ var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})
+
+// CrossChainAddresses -
+var CrossChainAddresses = []string{"3132333435363738393031323334353637383930313233343536373839303234"}
 
 // TestContext -
 type TestContext struct {
@@ -261,17 +265,26 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
+
+	dnsV2Addresses := make([]string, 0)
+	for dnsAddr := range DNSAddresses {
+		dnsAddrEncoded, _ := pkConverter.Encode([]byte(dnsAddr))
+		dnsV2Addresses = append(dnsV2Addresses, dnsAddrEncoded)
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           DNSAddresses,
-		MapDNSV2Addresses:         DNSAddresses,
-		Marshalizer:               marshalizer,
-		Accounts:                  context.Accounts,
-		ShardCoordinator:          oneShardCoordinator,
-		EpochNotifier:             context.EpochNotifier,
-		EnableEpochsHandler:       context.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
+		GasSchedule:                    gasSchedule,
+		MapDNSAddresses:                DNSAddresses,
+		DNSV2Addresses:                 dnsV2Addresses,
+		Marshalizer:                    marshalizer,
+		Accounts:                       context.Accounts,
+		ShardCoordinator:               oneShardCoordinator,
+		EpochNotifier:                  context.EpochNotifier,
+		EnableEpochsHandler:            context.EnableEpochsHandler,
+		MaxNumAddressesInTransferRole:  100,
+		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                pkConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 
@@ -391,37 +404,40 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:     context.TxLogsProcessor,
-		EnableRoundsHandler: context.EnableRoundsHandler,
-		EnableEpochsHandler: context.EnableEpochsHandler,
-		WasmVMChangeLocker:  context.WasmVMChangeLocker,
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		GasSchedule:             mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:         context.TxLogsProcessor,
+		EnableRoundsHandler:     context.EnableRoundsHandler,
+		EnableEpochsHandler:     context.EnableEpochsHandler,
+		WasmVMChangeLocker:      context.WasmVMChangeLocker,
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	context.ScProcessor, err = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
-		Accounts:            context.Accounts,
-		Hasher:              hasher,
-		PubkeyConv:          pkConverter,
-		Marshalizer:         marshalizer,
-		SignMarshalizer:     marshalizer,
-		ShardCoordinator:    oneShardCoordinator,
-		ScProcessor:         context.ScProcessor,
-		TxFeeHandler:        context.UnsignexTxHandler,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        context.EconomicsFee,
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: context.EnableRoundsHandler,
-		EnableEpochsHandler: context.EnableEpochsHandler,
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:     context.TxLogsProcessor,
+		Accounts:                context.Accounts,
+		Hasher:                  hasher,
+		PubkeyConv:              pkConverter,
+		Marshalizer:             marshalizer,
+		SignMarshalizer:         marshalizer,
+		ShardCoordinator:        oneShardCoordinator,
+		ScProcessor:             context.ScProcessor,
+		TxFeeHandler:            context.UnsignexTxHandler,
+		TxTypeHandler:           txTypeHandler,
+		EconomicsFee:            context.EconomicsFee,
+		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:              smartContract.NewArgumentParser(),
+		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:     context.EnableRoundsHandler,
+		EnableEpochsHandler:     context.EnableEpochsHandler,
+		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:         context.TxLogsProcessor,
+		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)

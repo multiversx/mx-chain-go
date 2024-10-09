@@ -495,6 +495,12 @@ const (
 	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 is enabled
 	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
 
+	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 is enabled
+	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
+
+	// MetricFixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost is enabled
+	MetricFixRelayedBaseCostEnableEpoch = "erd_fix_relayed_base_cost_enable_epoch"
+
 	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 is applied
 	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
 
@@ -510,6 +516,9 @@ const (
 	// MetricIncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for multi transfer SCR is enabled
 	MetricIncrementSCRNonceInMultiTransferEnableEpoch = "erd_increment_scr_nonce_in_multi_transfer_enable_epoch"
 
+	// MetricScheduledMiniBlocksEnableEpoch represents the epoch when the scheduled miniblocks feature is enabled
+	MetricScheduledMiniBlocksEnableEpoch = "erd_scheduled_miniblocks_enable_epoch"
+
 	// MetricESDTMultiTransferEnableEpoch represents the epoch when the ESDT multi transfer feature is enabled
 	MetricESDTMultiTransferEnableEpoch = "erd_esdt_multi_transfer_enable_epoch"
 
@@ -518,6 +527,218 @@ const (
 
 	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature is enabled
 	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
+
+	// MetricComputeRewardCheckpointEnableEpoch represents the epoch when compute reward checkpoint feature is enabled
+	MetricComputeRewardCheckpointEnableEpoch = "erd_compute_reward_checkpoint_enable_epoch"
+
+	// MetricSCRSizeInvariantCheckEnableEpoch represents the epoch when scr size invariant check is enabled
+	MetricSCRSizeInvariantCheckEnableEpoch = "erd_scr_size_invariant_check_enable_epoch"
+
+	// MetricBackwardCompSaveKeyValueEnableEpoch represents the epoch when backward compatibility save key valu is enabled
+	MetricBackwardCompSaveKeyValueEnableEpoch = "erd_backward_comp_save_keyvalue_enable_epoch"
+
+	// MetricESDTNFTCreateOnMultiShardEnableEpoch represents the epoch when esdt nft create on multi shard is enabled
+	MetricESDTNFTCreateOnMultiShardEnableEpoch = "erd_esdt_nft_create_on_multi_shard_enable_epoch"
+
+	// MetricMetaESDTSetEnableEpoch represents the epoch when meta esdt set is enabled
+	MetricMetaESDTSetEnableEpoch = "erd_meta_esdt_set_enable_epoch"
+
+	// MetricAddTokensToDelegationEnableEpoch represents the epoch when add tokens to delegation
+	MetricAddTokensToDelegationEnableEpoch = "erd_add_tokens_to_delegation_enable_epoch"
+
+	// MetricMultiESDTTransferFixOnCallBackOnEnableEpoch represents the epoch when multi esdt transfer fix on callback on is enabled
+	MetricMultiESDTTransferFixOnCallBackOnEnableEpoch = "erd_multi_esdt_transfer_fix_on_callback_enable_epoch"
+
+	// MetricOptimizeGasUsedInCrossMiniBlocksEnableEpoch represents the epoch when optimize gas used in cross miniblocks is enabled
+	MetricOptimizeGasUsedInCrossMiniBlocksEnableEpoch = "erd_optimize_gas_used_in_cross_miniblocks_enable_epoch"
+	// MetricCorrectFirstQueuedEpoch represents the epoch when correct first queued fix is enabled
+	MetricCorrectFirstQueuedEpoch = "erd_correct_first_queued_enable_epoch"
+
+	// MetricCorrectJailedNotUnstakedEmptyQueueEpoch represents the epoch when correct jailed not unstacked meptry queue fix is enabled
+	MetricCorrectJailedNotUnstakedEmptyQueueEpoch = "erd_correct_jailed_not_unstaked_empty_queue_enable_epoch"
+
+	// MetricFixOOGReturnCodeEnableEpoch represents the epoch when OOG return code fix is enabled
+	MetricFixOOGReturnCodeEnableEpoch = "erd_fix_oog_return_code_enable_epoch"
+
+	// MetricRemoveNonUpdatedStorageEnableEpoch represents the epoch when remove non updated storage fix is enabled
+	MetricRemoveNonUpdatedStorageEnableEpoch = "erd_remove_non_updated_storage_enable_epoch"
+
+	// MetricDeleteDelegatorAfterClaimRewardsEnableEpoch represents the epoch when delete delegator after claim rewards fix is enabled
+	MetricDeleteDelegatorAfterClaimRewardsEnableEpoch = "erd_delete_delegator_after_claim_rewards_enable_epoch"
+
+	// MetricOptimizeNFTStoreEnableEpoch represents the epoch when optimize nft store feature is enabled
+	MetricOptimizeNFTStoreEnableEpoch = "erd_optimize_nft_store_enable_epoch"
+
+	// MetricCreateNFTThroughExecByCallerEnableEpoch represents the epoch when create nft through exec by caller functionality is enabled
+	MetricCreateNFTThroughExecByCallerEnableEpoch = "erd_create_nft_through_exec_by_caller_enable_epoch"
+
+	// MetricStopDecreasingValidatorRatingWhenStuckEnableEpoch represents the epoch when stop decreaing validator rating when stuck functionality is enabled
+	MetricStopDecreasingValidatorRatingWhenStuckEnableEpoch = "erd_stop_decreasing_validator_rating_when_stuck_enable_epoch"
+
+	// MetricFrontRunningProtectionEnableEpoch represents the epoch when front running protection feature is enabled
+	MetricFrontRunningProtectionEnableEpoch = "erd_front_running_protection_enable_epoch"
+
+	// MetricIsPayableBySCEnableEpoch represents the epoch when is payable by SC feature is enabled
+	MetricIsPayableBySCEnableEpoch = "erd_is_payable_by_sc_enable_epoch"
+
+	// MetricCleanUpInformativeSCRsEnableEpoch represents the epoch when cleanup informative scrs functionality is enabled
+	MetricCleanUpInformativeSCRsEnableEpoch = "erd_cleanup_informative_scrs_enable_epoch"
+
+	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
+	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
+
+	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
+	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
+
+	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
+	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
+
+	// MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch represents the epoch when do not return old block in blockchain hook fix is enabled
+	MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch = "erd_do_not_returns_old_block_in_blockchain_hook_enable_epoch"
+
+	// MetricAddFailedRelayedTxToInvalidMBsDisableEpoch represents the epoch when add failed relayed tx to invalid miniblocks functionality is enabled
+	MetricAddFailedRelayedTxToInvalidMBsDisableEpoch = "erd_add_failed_relayed_tx_to_invalid_mbs_enable_epoch"
+
+	// MetricSCRSizeInvariantOnBuiltInResultEnableEpoch represents the epoch when scr size invariant on builtin result functionality is enabled
+	MetricSCRSizeInvariantOnBuiltInResultEnableEpoch = "erd_scr_size_invariant_on_builtin_result_enable_epoch"
+
+	// MetricCheckCorrectTokenIDForTransferRoleEnableEpoch represents the epoch when check correct tokenID for transfer role fix is enabled
+	MetricCheckCorrectTokenIDForTransferRoleEnableEpoch = "erd_check_correct_tokenid_for_transfer_role_enable_epoch"
+
+	// MetricDisableExecByCallerEnableEpoch represents the epoch when disable exec by caller functionality is enabled
+	MetricDisableExecByCallerEnableEpoch = "erd_disable_exec_by_caller_enable_epoch"
+
+	// MetricFailExecutionOnEveryAPIErrorEnableEpoch represents the epoch when fail execution on every api error functionality is enabled
+	MetricFailExecutionOnEveryAPIErrorEnableEpoch = "erd_fail_execution_on_every_api_error_enable_epoch"
+
+	// MetricManagedCryptoAPIsEnableEpoch represents the epoch when managed cypto apis functionality is enabled
+	MetricManagedCryptoAPIsEnableEpoch = "erd_managed_crypto_apis_enable_epoch"
+
+	// MetricRefactorContextEnableEpoch represents the epoch when refactor context functionality is enabled
+	MetricRefactorContextEnableEpoch = "erd_refactor_context_enable_epoch"
+
+	// MetricCheckFunctionArgumentEnableEpoch represents the epoch when check function argument functionality is enabled
+	MetricCheckFunctionArgumentEnableEpoch = "erd_check_function_argument_enable_epoch"
+
+	// MetricCheckExecuteOnReadOnlyEnableEpoch represents the epoch when check execute on read only fix is enabled
+	MetricCheckExecuteOnReadOnlyEnableEpoch = "erd_check_execute_on_readonly_enable_epoch"
+
+	// MetricMiniBlockPartialExecutionEnableEpoch represents the epoch when miniblock partial execution feature is enabled
+	MetricMiniBlockPartialExecutionEnableEpoch = "erd_miniblock_partial_execution_enable_epoch"
+
+	// MetricESDTMetadataContinuousCleanupEnableEpoch represents the epoch when esdt metadata continuous clenaup functionality is enabled
+	MetricESDTMetadataContinuousCleanupEnableEpoch = "erd_esdt_metadata_continuous_cleanup_enable_epoch"
+
+	// MetricFixAsyncCallBackArgsListEnableEpoch represents the epoch when fix async callback args list is enabled
+	MetricFixAsyncCallBackArgsListEnableEpoch = "erd_fix_async_callback_args_list_enable_epoch"
+
+	// MetricFixOldTokenLiquidityEnableEpoch represents the epoch when fix old token liquidity is enabled
+	MetricFixOldTokenLiquidityEnableEpoch = "erd_fix_old_token_liquidity_enable_epoch"
+
+	// MetricRuntimeMemStoreLimitEnableEpoch represents the epoch when runtime mem store limit functionality is enabled
+	MetricRuntimeMemStoreLimitEnableEpoch = "erd_runtime_mem_store_limit_enable_epoch"
+
+	// MetricRuntimeCodeSizeFixEnableEpoch represents the epoch when runtime code size fix is enabled
+	MetricRuntimeCodeSizeFixEnableEpoch = "erd_runtime_code_size_fix_enable_epoch"
+
+	// MetricSetSenderInEeiOutputTransferEnableEpoch represents the epoch when set sender in eei output transfer functionality is enabled
+	MetricSetSenderInEeiOutputTransferEnableEpoch = "erd_set_sender_in_eei_output_transfer_enable_epoch"
+
+	// MetricRefactorPeersMiniBlocksEnableEpoch represents the epoch when refactor peers miniblock feature is enabled
+	MetricRefactorPeersMiniBlocksEnableEpoch = "erd_refactor_peers_miniblocks_enable_epoch"
+
+	// MetricSCProcessorV2EnableEpoch represents the epoch when SC processor V2 feature is enabled
+	MetricSCProcessorV2EnableEpoch = "erd_sc_processorv2_enable_epoch"
+
+	// MetricMaxBlockchainHookCountersEnableEpoch represents the epoch when max blockchain hook counters functionality is enabled
+	MetricMaxBlockchainHookCountersEnableEpoch = "erd_max_blockchain_hook_counters_enable_epoch"
+
+	// MetricWipeSingleNFTLiquidityDecreaseEnableEpoch represents the epoch when wipe single NFT liquidity decrease functionality is enabled
+	MetricWipeSingleNFTLiquidityDecreaseEnableEpoch = "erd_wipe_single_nft_liquidity_decrease_enable_epoch"
+
+	// MetricAlwaysSaveTokenMetaDataEnableEpoch represents the epoch when always save token metadata functionality is enabled
+	MetricAlwaysSaveTokenMetaDataEnableEpoch = "erd_always_save_token_metadata_enable_epoch"
+
+	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
+	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+
+	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
+	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
+
+	// MetricRelayedNonceFixEnableEpoch represents the epoch when relayed nonce fix is enabled
+	MetricRelayedNonceFixEnableEpoch = "erd_relayed_nonce_fix_enable_epoch"
+
+	// MetricDeterministicSortOnValidatorsInfoEnableEpoch represents the epoch when deterministic sort on validators info functionality is enabled
+	MetricDeterministicSortOnValidatorsInfoEnableEpoch = "erd_deterministic_sort_on_validators_info_enable_epoch"
+
+	// MetricKeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when keep exec order on created scs fix is enabled
+	MetricKeepExecOrderOnCreatedSCRsEnableEpoch = "erd_keep_exec_order_on_created_scrs_enable_epoch"
+
+	// MetricMultiClaimOnDelegationEnableEpoch represents the epoch when multi claim on delegation functionality is enabled
+	MetricMultiClaimOnDelegationEnableEpoch = "erd_multi_claim_on_delegation_enable_epoch"
+
+	// MetricChangeUsernameEnableEpoch represents the epoch when change username functionality is enabled
+	MetricChangeUsernameEnableEpoch = "erd_change_username_enable_epoch"
+
+	// MetricAutoBalanceDataTriesEnableEpoch represents the epoch when auto balance data tries feature is enabled
+	MetricAutoBalanceDataTriesEnableEpoch = "erd_auto_balance_data_tries_enable_epoch"
+
+	// MetricMigrateDataTrieEnableEpoch represents the epoch when migrate data trie feature is enabled
+	MetricMigrateDataTrieEnableEpoch = "erd_migrate_datatrie_enable_epoch"
+
+	// MetricConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when consistent tokens values length check is enabled
+	MetricConsistentTokensValuesLengthCheckEnableEpoch = "erd_consistent_tokens_values_length_check_enable_epoch"
+
+	// MetricFixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when fix delegation change owner on account is enabled
+	MetricFixDelegationChangeOwnerOnAccountEnableEpoch = "erd_fix_delegation_change_owner_on_account_enable_epoch"
+
+	// MetricDynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data tries storage load functionality is enabled
+	MetricDynamicGasCostForDataTrieStorageLoadEnableEpoch = "erd_dynamic_gas_cost_for_datatrie_storage_load_enable_epoch"
+
+	// MetricNFTStopCreateEnableEpoch represents the epoch when NFT stop create functionality is enabled
+	MetricNFTStopCreateEnableEpoch = "erd_nft_stop_create_enable_epoch"
+
+	// MetricChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when change owner address cross shard through SC functionality is enabled
+	MetricChangeOwnerAddressCrossShardThroughSCEnableEpoch = "erd_change_owner_address_cross_shard_through_sc_enable_epoch"
+
+	// MetricFixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when fix gas remaining for save key value builin function is enabled
+	MetricFixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = "erd_fix_gas_remainig_for_save_keyvalue_builtin_function_enable_epoch"
+
+	// MetricCurrentRandomnessOnSortingEnableEpoch represents the epoch when current randomness on sorting functionality is enabled
+	MetricCurrentRandomnessOnSortingEnableEpoch = "erd_current_randomness_on_sorting_enable_epoch"
+
+	// MetricStakeLimitsEnableEpoch represents the epoch when stake limits functionality is enabled
+	MetricStakeLimitsEnableEpoch = "erd_stake_limits_enable_epoch"
+
+	// MetricStakingV4Step1EnableEpoch represents the epoch when staking v4 step 1 feature is enabled
+	MetricStakingV4Step1EnableEpoch = "erd_staking_v4_step1_enable_epoch"
+
+	// MetricStakingV4Step2EnableEpoch represents the epoch when staking v4 step 2 feature is enabled
+	MetricStakingV4Step2EnableEpoch = "erd_staking_v4_step2_enable_epoch"
+
+	// MetricStakingV4Step3EnableEpoch represents the epoch when staking v4 step 3 feature is enabled
+	MetricStakingV4Step3EnableEpoch = "erd_staking_v4_step3_enable_epoch"
+
+	// MetricCleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when cleanup auction on low waiting list fix is enabled
+	MetricCleanupAuctionOnLowWaitingListEnableEpoch = "erd_cleanup_auction_on_low_waiting_list_enable_epoch"
+
+	// MetricAlwaysMergeContextsInEEIEnableEpoch represents the epoch when always merge contexts in EEI fix is enabled
+	MetricAlwaysMergeContextsInEEIEnableEpoch = "erd_always_merge_contexts_in_eei_enable_epoch"
+
+	// MetricDynamicESDTEnableEpoch represents the epoch when dynamic ESDT feature is enabled
+	MetricDynamicESDTEnableEpoch = "erd_dynamic_esdt_enable_epoch"
+
+	// MetricEGLDInMultiTransferEnableEpoch represents the epoch when EGLD in multi transfer feature is enabled
+	MetricEGLDInMultiTransferEnableEpoch = "erd_egld_in_multi_transfer_enable_epoch"
+
+	// MetricCryptoOpcodesV2EnableEpoch represents the epoch when crypto opcodes v2 feature is enabled
+	MetricCryptoOpcodesV2EnableEpoch = "erd_crypto_opcodes_v2_enable_epoch"
+
+	// MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign opcodes are enabled
+	MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch = "erd_multi_esdt_transfer_execute_by_user_enable_epoch"
+
+	// MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non-payable sc is enabled
+	MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch = "erd_fix_relayed_move_balance_to_non_payable_sc_enable_epoch"
 
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
@@ -539,12 +760,6 @@ const (
 
 	// NodesToShufflePerShardSuffix represents the suffix for NodesToShufflePerShard item in MaxNodesChangeEnableEpoch list
 	NodesToShufflePerShardSuffix = "_nodes_to_shuffle_per_shard"
-
-	// MetricHysteresis represents the hysteresis threshold
-	MetricHysteresis = "erd_hysteresis"
-
-	// MetricAdaptivity represents a boolean to determine if adaptivity will be enabled or not
-	MetricAdaptivity = "erd_adaptivity"
 )
 
 const (
@@ -623,11 +838,11 @@ const (
 	// MetricRatingsPeerHonestyUnitValue represents the peer honesty unit value
 	MetricRatingsPeerHonestyUnitValue = "erd_ratings_peerhonesty_unit_value"
 
-	// MetricSetGuardianEnableEpoch represents the epoch when the guardian feature is enabled
-	MetricSetGuardianEnableEpoch = "erd_set_guardian_feature_enable_epoch"
+	// MetricHysteresis represents the hysteresis threshold
+	MetricHysteresis = "erd_hysteresis"
 
-	// MetricSetScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
-	MetricSetScToScLogEventEnableEpoch = "erd_set_sc_to_sc_log_event_enable_epoch"
+	// MetricAdaptivity represents a boolean to determine if adaptivity will be enabled or not
+	MetricAdaptivity = "erd_adaptivity"
 )
 
 const (
@@ -1014,9 +1229,15 @@ const (
 	CleanupAuctionOnLowWaitingListFlag                 core.EnableEpochFlag = "CleanupAuctionOnLowWaitingListFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
+	UseGasBoundedShouldFailExecutionFlag               core.EnableEpochFlag = "UseGasBoundedShouldFailExecutionFlag"
 	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicEsdtFlag"
 	EGLDInESDTMultiTransferFlag                        core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
 	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
+	UnJailCleanupFlag                                  core.EnableEpochFlag = "UnJailCleanupFlag"
+	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
+	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
+	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	ConsensusModelV2Flag                               core.EnableEpochFlag = "ConsensusModelV2Flag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
