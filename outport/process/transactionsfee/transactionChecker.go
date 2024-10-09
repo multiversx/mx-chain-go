@@ -9,8 +9,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
+
+type txWithRelayer interface {
+	GetRelayerAddr() []byte
+}
 
 func (tep *transactionsFeeProcessor) isESDTOperationWithSCCall(tx data.TransactionHandler) bool {
 	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
@@ -46,12 +51,26 @@ func isSCRForSenderWithRefund(scr *smartContractResult.SmartContractResult, txHa
 	return isFromCurrentTx && isForSender && isRightNonce && isScrDataOk
 }
 
-func isRefundForRelayed(dbScResult *smartContractResult.SmartContractResult, tx data.TransactionHandler) bool {
+func isRefundForRelayed(
+	dbScResult *smartContractResult.SmartContractResult,
+	tx data.TransactionHandler,
+	txEpoch uint32,
+	enableEpochsHandler core.EnableEpochsHandler,
+) bool {
 	isForRelayed := string(dbScResult.ReturnMessage) == core.GasRefundForRelayerMessage
 	isForSender := bytes.Equal(dbScResult.RcvAddr, tx.GetSndAddr())
 	differentHash := !bytes.Equal(dbScResult.OriginalTxHash, dbScResult.PrevTxHash)
 
-	return isForRelayed && isForSender && differentHash
+	isFlagEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.HashForInnerTransactionFlag, txEpoch)
+	txWithRelayerAddr, ok := tx.(txWithRelayer)
+	if !ok {
+		return isForRelayed && isForSender && differentHash
+	}
+
+	isForRelayer := bytes.Equal(dbScResult.RcvAddr, txWithRelayerAddr.GetRelayerAddr())
+	shouldConsiderScrForRelayer := isFlagEnabled && isForRelayer
+
+	return isForRelayed && (isForSender || shouldConsiderScrForRelayer) && differentHash
 }
 
 func isDataOk(data []byte) bool {

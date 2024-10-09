@@ -136,7 +136,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		}
 
 		if len(txHandler.GetUserTransactions()) > 0 {
-			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult)
+			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult, epoch)
 			continue
 		}
 
@@ -149,11 +149,11 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 
 		}
 
-		tep.prepareTxWithResults(txHashHex, txWithResult, isRelayedAfterFix)
+		tep.prepareTxWithResults(txHashHex, txWithResult, isRelayedAfterFix, epoch)
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults, isRelayedAfterFix bool) {
+func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults, isRelayedAfterFix bool, txEpoch uint32) {
 	hasRefund := false
 	totalRefunds := big.NewInt(0)
 	for _, scrHandler := range txWithResults.scrs {
@@ -162,7 +162,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 			continue
 		}
 
-		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
+		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler(), txEpoch, tep.enableEpochsHandler) {
 			hasRefund = true
 			totalRefunds.Add(totalRefunds, scr.Value)
 		}
@@ -243,7 +243,7 @@ func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transact
 	return big.NewInt(0).Add(fee, innerFee), true
 }
 
-func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults) {
+func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults, txEpoch uint32) {
 	refundsValue := big.NewInt(0)
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
@@ -251,7 +251,7 @@ func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex str
 			continue
 		}
 
-		if !isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
+		if !isRefundForRelayed(scr, txWithResults.GetTxHandler(), txEpoch, tep.enableEpochsHandler) {
 			continue
 		}
 
