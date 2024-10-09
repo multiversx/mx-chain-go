@@ -790,10 +790,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 
 	newBody := body
 	defer func() {
-		if err != nil {
-			return
-		}
-
 		go getMetricsFromHeader(shardHeader.ShallowClone(), uint64(txCounts.GetTotal()), scbp.marshalizer, scbp.appStatusHandler)
 		go getMetricsFromBlockBody(newBody, scbp.marshalizer, scbp.appStatusHandler)
 	}()
