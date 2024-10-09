@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -22,24 +27,17 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
-	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
 	Configs                        config.Configs
 	APIInterface                   APIConfigurator
-	CreateGenesisNodesSetup        func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData              func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
+	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
@@ -97,6 +95,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
+	runTypeCoreComponents, err := args.CreateRunTypeCoreComponents()
+	if err != nil {
+		return nil, err
+	}
+
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
 		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
@@ -114,8 +117,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
-		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
-		CreateRatingsData:           args.CreateRatingsData,
+		RunTypeCoreComponents:       runTypeCoreComponents,
 	})
 	if err != nil {
 		return nil, err
@@ -365,6 +367,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
+		node.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	)
 	if err != nil {
 		return err

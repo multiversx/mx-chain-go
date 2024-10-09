@@ -1,4 +1,4 @@
-package bridge
+package processBlock
 
 import (
 	"crypto/rand"
@@ -24,6 +24,8 @@ import (
 )
 
 const (
+	defaultPathToInitialConfig     = "../../../../node/config/"
+	sovereignConfigPath            = "../../../config/"
 	eventIDDepositIncomingTransfer = "deposit"
 	topicIDDepositIncomingTransfer = "deposit"
 	hashSize                       = 32

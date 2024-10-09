@@ -1043,7 +1043,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	saveMetricsForCommittedShardBlock(
+	saveMetricsForCommittedShardAndCrossBlock(
 		sp.nodesCoordinator,
 		sp.appStatusHandler,
 		logger.DisplayByteSlice(headerHash),
@@ -1081,6 +1081,7 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+	// TODO: MX-15708 Here, also index reward txs for sovereign and analyse other missing meta fields
 	sp.indexBlockIfNeeded(body, headerHash, header, lastBlockHeader)
 	sp.recordBlockInHistory(headerHash, header, body)
 

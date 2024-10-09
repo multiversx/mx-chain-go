@@ -61,7 +61,7 @@ func createSystemSCProcessor(
 	})
 
 	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
-		ShardCoordinator:             shardCoordinator,
+		ShardCoordinator:             shardCoordinator.(metachain.ExtendedShardCoordinatorHandler),
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    ald,

@@ -4,17 +4,15 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/sharding"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
+	runTypeCoreComponents, _ := createRunTypeCoreComponents()
+
 	return ArgsCoreComponentsHolder{
 		Config: config.Config{
 			Marshalizer: config.MarshalizerConfig{
@@ -140,12 +138,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
 		RoundDurationInMs:           6000,
-		CreateGenesisNodesSetup: func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error) {
-			return sharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
-		},
-		CreateRatingsData: func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
-			return rating.NewRatingsData(arg)
-		},
+		RunTypeCoreComponents:       runTypeCoreComponents,
 	}
 }
 

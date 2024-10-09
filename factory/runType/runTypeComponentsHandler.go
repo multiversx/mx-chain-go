@@ -5,13 +5,16 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -22,8 +25,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
@@ -32,6 +37,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -198,6 +205,49 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.genesisMetaBlockCheckerCreator) {
 		return errors.ErrNilGenesisMetaBlockChecker
 	}
+	if check.IfNil(mrc.epochStartTriggerFactory) {
+		return errors.ErrNilEpochStartTriggerFactory
+	}
+	if check.IfNil(mrc.latestDataProviderFactory) {
+		return errors.ErrNilLatestDataProviderFactory
+	}
+	if check.IfNil(mrc.scToProtocolFactory) {
+		return errors.ErrNilStakingToPeerFactory
+	}
+	if check.IfNil(mrc.validatorInfoCreatorFactory) {
+		return errors.ErrNilValidatorInfoCreatorFactory
+	}
+	if check.IfNil(mrc.apiProcessorCompsCreatorHandler) {
+		return errors.ErrNilAPIProcessorCompsCreator
+	}
+	if check.IfNil(mrc.endOfEpochEconomicsFactoryHandler) {
+		return errors.ErrNilEndOfEpochEconomicsFactory
+	}
+	if check.IfNil(mrc.rewardsCreatorFactory) {
+		return errors.ErrNilRewardsFactory
+	}
+	if check.IfNil(mrc.systemSCProcessorFactory) {
+		return errors.ErrNilSysSCFactory
+	}
+	if check.IfNil(mrc.preProcessorsContainerFactoryCreator) {
+		return errors.ErrNilPreProcessorsContainerFactoryCreator
+	}
+	if check.IfNil(mrc.dataRetrieverContainersSetter) {
+		return errors.ErrNilDataRetrieverContainersSetter
+	}
+	if check.IfNil(mrc.shardMessengerFactory) {
+		return errors.ErrNilBroadCastShardMessengerFactoryHandler
+	}
+	if check.IfNil(mrc.exportHandlerFactoryCreator) {
+		return errors.ErrNilExportHandlerFactoryCreator
+	}
+	if check.IfNil(mrc.validatorAccountsSyncerFactoryHandler) {
+		return errors.ErrNilValidatorAccountsDBSyncerFactory
+	}
+	if check.IfNil(mrc.shardRequestersContainerCreatorHandler) {
+		return errors.ErrNilShardRequestersContainerCreatorHandler
+	}
+
 	return nil
 }
 
@@ -607,6 +657,174 @@ func (mrc *managedRunTypeComponents) NodesSetupCheckerFactory() checking.NodesSe
 	}
 
 	return mrc.runTypeComponents.nodesSetupCheckerFactory
+}
+
+// EpochStartTriggerFactory returns the epoch start trigger factory
+func (mrc *managedRunTypeComponents) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.epochStartTriggerFactory
+}
+
+// LatestDataProviderFactory returns the latest data provider factory
+func (mrc *managedRunTypeComponents) LatestDataProviderFactory() latestData.LatestDataProviderFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.latestDataProviderFactory
+}
+
+// StakingToPeerFactory returns the staking to peer factory
+func (mrc *managedRunTypeComponents) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.scToProtocolFactory
+}
+
+// ValidatorInfoCreatorFactory returns the validator info creator factory
+func (mrc *managedRunTypeComponents) ValidatorInfoCreatorFactory() factory.ValidatorInfoCreatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.validatorInfoCreatorFactory
+}
+
+// ApiProcessorCompsCreatorHandler returns the api processor components creator handler
+func (mrc *managedRunTypeComponents) ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.apiProcessorCompsCreatorHandler
+}
+
+// EndOfEpochEconomicsFactoryHandler returns the end of epoch economics factory handler
+func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory.EndOfEpochEconomicsFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
+}
+
+// RewardsCreatorFactory returns the rewards creator factory
+func (mrc *managedRunTypeComponents) RewardsCreatorFactory() factory.RewardsCreatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.rewardsCreatorFactory
+}
+
+// SystemSCProcessorFactory returns the sys sc processor factory
+func (mrc *managedRunTypeComponents) SystemSCProcessorFactory() factory.SystemSCProcessorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.systemSCProcessorFactory
+}
+
+// PreProcessorsContainerFactoryCreator returns the pre-processors container factory creator
+func (mrc *managedRunTypeComponents) PreProcessorsContainerFactoryCreator() data.PreProcessorsContainerFactoryCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.preProcessorsContainerFactoryCreator
+}
+
+// DataRetrieverContainersSetter returns the data retriever containers setter
+func (mrc *managedRunTypeComponents) DataRetrieverContainersSetter() factory.DataRetrieverContainersSetter {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.dataRetrieverContainersSetter
+}
+
+// BroadCastShardMessengerFactoryHandler returns the shard broadcast messenger factory
+func (mrc *managedRunTypeComponents) BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardMessengerFactory
+}
+
+// ExportHandlerFactoryCreator returns the export handler factory creator
+func (mrc *managedRunTypeComponents) ExportHandlerFactoryCreator() factory.ExportHandlerFactoryCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.exportHandlerFactoryCreator
+}
+
+// ValidatorAccountsSyncerFactoryHandler returns validator accounts syncer factory handler
+func (mrc *managedRunTypeComponents) ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.validatorAccountsSyncerFactoryHandler
+}
+
+// ShardRequestersContainerCreatorHandler returns shard requesters container creator handler
+func (mrc *managedRunTypeComponents) ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardRequestersContainerCreatorHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

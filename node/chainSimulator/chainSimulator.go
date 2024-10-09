@@ -10,6 +10,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/sharding"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -21,20 +32,8 @@ import (
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	processing "github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/rating"
 	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/sharding"
-	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const delaySendTxs = time.Millisecond
@@ -67,8 +66,7 @@ type ArgsChainSimulator struct {
 	RoundsPerEpoch                 core.OptionalUint64
 	ApiInterface                   components.APIConfigurator
 	AlterConfigsFunction           func(cfg *config.Configs)
-	CreateGenesisNodesSetup        func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData              func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
+	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
@@ -110,14 +108,9 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 }
 
 func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
-	if args.CreateGenesisNodesSetup == nil {
-		args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error) {
-			return mxChainSharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
-		}
-	}
-	if args.CreateRatingsData == nil {
-		args.CreateRatingsData = func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error) {
-			return rating.NewRatingsData(arg)
+	if args.CreateRunTypeCoreComponents == nil {
+		args.CreateRunTypeCoreComponents = func() (factory.RunTypeCoreComponentsHolder, error) {
+			return createRunTypeCoreComponents()
 		}
 	}
 	if args.CreateIncomingHeaderSubscriber == nil {
@@ -136,6 +129,20 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	if args.ChainProcessorFactory == nil {
 		args.ChainProcessorFactory = NewChainHandlerFactory()
 	}
+}
+
+func createRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
 }
 
 func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
@@ -262,8 +269,7 @@ func (s *simulator) createTestNode(
 		MinNodesMeta:                   args.MetaChainMinNodes,
 		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:          args.RoundDurationInMillis,
-		CreateGenesisNodesSetup:        args.CreateGenesisNodesSetup,
-		CreateRatingsData:              args.CreateRatingsData,
+		CreateRunTypeCoreComponents:    args.CreateRunTypeCoreComponents,
 		CreateIncomingHeaderSubscriber: args.CreateIncomingHeaderSubscriber,
 		CreateRunTypeComponents:        args.CreateRunTypeComponents,
 		NodeFactory:                    args.NodeFactory,

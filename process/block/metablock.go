@@ -147,6 +147,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		crossNotarizer:                notarizer,
 		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
+		epochSystemSCProcessor:        arguments.EpochSystemSCProcessor,
 	}
 
 	mp := metaProcessor{
@@ -518,32 +519,6 @@ func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
 	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
 }
 
-func (mp *metaProcessor) checkEpochCorrectness(
-	headerHandler data.HeaderHandler,
-) error {
-	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil
-	}
-
-	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		mp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
-		log.Warn("epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", headerHandler.GetEpoch(), "epochStartTrigger", mp.epochStartTrigger.Epoch())
-		return process.ErrEpochDoesNotMatch
-	}
-
-	isEpochIncorrect = mp.epochStartTrigger.IsEpochStart() &&
-		mp.epochStartTrigger.EpochStartRound() <= headerHandler.GetRound() &&
-		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1
-	if isEpochIncorrect {
-		log.Warn("is epoch start and epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", headerHandler.GetEpoch(), "epochStartTrigger", mp.epochStartTrigger.Epoch())
-		return process.ErrEpochDoesNotMatch
-	}
-
-	return nil
-}
-
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(metaBlock *block.MetaBlock) error {
 	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(metaBlock)
 	if err != nil {
@@ -661,11 +636,6 @@ func (mp *metaProcessor) indexBlock(
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
 	indexRoundInfo(mp.outportHandler, mp.nodesCoordinator, core.MetachainShardId, metaBlock, lastMetaBlock, argSaveBlock.SignersIndexes)
-
-	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
-		return
-	}
-
 	indexValidatorsRating(mp.outportHandler, mp.validatorStatisticsProcessor, metaBlock)
 }
 
@@ -784,34 +754,6 @@ func (mp *metaProcessor) CreateBlock(
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
 
 	return metaHdr, body, nil
-}
-
-func (mp *metaProcessor) isPreviousBlockEpochStart() (uint32, bool) {
-	blockHeader := mp.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(blockHeader) {
-		blockHeader = mp.blockChain.GetGenesisHeader()
-	}
-
-	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
-}
-
-func (mp *metaProcessor) processIfFirstBlockAfterEpochStart() error {
-	epoch, isPreviousEpochStart := mp.isPreviousBlockEpochStart()
-	if !isPreviousEpochStart {
-		return nil
-	}
-
-	nodesForcedToStay, err := mp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(epoch)
-	if err != nil {
-		return err
-	}
-
-	err = mp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {

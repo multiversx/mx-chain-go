@@ -43,6 +43,7 @@ type ArgBaseBootstrapper struct {
 	AppStatusHandler             core.AppStatusHandler
 	OutportHandler               outport.OutportHandler
 	AccountsDBSyncer             process.AccountsDBSyncer
+	ValidatorDBSyncer            process.AccountsDBSyncer
 	CurrentEpochProvider         process.CurrentNetworkEpochProviderHandler
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
@@ -60,7 +61,6 @@ type ArgShardBootstrapper struct {
 // new instances of meta bootstrapper
 type ArgMetaBootstrapper struct {
 	ArgBaseBootstrapper
-	EpochBootstrapper           process.EpochBootstrapper
-	ValidatorStatisticsDBSyncer process.AccountsDBSyncer
-	ValidatorAccountsDB         state.AccountsAdapter
+	EpochBootstrapper   process.EpochBootstrapper
+	ValidatorAccountsDB state.AccountsAdapter
 }

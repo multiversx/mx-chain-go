@@ -221,7 +221,7 @@ func TestStatusComponentsFactory_epochStartEventHandler(t *testing.T) {
 	sc, _ := scf.Create()
 	require.NotNil(t, sc)
 
-	handler := sc.EpochStartEventHandler()
+	handler := statusComp.CreateSaveValidatorsPubKeysEventHandler(args.NodesCoordinator, sc.OutportHandler())
 	require.NotNil(t, handler)
 	handler.EpochStartAction(&testscommon.HeaderHandlerStub{})
 }

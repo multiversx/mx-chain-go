@@ -1,8 +1,13 @@
 package requesterscontainer_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -50,8 +55,41 @@ func TestSovereignShardRequestersContainerFactory_Create(t *testing.T) {
 	_, err = container.Get(extendedHeaderKey)
 	require.Nil(t, err)
 
-	numShards := int(shardCoord.NumberOfShards())
-	require.Equal(t, getNumRequesters(numShards)+1, container.Len()) // only one added container for extended header
+	numRequesterSCRs := 1
+	numRequesterTxs := 1
+	numRequesterRewardTxs := 0
+	numRequesterHeaders := 1
+	numRequesterMiniBlocks := 1
+	numRequesterMetaBlockHeaders := 0
+	numRequesterTrieNodes := 2
+	numRequesterPeerAuth := 1
+	numRequesterValidatorInfo := 1
+	numRequesterExtendedHeader := 1
+	numRequesters := numRequesterTxs + numRequesterHeaders + numRequesterMiniBlocks + numRequesterMetaBlockHeaders +
+		numRequesterSCRs + numRequesterRewardTxs + numRequesterTrieNodes + numRequesterPeerAuth + numRequesterValidatorInfo + numRequesterExtendedHeader
+
+	require.Equal(t, numRequesters, container.Len()) // only one added container for extended header
+
+	sovShardIDStr := fmt.Sprintf("_%d", core.SovereignChainShardId)
+	allKeys := map[string]struct{}{
+		factory.TransactionTopic + sovShardIDStr:         {},
+		factory.UnsignedTransactionTopic + sovShardIDStr: {},
+		factory.ShardBlocksTopic + sovShardIDStr:         {},
+		factory.MiniBlocksTopic + sovShardIDStr:          {},
+		factory.ValidatorTrieNodesTopic + sovShardIDStr:  {},
+		factory.AccountTrieNodesTopic + sovShardIDStr:    {},
+		common.PeerAuthenticationTopic:                   {},
+		common.ValidatorInfoTopic + sovShardIDStr:        {},
+		factory.ExtendedHeaderProofTopic + sovShardIDStr: {},
+	}
+	iterateFunc := func(key string, requester dataRetriever.Requester) bool {
+		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
+		delete(allKeys, key)
+		return true
+	}
+
+	container.Iterate(iterateFunc)
+	require.Empty(t, allKeys)
 }
 
 func TestSovereignShardRequestersContainerFactory_NumPeers(t *testing.T) {

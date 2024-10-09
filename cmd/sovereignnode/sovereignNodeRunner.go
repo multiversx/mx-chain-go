@@ -5,8 +5,6 @@ package main
 
 import (
 	"fmt"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/outport"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,6 +15,21 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/google/gops/agent"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
+	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
+	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
+	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
+	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
+	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
 
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -53,10 +66,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
+	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -67,20 +79,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-
-	"github.com/google/gops/agent"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
-	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
-	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
-	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
-	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
-	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -289,10 +287,14 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
 
+	log.Debug("creating runType core components")
+	managedRunTypeCoreComponents, err := snr.CreateManagedRunTypeCoreComponents()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating core components")
-	managedCoreComponents, err := snr.CreateManagedCoreComponents(
-		chanStopNodeProcess,
-	)
+	managedCoreComponents, err := snr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -561,7 +563,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
-		node.NewSovereignNodeFactory(),
+		node.NewSovereignNodeFactory(configs.GeneralConfig.SovereignConfig.GenesisConfig.NativeESDT),
 		extraOptionNotifierReceiver,
 		extraOptionOutGoingBridgeSender,
 	)
@@ -642,7 +644,28 @@ func addSyncersToAccountsDB(
 		return err
 	}
 
-	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	err = stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	if err != nil {
+		return err
+	}
+
+	validatorStateSyncer, err := getValidatorAccountSyncer(
+		config,
+		coreComponents,
+		dataComponents,
+		stateComponents,
+		processComponents,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = stateComponents.PeerAccounts().SetSyncer(validatorStateSyncer)
+	if err != nil {
+		return err
+	}
+
+	return stateComponents.PeerAccounts().StartSnapshotIfNeeded()
 }
 
 func indexValidatorsListIfNeeded(
@@ -667,6 +690,30 @@ func indexValidatorsListIfNeeded(
 			Epoch:                  epoch,
 		})
 	}
+}
+func getValidatorAccountSyncer(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) (process.AccountsDBSyncer, error) {
+	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
+	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
+	storageManager := peerTrie.GetStorageManager()
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getBaseAccountSyncerArgs(
+			config,
+			coreComponents,
+			dataComponents,
+			processComponents,
+			storageManager,
+			maxTrieLevelInMemory,
+		),
+	}
+
+	return syncer.NewSovereignValidatorAccountsSyncer(args)
 }
 
 func getUserAccountSyncer(
@@ -1184,10 +1231,15 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 	if err != nil {
 		return nil, err
 	}
+
 	err = managedStatusComponents.Create()
 	if err != nil {
 		return nil, err
 	}
+
+	saveValidatorsPubKeysEvent := statusComp.CreateSaveValidatorsPubKeysEventHandler(nodesCoordinator, managedStatusComponents.OutportHandler())
+	managedCoreComponents.EpochStartNotifierWithConfirm().RegisterHandler(saveValidatorsPubKeysEvent)
+
 	return managedStatusComponents, nil
 }
 
@@ -1519,6 +1571,7 @@ func (snr *sovereignNodeRunner) CreateManagedNetworkComponents(
 // CreateManagedCoreComponents is the managed core components factory
 func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
 		Config:                   *snr.configs.GeneralConfig,
@@ -1531,8 +1584,8 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 		NodesFilename:            snr.configs.ConfigurationPathsHolder.Nodes,
 		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
-		RatingsDataFactory:       rating.NewSovereignRatingsDataFactory(),
+		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
+		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1621,6 +1674,22 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeCoreComponents creates the managed run type core components
+func (snr *sovereignNodeRunner) CreateManagedRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHandler, error) {
+	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
 }
 
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components

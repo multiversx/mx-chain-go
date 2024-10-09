@@ -124,6 +124,9 @@ var ErrNilStatusCoreComponentsFactory = errors.New("nil status core components f
 // ErrNilRunTypeComponentsFactory signals that the provided runType components factory is nil
 var ErrNilRunTypeComponentsFactory = errors.New("nil runType components factory")
 
+// ErrNilRunTypeCoreComponentsFactory signals that the provided runType core components factory is nil
+var ErrNilRunTypeCoreComponentsFactory = errors.New("nil runType core components factory")
+
 // ErrNilBootstrapParamsHandler signals that the provided bootstrap parameters handler is nil
 var ErrNilBootstrapParamsHandler = errors.New("nil bootstrap parameters handler")
 
@@ -333,6 +336,9 @@ var ErrNilStateComponents = errors.New("nil state components")
 
 // ErrNilRunTypeComponents signals that a nil runType components was provided
 var ErrNilRunTypeComponents = errors.New("nil runType components")
+
+// ErrNilRunTypeCoreComponents signals that nil runType core components were provided
+var ErrNilRunTypeCoreComponents = errors.New("nil runType core components")
 
 // ErrNilStateComponentsHolder signals that a nil state components holder was provided
 var ErrNilStateComponentsHolder = errors.New("nil state components holder")
@@ -814,3 +820,45 @@ var ErrNilAccountsCreator = errors.New("nil accounts creator")
 
 // ErrNilInitialAccounts signals that a nil initial accounts has been provided
 var ErrNilInitialAccounts = errors.New("nil initial accounts")
+
+// ErrNilEpochStartTriggerFactory signals that a nil epoch start trigger factory has been provided
+var ErrNilEpochStartTriggerFactory = errors.New("nil epoch start trigger factory has been provided")
+
+// ErrNilLatestDataProviderFactory signals that a nil latest data provider factory has been provided
+var ErrNilLatestDataProviderFactory = errors.New("nil latest data provider factory has been provided")
+
+// ErrNilStakingToPeerFactory signals that a nil staking to peer factory has been provided
+var ErrNilStakingToPeerFactory = errors.New("nil staking to peer factory has been provided")
+
+// ErrNilValidatorInfoCreatorFactory signals that a nil validator info creator factory has been provided
+var ErrNilValidatorInfoCreatorFactory = errors.New("nil validator info creator factory has been provided")
+
+// ErrNilAPIProcessorCompsCreator signals that a nil api processor components creator has been provided
+var ErrNilAPIProcessorCompsCreator = errors.New("nil api processor components creator has been provided")
+
+// ErrNilEndOfEpochEconomicsFactory signals that a nil end of epoch economics factory has been provided
+var ErrNilEndOfEpochEconomicsFactory = errors.New("nil end of epoch economics factory has been provided")
+
+// ErrNilRewardsFactory signals that a nil rewards factory has been provided
+var ErrNilRewardsFactory = errors.New("nil rewards factory has been provided")
+
+// ErrNilSysSCFactory signals that a nil sys sc factory has been provided
+var ErrNilSysSCFactory = errors.New("nil sys sc factory has been provided")
+
+// ErrNilPreProcessorsContainerFactoryCreator signals that a nil pre-processors container factory creator has been provided
+var ErrNilPreProcessorsContainerFactoryCreator = errors.New("nil pre-processors container factory creator has been provided")
+
+// ErrNilDataRetrieverContainersSetter signals that a nil data retriever container setter has been provided
+var ErrNilDataRetrieverContainersSetter = errors.New("nil data retriever container setter has been provided")
+
+// ErrNilBroadCastShardMessengerFactoryHandler signals that a nil shard messenger factory has been provided
+var ErrNilBroadCastShardMessengerFactoryHandler = errors.New("nil shard messenger factory has been provided")
+
+// ErrNilExportHandlerFactoryCreator signals that a nil export handler factory creator has been provided
+var ErrNilExportHandlerFactoryCreator = errors.New("nil export handler factory creator has been provided")
+
+// ErrNilValidatorAccountsDBSyncerFactory signals that a nil validator accounts db syncer factory has been provided
+var ErrNilValidatorAccountsDBSyncerFactory = errors.New("nil validator accounts db syncer factory has been provided")
+
+// ErrNilShardRequestersContainerCreatorHandler signals that a nil shard requesters container creator has been provided
+var ErrNilShardRequestersContainerCreatorHandler = errors.New("nil shard requesters container creator has been provided")

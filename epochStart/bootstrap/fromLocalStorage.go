@@ -45,7 +45,8 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		"epoch start Round", e.baseData.epochStartRound)
 }
 
-func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
+// GetShardIDForLatestEpoch returns the shard ID for the latest epoch
+func (e *epochStartBootstrap) GetShardIDForLatestEpoch() (uint32, bool, error) {
 	storer, err := e.storageOpenerHandler.GetMostRecentStorageUnit(e.generalConfig.BootstrapStorage.DB)
 	defer func() {
 		if check.IfNil(storer) {
@@ -90,7 +91,7 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 }
 
 func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
-	newShardId, isShuffledOut, err := e.getShardIDForLatestEpoch()
+	newShardId, isShuffledOut, err := e.shardForLatestEpochComputer.GetShardIDForLatestEpoch()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -126,7 +127,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	log.Debug("prepareEpochFromStorage for shuffled out", "initial shard id", e.baseData.shardId, "new shard id", newShardId)
 	e.baseData.shardId = newShardId
 
-	err = e.createRequestHandler()
+	e.requestHandler, err = e.bootStrapShardProcessor.createRequestHandler()
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -147,7 +148,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 		}
 	}()
 
-	e.syncedHeaders, err = e.syncHeadersFrom(e.epochStartMeta)
+	e.syncedHeaders, err = e.bootStrapShardProcessor.syncHeadersFrom(e.epochStartMeta)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -177,7 +178,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
+		err = e.bootStrapShardProcessor.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}

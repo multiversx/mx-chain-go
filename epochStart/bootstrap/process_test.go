@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -696,6 +697,42 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilRequestHandlerCreator))
 	})
+	t.Run("nil RequestersContainerFactoryCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.RequestersContainerFactoryCreatorField = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRequesterContainerFactoryCreator))
+	})
+	t.Run("nil ValidatorAccountsSyncerFactoryHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.ValidatorAccountsSyncerFactoryHandlerField = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilValidatorAccountsDBSyncerFactory))
+	})
+	t.Run("nil ValidatorAccountsSyncerFactoryHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.ShardRequestersContainerCreatorHandlerField = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardRequestersContainerCreatorHandler))
+	})
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
@@ -1084,7 +1121,7 @@ func TestSyncHeadersFrom_MockHeadersSyncerShouldSyncHeaders(t *testing.T) {
 		},
 	}
 
-	headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
+	headers, err := epochStartProvider.bootStrapShardProcessor.syncHeadersFrom(metaBlock)
 	assert.Nil(t, err)
 	assert.Equal(t, header1, headers[string(hdrHash1)])
 	assert.Equal(t, header2, headers[string(hdrHash2)])
@@ -1188,7 +1225,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = &block.MetaBlock{}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, epochStart.ErrEpochStartDataForShardNotFound, err)
 	})
 	t.Run("fail to sync pending miniblocks", func(t *testing.T) {
@@ -1206,7 +1243,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			},
 		}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to get pending miniblocks", func(t *testing.T) {
@@ -1224,7 +1261,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			},
 		}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to sync missing headers", func(t *testing.T) {
@@ -1244,7 +1281,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to get needed headers", func(t *testing.T) {
@@ -1264,7 +1301,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to get data to sync", func(t *testing.T) {
@@ -1302,7 +1339,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("fail to create user accounts syncer", func(t *testing.T) {
@@ -1335,7 +1372,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, state.ErrNilCacher, err)
 	})
 	t.Run("fail to save data to storage", func(t *testing.T) {
@@ -1407,7 +1444,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
-		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
+		err := epochStartProvider.bootStrapShardProcessor.requestAndProcessForShard(emptyMiniBlocksSlice)
 		assert.Equal(t, expectedErr, err)
 	})
 }
@@ -2510,4 +2547,63 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	txHash := coreComp.Hash.Compute(string(txBytes))
 	_, found := transactions.SearchFirstData(txHash)
 	assert.True(t, found)
+}
+
+func TestEpochStartBootstrap_GetShardIDForLatestEpoch(t *testing.T) {
+	t.Parallel()
+
+	expectedShardId := uint32(2)
+	args := createEpochStartBootstrapParams(expectedShardId)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	shardId, isShuffledOut, err := epochStartProvider.GetShardIDForLatestEpoch()
+	assert.Equal(t, expectedShardId, shardId)
+	assert.True(t, isShuffledOut)
+	assert.Nil(t, err)
+}
+
+func createEpochStartBootstrapParams(expectedShardId uint32) ArgsEpochStartBootstrap {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = expectedShardId
+	round := int64(10)
+
+	roundNum := bootstrapStorage.RoundNum{
+		Num: round,
+	}
+	roundBytes, _ := json.Marshal(&roundNum)
+	nodesCoordinatorConfigKey := []byte("key")
+
+	nodesConfigRegistry := nodesCoordinator.NodesCoordinatorRegistry{
+		CurrentEpoch: 10,
+	}
+	bootstrapData := bootstrapStorage.BootstrapData{
+		NodesCoordinatorConfigKey: nodesCoordinatorConfigKey,
+	}
+
+	storer := &storageMocks.StorerStub{
+		GetCalled: func(key []byte) (b []byte, err error) {
+			switch {
+			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
+				return roundBytes, nil
+			case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
+				bootstrapDataBytes, _ := json.Marshal(bootstrapData)
+				return bootstrapDataBytes, nil
+			default:
+				return nil, nil
+			}
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+			return nodesConfigRegistryBytes, nil
+		},
+	}
+
+	args.StorageUnitOpener = &storageMocks.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+			return storer, nil
+		},
+	}
+	return args
 }

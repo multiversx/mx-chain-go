@@ -6,7 +6,7 @@ go 1.20
 
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240531074039-9f259f2709fd
+	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240719091656-ab81ad87746c
 	github.com/multiversx/mx-chain-go v1.6.3
 	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
 	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20240116102202-4cf6fbbd95a3
@@ -120,7 +120,7 @@ require (
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
 	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240508074652-e128a1c05c8e // indirect
 	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508074452-cc21c1b505df // indirect
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240514123403-92975ee00840 // indirect
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240905074311-2e10fe54c806 // indirect
 	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00 // indirect
 	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240508073549-dcb8e6e0370f // indirect
 	github.com/multiversx/mx-chain-vm-common-go v1.5.13-0.20240531074440-5c5af08087c1 // indirect

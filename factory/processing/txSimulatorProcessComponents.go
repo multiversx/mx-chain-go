@@ -3,6 +3,10 @@ package processing
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	bootstrapDisabled "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -25,9 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 func (pcf *processComponentsFactory) createAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
@@ -157,7 +158,13 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	if err != nil {
+		return args, nil, nil, err
+	}
+
 	argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           pcf.coreData.EconomicsData(),
 		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
@@ -174,7 +181,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	if err != nil {
 		return args, nil, nil, err
 	}
@@ -355,7 +362,13 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	if err != nil {
+		return args, nil, nil, err
+	}
+
 	argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
 		Config:              pcf.config.VirtualMachine.Execution,
 		BlockGasLimit:       pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:         pcf.gasSchedule,
@@ -378,7 +391,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	if err != nil {
 		return args, nil, nil, err
 	}

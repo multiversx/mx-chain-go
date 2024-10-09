@@ -1,11 +1,14 @@
 package node
 
 type sovereignNodeFactory struct {
+	nativeESDT string
 }
 
 // NewSovereignNodeFactory creates a new sovereign node factory instance
-func NewSovereignNodeFactory() *sovereignNodeFactory {
-	return &sovereignNodeFactory{}
+func NewSovereignNodeFactory(nativeESDT string) *sovereignNodeFactory {
+	return &sovereignNodeFactory{
+		nativeESDT: nativeESDT,
+	}
 }
 
 // CreateNewNode creates a new sovereign node
@@ -15,7 +18,7 @@ func (snf *sovereignNodeFactory) CreateNewNode(opts ...Option) (NodeHandler, err
 		return nil, err
 	}
 
-	return NewSovereignNode(nd)
+	return NewSovereignNode(nd, snf.nativeESDT)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
