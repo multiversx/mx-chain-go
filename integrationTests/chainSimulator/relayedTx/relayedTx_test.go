@@ -129,7 +129,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	relayedTxResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
 	// generate few more blocks for the cross shard scrs to be done
@@ -155,12 +155,13 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	shardC := relayerShardNode.GetShardCoordinator()
 	providedInnerTxHashes := getInnerTxsHashes(t, relayerShardNode, innerTxs)
 
-	require.Zero(t, len(result.SmartContractResults))
+	require.Zero(t, len(relayedTxResult.SmartContractResults))
 
 	// 1 log events with inner tx hashes
-	require.Equal(t, 1, len(result.Logs.Events))
-	for idx, innerTxHash := range result.Logs.Events[0].Topics {
+	require.Equal(t, 1, len(relayedTxResult.Logs.Events))
+	for idx, innerTxHash := range relayedTxResult.Logs.Events[0].Topics {
 		require.True(t, bytes.Equal(providedInnerTxHashes[idx], innerTxHash))
+		require.Equal(t, hex.EncodeToString(providedInnerTxHashes[idx]), relayedTxResult.InnerTransactions[idx].Hash)
 
 		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
@@ -247,24 +248,25 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	relayedTxResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	relayedTxHash := result.Hash
+	relayedTxHash := relayedTxResult.Hash
 
 	providedInnerTxHashes := getInnerTxsHashes(t, relayerShardNode, innerTxs)
 
-	require.Zero(t, len(result.SmartContractResults))
+	require.Zero(t, len(relayedTxResult.SmartContractResults))
 
 	// 1 log events with inner tx hashes
-	require.Equal(t, 1, len(result.Logs.Events))
+	require.Equal(t, 1, len(relayedTxResult.Logs.Events))
 	// one topic for each inner tx
-	require.Equal(t, len(providedInnerTxHashes), len(result.Logs.Events[0].Topics))
-	scrsMap := make(map[string]int, len(result.SmartContractResults))
-	for idx, innerTxHash := range result.Logs.Events[0].Topics {
+	require.Equal(t, len(providedInnerTxHashes), len(relayedTxResult.Logs.Events[0].Topics))
+	scrsMap := make(map[string]int, len(relayedTxResult.SmartContractResults))
+	for idx, innerTxHash := range relayedTxResult.Logs.Events[0].Topics {
 		require.True(t, bytes.Equal(providedInnerTxHashes[idx], innerTxHash))
+		require.Equal(t, hex.EncodeToString(providedInnerTxHashes[idx]), relayedTxResult.InnerTransactions[idx].Hash)
 
-		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
+		result, err := relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
 
 		require.Equal(t, relayedTxHash, result.OriginalTransactionHash)
@@ -380,21 +382,22 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	relayedTxResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	relayedTxHash := result.Hash
+	relayedTxHash := relayedTxResult.Hash
 
 	checkSum(t, scShardNodeHandler, scAddressBytes, owner.Bytes, 4)
 
 	providedInnerTxHashes := getInnerTxsHashes(t, relayerShardNode, innerTxs)
 
 	// 1 log events with inner tx hashes
-	require.Equal(t, 1, len(result.Logs.Events))
-	for idx, innerTxHash := range result.Logs.Events[0].Topics {
+	require.Equal(t, 1, len(relayedTxResult.Logs.Events))
+	for idx, innerTxHash := range relayedTxResult.Logs.Events[0].Topics {
 		require.True(t, bytes.Equal(providedInnerTxHashes[idx], innerTxHash))
+		require.Equal(t, hex.EncodeToString(providedInnerTxHashes[idx]), relayedTxResult.InnerTransactions[idx].Hash)
 
-		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
+		result, err := relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
 
 		require.Equal(t, relayedTxHash, result.OriginalTransactionHash)
@@ -780,10 +783,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	relayedTxResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	relayedTxHash := result.Hash
+	relayedTxHash := relayedTxResult.Hash
 
 	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
@@ -792,11 +795,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 	providedInnerTxHashes := getInnerTxsHashes(t, relayerShardNode, innerTxs)
 
 	// 1 log events with inner tx hashes
-	require.Equal(t, 1, len(result.Logs.Events))
-	for idx, innerTxHash := range result.Logs.Events[0].Topics {
+	require.Equal(t, 1, len(relayedTxResult.Logs.Events))
+	for idx, innerTxHash := range relayedTxResult.Logs.Events[0].Topics {
 		require.True(t, bytes.Equal(providedInnerTxHashes[idx], innerTxHash))
+		require.Equal(t, hex.EncodeToString(providedInnerTxHashes[idx]), relayedTxResult.InnerTransactions[idx].Hash)
 
-		result, err = relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
+		result, err := relayerShardNode.GetFacadeHandler().GetTransaction(hex.EncodeToString(innerTxHash), true)
 		require.NoError(t, err)
 
 		require.Equal(t, relayedTxHash, result.OriginalTransactionHash)
