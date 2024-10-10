@@ -87,6 +87,8 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrRandSeedDoesNotMatch
 	}
 
+	// TODO: check here if proof from currHeader is valid for prevHeader
+
 	return nil
 }
 

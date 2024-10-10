@@ -9,6 +9,7 @@ import (
 type hdrForBlock struct {
 	missingHdrs                  uint32
 	missingFinalityAttestingHdrs uint32
+	missingHdrsProofs            uint32
 	highestHdrNonce              map[uint32]uint64
 	mutHdrsForBlock              sync.RWMutex
 	hdrHashAndInfo               map[string]*hdrInfo
