@@ -176,9 +176,7 @@ func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transa
 			innerTxHash = make([]byte, 0)
 		}
 
-		tu.shardCoordinator.ComputeId(innerTx.RcvAddr)
-
-		frontEndTx := &transaction.ApiTransactionResult{
+		innerTxApiResult := &transaction.ApiTransactionResult{
 			Tx:               innerTx,
 			Type:             string(transaction.TxTypeInner),
 			Hash:             hex.EncodeToString(innerTxHash),
@@ -200,15 +198,15 @@ func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transa
 		}
 
 		if len(innerTx.GuardianAddr) > 0 {
-			frontEndTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
-			frontEndTx.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
+			innerTxApiResult.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
+			innerTxApiResult.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
 		}
 
 		if len(innerTx.RelayerAddr) > 0 {
-			frontEndTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
+			innerTxApiResult.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
 		}
 
-		innerTxs = append(innerTxs, frontEndTx)
+		innerTxs = append(innerTxs, innerTxApiResult)
 	}
 
 	return innerTxs
