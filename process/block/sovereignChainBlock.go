@@ -767,10 +767,20 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		go scbp.checkAndRequestIfExtendedShardHeadersMissing()
 	}()
 
-	err = scbp.checkExtendedShardHeadersValidity()
 	if err != nil {
 		return nil, nil, err
 	}
+
+	//if len(sovereignChainHeader.GetExtendedShardHeaderHashes()) != 0 {
+	//	log.Error("THIS HEADER HAS EXTENDED SHARD HEADERS TO CHECK")
+	//	err = scbp.checkExtendedShardHeadersValidity()
+	//	if err != nil {
+	//		return nil, nil, err
+	//	}
+	//
+	//} else {
+	//	log.Error("NOO EXTENDED SHARD HEADERS TO CHECK")
+	//}
 
 	shardHeader, castOK := headerHandler.(data.ShardHeaderHandler)
 	if !castOK {
@@ -834,6 +844,10 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 	if len(extendedShardHdrs) == 0 {
 		return nil
 	}
+
+	//if lastCrossNotarizedHeader.GetNonce() == 0 {
+	//	return nil
+	//}
 
 	for _, extendedShardHdr := range extendedShardHdrs {
 		log.Error("checkExtendedShardHeadersValidity", "extendedShardHeader nonce", extendedShardHdr.GetNonce())

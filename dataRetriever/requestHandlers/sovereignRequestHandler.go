@@ -2,6 +2,7 @@ package requestHandlers
 
 import (
 	"fmt"
+	"runtime/debug"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -35,6 +36,8 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 
 // RequestExtendedShardHeaderByNonce method asks for extended shard header from the connected peers by nonce
 func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeaderByNonce(nonce uint64) {
+	debug.PrintStack()
+
 	suffix := fmt.Sprintf("%s_%d", sovUniqueHeadersSuffix, srrh.shardID)
 	key := []byte(fmt.Sprintf("%d-%d", srrh.shardID, nonce))
 	if !srrh.testIfRequestIsNeeded(key, suffix) {

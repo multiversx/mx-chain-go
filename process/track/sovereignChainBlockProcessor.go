@@ -91,6 +91,9 @@ func (scbp *sovereignChainBlockProcessor) requestHeaderWithShardAndNonce(shardID
 	if shardID == scbp.shardCoordinator.SelfId() {
 		scbp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 	} else if shardID == core.MainChainShardId {
+
+		log.Error("sovereignChainBlockProcessor.requestHeaderWithShardAndNonce")
+
 		scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
 	} else {
 		log.Warn("sovereignChainBlockProcessor.requestHeaderWithShardAndNonce requested header for unknown shard",

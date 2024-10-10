@@ -1,6 +1,7 @@
 package track
 
 import (
+	"runtime/debug"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -238,6 +239,8 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 
 // ComputeLongestChain computes the longest chain for a given shard starting from a given header
 func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+	debug.PrintStack()
+
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
@@ -374,6 +377,13 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	if numLongestChainHeaders > 0 {
 		highestNonceInLongestChain = longestChainHeaders[numLongestChainHeaders-1].GetNonce()
 	}
+
+	// highestNonceReceived  = 20
+	// highestNonceInLongestChain = 18
+	// blockFinality = 1
+	// numLongestChainHeaders = 0
+
+	// 20 > 18+1 && 0 == 0
 
 	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && numLongestChainHeaders == 0
 	if !shouldRequestHeaders {
