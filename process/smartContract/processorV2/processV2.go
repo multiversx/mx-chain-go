@@ -1412,19 +1412,19 @@ func (sc *scProcessor) isCrossShardESDTTransfer(sender []byte, receiver []byte, 
 func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 	tx data.TransactionHandler,
 	txHash []byte,
-) ([]byte, bool) {
+) ([]byte, []byte, bool) {
 	relayedSCR, isRelayed := isRelayedTx(tx)
 	if !isRelayed {
-		return txHash, isRelayed
+		return txHash, txHash, isRelayed
 	}
 
 	sndShardID := sc.shardCoordinator.ComputeId(relayedSCR.SndAddr)
 	rcvShardID := sc.shardCoordinator.ComputeId(relayedSCR.RcvAddr)
 	if sndShardID != rcvShardID {
-		return txHash, isRelayed
+		return txHash, relayedSCR.OriginalTxHash, isRelayed
 	}
 
-	return relayedSCR.OriginalTxHash, isRelayed
+	return relayedSCR.OriginalTxHash, relayedSCR.OriginalTxHash, isRelayed
 }
 
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
@@ -1514,9 +1514,9 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		processIfErrorLogs = append(processIfErrorLogs, failureContext.logs...)
 	}
 
-	logsTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
+	logsTxHash, originalTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
 	var ignorableError error
-	if isRelayed {
+	if isRelayed && bytes.Equal(originalTxHash, logsTxHash) {
 		ignorableError = sc.failedTxLogsAccumulator.SaveLogs(logsTxHash, tx, processIfErrorLogs)
 	} else {
 		ignorableError = sc.txLogsProcessor.SaveLog(logsTxHash, tx, processIfErrorLogs)

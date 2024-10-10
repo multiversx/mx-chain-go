@@ -261,7 +261,7 @@ func TestComputeAndAttachGasUsedAndFeeTransactionWithMultipleScrWithRefund(t *te
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.GasPriceModifierFlag ||
 				flag == common.PenalizedTooMuchGasFlag ||
-				flag == common.FixRelayedBaseCostFlag
+				flag == common.RelayedTransactionsV3Flag
 		},
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
@@ -306,7 +306,7 @@ func TestComputeAndAttachGasUsedAndFeeRelayedV3WithRefund(t *testing.T) {
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.GasPriceModifierFlag ||
 				flag == common.PenalizedTooMuchGasFlag ||
-				flag == common.FixRelayedBaseCostFlag
+				flag == common.RelayedTransactionsV3Flag
 		},
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
@@ -369,7 +369,7 @@ func TestComputeAndAttachGasUsedAndFeeFailedRelayedV1(t *testing.T) {
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.GasPriceModifierFlag ||
 				flag == common.PenalizedTooMuchGasFlag ||
-				flag == common.FixRelayedBaseCostFlag
+				flag == common.RelayedTransactionsV3Flag
 		},
 	}
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))

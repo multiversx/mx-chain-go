@@ -175,7 +175,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 }
 
 func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *big.Int {
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
 		return txProc.computeInnerTxFeeAfterBaseCostFix(tx)
 	}
 

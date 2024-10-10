@@ -55,7 +55,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator, args.Hasher)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -198,7 +198,7 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
 	tx.InitiallyPaidFee = fee.String()
 
-	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV3Flag, tx.Epoch)
 	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
 	if isRelayedAfterFix {
 		fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
@@ -582,7 +582,20 @@ func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, minib
 	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
 	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
 
+	putMiniblockFieldsOnInnerTxs(tx)
+
 	return tx
+}
+
+func putMiniblockFieldsOnInnerTxs(tx *transaction.ApiTransactionResult) {
+	if len(tx.InnerTransactions) == 0 {
+		return
+	}
+
+	for _, innerTx := range tx.InnerTransactions {
+		innerTx.Epoch = tx.Epoch
+		innerTx.Round = tx.Round
+	}
 }
 
 func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
