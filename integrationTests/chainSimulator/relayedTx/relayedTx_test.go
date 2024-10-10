@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -535,12 +536,12 @@ func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	expectedFeeScCallBefore := "815294920000000"
-	expectedFeeScCallAfter := "873704920000000"
+	expectedFeeScCallBefore := "839294920000000"
+	expectedFeeScCallAfter := "897704920000000"
 	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCallBefore, expectedFeeScCallAfter))
 
-	expectedFeeMoveBalanceBefore := "797500000000000" // 498 * 1500 + 50000 + 5000
-	expectedFeeMoveBalanceAfter := "847000000000000"  // 498 * 1500 + 50000 + 50000
+	expectedFeeMoveBalanceBefore := "821500000000000" // 498 * 1500 + 50000 + 5000
+	expectedFeeMoveBalanceAfter := "871000000000000"  // 498 * 1500 + 50000 + 50000
 	t.Run("move balance", testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(expectedFeeMoveBalanceBefore, expectedFeeMoveBalanceAfter))
 }
 
@@ -947,6 +948,8 @@ func startChainSimulator(
 }
 
 func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
+	rand4Digits := 1000 + rand.Intn(8999)
+	signature := []byte(mockTxSignature + strconv.Itoa(rand4Digits)) // add a random suffix to bypass relayed tx v3 checker
 	return &transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
@@ -957,7 +960,7 @@ func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 		GasPrice:  minGasPrice,
 		ChainID:   []byte(configs.ChainID),
 		Version:   txVersion,
-		Signature: []byte(mockTxSignature),
+		Signature: signature,
 	}
 }
 
