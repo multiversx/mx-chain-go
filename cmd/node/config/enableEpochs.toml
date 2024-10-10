@@ -331,7 +331,7 @@
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
 
     # HashForInnerTransactionEnableEpoch represents the epoch when the inner transactions of relayed V3 will be indexed by their own hash
-    HashForInnerTransactionEnableEpoch = 5
+    HashForInnerTransactionEnableEpoch = 4
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
