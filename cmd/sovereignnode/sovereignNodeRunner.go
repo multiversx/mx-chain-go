@@ -532,6 +532,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	sovereignWsReceiver, err := createSovereignWsReceiver(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		incomingHeaderHandler,
+		managedConsensusComponents.Bootstrapper(),
 	)
 	if err != nil {
 		return true, err
@@ -1885,6 +1886,7 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 func createSovereignWsReceiver(
 	config *config.NotifierConfig,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	bootstrapper process.Bootstrapper,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
 		MarshallerType:   config.WebSocketConfig.MarshallerType,
@@ -1897,10 +1899,25 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
-	if err != nil {
-		return nil, err
-	}
+	go func(incomingHeaderHandler process.IncomingHeaderSubscriber, sovereignNotifier notifierProcess.SovereignNotifier) {
+		for bootstrapper.GetNodeState() != common.NsSynchronized {
+			time.Sleep(time.Second)
+			log.Error("NOT STATE NOT SYNCED YET")
+		}
+
+		log.Error("SYYYYYYNNNCCCCCEEEEEEED")
+
+		err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
+		if err != nil {
+			log.Error("ERROR SYNCING", "err", err)
+		}
+
+	}(incomingHeaderHandler, sovereignNotifier)
+
+	//err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
 		WebSocketConfig: notifierCfg.WebSocketConfig{

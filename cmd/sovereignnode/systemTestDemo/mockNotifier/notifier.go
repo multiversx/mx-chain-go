@@ -78,14 +78,14 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer()
-	if err != nil {
-		log.Error("cannot create grpc server", "error", err)
-		return err
-	}
+	//mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer()
+	//if err != nil {
+	//	log.Error("cannot create grpc server", "error", err)
+	//	return err
+	//}
 
 	defer func() {
-		grpcServerConn.Stop()
+		//grpcServerConn.Stop()
 		err = host.Close()
 		log.LogIfError(err)
 	}()
@@ -101,10 +101,10 @@ func startMockNotifier(ctx *cli.Context) error {
 	for {
 		headerV2 := createHeaderV2(nonce, prevHash, prevRandSeed)
 
-		confirmedBridgeOps, err := mockedGRPCServer.ExtractRandomBridgeTopicsForConfirmation()
-		log.LogIfError(err)
+		//confirmedBridgeOps, err := mockedGRPCServer.ExtractRandomBridgeTopicsForConfirmation()
+		//log.LogIfError(err)
 
-		outportBlock, err := createOutportBlock(headerV2, subscribedAddr, confirmedBridgeOps)
+		outportBlock, err := createOutportBlock(headerV2, subscribedAddr, nil)
 		if err != nil {
 			return err
 		}
@@ -213,24 +213,22 @@ func createOutportBlock(headerV2 *block.HeaderV2, subscribedAddr []byte, confirm
 	if err != nil {
 		return nil, err
 	}
-	incomingLogs, err := createLogs(subscribedAddr, headerV2.GetNonce())
-	if err != nil {
-		return nil, err
-	}
-
-	logs := make([]*outport.LogData, 0)
-	logs = append(logs, incomingLogs...)
-
-	bridgeConfirmationLogs := createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps, subscribedAddr)
-	if len(bridgeConfirmationLogs) != 0 {
-		logs = append(logs, bridgeConfirmationLogs...)
-	}
+	//incomingLogs, err := createLogs(subscribedAddr, headerV2.GetNonce())
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//logs := make([]*outport.LogData, 0)
+	//logs = append(logs, incomingLogs...)
+	//
+	//bridgeConfirmationLogs := createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps, subscribedAddr)
+	//if len(bridgeConfirmationLogs) != 0 {
+	//	logs = append(logs, bridgeConfirmationLogs...)
+	//}
 
 	return &outport.OutportBlock{
-		BlockData: blockData,
-		TransactionPool: &outport.TransactionPool{
-			Logs: logs,
-		},
+		BlockData:       blockData,
+		TransactionPool: &outport.TransactionPool{},
 	}, nil
 }
 
