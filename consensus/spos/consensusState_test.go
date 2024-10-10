@@ -70,12 +70,12 @@ func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cns := internalInitConsensusState()
-	cns.RoundCanceled = true
-	cns.ExtendedCalled = true
-	cns.WaitingAllSignaturesTimeOut = true
+	cns.SetRoundCanceled(true)
+	cns.SetExtendedCalled(true)
+	cns.SetWaitingAllSignaturesTimeOut(true)
 	cns.ResetConsensusState()
 	assert.False(t, cns.RoundCanceled)
-	assert.False(t, cns.ExtendedCalled)
+	assert.False(t, cns.GetExtendedCalled())
 	assert.False(t, cns.WaitingAllSignaturesTimeOut)
 }
 

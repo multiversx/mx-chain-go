@@ -958,3 +958,7 @@
         # All validators will broadcast the message right away
         { EndIndex = 0, DelayInMilliseconds = 0 },
     ]
+
+[InterceptedDataVerifier]
+    CacheSpanInSec = 30
+    CacheExpiryInSec = 30

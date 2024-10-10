@@ -190,12 +190,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedNoDelayedDataRegistered(t *testin
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	metaBlock := createMetaBlock()
@@ -226,12 +229,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
@@ -275,12 +281,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
@@ -323,12 +332,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
@@ -449,12 +461,15 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -512,6 +527,9 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -520,7 +538,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -583,6 +601,9 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -591,7 +612,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -655,6 +676,9 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -663,7 +687,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -726,6 +750,9 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -734,7 +761,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -842,12 +869,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -902,12 +932,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -965,12 +998,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1028,12 +1064,15 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1084,12 +1123,15 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldDoNothingForNotRegisteredData
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1235,12 +1277,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1301,12 +1346,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1368,12 +1416,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1435,12 +1486,15 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	broadcastConsensusMessage := func(message *consensus.Message) error {
 		return nil
 	}
+	broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1478,18 +1532,18 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	require.Equal(t, 1, len(vbd))
 }
 
-func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing.T) {
+func TestDelayedBlockBroadcaster_SetFinalProofForValidator(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil message should error", func(t *testing.T) {
+	t.Run("nil proof should error", func(t *testing.T) {
 		t.Parallel()
 
 		delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 		dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 		require.NoError(t, err)
 
-		err = dbb.SetFinalConsensusMessageForValidator(nil, 0)
-		require.Equal(t, spos.ErrNilConsensusMessage, err)
+		err = dbb.SetFinalProofForValidator(nil, 0, []byte("pk"))
+		require.Equal(t, spos.ErrNilHeaderProof, err)
 	})
 	t.Run("empty aggregated sig should work", func(t *testing.T) {
 		t.Parallel()
@@ -1498,8 +1552,8 @@ func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing
 		dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 		require.NoError(t, err)
 
-		cnsMsg := &consensus.Message{}
-		err = dbb.SetFinalConsensusMessageForValidator(cnsMsg, 0)
+		proof := &block.HeaderProof{}
+		err = dbb.SetFinalProofForValidator(proof, 0, []byte("pk"))
 		require.NoError(t, err)
 	})
 	t.Run("header already received should early exit", func(t *testing.T) {
@@ -1522,14 +1576,15 @@ func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing
 			PreviousHeaderProof: &block.HeaderProof{
 				PubKeysBitmap:       []byte("bitmap"),
 				AggregatedSignature: []byte("agg sig"),
+				HeaderHash:          []byte("hash"),
 			},
 		})
-		cnsMsg := &consensus.Message{
-			BlockHeaderHash:    providedHash,
-			AggregateSignature: []byte("agg sig"),
-			PubKeysBitmap:      []byte("bitmap"),
+		proof := &block.HeaderProof{
+			AggregatedSignature: []byte("agg sig"),
+			PubKeysBitmap:       []byte("bitmap"),
+			HeaderHash:          providedHash,
 		}
-		err = dbb.SetFinalConsensusMessageForValidator(cnsMsg, 0)
+		err = dbb.SetFinalProofForValidator(proof, 0, []byte("pk"))
 		require.NoError(t, err)
 	})
 	t.Run("should work and fire alarm", func(t *testing.T) {
@@ -1561,6 +1616,13 @@ func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing
 
 			return nil
 		}
+		broadcastEquivalentProofs := func(proof *block.HeaderProof, pkBytes []byte) error {
+			mutFiringMap.Lock()
+			defer mutFiringMap.Unlock()
+			firingMap[string(proof.GetHeaderHash())].fireTimestamp = time.Now().UnixMilli()
+
+			return nil
+		}
 
 		delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 		delayBroadcasterArgs.Config = config.ConsensusGradualBroadcastConfig{
@@ -1582,58 +1644,55 @@ func TestDelayedBlockBroadcaster_SetFinalConsensusMessageForValidator(t *testing
 		dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 		require.Nil(t, err)
 
-		err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
+		err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastEquivalentProofs, broadcastConsensusMessage)
 		require.Nil(t, err)
 
 		// idx 0 should fire the alarm after immediately
 		hashIdx0 := []byte("hash idx 0")
 		pkIdx0 := []byte("pk idx 0")
-		cnsMsgIdx0 := &consensus.Message{
-			BlockHeaderHash:    hashIdx0,
-			PubKey:             pkIdx0,
-			PubKeysBitmap:      []byte("bitmap"),
-			AggregateSignature: []byte("sig"),
+		proofIdx0 := &block.HeaderProof{
+			AggregatedSignature: []byte("sig"),
+			PubKeysBitmap:       []byte("bitmap"),
+			HeaderHash:          hashIdx0,
 		}
 		mutFiringMap.Lock()
 		firingMap[string(hashIdx0)] = &timestamps{
 			setTimestamp: time.Now().UnixMilli(),
 		}
 		mutFiringMap.Unlock()
-		err = dbb.SetFinalConsensusMessageForValidator(cnsMsgIdx0, 0)
+		err = dbb.SetFinalProofForValidator(proofIdx0, 0, pkIdx0)
 		require.NoError(t, err)
 
 		// idx 5 should fire the alarm after 100ms
 		hashIdx5 := []byte("hash idx 5")
 		pkIdx5 := []byte("pk idx 5")
-		cnsMsgIdx5 := &consensus.Message{
-			BlockHeaderHash:    hashIdx5,
-			PubKey:             pkIdx5,
-			PubKeysBitmap:      []byte("bitmap"),
-			AggregateSignature: []byte("sig"),
+		proofIdx5 := &block.HeaderProof{
+			AggregatedSignature: []byte("sig"),
+			PubKeysBitmap:       []byte("bitmap"),
+			HeaderHash:          hashIdx5,
 		}
 		mutFiringMap.Lock()
 		firingMap[string(hashIdx5)] = &timestamps{
 			setTimestamp: time.Now().UnixMilli(),
 		}
 		mutFiringMap.Unlock()
-		err = dbb.SetFinalConsensusMessageForValidator(cnsMsgIdx5, 5)
+		err = dbb.SetFinalProofForValidator(proofIdx5, 5, pkIdx5)
 		require.NoError(t, err)
 
 		// idx 10 should fire the alarm after 200ms
 		hashIdx10 := []byte("hash idx 10")
 		pkIdx10 := []byte("pk idx 10")
-		cnsMsgIdx10 := &consensus.Message{
-			BlockHeaderHash:    hashIdx10,
-			PubKey:             pkIdx10,
-			PubKeysBitmap:      []byte("bitmap"),
-			AggregateSignature: []byte("sig"),
+		proofIdx10 := &block.HeaderProof{
+			AggregatedSignature: []byte("sig"),
+			PubKeysBitmap:       []byte("bitmap"),
+			HeaderHash:          hashIdx10,
 		}
 		mutFiringMap.Lock()
 		firingMap[string(hashIdx10)] = &timestamps{
 			setTimestamp: time.Now().UnixMilli(),
 		}
 		mutFiringMap.Unlock()
-		err = dbb.SetFinalConsensusMessageForValidator(cnsMsgIdx10, 10)
+		err = dbb.SetFinalProofForValidator(proofIdx10, 10, pkIdx10)
 		require.NoError(t, err)
 
 		// wait all alarms to fire
