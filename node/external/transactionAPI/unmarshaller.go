@@ -175,16 +175,21 @@ func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transa
 		if err != nil {
 			innerTxHash = make([]byte, 0)
 		}
+
+		tu.shardCoordinator.ComputeId(innerTx.RcvAddr)
+
 		frontEndTx := &transaction.ApiTransactionResult{
 			Tx:               innerTx,
+			Type:             string(transaction.TxTypeInner),
 			Hash:             hex.EncodeToString(innerTxHash),
-			HashBytes:        innerTxHash,
 			Nonce:            innerTx.Nonce,
 			Value:            innerTx.Value.String(),
 			Receiver:         tu.addressPubKeyConverter.SilentEncode(innerTx.RcvAddr, log),
 			Sender:           tu.addressPubKeyConverter.SilentEncode(innerTx.SndAddr, log),
 			SenderUsername:   innerTx.SndUserName,
 			ReceiverUsername: innerTx.RcvUserName,
+			SourceShard:      tu.shardCoordinator.ComputeId(innerTx.SndAddr),
+			DestinationShard: tu.shardCoordinator.ComputeId(innerTx.RcvAddr),
 			GasPrice:         innerTx.GasPrice,
 			GasLimit:         innerTx.GasLimit,
 			Data:             innerTx.Data,

@@ -548,6 +548,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		encodedParentTxHash := hex.EncodeToString(parentTxHash)
 		tx.OriginalTransactionHash = encodedParentTxHash
 		tx.PreviousTransactionHash = encodedParentTxHash
+		tx.Type = string(transaction.TxTypeInner)
 	}
 
 	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
@@ -581,6 +582,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *dblookupext.MiniblockMetadata) *transaction.ApiTransactionResult {
 	tx.Epoch = miniblockMetadata.Epoch
 	tx.Round = miniblockMetadata.Round
+	putRoundAndEpochOnInnerTxs(tx)
 
 	tx.MiniBlockType = block.Type(miniblockMetadata.Type).String()
 	tx.MiniBlockHash = hex.EncodeToString(miniblockMetadata.MiniblockHash)
@@ -595,6 +597,17 @@ func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, minib
 	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
 
 	return tx
+}
+
+func putRoundAndEpochOnInnerTxs(tx *transaction.ApiTransactionResult) {
+	if len(tx.InnerTransactions) == 0 {
+		return
+	}
+
+	for _, innerTx := range tx.InnerTransactions {
+		innerTx.Epoch = tx.Epoch
+		innerTx.Round = tx.Round
+	}
 }
 
 func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
