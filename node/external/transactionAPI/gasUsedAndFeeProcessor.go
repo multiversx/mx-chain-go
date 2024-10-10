@@ -42,7 +42,7 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
 
-	isFeeFixActive := gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	isFeeFixActive := gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV3Flag, tx.Epoch)
 	isRelayedBeforeFix := tx.IsRelayed && !isFeeFixActive
 	if isRelayedBeforeFix || gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit
@@ -57,10 +57,14 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.GasUsed = big.NewInt(0).Div(initialTotalFee, big.NewInt(0).SetUint64(tx.GasPrice)).Uint64()
 	}
 
+	isHashForInnerTxActive := gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.HashForInnerTransactionFlag, tx.Epoch)
 	hasRefundForSender := false
 	totalRefunds := big.NewInt(0)
 	for _, scr := range tx.SmartContractResults {
-		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
+		isScrRefundForRelayer := scr.IsRefund && (scr.RcvAddr == tx.RelayerAddress)
+		shouldConsiderRefundSentToRelayer := isScrRefundForRelayer && isHashForInnerTxActive
+		isScrForTxSender := scr.RcvAddr == tx.Sender
+		if !scr.IsRefund || (!isScrForTxSender && !shouldConsiderRefundSentToRelayer) {
 			continue
 		}
 

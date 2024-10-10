@@ -20,7 +20,16 @@ func NewNilHistoryRepository() (*nilHistoryRepository, error) {
 }
 
 // RecordBlock returns a not implemented error
-func (nhr *nilHistoryRepository) RecordBlock(_ []byte, _ data.HeaderHandler, _ data.BodyHandler, _, _ map[string]data.TransactionHandler, _ []*block.MiniBlock, _ []*data.LogData) error {
+func (nhr *nilHistoryRepository) RecordBlock(
+	_ []byte,
+	_ data.HeaderHandler,
+	_ data.BodyHandler,
+	_ map[string]data.TransactionHandler,
+	_ map[string]data.TransactionHandler,
+	_ map[string]data.TransactionHandler,
+	_ []*block.MiniBlock,
+	_ []*data.LogData,
+) error {
 	return nil
 }
 
@@ -29,8 +38,8 @@ func (nhr *nilHistoryRepository) OnNotarizedBlocks(_ uint32, _ []data.HeaderHand
 }
 
 // GetMiniblockMetadataByTxHash does nothing
-func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblookupext.MiniblockMetadata, error) {
-	return nil, nil
+func (nhr *nilHistoryRepository) GetMiniblockMetadataByTxHash(_ []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+	return nil, nil, nil
 }
 
 // GetEpochByHash returns a not implemented error

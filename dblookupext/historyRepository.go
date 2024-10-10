@@ -126,10 +126,12 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	blockHeader data.HeaderHandler,
 	blockBody data.BodyHandler,
+	txResultsFromPool map[string]data.TransactionHandler,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
 	createdIntraShardMiniBlocks []*block.MiniBlock,
-	logs []*data.LogData) error {
+	logs []*data.LogData,
+) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
 
@@ -167,6 +169,8 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 				"type", miniBlock.Type, "error", err)
 		}
 	}
+
+	hr.recordInnerTxs(txResultsFromPool)
 
 	err = hr.eventsHashesByTxHashIndex.saveResultsHashes(epoch, scrResultsFromPool, receiptsFromPool)
 	if err != nil {
@@ -236,6 +240,32 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 	return nil
 }
 
+func (hr *historyRepository) recordInnerTxs(txResultsFromPool map[string]data.TransactionHandler) {
+	for txHash, tx := range txResultsFromPool {
+		innerTxs := tx.GetUserTransactions()
+		if len(innerTxs) == 0 {
+			continue
+		}
+
+		for _, innerTx := range innerTxs {
+			innerTxHash, errCalculateHash := core.CalculateHash(hr.marshalizer, hr.hasher, innerTx)
+			if errCalculateHash != nil {
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errCalculateHash, "CalculateHash for inner tx",
+					"txHash", txHash, "err", errCalculateHash)
+				continue
+			}
+
+			relayedHashPrefix := []byte{byte(RelayedTxHash)}
+			relayedTxHashPrefixed := append(relayedHashPrefix, []byte(txHash)...)
+			errPut := hr.miniblockHashByTxHashIndex.Put(innerTxHash, relayedTxHashPrefixed)
+			if errPut != nil {
+				logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errPut, "miniblockHashByTxHashIndex.Put() innerTxHash-relayedTxHash pair",
+					"txHash", txHash, "innerTxHash", innerTxHash, "err", errPut)
+			}
+		}
+	}
+}
+
 func (hr *historyRepository) computeMiniblockHash(miniblock *block.MiniBlock) ([]byte, error) {
 	return core.CalculateHash(hr.marshalizer, hr.hasher, miniblock)
 }
@@ -259,13 +289,37 @@ func (hr *historyRepository) markMiniblockMetadataAsRecentlyInserted(miniblockHa
 }
 
 // GetMiniblockMetadataByTxHash will return a history transaction for the given hash from storage
-func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, error) {
+func (hr *historyRepository) GetMiniblockMetadataByTxHash(hash []byte) (*MiniblockMetadata, []byte, error) {
 	miniblockHash, err := hr.miniblockHashByTxHashIndex.Get(hash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+	hashSize := hr.hasher.Size()
+	if len(miniblockHash) == hashSize {
+		metadata, err := hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+		return metadata, nil, err
+	}
+
+	prefixedHashSize := hashSize + 1
+	if len(miniblockHash) != prefixedHashSize {
+		return nil, nil, ErrInvalidHashSize
+	}
+
+	prefix := miniblockHash[0]
+	actualHash := miniblockHash[1:]
+	switch prefix {
+	case byte(RelayedTxHash):
+		miniblockHash, err = hr.miniblockHashByTxHashIndex.Get(actualHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		metadata, err := hr.getMiniblockMetadataByMiniblockHash(miniblockHash)
+		return metadata, actualHash, err
+	default:
+		return nil, nil, ErrInvalidHash
+	}
 }
 
 func (hr *historyRepository) putMiniblockMetadata(hash []byte, metadata *MiniblockMetadata) error {

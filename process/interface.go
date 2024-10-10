@@ -1368,10 +1368,10 @@ type RelayedTxV3Processor interface {
 	IsInterfaceNil() bool
 }
 
-// FailedTxLogsAccumulator defines a component able to accumulate logs during a relayed tx execution
-type FailedTxLogsAccumulator interface {
-	GetLogs(txHash []byte) (data.TransactionHandler, []*vmcommon.LogEntry, bool)
-	SaveLogs(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error
-	Remove(txHash []byte)
+// TransactionHashesHolder defines a component able to hold transaction hashes
+type TransactionHashesHolder interface {
+	Append(hash []byte)
+	GetAllHashes() [][]byte
+	Reset()
 	IsInterfaceNil() bool
 }

@@ -97,7 +97,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 			GovernanceEnableEpoch:                   unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
-			FixRelayedBaseCostEnableEpoch:           unreachableEpoch,
+			RelayedTransactionsV3EnableEpoch:        unreachableEpoch,
 		},
 		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,

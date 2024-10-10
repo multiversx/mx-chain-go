@@ -63,6 +63,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:              &mock.HasherMock{},
 	}
 }
 
@@ -203,6 +204,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	})
+	t.Run("NilHasher", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.Hasher = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilHasher, err)
+	})
 }
 
 func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
@@ -328,8 +338,8 @@ func TestNode_GetSCRs(t *testing.T) {
 	}
 
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
-		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-			return &dblookupext.MiniblockMetadata{}, nil
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+			return &dblookupext.MiniblockMetadata{}, nil, nil
 		},
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return resultHashesByTxHash, nil
@@ -362,6 +372,7 @@ func TestNode_GetSCRs(t *testing.T) {
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
+		Hasher:              &mock.HasherMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -538,8 +549,8 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	}
 
 	historyRepo := &dblookupextMock.HistoryRepositoryStub{
-		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-			return &dblookupext.MiniblockMetadata{}, nil
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+			return &dblookupext.MiniblockMetadata{}, nil, nil
 		},
 		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
 			return resultHashesByTxHash, nil
@@ -572,6 +583,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:              &mock.HasherMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -711,8 +723,8 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 	require.Equal(t, transaction.TxStatusSuccess, actualG.Status)
 
 	// Missing transaction
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-		return nil, fmt.Errorf("fooError")
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+		return nil, nil, fmt.Errorf("fooError")
 	}
 	tx, err := n.GetTransaction(hex.EncodeToString([]byte("g")), false)
 	require.Nil(t, tx)
@@ -722,8 +734,8 @@ func TestNode_lookupHistoricalTransaction(t *testing.T) {
 
 	// Badly serialized transaction
 	_ = chainStorer.Transactions.Put([]byte("badly-serialized"), []byte("this isn't good"))
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
-		return &dblookupext.MiniblockMetadata{}, nil
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
+		return &dblookupext.MiniblockMetadata{}, nil, nil
 	}
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
@@ -1142,6 +1154,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:                   &mock.HasherMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)
@@ -1178,7 +1191,7 @@ func setupGetMiniblockMetadataByTxHash(
 	headerHash []byte,
 	headerNonce uint64,
 ) {
-	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+	historyRepo.GetMiniblockMetadataByTxHashCalled = func(hash []byte) (*dblookupext.MiniblockMetadata, []byte, error) {
 		return &dblookupext.MiniblockMetadata{
 			Type:               int32(blockType),
 			SourceShardID:      sourceShard,
@@ -1186,7 +1199,7 @@ func setupGetMiniblockMetadataByTxHash(
 			Epoch:              epoch,
 			HeaderNonce:        headerNonce,
 			HeaderHash:         headerHash,
-		}, nil
+		}, nil, nil
 	}
 }
 
