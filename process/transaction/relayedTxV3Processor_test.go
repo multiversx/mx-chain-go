@@ -35,6 +35,7 @@ func getDefaultTx() *coreTransaction.Transaction {
 				GasPrice:    1,
 				GasLimit:    minGasLimit,
 				RelayerAddr: []byte("rel"),
+				Signature:   []byte("sig1"),
 			},
 			{
 				Nonce:       0,
@@ -44,6 +45,7 @@ func getDefaultTx() *coreTransaction.Transaction {
 				GasPrice:    1,
 				GasLimit:    minGasLimit,
 				RelayerAddr: []byte("rel"),
+				Signature:   []byte("sig2"),
 			},
 		},
 	}
@@ -235,6 +237,18 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 
 		err = proc.CheckRelayedTx(tx)
 		require.Equal(t, process.ErrRelayedTxV3SenderShardMismatch, err)
+	})
+	t.Run("duplicated inner should error", func(t *testing.T) {
+		t.Parallel()
+
+		tx := getDefaultTx()
+		tx.InnerTransactions = append(tx.InnerTransactions, tx.InnerTransactions[0])
+		args := createMockArgRelayedTxV3Processor()
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.NoError(t, err)
+
+		err = proc.CheckRelayedTx(tx)
+		require.Equal(t, process.ErrDuplicatedInnerTransaction, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

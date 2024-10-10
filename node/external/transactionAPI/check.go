@@ -50,6 +50,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arg.Hasher) {
+		return process.ErrNilHasher
+	}
 
 	return nil
 }

@@ -246,6 +246,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
+		Hasher:                   args.CoreComponents.Hasher(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

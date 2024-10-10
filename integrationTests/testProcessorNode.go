@@ -3276,8 +3276,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		RelayedTransactionsV3EnableEpoch:                  UnreachableEpoch,
-		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
-		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
+		LinkInnerTransactionEnableEpoch:                   UnreachableEpoch,
 	}
 }
 

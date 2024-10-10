@@ -71,6 +71,7 @@ func (proc *relayedTxV3Processor) CheckRelayedTx(tx *transaction.Transaction) er
 		return process.ErrRelayedTxV3InvalidDataField
 	}
 
+	signaturesMap := make(map[string]struct{})
 	innerTxs := tx.InnerTransactions
 	for _, innerTx := range innerTxs {
 		if !bytes.Equal(innerTx.RelayerAddr, tx.SndAddr) {
@@ -88,6 +89,13 @@ func (proc *relayedTxV3Processor) CheckRelayedTx(tx *transaction.Transaction) er
 		if senderShard != relayerShard {
 			return process.ErrRelayedTxV3SenderShardMismatch
 		}
+
+		_, hasSignature := signaturesMap[string(innerTx.Signature)]
+		if hasSignature {
+			return process.ErrDuplicatedInnerTransaction
+		}
+
+		signaturesMap[string(innerTx.Signature)] = struct{}{}
 	}
 
 	return nil
