@@ -710,7 +710,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
 
-		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
+		errProc := tc.processCompleteMiniBlock(preproc, miniBlock, miniBlockInfo.Hash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo, headerHash)
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
@@ -817,7 +817,7 @@ func (tc *transactionCoordinator) handleCreateMiniBlocksDestMeInit(headerHash []
 		return
 	}
 
-	tc.InitProcessedTxsResults(headerHash)
+	tc.InitProcessedTxsResults(headerHash, nil)
 	tc.gasHandler.Reset(headerHash)
 }
 
@@ -1197,9 +1197,10 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	haveAdditionalTime func() bool,
 	scheduledMode bool,
 	processedMbInfo *processedMb.ProcessedMiniBlockInfo,
+	headerHash []byte,
 ) error {
 
-	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash)
+	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash, headerHash)
 
 	log.Debug("transactionsCoordinator.processCompleteMiniBlock: before processing",
 		"scheduled mode", scheduledMode,
@@ -1266,9 +1267,9 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	return nil
 }
 
-func (tc *transactionCoordinator) handleProcessMiniBlockInit(miniBlockHash []byte) int {
+func (tc *transactionCoordinator) handleProcessMiniBlockInit(miniBlockHash []byte, headerHash []byte) int {
 	snapshot := tc.accounts.JournalLen()
-	tc.InitProcessedTxsResults(miniBlockHash)
+	tc.InitProcessedTxsResults(miniBlockHash, headerHash)
 	tc.gasHandler.Reset(miniBlockHash)
 
 	return snapshot
@@ -1289,7 +1290,7 @@ func (tc *transactionCoordinator) handleProcessTransactionError(snapshot int, mi
 }
 
 // InitProcessedTxsResults inits processed txs results for the given key
-func (tc *transactionCoordinator) InitProcessedTxsResults(key []byte) {
+func (tc *transactionCoordinator) InitProcessedTxsResults(key []byte, parentKey []byte) {
 	tc.mutInterimProcessors.RLock()
 	defer tc.mutInterimProcessors.RUnlock()
 
@@ -1298,7 +1299,7 @@ func (tc *transactionCoordinator) InitProcessedTxsResults(key []byte) {
 		if !ok {
 			continue
 		}
-		interProc.InitProcessedResults(key)
+		interProc.InitProcessedResults(key, parentKey)
 	}
 }
 
@@ -1838,14 +1839,14 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 }
 
 // AddIntermediateTransactions adds the given intermediate transactions
-func (tc *transactionCoordinator) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error {
+func (tc *transactionCoordinator) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error {
 	for blockType, scrs := range mapSCRs {
 		interimProc := tc.getInterimProcessor(blockType)
 		if check.IfNil(interimProc) {
 			return process.ErrNilIntermediateProcessor
 		}
 
-		err := interimProc.AddIntermediateTransactions(scrs)
+		err := interimProc.AddIntermediateTransactions(scrs, key)
 		if err != nil {
 			return err
 		}

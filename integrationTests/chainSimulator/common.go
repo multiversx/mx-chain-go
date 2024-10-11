@@ -7,14 +7,17 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	"github.com/multiversx/mx-chain-go/vm"
-
 	"github.com/multiversx/mx-chain-core-go/core"
+	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 const (
@@ -23,11 +26,14 @@ const (
 	minGasPrice                             = 1000000000
 	txVersion                               = 1
 	mockTxSignature                         = "sig"
-	maxNumOfBlocksToGenerateWhenExecutingTx = 1
+	maxNumOfBlocksToGenerateWhenExecutingTx = 10
 	signalError                             = "signalError"
+	internalVMError                         = "internalVMErrors"
 
 	// OkReturnCode the const for the ok return code
 	OkReturnCode = "ok"
+	// ESDTSystemAccount the bech32 address for esdt system account
+	ESDTSystemAccount = "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t"
 )
 
 var (
@@ -46,6 +52,13 @@ type ArgsDepositToken struct {
 	Identifier string
 	Nonce      uint64
 	Amount     *big.Int
+	Type       core.ESDTType
+}
+
+// Account holds the arguments for a user account
+type Account struct {
+	Wallet dtos.WalletAddress
+	Nonce  uint64
 }
 
 // GetSysAccBytesAddress will return the system account bytes address
@@ -54,6 +67,21 @@ func GetSysAccBytesAddress(t *testing.T, nodeHandler process.NodeHandler) []byte
 	require.Nil(t, err)
 
 	return addressBytes
+}
+
+// GetSysContactDeployAddressBytes will return the system contract deploy address
+func GetSysContactDeployAddressBytes(t *testing.T, nodeHandler process.NodeHandler) []byte {
+	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+	require.Nil(t, err)
+
+	return addressBytes
+}
+
+// GetShardForAddress will return the shard of the address
+func GetShardForAddress(cs ChainSimulator, address string) uint32 {
+	nodeHandler := cs.GetNodeHandler(0)
+	pubKey, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(address)
+	return nodeHandler.GetShardCoordinator().ComputeId(pubKey)
 }
 
 // DeployContract will deploy a smart contract and return its address
@@ -73,8 +101,7 @@ func DeployContract(
 	*nonce++
 
 	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	RequireSuccessfulTransaction(t, txResult)
 
 	address := txResult.Logs.Events[0].Topics[0]
 	require.NotNil(t, address)
@@ -97,6 +124,22 @@ func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 	}
 }
 
+// SendTransactionWithSuccess will send a transaction and expect successful execution and return the result
+func SendTransactionWithSuccess(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	value *big.Int,
+	data string,
+	gasLimit uint64,
+) *transaction.ApiTransactionResult {
+	txResult := SendTransaction(t, cs, sender, nonce, receiver, value, data, gasLimit)
+	RequireSuccessfulTransaction(t, txResult)
+	return txResult
+}
+
 // SendTransaction will send a transaction and return the result
 func SendTransaction(
 	t *testing.T,
@@ -112,13 +155,237 @@ func SendTransaction(
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	*nonce++
 	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-	if txResult.Logs != nil && txResult.Logs.Events != nil && len(txResult.Logs.Events) > 0 {
-		require.NotEqual(t, signalError, txResult.Logs.Events[0].Identifier)
-	}
 
 	return txResult
+}
+
+// RequireSuccessfulTransaction require that the transaction doesn't have signal error event
+func RequireSuccessfulTransaction(t *testing.T, txResult *transaction.ApiTransactionResult) {
+	require.NotNil(t, txResult)
+	event := getEvent(txResult.Logs, signalError)
+	if event != nil {
+		require.Fail(t, string(event.Topics[1]))
+	}
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+}
+
+// RequireSignalError require that the transaction has specific signal error
+func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
+	require.NotNil(t, txResult)
+	event := getEvent(txResult.Logs, signalError)
+	if event == nil {
+		require.Fail(t, "%s event not found", signalError)
+		return
+	}
+	require.Equal(t, error, string(event.Topics[1]))
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+}
+
+// RequireInternalVMError require that the transaction has specific invernal vm error
+func RequireInternalVMError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
+	require.NotNil(t, txResult)
+	event := getEvent(txResult.Logs, internalVMError)
+	if event == nil {
+		require.Fail(t, "%s event not found", internalVMError)
+		return
+	}
+	require.Contains(t, string(event.Data), error)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+}
+
+func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
+	if logs == nil || len(logs.Events) == 0 {
+		return nil
+	}
+
+	for _, event := range logs.Events {
+		if event.Identifier == eventID {
+			return event
+		}
+	}
+	return nil
+}
+
+// RequireAccountHasToken checks if the account has the amount of tokens (can also be zero)
+func RequireAccountHasToken(
+	t *testing.T,
+	cs ChainSimulator,
+	token string,
+	address string,
+	value *big.Int,
+) {
+	addressShardID := GetShardForAddress(cs, address)
+	tokens, _, err := cs.GetNodeHandler(addressShardID).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
+	require.Nil(t, err)
+
+	tokenData, found := tokens[token]
+
+	if value.Cmp(big.NewInt(0)) == 0 {
+		require.False(t, found)
+		return
+	}
+	require.True(t, found)
+	require.Equal(t, tokenData.Value, value)
+}
+
+// TransferESDT will transfer the amount of esdt token to an address
+func TransferESDT(
+	t *testing.T,
+	cs ChainSimulator,
+	sender, receiver []byte,
+	nonce *uint64,
+	token string,
+	amount *big.Int,
+	args ...[]byte,
+) {
+	esdtTransferArgs := core.BuiltInFunctionESDTTransfer +
+		"@" + hex.EncodeToString([]byte(token)) +
+		"@" + hex.EncodeToString(amount.Bytes())
+	for _, arg := range args {
+		esdtTransferArgs = esdtTransferArgs +
+			"@" + hex.EncodeToString(arg)
+	}
+	txResult := SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	RequireSuccessfulTransaction(t, txResult)
+}
+
+// TransferESDTNFT will transfer the amount of NFT/SFT token to an address
+func TransferESDTNFT(
+	t *testing.T,
+	cs ChainSimulator,
+	sender, receiver []byte,
+	nonce *uint64,
+	token string,
+	tokenNonce uint64,
+	amount *big.Int,
+	args ...[]byte,
+) {
+	esdtNftTransferArgs :=
+		core.BuiltInFunctionESDTNFTTransfer +
+			"@" + hex.EncodeToString([]byte(token)) +
+			"@" + hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes()) +
+			"@" + hex.EncodeToString(amount.Bytes()) +
+			"@" + hex.EncodeToString(receiver)
+	for _, arg := range args {
+		esdtNftTransferArgs = esdtNftTransferArgs +
+			"@" + hex.EncodeToString(arg)
+	}
+	txResult := SendTransaction(t, cs, sender, nonce, sender, ZeroValue, esdtNftTransferArgs, uint64(5000000))
+	RequireSuccessfulTransaction(t, txResult)
+}
+
+// IssueFungible will issue a fungible token
+func IssueFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	tokenName string,
+	tokenTicker string,
+	numDecimals int,
+	supply *big.Int,
+) string {
+	issueArgs := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(tokenTicker)) +
+		"@" + hex.EncodeToString(supply.Bytes()) +
+		"@" + fmt.Sprintf("%X", numDecimals) +
+		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
+		"@" + hex.EncodeToString([]byte("true"))
+	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+	RequireSuccessfulTransaction(t, txResult)
+
+	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+}
+
+func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
+	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
+	require.Nil(t, err)
+	require.GreaterOrEqual(t, len(issuedTokens), 1)
+
+	for _, issuedToken := range issuedTokens {
+		if strings.Contains(issuedToken, ticker) {
+			return issuedToken
+		}
+	}
+
+	require.Fail(t, "could not issue semi fungible")
+	return ""
+}
+
+// InitAddressesAndSysAccState will initialize system account state and other addresses if provided
+func InitAddressesAndSysAccState(
+	t *testing.T,
+	cs ChainSimulator,
+	initialAddresses ...string,
+) {
+	addressesState := []*dtos.AddressState{
+		{
+			Address: ESDTSystemAccount,
+		},
+	}
+	for _, address := range initialAddresses {
+		addressesState = append(addressesState,
+			&dtos.AddressState{
+				Address: address,
+				Balance: "10000000000000000000000",
+			},
+		)
+	}
+	err := cs.SetStateMultiple(addressesState)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+}
+
+// SetEsdtInWallet will add token key in wallet storage without adding key in system account
+func SetEsdtInWallet(
+	t *testing.T,
+	cs ChainSimulator,
+	wallet dtos.WalletAddress,
+	token string,
+	tokenNonce uint64,
+	tokenData esdt.ESDigitalToken,
+) {
+	marshalledTokenData, err := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer().Marshal(&tokenData)
+	require.NoError(t, err)
+
+	nonce := ""
+	if tokenNonce != 0 {
+		nonce = hex.EncodeToString(big.NewInt(0).SetUint64(tokenNonce).Bytes())
+	}
+	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix+core.ESDTKeyIdentifier+token)) + nonce
+	tokenValue := hex.EncodeToString(marshalledTokenData)
+	keyValueMap := map[string]string{
+		tokenKey: tokenValue,
+	}
+	err = cs.SetKeyValueForAddress(wallet.Bech32, keyValueMap)
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+}
+
+// IssueSemiFungible will issue a semi fungible token
+func IssueSemiFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	sftName string,
+	sftTicker string,
+) string {
+	issueArgs := "issueSemiFungible" +
+		"@" + hex.EncodeToString([]byte(sftName)) +
+		"@" + hex.EncodeToString([]byte(sftTicker))
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+
+	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
 }
 
 // RegisterAndSetAllRoles will issue an esdt token with all roles enabled
@@ -156,64 +423,5 @@ func getTokenRegisterType(tokenType string) string {
 	case core.MetaESDT:
 		return "META"
 	}
-	return ""
-}
-
-// IssueFungible will issue a fungible token
-func IssueFungible(
-	t *testing.T,
-	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
-	sender []byte,
-	nonce *uint64,
-	issueCost *big.Int,
-	tokenName string,
-	tokenTicker string,
-	numDecimals int,
-	supply *big.Int,
-) string {
-	issueArgs := "issue" +
-		"@" + hex.EncodeToString([]byte(tokenName)) +
-		"@" + hex.EncodeToString([]byte(tokenTicker)) +
-		"@" + hex.EncodeToString(supply.Bytes()) +
-		"@" + fmt.Sprintf("%X", numDecimals) +
-		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
-		"@" + hex.EncodeToString([]byte("true"))
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-
-	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
-}
-
-// IssueSemiFungible will issue a semi fungible token
-func IssueSemiFungible(
-	t *testing.T,
-	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
-	sender []byte,
-	nonce *uint64,
-	issueCost *big.Int,
-	sftName string,
-	sftTicker string,
-) string {
-	issueArgs := "issueSemiFungible" +
-		"@" + hex.EncodeToString([]byte(sftName)) +
-		"@" + hex.EncodeToString([]byte(sftTicker))
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-
-	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
-}
-
-func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
-	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
-	require.Nil(t, err)
-	require.GreaterOrEqual(t, len(issuedTokens), 1)
-
-	for _, issuedToken := range issuedTokens {
-		if strings.Contains(issuedToken, ticker) {
-			return issuedToken
-		}
-	}
-
-	require.Fail(t, "could not issue semi fungible")
 	return ""
 }

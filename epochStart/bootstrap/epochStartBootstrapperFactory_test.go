@@ -215,7 +215,7 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		RoundHandler:               &mock.RoundHandlerStub{},
 		LatestStorageDataProvider:  &mock.LatestStorageDataProviderStub{},
 		StorageUnitOpener:          &storageMocks.UnitOpenerStub{},
-		ArgumentsParser:            &mock.ArgumentParserMock{},
+		ArgumentsParser:            &testscommon.ArgumentParserMock{},
 		StatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
 		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
 		DataSyncerCreator: &scheduledDataSyncer.ScheduledSyncerFactoryStub{

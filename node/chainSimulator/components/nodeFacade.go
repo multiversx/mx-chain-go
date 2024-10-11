@@ -20,7 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, nodeFactory nodePack.NodeFactory) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64, nodeFactory nodePack.NodeFactory) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -41,7 +41,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	allowVMQueriesChan := make(chan struct{})
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(vmQueryDelayAfterStartInMs) * time.Millisecond)
 		close(allowVMQueriesChan)
 		node.StatusCoreComponents.AppStatusHandler().SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}()

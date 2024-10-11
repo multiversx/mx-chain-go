@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -20,7 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -92,6 +93,7 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
+	relayedTxV3Processor             process.RelayedTxV3Processor
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -124,12 +126,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Configs.GeneralConfig.WhiteListPool.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheTx, err := cache.NewLRUCache(int(args.Configs.GeneralConfig.WhiteListerVerifiedTxs.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
 	if err != nil {
 		return nil, err
 	}
@@ -166,8 +178,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GasSchedule:              gasScheduleNotifier,
 		NodesCoordinator:         args.NodesCoordinator,
 		RequestedItemsHandler:    requestedItemsHandler,
-		WhiteListHandler:         whiteListRequest,
-		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		WhiteListHandler:         whiteListHandler,
+		WhiteListerVerifiedTxs:   whiteListVerifiedTxs,
 		MaxRating:                50,
 		SystemSCConfig:           args.Configs.SystemSCConfig,
 		ImportStartHandler:       importStartHandler,
@@ -238,14 +250,39 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
 		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
 		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
-		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(),
+		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
 		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
+		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
+	}
+
+	return replaceWithCustomProcessSubComponents(instance, processArgs)
+}
+
+func replaceWithCustomProcessSubComponents(
+	instance *processComponentsHolder,
+	processArgs processComp.ProcessComponentsFactoryArgs,
+) (*processComponentsHolder, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(processArgs.CoreData.InternalMarshalizer())
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
+	}
+
+	argsSyncedTxsSender := ArgsSyncedTxsSender{
+		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
+		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
+		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		DataPacker:       dataPacker,
+	}
+
+	instance.txsSenderHandler, err = NewSyncedTxsSender(argsSyncedTxsSender)
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
 	}
 
 	return instance, nil
@@ -459,6 +496,11 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 // EpochSystemSCProcessor returns the epoch start system SC processor
 func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return p.epochStartSystemSCProcessor
+}
+
+// RelayedTxV3Processor returns the relayed tx v3 processor
+func (p *processComponentsHolder) RelayedTxV3Processor() process.RelayedTxV3Processor {
+	return p.relayedTxV3Processor
 }
 
 // Close will call the Close methods on all inner components

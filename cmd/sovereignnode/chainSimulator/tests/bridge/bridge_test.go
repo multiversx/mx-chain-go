@@ -42,7 +42,7 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
+			BypassTxSignatureCheck: true,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
@@ -50,7 +50,6 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				// Put every enable epoch on 0
 				cfg.EpochConfig.EnableEpochs = config.EnableEpochs{
@@ -87,6 +86,9 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 			Balance: "10000000000000000000000",
 		},
 	})
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}

@@ -229,6 +229,8 @@ type Config struct {
 	PoolsCleanersConfig PoolsCleanersConfig
 	Redundancy          RedundancyConfig
 
+	RelayedTransactionConfig RelayedTransactionConfig
+
 	// TODO: (RaduChis): When we have separate factories to pass configs from node runners,
 	// we need to remove this from here
 	SovereignConfig SovereignConfig
@@ -643,4 +645,9 @@ type PoolsCleanersConfig struct {
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
 	MaxRoundsOfInactivityAccepted int
+}
+
+// RelayedTransactionConfig represents the config options to be used for relayed transactions
+type RelayedTransactionConfig struct {
+	MaxTransactionsAllowed int
 }

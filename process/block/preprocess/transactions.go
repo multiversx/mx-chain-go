@@ -15,6 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -23,8 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.DataMarshalizer = (*transactions)(nil)
@@ -1524,6 +1525,11 @@ func (txs *transactions) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
+	miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+	if err != nil {
+		return nil, indexOfLastTxProcessed, false, err
+	}
+
 	var totalGasConsumed uint64
 	if scheduledMode {
 		totalGasConsumed = txs.gasHandler.TotalGasProvidedAsScheduled()
@@ -1605,7 +1611,8 @@ func (txs *transactions) ProcessMiniBlock(
 				miniBlockTxs[txIndex],
 				miniBlockTxHashes[txIndex],
 				&gasInfo,
-				gasProvidedByTxInSelfShard)
+				gasProvidedByTxInSelfShard,
+				miniBlockHash)
 			if err != nil {
 				break
 			}
@@ -1664,9 +1671,10 @@ func (txs *transactions) processInNormalMode(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 	gasProvidedByTxInSelfShard uint64,
+	mbHash []byte,
 ) error {
 
-	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash)
+	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash, mbHash)
 
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)

@@ -31,6 +31,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -62,6 +66,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -71,9 +76,6 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testBlockInfo struct {
@@ -1154,6 +1156,85 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
 }
 
+func TestNode_GetAllESDTTokensForNFTWithPrefix(t *testing.T) {
+	t.Parallel()
+
+	acc := createAcc(testscommon.TestPubKeyAlice)
+
+	nftToken := "pref-TCKR-67tgv3"
+	nftNonce := big.NewInt(1)
+	nftKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken)
+	nftKeyWithBytes := append(nftKey, nftNonce.Bytes()...)
+	nftSuffix := append(nftKeyWithBytes, acc.AddressBytes()...)
+
+	nftMetaData := &esdt.MetaData{Nonce: nftNonce.Uint64(), Creator: []byte("12345678901234567890123456789012")}
+	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
+	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
+
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
+			return nftData, false, nil
+
+		},
+	}
+	acc.SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					leavesChannels.LeavesChan <- trieLeaf
+					wg.Done()
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan.Close()
+				}()
+
+				wg.Wait()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
+			return nil
+		},
+	}
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithESDTNFTStorageHandler(esdtStorageStub),
+	)
+
+	tokens, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, err)
+	require.Equal(t, 1, len(tokens))
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey := "pref-TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
 func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shardId uint32) {
 	acc := createAcc([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
@@ -1983,21 +2064,22 @@ func TestGenerateTransaction_CorrectParamsShouldNotError(t *testing.T) {
 
 func getDefaultTransactionArgs() *external.ArgsCreateTransaction {
 	return &external.ArgsCreateTransaction{
-		Nonce:            uint64(0),
-		Value:            new(big.Int).SetInt64(10).String(),
-		Receiver:         "rcv",
-		ReceiverUsername: []byte("rcvrUsername"),
-		Sender:           "snd",
-		SenderUsername:   []byte("sndrUsername"),
-		GasPrice:         uint64(10),
-		GasLimit:         uint64(20),
-		DataField:        []byte("-"),
-		SignatureHex:     hex.EncodeToString(bytes.Repeat([]byte{0}, 10)),
-		ChainID:          "chainID",
-		Version:          1,
-		Options:          0,
-		Guardian:         "",
-		GuardianSigHex:   "",
+		Nonce:             uint64(0),
+		Value:             new(big.Int).SetInt64(10).String(),
+		Receiver:          "rcv",
+		ReceiverUsername:  []byte("rcvrUsername"),
+		Sender:            "snd",
+		SenderUsername:    []byte("sndrUsername"),
+		GasPrice:          uint64(10),
+		GasLimit:          uint64(20),
+		DataField:         []byte("-"),
+		SignatureHex:      hex.EncodeToString(bytes.Repeat([]byte{0}, 10)),
+		ChainID:           "chainID",
+		Version:           1,
+		Options:           0,
+		Guardian:          "",
+		GuardianSigHex:    "",
+		InnerTransactions: nil,
 	}
 }
 
@@ -3669,6 +3751,54 @@ func TestNode_GetAccountAccountWithKeysShouldWork(t *testing.T) {
 	require.Equal(t, hex.EncodeToString(v2), recovAccnt.Pairs[hex.EncodeToString(k2)])
 }
 
+func TestNode_GetAccountAccountWithKeysNeverUsedAccountShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return nil, nil, nil
+		},
+		RecreateTrieCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
+	}
+
+	n := getNodeWithAccount(accDB)
+
+	recovAccnt, blockInfo, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
+
+	require.Nil(t, err)
+	require.Equal(t, uint64(0), recovAccnt.Nonce)
+	require.Equal(t, testscommon.TestAddressBob, recovAccnt.Address)
+	require.Equal(t, api.BlockInfo{}, blockInfo)
+}
+
+func TestNode_GetAccountAccountWithKeysNilDataTrieShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt := createAcc(testscommon.TestPubKeyBob)
+	accnt.SetDataTrie(nil)
+	_ = accnt.AddToBalance(big.NewInt(1))
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return accnt, nil, nil
+		},
+		RecreateTrieCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
+	}
+
+	n := getNodeWithAccount(accDB)
+
+	recovAccnt, blockInfo, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
+
+	require.Nil(t, err)
+	require.Equal(t, uint64(0), recovAccnt.Nonce)
+	require.Equal(t, testscommon.TestAddressBob, recovAccnt.Address)
+	require.Equal(t, api.BlockInfo{}, blockInfo)
+}
+
 func getNodeWithAccount(accDB *stateMock.AccountsStub) *node.Node {
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
@@ -5332,19 +5462,20 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		WDTimer:               &testscommon.WatchdogMock{},
-		Alarm:                 &testscommon.AlarmSchedulerStub{},
-		NtpTimer:              &testscommon.SyncTimerStub{},
-		RoundHandlerField:     &testscommon.RoundHandlerMock{},
-		EconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
-		APIEconomicsHandler:   &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:         &testscommon.RatingsInfoMock{},
-		RatingHandler:         &testscommon.RaterMock{},
-		NodesConfig:           &genesisMocks.NodesSetupStub{},
-		StartTime:             time.Time{},
-		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
-		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
-		ChanStopProcess:       make(chan endProcess.ArgEndProcess, 1),
+		WDTimer:                  &testscommon.WatchdogMock{},
+		Alarm:                    &testscommon.AlarmSchedulerStub{},
+		NtpTimer:                 &testscommon.SyncTimerStub{},
+		RoundHandlerField:        &testscommon.RoundHandlerMock{},
+		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
+		APIEconomicsHandler:      &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:            &testscommon.RatingsInfoMock{},
+		RatingHandler:            &testscommon.RaterMock{},
+		NodesConfig:              &genesisMocks.NodesSetupStub{},
+		StartTime:                time.Time{},
+		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
+		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ChanStopProcess:          make(chan endProcess.ArgEndProcess, 1),
 	}
 }
 
@@ -5381,6 +5512,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
 		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
+		RelayedTxV3ProcessorField:            &processMocks.RelayedTxV3ProcessorMock{},
 		ESDTDataStorageHandlerForAPIInternal: &testscommon.EsdtStorageHandlerStub{},
 		ResContainer:                         &dataRetrieverMock.ResolversContainerStub{},
 	}

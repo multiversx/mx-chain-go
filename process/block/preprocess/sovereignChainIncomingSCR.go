@@ -146,6 +146,11 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
+	miniBlockHash, err := core.CalculateHash(scr.marshalizer, scr.hasher, miniBlock)
+	if err != nil {
+		return nil, indexOfLastTxProcessed, false, err
+	}
+
 	log.Debug("sovereignChainIncomingSCR.ProcessMiniBlock: before processing")
 	defer func() {
 		log.Debug("sovereignChainIncomingSCR.ProcessMiniBlock after processing")
@@ -166,7 +171,7 @@ func (scr *sovereignChainIncomingSCR) ProcessMiniBlock(
 			return nil, indexOfLastTxProcessed, false, err
 		}
 
-		_ = scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+		_ = scr.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex], miniBlockHash)
 		processedTxHashes = append(processedTxHashes, miniBlockTxHashes[txIndex])
 		numSCRsProcessed++
 	}

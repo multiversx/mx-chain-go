@@ -21,6 +21,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -42,9 +46,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -756,24 +757,25 @@ func TestTransactionCoordinator_CreateMarshalizedDataWithTxsAndScr(t *testing.T)
 	scrs := make([]data.TransactionHandler, 0)
 	body := &block.Body{}
 	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.TxBlock, txHash))
+	genericTxHash := []byte("txHash")
 
-	scr := &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(99), PrevTxHash: []byte("txHash")}
+	scr := &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(99), PrevTxHash: genericTxHash}
 	scrHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, scr)
 	scrs = append(scrs, scr)
 	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
-	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(199), PrevTxHash: []byte("txHash")}
+	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(199), PrevTxHash: genericTxHash}
 	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, scr)
 	scrs = append(scrs, scr)
 	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
-	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(299), PrevTxHash: []byte("txHash")}
+	scr = &smartContractResult.SmartContractResult{SndAddr: []byte("snd"), RcvAddr: []byte("rcv"), Value: big.NewInt(299), PrevTxHash: genericTxHash}
 	scrHash, _ = core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, scr)
 	scrs = append(scrs, scr)
 	body.MiniBlocks = append(body.MiniBlocks, createMiniBlockWithOneTx(0, 1, block.SmartContractResultBlock, scrHash))
 
 	scrInterimProc, _ := interimContainer.Get(block.SmartContractResultBlock)
-	_ = scrInterimProc.AddIntermediateTransactions(scrs)
+	_ = scrInterimProc.AddIntermediateTransactions(scrs, genericTxHash)
 
 	mrTxs := tc.CreateMarshalizedData(body)
 	assert.Equal(t, 1, len(mrTxs))
@@ -1027,6 +1029,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 }
 
 func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
+	headerHash := []byte("header hash")
 	mbHash := []byte("miniblock hash")
 	numResetGasHandler := 0
 	numInitInterimProc := 0
@@ -1042,7 +1045,8 @@ func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
 		keysInterimProcs: []block.Type{block.SmartContractResultBlock},
 		interimProcessors: map[block.Type]process.IntermediateTransactionHandler{
 			block.SmartContractResultBlock: &mock.IntermediateTransactionHandlerStub{
-				InitProcessedResultsCalled: func(key []byte) {
+				InitProcessedResultsCalled: func(key []byte, parentKey []byte) {
+					assert.Equal(t, headerHash, parentKey)
 					assert.Equal(t, mbHash, key)
 					numInitInterimProc++
 				},
@@ -1056,7 +1060,7 @@ func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
 		numInitInterimProc = 0
 		shardCoord.CurrentShard = 0
 
-		tc.handleProcessMiniBlockInit(mbHash)
+		tc.handleProcessMiniBlockInit(mbHash, headerHash)
 		assert.Equal(t, 1, numResetGasHandler)
 		assert.Equal(t, 1, numInitInterimProc)
 	})
@@ -1065,7 +1069,7 @@ func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
 		numInitInterimProc = 0
 		shardCoord.CurrentShard = core.MetachainShardId
 
-		tc.handleProcessMiniBlockInit(mbHash)
+		tc.handleProcessMiniBlockInit(mbHash, headerHash)
 		assert.Equal(t, 1, numResetGasHandler)
 		assert.Equal(t, 1, numInitInterimProc)
 	})
@@ -1945,6 +1949,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	// all txs will be in datapool and none of them will return err when processed
 	// so, tx processor will return nil on processing tx
 
+	headerHash := []byte("header hash")
 	txHash1 := []byte("tx hash 1")
 	txHash2 := []byte("tx hash 2")
 	txHash3 := []byte("tx hash 3")
@@ -2075,7 +2080,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo, headerHash)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -2107,6 +2112,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
 	}
 
+	headerHash := []byte("header hash")
 	tx1Nonce := uint64(45)
 	tx2Nonce := uint64(46)
 	tx3Nonce := uint64(47)
@@ -2222,7 +2228,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo, headerHash)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)
@@ -2366,7 +2372,8 @@ func TestTransactionCoordinator_VerifyCreatedBlockTransactionsOk(t *testing.T) {
 	tx, _ := tdp.UnsignedTransactions().SearchFirstData(scrHash)
 	txs := make([]data.TransactionHandler, 0)
 	txs = append(txs, tx.(data.TransactionHandler))
-	err = interProc.AddIntermediateTransactions(txs)
+	txHash, _ := core.CalculateHash(&mock.MarshalizerMock{}, &hashingMocks.HasherMock{}, tx)
+	err = interProc.AddIntermediateTransactions(txs, txHash)
 	assert.Nil(t, err)
 
 	body := &block.Body{MiniBlocks: []*block.MiniBlock{{Type: block.SmartContractResultBlock, ReceiverShardID: shardCoordinator.SelfId() + 1, TxHashes: [][]byte{scrHash}}}}
@@ -4207,7 +4214,7 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 			},
 		}
 
-		err := tc.AddIntermediateTransactions(mapSCRs)
+		err := tc.AddIntermediateTransactions(mapSCRs, nil)
 		assert.Equal(t, process.ErrNilIntermediateProcessor, err)
 	})
 
@@ -4219,7 +4226,7 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 		expectedErr := errors.New("expected err")
 		tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
 		tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
-			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 				return expectedErr
 			},
 		}
@@ -4232,7 +4239,7 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 			},
 		}
 
-		err := tc.AddIntermediateTransactions(mapSCRs)
+		err := tc.AddIntermediateTransactions(mapSCRs, nil)
 		assert.Equal(t, expectedErr, err)
 	})
 
@@ -4249,7 +4256,7 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 
 		tc.keysInterimProcs = append(tc.keysInterimProcs, block.SmartContractResultBlock)
 		tc.interimProcessors[block.SmartContractResultBlock] = &mock.IntermediateTransactionHandlerMock{
-			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+			AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 				assert.Equal(t, expectedTxs, txs)
 				return nil
 			},
@@ -4263,7 +4270,7 @@ func TestTransactionCoordinator_AddIntermediateTransactions(t *testing.T) {
 			},
 		}
 
-		err := tc.AddIntermediateTransactions(mapSCRs)
+		err := tc.AddIntermediateTransactions(mapSCRs, nil)
 		assert.Nil(t, err)
 	})
 }

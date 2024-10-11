@@ -309,6 +309,9 @@
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 1
 
+    # UseGasBoundedShouldFailExecutionEnableEpoch represents the epoch when use bounded gas function should fail execution in case of error
+    UseGasBoundedShouldFailExecutionEnableEpoch = 1
+
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
     DynamicESDTEnableEpoch = 4
 
@@ -317,6 +320,21 @@
 
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
     CryptoOpcodesV2EnableEpoch = 4
+
+    # UnjailCleanupEnableEpoch represents the epoch when the cleanup of the unjailed nodes is enabled
+    UnJailCleanupEnableEpoch = 4
+
+    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 7
+
+    # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
+    FixRelayedBaseCostEnableEpoch = 7
+
+    # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
+    MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
+
+    # FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 7
 
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 2
@@ -341,5 +359,5 @@
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 0, FileName = "gasScheduleV8.toml" },
     ]

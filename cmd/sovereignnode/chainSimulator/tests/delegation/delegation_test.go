@@ -31,7 +31,7 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
+			BypassTxSignatureCheck: true,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
@@ -39,7 +39,6 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch = 0
 			},
@@ -55,6 +54,9 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(2500)))
 	require.Nil(t, err)
 	nonce := uint64(0)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	txData := "createNewDelegationContract" +
 		"@" + hex.EncodeToString(big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(100000)).Bytes()) +

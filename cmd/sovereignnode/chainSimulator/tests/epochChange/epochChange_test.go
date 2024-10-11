@@ -45,7 +45,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			GenesisTimestamp:         time.Now().Unix(),
@@ -53,7 +53,6 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         6,
-			ConsensusGroupSize:       6,
 			NumNodesWaitingListShard: 2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				newCfg := config.EnableEpochs{}

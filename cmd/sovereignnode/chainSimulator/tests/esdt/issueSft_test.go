@@ -33,7 +33,7 @@ func TestSovereignChainSimulator_RegisterTwoSfts(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
+			BypassTxSignatureCheck: true,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
@@ -41,7 +41,6 @@ func TestSovereignChainSimulator_RegisterTwoSfts(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
 			},
@@ -57,6 +56,9 @@ func TestSovereignChainSimulator_RegisterTwoSfts(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
 	nonce := uint64(0)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	sftName := "SFTNAME"
@@ -100,7 +102,7 @@ func TestSovereignChainSimulator_IssueTwoSfts(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
+			BypassTxSignatureCheck: true,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
@@ -108,7 +110,6 @@ func TestSovereignChainSimulator_IssueTwoSfts(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 		},
 	})
 	require.Nil(t, err)
@@ -121,6 +122,9 @@ func TestSovereignChainSimulator_IssueTwoSfts(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
 	nonce := uint64(0)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	sftName := "SFTNAME"
