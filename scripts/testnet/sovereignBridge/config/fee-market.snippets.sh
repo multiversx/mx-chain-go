@@ -16,6 +16,7 @@ deployFeeMarketContract() {
         --arguments \
             ${ESDT_SAFE_ADDRESS} \
             ${PRICE_AGGREGATOR_ADDRESS} \
+            00 \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
