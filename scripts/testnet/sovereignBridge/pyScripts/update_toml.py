@@ -18,6 +18,17 @@ def update_subscribed_addresses(lines, section, identifier, main_chain_address) 
     return updated_lines
 
 
+def update_key(lines, key, value) -> []:
+    updated_lines = []
+
+    for line in lines:
+        if key in line:
+            line = re.sub(rf'{re.escape(key)}\s*=\s*".*?"', f'{key} = "{value}"', line)
+        updated_lines.append(line)
+
+    return updated_lines
+
+
 def update_sovereign_config(file_path, main_chain_address, sovereign_chain_address):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -30,29 +41,26 @@ def update_sovereign_config(file_path, main_chain_address, sovereign_chain_addre
         file.writelines(updated_lines)
 
 
-def update_parameter(lines, section, key, value) -> []:
-    updated_lines = []
-    section_found = False
-
-    for line in lines:
-        if line.startswith("[" + section + "]"):
-            section_found = True
-        if section_found and key in line:
-            line = re.sub(rf'{re.escape(key)}\s*=\s*".*?"', f'{key} = "{value}"', line)
-            section_found = False
-        updated_lines.append(line)
-
-    return updated_lines
-
-
 def update_esdt_prefix(file_path, esdt_prefix):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    updated_lines = update_parameter(lines, "ESDTSystemSCConfig", "ESDTPrefix", esdt_prefix)
+    updated_lines = update_key(lines, "ESDTPrefix", esdt_prefix)
 
     with open(file_path, 'w') as file:
         file.writelines(updated_lines)
+
+
+def update_transfer_and_execute_address(file_path, address):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    for i, line in enumerate(lines):
+        if "TransferAndExecuteByUserAddresses" in line:
+            lines[i + 1] = re.sub(r'".*?"', f'"{address}"', lines[i + 1])
+
+    with open(file_path, 'w') as file:
+        file.writelines(lines)
 
 
 def main():
@@ -70,6 +78,9 @@ def main():
 
     toml_path = project_path + "/cmd/node/config/systemSmartContractsConfig.toml"
     update_esdt_prefix(toml_path, esdt_prefix)
+
+    toml_path = project_path + "/cmd/node/config/config.toml"
+    update_transfer_and_execute_address(toml_path, sovereign_chain_address)
 
 
 if __name__ == "__main__":
