@@ -16,8 +16,6 @@ deployFeeMarketContract() {
         --arguments \
             ${ESDT_SAFE_ADDRESS} \
             ${PRICE_AGGREGATOR_ADDRESS} \
-            str:${USDC_TOKEN_ID} \
-            str:${WEGLD_TOKEN_ID} \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
