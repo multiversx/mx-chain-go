@@ -1424,6 +1424,16 @@ func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 		return txHash, relayedSCR.OriginalTxHash, isRelayed
 	}
 
+	//	At this point, the relayedSCR is from a relayed intra-shard transaction
+	// if prevTxHash != originalTxHash, it means that it is inner tx of relayed v3
+	// after LinkInnerTransactionFlag activation
+	//	In this case, we can use the scr hash, as intra shard scr was added with this flag
+	// even for intra-shard sc calls
+	if !bytes.Equal(relayedSCR.PrevTxHash, relayedSCR.OriginalTxHash) {
+		return txHash, relayedSCR.OriginalTxHash, isRelayed
+
+	}
+
 	return relayedSCR.OriginalTxHash, relayedSCR.OriginalTxHash, isRelayed
 }
 
@@ -1515,6 +1525,13 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	}
 
 	logsTxHash, originalTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
+	shouldAddIntraShardScrForRelayedInner := isRelayed && !bytes.Equal(logsTxHash, originalTxHash)
+	if shouldAddIntraShardScrForRelayedInner {
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, failureContext.txHash)
+		if err != nil {
+			return err
+		}
+	}
 	var ignorableError error
 	if isRelayed && bytes.Equal(originalTxHash, logsTxHash) {
 		ignorableError = sc.failedTxLogsAccumulator.SaveLogs(logsTxHash, tx, processIfErrorLogs)

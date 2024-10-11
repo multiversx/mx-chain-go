@@ -4089,6 +4089,7 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	assert.False(t, isRelayed)
 
 	scr.OriginalTxHash = []byte("originalHash")
+	scr.PrevTxHash = []byte("originalHash")
 	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
 	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
 	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)

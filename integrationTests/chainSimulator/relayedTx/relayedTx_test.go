@@ -135,6 +135,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	printResult(t, result)
+
 	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
@@ -160,15 +162,18 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	// check SCRs
 	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
 	for _, scr := range result.SmartContractResults {
-		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
-
 		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
 		assert.True(t, prevHashIsInnerTxHash)
-	}
 
-	// 3 log events from the failed sc call
-	require.Equal(t, 3, len(result.Logs.Events))
-	require.True(t, strings.Contains(string(result.Logs.Events[2].Data), "contract is paused"))
+		if scr.Function == "wrapEgld" {
+			// 3 log events from the failed sc call
+			require.Equal(t, 3, len(scr.Logs.Events))
+			require.True(t, strings.Contains(string(scr.Logs.Events[2].Data), "contract is paused"))
+			continue
+		}
+
+		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
+	}
 }
 
 // Test setup:
@@ -359,33 +364,40 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 
 	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
 
-	// 8 scrs, 4 from the succeeded txs + 4 with refunded gas to relayer
-	require.Equal(t, 8, len(result.SmartContractResults))
+	// 11 scrs:
+	//		- 4 from the succeeded txs + 4 with refunded gas to relayer
+	//		- 3 from the failed scrs with 2 events each
+	require.Equal(t, 11, len(result.SmartContractResults))
 	for _, scr := range result.SmartContractResults {
 		if strings.Contains(scr.ReturnMessage, "gas refund for relayer") {
+			_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+			require.False(t, prevHashIsInnerTxHash, "Refund SCR should be linked to another SCR, not inner tx")
 			continue
 		}
 
-		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
-
-		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		innerTxIdx, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
 		assert.True(t, prevHashIsInnerTxHash)
-	}
 
-	// 6 events, 3 with signalError + 3 with the actual errors
-	require.Equal(t, 6, len(result.Logs.Events))
-	expectedLogEvents := map[int]string{
-		1: "[wrong number of arguments]",
-		3: "[invalid function (not found)] [substract]",
-		5: "[not enough gas] [add]",
-	}
-	for idx, logEvent := range result.Logs.Events {
-		if logEvent.Identifier == "signalError" {
-			continue
+		switch innerTxIdx {
+		case 0, 1, 3, 5: // succeeded
+			checkSCRSucceeded(t, cs, pkConv, shardC, scr)
+		case 2, 4, 6: // failed
+			// 1 event with signalError + 1 event with the actual error
+			require.Equal(t, 2, len(scr.Logs.Events))
+			expectedLogEvents := map[int]string{
+				2: "[wrong number of arguments]",
+				4: "[invalid function (not found)] [substract]",
+				6: "[not enough gas] [add]",
+			}
+			for _, logEvent := range scr.Logs.Events {
+				if logEvent.Identifier == "signalError" {
+					continue
+				}
+
+				expectedLogEvent := expectedLogEvents[innerTxIdx]
+				require.True(t, strings.Contains(string(logEvent.Data), expectedLogEvent))
+			}
 		}
-
-		expectedLogEvent := expectedLogEvents[idx]
-		require.True(t, strings.Contains(string(logEvent.Data), expectedLogEvent))
 	}
 }
 
