@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,6 +40,7 @@ const (
 	mockTxSignature                         = "sig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
 	roundsPerEpoch                          = 30
+	printResults                            = false // for debugging only, to print the final json results of a tx
 )
 
 var (
@@ -48,6 +50,12 @@ var (
 	}
 )
 
+// Test setup:
+// - 4 inner txs:
+//   - one cross shard move balance ok
+//   - one intra shard move balance ok
+//   - one intra shard sc call (wrapEgld), fail due to less gas limit
+//   - one intra shard move balance ok
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -131,6 +139,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+
 	economicsData := cs.GetNodeHandler(0).GetCoreComponents().EconomicsData()
 	relayerMoveBalanceFee := economicsData.ComputeMoveBalanceFee(relayedTx)
 	expectedRelayerFee := big.NewInt(0).Mul(relayerMoveBalanceFee, big.NewInt(int64(len(relayedTx.InnerTransactions))))
@@ -151,6 +161,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
 	for _, scr := range result.SmartContractResults {
 		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
+
+		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		assert.True(t, prevHashIsInnerTxHash)
 	}
 
 	// 3 log events from the failed sc call
@@ -158,6 +171,13 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	require.True(t, strings.Contains(string(result.Logs.Events[2].Data), "contract is paused"))
 }
 
+// Test setup:
+// - 5 inner txs:
+//   - one intra shard move balance fail due to higher nonce
+//   - one intra shard move balance fail due to higher nonce
+//   - one intra shard move balance ok
+//   - one intra shard move balance fail due to higher nonce
+//   - one intra shard move balance fail due to lower nonce
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNonces(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -219,6 +239,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+
 	// 5 scrs, 4 from the failed txs + 1 with success
 	require.Equal(t, 5, len(result.SmartContractResults))
 	scrsMap := make(map[string]int, len(result.SmartContractResults))
@@ -232,6 +254,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 		if strings.Contains(scr.ReturnMessage, process.ErrLowerNonceInTransaction.Error()) {
 			scrsMap[process.ErrLowerNonceInTransaction.Error()]++
 		}
+
+		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		assert.True(t, prevHashIsInnerTxHash)
 	}
 	require.Equal(t, 1, scrsMap["success"])
 	require.Equal(t, 3, scrsMap[process.ErrHigherNonceInTransaction.Error()])
@@ -244,6 +269,15 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 	}
 }
 
+// Test setup:
+// - 7 inner txs:
+//   - one intra shard sc call ok
+//   - one intra shard sc call ok
+//   - one intra shard sc call, fail due to wrong number of args
+//   - one intra shard sc call ok
+//   - one intra shard sc call, fail due to invalid function
+//   - one intra shard sc call ok
+//   - one intra shard sc call, fail due to not enough gas
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -319,7 +353,11 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	printResult(t, result)
+
 	checkSum(t, scShardNodeHandler, scAddressBytes, owner.Bytes, 4)
+
+	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
 
 	// 8 scrs, 4 from the succeeded txs + 4 with refunded gas to relayer
 	require.Equal(t, 8, len(result.SmartContractResults))
@@ -329,6 +367,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 		}
 
 		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
+
+		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		assert.True(t, prevHashIsInnerTxHash)
 	}
 
 	// 6 events, 3 with signalError + 3 with the actual errors
@@ -348,6 +389,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	}
 }
 
+// Test setup:
+// - 2 inner txs:
+//   - intra shard move balance to non-payable contract -> fail
+//   - move balance to meta contract -> fail
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBalanceToNonPayableSC(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -405,8 +450,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBal
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
+
+	printResult(t, result)
 
 	balanceRelayerAfter := getBalance(t, cs, relayer)
 	balanceOwnerAfter := getBalance(t, cs, owner)
@@ -416,6 +463,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBal
 	require.Equal(t, expectedBalanceRelayerAfter.String(), balanceRelayerAfter.String())
 }
 
+// Test setup:
+// - registerDynamic
+// - setSpecialRole ESDTRoleNFTCreate
+// - 2 inner txs:
+//   - setSpecialRole ESDTRoleNFTCreate -> fail, already set
+//   - setSpecialRole ESDTRoleNFTCreate -> fail, already set
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRolesFailure(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -521,6 +574,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 	err = cs.GenerateBlocks(10)
 	require.NoError(t, err)
 
+	printResult(t, result)
+
+	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+
 	for _, scr := range result.SmartContractResults {
 		scrResult, errGetTx := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetTransaction(scr.Hash, true)
 		require.NoError(t, errGetTx)
@@ -528,6 +585,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 		require.Equal(t, 1, len(scrResult.Logs.Events))
 		require.Equal(t, 2, len(scrResult.Logs.Events[0].Topics))
 		require.Contains(t, string(scrResult.Logs.Events[0].Topics[1]), vm.ErrNFTCreateRoleAlreadyExists.Error())
+
+		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		assert.True(t, prevHashIsInnerTxHash)
 	}
 }
 
@@ -710,6 +770,14 @@ func testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(
 	}
 }
 
+// Test setup:
+// - 2 inner txs:
+//   - cross shard move balance, fail due to guardian mismatch
+//   - cross shard move balance, fail due to higher nonce
+//   - move balance to meta contract -> fail
+//
+// - 1 inner txs:
+//   - cross shard guarded move balance ok
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExecutable(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -783,6 +851,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
+	printResult(t, result)
+
 	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
@@ -840,12 +910,14 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 	relayedTx = generateTransaction(relayer.Bytes, 1, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
 	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
+
+	printResult(t, result)
 
 	expectedRelayerFee = core.SafeMul(uint64(expectedConsumedGasForGuardedInnerTx), minGasPrice)
 	checkBalance(t, cs, relayer, big.NewInt(0).Sub(relayerBalanceBeforeSuccessfullAttempt, expectedRelayerFee))
@@ -1063,4 +1135,33 @@ func deployAdder(
 	scAddressBytes, _ := pkConv.Decode(scAddress)
 
 	return scAddressBytes
+}
+
+func getInnerTxsHashes(
+	t *testing.T,
+	node chainSimulatorProcess.NodeHandler,
+	innerTxs []*transaction.Transaction,
+) map[string]struct{} {
+	hasher := node.GetCoreComponents().Hasher()
+	marshaller := node.GetCoreComponents().InternalMarshalizer()
+	providedInnerTxHashes := make(map[string]struct{}, len(innerTxs))
+	for _, providedInnerTx := range innerTxs {
+		hash, errCalculateHash := core.CalculateHash(marshaller, hasher, providedInnerTx)
+		require.NoError(t, errCalculateHash)
+
+		providedInnerTxHashes[hex.EncodeToString(hash)] = struct{}{}
+	}
+
+	return providedInnerTxHashes
+}
+
+func printResult(t *testing.T, result *transaction.ApiTransactionResult) {
+	if !printResults {
+		return
+	}
+
+	buff, err := json.MarshalIndent(result, "", " ")
+	require.NoError(t, err)
+
+	println(fmt.Sprintf("Result:\n%s", string(buff)))
 }

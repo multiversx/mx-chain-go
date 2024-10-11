@@ -3232,7 +3232,7 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
@@ -3295,7 +3295,7 @@ func TestTxProcessor_ProcessUserTxOfTypeMoveBalanceShouldWork(t *testing.T) {
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
@@ -3358,7 +3358,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCDeploymentShouldWork(t *testing.T) {
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
@@ -3421,7 +3421,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCInvokingShouldWork(t *testing.T) {
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
@@ -3484,7 +3484,7 @@ func TestTxProcessor_ProcessUserTxOfTypeBuiltInFunctionCallShouldWork(t *testing
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.Ok, returnCode)
 }
@@ -3551,7 +3551,7 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.UserError, returnCode)
 }
@@ -3620,7 +3620,7 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 
 	execTx, _ := txproc.NewTxProcessor(args)
 
-	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash)
+	returnCode, err := execTx.ProcessUserTx(&tx, &userTx, tx.Value, tx.Nonce, txHash, txHash)
 	assert.Nil(t, err)
 	assert.Equal(t, vmcommon.ExecutionFailed, returnCode)
 }
@@ -3695,7 +3695,7 @@ func TestTxProcessor_ExecuteFailingRelayedTxShouldNotHaveNegativeFee(t *testing.
 
 	txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, tx)
 
-	err := execTx.ExecuteFailedRelayedTransaction(&userTx, tx.SndAddr, tx.Value, tx.Nonce, &tx, txHash, "")
+	err := execTx.ExecuteFailedRelayedTransaction(&userTx, tx.SndAddr, tx.Value, tx.Nonce, &tx, txHash, txHash, "")
 	assert.Nil(t, err)
 	assert.False(t, negativeCost)
 }

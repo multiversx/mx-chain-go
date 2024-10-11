@@ -56,6 +56,7 @@ func (txProc *txProcessor) ProcessUserTx(
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
 	originalTxHash []byte,
+	prevTxHash []byte,
 ) (vmcommon.ReturnCode, error) {
 	return txProc.processUserTx(
 		originalTx,
@@ -63,6 +64,7 @@ func (txProc *txProcessor) ProcessUserTx(
 		relayedTxValue,
 		relayedNonce,
 		originalTxHash,
+		prevTxHash,
 		nonRelayedV3UserTxIdx)
 }
 
@@ -84,6 +86,7 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 	relayedNonce uint64,
 	originalTx *transaction.Transaction,
 	originalTxHash []byte,
+	prevTxHash []byte,
 	errorMsg string,
 ) error {
 	return txProc.executeFailedRelayedUserTx(
@@ -93,6 +96,7 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		relayedNonce,
 		originalTx,
 		originalTxHash,
+		prevTxHash,
 		errorMsg,
 		nonRelayedV3UserTxIdx)
 }
