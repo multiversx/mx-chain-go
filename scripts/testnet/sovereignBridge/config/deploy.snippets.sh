@@ -2,7 +2,7 @@
 # - deploy all main chain contracts and update sovereign configs
 # - deploy sovereign nodes with all services
 deploySovereignWithCrossChainContracts() {
-    deployMainChainContractsAndSetupObserver || return
+    deployMainChainContractsAndSetupObserver $1 || return
 
     sovereignDeploy
 }
@@ -24,7 +24,7 @@ deployMainChainContractsAndSetupObserver() {
 
     setGenesisContract
 
-    updateSovereignConfig
+    updateSovereignConfig $1
 
     prepareObserver
 }

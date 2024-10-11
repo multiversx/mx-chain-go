@@ -38,5 +38,18 @@ setGenesisContract() {
 }
 
 updateSovereignConfig() {
-    python3 $SCRIPT_PATH/pyScripts/update_toml.py $ESDT_SAFE_ADDRESS $ESDT_SAFE_ADDRESS_SOVEREIGN
+    if [ -z "$1" ]; then
+        ESDT_PREFIX=$(generateRandomEsdtPrefix)
+    else
+        ESDT_PREFIX=$1
+    fi
+
+    python3 $SCRIPT_PATH/pyScripts/update_toml.py $ESDT_SAFE_ADDRESS $ESDT_SAFE_ADDRESS_SOVEREIGN $ESDT_PREFIX
+}
+
+generateRandomEsdtPrefix() {
+  LEN=$(shuf -i 1-4 -n 1)
+  RANDOM_PREFIX=$(cat /dev/urandom | tr -dc 'a-z0-9' | head -c $LEN)
+
+  echo $RANDOM_PREFIX
 }
