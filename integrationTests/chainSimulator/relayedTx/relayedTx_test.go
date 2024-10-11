@@ -139,7 +139,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
 
 	economicsData := cs.GetNodeHandler(0).GetCoreComponents().EconomicsData()
 	relayerMoveBalanceFee := economicsData.ComputeMoveBalanceFee(relayedTx)
@@ -239,7 +239,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
 
 	// 5 scrs, 4 from the failed txs + 1 with success
 	require.Equal(t, 5, len(result.SmartContractResults))
@@ -357,7 +357,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 
 	checkSum(t, scShardNodeHandler, scAddressBytes, owner.Bytes, 4)
 
-	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
 
 	// 8 scrs, 4 from the succeeded txs + 4 with refunded gas to relayer
 	require.Equal(t, 8, len(result.SmartContractResults))
@@ -465,9 +465,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBal
 
 // Test setup:
 // - registerDynamic
-// - setSpecialRole ESDTRoleNFTCreate
 // - 2 inner txs:
-//   - setSpecialRole ESDTRoleNFTCreate -> fail, already set
+//   - setSpecialRole ESDTRoleNFTCreate -> success, first set
 //   - setSpecialRole ESDTRoleNFTCreate -> fail, already set
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRolesFailure(t *testing.T) {
 	if testing.Short() {
@@ -521,7 +520,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	// Set role first time
+	// Set role
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
@@ -541,16 +540,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 		[]byte("@"),
 	)
 
-	tx = generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, big.NewInt(0), string(txDataField), 60_000_000)
-	nonce++
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	// try to set role again through relayed v3
-	// try twice same transaction inside the same relayed tx
+	// try to set role twice through relayed v3
+	// first one should work, second one should fail
 	innerTx1 := generateTransaction(owner.Bytes, nonce, vm.ESDTSCAddress, big.NewInt(0), string(txDataField), 60_000_000)
 	innerTx1.RelayerAddr = relayer.Bytes
 	nonce++
@@ -576,18 +567,38 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 
 	printResult(t, result)
 
-	providedInnerTxHashes := getInnerTxsHashes(t, cs.GetNodeHandler(0), innerTxs)
+	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
 
 	for _, scr := range result.SmartContractResults {
+		innerTxIdx, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		assert.True(t, prevHashIsInnerTxHash)
+
 		scrResult, errGetTx := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetTransaction(scr.Hash, true)
 		require.NoError(t, errGetTx)
-		require.NotNil(t, scrResult.Logs)
-		require.Equal(t, 1, len(scrResult.Logs.Events))
-		require.Equal(t, 2, len(scrResult.Logs.Events[0].Topics))
-		require.Contains(t, string(scrResult.Logs.Events[0].Topics[1]), vm.ErrNFTCreateRoleAlreadyExists.Error())
 
-		_, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
-		assert.True(t, prevHashIsInnerTxHash)
+		printResult(t, scrResult)
+
+		switch innerTxIdx {
+		case 0: // should pass
+			require.NotNil(t, scrResult.Logs)
+			require.Equal(t, 1, len(scrResult.Logs.Events))
+			require.NotNil(t, scrResult.Logs.Events[0])
+			require.Equal(t, core.WriteLogIdentifier, scrResult.Logs.Events[0].Identifier)
+
+			scrData := scrResult.Logs.Events[0].Data // @6f6b
+			scrData = scrData[1:]                    // remove @
+			okBuff, err := hex.DecodeString(string(scrData))
+			require.NoError(t, err)
+			require.Equal(t, string(okBuff), "ok")
+		case 1: // should fail
+			require.NotNil(t, scrResult.Logs)
+			require.Equal(t, 1, len(scrResult.Logs.Events))
+			require.Equal(t, 2, len(scrResult.Logs.Events[0].Topics))
+			require.Contains(t, string(scrResult.Logs.Events[0].Topics[1]), vm.ErrNFTCreateRoleAlreadyExists.Error())
+		default:
+			require.Fail(t, "should only have 2 inner txs")
+		}
+
 	}
 }
 
@@ -1137,19 +1148,19 @@ func deployAdder(
 	return scAddressBytes
 }
 
-func getInnerTxsHashes(
+func getInnerTxsHashesMap(
 	t *testing.T,
 	node chainSimulatorProcess.NodeHandler,
 	innerTxs []*transaction.Transaction,
-) map[string]struct{} {
+) map[string]int {
 	hasher := node.GetCoreComponents().Hasher()
 	marshaller := node.GetCoreComponents().InternalMarshalizer()
-	providedInnerTxHashes := make(map[string]struct{}, len(innerTxs))
-	for _, providedInnerTx := range innerTxs {
+	providedInnerTxHashes := make(map[string]int, len(innerTxs))
+	for idx, providedInnerTx := range innerTxs {
 		hash, errCalculateHash := core.CalculateHash(marshaller, hasher, providedInnerTx)
 		require.NoError(t, errCalculateHash)
 
-		providedInnerTxHashes[hex.EncodeToString(hash)] = struct{}{}
+		providedInnerTxHashes[hex.EncodeToString(hash)] = idx
 	}
 
 	return providedInnerTxHashes
@@ -1160,7 +1171,7 @@ func printResult(t *testing.T, result *transaction.ApiTransactionResult) {
 		return
 	}
 
-	buff, err := json.MarshalIndent(result, "", " ")
+	buff, err := json.MarshalIndent(result, "", "	")
 	require.NoError(t, err)
 
 	println(fmt.Sprintf("Result:\n%s", string(buff)))
