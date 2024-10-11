@@ -4,15 +4,16 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
+	"github.com/stretchr/testify/require"
+
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-sdk-abi-go/abi"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -29,14 +30,14 @@ type ArgsBridgeSetup struct {
 	FeeMarketAddress []byte
 }
 
-// DeploySovereignBridgeSetup will deploy all bridge contracts
+// deploySovereignBridgeSetup will deploy all bridge contracts
 // This function will:
 // - deploy esdt-safe contract
 // - deploy fee-market contract
 // - set the fee-market address inside esdt-safe contract
 // - disable fee in fee-market contract
 // - unpause esdt-safe contract so deposit operations can start
-func DeploySovereignBridgeSetup(
+func deploySovereignBridgeSetup(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
 	wallet dtos.WalletAddress,
@@ -60,11 +61,11 @@ func DeploySovereignBridgeSetup(
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
 
 	return &ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,
@@ -90,7 +91,7 @@ func Deposit(
 	tokens []chainSim.ArgsDepositToken,
 	receiver []byte,
 	transferData *sovereign.TransferData,
-) {
+) *transaction.ApiTransactionResult {
 	require.True(t, len(tokens) > 0)
 
 	args := make([]any, 0)
@@ -110,7 +111,7 @@ func Deposit(
 	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + multiTransferArg
 
-	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
+	return chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
 }
 
 func getTransferDataValue(transferData *sovereign.TransferData) any {

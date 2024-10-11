@@ -75,7 +75,7 @@ func TestSovereignChainSimulator_SmartContract_Adder(t *testing.T) {
 
 	addedSum := big.NewInt(10)
 	addTxData := "add@" + hex.EncodeToString(addedSum.Bytes())
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, chainSim.ZeroValue, addTxData, uint64(10000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, deployedContractAddress, chainSim.ZeroValue, addTxData, uint64(10000000))
 
 	res, _, err = nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,

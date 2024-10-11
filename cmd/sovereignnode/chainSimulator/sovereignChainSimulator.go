@@ -43,6 +43,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		cfg.GeneralConfig.SovereignConfig = *configs.SovereignExtraConfig
 		cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
 		cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		cfg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix = "sov"
 
 		if alterConfigs != nil {
 			alterConfigs(cfg)
