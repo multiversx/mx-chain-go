@@ -1431,7 +1431,6 @@ func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 	// even for intra-shard sc calls
 	if !bytes.Equal(relayedSCR.PrevTxHash, relayedSCR.OriginalTxHash) {
 		return txHash, relayedSCR.OriginalTxHash, isRelayed
-
 	}
 
 	return relayedSCR.OriginalTxHash, relayedSCR.OriginalTxHash, isRelayed

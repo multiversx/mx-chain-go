@@ -595,6 +595,7 @@ func putMiniblockFieldsOnInnerTxs(tx *transaction.ApiTransactionResult) {
 	for _, innerTx := range tx.InnerTransactions {
 		innerTx.Epoch = tx.Epoch
 		innerTx.Round = tx.Round
+		innerTx.MiniBlockHash = tx.MiniBlockHash
 	}
 }
 
