@@ -20,8 +20,6 @@ deployMainChainContractsAndSetupObserver() {
 
     setFeeMarketAddress
 
-    disableFeeInFeeMarketContract
-
     unpauseEsdtSafeContract
 
     setGenesisContract
@@ -57,8 +55,6 @@ sovereignDeploy() {
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign
-
-    disableFeeInFeeMarketContractSovereign
 
     unpauseEsdtSafeContractSovereign
 }
