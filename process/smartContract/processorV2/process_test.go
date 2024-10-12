@@ -4084,25 +4084,28 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	scrHash := []byte("hash")
 
 	// scr not relayed
-	hashForLogSave, scrHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	hashForLogSave, scrHash, isRelayed, isIntraShard := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, hashForLogSave)
 	assert.Equal(t, scrHash, scrHash)
 	assert.False(t, isRelayed)
+	assert.False(t, isIntraShard)
 
 	scr.OriginalTxHash = []byte("originalHash")
 	scr.PrevTxHash = []byte("originalHash")
 	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
 	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
 	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)
-	hashForLogSave, originalTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	hashForLogSave, originalTxHash, isRelayed, isIntraShard := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scr.OriginalTxHash, hashForLogSave)
 	assert.Equal(t, scr.OriginalTxHash, originalTxHash)
 	assert.True(t, isRelayed)
+	assert.True(t, isIntraShard)
 
 	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
-	hashForLogSave, originalTxHash, _ = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	hashForLogSave, originalTxHash, _, isIntraShard = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, hashForLogSave)
 	assert.Equal(t, scr.OriginalTxHash, originalTxHash)
+	assert.False(t, isIntraShard)
 }
 
 func TestProcess_createCompletedTxEvent(t *testing.T) {

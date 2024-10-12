@@ -1412,16 +1412,17 @@ func (sc *scProcessor) isCrossShardESDTTransfer(sender []byte, receiver []byte, 
 func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 	tx data.TransactionHandler,
 	txHash []byte,
-) ([]byte, []byte, bool) {
+) ([]byte, []byte, bool, bool) {
 	relayedSCR, isRelayed := isRelayedTx(tx)
 	if !isRelayed {
-		return txHash, txHash, isRelayed
+		return txHash, txHash, isRelayed, false // we don't care if it is intra-shard as it is not relayed anyway
 	}
 
 	sndShardID := sc.shardCoordinator.ComputeId(relayedSCR.SndAddr)
 	rcvShardID := sc.shardCoordinator.ComputeId(relayedSCR.RcvAddr)
-	if sndShardID != rcvShardID {
-		return txHash, relayedSCR.OriginalTxHash, isRelayed
+	isIntraShard := sndShardID == rcvShardID
+	if !isIntraShard {
+		return txHash, relayedSCR.OriginalTxHash, isRelayed, isIntraShard
 	}
 
 	//	At this point, the relayedSCR is from a relayed intra-shard transaction
@@ -1430,10 +1431,10 @@ func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 	//	In this case, we can use the scr hash, as intra shard scr was added with this flag
 	// even for intra-shard sc calls
 	if !bytes.Equal(relayedSCR.PrevTxHash, relayedSCR.OriginalTxHash) {
-		return txHash, relayedSCR.OriginalTxHash, isRelayed
+		return txHash, relayedSCR.OriginalTxHash, isRelayed, isIntraShard
 	}
 
-	return relayedSCR.OriginalTxHash, relayedSCR.OriginalTxHash, isRelayed
+	return relayedSCR.OriginalTxHash, relayedSCR.OriginalTxHash, isRelayed, isIntraShard
 }
 
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
@@ -1523,8 +1524,8 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		processIfErrorLogs = append(processIfErrorLogs, failureContext.logs...)
 	}
 
-	logsTxHash, originalTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
-	shouldAddIntraShardScrForRelayedInner := isRelayed && !bytes.Equal(logsTxHash, originalTxHash)
+	logsTxHash, originalTxHash, isRelayed, isIntraShard := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
+	shouldAddIntraShardScrForRelayedInner := isRelayed && isIntraShard && !bytes.Equal(logsTxHash, originalTxHash)
 	if shouldAddIntraShardScrForRelayedInner {
 		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, failureContext.txHash)
 		if err != nil {
