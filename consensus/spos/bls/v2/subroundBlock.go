@@ -1,6 +1,7 @@
 package v2
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -293,21 +294,21 @@ func (sr *subroundBlock) sendBlockHeader(
 	return true
 }
 
-func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
-	var nonce uint64
-	var prevHash []byte
-	var prevRandSeed []byte
-
-	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if check.IfNil(currentHeader) {
-		nonce = sr.Blockchain().GetGenesisHeader().GetNonce() + 1
-		prevHash = sr.Blockchain().GetGenesisHeaderHash()
-		prevRandSeed = sr.Blockchain().GetGenesisHeader().GetRandSeed()
-	} else {
-		nonce = currentHeader.GetNonce() + 1
-		prevHash = sr.Blockchain().GetCurrentBlockHeaderHash()
-		prevRandSeed = currentHeader.GetRandSeed()
+func (sr *subroundBlock) getPrevHeaderAndHash() (data.HeaderHandler, []byte) {
+	prevHeader := sr.Blockchain().GetCurrentBlockHeader()
+	prevHeaderHash := sr.Blockchain().GetCurrentBlockHeaderHash()
+	if check.IfNil(prevHeader) {
+		prevHeader = sr.Blockchain().GetGenesisHeader()
+		prevHeaderHash = sr.Blockchain().GetGenesisHeaderHash()
 	}
+
+	return prevHeader, prevHeaderHash
+}
+
+func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
+	prevHeader, prevHash := sr.getPrevHeaderAndHash()
+	nonce := prevHeader.GetNonce() + 1
+	prevRandSeed := prevHeader.GetRandSeed()
 
 	round := uint64(sr.RoundHandler().Index())
 	hdr, err := sr.BlockProcessor().CreateNewHeader(round, nonce)
@@ -380,8 +381,8 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return false
 	}
 
-	isFlagEnabledForCurrentHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevBlockHeader.GetEpoch())
-	if !isFlagEnabledForCurrentHeader {
+	isFlagEnabledForPrevHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevBlockHeader.GetEpoch())
+	if !isFlagEnabledForPrevHeader {
 		proof := &block.HeaderProof{
 			PubKeysBitmap:       prevBlockHeader.GetSignature(),
 			AggregatedSignature: prevBlockHeader.GetPubKeysBitmap(),
@@ -465,15 +466,42 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
-	// todo: check that block proposer was the leader in the round
-	// could be covered by the check on the interceptor for the leader signature over the block
+func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) bool {
+	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
+		return false
+	}
+	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+		return false
+	}
 
+	prevHeader, prevHash := sr.getPrevHeaderAndHash()
+	if check.IfNil(prevHeader) {
+		return false
+	}
+	if !bytes.Equal(header.GetPrevHash(), prevHash) {
+		return false
+	}
+	if header.GetNonce() != prevHeader.GetNonce()+1 {
+		return false
+	}
+	prevRandSeed := prevHeader.GetRandSeed()
+	if !bytes.Equal(header.GetPrevRandSeed(), prevRandSeed) {
+		return false
+	}
+
+	return true
+}
+
+func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
 		return
 	}
 
 	if headerHandler.CheckFieldsForNil() != nil {
+		return
+	}
+
+	if !sr.isHeaderForCurrentConsensus(headerHandler) {
 		return
 	}
 
