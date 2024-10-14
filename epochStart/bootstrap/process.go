@@ -678,7 +678,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	return syncedHeaders, nil
 }
 
-// Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
+// requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
 func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	var err error
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
