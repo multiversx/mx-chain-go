@@ -492,6 +492,21 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	return true
 }
 
+func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
+	nc := sr.NodesCoordinator()
+	leader, _, err := nc.ComputeConsensusGroup(
+		headerHandler.GetPrevRandSeed(),
+		headerHandler.GetRound(),
+		headerHandler.GetShardID(),
+		headerHandler.GetEpoch(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return leader.PubKey(), err
+}
+
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
 		return
@@ -514,15 +529,26 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	headerLeader, err := sr.getLeaderForHeader(headerHandler)
+	if err != nil {
+		return
+	}
+
+	if !sr.IsNodeLeaderInCurrentRound(string(headerLeader)) {
+		sr.PeerHonestyHandler().ChangeScore(
+			string(headerLeader),
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			spos.LeaderPeerHonestyDecreaseFactor,
+		)
+
+		return
+	}
+
 	if sr.IsHeaderAlreadyReceived() {
 		return
 	}
 
-	if sr.IsSelfJobDone(sr.Current()) {
-		return
-	}
-
-	if sr.IsSubroundFinished(sr.Current()) {
+	if !sr.CanProcessReceivedHeader(string(headerLeader)) {
 		return
 	}
 
@@ -540,18 +566,34 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		"nonce", sr.GetHeader().GetNonce(),
 		"hash", sr.GetData())
 
-	sr.PeerHonestyHandler().ChangeScore(
-		sr.Leader(),
-		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor,
-	)
-
 	sr.AddReceivedHeader(headerHandler)
 
 	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
 	defer cancel()
 
-	sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
+	_ = sr.processReceivedBlock(ctx, int64(headerHandler.GetRound()), []byte(sr.Leader()))
+	sr.PeerHonestyHandler().ChangeScore(
+		sr.Leader(),
+		spos.GetConsensusTopicID(sr.ShardCoordinator()),
+		spos.LeaderPeerHonestyIncreaseFactor,
+	)
+}
+
+// CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
+func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
+	if sr.IsNodeSelf(headerLeader) {
+		return false
+	}
+
+	if sr.IsJobDone(headerLeader, sr.Current()) {
+		return false
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
+		return false
+	}
+
+	return true
 }
 
 func (sr *subroundBlock) processReceivedBlock(
