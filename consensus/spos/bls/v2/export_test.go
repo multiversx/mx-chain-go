@@ -216,19 +216,9 @@ func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockBody(context.Background(), cnsDta)
 }
 
-// ReceivedBlockHeaderBeforeEquivalentProofs method is called when a block header is received through the block header channel
-func (sr *subroundBlock) ReceivedBlockHeaderBeforeEquivalentProofs(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeaderBeforeEquivalentProofs(context.Background(), cnsDta)
-}
-
 // ReceivedBlockHeader method is called when a block header is received through the block header channel
 func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
 	sr.receivedBlockHeader(header)
-}
-
-// ReceivedBlockBodyAndHeader is called when both a header and block body have been received
-func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockBodyAndHeader(context.Background(), cnsDta)
 }
 
 // subroundSignature
