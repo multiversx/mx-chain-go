@@ -120,7 +120,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		err = sendOutportBlock(outportBlock, host)
 		log.LogIfError(err)
 
-		time.Sleep(3000 * time.Millisecond)
+		time.Sleep(4000 * time.Millisecond)
 
 		err = sendFinalizedBlock(headerHash, host)
 		log.LogIfError(err)

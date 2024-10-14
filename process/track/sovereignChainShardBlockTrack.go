@@ -55,7 +55,9 @@ func (scsbt *sovereignChainShardBlockTrack) initCrossNotarizedStartHeaders() err
 	// 2. Perhaps add dummy header nonce from config cross main chain notarized
 	extendedShardHeader := &block.ShardHeaderExtended{
 		Header: &block.HeaderV2{
-			Header: &block.Header{},
+			Header: &block.Header{
+				Reserved: []byte("dummySovHdr"),
+			},
 		},
 	}
 
@@ -122,6 +124,11 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 		//	log.Error("sovereignChainShardBlockTrack.receivedExtendedShardHeader.InitNotarizedHeaders", "error", err)
 		//	return
 		//}
+		//scsbt.crossNotarizer.RemoveLastNotarizedHeader()
+		//err := scsbt.initCrossNotarizedStartHeaders()
+		//if err != nil {
+		//	log.Error("WTF WTF WTF WTF")
+		//}
 		scsbt.crossNotarizer.AddNotarizedHeader(core.MainChainShardId, extendedShardHeaderHandler, extendedShardHeaderHash)
 	}
 
@@ -143,7 +150,7 @@ func (scsbt *sovereignChainShardBlockTrack) isGenesisLastCrossNotarizedHeader() 
 	lastNotarizedHeader, _, err := scsbt.crossNotarizer.GetLastNotarizedHeader(core.MainChainShardId)
 
 	log.Error("isGenesisLastCrossNotarizedHeader",
-		"lastNotarizedHeader.Nonce", fmt.Sprintf("%T", lastNotarizedHeader),
+		"lastNotarizedHeader.Nonce", lastNotarizedHeader.GetNonce(),
 		"error", err,
 	)
 
@@ -207,12 +214,12 @@ func (scsbt *sovereignChainShardBlockTrack) isExtendedShardHeaderOutOfRange(exte
 
 // ComputeLongestExtendedShardChainFromLastNotarized returns the longest valid chain for extended shard chain from its last cross notarized header
 func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
-	lastCrossNotarizedHeader, _, err := scsbt.GetLastCrossNotarizedHeader(core.MainChainShardId)
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := scsbt.GetLastCrossNotarizedHeader(core.MainChainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	log.Debug("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized: GetLastCrossNotarizedHeader", "nonce", lastCrossNotarizedHeader.GetNonce())
+	log.Error("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized: GetLastCrossNotarizedHeader", "nonce", lastCrossNotarizedHeader.GetNonce())
 
 	hdrsForShard, hdrsHashesForShard := scsbt.ComputeLongestChain(core.MainChainShardId, lastCrossNotarizedHeader)
 
@@ -220,6 +227,46 @@ func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFrom
 	for index := range hdrsForShard {
 		log.Debug("sovereignChainShardBlockTrack.ComputeLongestExtendedShardChainFromLastNotarized", "round", hdrsForShard[index].GetRound(), "nonce", hdrsForShard[index].GetNonce(), "hash", hdrsHashesForShard[index])
 	}
+
+	//res := make([]data.HeaderHandler, 0)
+	//res = append(res, lastCrossNotarizedHeader)
+	//
+	//resHashes := make([][]byte, 0)
+	//resHashes = append(resHashes, lastCrossNotarizedHeaderHash)
+
+	//\if len(hdrsForShard) == 0 && lastCrossNotarizedHeader.GetRound() == scsbt.mainChainNotarizationStartRound {
+	//\	return res, resHashes, nil
+	//\}
+
+	//res := make([]data.HeaderHandler, 0)
+	//res = append(res, lastCrossNotarizedHeader)
+	//res = append(res, hdrsForShard...)
+	//
+	//resHashes := make([][]byte, 0)
+	//resHashes = append(resHashes, lastCrossNotarizedHeaderHash)
+	//resHashes = append(resHashes, hdrsHashesForShard...)
+
+	//return res, resHashes, nil
+
+	_ = lastCrossNotarizedHeaderHash
+
+	//if len(hdrsForShard) > 1 && bytes.Equal(lastCrossNotarizedHeaderHash, hdrsHashesForShard[0]) {
+	//	return hdrsForShard[1:], hdrsHashesForShard[1:], nil
+	//}
+
+	//if lastCrossNotarizedHeader.GetRound() == scsbt.mainChainNotarizationStartRound && len(hdrsForShard) != 0 {
+	//	res := make([]data.HeaderHandler, 0)
+	//	res = append(res, lastCrossNotarizedHeader)
+	//	res = append(res, hdrsForShard...)
+	//
+	//	resHashes := make([][]byte, 0)
+	//	resHashes = append(resHashes, lastCrossNotarizedHeaderHash)
+	//	resHashes = append(resHashes, hdrsHashesForShard...)
+	//
+	//	log.Error("SPECIAL CASE")
+	//
+	//	return res, resHashes, nil
+	//}
 
 	return hdrsForShard, hdrsHashesForShard, nil
 }
@@ -232,6 +279,12 @@ func (scsbt *sovereignChainShardBlockTrack) CleanupHeadersBehindNonce(
 ) {
 	scsbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
 	scsbt.cleanupTrackedHeadersBehindNonce(shardID, selfNotarizedNonce)
+
+	//if shardID == core.MainChainShardId {
+	//	scsbt.crossNotarizer.RemoveLastNotarizedHeader()
+	//}
+
+	//log.Error("sovereignChainShardBlockTrack.CleanupHeadersBehindNonce", "shardID", shardID, "crossNotarizedNonce", crossNotarizedNonce, "ACTUALLY", hdr.GetNonce())
 
 	scsbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)
 	scsbt.cleanupTrackedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)

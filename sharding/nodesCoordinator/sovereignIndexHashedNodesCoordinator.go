@@ -191,6 +191,9 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) ComputeConsensusGroup(
 	eligibleList = nodesConfig.eligibleMap[shardID]
 	ihnc.mutNodesConfig.RUnlock()
 
+	randomness = make([]byte, 32)
+	randomness[0] = 1
+
 	return ihnc.baseComputeConsensusGroup(randomness, round, shardID, epoch, selector, eligibleList)
 }
 

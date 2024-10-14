@@ -59,7 +59,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		roundHandler:                          arguments.RoundHandler,
 	}
 
-	bp.blockFinality = process.BlockFinality
+	bp.blockFinality = 0 //process.BlockFinality //0 //process.BlockFinality
 	bp.shouldProcessReceivedHeaderFunc = bp.shouldProcessReceivedHeader
 	bp.processReceivedHeaderFunc = bp.processReceivedHeader
 	bp.doJobOnReceivedCrossNotarizedHeaderFunc = bp.doJobOnReceivedCrossNotarizedHeader
@@ -255,7 +255,15 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers, shardID)
 	}()
 
-	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
+	realNonce := header.GetNonce() + 1
+	//if shardID == core.MainChainShardId {
+	//	log.Error("blockProcessor.ComputeLongestChain", "header.nonce", header.GetNonce())
+	//	if header.GetNonce() != 1 {
+	//		realNonce = header.GetNonce()
+	//	}
+	//}
+
+	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, realNonce)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
 	}

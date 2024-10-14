@@ -782,6 +782,11 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	//	log.Error("NOO EXTENDED SHARD HEADERS TO CHECK")
 	//}
 
+	err = scbp.checkExtendedShardHeadersValidity()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	shardHeader, castOK := headerHandler.(data.ShardHeaderHandler)
 	if !castOK {
 		return nil, nil, errors.ErrWrongTypeAssertion
@@ -839,7 +844,6 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 		return err
 	}
 
-	log.Error("checkExtendedShardHeadersValidity", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 	extendedShardHdrs := scbp.sortExtendedShardHeadersForCurrentBlockByNonce()
 	if len(extendedShardHdrs) == 0 {
 		return nil
@@ -848,6 +852,18 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 	//if lastCrossNotarizedHeader.GetNonce() == 0 {
 	//	return nil
 	//}
+
+	//if len(extendedShardHdrs) == 1 {
+	//	log.Error("checkExtendedShardHeadersValidity", "LEN EXTEDNDED IS 1")
+	//	return nil
+	//}
+
+	//lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+	//if err != nil {
+	//	return err
+	//}
+
+	log.Error("checkExtendedShardHeadersValidity", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 
 	for _, extendedShardHdr := range extendedShardHdrs {
 		log.Error("checkExtendedShardHeadersValidity", "extendedShardHeader nonce", extendedShardHdr.GetNonce())
@@ -2042,6 +2058,25 @@ func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shard
 	actualShardID := shardID
 	if shardID == core.MetachainShardId {
 		actualShardID = core.MainChainShardId
+
+		//hdr, _, _ := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+		//
+		//noncesToPrevFinal = hdr.GetNonce()
+
+		//scbp.crossNotarizer.getLastCrossNotarizedHeaders().RemoveLastNotarizedHeaders()
+		//noncesToPrevFinal += 1
+		//lastCrossNotarizedHdr, _, err :=  scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+		//if err != nil {
+		//	log.Error("sovereignChainBlockProcessor.cleanupBlockTrackerPoolsForShard", "error", err)
+		//} else {
+		//	noncesToPrevFinal =
+		//}
+
+		//scbp.blockTracker.CleanupHeadersBehindNonce(
+		//	shardID,
+		//	0,
+		//	hdr.GetNonce(),
+		//)
 
 	}
 	scbp.baseCleanupBlockTrackerPoolsForShard(actualShardID, noncesToPrevFinal)
