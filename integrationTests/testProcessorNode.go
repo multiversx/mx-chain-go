@@ -82,6 +82,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -1292,6 +1293,11 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
+	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Second * 3,
+		CacheExpiry: time.Second * 10,
+	}
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
 			GenesisTime: tpn.RoundHandler.TimeStamp(),
@@ -1314,36 +1320,37 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		coreComponents.HardforkTriggerPubKeyField = providedHardforkPk
 
 		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-			CoreComponents:               coreComponents,
-			CryptoComponents:             cryptoComponents,
-			Accounts:                     tpn.AccntState,
-			ShardCoordinator:             tpn.ShardCoordinator,
-			NodesCoordinator:             tpn.NodesCoordinator,
-			MainMessenger:                tpn.MainMessenger,
-			FullArchiveMessenger:         tpn.FullArchiveMessenger,
-			Store:                        tpn.Storage,
-			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
-			TxFeeHandler:                 tpn.EconomicsData,
-			BlockBlackList:               tpn.BlockBlackListHandler,
-			HeaderSigVerifier:            tpn.HeaderSigVerifier,
-			HeaderIntegrityVerifier:      tpn.HeaderIntegrityVerifier,
-			ValidityAttester:             tpn.BlockTracker,
-			EpochStartTrigger:            tpn.EpochStartTrigger,
-			WhiteListHandler:             tpn.WhiteListHandler,
-			WhiteListerVerifiedTxs:       tpn.WhiteListerVerifiedTxs,
-			AntifloodHandler:             &mock.NilAntifloodHandler{},
-			ArgumentsParser:              smartContract.NewArgumentParser(),
-			PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
-			SizeCheckDelta:               sizeCheckDelta,
-			RequestHandler:               tpn.RequestHandler,
-			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
-			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-			HeartbeatExpiryTimespanInSec: 30,
-			MainPeerShardMapper:          tpn.MainPeerShardMapper,
-			FullArchivePeerShardMapper:   tpn.FullArchivePeerShardMapper,
-			HardforkTrigger:              tpn.HardforkTrigger,
-			NodeOperationMode:            tpn.NodeOperationMode,
+			CoreComponents:                 coreComponents,
+			CryptoComponents:               cryptoComponents,
+			Accounts:                       tpn.AccntState,
+			ShardCoordinator:               tpn.ShardCoordinator,
+			NodesCoordinator:               tpn.NodesCoordinator,
+			MainMessenger:                  tpn.MainMessenger,
+			FullArchiveMessenger:           tpn.FullArchiveMessenger,
+			Store:                          tpn.Storage,
+			DataPool:                       tpn.DataPool,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+			TxFeeHandler:                   tpn.EconomicsData,
+			BlockBlackList:                 tpn.BlockBlackListHandler,
+			HeaderSigVerifier:              tpn.HeaderSigVerifier,
+			HeaderIntegrityVerifier:        tpn.HeaderIntegrityVerifier,
+			ValidityAttester:               tpn.BlockTracker,
+			EpochStartTrigger:              tpn.EpochStartTrigger,
+			WhiteListHandler:               tpn.WhiteListHandler,
+			WhiteListerVerifiedTxs:         tpn.WhiteListerVerifiedTxs,
+			AntifloodHandler:               &mock.NilAntifloodHandler{},
+			ArgumentsParser:                smartContract.NewArgumentParser(),
+			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+			SizeCheckDelta:                 sizeCheckDelta,
+			RequestHandler:                 tpn.RequestHandler,
+			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
+			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
+			HeartbeatExpiryTimespanInSec:   30,
+			MainPeerShardMapper:            tpn.MainPeerShardMapper,
+			FullArchivePeerShardMapper:     tpn.FullArchivePeerShardMapper,
+			HardforkTrigger:                tpn.HardforkTrigger,
+			NodeOperationMode:              tpn.NodeOperationMode,
+			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1382,37 +1389,39 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		coreComponents.HardforkTriggerPubKeyField = providedHardforkPk
 
 		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-			CoreComponents:               coreComponents,
-			CryptoComponents:             cryptoComponents,
-			Accounts:                     tpn.AccntState,
-			ShardCoordinator:             tpn.ShardCoordinator,
-			NodesCoordinator:             tpn.NodesCoordinator,
-			MainMessenger:                tpn.MainMessenger,
-			FullArchiveMessenger:         tpn.FullArchiveMessenger,
-			Store:                        tpn.Storage,
-			DataPool:                     tpn.DataPool,
-			MaxTxNonceDeltaAllowed:       common.MaxTxNonceDeltaAllowed,
-			TxFeeHandler:                 tpn.EconomicsData,
-			BlockBlackList:               tpn.BlockBlackListHandler,
-			HeaderSigVerifier:            tpn.HeaderSigVerifier,
-			HeaderIntegrityVerifier:      tpn.HeaderIntegrityVerifier,
-			ValidityAttester:             tpn.BlockTracker,
-			EpochStartTrigger:            tpn.EpochStartTrigger,
-			WhiteListHandler:             tpn.WhiteListHandler,
-			WhiteListerVerifiedTxs:       tpn.WhiteListerVerifiedTxs,
-			AntifloodHandler:             &mock.NilAntifloodHandler{},
-			ArgumentsParser:              smartContract.NewArgumentParser(),
-			PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
-			SizeCheckDelta:               sizeCheckDelta,
-			RequestHandler:               tpn.RequestHandler,
-			PeerSignatureHandler:         &processMock.PeerSignatureHandlerStub{},
-			SignaturesHandler:            &processMock.SignaturesHandlerStub{},
-			HeartbeatExpiryTimespanInSec: 30,
-			MainPeerShardMapper:          tpn.MainPeerShardMapper,
-			FullArchivePeerShardMapper:   tpn.FullArchivePeerShardMapper,
-			HardforkTrigger:              tpn.HardforkTrigger,
-			NodeOperationMode:            tpn.NodeOperationMode,
+			CoreComponents:                 coreComponents,
+			CryptoComponents:               cryptoComponents,
+			Accounts:                       tpn.AccntState,
+			ShardCoordinator:               tpn.ShardCoordinator,
+			NodesCoordinator:               tpn.NodesCoordinator,
+			MainMessenger:                  tpn.MainMessenger,
+			FullArchiveMessenger:           tpn.FullArchiveMessenger,
+			Store:                          tpn.Storage,
+			DataPool:                       tpn.DataPool,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+			TxFeeHandler:                   tpn.EconomicsData,
+			BlockBlackList:                 tpn.BlockBlackListHandler,
+			HeaderSigVerifier:              tpn.HeaderSigVerifier,
+			HeaderIntegrityVerifier:        tpn.HeaderIntegrityVerifier,
+			ValidityAttester:               tpn.BlockTracker,
+			EpochStartTrigger:              tpn.EpochStartTrigger,
+			WhiteListHandler:               tpn.WhiteListHandler,
+			WhiteListerVerifiedTxs:         tpn.WhiteListerVerifiedTxs,
+			AntifloodHandler:               &mock.NilAntifloodHandler{},
+			ArgumentsParser:                smartContract.NewArgumentParser(),
+			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+			SizeCheckDelta:                 sizeCheckDelta,
+			RequestHandler:                 tpn.RequestHandler,
+			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
+			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
+			HeartbeatExpiryTimespanInSec:   30,
+			MainPeerShardMapper:            tpn.MainPeerShardMapper,
+			FullArchivePeerShardMapper:     tpn.FullArchivePeerShardMapper,
+			HardforkTrigger:                tpn.HardforkTrigger,
+			NodeOperationMode:              tpn.NodeOperationMode,
+			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 		}
+
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
 
 		tpn.MainInterceptorsContainer, tpn.FullArchiveInterceptorsContainer, err = interceptorContainerFactory.Create()

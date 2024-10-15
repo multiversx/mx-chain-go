@@ -401,11 +401,6 @@ func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, head
 }
 
 func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
-	// TODO[cleanup cns finality]: consider removing this method
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return nil
-	}
-
 	headerCopy, err := hsv.copyHeaderWithoutLeaderSig(header)
 	if err != nil {
 		return err
