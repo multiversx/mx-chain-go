@@ -67,7 +67,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 		IssuePaymentToken: "ABC-123456",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, enshrineEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	addressShardID := chainSim.GetShardForAddress(cs, initialAddress)
 	nodeHandler := cs.GetNodeHandler(addressShardID)
