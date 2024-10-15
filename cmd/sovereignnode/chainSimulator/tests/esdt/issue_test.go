@@ -96,7 +96,7 @@ func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 	require.Equal(t, supply, esdtSupply)
 
 	setRolesArgs := setSpecialRole(tokenIdentifier, wallet.Bytes, fungibleRoles)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, tokenIdentifier, fungibleRoles)
 }

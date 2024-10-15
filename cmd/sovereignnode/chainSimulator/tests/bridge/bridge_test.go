@@ -96,7 +96,7 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	expectedESDTSafeAddressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(outGoingSubscribedAddress)
 	require.Nil(t, err)
 
-	bridgeData := DeploySovereignBridgeSetup(t, cs, wallet, esdtSafeWasmPath, feeMarketWasmPath)
+	bridgeData := deploySovereignBridgeSetup(t, cs, wallet, esdtSafeWasmPath, feeMarketWasmPath)
 	require.Equal(t, expectedESDTSafeAddressBytes, bridgeData.ESDTSafeAddress)
 
 	nonce := GetNonce(t, nodeHandler, wallet.Bech32)
@@ -116,7 +116,8 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 		Amount:     amountToDeposit,
 	})
 
-	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes, nil)
+	txResult := Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes, nil)
+	chainSim.RequireSuccessfulTransaction(t, txResult)
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
