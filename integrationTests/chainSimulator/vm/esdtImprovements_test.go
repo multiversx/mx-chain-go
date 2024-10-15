@@ -4496,3 +4496,223 @@ func TestChainSimulator_dynamicNFT_changeMetaDataForOneNFTShouldNotChangeOtherNo
 	metaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	checkMetaData(t, cs, addrs[1].Bytes, tokenID, 1, metaData)
 }
+
+func TestChainSimulator_dynamicNFT_updateBeforeCreateOnSameAccountShouldOverwrite(t *testing.T) {
+	t.Parallel()
+
+	baseIssuingCost := "1000"
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	log.Info("Register dynamic NFT token")
+
+	ticker := []byte("NFTTICKER")
+	tokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(tokenName)),
+			[]byte(hex.EncodeToString(ticker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	shard0Nonce := uint64(0)
+	tx := &transaction.Transaction{
+		Nonce:     shard0Nonce,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+	shard0Nonce++
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	tokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+	setAddressEsdtRoles(t, cs, shard0Nonce, addrs[0], tokenID, roles)
+	shard0Nonce++
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("update meta data for a token that is not yet created")
+
+	newMetaData := &txsFee.MetaData{}
+	newMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	newMetaData.Name = []byte(hex.EncodeToString([]byte("name2")))
+	newMetaData.Hash = []byte(hex.EncodeToString([]byte("hash2")))
+	newMetaData.Royalties = []byte(hex.EncodeToString(big.NewInt(15).Bytes()))
+
+	tx = esdtMetaDataUpdateTx(tokenID, newMetaData, shard0Nonce, addrs[0].Bytes)
+	shard0Nonce++
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 1)
+	newMetaData.Attributes = []byte{}
+	newMetaData.Uris = [][]byte{}
+	checkMetaData(t, cs, addrs[0].Bytes, tokenID, 0, newMetaData)
+
+	log.Info("create nft with the same nonce - should overwrite the metadata")
+
+	metaData := txsFee.GetDefaultMetaData()
+	metaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = esdtNftCreateTx(shard0Nonce, addrs[0].Bytes, tokenID, metaData, 1)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 0)
+	checkMetaData(t, cs, addrs[0].Bytes, tokenID, 0, metaData)
+}
+
+func TestChainSimulator_dynamicNFT_updateBeforeCreateOnDifferentAccountsShouldMergeMetaDataWhenTransferred(t *testing.T) {
+	t.Parallel()
+
+	baseIssuingCost := "1000"
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	log.Info("Register dynamic NFT token")
+
+	ticker := []byte("NFTTICKER")
+	tokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(tokenName)),
+			[]byte(hex.EncodeToString(ticker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	shard0Nonce := uint64(0)
+	tx := &transaction.Transaction{
+		Nonce:     shard0Nonce,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+	shard0Nonce++
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	tokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+	setAddressEsdtRoles(t, cs, shard0Nonce, addrs[0], tokenID, roles)
+	shard0Nonce++
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("transfer update role to another address")
+
+	shard0Nonce = transferSpecialRoleToAddr(t, cs, shard0Nonce, tokenID, addrs[0].Bytes, addrs[1].Bytes, []byte(core.ESDTRoleNFTUpdate))
+
+	log.Info("update meta data for a token that is not yet created")
+
+	newMetaData := &txsFee.MetaData{}
+	newMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	newMetaData.Name = []byte(hex.EncodeToString([]byte("name2")))
+	newMetaData.Hash = []byte(hex.EncodeToString([]byte("hash2")))
+	newMetaData.Royalties = []byte(hex.EncodeToString(big.NewInt(15).Bytes()))
+
+	tx = esdtMetaDataUpdateTx(tokenID, newMetaData, 0, addrs[1].Bytes)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 0)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 1)
+	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, tokenID, 0)
+	newMetaData.Attributes = []byte{}
+	newMetaData.Uris = [][]byte{}
+	checkMetaData(t, cs, addrs[1].Bytes, tokenID, 1, newMetaData)
+
+	log.Info("create nft with the same nonce on different account")
+
+	metaData := txsFee.GetDefaultMetaData()
+	metaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = esdtNftCreateTx(shard0Nonce, addrs[0].Bytes, tokenID, metaData, 1)
+	shard0Nonce++
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 0)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 1)
+	checkMetaData(t, cs, addrs[0].Bytes, tokenID, 0, metaData)
+	checkMetaData(t, cs, addrs[1].Bytes, tokenID, 1, newMetaData)
+
+	log.Info("transfer dynamic NFT to the updated account")
+
+	tx = esdtNFTTransferTx(shard0Nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 0)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, tokenID, 1)
+	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, tokenID, 0)
+	newMetaData.Attributes = metaData.Attributes
+	newMetaData.Uris = metaData.Uris
+	checkMetaData(t, cs, addrs[1].Bytes, tokenID, 1, newMetaData)
+}
