@@ -1265,3 +1265,6 @@ var ErrFlagNotActive = errors.New("flag not active")
 
 // ErrInvalidInterceptedData signals that an invalid data has been intercepted
 var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
+
+// ErrMissingHeaderProof signals that the proof for the header is missing
+var ErrMissingHeaderProof = errors.New("missing header proof")

@@ -1121,7 +1121,7 @@ func TestBlockProc_RequestTransactionFromNetwork(t *testing.T) {
 	}
 
 	header := createMetaBlockHeader()
-	hdrsRequested, _, _ := mp.RequestBlockHeaders(header)
+	hdrsRequested, _ := mp.RequestBlockHeaders(header)
 	assert.Equal(t, uint32(1), hdrsRequested)
 }
 

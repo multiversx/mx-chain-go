@@ -175,7 +175,7 @@ func NewShardProcessorEmptyWith3shards(
 	return shardProc, err
 }
 
-func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32, uint32) {
+func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, uint32) {
 	return mp.requestShardHeaders(header)
 }
 
@@ -582,12 +582,12 @@ func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
 }
 
 // ComputeExistingAndRequestMissingShardHeaders -
-func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32, uint32) {
+func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
 // ComputeExistingAndRequestMissingMetaHeaders -
-func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32, uint32) {
+func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
 	return sp.computeExistingAndRequestMissingMetaHeaders(header)
 }
 

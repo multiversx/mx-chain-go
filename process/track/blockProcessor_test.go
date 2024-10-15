@@ -8,6 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -56,7 +58,11 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 				return 1
 			},
 		},
-		RoundHandler: &mock.RoundHandlerMock{},
+		RoundHandler:        &mock.RoundHandlerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofsPool:          &dataRetriever.ProofsPoolMock{},
+		Marshaller:          &testscommon.MarshallerStub{},
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 
 	return arguments
@@ -169,6 +175,50 @@ func TestNewBlockProcessor_ShouldErrFinalMetachainHeadersNotifier(t *testing.T) 
 	bp, err := track.NewBlockProcessor(blockProcessorArguments)
 
 	assert.Equal(t, track.ErrNilFinalMetachainHeadersNotifier, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrNilEnableEpochsHandler(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.EnableEpochsHandler = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrNilProofsPool(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.ProofsPool = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, track.ErrNilProofsPool, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrNilMarshaller(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.Marshaller = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, process.ErrNilMarshalizer, err)
+	assert.Nil(t, bp)
+}
+
+func TestNewBlockProcessor_ShouldErrNilHasher(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateBlockProcessorMockArguments()
+	blockProcessorArguments.Hasher = nil
+	bp, err := track.NewBlockProcessor(blockProcessorArguments)
+
+	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, bp)
 }
 

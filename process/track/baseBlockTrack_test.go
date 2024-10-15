@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -122,17 +123,19 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:           &hashingMocks.HasherMock{},
-			HeaderValidator:  headerValidator,
-			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &testscommon.RequestHandlerStub{},
-			RoundHandler:     &mock.RoundHandlerMock{},
-			ShardCoordinator: shardCoordinatorMock,
-			Store:            initStore(),
-			StartHeaders:     genesisBlocks,
-			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
-			WhitelistHandler: whitelistHandler,
-			FeeHandler:       feeHandler,
+			Hasher:              &hashingMocks.HasherMock{},
+			HeaderValidator:     headerValidator,
+			Marshalizer:         &mock.MarshalizerMock{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
+			RoundHandler:        &mock.RoundHandlerMock{},
+			ShardCoordinator:    shardCoordinatorMock,
+			Store:               initStore(),
+			StartHeaders:        genesisBlocks,
+			PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
+			WhitelistHandler:    whitelistHandler,
+			FeeHandler:          feeHandler,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ProofsPool:          &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
 
@@ -160,17 +163,19 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:           &hashingMocks.HasherMock{},
-			HeaderValidator:  headerValidator,
-			Marshalizer:      &mock.MarshalizerMock{},
-			RequestHandler:   &testscommon.RequestHandlerStub{},
-			RoundHandler:     &mock.RoundHandlerMock{},
-			ShardCoordinator: shardCoordinatorMock,
-			Store:            initStore(),
-			StartHeaders:     genesisBlocks,
-			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
-			WhitelistHandler: whitelistHandler,
-			FeeHandler:       feeHandler,
+			Hasher:              &hashingMocks.HasherMock{},
+			HeaderValidator:     headerValidator,
+			Marshalizer:         &mock.MarshalizerMock{},
+			RequestHandler:      &testscommon.RequestHandlerStub{},
+			RoundHandler:        &mock.RoundHandlerMock{},
+			ShardCoordinator:    shardCoordinatorMock,
+			Store:               initStore(),
+			StartHeaders:        genesisBlocks,
+			PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
+			WhitelistHandler:    whitelistHandler,
+			FeeHandler:          feeHandler,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ProofsPool:          &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
 
@@ -195,15 +200,17 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	}
 
 	arguments := track.ArgBaseTracker{
-		Hasher:           &hashingMocks.HasherMock{},
-		HeaderValidator:  headerValidator,
-		Marshalizer:      &mock.MarshalizerMock{},
-		RequestHandler:   &testscommon.RequestHandlerStub{},
-		RoundHandler:     &mock.RoundHandlerMock{},
-		ShardCoordinator: shardCoordinatorMock,
-		Store:            initStore(),
-		StartHeaders:     genesisBlocks,
-		FeeHandler:       feeHandler,
+		Hasher:              &hashingMocks.HasherMock{},
+		HeaderValidator:     headerValidator,
+		Marshalizer:         &mock.MarshalizerMock{},
+		RequestHandler:      &testscommon.RequestHandlerStub{},
+		RoundHandler:        &mock.RoundHandlerMock{},
+		ShardCoordinator:    shardCoordinatorMock,
+		Store:               initStore(),
+		StartHeaders:        genesisBlocks,
+		FeeHandler:          feeHandler,
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofsPool:          &dataRetrieverMock.ProofsPoolMock{},
 	}
 
 	return arguments

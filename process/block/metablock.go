@@ -298,7 +298,7 @@ func (mp *metaProcessor) ProcessBlock(
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
-	requestedShardHdrs, requestedFinalityAttestingShardHdrs, missingShardHdrProofs := mp.requestShardHeaders(header)
+	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
 		return process.ErrTimeIsOut
@@ -309,9 +309,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	haveMissingShardHeaders := requestedShardHdrs > 0 ||
-		requestedFinalityAttestingShardHdrs > 0 ||
-		missingShardHdrProofs > 0
+	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
 	if haveMissingShardHeaders {
 		if requestedShardHdrs > 0 {
 			log.Debug("requested missing shard headers",
@@ -321,11 +319,6 @@ func (mp *metaProcessor) ProcessBlock(
 		if requestedFinalityAttestingShardHdrs > 0 {
 			log.Debug("requested missing finality attesting shard headers",
 				"num finality shard headers", requestedFinalityAttestingShardHdrs,
-			)
-		}
-		if missingShardHdrProofs > 0 {
-			log.Debug("missing shard header proofs",
-				"num", missingShardHdrProofs,
 			)
 		}
 
@@ -1090,17 +1083,23 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 		}
 
 		shouldCheckProof := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currShardHdr.GetEpoch())
-		hasProofForHdr := mp.proofsPool.HasProof(currShardHdr.GetShardID(), orderedHdrsHashes[i])
-		if shouldCheckProof && !hasProofForHdr {
-			log.Trace("no proof for shard header",
-				"shard", currShardHdr.GetShardID(),
-				"hash", logger.DisplayByteSlice(orderedHdrsHashes[i]),
-			)
-			continue
+		if shouldCheckProof {
+			hasProofForHdr := mp.proofsPool.HasProof(currShardHdr.GetShardID(), orderedHdrsHashes[i])
+			if !hasProofForHdr {
+				log.Trace("no proof for shard header",
+					"shard", currShardHdr.GetShardID(),
+					"hash", logger.DisplayByteSlice(orderedHdrsHashes[i]),
+				)
+				continue
+			}
 		}
 
 		if len(currShardHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
-			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{hdr: currShardHdr, usedInBlock: true, hasProof: true}
+			mp.hdrsForCurrBlock.hdrHashAndInfo[string(orderedHdrsHashes[i])] = &hdrInfo{
+				hdr:         currShardHdr,
+				usedInBlock: true,
+				hasProof:    true,
+			}
 			hdrsAdded++
 			hdrsAddedForShard[currShardHdr.GetShardID()]++
 			lastShardHdr[currShardHdr.GetShardID()] = currShardHdr
@@ -1302,18 +1301,20 @@ func (mp *metaProcessor) CommitBlock(
 		mp.lastRestartNonce = header.GetNonce()
 	}
 
-	isBlockAfterEquivalentMessagesFlag := !check.IfNil(lastMetaBlock) &&
-		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, lastMetaBlock.GetEpoch())
+	finalMetaBlock := lastMetaBlock
+	finalMetaBlockHash := lastMetaBlockHash
+	isBlockAfterEquivalentMessagesFlag := !check.IfNil(finalMetaBlock) &&
+		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, finalMetaBlock.GetEpoch())
 	if isBlockAfterEquivalentMessagesFlag {
 		// for the first block we need to update both the state of the previous one and for current
-		if mp.isFirstBlockAfterEquivalentMessagesFlag(header) {
+		if mp.isEpochChangeBlockForEquivalentMessagesActivation(header) {
 			mp.updateState(lastMetaBlock, lastMetaBlockHash)
 		}
 
-		lastMetaBlock = header
-		lastMetaBlockHash = headerHash
+		finalMetaBlock = header
+		finalMetaBlockHash = headerHash
 	}
-	mp.updateState(lastMetaBlock, lastMetaBlockHash)
+	mp.updateState(finalMetaBlock, finalMetaBlockHash)
 
 	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
@@ -1327,12 +1328,12 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() {
+	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
-	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
@@ -1867,23 +1868,23 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 			continue
 		}
 
-		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, lastVerifiedHdr.GetEpoch()) {
-			marshalledHeader, err := mp.marshalizer.Marshal(lastVerifiedHdr)
-			if err != nil {
-				return err
-			}
-
-			headerHash := mp.hasher.Compute(string(marshalledHeader))
-			if !mp.proofsPool.HasProof(shardId, headerHash) {
-				return process.ErrHeaderNotFinal
-			}
-
-			return nil
-		}
-
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
 		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
+			if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
+				marshalledHeader, err := mp.marshalizer.Marshal(shardHdr)
+				if err != nil {
+					return err
+				}
+
+				headerHash := mp.hasher.Compute(string(marshalledHeader))
+				if !mp.proofsPool.HasProof(shardId, headerHash) {
+					return process.ErrHeaderNotFinal
+				}
+
+				break
+			}
+
 			if nextBlocksVerified >= mp.shardBlockFinality {
 				break
 			}
@@ -1929,9 +1930,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
-	haveMissingShardHeaders := mp.hdrsForCurrBlock.missingHdrs > 0 ||
-		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0 ||
-		mp.hdrsForCurrBlock.missingHdrsProofs > 0
+	haveMissingShardHeaders := mp.hdrsForCurrBlock.missingHdrs > 0 || mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
 	if haveMissingShardHeaders {
 		hdrInfoForHash := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardHeaderHash)]
 		headerInfoIsNotNil := hdrInfoForHash != nil
@@ -1946,35 +1945,39 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		}
 
 		if hdrInfoForHash != nil && !hdrInfoForHash.hasProof {
-			hasProof := mp.proofsPool.HasProof(shardHeader.GetShardID(), shardHeaderHash)
-			hdrInfoForHash.hasProof = hasProof
-			if hasProof {
-				mp.hdrsForCurrBlock.missingHdrsProofs--
-			}
+			hdrInfoForHash.hasProof = mp.proofsPool.HasProof(shardHeader.GetShardID(), shardHeaderHash)
 		}
 
+		shouldConsiderProofsForNotarization := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHeader.GetEpoch())
 		if mp.hdrsForCurrBlock.missingHdrs == 0 {
-			if !mp.shouldConsiderProofsForNotarization(shardHeader) {
+			if !shouldConsiderProofsForNotarization {
 				mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
-			}
-
-			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
-				log.Debug("received all missing finality attesting shard headers")
-			}
-
-			if mp.hdrsForCurrBlock.missingHdrsProofs == 0 {
-				log.Debug("received all shard header proofs")
+				if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
+					log.Debug("received all missing finality attesting shard headers")
+				}
 			}
 		}
 
 		missingShardHdrs := mp.hdrsForCurrBlock.missingHdrs
 		missingFinalityAttestingShardHdrs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
-		missingHdrsProofs := mp.hdrsForCurrBlock.missingHdrsProofs
 		mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+		hasAllProofs := true
+		for shardHdrHash, shardHdr := range mp.hdrsForCurrBlock.hdrHashAndInfo {
+			if shardHdr.hasProof && mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.hdr.GetEpoch()) {
+				continue
+			}
+
+			hasProof := mp.proofsPool.HasProof(shardHdr.hdr.GetShardID(), []byte(shardHdrHash))
+			if !hasProof {
+				hasAllProofs = false
+				break
+			}
+		}
+		hasMissingProofs := !hasAllProofs && shouldConsiderProofsForNotarization
+
 		allMissingShardHeadersReceived := missingShardHdrs == 0 &&
-			missingFinalityAttestingShardHdrs == 0 &&
-			missingHdrsProofs == 0
+			missingFinalityAttestingShardHdrs == 0 && !hasMissingProofs
 		if allMissingShardHeadersReceived {
 			mp.chRcvAllHdrs <- true
 		}
@@ -2004,17 +2007,17 @@ func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 	return missingFinalityAttestingShardHeaders
 }
 
-func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32, uint32) {
+func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
 	_ = core.EmptyChannel(mp.chRcvAllHdrs)
 
 	if len(metaBlock.ShardInfo) == 0 {
-		return 0, 0, 0
+		return 0, 0
 	}
 
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
-func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32, uint32) {
+func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
@@ -2060,14 +2063,12 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
 		}
 
-		if mp.shouldConsiderProofsForNotarization(hdr) {
+		shouldConsiderProofsForNotarization := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+		if shouldConsiderProofsForNotarization {
 			notarizedShardHdrsBasedOnProofs++
 
 			hasProofForShardHdr := mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash)
 			mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)].hasProof = hasProofForShardHdr
-			if !hasProofForShardHdr {
-				mp.hdrsForCurrBlock.missingHdrsProofs++
-			}
 		}
 	}
 
@@ -2076,7 +2077,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}
 
-	return mp.hdrsForCurrBlock.missingHdrs, mp.hdrsForCurrBlock.missingFinalityAttestingHdrs, mp.hdrsForCurrBlock.missingHdrsProofs
+	return mp.hdrsForCurrBlock.missingHdrs, mp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 }
 
 func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
@@ -2095,9 +2096,9 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 
 		isBlockAfterEquivalentMessagesFlag := check.IfNil(headerInfo.hdr) &&
 			mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-		hasMissingProof := isBlockAfterEquivalentMessagesFlag && !headerInfo.hasProof
-		if hasMissingProof {
-			continue
+		hasMissingShardHdrProof := isBlockAfterEquivalentMessagesFlag && !headerInfo.hasProof
+		if hasMissingShardHdrProof {
+			return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hdrHash)
 		}
 
 		shardHdr, ok := headerInfo.hdr.(data.ShardHeaderHandler)
@@ -2115,10 +2116,15 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 		shardData.PrevRandSeed = shardHdr.GetPrevRandSeed()
 		shardData.PubKeysBitmap = shardHdr.GetPubKeysBitmap()
 		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
-			proof := shardHdr.GetPreviousProof()
-			if proof != nil {
-				shardData.PubKeysBitmap = proof.GetPubKeysBitmap()
+			prevProof := shardHdr.GetPreviousProof()
+			if prevProof != nil {
+				shardData.PubKeysBitmap = prevProof.GetPubKeysBitmap()
 			}
+			currentProof, err := mp.proofsPool.GetProof(shardHdr.GetShardID(), []byte(hdrHash))
+			if err != nil {
+				return nil, err
+			}
+			shardData.CurrentPubKeysBitmap = currentProof.GetPubKeysBitmap()
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())

@@ -4,9 +4,11 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -24,6 +26,11 @@ type blockProcessor struct {
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
+
+	enableEpochsHandler core.EnableEpochsHandler
+	proofsPool          process.ProofsPool
+	marshaller          marshal.Marshalizer
+	hasher              hashing.Hasher
 
 	blockFinality uint64
 }
@@ -47,6 +54,10 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
+		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		proofsPool:                            arguments.ProofsPool,
+		marshaller:                            arguments.Marshaller,
+		hasher:                                arguments.Hasher,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -234,7 +245,11 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
 	}()
 
-	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
+	startingNonce := header.GetNonce() + 1
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		startingNonce = header.GetNonce()
+	}
+	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, startingNonce)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
 	}
@@ -298,6 +313,19 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 	if check.IfNil(header) {
 		return process.ErrNilBlockHeader
+	}
+
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		headerHash, err := core.CalculateHash(bp.marshaller, bp.hasher, header)
+		if err != nil {
+			return err
+		}
+
+		if bp.proofsPool.HasProof(header.GetShardID(), headerHash) {
+			return nil
+		}
+
+		return process.ErrHeaderNotFinal
 	}
 
 	prevHeader := header
@@ -483,6 +511,18 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.RoundHandler) {
 		return ErrNilRoundHandler
+	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.ProofsPool) {
+		return ErrNilProofsPool
+	}
+	if check.IfNil(arguments.Marshaller) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNilReflect(arguments.Hasher) {
+		return process.ErrNilHasher
 	}
 
 	return nil

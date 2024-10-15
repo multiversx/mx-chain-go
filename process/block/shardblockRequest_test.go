@@ -116,12 +116,11 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(1), missingHeaders)
 		require.Equal(t, uint32(0), missingFinalityAttestingHeaders)
-		require.Equal(t, uint32(0), missingProofs)
 		require.Equal(t, uint32(1), numCalls.Load())
 	})
 	t.Run("multiple referenced metaBlocks missing will be requested", func(t *testing.T) {
@@ -153,12 +152,11 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(2), missingHeaders)
 		require.Equal(t, uint32(0), missingFinalityAttestingHeaders)
-		require.Equal(t, uint32(0), missingProofs)
 		require.Equal(t, uint32(2), numCalls.Load())
 	})
 	t.Run("all referenced metaBlocks existing with missing attestation, will request the attestation metaBlock", func(t *testing.T) {
@@ -193,12 +191,11 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(0), missingHeaders)
 		require.Equal(t, uint32(1), missingFinalityAttestingHeaders)
-		require.Equal(t, uint32(0), missingProofs)
 		require.Equal(t, uint32(0), numCallsMissing.Load())
 		require.Equal(t, uint32(1), numCallsAttestation.Load())
 	})
@@ -237,12 +234,11 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingFinalityAttestingHeaders := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(0), missingHeaders)
 		require.Equal(t, uint32(0), missingFinalityAttestingHeaders)
-		require.Equal(t, uint32(0), missingProofs)
 		require.Equal(t, uint32(0), numCallsMissing.Load())
 		require.Equal(t, uint32(0), numCallsAttestation.Load())
 	})
