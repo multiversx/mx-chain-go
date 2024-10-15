@@ -11,6 +11,7 @@ import (
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -171,6 +172,25 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
+
+		return true
+	}
+
+	selfJobDone := true
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		selfJobDone = sr.IsSelfJobDone(sr.Current())
+	}
+	multiKeyJobDone := true
+	if sr.IsMultiKeyInConsensusGroup() {
+		multiKeyJobDone = sr.IsMultiKeyJobDone(sr.Current())
+	}
+
+	isJobDoneByConsensusNode := isSelfInConsensusGroup && selfJobDone && multiKeyJobDone
+	if isJobDoneByConsensusNode {
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 
 		return true
 	}

@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -409,75 +408,6 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 
 func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	t.Parallel()
-
-	t.Run("with equivalent messages flag inactive", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundSignatureWithContainer(container)
-
-		sr.SetHeader(&block.Header{})
-		sr.SetData(nil)
-		r := sr.DoSignatureJob()
-		assert.False(t, r)
-
-		sr.SetData([]byte("X"))
-
-		sr.SetHeader(nil)
-		r = sr.DoSignatureJob()
-		assert.False(t, r)
-
-		sr.SetHeader(&block.Header{})
-
-		err := errors.New("create signature share error")
-		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				return nil, err
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-
-		r = sr.DoSignatureJob()
-		assert.False(t, r)
-
-		signingHandler = &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				return []byte("SIG"), nil
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-
-		r = sr.DoSignatureJob()
-		assert.True(t, r)
-
-		sr.SetSelfPubKey("OTHER")
-		r = sr.DoSignatureJob()
-		assert.False(t, r)
-
-		sr.SetSelfPubKey(sr.ConsensusGroup()[2])
-		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
-			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				return expectedErr
-			},
-		})
-		r = sr.DoSignatureJob()
-		assert.False(t, r)
-
-		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
-			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				return nil
-			},
-		})
-		_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-		sr.SetRoundCanceled(false)
-		leader, err := sr.GetLeader()
-		assert.Nil(t, err)
-
-		sr.SetSelfPubKey(leader)
-		r = sr.DoSignatureJob()
-		assert.True(t, r)
-		assert.False(t, sr.GetRoundCanceled())
-	})
 	t.Run("with equivalent messages flag active should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -496,7 +426,9 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		sr.SetSelfPubKey(leader)
 		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				assert.Fail(t, "should have not been called")
+				if string(message.PubKey) != leader || message.MsgType != int64(bls.MtSignature) {
+					assert.Fail(t, "should have not been called")
+				}
 				return nil
 			},
 		})
@@ -513,102 +445,6 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 }
 
 func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
-	t.Parallel()
-
-	t.Run("with equivalent messages flag inactive", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		consensusState := initializers.InitConsensusStateWithKeysHandler(
-			&testscommon.KeysHandlerStub{
-				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
-					return true
-				},
-			},
-		)
-		ch := make(chan bool, 1)
-
-		sr, _ := spos.NewSubround(
-			bls.SrBlock,
-			bls.SrSignature,
-			bls.SrEndRound,
-			int64(70*roundTimeDuration/100),
-			int64(85*roundTimeDuration/100),
-			"(SIGNATURE)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		signatureSentForPks := make(map[string]struct{})
-		mutex := sync.Mutex{}
-		srSignature, _ := v2.NewSubroundSignature(
-			sr,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{
-				SignatureSentCalled: func(pkBytes []byte) {
-					mutex.Lock()
-					signatureSentForPks[string(pkBytes)] = struct{}{}
-					mutex.Unlock()
-				},
-			},
-			&consensusMocks.SposWorkerMock{},
-			&dataRetrieverMock.ThrottlerStub{},
-		)
-
-		srSignature.SetHeader(&block.Header{})
-		srSignature.SetData(nil)
-		r := srSignature.DoSignatureJob()
-		assert.False(t, r)
-
-		sr.SetData([]byte("X"))
-
-		err := errors.New("create signature share error")
-		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				return nil, err
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-
-		r = srSignature.DoSignatureJob()
-		assert.False(t, r)
-
-		signingHandler = &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				return []byte("SIG"), nil
-			},
-		}
-		container.SetSigningHandler(signingHandler)
-
-		r = srSignature.DoSignatureJob()
-		assert.True(t, r)
-
-		_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
-		sr.SetRoundCanceled(false)
-		leader, err := sr.GetLeader()
-		assert.Nil(t, err)
-		sr.SetSelfPubKey(leader)
-		r = srSignature.DoSignatureJob()
-		assert.True(t, r)
-		assert.False(t, sr.GetRoundCanceled())
-		expectedMap := map[string]struct{}{
-			"A": {},
-			"B": {},
-			"C": {},
-			"D": {},
-			"E": {},
-			"F": {},
-			"G": {},
-			"H": {},
-			"I": {},
-		}
-		assert.Equal(t, expectedMap, signatureSentForPks)
-	})
 	t.Run("with equivalent messages flag active should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -692,29 +528,11 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 			assert.True(t, isJobDone)
 		}
 
-		expectedMap := map[string]struct{}{
-			"A": {},
-			"B": {},
-			"C": {},
-			"D": {},
-			"E": {},
-			"F": {},
-			"G": {},
-			"H": {},
-			"I": {},
-		}
+		expectedMap := map[string]struct{}{"A": {}, "B": {}, "C": {}, "D": {}, "E": {}, "F": {}, "G": {}, "H": {}, "I": {}}
 		assert.Equal(t, expectedMap, signatureSentForPks)
 
-		expectedBroadcastMap := map[string]int{
-			"B": 1,
-			"C": 1,
-			"D": 1,
-			"E": 1,
-			"F": 1,
-			"G": 1,
-			"H": 1,
-			"I": 1,
-		}
+		// leader also sends his signature
+		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
 	})
 }
@@ -916,7 +734,6 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 }
 
 func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
-
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
@@ -998,31 +815,11 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			assert.True(t, isJobDone)
 		}
 
-		expectedMap := map[string]struct{}{
-			"A": {},
-			"B": {},
-			"C": {},
-			"D": {},
-			"E": {},
-			"F": {},
-			"G": {},
-			"H": {},
-			"I": {},
-		}
+		expectedMap := map[string]struct{}{"A": {}, "B": {}, "C": {}, "D": {}, "E": {}, "F": {}, "G": {}, "H": {}, "I": {}}
 		assert.Equal(t, expectedMap, signatureSentForPks)
 
-		expectedBroadcastMap := map[string]int{
-			"B": 1,
-			"C": 1,
-			"D": 1,
-			"E": 1,
-			"F": 1,
-			"G": 1,
-			"H": 1,
-			"I": 1,
-		}
+		expectedBroadcastMap := map[string]int{"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 1, "G": 1, "H": 1, "I": 1}
 		assert.Equal(t, expectedBroadcastMap, signaturesBroadcast)
-
 	})
 
 	t.Run("should fail", func(t *testing.T) {
@@ -1077,9 +874,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		cancel()
 		r := srSignature.DoSignatureJobForManagedKeys(ctx)
 		assert.False(t, r)
-
 	})
-
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {

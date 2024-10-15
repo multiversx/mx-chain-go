@@ -377,7 +377,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	// in this case, we won't set the proof, return false and wait for the next round to receive a proof
 	prevBlockHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(prevBlockHeader) {
-		log.Debug("addProofOnHeader.GetCurrentBlockHeader, nil current header")
+		log.Debug("addProofOnHeader.GetCurrentBlockHeader, returned nil header")
 		return false
 	}
 
