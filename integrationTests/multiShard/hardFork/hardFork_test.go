@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -601,6 +602,11 @@ func createHardForkExporter(
 		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
 		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
+
+		interceptorDataVerifierFactoryArgs := interceptorFactory.InterceptedDataVerifierFactoryArgs{
+			CacheSpan:   time.Second * 5,
+			CacheExpiry: time.Second * 10,
+		}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
@@ -650,11 +656,12 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
-			MaxHardCapForMissingNodes: 500,
-			NumConcurrentTrieSyncers:  50,
-			TrieSyncerVersion:         2,
-			CheckNodesOnDisk:          false,
-			NodeOperationMode:         node.NodeOperationMode,
+			MaxHardCapForMissingNodes:      500,
+			NumConcurrentTrieSyncers:       50,
+			TrieSyncerVersion:              2,
+			CheckNodesOnDisk:               false,
+			NodeOperationMode:              node.NodeOperationMode,
+			InterceptedDataVerifierFactory: interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

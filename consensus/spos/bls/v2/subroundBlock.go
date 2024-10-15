@@ -111,7 +111,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	leaderSignature, err := sr.signBlockHeader()
+	leaderSignature, err := sr.signBlockHeader(header)
 	if err != nil {
 		printLogMessage(ctx, "doBlockJob.signBlockHeader", err)
 		return false
@@ -147,8 +147,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	return true
 }
 
-func (sr *subroundBlock) signBlockHeader() ([]byte, error) {
-	headerClone := sr.GetHeader().ShallowClone()
+func (sr *subroundBlock) signBlockHeader(header data.HeaderHandler) ([]byte, error) {
+	headerClone := header.ShallowClone()
 	err := headerClone.SetLeaderSignature(nil)
 	if err != nil {
 		return nil, err
