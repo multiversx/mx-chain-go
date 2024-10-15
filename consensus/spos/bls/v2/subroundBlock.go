@@ -467,6 +467,9 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 }
 
 func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) bool {
+	if check.IfNil(header) {
+		return false
+	}
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
 		return false
 	}
@@ -485,11 +488,8 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 		return false
 	}
 	prevRandSeed := prevHeader.GetRandSeed()
-	if !bytes.Equal(header.GetPrevRandSeed(), prevRandSeed) {
-		return false
-	}
 
-	return true
+	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
