@@ -22,8 +22,6 @@ import (
 
 const (
 	defaultPathToInitialConfig = "../../../cmd/node/config/"
-	enshrineEsdtSafeWasmPath   = "testdata/enshrine-esdt-safe.wasm"
-	feeMarketWasmPath          = "testdata/fee-market.wasm"
 )
 
 var sovChainPrefix = "sov"
@@ -174,7 +172,7 @@ func simulateExecutionAndDeposit(
 		IssuePaymentToken: "WEGLD-bd4d79",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, enshrineEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, enshrineEsdtSafeContract)
 	chainSim.RequireAccountHasToken(t, cs, argsEsdtSafe.IssuePaymentToken, initialAddress, big.NewInt(0))
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)

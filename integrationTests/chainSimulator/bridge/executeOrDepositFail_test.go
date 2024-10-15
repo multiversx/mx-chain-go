@@ -18,9 +18,7 @@ import (
 )
 
 const (
-	//enshrine esdt-safe contract without checks for prefix or issue cost paid for new tokens
-	simpleEsdtSafeWasmPath = "testdata/simple-esdt-safe.wasm"
-	actionNotAllowed       = "action is not allowed"
+	actionNotAllowed = "action is not allowed"
 )
 
 func TestChainSimulator_ExecuteOperationNotAllowedToMintFungibleTokenWithoutPrefix(t *testing.T) {
@@ -111,7 +109,7 @@ func testExecuteOperationNotAllowedToMintTokenWithoutPrefix(
 		IssuePaymentToken: "ABC-123456",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, simpleEnshrineEsdtSafeContract)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.Equal(t, whiteListedAddress, esdtSafeEncoded)
@@ -217,7 +215,7 @@ func testExecuteOperationNotAllowedToMintFungibleContractNotWhitelisted(
 		IssuePaymentToken: "ABC-123456",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, simpleEnshrineEsdtSafeContract)
 
 	// esdt-safe address generated is NOT whitelisted
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
@@ -324,7 +322,7 @@ func testDepositNotAllowedToBurnTokensContractNotWhitelisted(
 		IssuePaymentToken: "ABC-123456",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, simpleEnshrineEsdtSafeContract)
 
 	// esdt-safe address generated is NOT whitelisted
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
@@ -418,7 +416,7 @@ func TestChainSimulator_ExecuteSameNft2Times(t *testing.T) {
 		IssuePaymentToken: "WEGLD-bd4d79",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, enshrineEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, enshrineEsdtSafeContract)
 	chainSim.RequireAccountHasToken(t, cs, argsEsdtSafe.IssuePaymentToken, initialAddress, big.NewInt(0))
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
