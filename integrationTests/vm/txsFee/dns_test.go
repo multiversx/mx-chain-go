@@ -203,7 +203,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 	}
 
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+		RelayedTransactionsV3EnableEpoch: integrationTests.UnreachableEpoch,
 	}, 1)
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()

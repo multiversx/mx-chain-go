@@ -63,7 +63,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 		},
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator, &mock.HasherMock{})
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 
 	epoch := uint32(0)
@@ -107,7 +107,7 @@ func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(
 		historyRepo,
 		genericMocks.NewChainStorerMock(epoch),
 		&marshallerMock.MarshalizerMock{},
-		newTransactionUnmarshaller(&marshallerMock.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser, shardCoordinator),
+		newTransactionUnmarshaller(&marshallerMock.MarshalizerMock{}, testscommon.RealWorldBech32PubkeyConverter, dataFieldParser, shardCoordinator, &mock.HasherMock{}),
 		&testscommon.LogsFacadeStub{},
 		shardCoordinator,
 		dataFieldParser,
@@ -217,7 +217,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	pubKeyConverter := testscommon.NewPubkeyConverterMock(3)
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerdMock, pubKeyConverter, dataFieldParser, shardCoordinator, &mock.HasherMock{})
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerdMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 
 	encodedSndAddr, err := pubKeyConverter.Encode(scr1.SndAddr)
@@ -315,7 +315,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	}
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 	pubKeyConverter := &testscommon.PubkeyConverterMock{}
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser, shardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(marshalizerMock, pubKeyConverter, dataFieldParser, shardCoordinator, &mock.HasherMock{})
 	n := newAPITransactionResultProcessor(pubKeyConverter, historyRepo, dataStore, marshalizerMock, txUnmarshalerAndPreparer, logsFacade, shardCoordinator, dataFieldParser)
 
 	tx := &transaction.ApiTransactionResult{}

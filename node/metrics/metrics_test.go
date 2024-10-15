@@ -209,9 +209,8 @@ func TestInitConfigMetrics(t *testing.T) {
 			CryptoOpcodesV2EnableEpoch:                               102,
 			ScToScLogEventEnableEpoch:                                103,
 			RelayedTransactionsV3EnableEpoch:                         104,
-			FixRelayedBaseCostEnableEpoch:                            105,
-			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          106,
-			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           107,
+			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          105,
+			LinkInnerTransactionEnableEpoch:                          106,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -331,9 +330,8 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_crypto_opcodes_v2_enable_epoch":                                   uint32(102),
 		"erd_set_sc_to_sc_log_event_enable_epoch":                              uint32(103),
 		"erd_relayed_transactions_v3_enable_epoch":                             uint32(104),
-		"erd_fix_relayed_base_cost_enable_epoch":                               uint32(105),
-		"erd_multi_esdt_transfer_execute_by_user_enable_epoch":                 uint32(106),
-		"erd_fix_relayed_move_balance_to_non_payable_sc_enable_epoch":          uint32(107),
+		"erd_multi_esdt_transfer_execute_by_user_enable_epoch":                 uint32(105),
+		"erd_link_inner_transaction_enable_epoch":                              uint32(106),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
