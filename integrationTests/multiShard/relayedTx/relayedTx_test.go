@@ -9,6 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
@@ -16,9 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
@@ -377,7 +378,7 @@ func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAd
 	})
 	assert.Nil(t, err)
 	actualBalance := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-	assert.Equal(t, 0, actualBalance.Cmp(balance))
+	assert.Equal(t, balance, actualBalance)
 }
 
 func checkPlayerBalances(

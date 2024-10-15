@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
+	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -244,6 +245,10 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		&marshallerMock.MarshalizerMock{},
 		444,
 	)
+	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Second * 5,
+		CacheExpiry: time.Second * 10,
+	}
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,
@@ -282,8 +287,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:          disabled.NewStateStatistics(),
+		TrieSyncStatisticsProvider:     &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:              disabled.NewStateStatistics(),
+		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
