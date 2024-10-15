@@ -47,6 +47,7 @@ var (
 	oneEGLD                                  = big.NewInt(1000000000000000000)
 	alterConfigsFuncRelayedV3EarlyActivation = func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.LinkInnerTransactionEnableEpoch = 1
 	}
 )
 
@@ -488,6 +489,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 	baseIssuingCost := "5000000000000000000"
 	cs := startChainSimulator(t, func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.LinkInnerTransactionEnableEpoch = 1
 		cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = 2
 	})
 	defer cs.Close()
