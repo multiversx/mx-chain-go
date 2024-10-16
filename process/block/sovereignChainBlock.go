@@ -1910,6 +1910,11 @@ func (scbp *sovereignChainBlockProcessor) saveExtendedShardHeader(header data.He
 			"err", errNotCritical)
 	}
 
+	log.Error("sovereignChainBlockProcessor.saveExtendedShardHeader",
+		"headerHash", headerHash,
+		"nonce", header.GetNonce(),
+	)
+
 	errNotCritical = scbp.store.Put(dataRetriever.ExtendedShardHeadersUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
 		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,

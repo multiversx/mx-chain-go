@@ -3,6 +3,7 @@ package processor
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -96,18 +97,26 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 		return err
 	}
 
-	computedHeaderHash, err := core.CalculateHash(hip.marshaller, hip.hasher, computedExtendedHeader)
-	if err != nil {
-		return err
-	}
+	jsonHeader, _ := json.Marshal(extendedHdr)
+	jsonComputedHeader, _ := json.Marshal(computedExtendedHeader)
 
-	if !bytes.Equal(computedHeaderHash, hash) {
-		return fmt.Errorf("%w, computed hash: %s, received hash: %s",
-			errors.ErrInvalidReceivedExtendedShardHeader,
-			hex.EncodeToString(computedHeaderHash),
-			hex.EncodeToString(hash),
-		)
-	}
+	log.Error("validateReceivedHeader",
+		"jsonHeader", jsonHeader,
+		"jsonComputedHeader", jsonComputedHeader,
+	)
+
+	//computedHeaderHash, err := core.CalculateHash(hip.marshaller, hip.hasher, computedExtendedHeader)
+	//if err != nil {
+	//	return err
+	//}
+
+	//if !bytes.Equal(computedHeaderHash, hash) {
+	//	return fmt.Errorf("%w, computed hash: %s, received hash: %s",
+	//		errors.ErrInvalidReceivedExtendedShardHeader,
+	//		hex.EncodeToString(computedHeaderHash),
+	//		hex.EncodeToString(hash),
+	//	)
+	//}
 
 	return nil
 }

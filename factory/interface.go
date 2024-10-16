@@ -642,6 +642,7 @@ type RunTypeComponentsHolder interface {
 	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
+	IncomingHeaderSubscriberHandler() process.IncomingHeaderSubscriber
 	Create() error
 	Close() error
 	CheckSubcomponents() error

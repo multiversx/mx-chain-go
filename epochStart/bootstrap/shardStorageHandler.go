@@ -112,6 +112,7 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	// COPY THIS FOR SOVEREIGN AND SAVE LAST CROSS NOTARIZED in epoch start bootstrapper
 	lastCrossNotarizedHdrs, err := ssh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers, withScheduled)
 	if err != nil {
 		return err

@@ -285,6 +285,53 @@ func GetMetaHeaderFromStorage(
 	return hdr, nil
 }
 
+// GetExtendedSharHeaderFromStorage gets the extended shard header, which is associated with the given hash, from storage
+func GetExtendedSharHeaderFromStorage(
+	hash []byte,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (*block.ShardHeaderExtended, error) {
+
+	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.ExtendedShardHeadersUnit, hash, marshalizer, storageService)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr := &block.ShardHeaderExtended{}
+	err = marshalizer.Unmarshal(hdr, buffHdr)
+	if err != nil {
+		return nil, ErrUnmarshalWithoutSuccess
+	}
+
+	return hdr, nil
+}
+
+// GetExtendedHeaderFromStorageWithNonce method returns a meta block header from storage with a given nonce
+func GetExtendedHeaderFromStorageWithNonce(
+	nonce uint64,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshalizer marshal.Marshalizer,
+) (*block.ShardHeaderExtended, []byte, error) {
+
+	hash, err := GetHeaderHashFromStorageWithNonce(
+		nonce,
+		storageService,
+		uint64Converter,
+		marshalizer,
+		dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdr, err := GetExtendedSharHeaderFromStorage(hash, marshalizer, storageService)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return hdr, hash, nil
+}
+
 // GetMarshalizedHeaderFromStorage gets the marshalized header, which is associated with the given hash, from storage
 func GetMarshalizedHeaderFromStorage(
 	blockUnit dataRetriever.UnitType,
