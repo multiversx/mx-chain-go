@@ -937,6 +937,11 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = scbp.createEpochStartDataCrossChain(sovHdr)
+	if err != nil {
+		return err
+	}
+
 	err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 	if err != nil {
 		return err
@@ -992,6 +997,30 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	body.MiniBlocks = finalMiniBlocks
 
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
+}
+
+func (scbp *sovereignChainBlockProcessor) createEpochStartDataCrossChain(sovHdr *block.SovereignChainHeader) error {
+	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+	if err != nil {
+		return err
+	}
+
+	if lastCrossNotarizedHeader.GetNonce() == 0 {
+		log.Error("createEpochStartDataCrossChain NO CROSS CHAIN HEADER")
+		return nil
+	}
+
+	log.Error("createEpochStartDataCrossChain BINGOOOOO")
+
+	sovHdr.EpochStart.LastFinalizedCrossChainHeader = block.EpochStartCrossChainData{
+		ShardID:    core.MainChainShardId,
+		Epoch:      lastCrossNotarizedHeader.GetEpoch(),
+		Round:      lastCrossNotarizedHeader.GetRound(),
+		Nonce:      lastCrossNotarizedHeader.GetNonce(),
+		HeaderHash: lastCrossNotarizedHeaderHash,
+	}
+
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
