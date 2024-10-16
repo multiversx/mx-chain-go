@@ -284,7 +284,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(bls.MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedProof)
+	fct.worker.AddReceivedProofHandler(subroundEndRoundObject.receivedProof)
 	fct.worker.AddReceivedMessageCall(bls.MtInvalidSigners, subroundEndRoundObject.receivedInvalidSignersInfo)
 	fct.worker.AddReceivedMessageCall(bls.MtSignature, subroundEndRoundObject.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)

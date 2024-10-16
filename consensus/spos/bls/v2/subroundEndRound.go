@@ -93,94 +93,35 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
+func (sr *subroundEndRound) isProofForCurrentConsensus(proof spos.ProofHandler) bool {
+	return bytes.Equal(sr.GetData(), proof.GetHeaderHash())
+}
+
 // receivedProof method is called when a block header final info is received
-func (sr *subroundEndRound) receivedProof(_ context.Context, cnsDta *consensus.Message) bool {
+func (sr *subroundEndRound) receivedProof(proof spos.ProofHandler) {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
-	messageSender := string(cnsDta.PubKey)
-
+	if sr.IsJobDone(sr.SelfPubKey(), sr.Current()) {
+		return
+	}
 	if !sr.IsConsensusDataSet() {
-		return false
+		return
 	}
 	if check.IfNil(sr.GetHeader()) {
-		return false
+		return
+	}
+	if !sr.isProofForCurrentConsensus(proof) {
+		return
 	}
 
-	// TODO[cleanup cns finality]: remove if statement
-	isSenderAllowed := sr.IsNodeInConsensusGroup(messageSender)
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		isSenderAllowed = sr.IsNodeLeaderInCurrentRound(messageSender)
-	}
-	if !isSenderAllowed { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().ChangeScore(
-			messageSender,
-			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor,
-		)
-
-		return false
-	}
-
-	// TODO[cleanup cns finality]: remove if
-	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		isSelfSender = sr.IsSelfLeader()
-	}
-	if isSelfSender {
-		return false
-	}
-
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
-		return false
-	}
-
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		return false
-	}
-
-	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), cnsDta.BlockHeaderHash)
-	if hasProof && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return true
-	}
-
-	if !sr.isBlockHeaderFinalInfoValid(cnsDta) {
-		return false
-	}
-
+	// no need to re-verify the proof if as it was already verified when it was added to the proofs pool
 	log.Debug("step 3: block header final info has been received",
-		"PubKeysBitmap", cnsDta.PubKeysBitmap,
-		"AggregateSignature", cnsDta.AggregateSignature,
-		"LeaderSignature", cnsDta.LeaderSignature)
+		"PubKeysBitmap", proof.GetPubKeysBitmap(),
+		"AggregateSignature", proof.GetAggregatedSignature(),
+		"HederHash", proof.GetHeaderHash())
 
-	sr.PeerHonestyHandler().ChangeScore(
-		messageSender,
-		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor,
-	)
-
-	return sr.doEndRoundJobByParticipant(cnsDta)
-}
-
-func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
-	if check.IfNil(sr.GetHeader()) {
-		return false
-	}
-
-	header := sr.GetHeader().ShallowClone()
-
-	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return sr.verifySignatures(header, cnsDta)
-	}
-
-	err := sr.HeaderSigVerifier().VerifySignatureForHash(header, cnsDta.BlockHeaderHash, cnsDta.PubKeysBitmap, cnsDta.AggregateSignature)
-	if err != nil {
-		log.Debug("isBlockHeaderFinalInfoValid.VerifySignatureForHash", "error", err.Error())
-		return false
-	}
-
-	return true
+	sr.doEndRoundJobByParticipant(proof)
 }
 
 func (sr *subroundEndRound) verifySignatures(header data.HeaderHandler, cnsDta *consensus.Message) bool {
