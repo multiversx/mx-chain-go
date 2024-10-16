@@ -50,6 +50,11 @@ func (computer *feeComputer) ComputeTransactionFee(tx *transaction.ApiTransactio
 	return computer.economicsInstance.ComputeTxFeeInEpoch(tx.Tx, tx.Epoch)
 }
 
+// MinGasLimitInEpoch returns the min gas limit, at a given epoch
+func (computer *feeComputer) MinGasLimitInEpoch(epoch uint32) uint64 {
+	return computer.economicsInstance.MinGasLimitInEpoch(epoch)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (computer *feeComputer) IsInterfaceNil() bool {
 	return computer == nil

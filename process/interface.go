@@ -687,6 +687,7 @@ type feeHandler interface {
 	MaxGasPriceSetGuardian() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
+	MinGasLimitInEpoch(epoch uint32) uint64
 	ExtraGasLimitGuardedTx() uint64
 	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
 	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64

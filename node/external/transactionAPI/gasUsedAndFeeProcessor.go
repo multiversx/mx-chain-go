@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -59,7 +60,13 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 
 	hasRefundForSender := false
 	totalRefunds := big.NewInt(0)
-	for _, scr := range tx.SmartContractResults {
+	scrs := tx.SmartContractResults
+	// append inner tx scrs in case of relayed v3
+	for _, innerTx := range tx.InnerTransactions {
+		scrs = append(scrs, innerTx.SmartContractResults...)
+	}
+
+	for _, scr := range scrs {
 		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
 			continue
 		}
@@ -74,11 +81,53 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.Fee = fee.String()
 	}
 
+	gfp.prepareRelayedV3GasUsedBasedOnLogs(tx, hasRefundForSender)
+
 	if isRelayedAfterFix {
 		return
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
+}
+
+func (gfp *gasUsedAndFeeProcessor) prepareRelayedV3GasUsedBasedOnLogs(tx *transaction.ApiTransactionResult, hasRefund bool) {
+	if len(tx.InnerTransactions) == 0 {
+		return
+	}
+
+	if hasRefund {
+		return
+	}
+
+	gasUsed := uint64(0)
+	for _, innerTx := range tx.InnerTransactions {
+		addedGasForInnerTx := false
+		for _, scr := range innerTx.SmartContractResults {
+			if addedGasForInnerTx {
+				break
+			}
+
+			if check.IfNilReflect(scr.Logs) {
+				continue
+			}
+
+			if len(scr.Logs.Events) == 0 {
+				continue
+			}
+
+			for _, event := range scr.Logs.Events {
+				if core.SignalErrorOperation == event.Identifier {
+					gasUsed += innerTx.GasLimit
+					addedGasForInnerTx = true // in case there are more than one signalError events for this inner tx
+				}
+			}
+		}
+	}
+
+	if gasUsed != 0 {
+		gasUsed += uint64(len(tx.InnerTransactions)) * gfp.feeComputer.MinGasLimitInEpoch(tx.Epoch)
+		tx.GasUsed = gasUsed
+	}
 }
 
 func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayed(tx *transaction.ApiTransactionResult) (*big.Int, bool) {

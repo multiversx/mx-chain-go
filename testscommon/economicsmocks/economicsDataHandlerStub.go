@@ -29,6 +29,7 @@ type EconomicsHandlerStub struct {
 	MaxInflationRateCalled                              func(year uint32) float64
 	GasPerDataByteCalled                                func() uint64
 	MinGasLimitCalled                                   func() uint64
+	MinGasLimitInEpochCalled                            func(epoch uint32) uint64
 	ExtraGasLimitGuardedTxCalled                        func() uint64
 	MaxGasPriceSetGuardianCalled                        func() uint64
 	GenesisTotalSupplyCalled                            func() *big.Int
@@ -120,6 +121,14 @@ func (e *EconomicsHandlerStub) GasPerDataByte() uint64 {
 func (e *EconomicsHandlerStub) MinGasLimit() uint64 {
 	if e.MinGasLimitCalled != nil {
 		return e.MinGasLimitCalled()
+	}
+	return 0
+}
+
+// MinGasLimitInEpoch -
+func (e *EconomicsHandlerStub) MinGasLimitInEpoch(epoch uint32) uint64 {
+	if e.MinGasLimitInEpochCalled != nil {
+		return e.MinGasLimitInEpochCalled(epoch)
 	}
 	return 0
 }

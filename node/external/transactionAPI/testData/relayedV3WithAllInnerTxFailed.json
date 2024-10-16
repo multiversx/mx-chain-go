@@ -1,0 +1,174 @@
+{
+  "type": "normal",
+  "processingTypeOnSource": "RelayedTxV3",
+  "processingTypeOnDestination": "RelayedTxV3",
+  "hash": "9034190d93ab39cf1c6e82832238777512d274c0867e6a3462950695606f10f8",
+  "nonce": 3,
+  "value": "0",
+  "receiver": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n",
+  "sender": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n",
+  "gasPrice": 1000000000,
+  "gasLimit": 500000000,
+  "isRelayed": true,
+  "innerTransactions": [
+    {
+      "type": "inner",
+      "hash": "f820c6cef9288bc627c42df6ac57c64429f7822fa01ba58db5d57f138f3833bf",
+      "nonce": 6,
+      "value": "0",
+      "receiver": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "sender": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "gasPrice": 1000000000,
+      "gasLimit": 20000000,
+      "data": "RVNEVE5GVENyZWF0ZUA0MTRjNDU1ODJkMzk2NDY1MzgzOTY2QDAxQDU0NjU3Mzc0QDAzZThANTE2ZDY2NDEzMjQ4NzQ2NTcyNmU2NzRkNjI0MjY1NTQ2NzUwNmIzMjYxMzI3YTZmNGQzNTc5NjU2MTZmMzM0NTZmNjEzNzM2Nzg1MTM3NzUzNDZkNjM2NDY5NDdANzQ2MTY3NzMzYTc0NjU3Mzc0MmM2NjcyNjU2NTJjNjY3NTZlM2I2ZDY1NzQ2MTY0NjE3NDYxM2E1NDY4Njk3MzIwNjk3MzIwNjEyMDc0NjU3Mzc0MjA2NDY1NzM2MzcyNjk3MDc0Njk2ZjZlMjA2NjZmNzIyMDYxNmUyMDYxNzc2NTczNmY2ZDY1MjA2ZTY2NzRAMDEwMQ==",
+      "smartContractResults": [
+        {
+          "hash": "8cee6b30bc1ed2efdc6cc1ad08d7e8ab5cda5dec54cec2f690679e8c2b672b93",
+          "nonce": 6,
+          "value": 0,
+          "receiver": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+          "sender": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+          "relayerAddress": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n",
+          "relayedValue": 0,
+          "data": "ESDTNFTCreate@414c45582d396465383966@01@54657374@03e8@516d664132487465726e674d6242655467506b3261327a6f4d357965616f33456f61373678513775346d63646947@746167733a746573742c667265652c66756e3b6d657461646174613a5468697320697320612074657374206465736372697074696f6e20666f7220616e20617765736f6d65206e6674@0101",
+          "prevTxHash": "f820c6cef9288bc627c42df6ac57c64429f7822fa01ba58db5d57f138f3833bf",
+          "originalTxHash": "9034190d93ab39cf1c6e82832238777512d274c0867e6a3462950695606f10f8",
+          "gasLimit": 19503000,
+          "gasPrice": 1000000000,
+          "callType": 0,
+          "logs": {
+            "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+            "events": [
+              {
+                "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+                "identifier": "signalError",
+                "topics": [
+                  "KQclkV+pF/02MiTDTYE5sCvEqMWPbC093vxwHQBTJEM=",
+                  "YWN0aW9uIGlzIG5vdCBhbGxvd2Vk"
+                ],
+                "data": "QDYxNjM3NDY5NmY2ZTIwNjk3MzIwNmU2Zjc0MjA2MTZjNmM2Zjc3NjU2NA==",
+                "additionalData": [
+                  "QDYxNjM3NDY5NmY2ZTIwNjk3MzIwNmU2Zjc0MjA2MTZjNmM2Zjc3NjU2NA=="
+                ]
+              }
+            ]
+          },
+          "tokens": [
+            "ALEX-9de89f"
+          ],
+          "esdtValues": [
+            "1"
+          ],
+          "operation": "ESDTNFTCreate"
+        }
+      ],
+      "relayerAddress": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n"
+    },
+    {
+      "type": "inner",
+      "hash": "68c279534fbc7c737355463233a6d792b8fcf1d37502501da2586aee89068ceb",
+      "nonce": 7,
+      "value": "0",
+      "receiver": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "sender": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "gasPrice": 1000000000,
+      "gasLimit": 20000000,
+      "data": "RVNEVE5GVENyZWF0ZUA0MTRjNDU1ODJkMzk2NDY1MzgzOTY2QDAxQDU0NjU3Mzc0QDAzZThANTE2ZDY2NDEzMjQ4NzQ2NTcyNmU2NzRkNjI0MjY1NTQ2NzUwNmIzMjYxMzI3YTZmNGQzNTc5NjU2MTZmMzM0NTZmNjEzNzM2Nzg1MTM3NzUzNDZkNjM2NDY5NDdANzQ2MTY3NzMzYTc0NjU3Mzc0MmM2NjcyNjU2NTJjNjY3NTZlM2I2ZDY1NzQ2MTY0NjE3NDYxM2E1NDY4Njk3MzIwNjk3MzIwNjEyMDc0NjU3Mzc0MjA2NDY1NzM2MzcyNjk3MDc0Njk2ZjZlMjA2NjZmNzIyMDYxNmUyMDYxNzc2NTczNmY2ZDY1MjA2ZTY2NzRAMDEwMQ==",
+      "smartContractResults": [
+        {
+          "hash": "633a15dbd5300c49a947d264501b4068a1b9c70a86ddfb31615b346594de76f7",
+          "nonce": 7,
+          "value": 0,
+          "receiver": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+          "sender": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+          "relayerAddress": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n",
+          "relayedValue": 0,
+          "data": "ESDTNFTCreate@414c45582d396465383966@01@54657374@03e8@516d664132487465726e674d6242655467506b3261327a6f4d357965616f33456f61373678513775346d63646947@746167733a746573742c667265652c66756e3b6d657461646174613a5468697320697320612074657374206465736372697074696f6e20666f7220616e20617765736f6d65206e6674@0101",
+          "prevTxHash": "68c279534fbc7c737355463233a6d792b8fcf1d37502501da2586aee89068ceb",
+          "originalTxHash": "9034190d93ab39cf1c6e82832238777512d274c0867e6a3462950695606f10f8",
+          "gasLimit": 19503000,
+          "gasPrice": 1000000000,
+          "callType": 0,
+          "logs": {
+            "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+            "events": [
+              {
+                "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+                "identifier": "signalError",
+                "topics": [
+                  "KQclkV+pF/02MiTDTYE5sCvEqMWPbC093vxwHQBTJEM=",
+                  "YWN0aW9uIGlzIG5vdCBhbGxvd2Vk"
+                ],
+                "data": "QDYxNjM3NDY5NmY2ZTIwNjk3MzIwNmU2Zjc0MjA2MTZjNmM2Zjc3NjU2NA==",
+                "additionalData": [
+                  "QDYxNjM3NDY5NmY2ZTIwNjk3MzIwNmU2Zjc0MjA2MTZjNmM2Zjc3NjU2NA=="
+                ]
+              }
+            ]
+          },
+          "tokens": [
+            "ALEX-9de89f"
+          ],
+          "esdtValues": [
+            "1"
+          ],
+          "operation": "ESDTNFTCreate"
+        }
+      ],
+      "relayerAddress": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n"
+    },
+    {
+      "type": "inner",
+      "hash": "098ad3df7abab3d5603438995983f81923279ee849397c56e10969f83ed7041c",
+      "nonce": 8,
+      "value": "0",
+      "receiver": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "sender": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+      "gasPrice": 1000000000,
+      "gasLimit": 20000000,
+      "data": "RVNEVE5GVENyZWF0ZUA0MTRjNDU1ODJkMzk2NDY1MzgzOTY2QDAxQDU0NjU3Mzc0QDAzZThANTE2ZDY2NDEzMjQ4NzQ2NTcyNmU2NzRkNjI0MjY1NTQ2NzUwNmIzMjYxMzI3YTZmNGQzNTc5NjU2MTZmMzM0NTZmNjEzNzM2Nzg1MTM3NzUzNDZkNjM2NDY5NDdANzQ2MTY3NzMzYTc0NjU3Mzc0MmM2NjcyNjU2NTJjNjY3NTZlM2I2ZDY1NzQ2MTY0NjE3NDYxM2E1NDY4Njk3MzIwNjk3MzIwNjEyMDc0NjU3Mzc0MjA2NDY1NzM2MzcyNjk3MDc0Njk2ZjZlMjA2NjZmNzIyMDYxNmUyMDYxNzc2NTczNmY2ZDY1MjA2ZTY2NzRAMDEwMQ==",
+      "smartContractResults": [
+        {
+          "hash": "19ea4142f37c3079bd511aed503ffb0bafad1b4921ef618d79c6a0a185753b78",
+          "nonce": 8,
+          "value": 0,
+          "receiver": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+          "sender": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+          "relayerAddress": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n",
+          "relayedValue": 0,
+          "data": "ESDTNFTCreate@414c45582d396465383966@01@54657374@03e8@516d664132487465726e674d6242655467506b3261327a6f4d357965616f33456f61373678513775346d63646947@746167733a746573742c667265652c66756e3b6d657461646174613a5468697320697320612074657374206465736372697074696f6e20666f7220616e20617765736f6d65206e6674@0101",
+          "prevTxHash": "098ad3df7abab3d5603438995983f81923279ee849397c56e10969f83ed7041c",
+          "originalTxHash": "9034190d93ab39cf1c6e82832238777512d274c0867e6a3462950695606f10f8",
+          "gasLimit": 19503000,
+          "gasPrice": 1000000000,
+          "callType": 0,
+          "logs": {
+            "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+            "events": [
+              {
+                "address": "erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw",
+                "identifier": "signalError",
+                "topics": [
+                  "KQclkV+pF/02MiTDTYE5sCvEqMWPbC093vxwHQBTJEM=",
+                  "YWN0aW9uIGlzIG5vdCBhbGxvd2Vk"
+                ],
+                "data": "QDYxNjM3NDY5NmY2ZTIwNjk3MzIwNmU2Zjc0MjA2MTZjNmM2Zjc3NjU2NA==",
+                "additionalData": [
+                  "QDYxNjM3NDY5NmY2ZTIwNjk3MzIwNmU2Zjc0MjA2MTZjNmM2Zjc3NjU2NA=="
+                ]
+              }
+            ]
+          },
+          "tokens": [
+            "ALEX-9de89f"
+          ],
+          "esdtValues": [
+            "1"
+          ],
+          "operation": "ESDTNFTCreate"
+        }
+      ],
+      "relayerAddress": "erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n"
+    }
+  ]
+}
