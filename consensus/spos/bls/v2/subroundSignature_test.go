@@ -8,7 +8,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 
@@ -538,7 +537,6 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 }
 
 func TestSubroundSignature_SendSignature(t *testing.T) {
-
 	t.Parallel()
 
 	t.Run("sendSignatureForManagedKey will return false because of error", func(t *testing.T) {
@@ -917,58 +915,36 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenSignatu
 func TestSubroundSignature_DoSignatureConsensusCheckNotAllSignaturesCollectedAndTimeIsNotOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
-		flagActive:                  true,
-		jobsDone:                    setThresholdJobsDone,
-		waitingAllSignaturesTimeOut: false,
-		expectedResult:              false,
-	}))
-	t.Run("with flag inactive, should return false when not all signatures are collected and time is not out", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
-		flagActive:                  false,
-		jobsDone:                    setThresholdJobsDone,
-		waitingAllSignaturesTimeOut: false,
-		expectedResult:              false,
+	t.Run("with flag active, should return true", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:     true,
+		jobsDone:       setThresholdJobsDone,
+		expectedResult: true,
 	}))
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckAllSignaturesCollected(t *testing.T) {
 	t.Parallel()
-	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
-		flagActive:                  true,
-		jobsDone:                    "all",
-		waitingAllSignaturesTimeOut: false,
-		expectedResult:              false,
-	}))
-	t.Run("with flag inactive, should return true when all signatures are collected", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
-		flagActive:                  false,
-		jobsDone:                    "all",
-		waitingAllSignaturesTimeOut: false,
-		expectedResult:              true,
+	t.Run("with flag active, should return true", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:     true,
+		jobsDone:       "all",
+		expectedResult: true,
 	}))
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckEnoughButNotAllSignaturesCollectedAndTimeIsOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
-		flagActive:                  true,
-		jobsDone:                    setThresholdJobsDone,
-		waitingAllSignaturesTimeOut: true,
-		expectedResult:              false,
-	}))
-	t.Run("with flag inactive, should return true when enough but not all signatures collected and time is out", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
-		flagActive:                  false,
-		jobsDone:                    setThresholdJobsDone,
-		waitingAllSignaturesTimeOut: true,
-		expectedResult:              true,
+	t.Run("with flag active, should return true", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:     true,
+		jobsDone:       setThresholdJobsDone,
+		expectedResult: true,
 	}))
 }
 
 type argTestSubroundSignatureDoSignatureConsensusCheck struct {
-	flagActive                  bool
-	jobsDone                    string
-	waitingAllSignaturesTimeOut bool
-	expectedResult              bool
+	flagActive     bool
+	jobsDone       string
+	expectedResult bool
 }
 
 func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatureDoSignatureConsensusCheck) func(t *testing.T) {
@@ -985,7 +961,6 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 			},
 		})
 		sr := initSubroundSignatureWithContainer(container)
-		sr.SetWaitingAllSignaturesTimeOut(args.waitingAllSignaturesTimeOut)
 
 		if !args.flagActive {
 			leader, err := sr.GetLeader()
@@ -1004,51 +979,4 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 		sr.SetHeader(&block.HeaderV2{})
 		assert.Equal(t, args.expectedResult, sr.DoSignatureConsensusCheck())
 	}
-}
-
-func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
-		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
-			return false
-		},
-	})
-	sr := initSubroundSignatureWithContainer(container)
-	sr.SetWaitingAllSignaturesTimeOut(false)
-
-	leader, err := sr.GetLeader()
-	assert.Nil(t, err)
-	sr.SetSelfPubKey(leader)
-
-	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-	}
-
-	assert.False(t, sr.DoSignatureConsensusCheck())
-}
-
-func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallbackThresholdCouldBeApplied(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
-		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
-			return true
-		},
-	})
-	sr := initSubroundSignatureWithContainer(container)
-	sr.SetWaitingAllSignaturesTimeOut(true)
-
-	leader, err := sr.GetLeader()
-	assert.Nil(t, err)
-	sr.SetSelfPubKey(leader)
-
-	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-	}
-
-	sr.SetHeader(&block.HeaderV2{})
-	assert.True(t, sr.DoSignatureConsensusCheck())
 }
