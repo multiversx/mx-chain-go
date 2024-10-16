@@ -273,12 +273,12 @@ func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 
 // CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
 func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte, pk []byte) {
-	sr.createAndBroadcastHeaderFinalInfoForKey(signature, bitmap, leaderSignature, pk)
+	sr.createAndBroadcastProof(signature, bitmap, leaderSignature, pk)
 }
 
-// ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
+// ReceivedBlockHeaderFinalInfo calls the unexported receivedProof function
 func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
+	return sr.receivedProof(context.Background(), cnsDta)
 }
 
 // IsBlockHeaderFinalInfoValid calls the unexported isBlockHeaderFinalInfoValid function
