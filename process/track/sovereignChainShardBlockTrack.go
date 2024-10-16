@@ -14,6 +14,7 @@ import (
 type sovereignChainShardBlockTrack struct {
 	*shardBlockTrack
 	mainChainNotarizationStartRound uint64
+	genesisBlockNonce               map[uint64]bool
 }
 
 // NewSovereignChainShardBlockTrack creates an object for tracking the received shard blocks
@@ -23,8 +24,9 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack, mainChai
 	}
 
 	scsbt := &sovereignChainShardBlockTrack{
-		shardBlockTrack,
-		mainChainNotarizationStartRound,
+		shardBlockTrack:                 shardBlockTrack,
+		mainChainNotarizationStartRound: mainChainNotarizationStartRound,
+		genesisBlockNonce:               make(map[uint64]bool),
 	}
 
 	bp, ok := scsbt.blockProcessor.(*blockProcessor)
@@ -110,6 +112,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 		"hash", extendedShardHeaderHash,
 	)
 
+	wasGenesisFirsHeaderAdded := false
 	// TODO: This condition will permit to the sovereign chain to follow the main chain headers starting with a header
 	// having a nonce higher than nonce 1 (the first block after genesis)
 	if scsbt.isGenesisLastCrossNotarizedHeader() {
@@ -130,6 +133,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 		//	log.Error("WTF WTF WTF WTF")
 		//}
 		scsbt.crossNotarizer.AddNotarizedHeader(core.MainChainShardId, extendedShardHeaderHandler, extendedShardHeaderHash)
+		wasGenesisFirsHeaderAdded = true
 	}
 
 	if !scsbt.shouldAddExtendedShardHeader(extendedShardHeaderHandler) {
@@ -144,6 +148,38 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 
 	scsbt.doWhitelistWithExtendedShardHeaderIfNeeded(extendedShardHeaderHandler)
 	scsbt.blockProcessor.ProcessReceivedHeader(extendedShardHeaderHandler)
+
+	if wasGenesisFirsHeaderAdded {
+		scsbt.genesisBlockNonce[extendedShardHeaderHandler.GetRound()] = true
+	}
+}
+
+func (scsbt *sovereignChainShardBlockTrack) IsLastNotarizedHeaderGenesisWhileSyncing() (uint64, bool) {
+	lastNotarizedHeader, _, err := scsbt.crossNotarizer.GetLastNotarizedHeader(core.MainChainShardId)
+	if err != nil {
+		return 0, false
+	}
+
+	if len(scsbt.genesisBlockNonce) == 0 {
+		return 0, false
+	}
+
+	isLastNotarizedBlockGenesis := scsbt.genesisBlockNonce[lastNotarizedHeader.GetRound()]
+	shouldSyncAtLeastOneMoreBlock := lastNotarizedHeader.GetRound() > scsbt.mainChainNotarizationStartRound
+
+	log.Error("IsLastNotarizedHeaderGenesisWhileSyncing",
+		"isLastNotarizedBlockGenesis", isLastNotarizedBlockGenesis,
+		"shouldSyncAtLeastOneMoreBlock", shouldSyncAtLeastOneMoreBlock,
+		"result", isLastNotarizedBlockGenesis && shouldSyncAtLeastOneMoreBlock,
+	)
+
+	scsbt.isGenesisLastCrossNotarizedHeader()
+
+	return lastNotarizedHeader.GetNonce() - 1, isLastNotarizedBlockGenesis && shouldSyncAtLeastOneMoreBlock
+}
+
+func (scsbt *sovereignChainShardBlockTrack) IsGenesisLastCrossNotarizedHeader() bool {
+	return scsbt.isGenesisLastCrossNotarizedHeader()
 }
 
 func (scsbt *sovereignChainShardBlockTrack) isGenesisLastCrossNotarizedHeader() bool {

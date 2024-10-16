@@ -95,7 +95,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	nonce := uint64(10)
+	nonce := uint64(3)
 	prevHash := generateRandomHash()
 	prevRandSeed := generateRandomHash()
 	for {
@@ -120,7 +120,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		err = sendOutportBlock(outportBlock, host)
 		log.LogIfError(err)
 
-		time.Sleep(4000 * time.Millisecond)
+		time.Sleep(2000 * time.Millisecond)
 
 		err = sendFinalizedBlock(headerHash, host)
 		log.LogIfError(err)
