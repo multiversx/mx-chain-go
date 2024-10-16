@@ -105,18 +105,18 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 		"jsonComputedHeader", jsonComputedHeader,
 	)
 
-	//computedHeaderHash, err := core.CalculateHash(hip.marshaller, hip.hasher, computedExtendedHeader)
-	//if err != nil {
-	//	return err
-	//}
+	computedHeaderHash, err := core.CalculateHash(hip.marshaller, hip.hasher, computedExtendedHeader)
+	if err != nil {
+		return err
+	}
 
-	//if !bytes.Equal(computedHeaderHash, hash) {
-	//	return fmt.Errorf("%w, computed hash: %s, received hash: %s",
-	//		errors.ErrInvalidReceivedExtendedShardHeader,
-	//		hex.EncodeToString(computedHeaderHash),
-	//		hex.EncodeToString(hash),
-	//	)
-	//}
+	if !bytes.Equal(computedHeaderHash, hash) {
+		return fmt.Errorf("%w, computed hash: %s, received hash: %s",
+			errors.ErrInvalidReceivedExtendedShardHeader,
+			hex.EncodeToString(computedHeaderHash),
+			hex.EncodeToString(hash),
+		)
+	}
 
 	return nil
 }
