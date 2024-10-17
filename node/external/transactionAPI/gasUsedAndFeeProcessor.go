@@ -59,7 +59,8 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 
 	hasRefundForSender := false
 	totalRefunds := big.NewInt(0)
-	for _, scr := range tx.SmartContractResults {
+	scrs := getSmartContractResultsFromATx(tx)
+	for _, scr := range scrs {
 		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
 			continue
 		}
@@ -74,10 +75,6 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.Fee = fee.String()
 	}
 
-	if isRelayedAfterFix {
-		return
-	}
-
 	isRelayedV3AndNoRefund := len(tx.InnerTransactions) > 0 && !hasRefundForSender
 	if isRelayedV3AndNoRefund {
 		txFee := gfp.feeComputer.ComputeTransactionFee(tx)
@@ -90,7 +87,22 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		return
 	}
 
+	if isRelayedAfterFix {
+		return
+	}
+
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
+}
+
+func getSmartContractResultsFromATx(tx *transaction.ApiTransactionResult) []*transaction.ApiSmartContractResult {
+	scrs := make([]*transaction.ApiSmartContractResult, 0)
+	scrs = append(scrs, tx.SmartContractResults...)
+
+	for _, innerTx := range tx.InnerTransactions {
+		scrs = append(scrs, innerTx.SmartContractResults...)
+	}
+
+	return scrs
 }
 
 func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayed(tx *transaction.ApiTransactionResult) (*big.Int, bool) {

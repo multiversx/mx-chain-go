@@ -465,7 +465,8 @@ func testComputeAndAttachGasUsedAndFeeRelayedV3WithInnerTxFailed(
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag ||
 					flag == common.PenalizedTooMuchGasFlag ||
-					flag == common.RelayedTransactionsV3Flag
+					flag == common.RelayedTransactionsV3Flag ||
+					flag == common.LinkInnerTransactionFlag
 			},
 		}
 		feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))
