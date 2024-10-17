@@ -111,6 +111,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	// todo: check again the block proof verification & leader signature verification
+	// block proof verification should be done over the header that contains the leader signature
 	leaderSignature, err := sr.signBlockHeader(header)
 	if err != nil {
 		printLogMessage(ctx, "doBlockJob.signBlockHeader", err)
@@ -377,7 +379,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	// in this case, we won't set the proof, return false and wait for the next round to receive a proof
 	prevBlockHeader := sr.Blockchain().GetCurrentBlockHeader()
 	if check.IfNil(prevBlockHeader) {
-		log.Debug("addProofOnHeader.GetCurrentBlockHeader, nil current header")
+		log.Debug("addProofOnHeader.GetCurrentBlockHeader, returned nil header")
 		return false
 	}
 
@@ -396,7 +398,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	log.Debug("leader after sync, no proof for current header, will wait one round")
+	log.Debug("addProofOnHeader: leader after sync, no proof for current header, will wait one round")
 	return false
 }
 
@@ -419,10 +421,6 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 		log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err)
 		return
 	}
-}
-
-func (sr *subroundBlock) isInvalidHeaderOrData() bool {
-	return sr.GetData() == nil || check.IfNil(sr.GetHeader()) || sr.GetHeader().CheckFieldsForNil() != nil
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel

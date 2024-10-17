@@ -247,8 +247,6 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	// TODO[cleanup cns finality]: remove this
-	fct.worker.AddReceivedMessageCall(bls.MtSignature, subroundSignatureObject.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
