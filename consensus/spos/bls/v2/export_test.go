@@ -261,9 +261,9 @@ func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message
 	return sr.doEndRoundJobByParticipant(cnsDta)
 }
 
-// DoEndRoundJobByLeader calls the unexported doEndRoundJobByLeader function
+// DoEndRoundJobByLeader calls the unexported doEndRoundJobByNode function
 func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
-	return sr.doEndRoundJobByLeader()
+	return sr.doEndRoundJobByNode()
 }
 
 // HaveConsensusHeaderWithFullInfo calls the unexported haveConsensusHeaderWithFullInfo function
