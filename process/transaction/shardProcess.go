@@ -1078,7 +1078,7 @@ func (txProc *txProcessor) processUserTx(
 			innerTxIdx)
 	}
 
-	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, originalTxHash, prevTxHash)
+	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, originalTx, originalTxHash, prevTxHash)
 	if err != nil {
 		return 0, err
 	}
@@ -1184,6 +1184,7 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 	tx *transaction.Transaction,
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
+	originalTx *transaction.Transaction,
 	txHash []byte,
 	prevTxHash []byte,
 ) (*smartContractResult.SmartContractResult, error) {
@@ -1202,7 +1203,14 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		CallType:       vm.DirectCall,
 	}
 
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
+	isUserTxOfRelayedV3 := len(originalTx.InnerTransactions) > 0 &&
+		bytes.Equal(originalTx.SndAddr, originalTx.RcvAddr) &&
+		bytes.Equal(originalTx.SndAddr, tx.RelayerAddr)
+	sourceShard := txProc.shardCoordinator.ComputeId(tx.SndAddr)
+	destShard := txProc.shardCoordinator.ComputeId(tx.RcvAddr)
+	isCross := sourceShard != destShard
+	isUserTxOfRelayedCross := isCross && isUserTxOfRelayedV3
+	if isUserTxOfRelayedCross && txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
 		return scr, nil
 	}
 
