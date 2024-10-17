@@ -18,6 +18,10 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 )
 
+const (
+	helloWasmPath = "testdata/hello.wasm"
+)
+
 // 1. transfer from sovereign chain to main chain
 // 2. transfer from main chain to sovereign chain
 // 3. transfer again the same tokens from sovereign chain to main chain
@@ -146,17 +150,16 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 			Amount:     token.Amount,
 			Type:       token.Type,
 		}
-
-		// need to wait for the mint/create operation by the metachain
-		err = cs.GenerateBlocks(4)
-		require.Nil(t, err)
-
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, receivedToken.Amount)
 		if isSftOrMeta(receivedToken.Type) {
-			// expect the contract to have 1 token
 			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(1))
+		} else {
+			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(0))
 		}
 
+		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, receiverShardId)
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, receivedToken.Amount)
+
+		// --------------------------------------------
 		// deposit back 1 token, expect token to be burned and supply burned is 1
 		depositAmount := big.NewInt(1)
 		depositToken := chainSim.ArgsDepositToken{
@@ -169,10 +172,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		chainSim.RequireSuccessfulTransaction(t, txResult)
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, big.NewInt(0).Sub(receivedToken.Amount, big.NewInt(1)))
 
-		if receiverShardId != esdtSafeAddrShard { // if cross-shard deposit
-			err = cs.GenerateBlocks(3)
-			require.Nil(t, err)
-		}
+		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, receiverShardId)
 
 		expectedAmount := big.NewInt(0)
 		if isSftOrMeta(receivedToken.Type) {
@@ -181,6 +181,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		}
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(depositToken), esdtSafeAddr, expectedAmount)
 
+		_ = cs.GenerateBlocks(1)
 		tokenSupply, err := cs.GetNodeHandler(esdtSafeAddrShard).GetFacadeHandler().GetTokenSupply(getTokenIdentifier(depositToken))
 		require.Nil(t, err)
 		require.NotNil(t, tokenSupply)
@@ -189,17 +190,27 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		nextShardId(&receiverShardId)
 	}
 
-	// transfer sovereign chain -> main chain
+	// generate hello contracts in each shard
+	// hello contract has one endpoint "hello" which receives a number as argument
+	// if number is 0 then will throw error, otherwise will do nothing
+	receiverContracts := generateHelloInAllShards(t, cs)
+
+	// transfer sovereign chain -> main chain with transfer data
 	// execute 2nd time the same operations
 	// for (dynamic) NFT, expect creation with nonce+1 the second time because that's the next nonce
 	// for (dynamic) SFT/MetaESDT, the contract should just add quantity for existing nonce
 	for _, token := range tokens {
-		// create random receiver addresses in a shard
-		receiver, _ := cs.GenerateAndMintWalletAddress(receiverShardId, chainSim.InitialAmount)
+		// get contract from next shard
+		receiver := receiverContracts[receiverShardId]
 
 		// execute operations received from sovereign chain
 		// expecting the token to be minted in esdt-safe contract with the same properties and transferred to receiver address
-		txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, receiver.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{token}, wallet.Bytes, nil)
+		trnsData := &transferData{
+			GasLimit: uint64(10000000),
+			Function: []byte("hello"),
+			Args:     [][]byte{{0x01}},
+		}
+		txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, receiver.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{token}, wallet.Bytes, trnsData)
 		chainSim.RequireSuccessfulTransaction(t, txResult)
 		receivedToken := chainSim.ArgsDepositToken{
 			Identifier: tokensMapper[token.Identifier],
@@ -211,10 +222,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 			receivedToken.Nonce++
 		}
 
-		// need to wait for the mint/create operation by the metachain
-		err = cs.GenerateBlocks(4)
-		require.Nil(t, err)
-
+		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, receiverShardId)
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, receivedToken.Amount)
 		if isSftOrMeta(receivedToken.Type) { // expect the contract to have 1 token
 			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(1))
@@ -262,106 +270,14 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(4)
 	require.Nil(t, err)
 
-	// Deploy bridge setup
+	// deploy bridge setup
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, ArgsEsdtSafe{}, esdtSafeContract)
 	esdtSafeAddr, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	esdtSafeAddrShard := chainSim.GetShardForAddress(cs, esdtSafeAddr)
 
-	accountShardId := uint32(0)
-	issueCost, _ := big.NewInt(0).SetString(issuePaymentCost, 10)
-	wallets := make(map[*chainSim.Account]chainSim.ArgsDepositToken)
-
-	account := createNewAccount(cs, accountShardId)
-	supply := big.NewInt(14556666767)
-	tokenId := chainSim.IssueFungible(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "TKN", "TKN", 18, supply)
-	token := chainSim.ArgsDepositToken{
-		Identifier: tokenId,
-		Nonce:      uint64(0),
-		Amount:     supply,
-		Type:       core.Fungible,
-	}
-	wallets[&account] = token
-
-	account = createNewAccount(cs, accountShardId)
-	collectionId := chainSim.RegisterAndSetAllRoles(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "NFTV2", "NFTV2", core.NonFungibleESDTv2, 0)
-	supply = big.NewInt(1)
-	createArgs := createNftArgs(collectionId, supply, "NFTV2 #1")
-	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
-	token = chainSim.ArgsDepositToken{
-		Identifier: collectionId,
-		Nonce:      uint64(1),
-		Amount:     supply,
-		Type:       core.NonFungibleV2,
-	}
-	wallets[&account] = token
-
-	account = createNewAccount(cs, accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "DNFT", "DNFT", core.DynamicNFTESDT, 0)
-	supply = big.NewInt(1)
-	createArgs = createNftArgs(collectionId, supply, "DNFT #1")
-	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
-	token = chainSim.ArgsDepositToken{
-		Identifier: collectionId,
-		Nonce:      uint64(1),
-		Amount:     supply,
-		Type:       core.DynamicNFT,
-	}
-	wallets[&account] = token
-
-	account = createNewAccount(cs, accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "SFT", "SFT", core.SemiFungibleESDT, 0)
-	supply = big.NewInt(125)
-	createArgs = createNftArgs(collectionId, supply, "SFT #1")
-	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
-	token = chainSim.ArgsDepositToken{
-		Identifier: collectionId,
-		Nonce:      uint64(1),
-		Amount:     supply,
-		Type:       core.SemiFungible,
-	}
-	wallets[&account] = token
-
-	account = createNewAccount(cs, accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "DSFT", "DSFT", core.DynamicSFTESDT, 0)
-	supply = big.NewInt(125)
-	createArgs = createNftArgs(collectionId, supply, "DSFT #1")
-	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
-	token = chainSim.ArgsDepositToken{
-		Identifier: collectionId,
-		Nonce:      uint64(1),
-		Amount:     supply,
-		Type:       core.DynamicSFT,
-	}
-	wallets[&account] = token
-
-	account = createNewAccount(cs, accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "META", "META", core.MetaESDT, 15)
-	supply = big.NewInt(234673347)
-	createArgs = createNftArgs(collectionId, supply, "META #1")
-	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
-	token = chainSim.ArgsDepositToken{
-		Identifier: collectionId,
-		Nonce:      uint64(1),
-		Amount:     supply,
-		Type:       core.MetaFungible,
-	}
-	wallets[&account] = token
-
-	account = createNewAccount(cs, accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "DMETA", "DMETA", core.DynamicMetaESDT, 10)
-	supply = big.NewInt(64865382)
-	createArgs = createNftArgs(collectionId, supply, "DMETA #1")
-	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
-	token = chainSim.ArgsDepositToken{
-		Identifier: collectionId,
-		Nonce:      uint64(1),
-		Amount:     supply,
-		Type:       core.DynamicMeta,
-	}
-	wallets[&account] = token
-
+	wallets := generateAccountsAndTokens(t, cs)
 	amountToTransfer := big.NewInt(1)
 
 	// transfer main chain -> sovereign chain
@@ -378,14 +294,10 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 		txResult := deposit(t, cs, account.Wallet.Bytes, &account.Nonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{depositToken}, account.Wallet.Bytes)
 		chainSim.RequireSuccessfulTransaction(t, txResult)
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(depositToken), account.Wallet.Bech32, big.NewInt(0).Sub(token.Amount, amountToTransfer))
-
-		if chainSim.GetShardForAddress(cs, account.Wallet.Bech32) != esdtSafeAddrShard { // if cross-shard deposit
-			err = cs.GenerateBlocks(3)
-			require.Nil(t, err)
-		}
-
+		waitIfCrossShardProcessing(cs, chainSim.GetShardForAddress(cs, account.Wallet.Bech32), esdtSafeAddrShard)
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(depositToken), esdtSafeAddr, amountToTransfer)
 
+		_ = cs.GenerateBlocks(1)
 		tokenSupply, err := cs.GetNodeHandler(esdtSafeAddrShard).GetFacadeHandler().GetTokenSupply(getTokenIdentifier(depositToken))
 		require.Nil(t, err)
 		require.NotNil(t, tokenSupply)
@@ -394,7 +306,7 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 
 	// transfer sovereign chain -> main chain
 	// token originated from main chain
-	// expecting that tokens will be transferred from esdt-safe contract balance after executeOperation
+	// expecting that tokens will be transferred from contract balance after executeOperation
 	for account, token := range wallets {
 		executeToken := chainSim.ArgsDepositToken{
 			Identifier: token.Identifier,
@@ -407,24 +319,132 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 		txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, account.Wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{executeToken}, account.Wallet.Bytes, nil)
 		chainSim.RequireSuccessfulTransaction(t, txResult)
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(executeToken), esdtSafeAddr, big.NewInt(0))
-
-		if chainSim.GetShardForAddress(cs, account.Wallet.Bech32) != esdtSafeAddrShard { // if cross-shard deposit
-			err = cs.GenerateBlocks(3)
-			require.Nil(t, err)
-		}
-
+		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, chainSim.GetShardForAddress(cs, account.Wallet.Bech32))
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(executeToken), account.Wallet.Bech32, token.Amount) // token original amount
 	}
 }
 
-func createNewAccount(cs chainSim.ChainSimulator, shardId uint32) chainSim.Account {
-	wallet, _ := cs.GenerateAndMintWalletAddress(shardId, chainSim.InitialAmount)
-	nextShardId(&shardId)
+func waitIfCrossShardProcessing(cs chainSim.ChainSimulator, senderShard uint32, receivedShard uint32) {
+	if senderShard != receivedShard {
+		_ = cs.GenerateBlocks(3)
+	}
+}
+
+func generateAccountsAndTokens(
+	t *testing.T,
+	cs chainSim.ChainSimulator,
+) map[*chainSim.Account]chainSim.ArgsDepositToken {
+	accountShardId := uint32(0)
+	issueCost, _ := big.NewInt(0).SetString(issuePaymentCost, 10)
+	wallets := make(map[*chainSim.Account]chainSim.ArgsDepositToken)
+
+	account := createNewAccount(cs, &accountShardId)
+	supply := big.NewInt(14556666767)
+	tokenId := chainSim.IssueFungible(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "TKN", "TKN", 18, supply)
+	token := chainSim.ArgsDepositToken{
+		Identifier: tokenId,
+		Nonce:      uint64(0),
+		Amount:     supply,
+		Type:       core.Fungible,
+	}
+	wallets[&account] = token
+
+	account = createNewAccount(cs, &accountShardId)
+	collectionId := chainSim.RegisterAndSetAllRoles(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "NFTV2", "NFTV2", core.NonFungibleESDTv2, 0)
+	supply = big.NewInt(1)
+	createArgs := createNftArgs(collectionId, supply, "NFTV2 #1")
+	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+	token = chainSim.ArgsDepositToken{
+		Identifier: collectionId,
+		Nonce:      uint64(1),
+		Amount:     supply,
+		Type:       core.NonFungibleV2,
+	}
+	wallets[&account] = token
+
+	account = createNewAccount(cs, &accountShardId)
+	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "DNFT", "DNFT", core.DynamicNFTESDT, 0)
+	supply = big.NewInt(1)
+	createArgs = createNftArgs(collectionId, supply, "DNFT #1")
+	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+	token = chainSim.ArgsDepositToken{
+		Identifier: collectionId,
+		Nonce:      uint64(1),
+		Amount:     supply,
+		Type:       core.DynamicNFT,
+	}
+	wallets[&account] = token
+
+	account = createNewAccount(cs, &accountShardId)
+	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "SFT", "SFT", core.SemiFungibleESDT, 0)
+	supply = big.NewInt(125)
+	createArgs = createNftArgs(collectionId, supply, "SFT #1")
+	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+	token = chainSim.ArgsDepositToken{
+		Identifier: collectionId,
+		Nonce:      uint64(1),
+		Amount:     supply,
+		Type:       core.SemiFungible,
+	}
+	wallets[&account] = token
+
+	account = createNewAccount(cs, &accountShardId)
+	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "DSFT", "DSFT", core.DynamicSFTESDT, 0)
+	supply = big.NewInt(125)
+	createArgs = createNftArgs(collectionId, supply, "DSFT #1")
+	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+	token = chainSim.ArgsDepositToken{
+		Identifier: collectionId,
+		Nonce:      uint64(1),
+		Amount:     supply,
+		Type:       core.DynamicSFT,
+	}
+	wallets[&account] = token
+
+	account = createNewAccount(cs, &accountShardId)
+	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "META", "META", core.MetaESDT, 15)
+	supply = big.NewInt(234673347)
+	createArgs = createNftArgs(collectionId, supply, "META #1")
+	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+	token = chainSim.ArgsDepositToken{
+		Identifier: collectionId,
+		Nonce:      uint64(1),
+		Amount:     supply,
+		Type:       core.MetaFungible,
+	}
+	wallets[&account] = token
+
+	account = createNewAccount(cs, &accountShardId)
+	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "DMETA", "DMETA", core.DynamicMetaESDT, 10)
+	supply = big.NewInt(64865382)
+	createArgs = createNftArgs(collectionId, supply, "DMETA #1")
+	chainSim.SendTransactionWithSuccess(t, cs, account.Wallet.Bytes, &account.Nonce, account.Wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+	token = chainSim.ArgsDepositToken{
+		Identifier: collectionId,
+		Nonce:      uint64(1),
+		Amount:     supply,
+		Type:       core.DynamicMeta,
+	}
+	wallets[&account] = token
+
+	return wallets
+}
+
+func createNewAccount(cs chainSim.ChainSimulator, shardId *uint32) chainSim.Account {
+	wallet, _ := cs.GenerateAndMintWalletAddress(*shardId, chainSim.InitialAmount)
+	nextShardId(shardId)
 	_ = cs.GenerateBlocks(1)
 
 	return chainSim.Account{
 		Wallet: wallet,
 		Nonce:  uint64(0),
+	}
+}
+
+func nextShardId(shardId *uint32) {
+	*shardId++
+	if *shardId > 2 {
+		*shardId = 0
 	}
 }
 
@@ -437,24 +457,6 @@ func createNftArgs(tokenIdentifier string, initialSupply *big.Int, name string) 
 		"@" + // hash
 		"@" + // attributes
 		"@" // uri
-}
-
-func nextShardId(shardId *uint32) {
-	*shardId++
-	if *shardId > 2 {
-		*shardId = 0
-	}
-}
-
-func isNft(esdtType core.ESDTType) bool {
-	return esdtType == core.NonFungible || esdtType == core.NonFungibleV2
-}
-
-func isSftOrMeta(esdtType core.ESDTType) bool {
-	return esdtType == core.SemiFungible ||
-		esdtType == core.DynamicSFT ||
-		esdtType == core.MetaFungible ||
-		esdtType == core.DynamicMeta
 }
 
 func registerTokens(
@@ -477,10 +479,40 @@ func registerTokens(
 	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, registerCost, registerData, uint64(100000000))
 	chainSim.RequireSuccessfulTransaction(t, txResult)
 
+	// wait for issue processing from metachain
 	err := cs.GenerateBlocks(3)
 	require.Nil(t, err)
 }
 
 func getTokenTicker(tokenIdentifier string) string {
 	return strings.Split(tokenIdentifier, "-")[1]
+}
+
+func generateHelloInAllShards(t *testing.T, cs chainSim.ChainSimulator) map[uint32]dtos.WalletAddress {
+	nodeHandler := cs.GetNodeHandler(0)
+	systemContractDeploy := chainSim.GetSysContactDeployAddressBytes(t, nodeHandler)
+
+	receiverContracts := make(map[uint32]dtos.WalletAddress)
+	for shardId := uint32(0); shardId <= 2; shardId++ {
+		wallet, _ := cs.GenerateAndMintWalletAddress(shardId, chainSim.InitialAmount)
+		nonce := uint64(0)
+		_ = cs.GenerateBlocks(1)
+
+		contractAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemContractDeploy, "", helloWasmPath)
+		contractAddressBech32, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(contractAddress)
+		receiverContracts[shardId] = dtos.WalletAddress{Bytes: contractAddress, Bech32: contractAddressBech32}
+	}
+
+	return receiverContracts
+}
+
+func isNft(esdtType core.ESDTType) bool {
+	return esdtType == core.NonFungible || esdtType == core.NonFungibleV2
+}
+
+func isSftOrMeta(esdtType core.ESDTType) bool {
+	return esdtType == core.SemiFungible ||
+		esdtType == core.DynamicSFT ||
+		esdtType == core.MetaFungible ||
+		esdtType == core.DynamicMeta
 }
