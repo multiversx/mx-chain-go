@@ -270,7 +270,6 @@ func TransferESDTNFT(
 func IssueFungible(
 	t *testing.T,
 	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -289,7 +288,7 @@ func IssueFungible(
 	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 	RequireSuccessfulTransaction(t, txResult)
 
-	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+	return getEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), tokenTicker, core.FungibleESDT)
 }
 
 func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
@@ -303,7 +302,7 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 		}
 	}
 
-	require.Fail(t, "could not issue semi fungible")
+	require.Fail(t, "could not find the issued token")
 	return ""
 }
 
