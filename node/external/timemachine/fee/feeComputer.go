@@ -45,6 +45,11 @@ func (computer *feeComputer) ComputeGasLimit(tx *transaction.ApiTransactionResul
 	return computer.economicsInstance.ComputeGasLimitInEpoch(tx.Tx, tx.Epoch)
 }
 
+// ComputeGasUnitForRelayedV3 will compute the gas units for a relayed v3 transaction
+func (computer *feeComputer) ComputeGasUnitForRelayedV3(tx *transaction.ApiTransactionResult) uint64 {
+	return computer.economicsInstance.ComputeRelayedTxV3GasUnits(tx.Tx, tx.Epoch)
+}
+
 // ComputeTransactionFee computes a transaction fee, at a given epoch
 func (computer *feeComputer) ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int {
 	return computer.economicsInstance.ComputeTxFeeInEpoch(tx.Tx, tx.Epoch)

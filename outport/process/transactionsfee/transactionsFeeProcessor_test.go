@@ -10,10 +10,14 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -596,4 +600,109 @@ func TestMoveBalanceWithSignalError(t *testing.T) {
 	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, uint64(225_500), initialTx.GetFeeInfo().GetGasUsed())
+}
+
+func newEconomicsData(t *testing.T) FeesProcessorHandler {
+	economicsDataMock, err := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		Economics: &config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				GenesisTotalSupply: "2000000000000000000000",
+				MinimumInflation:   0,
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
+			},
+			RewardsSettings: config.RewardsSettings{
+				RewardsConfigByEpoch: []config.EpochRewardSettings{{
+					ProtocolSustainabilityAddress: "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					TopUpGradientPoint:            "300000000000000000000",
+				}},
+			},
+			FeeSettings: config.FeeSettings{
+				GasLimitSettings: []config.GasLimitSetting{
+					{
+						MaxGasLimitPerBlock:         "10000000000",
+						MaxGasLimitPerMiniBlock:     "10000000000",
+						MaxGasLimitPerMetaBlock:     "10000000000",
+						MaxGasLimitPerMetaMiniBlock: "10000000000",
+						MaxGasLimitPerTx:            "10000000000",
+						MinGasLimit:                 "50000",
+						ExtraGasLimitGuardedTx:      "50000",
+					},
+				},
+
+				MinGasPrice:            "1000000000",
+				GasPerDataByte:         "1500",
+				GasPriceModifier:       0.01,
+				MaxGasPriceSetGuardian: "100000",
+			},
+		},
+		EpochNotifier:       &epochNotifierMock.EpochNotifierStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.GasPriceModifierFlag),
+	})
+	require.Nil(t, err)
+
+	_ = economicsDataMock.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{})
+
+	return economicsDataMock
+}
+
+func TestRelayedV3WithMultipleInnerTxs(t *testing.T) {
+	txHash := []byte("5c5cdb939473e76ee85af17eb02dbeca5d879bd19c7c050d0be6d2c901b9f6ae")
+
+	initialTx := &outportcore.TxInfo{Transaction: &transaction.Transaction{
+		Nonce:    47,
+		GasLimit: 500_000_000,
+		GasPrice: 1000000000,
+		SndAddr:  []byte("erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n"),
+		RcvAddr:  []byte("erd17ndrqg38lqf2zjgeqvle90rsn9ejrd9upx8evkyvh8e0m5xlph5scv9l6n"),
+		InnerTransactions: []*transaction.Transaction{
+			{
+				Nonce:    7,
+				SndAddr:  []byte("erd1e2ftj4hj43lkduwps9xdmtgjnmugkh9mndph4n2cxfmf6ufvn4ks0zut84"),
+				RcvAddr:  []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+				Data:     []byte("issueNonFungible@4d594e4654@414c4558@63616e467265657a65@74727565@63616e57697065@74727565@63616e5061757365@74727565@63616E5472616E736665724E4654437265617465526F6C65@74727565"),
+				GasPrice: 1000000000,
+				GasLimit: 60_000_000,
+			},
+			{
+				Nonce:    16,
+				SndAddr:  []byte("erd19yrjty2l4ytl6d3jynp5mqfekq4uf2x93akz60w7l3cp6qzny3psnfyerw"),
+				RcvAddr:  []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+				Data:     []byte("issueNonFungible@4d594e4654@414c4558@63616e467265657a65@74727565@63616e57697065@74727565@63616e5061757365@74727565@63616E5472616E736665724E4654437265617465526F6C65@74727565"),
+				GasPrice: 1000000000,
+				GasLimit: 60_000_000,
+			},
+			{
+				Nonce:    1,
+				SndAddr:  []byte("erd136rl878j09mev24gzpy70k2wfm3xmvj5ucwxffs9v5t5sk3kshtszz25z9"),
+				RcvAddr:  []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+				Data:     []byte("issueNonFungible@4d594e4654@414c4558@63616e467265657a65@74727565@63616e57697065@74727565@63616e5061757365@74727565@63616E5472616E736665724E4654437265617465526F6C65@74727565"),
+				GasPrice: 1000000000,
+				GasLimit: 60_000_000,
+			},
+		},
+	}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}
+
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): initialTx,
+		},
+	}
+
+	arg := prepareMockArg()
+	arg.TxFeeCalculator = newEconomicsData(t)
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
+	require.Nil(t, err)
+	require.Equal(t, uint64(180_150_000), initialTx.GetFeeInfo().GetGasUsed())
+	require.Equal(t, "1074000000000000", initialTx.GetFeeInfo().GetFee().String())
+	require.Equal(t, "1074000000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
 }
