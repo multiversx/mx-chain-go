@@ -136,7 +136,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		}
 
 		if len(txHandler.GetUserTransactions()) > 0 {
-			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult)
+			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult, epoch)
 			continue
 		}
 
@@ -243,7 +243,7 @@ func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transact
 	return big.NewInt(0).Add(fee, innerFee), true
 }
 
-func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults) {
+func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults, epoch uint32) {
 	refundsValue := big.NewInt(0)
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
@@ -256,6 +256,22 @@ func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex str
 		}
 
 		refundsValue.Add(refundsValue, scr.Value)
+	}
+
+	isRelayedV3 := len(txWithResults.GetTxHandler().GetUserTransactions()) > 0
+	if isRelayedV3 {
+		_, totalRelayedFee, err := tep.txFeeCalculator.ComputeRelayedTxFees(txWithResults.GetTxHandler())
+		if err != nil {
+			tep.log.Warn("transactionsFeeProcessor.prepareRelayedTxV3WithResults: cannot compute relayed tx fee", "hash", txHashHex, "error", err.Error())
+			return
+		}
+
+		relayedTxGasUnits := tep.txFeeCalculator.ComputeRelayedTxV3GasUnits(txWithResults.GetTxHandler(), epoch)
+
+		txWithResults.GetFeeInfo().SetGasUsed(relayedTxGasUnits)
+		txWithResults.GetFeeInfo().SetFee(totalRelayedFee)
+
+		return
 	}
 
 	gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), refundsValue)
@@ -325,6 +341,17 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 
 		isForInitialTxSender := bytes.Equal(scr.RcvAddr, txFromStorage.SndAddr)
 		if !isForInitialTxSender {
+			continue
+		}
+
+		isRelayedV3 := len(txFromStorage.InnerTransactions) > 0
+		if isRelayedV3 {
+			gasUnits := tep.txFeeCalculator.ComputeGasUnitsFromRefundValue(txFromStorage, scr.Value)
+
+			scrHandler.GetFeeInfo().SetForRelayed()
+			scrHandler.GetFeeInfo().SetGasUsed(gasUnits)
+			scrHandler.GetFeeInfo().SetFee(scr.Value)
+
 			continue
 		}
 

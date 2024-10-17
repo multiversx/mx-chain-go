@@ -700,6 +700,8 @@ type feeHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
+	ComputeRelayedTxV3GasUnits(tx data.TransactionWithFeeHandler, epoch uint32) uint64
+	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) uint64
 }
 
 // TxGasHandler handles a transaction gas and gas cost

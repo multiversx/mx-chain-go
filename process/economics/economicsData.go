@@ -351,6 +351,17 @@ func (ed *economicsData) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler)
 	return relayerFee, totalFee, nil
 }
 
+// ComputeRelayedTxV3GasUnits will compute the relayed tx gas units based on epoch
+func (ed *economicsData) ComputeRelayedTxV3GasUnits(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+	gasUnits := uint64(len(tx.GetUserTransactions())) * ed.getMinGasLimit(epoch)
+
+	for _, innerTx := range tx.GetUserTransactions() {
+		gasUnits += innerTx.GetGasLimit()
+	}
+
+	return gasUnits
+}
+
 func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.TransactionHandler) *big.Int {
 	totalFees := big.NewInt(0)
 	for _, innerTx := range innerTxs {
@@ -578,6 +589,16 @@ func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandle
 func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int) {
 	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
 	return ed.ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx, refundValue, currentEpoch)
+}
+
+// ComputeGasUnitsFromRefundValue will compute the gas unit based on the refund value
+func (ed *economicsData) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) uint64 {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	gasPrice := ed.GasPriceForProcessingInEpoch(tx, currentEpoch)
+	refund := big.NewInt(0).Set(refundValue)
+	gasUnits := refund.Div(refund, big.NewInt(int64(gasPrice)))
+
+	return gasUnits.Uint64()
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValueInEpoch will compute gas used value and transaction fee using refund value from a SCR in a specific epoch

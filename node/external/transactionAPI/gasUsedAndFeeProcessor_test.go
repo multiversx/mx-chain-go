@@ -6,16 +6,20 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,6 +30,26 @@ func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+	})
+
+	dataFieldParser, _ := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
+		AddressLength: 32,
+		Marshalizer:   &mock.MarshalizerMock{},
+	})
+
+	_ = economicsData.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+				return process.SCInvoking, process.SCInvoking
+			}
+
+			res := dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), 3)
+			if len(res.Tokens) > 0 {
+				return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+			}
+
+			return process.MoveBalance, process.MoveBalance
+		},
 	})
 
 	return economicsData
@@ -408,4 +432,94 @@ func TestComputeAndAttachGasUsedAndFeeFailedRelayedV1(t *testing.T) {
 	require.Equal(t, uint64(1274230), txWithSRefundSCR.GasUsed)
 	require.Equal(t, "1274230000000000", txWithSRefundSCR.Fee)
 	require.Equal(t, "1274230000000000", txWithSRefundSCR.InitiallyPaidFee)
+}
+
+func TestComputeAndAttachGasUsedAndFeeRelayedV3WithAllInnerTxFailed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("all inner txs are failed", testComputeAndAttachGasUsedAndFeeRelayedV3WithInnerTxFailed(
+		"testData/relayedV3WithAllInnerTxFailed.json",
+		uint64(60150000),
+		"2226090000000000",
+		"2226090000000000",
+	))
+	t.Run("one inner tx is failed, other have refunds", testComputeAndAttachGasUsedAndFeeRelayedV3WithInnerTxFailed(
+		"testData/relayedV3WithOneInnerFailedAndTwoRefunds.json",
+		uint64(160766000),
+		"2670920000000000",
+		"2864760000000000",
+	))
+
+}
+
+func testComputeAndAttachGasUsedAndFeeRelayedV3WithInnerTxFailed(
+	inputFile string,
+	expectedGasUsed uint64,
+	expectedFee string,
+	expectedInitiallyPaidFee string,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.GasPriceModifierFlag ||
+					flag == common.PenalizedTooMuchGasFlag ||
+					flag == common.RelayedTransactionsV3Flag
+			},
+		}
+		feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))
+		computer := fee.NewTestFeeComputer(feeComp)
+
+		gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+			computer,
+			pubKeyConverter,
+			smartContract.NewArgumentParser(),
+			&marshal.JsonMarshalizer{},
+			enableEpochsHandler,
+		)
+
+		txWithFailedInners := &transaction.ApiTransactionResult{}
+		err := core.LoadJsonFile(txWithFailedInners, inputFile)
+		require.NoError(t, err)
+
+		innerTxs := make([]*transaction.Transaction, 0, len(txWithFailedInners.InnerTransactions))
+		for _, innerTx := range txWithFailedInners.InnerTransactions {
+			snd, _ := pubKeyConverter.Decode(innerTx.Sender)
+			rcv, _ := pubKeyConverter.Decode(innerTx.Receiver)
+			val, _ := big.NewInt(0).SetString(innerTx.Value, 10)
+			innerTxs = append(innerTxs, &transaction.Transaction{
+				Nonce:    innerTx.Nonce,
+				Value:    val,
+				RcvAddr:  rcv,
+				SndAddr:  snd,
+				GasPrice: innerTx.GasPrice,
+				GasLimit: innerTx.GasLimit,
+				Data:     innerTx.Data,
+			})
+		}
+
+		snd, _ := pubKeyConverter.Decode(txWithFailedInners.Sender)
+		rcv, _ := pubKeyConverter.Decode(txWithFailedInners.Receiver)
+		val, _ := big.NewInt(0).SetString(txWithFailedInners.Value, 10)
+		txWithFailedInners.Tx = &transaction.Transaction{
+			Nonce:             txWithFailedInners.Nonce,
+			Value:             val,
+			RcvAddr:           rcv,
+			SndAddr:           snd,
+			GasPrice:          txWithFailedInners.GasPrice,
+			GasLimit:          txWithFailedInners.GasLimit,
+			Data:              txWithFailedInners.Data,
+			InnerTransactions: innerTxs,
+		}
+
+		txWithFailedInners.InitiallyPaidFee = ""
+		txWithFailedInners.Fee = ""
+		txWithFailedInners.GasUsed = 0
+
+		gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithFailedInners)
+		assert.Equal(t, expectedGasUsed, txWithFailedInners.GasUsed)
+		assert.Equal(t, expectedFee, txWithFailedInners.Fee)
+		assert.Equal(t, expectedInitiallyPaidFee, txWithFailedInners.InitiallyPaidFee)
+	}
 }

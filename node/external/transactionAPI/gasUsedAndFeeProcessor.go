@@ -78,6 +78,18 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		return
 	}
 
+	isRelayedV3AndNoRefund := len(tx.InnerTransactions) > 0 && !hasRefundForSender
+	if isRelayedV3AndNoRefund {
+		txFee := gfp.feeComputer.ComputeTransactionFee(tx)
+		gasUsedRelayed := gfp.feeComputer.ComputeGasUnitForRelayedV3(tx)
+
+		tx.GasUsed = gasUsedRelayed
+		tx.Fee = txFee.String()
+		tx.InitiallyPaidFee = txFee.String()
+
+		return
+	}
+
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
 }
 

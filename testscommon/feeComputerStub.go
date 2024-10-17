@@ -13,6 +13,15 @@ type FeeComputerStub struct {
 	ComputeTxFeeBasedOnGasUsedCalled             func(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int
 	ComputeGasLimitCalled                        func(tx *transaction.ApiTransactionResult) uint64
 	ComputeMoveBalanceFeeCalled                  func(tx *transaction.ApiTransactionResult) *big.Int
+	ComputeGasUnitForRelayedV3Called             func(tx *transaction.ApiTransactionResult) uint64
+}
+
+func (stub *FeeComputerStub) ComputeGasUnitForRelayedV3(tx *transaction.ApiTransactionResult) uint64 {
+	if stub.ComputeGasUnitForRelayedV3Called != nil {
+		return stub.ComputeGasUnitForRelayedV3Called(tx)
+	}
+
+	return 0
 }
 
 // ComputeTransactionFee -

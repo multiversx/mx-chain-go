@@ -52,6 +52,16 @@ type EconomicsHandlerMock struct {
 	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
 }
 
+// ComputeRelayedTxV3GasUnits -
+func (ehm *EconomicsHandlerMock) ComputeRelayedTxV3GasUnits(_ data.TransactionWithFeeHandler, _ uint32) uint64 {
+	return 0
+}
+
+// ComputeGasUnitsFromRefundValue -
+func (ehm *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int) uint64 {
+	return 0
+}
+
 // LeaderPercentage -
 func (ehm *EconomicsHandlerMock) LeaderPercentage() float64 {
 	return ehm.LeaderPercentageCalled()

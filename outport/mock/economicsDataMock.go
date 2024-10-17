@@ -20,6 +20,21 @@ const (
 type EconomicsHandlerMock struct {
 }
 
+// ComputeRelayedTxV3GasUnits -
+func (e *EconomicsHandlerMock) ComputeRelayedTxV3GasUnits(_ coreData.TransactionWithFeeHandler, _ uint32) uint64 {
+	return 0
+}
+
+// ComputeRelayedTxFees -
+func (e *EconomicsHandlerMock) ComputeRelayedTxFees(_ coreData.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+	return nil, nil, nil
+}
+
+// ComputeGasUnitsFromRefundValue -
+func (e *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ coreData.TransactionWithFeeHandler, _ *big.Int) uint64 {
+	return 0
+}
+
 // MaxGasLimitPerBlock -
 func (e *EconomicsHandlerMock) MaxGasLimitPerBlock(_ uint32) uint64 {
 	return 0

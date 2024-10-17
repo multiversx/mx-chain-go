@@ -1754,3 +1754,79 @@ func TestEconomicsData_SetTxTypeHandler(t *testing.T) {
 	err = economicsData.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{})
 	require.NoError(t, err)
 }
+
+func TestEconomicsData_ComputeRelayedTxV3GasUnits(t *testing.T) {
+	args := createArgsForEconomicsData(0.01)
+	economicsData, _ := economics.NewEconomicsData(args)
+	require.NotNil(t, economicsData)
+
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  []byte("rel"),
+		SndAddr:  []byte("rel"),
+		GasPrice: 1,
+		GasLimit: 500_000,
+		InnerTransactions: []*transaction.Transaction{
+			{
+				Nonce:       0,
+				Value:       big.NewInt(1),
+				RcvAddr:     []byte("rcv1"),
+				SndAddr:     []byte("snd1"),
+				GasPrice:    1,
+				GasLimit:    3_000,
+				RelayerAddr: []byte("rel"),
+			},
+			{
+				Nonce:       0,
+				Value:       big.NewInt(1),
+				RcvAddr:     []byte("rcv1"),
+				SndAddr:     []byte("snd2"),
+				GasPrice:    1,
+				GasLimit:    7_000,
+				RelayerAddr: []byte("rel"),
+			},
+		},
+	}
+
+	gasUnits := economicsData.ComputeRelayedTxV3GasUnits(tx, 0)
+	require.Equal(t, uint64(11_000), gasUnits)
+}
+
+func TestEconomicsData_ComputeGasUnitsFromRefundValue(t *testing.T) {
+	args := createArgsForEconomicsData(0.01)
+	economicsData, _ := economics.NewEconomicsData(args)
+	require.NotNil(t, economicsData)
+
+	tx := &transaction.Transaction{
+		Nonce:    0,
+		Value:    big.NewInt(0),
+		RcvAddr:  []byte("rel"),
+		SndAddr:  []byte("rel"),
+		GasPrice: 1000000000,
+		GasLimit: 200_000_000,
+		InnerTransactions: []*transaction.Transaction{
+			{
+				Nonce:       0,
+				Value:       big.NewInt(1),
+				RcvAddr:     []byte("rcv1"),
+				SndAddr:     []byte("snd1"),
+				GasPrice:    1,
+				GasLimit:    3_000,
+				RelayerAddr: []byte("rel"),
+			},
+			{
+				Nonce:       0,
+				Value:       big.NewInt(1),
+				RcvAddr:     []byte("rcv1"),
+				SndAddr:     []byte("snd2"),
+				GasPrice:    1,
+				GasLimit:    7_000,
+				RelayerAddr: []byte("rel"),
+			},
+		},
+	}
+
+	gasUnits := economicsData.ComputeGasUnitsFromRefundValue(tx, big.NewInt(1074000000000000))
+	require.Equal(t, uint64(107_400_000), gasUnits)
+}
