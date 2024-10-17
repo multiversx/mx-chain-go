@@ -1202,6 +1202,13 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		CallType:       vm.DirectCall,
 	}
 
+	sourceShard := txProc.shardCoordinator.ComputeId(tx.SndAddr)
+	destShard := txProc.shardCoordinator.ComputeId(tx.RcvAddr)
+	isCross := sourceShard != destShard
+	if isCross && txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
+		return scr, nil
+	}
+
 	var err error
 	scr.GasLimit, err = core.SafeSubUint64(scr.GasLimit, txProc.economicsFee.ComputeGasLimit(tx))
 	if err != nil {
