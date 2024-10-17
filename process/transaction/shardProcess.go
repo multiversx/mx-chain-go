@@ -636,7 +636,7 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 
 	originalTxHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, tx.Value, originalTxHash, tx, err)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, originalTxHash, tx.Value, originalTxHash, tx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -944,6 +944,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx, userTx *transaction.Transact
 
 func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	userTx *transaction.Transaction,
+	userTxHash []byte,
 	relayedTxValue *big.Int,
 	originalTxHash []byte,
 	originalTx *transaction.Transaction,
@@ -972,7 +973,16 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		userAcnt.IncreaseNonce(1)
 	}
 
-	err = txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
+	txForNonExecutableLog := originalTx
+	txHashForNonExecutableLog := originalTxHash
+	isUserTxOfRelayedV3 := len(originalTx.InnerTransactions) > 0 &&
+		bytes.Equal(originalTx.SndAddr, originalTx.RcvAddr) &&
+		bytes.Equal(originalTx.SndAddr, userTx.RelayerAddr)
+	if isUserTxOfRelayedV3 && txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
+		txForNonExecutableLog = userTx
+		txHashForNonExecutableLog = userTxHash
+	}
+	err = txProc.addNonExecutableLog(executionErr, txHashForNonExecutableLog, txForNonExecutableLog)
 	if err != nil {
 		return err
 	}
@@ -985,17 +995,17 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	return nil
 }
 
-func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
+func (txProc *txProcessor) addNonExecutableLog(executionErr error, txHashForNonExecutableLog []byte, txForNonExecutableLog data.TransactionHandler) error {
 	if !isNonExecutableError(executionErr) {
 		return nil
 	}
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(core.SignalErrorOperation),
-		Address:    originalTx.GetRcvAddr(),
+		Address:    txForNonExecutableLog.GetRcvAddr(),
 	}
 
-	return txProc.failedTxLogsAccumulator.SaveLogs(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
+	return txProc.txLogsProcessor.SaveLog(txHashForNonExecutableLog, txForNonExecutableLog, []*vmcommon.LogEntry{logEntry})
 
 }
 
@@ -1033,7 +1043,7 @@ func (txProc *txProcessor) processUserTx(
 	relayerAdr := originalTx.SndAddr
 	acntSnd, acntDst, err := txProc.getAccounts(userTx.SndAddr, userTx.RcvAddr)
 	if err != nil {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, prevTxHash, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -1052,7 +1062,7 @@ func (txProc *txProcessor) processUserTx(
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst, true)
 	if err != nil {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, prevTxHash, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}
@@ -1104,7 +1114,7 @@ func (txProc *txProcessor) processUserTx(
 		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(scrFromTx, acntSnd, acntDst)
 	default:
 		err = process.ErrWrongTransaction
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, prevTxHash, relayedTxValue, originalTxHash, originalTx, err)
 		if errRemove != nil {
 			return vmcommon.UserError, errRemove
 		}

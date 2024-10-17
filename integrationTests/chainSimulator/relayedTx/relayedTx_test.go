@@ -244,16 +244,30 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
+	require.Nil(t, result.Logs)
+
+	printResult(t, result)
 
 	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
 
+	senderShardNodeHandler := cs.GetNodeHandler(0)
 	// 5 scrs, 4 from the failed txs + 1 with success
 	require.Equal(t, 5, len(result.SmartContractResults))
 	scrsMap := make(map[string]int, len(result.SmartContractResults))
 	for _, scr := range result.SmartContractResults {
 		if len(scr.ReturnMessage) == 0 {
 			scrsMap["success"]++
+			continue
 		}
+
+		// non-executable should have signalError event
+		pr := senderShardNodeHandler.GetProcessComponents().TxLogsProcessor()
+		decodedHash, _ := hex.DecodeString(scr.PrevTxHash)
+		logsForInner, foundLog := pr.GetLogFromCache(decodedHash)
+		require.True(t, foundLog)
+		require.NotNil(t, logsForInner)
+		require.Equal(t, core.SignalErrorOperation, string(logsForInner.GetLogEvents()[0].GetIdentifier()))
+
 		if strings.Contains(scr.ReturnMessage, process.ErrHigherNonceInTransaction.Error()) {
 			scrsMap[process.ErrHigherNonceInTransaction.Error()]++
 		}
@@ -267,12 +281,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNo
 	require.Equal(t, 1, scrsMap["success"])
 	require.Equal(t, 3, scrsMap[process.ErrHigherNonceInTransaction.Error()])
 	require.Equal(t, 1, scrsMap[process.ErrLowerNonceInTransaction.Error()])
-
-	// 4 log events from the failed txs
-	require.Equal(t, 4, len(result.Logs.Events))
-	for _, event := range result.Logs.Events {
-		require.Equal(t, core.SignalErrorOperation, event.Identifier)
-	}
 }
 
 // Test setup:
@@ -612,7 +620,85 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorSetSpecialRo
 		default:
 			require.Fail(t, "should only have 2 inner txs")
 		}
+	}
+}
 
+// Test setup:
+// - 2 inner txs:
+//   - createNewDelegationContract -> success, first create
+//   - createNewDelegationContract -> fail, already created
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorCreateNewDelegationContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, alterConfigsFuncRelayedV3EarlyActivation)
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(100000))
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(1)
+	require.NoError(t, err)
+
+	// try to create twice through relayed v3
+	// first one should work, second one should fail
+	nonce := uint64(0)
+	createValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(1250))
+	innerTx1 := generateTransaction(owner.Bytes, nonce, vm.DelegationManagerSCAddress, createValue, "createNewDelegationContract@00@00", 60_000_000)
+	innerTx1.RelayerAddr = relayer.Bytes
+	nonce++
+
+	innerTx2 := generateTransaction(owner.Bytes, nonce, vm.DelegationManagerSCAddress, createValue, "createNewDelegationContract@00@00", 60_000_000)
+	innerTx2.RelayerAddr = relayer.Bytes
+
+	innerTxs := []*transaction.Transaction{innerTx1, innerTx2}
+
+	relayedTxGasLimit := uint64(0)
+	for _, inner := range innerTxs {
+		relayedTxGasLimit += minGasLimit + inner.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+	require.Equal(t, "success", result.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.NoError(t, err)
+
+	printResult(t, result)
+
+	providedInnerTxHashes := getInnerTxsHashesMap(t, cs.GetNodeHandler(0), innerTxs)
+
+	for _, scr := range result.SmartContractResults {
+		innerTxIdx, prevHashIsInnerTxHash := providedInnerTxHashes[scr.PrevTxHash]
+		assert.True(t, prevHashIsInnerTxHash)
+
+		scrResult, errGetTx := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetTransaction(scr.Hash, true)
+		require.NoError(t, errGetTx)
+
+		require.NotNil(t, scrResult.Logs)
+		switch innerTxIdx {
+		case 0:
+			require.Equal(t, "success", scrResult.Status.String())
+			require.Equal(t, 5, len(scrResult.Logs.Events))
+		case 1:
+			// 2 events, one for relayer and one for inner tx sender
+			require.Equal(t, 2, len(scrResult.Logs.Events))
+			for _, logEvent := range scrResult.Logs.Events {
+				require.Equal(t, core.SignalErrorOperation, logEvent.Identifier)
+				require.GreaterOrEqual(t, len(logEvent.Topics), 1)
+				require.Contains(t, string(logEvent.Topics[1]), "caller already deployed a delegation sc")
+			}
+		default:
+			require.Fail(t, "should not have more than 2 inner txs")
+		}
 	}
 }
 
@@ -799,7 +885,6 @@ func testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(
 // - 2 inner txs:
 //   - cross shard move balance, fail due to guardian mismatch
 //   - cross shard move balance, fail due to higher nonce
-//   - move balance to meta contract -> fail
 //
 // - 1 inner txs:
 //   - cross shard guarded move balance ok
@@ -875,12 +960,15 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 
 	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
+	require.Nil(t, result.Logs)
 
 	printResult(t, result)
 
 	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
+
+	senderShardNodeHandler := cs.GetNodeHandler(0)
 
 	// check the inner tx failed with the desired error
 	require.Equal(t, 2, len(result.SmartContractResults))
@@ -890,6 +978,14 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 		process.ErrHigherNonceInTransaction.Error():              false,
 	}
 	for _, scr := range result.SmartContractResults {
+		// non-executable should have signalError event
+		pr := senderShardNodeHandler.GetProcessComponents().TxLogsProcessor()
+		decodedHash, _ := hex.DecodeString(scr.PrevTxHash)
+		logsForInner, foundLog := pr.GetLogFromCache(decodedHash)
+		require.True(t, foundLog)
+		require.NotNil(t, logsForInner)
+		require.Equal(t, core.SignalErrorOperation, string(logsForInner.GetLogEvents()[0].GetIdentifier()))
+
 		if strings.Contains(scr.ReturnMessage, process.ErrTransactionNotExecutable.Error()) {
 			expectedResults[process.ErrTransactionNotExecutable.Error()] = true
 		}
@@ -904,12 +1000,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 
 	for errorStr, found := range expectedResults {
 		require.True(t, found, fmt.Sprintf("missing return message `%s` from scr", errorStr))
-	}
-
-	// check events
-	require.Equal(t, 2, len(result.Logs.Events))
-	for _, event := range result.Logs.Events {
-		require.Equal(t, core.SignalErrorOperation, event.Identifier)
 	}
 
 	// compute expected consumed fee for relayer

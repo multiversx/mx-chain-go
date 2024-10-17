@@ -3769,8 +3769,8 @@ func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 		originalTxHash, err := core.CalculateHash(args.Marshalizer, args.Hasher, originalTx)
 		assert.Nil(t, err)
 		numLogsSaved := 0
-		args.FailedTxLogsAccumulator = &processMocks.FailedTxLogsAccumulatorMock{
-			SaveLogsCalled: func(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error {
+		args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error {
 				assert.Equal(t, originalTxHash, txHash)
 				assert.Equal(t, originalTx, tx)
 				assert.Equal(t, 1, len(logs))
