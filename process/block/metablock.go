@@ -1964,6 +1964,10 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 
 		hasAllProofs := true
 		for shardHdrHash, shardHdr := range mp.hdrsForCurrBlock.hdrHashAndInfo {
+			if check.IfNil(shardHdr.hdr) {
+				continue
+			}
+
 			if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.hdr.GetEpoch()) {
 				continue
 			}
