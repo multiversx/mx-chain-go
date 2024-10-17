@@ -50,6 +50,7 @@ type EconomicsHandlerMock struct {
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
+	MinGasLimitInEpochCalled                            func(epoch uint32) uint64
 }
 
 // LeaderPercentage -
@@ -87,6 +88,14 @@ func (ehm *EconomicsHandlerMock) MinGasPrice() uint64 {
 
 // MinGasLimit will return min gas limit
 func (ehm *EconomicsHandlerMock) MinGasLimit() uint64 {
+	return 0
+}
+
+// MinGasLimitInEpoch -
+func (stub *EconomicsHandlerMock) MinGasLimitInEpoch(epoch uint32) uint64 {
+	if stub.MinGasLimitInEpochCalled != nil {
+		return stub.MinGasLimitInEpochCalled(epoch)
+	}
 	return 0
 }
 

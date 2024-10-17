@@ -13,6 +13,7 @@ type FeeComputerStub struct {
 	ComputeTxFeeBasedOnGasUsedCalled             func(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int
 	ComputeGasLimitCalled                        func(tx *transaction.ApiTransactionResult) uint64
 	ComputeMoveBalanceFeeCalled                  func(tx *transaction.ApiTransactionResult) *big.Int
+	MinGasLimitInEpochCalled                     func(epoch uint32) uint64
 }
 
 // ComputeTransactionFee -
@@ -57,6 +58,14 @@ func (stub *FeeComputerStub) ComputeMoveBalanceFee(tx *transaction.ApiTransactio
 	}
 
 	return big.NewInt(0)
+}
+
+// MinGasLimitInEpoch -
+func (stub *FeeComputerStub) MinGasLimitInEpoch(epoch uint32) uint64 {
+	if stub.MinGasLimitInEpochCalled != nil {
+		return stub.MinGasLimitInEpochCalled(epoch)
+	}
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
