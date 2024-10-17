@@ -31,7 +31,7 @@ func (e *EconomicsHandlerMock) ComputeRelayedTxFees(_ coreData.TransactionWithFe
 }
 
 // ComputeGasUnitsFromRefundValue -
-func (e *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ coreData.TransactionWithFeeHandler, _ *big.Int) uint64 {
+func (e *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ coreData.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
 	return 0
 }
 

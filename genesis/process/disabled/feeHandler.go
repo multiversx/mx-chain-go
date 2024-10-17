@@ -18,7 +18,7 @@ func (fh *FeeHandler) ComputeRelayedTxV3GasUnits(_ data.TransactionWithFeeHandle
 }
 
 // ComputeGasUnitsFromRefundValue -
-func (fh *FeeHandler) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int) uint64 {
+func (fh *FeeHandler) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
 	return 0
 }
 

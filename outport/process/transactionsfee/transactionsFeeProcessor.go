@@ -102,7 +102,7 @@ func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Transact
 	txsWithResultsMap := prepareTransactionsAndScrs(pool)
 	tep.prepareNormalTxs(txsWithResultsMap, epoch)
 
-	return tep.prepareScrsNoTx(txsWithResultsMap)
+	return tep.prepareScrsNoTx(txsWithResultsMap, epoch)
 }
 
 func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.TransactionPool) {
@@ -317,7 +317,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 
 }
 
-func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {
+func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder, epoch uint32) error {
 	for _, scrHandler := range transactionsAndScrs.scrsNoTx {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -346,7 +346,7 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 
 		isRelayedV3 := len(txFromStorage.InnerTransactions) > 0
 		if isRelayedV3 {
-			gasUnits := tep.txFeeCalculator.ComputeGasUnitsFromRefundValue(txFromStorage, scr.Value)
+			gasUnits := tep.txFeeCalculator.ComputeGasUnitsFromRefundValue(txFromStorage, scr.Value, epoch)
 
 			scrHandler.GetFeeInfo().SetForRelayed()
 			scrHandler.GetFeeInfo().SetGasUsed(gasUnits)

@@ -592,9 +592,8 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 }
 
 // ComputeGasUnitsFromRefundValue will compute the gas unit based on the refund value
-func (ed *economicsData) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) uint64 {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	gasPrice := ed.GasPriceForProcessingInEpoch(tx, currentEpoch)
+func (ed *economicsData) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64 {
+	gasPrice := ed.GasPriceForProcessingInEpoch(tx, epoch)
 	refund := big.NewInt(0).Set(refundValue)
 	gasUnits := refund.Div(refund, big.NewInt(int64(gasPrice)))
 

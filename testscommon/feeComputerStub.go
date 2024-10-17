@@ -16,6 +16,7 @@ type FeeComputerStub struct {
 	ComputeGasUnitForRelayedV3Called             func(tx *transaction.ApiTransactionResult) uint64
 }
 
+// ComputeGasUnitForRelayedV3 -
 func (stub *FeeComputerStub) ComputeGasUnitForRelayedV3(tx *transaction.ApiTransactionResult) uint64 {
 	if stub.ComputeGasUnitForRelayedV3Called != nil {
 		return stub.ComputeGasUnitForRelayedV3Called(tx)
