@@ -231,19 +231,9 @@ func (sr *subroundSignature) DoSignatureJob() bool {
 	return sr.doSignatureJob(context.Background())
 }
 
-// ReceivedSignature method is called when a signature is received through the signature channel
-func (sr *subroundSignature) ReceivedSignature(cnsDta *consensus.Message) bool {
-	return sr.receivedSignature(context.Background(), cnsDta)
-}
-
 // DoSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 	return sr.doSignatureConsensusCheck()
-}
-
-// AreSignaturesCollected method checks if the number of signatures received from the nodes are more than the given threshold
-func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
-	return sr.areSignaturesCollected(threshold)
 }
 
 // subroundEndRound
