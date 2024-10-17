@@ -176,17 +176,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return true
 	}
 
-	selfJobDone := true
-	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		selfJobDone = sr.IsSelfJobDone(sr.Current())
-	}
-	multiKeyJobDone := true
-	if sr.IsMultiKeyInConsensusGroup() {
-		multiKeyJobDone = sr.IsMultiKeyJobDone(sr.Current())
-	}
-
-	isJobDoneByConsensusNode := isSelfInConsensusGroup && selfJobDone && multiKeyJobDone
-	if isJobDoneByConsensusNode {
+	if sr.IsSelfJobDone(sr.Current()) {
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -286,7 +276,7 @@ func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error
 func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+		log.Debug("doSignatureJobForSingleKey.SelfConsensusGroupIndex: not in consensus group")
 		return false
 	}
 
@@ -297,7 +287,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 		[]byte(sr.SelfPubKey()),
 	)
 	if err != nil {
-		log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
+		log.Debug("doSignatureJobForSingleKey.CreateSignatureShareForPublicKey", "error", err.Error())
 		return false
 	}
 
