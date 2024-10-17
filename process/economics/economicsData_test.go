@@ -1827,6 +1827,6 @@ func TestEconomicsData_ComputeGasUnitsFromRefundValue(t *testing.T) {
 		},
 	}
 
-	gasUnits := economicsData.ComputeGasUnitsFromRefundValue(tx, big.NewInt(1074000000000000))
+	gasUnits := economicsData.ComputeGasUnitsFromRefundValue(tx, big.NewInt(1074000000000000), 0)
 	require.Equal(t, uint64(107_400_000), gasUnits)
 }
