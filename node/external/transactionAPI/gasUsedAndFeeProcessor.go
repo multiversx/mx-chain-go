@@ -42,7 +42,7 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
 
-	isFeeFixActive := gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	isFeeFixActive := gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV3Flag, tx.Epoch)
 	isRelayedBeforeFix := tx.IsRelayed && !isFeeFixActive
 	if isRelayedBeforeFix || gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit

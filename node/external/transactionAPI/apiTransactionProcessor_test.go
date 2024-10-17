@@ -34,6 +34,7 @@ import (
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
@@ -63,6 +64,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 }
 
@@ -202,6 +204,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("NilHasher", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.Hasher = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilHasher, err)
 	})
 }
 
@@ -362,6 +373,7 @@ func TestNode_GetSCRs(t *testing.T) {
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -572,6 +584,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:              &hashingMocks.HasherMock{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1142,6 +1155,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:                   &mock.HasherMock{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)
