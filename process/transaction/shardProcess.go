@@ -1202,6 +1202,10 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		CallType:       vm.DirectCall,
 	}
 
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
+		return scr, nil
+	}
+
 	var err error
 	scr.GasLimit, err = core.SafeSubUint64(scr.GasLimit, txProc.economicsFee.ComputeGasLimit(tx))
 	if err != nil {
