@@ -67,7 +67,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 		IssuePaymentToken: "ABC-123456",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, enshrineEsdtSafeContract)
 
 	addressShardID := chainSim.GetShardForAddress(cs, initialAddress)
 	nodeHandler := cs.GetNodeHandler(addressShardID)
@@ -171,7 +171,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 
 		// deposit a prefixed token from main chain to sovereign chain,
 		// expecting these tokens to be burned by the whitelisted ESDT safe sc
-		txResult = Deposit(t, cs, receiver.Bytes, &receiverNonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{bridgedOutToken}, receiver.Bytes)
+		txResult = deposit(t, cs, receiver.Bytes, &receiverNonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{bridgedOutToken}, receiver.Bytes)
 		chainSim.RequireSuccessfulTransaction(t, txResult)
 
 		remainingTokenAmount := big.NewInt(0).Sub(receiverToken.Amount, amountToDeposit)

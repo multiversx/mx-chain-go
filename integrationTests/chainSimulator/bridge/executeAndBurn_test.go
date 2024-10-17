@@ -22,8 +22,6 @@ import (
 
 const (
 	defaultPathToInitialConfig = "../../../cmd/node/config/"
-	esdtSafeWasmPath           = "testdata/esdt-safe.wasm"
-	feeMarketWasmPath          = "testdata/fee-market.wasm"
 )
 
 var sovChainPrefix = "sov"
@@ -174,7 +172,7 @@ func simulateExecutionAndDeposit(
 		IssuePaymentToken: "WEGLD-bd4d79",
 	}
 	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, argsEsdtSafe, enshrineEsdtSafeContract)
 	chainSim.RequireAccountHasToken(t, cs, argsEsdtSafe.IssuePaymentToken, initialAddress, big.NewInt(0))
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
@@ -202,7 +200,7 @@ func simulateExecutionAndDeposit(
 
 	// deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
-	txResult = Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	txResult = deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
 	chainSim.RequireSuccessfulTransaction(t, txResult)
 
 	bridgedTokens := groupTokens(bridgedInTokens)
