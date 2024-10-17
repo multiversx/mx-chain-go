@@ -60,6 +60,7 @@ type nonceAndHashInfo struct {
 
 type hdrInfo struct {
 	usedInBlock bool
+	hasProof    bool
 	hdr         data.HeaderHandler
 }
 
@@ -123,6 +124,8 @@ type baseProcessor struct {
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
+
+	proofsPool dataRetriever.ProofsPool
 }
 
 type bootStorerDataArgs struct {
@@ -618,7 +621,9 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if headerInfo.usedInBlock != usedInBlock {
+		isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
+		hasMissingProof := isFlagEnabledForHeader && !headerInfo.hasProof
+		if headerInfo.usedInBlock != usedInBlock || hasMissingProof {
 			continue
 		}
 
@@ -639,7 +644,9 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if headerInfo.usedInBlock != usedInBlock {
+		isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
+		hasMissingProof := isFlagEnabledForHeader && !headerInfo.hasProof
+		if headerInfo.usedInBlock != usedInBlock || hasMissingProof {
 			continue
 		}
 
@@ -2174,4 +2181,18 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) isFirstBlock(header data.HeaderHandler) bool {
+	isStartOfEpochBlock := header.IsStartOfEpochBlock()
+	isBlockInActivationEpoch := header.GetEpoch() == bp.enableEpochsHandler.GetCurrentEpoch()
+
+	return isBlockInActivationEpoch && isStartOfEpochBlock
+}
+
+func (bp *baseProcessor) isEpochChangeBlockForEquivalentMessagesActivation(header data.HeaderHandler) bool {
+	isEquivalentMessagesFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+	isFirstBlockAfterEquivalentMessagesFlag := bp.isFirstBlock(header)
+
+	return isEquivalentMessagesFlagEnabledForHeader && isFirstBlockAfterEquivalentMessagesFlag
 }
