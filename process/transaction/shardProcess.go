@@ -1203,14 +1203,10 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 		CallType:       vm.DirectCall,
 	}
 
-	isUserTxOfRelayedV3 := len(originalTx.InnerTransactions) > 0 &&
-		bytes.Equal(originalTx.SndAddr, originalTx.RcvAddr) &&
-		bytes.Equal(originalTx.SndAddr, tx.RelayerAddr)
 	sourceShard := txProc.shardCoordinator.ComputeId(tx.SndAddr)
 	destShard := txProc.shardCoordinator.ComputeId(tx.RcvAddr)
 	isCross := sourceShard != destShard
-	isUserTxOfRelayedCross := isCross && isUserTxOfRelayedV3
-	if isUserTxOfRelayedCross && txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
+	if isCross && txProc.enableEpochsHandler.IsFlagEnabled(common.LinkInnerTransactionFlag) {
 		return scr, nil
 	}
 
