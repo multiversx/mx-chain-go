@@ -3,7 +3,6 @@ package processor
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -96,14 +95,6 @@ func (hip *sovereignHeaderInterceptorProcessor) validateReceivedHeader(
 	if err != nil {
 		return err
 	}
-
-	jsonHeader, _ := json.Marshal(extendedHdr)
-	jsonComputedHeader, _ := json.Marshal(computedExtendedHeader)
-
-	log.Error("validateReceivedHeader",
-		"jsonHeader", jsonHeader,
-		"jsonComputedHeader", jsonComputedHeader,
-	)
 
 	computedHeaderHash, err := core.CalculateHash(hip.marshaller, hip.hasher, computedExtendedHeader)
 	if err != nil {

@@ -304,6 +304,17 @@ func (scsbt *sovereignChainShardBlockTrack) ComputeLongestExtendedShardChainFrom
 	//	return res, resHashes, nil
 	//}
 
+	//if lastCrossNotarizedHeader.GetRound() == scsbt.mainChainNotarizationStartRound-1 && len(hdrsForShard) > 0 {
+	//	res := make([]data.HeaderHandler, 0)
+	//	res = append(res, lastCrossNotarizedHeader)
+	//	res = append(res, hdrsForShard...)
+	//	resHashes := make([][]byte, 0)
+	//	resHashes = append(resHashes, lastCrossNotarizedHeaderHash)
+	//	resHashes = append(resHashes, hdrsHashesForShard...)
+	//	log.Error("SPECIAL CASE")
+	//	return res, resHashes, nil
+	//}
+
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
