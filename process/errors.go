@@ -1274,3 +1274,6 @@ var ErrNilFailedTxLogsAccumulator = errors.New("nil failed transaction logs accu
 
 // ErrEmptyInnerTransactions signals that the inner transactions slice is empty
 var ErrEmptyInnerTransactions = errors.New("empty inner transactions")
+
+// ErrDuplicatedInnerTransaction signals that duplicated inner transactions were detected
+var ErrDuplicatedInnerTransaction = errors.New("duplicated inner transaction")

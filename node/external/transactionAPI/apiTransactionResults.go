@@ -140,6 +140,27 @@ func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, 
 	if err != nil {
 		log.Trace("loadLogsIntoTransaction()", "hash", hash, "epoch", epoch, "err", err)
 	}
+
+	arp.loadLogsIntoInnerTransactions(tx, epoch)
+}
+
+func (arp *apiTransactionResultsProcessor) loadLogsIntoInnerTransactions(tx *transaction.ApiTransactionResult, epoch uint32) {
+	if len(tx.InnerTransactions) == 0 {
+		return
+	}
+
+	for _, innerTx := range tx.InnerTransactions {
+		decodedHash, err := hex.DecodeString(innerTx.Hash)
+		if err != nil {
+			log.Trace("loadLogsIntoInnerTransactions.DecodeString", "hash", innerTx.Hash, "epoch", epoch, "err", err)
+			continue
+		}
+
+		innerTx.Logs, err = arp.logsFacade.GetLog(decodedHash, epoch)
+		if err != nil {
+			log.Trace("loadLogsIntoInnerTransactions()", "hash", innerTx.Hash, "epoch", epoch, "err", err)
+		}
+	}
 }
 
 func (arp *apiTransactionResultsProcessor) loadLogsIntoContractResults(scrHash []byte, epoch uint32, scr *transaction.ApiSmartContractResult) {

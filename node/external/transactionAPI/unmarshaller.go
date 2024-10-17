@@ -9,6 +9,7 @@ import (
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -20,6 +21,7 @@ type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
+	hasher                 hashing.Hasher
 }
 
 func newTransactionUnmarshaller(
@@ -27,12 +29,14 @@ func newTransactionUnmarshaller(
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
 	shardCoordinator sharding.Coordinator,
+	hasher hashing.Hasher,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
 		shardCoordinator:       shardCoordinator,
+		hasher:                 hasher,
 	}
 }
 
@@ -160,20 +164,30 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 	return apiTx
 }
 
-func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transaction.FrontendTransaction {
+func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transaction.ApiTransactionResult {
 	if len(tx.InnerTransactions) == 0 {
 		return nil
 	}
 
-	innerTxs := make([]*transaction.FrontendTransaction, 0, len(tx.InnerTransactions))
+	innerTxs := make([]*transaction.ApiTransactionResult, 0, len(tx.InnerTransactions))
 	for _, innerTx := range tx.InnerTransactions {
-		frontEndTx := &transaction.FrontendTransaction{
+		innerTxHash, err := core.CalculateHash(tu.marshalizer, tu.hasher, innerTx)
+		if err != nil {
+			innerTxHash = make([]byte, 0)
+		}
+
+		innerTxApiResult := &transaction.ApiTransactionResult{
+			Tx:               innerTx,
+			Type:             string(transaction.TxTypeInner),
+			Hash:             hex.EncodeToString(innerTxHash),
 			Nonce:            innerTx.Nonce,
 			Value:            innerTx.Value.String(),
 			Receiver:         tu.addressPubKeyConverter.SilentEncode(innerTx.RcvAddr, log),
 			Sender:           tu.addressPubKeyConverter.SilentEncode(innerTx.SndAddr, log),
 			SenderUsername:   innerTx.SndUserName,
 			ReceiverUsername: innerTx.RcvUserName,
+			SourceShard:      tu.shardCoordinator.ComputeId(innerTx.SndAddr),
+			DestinationShard: tu.shardCoordinator.ComputeId(innerTx.RcvAddr),
 			GasPrice:         innerTx.GasPrice,
 			GasLimit:         innerTx.GasLimit,
 			Data:             innerTx.Data,
@@ -184,15 +198,15 @@ func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transa
 		}
 
 		if len(innerTx.GuardianAddr) > 0 {
-			frontEndTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
-			frontEndTx.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
+			innerTxApiResult.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
+			innerTxApiResult.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
 		}
 
 		if len(innerTx.RelayerAddr) > 0 {
-			frontEndTx.Relayer = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
+			innerTxApiResult.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
 		}
 
-		innerTxs = append(innerTxs, frontEndTx)
+		innerTxs = append(innerTxs, innerTxApiResult)
 	}
 
 	return innerTxs

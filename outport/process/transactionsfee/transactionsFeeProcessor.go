@@ -128,7 +128,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		feeInfo.SetInitialPaidFee(initialPaidFee)
 
 		isRelayed := isRelayedTx(txWithResult)
-		isFeeFixActive := tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
+		isFeeFixActive := tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV3Flag, epoch)
 		isRelayedBeforeFix := isRelayed && !isFeeFixActive
 		if isRelayedBeforeFix || tep.isESDTOperationWithSCCall(txHandler) {
 			feeInfo.SetGasUsed(txWithResult.GetTxHandler().GetGasLimit())
