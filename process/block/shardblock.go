@@ -1937,7 +1937,8 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 		}
 
 		hasProofForHdr := sp.proofsPool.HasProof(core.MetachainShardId, orderedMetaBlocksHashes[i])
-		if !hasProofForHdr {
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, orderedMetaBlocks[i].GetEpoch())
+		if !hasProofForHdr && shouldConsiderProofsForNotarization {
 			log.Trace("no proof for meta header",
 				"hash", logger.DisplayByteSlice(orderedMetaBlocksHashes[i]),
 			)

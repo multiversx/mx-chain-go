@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
@@ -650,11 +651,12 @@ func createHardForkExporter(
 				NumResolveFailureThreshold: 3,
 				DebugLineExpiration:        3,
 			},
-			MaxHardCapForMissingNodes: 500,
-			NumConcurrentTrieSyncers:  50,
-			TrieSyncerVersion:         2,
-			CheckNodesOnDisk:          false,
-			NodeOperationMode:         node.NodeOperationMode,
+			MaxHardCapForMissingNodes:      500,
+			NumConcurrentTrieSyncers:       50,
+			TrieSyncerVersion:              2,
+			CheckNodesOnDisk:               false,
+			NodeOperationMode:              node.NodeOperationMode,
+			InterceptedDataVerifierFactory: &processMocks.InterceptedDataVerifierFactoryMock{},
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)
