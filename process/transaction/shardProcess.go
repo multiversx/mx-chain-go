@@ -1078,7 +1078,7 @@ func (txProc *txProcessor) processUserTx(
 			innerTxIdx)
 	}
 
-	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, originalTx, originalTxHash, prevTxHash)
+	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, originalTxHash, prevTxHash)
 	if err != nil {
 		return 0, err
 	}
@@ -1184,7 +1184,6 @@ func (txProc *txProcessor) makeSCRFromUserTx(
 	tx *transaction.Transaction,
 	relayerAdr []byte,
 	relayedTxValue *big.Int,
-	originalTx *transaction.Transaction,
 	txHash []byte,
 	prevTxHash []byte,
 ) (*smartContractResult.SmartContractResult, error) {
