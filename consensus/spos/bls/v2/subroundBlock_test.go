@@ -24,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -584,33 +583,6 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.GetHeader().GetNonce())
 	})
-
-}
-
-func createConsensusMessage(header data.HeaderHandler, body *block.Body, leader []byte, topic consensus.MessageType) *consensus.Message {
-	marshaller := &mock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-
-	hdrStr, _ := marshaller.Marshal(header)
-	hdrHash := hasher.Compute(string(hdrStr))
-	blkBodyStr, _ := marshaller.Marshal(body)
-
-	return consensus.NewConsensusMessage(
-		hdrHash,
-		nil,
-		blkBodyStr,
-		hdrStr,
-		leader,
-		[]byte("sig"),
-		int(topic),
-		0,
-		chainID,
-		nil,
-		nil,
-		nil,
-		currentPid,
-		nil,
-	)
 }
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
