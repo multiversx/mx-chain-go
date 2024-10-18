@@ -15,6 +15,16 @@ type TransactionAPIHandlerStub struct {
 	UnmarshalTransactionCalled                  func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error)
 	UnmarshalReceiptCalled                      func(receiptBytes []byte) (*transaction.ApiReceipt, error)
 	PopulateComputedFieldsCalled                func(tx *transaction.ApiTransactionResult)
+	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+}
+
+// GetSCRsByTxHash --
+func (tas *TransactionAPIHandlerStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	if tas.GetSCRsByTxHashCalled != nil {
+		return tas.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
 }
 
 // GetTransaction -

@@ -16,3 +16,9 @@ type SyncedBroadcastNetworkHandler interface {
 type APIConfigurator interface {
 	RestApiInterface(shardID uint32) string
 }
+
+// NetworkMessenger defines what a network messenger should do
+type NetworkMessenger interface {
+	Broadcast(topic string, buff []byte)
+	IsInterfaceNil() bool
+}
