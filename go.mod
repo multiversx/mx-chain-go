@@ -15,9 +15,9 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.1.0
-	github.com/multiversx/mx-chain-core-go v1.2.23-0.20241017083841-5e7b1485b6a1
+	github.com/multiversx/mx-chain-core-go v1.2.23-0.20241018055916-203f32de05ad
 	github.com/multiversx/mx-chain-crypto-go v1.2.12
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.10-0.20241017103233-5709b0b0c463
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.10-0.20241018070419-4c779fec3824
 	github.com/multiversx/mx-chain-logger-go v1.0.15
 	github.com/multiversx/mx-chain-scenario-go v1.4.4
 	github.com/multiversx/mx-chain-storage-go v1.0.16

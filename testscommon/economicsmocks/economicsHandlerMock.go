@@ -50,15 +50,25 @@ type EconomicsHandlerMock struct {
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
+	ComputeRelayedTxV3GasUnitsCalled                    func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
+	ComputeGasUnitsFromRefundValueCalled                func(tx data.TransactionWithFeeHandler, value *big.Int, epoch uint32) uint64
 }
 
 // ComputeRelayedTxV3GasUnits -
-func (ehm *EconomicsHandlerMock) ComputeRelayedTxV3GasUnits(_ data.TransactionWithFeeHandler, _ uint32) uint64 {
+func (ehm *EconomicsHandlerMock) ComputeRelayedTxV3GasUnits(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+	if ehm.ComputeRelayedTxV3GasUnitsCalled != nil {
+		return ehm.ComputeRelayedTxV3GasUnitsCalled(tx, epoch)
+	}
+
 	return 0
 }
 
 // ComputeGasUnitsFromRefundValue -
-func (ehm *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+func (ehm *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, value *big.Int, epoch uint32) uint64 {
+	if ehm.ComputeGasUnitsFromRefundValueCalled != nil {
+		return ehm.ComputeGasUnitsFromRefundValueCalled(tx, value, epoch)
+	}
+
 	return 0
 }
 

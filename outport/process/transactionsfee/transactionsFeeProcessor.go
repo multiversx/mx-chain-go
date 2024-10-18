@@ -258,8 +258,8 @@ func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex str
 		refundsValue.Add(refundsValue, scr.Value)
 	}
 
-	isRelayedV3 := len(txWithResults.GetTxHandler().GetUserTransactions()) > 0
-	if isRelayedV3 {
+	hasRefunds := refundsValue.Cmp(big.NewInt(0)) == 1
+	if !hasRefunds {
 		_, totalRelayedFee, err := tep.txFeeCalculator.ComputeRelayedTxFees(txWithResults.GetTxHandler())
 		if err != nil {
 			tep.log.Warn("transactionsFeeProcessor.prepareRelayedTxV3WithResults: cannot compute relayed tx fee", "hash", txHashHex, "error", err.Error())
@@ -267,7 +267,6 @@ func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex str
 		}
 
 		relayedTxGasUnits := tep.txFeeCalculator.ComputeRelayedTxV3GasUnits(txWithResults.GetTxHandler(), epoch)
-
 		txWithResults.GetFeeInfo().SetGasUsed(relayedTxGasUnits)
 		txWithResults.GetFeeInfo().SetFee(totalRelayedFee)
 
@@ -275,13 +274,8 @@ func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex str
 	}
 
 	gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), refundsValue)
-
 	txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
 	txWithResults.GetFeeInfo().SetFee(fee)
-
-	hasRefunds := refundsValue.Cmp(big.NewInt(0)) == 1
-	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefunds)
-
 }
 
 func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
@@ -348,8 +342,7 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 		if isRelayedV3 {
 			gasUnits := tep.txFeeCalculator.ComputeGasUnitsFromRefundValue(txFromStorage, scr.Value, epoch)
 
-			scrHandler.GetFeeInfo().SetForRelayed()
-			scrHandler.GetFeeInfo().SetGasUsed(gasUnits)
+			scrHandler.GetFeeInfo().SetGasRefunded(gasUnits)
 			scrHandler.GetFeeInfo().SetFee(scr.Value)
 
 			continue

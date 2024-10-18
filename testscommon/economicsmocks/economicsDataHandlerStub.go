@@ -50,15 +50,25 @@ type EconomicsHandlerStub struct {
 	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
 	ComputeMoveBalanceFeeInEpochCalled                  func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
+	ComputeRelayedTxV3GasUnitsCalled                    func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
+	ComputeGasUnitsFromRefundValueCalled                func(tx data.TransactionWithFeeHandler, value *big.Int, epoch uint32) uint64
 }
 
 // ComputeRelayedTxV3GasUnits -
-func (e *EconomicsHandlerStub) ComputeRelayedTxV3GasUnits(_ data.TransactionWithFeeHandler, _ uint32) uint64 {
+func (e *EconomicsHandlerStub) ComputeRelayedTxV3GasUnits(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+	if e.ComputeRelayedTxV3GasUnitsCalled != nil {
+		return e.ComputeRelayedTxV3GasUnitsCalled(tx, epoch)
+	}
+
 	return 0
 }
 
 // ComputeGasUnitsFromRefundValue -
-func (e *EconomicsHandlerStub) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+func (e *EconomicsHandlerStub) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, value *big.Int, epoch uint32) uint64 {
+	if e.ComputeGasUnitsFromRefundValueCalled != nil {
+		return e.ComputeGasUnitsFromRefundValueCalled(tx, value, epoch)
+	}
+
 	return 0
 }
 
