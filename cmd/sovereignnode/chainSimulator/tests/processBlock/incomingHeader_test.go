@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/stretchr/testify/require"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -20,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 )
 
 const (
@@ -122,7 +122,7 @@ func generateRandomHash() []byte {
 	return randomBytes
 }
 
-func createTransactionsEvent(dataCodecHandler dataCodec.SovereignDataCodec, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
+func createTransactionsEvent(dataCodecHandler incomingHeader.SovereignDataCodec, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
 	tokenData, _ := dataCodecHandler.SerializeTokenData(createTokenData(amountToTransfer))
 	eventData, _ := dataCodecHandler.SerializeEventData(createEventData())
 

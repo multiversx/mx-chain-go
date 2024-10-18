@@ -1,27 +1,30 @@
 package incomingHeader
 
 import (
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/process"
-
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // CreateIncomingHeaderProcessor creates the incoming header processor
 func CreateIncomingHeaderProcessor(
-	config *config.NotifierConfig,
+	config config.WebSocketConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
-	runTypeComponents mainFactory.RunTypeComponentsHolder,
+	runTypeComponents RunTypeComponentsHolder,
 ) (process.IncomingHeaderSubscriber, error) {
-	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	if check.IfNil(runTypeComponents) {
+		return nil, errorsMx.ErrNilRunTypeComponents
+	}
+	marshaller, err := marshallerFactory.NewMarshalizer(config.MarshallerType)
 	if err != nil {
 		return nil, err
 	}
-	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	hasher, err := hasherFactory.NewHasher(config.HasherType)
 	if err != nil {
 		return nil, err
 	}

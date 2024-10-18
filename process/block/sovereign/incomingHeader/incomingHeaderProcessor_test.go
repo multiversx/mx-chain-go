@@ -12,7 +12,6 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	sovereignTests "github.com/multiversx/mx-chain-go/sovereignnode/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -161,7 +160,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), nil)
 		require.Equal(t, data.ErrNilHeader, err)
 
-		incomingHeader := &sovereignTests.IncomingHeaderStub{
+		incomingHeader := &sovTests.IncomingHeaderStub{
 			GetHeaderHandlerCalled: func() data.HeaderHandler {
 				return nil
 			},
@@ -204,7 +203,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		args := createArgs()
 		handler, _ := NewIncomingHeaderProcessor(args)
 
-		incomingHeader := &sovereignTests.IncomingHeaderStub{
+		incomingHeader := &sovTests.IncomingHeaderStub{
 			GetHeaderHandlerCalled: func() data.HeaderHandler {
 				return &block.MetaBlock{}
 			},
