@@ -1,6 +1,7 @@
 package track
 
 import (
+	"runtime/debug"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -58,7 +59,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		roundHandler:                          arguments.RoundHandler,
 	}
 
-	bp.blockFinality = process.BlockFinality
+	bp.blockFinality = 0 //process.BlockFinality //0 //process.BlockFinality
 	bp.shouldProcessReceivedHeaderFunc = bp.shouldProcessReceivedHeader
 	bp.processReceivedHeaderFunc = bp.processReceivedHeader
 	bp.doJobOnReceivedCrossNotarizedHeaderFunc = bp.doJobOnReceivedCrossNotarizedHeader
@@ -238,6 +239,8 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 
 // ComputeLongestChain computes the longest chain for a given shard starting from a given header
 func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
+	debug.PrintStack()
+
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
 
@@ -252,7 +255,15 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers, shardID)
 	}()
 
-	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
+	realNonce := header.GetNonce() + 1
+	//if shardID == core.MainChainShardId {
+	//	log.Error("blockProcessor.ComputeLongestChain", "header.nonce", header.GetNonce())
+	//	if header.GetNonce() != 1 {
+	//		realNonce = header.GetNonce()
+	//	}
+	//}
+
+	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, realNonce)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
 	}
@@ -374,6 +385,13 @@ func (bp *blockProcessor) requestHeadersIfNeeded(
 	if numLongestChainHeaders > 0 {
 		highestNonceInLongestChain = longestChainHeaders[numLongestChainHeaders-1].GetNonce()
 	}
+
+	// highestNonceReceived  = 20
+	// highestNonceInLongestChain = 18
+	// blockFinality = 1
+	// numLongestChainHeaders = 0
+
+	// 20 > 18+1 && 0 == 0
 
 	shouldRequestHeaders = highestNonceReceived > highestNonceInLongestChain+bp.blockFinality && numLongestChainHeaders == 0
 	if !shouldRequestHeaders {

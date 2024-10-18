@@ -95,10 +95,14 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return data.ErrNilHeader
 	}
 
-	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
+	log.Info("received incoming header",
+		"hash", hex.EncodeToString(headerHash),
+		"nonce", header.GetHeaderHandler().GetNonce(),
+		"round", header.GetHeaderHandler().GetRound(),
+	)
 
 	round := header.GetHeaderHandler().GetRound()
-	if round < ihp.mainChainNotarizationStartRound {
+	if round < ihp.mainChainNotarizationStartRound-1 {
 		log.Debug("do not notarize incoming header, round lower than main chain notarization start round",
 			"round", round,
 			"start round", ihp.mainChainNotarizationStartRound)
