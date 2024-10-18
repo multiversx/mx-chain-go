@@ -12,7 +12,7 @@ import (
 
 // CreateIncomingHeaderProcessor creates the incoming header processor
 func CreateIncomingHeaderProcessor(
-	config *config.NotifierConfig,
+	config config.WebSocketConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	runTypeComponents RunTypeComponentsHolder,
@@ -20,12 +20,11 @@ func CreateIncomingHeaderProcessor(
 	if check.IfNil(runTypeComponents) {
 		return nil, errorsMx.ErrNilRunTypeComponents
 	}
-
-	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	marshaller, err := marshallerFactory.NewMarshalizer(config.MarshallerType)
 	if err != nil {
 		return nil, err
 	}
-	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	hasher, err := hasherFactory.NewHasher(config.HasherType)
 	if err != nil {
 		return nil, err
 	}

@@ -433,7 +433,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating process components")
 
 	incomingHeaderHandler, err := incomingHeader.CreateIncomingHeaderProcessor(
-		&configs.SovereignExtraConfig.NotifierConfig,
+		configs.SovereignExtraConfig.NotifierConfig.WebSocketConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		managedRunTypeComponents,
