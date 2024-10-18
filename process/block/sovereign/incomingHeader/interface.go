@@ -3,6 +3,8 @@ package incomingHeader
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
 )
 
 // HeadersPool should be able to add new headers in pool
@@ -30,5 +32,13 @@ type SovereignDataCodec interface {
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
 	DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error)
 	SerializeOperation(operation sovereign.Operation) ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// RunTypeComponentsHolder defines run type components needed to create an incoming header processor
+type RunTypeComponentsHolder interface {
+	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
+	DataCodecHandler() sovBlock.DataCodecHandler
+	TopicsCheckerHandler() sovBlock.TopicsCheckerHandler
 	IsInterfaceNil() bool
 }
