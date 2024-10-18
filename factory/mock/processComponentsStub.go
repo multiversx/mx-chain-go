@@ -58,7 +58,6 @@ type ProcessComponentsMock struct {
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
-	RelayedTxV3ProcessorField            process.RelayedTxV3Processor
 }
 
 // Create -
@@ -289,11 +288,6 @@ func (pcm *ProcessComponentsMock) SentSignaturesTracker() process.SentSignatures
 // EpochSystemSCProcessor -
 func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return pcm.EpochSystemSCProcessorInternal
-}
-
-// RelayedTxV3Processor -
-func (pcm *ProcessComponentsMock) RelayedTxV3Processor() process.RelayedTxV3Processor {
-	return pcm.RelayedTxV3ProcessorField
 }
 
 // IsInterfaceNil -

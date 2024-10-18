@@ -25,7 +25,6 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	relayedV3TxProcessor process.RelayedTxV3Processor,
 ) (process.BlockProcessor, process.EpochStartSystemSCProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -43,7 +42,6 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		blockProcessingCutoff,
 		missingTrieNodesNotifier,
 		sentSignaturesTracker,
-		relayedV3TxProcessor,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -53,6 +51,6 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 }
 
 // CreateAPITransactionEvaluator -
-func (pcf *processComponentsFactory) CreateAPITransactionEvaluator(relayedV3TxProcessor process.RelayedTxV3Processor) (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
-	return pcf.createAPITransactionEvaluator(relayedV3TxProcessor)
+func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+	return pcf.createAPITransactionEvaluator()
 }
