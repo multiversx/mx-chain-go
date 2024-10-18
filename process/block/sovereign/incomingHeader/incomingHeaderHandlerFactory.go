@@ -3,19 +3,26 @@ package incomingHeader
 import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 
 	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 )
+
+type RunTypeComponentsHolder interface {
+	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
+	DataCodecHandler() sovereign.DataCodecHandler
+	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
+}
 
 // CreateIncomingHeaderProcessor creates the incoming header processor
 func CreateIncomingHeaderProcessor(
 	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
-	runTypeComponents mainFactory.RunTypeComponentsHolder,
+	runTypeComponents RunTypeComponentsHolder,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {

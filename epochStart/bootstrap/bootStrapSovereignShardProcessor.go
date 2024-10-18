@@ -14,8 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	bootStrapFactory "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
-	incomingHeader2 "github.com/multiversx/mx-chain-go/epochStart/bootstrap/incomingHeader"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -266,7 +266,7 @@ func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContain
 		return nil, nil, err
 	}
 
-	incomingHeader2, err := incomingHeader2.CreateIncomingHeaderProcessor(&sbp.generalConfig.SovereignConfig.NotifierConfig, sbp.dataPool, sbp.generalConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
+	incomingHeader2, err := incomingHeader.CreateIncomingHeaderProcessor(&sbp.generalConfig.SovereignConfig.NotifierConfig, sbp.dataPool, sbp.generalConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		sbp.runTypeComponents)
 	if err != nil {
 		return nil, nil, err
