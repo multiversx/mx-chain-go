@@ -12,8 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 )
 
@@ -43,6 +43,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		cfg.GeneralConfig.SovereignConfig = *configs.SovereignExtraConfig
 		cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
 		cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		cfg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix = "sov"
 
 		if alterConfigs != nil {
 			alterConfigs(cfg)

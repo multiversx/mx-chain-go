@@ -1,7 +1,6 @@
-package delegation
+package esdt
 
 import (
-	"encoding/hex"
 	"math/big"
 	"testing"
 	"time"
@@ -15,15 +14,21 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/vm"
 )
 
-const (
-	defaultPathToInitialConfig = "../../../../node/config/"
-	sovereignConfigPath        = "../../../config/"
-)
+var nftV2Roles = []string{
+	core.ESDTRoleNFTCreate,
+	core.ESDTRoleNFTBurn,
+	core.ESDTRoleNFTUpdateAttributes,
+	core.ESDTRoleNFTAddURI,
+	core.ESDTRoleNFTRecreate,
+	core.ESDTRoleModifyCreator,
+	core.ESDTRoleModifyRoyalties,
+	core.ESDTRoleSetNewURI,
+	core.ESDTRoleNFTUpdate,
+}
 
-func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
+func TestSovereignChainSimulator_RegisterNftWithPrefix(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -40,7 +45,7 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch = 0
+				cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
 			},
 		},
 	})
@@ -51,24 +56,27 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(2500)))
+	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
 	nonce := uint64(0)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	txData := "createNewDelegationContract" +
-		"@" + hex.EncodeToString(big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(100000)).Bytes()) +
-		"@64"
-	cost := big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(1250))
-	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.DelegationManagerSCAddress, cost, txData, uint64(60000000))
-	chainSim.RequireSuccessfulTransaction(t, txResult)
+	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
+	nftName := "NFTNAME"
+	nftTicker := "NFTTICKER"
+	nftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, nftName, nftTicker, core.NonFungibleESDTv2, 0)
 
-	secondDelegationSCAddress := txResult.Logs.Events[1].Topics[4]
-	secondDelegationSCAddressBech32, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(secondDelegationSCAddress)
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(secondDelegationSCAddressBech32, coreAPI.AccountQueryOptions{})
+	checkAllRoles(t, nodeHandler, wallet.Bech32, nftIdentifier, nftV2Roles)
+
+	initialSupply := big.NewInt(1)
+	createArgs := createNftArgs(nftIdentifier, initialSupply, "NFTNAME #1")
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
+
+	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.NotNil(t, account)
-	require.True(t, len(account.Code) > 0)
+	require.NotNil(t, tokens)
+	require.True(t, len(tokens) == 2)
+	require.Equal(t, initialSupply, tokens[nftIdentifier+"-01"].Value)
 }

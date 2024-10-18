@@ -417,6 +417,7 @@ func getTokenRegisterType(tokenType string) string {
 	case core.FungibleESDT:
 		return "FNG"
 	case core.NonFungibleESDT:
+	case core.NonFungibleESDTv2:
 		return "NFT"
 	case core.SemiFungibleESDT:
 		return "SFT"

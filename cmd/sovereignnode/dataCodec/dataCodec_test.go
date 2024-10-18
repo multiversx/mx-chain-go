@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
@@ -13,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createDataCodec() SovereignDataCodec {
+func createDataCodec() incomingHeader.SovereignDataCodec {
 	serializer, _ := abi.NewSerializer(abi.ArgsNewSerializer{
 		PartsSeparator: "@",
 	})

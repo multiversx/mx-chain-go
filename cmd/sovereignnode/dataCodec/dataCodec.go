@@ -155,7 +155,7 @@ func getTokenDataStruct(tokenData sovereign.EsdtTokenData) *abi.StructValue {
 			},
 			{
 				Name:  "amount",
-				Value: &abi.BigIntValue{Value: tokenData.Amount},
+				Value: &abi.BigUIntValue{Value: tokenData.Amount},
 			},
 			{
 				Name:  "frozen",
@@ -179,7 +179,7 @@ func getTokenDataStruct(tokenData sovereign.EsdtTokenData) *abi.StructValue {
 			},
 			{
 				Name:  "royalties",
-				Value: &abi.BigIntValue{Value: tokenData.Royalties},
+				Value: &abi.BigUIntValue{Value: tokenData.Royalties},
 			},
 			{
 				Name: "uris",
@@ -202,13 +202,13 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 			return nil
 		},
 	}
-	amount := &abi.BigIntValue{}
+	amount := &abi.BigUIntValue{}
 	frozen := &abi.BoolValue{}
 	hash := &abi.BytesValue{}
 	name := &abi.BytesValue{}
 	attributes := &abi.BytesValue{}
 	creator := &abi.AddressValue{}
-	royalties := &abi.BigIntValue{}
+	royalties := &abi.BigUIntValue{}
 	uris := &abi.ListValue{
 		ItemCreator: func() abi.SingleValue {
 			return &abi.BytesValue{}
@@ -431,7 +431,7 @@ func getTokenStruct(token sovereign.EsdtToken) *abi.StructValue {
 						},
 						{
 							Name:  "amount",
-							Value: &abi.BigIntValue{Value: token.Data.Amount},
+							Value: &abi.BigUIntValue{Value: token.Data.Amount},
 						},
 						{
 							Name:  "frozen",
@@ -455,7 +455,7 @@ func getTokenStruct(token sovereign.EsdtToken) *abi.StructValue {
 						},
 						{
 							Name:  "royalties",
-							Value: &abi.BigIntValue{Value: token.Data.Royalties},
+							Value: &abi.BigUIntValue{Value: token.Data.Royalties},
 						},
 						{
 							Name: "uris",

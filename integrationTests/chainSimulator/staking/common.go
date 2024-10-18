@@ -8,13 +8,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -119,10 +120,6 @@ func StakeNodes(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, 
 		stakedBlsKeys = append(stakedBlsKeys, blsKeyBytes)
 	}
 
-	// Set state from CreateStakeTransaction needs an extra generated block to save state
-	err := cs.GenerateBlocks(1)
-	require.Nil(t, err)
-
 	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTxs)
@@ -145,6 +142,9 @@ func CreateStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.Chai
 
 	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], MockBLSSignature)

@@ -12,8 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/config"
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/stretchr/testify/require"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -22,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 )
 
 const (
@@ -93,58 +91,6 @@ func TestSovereignChainSimulator_IncomingHeader(t *testing.T) {
 	require.Equal(t, amountToTransfer, esdts[token].Value.String())
 }
 
-var log = logger.GetOrCreate("dsa")
-
-func TestSovereignChainSimulator_IncomingHeader2(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
-		SovereignConfigPath: sovereignConfigPath,
-		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
-			TempDir:                t.TempDir(),
-			PathToInitialConfig:    defaultPathToInitialConfig,
-			GenesisTimestamp:       time.Now().Unix(),
-			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         core.OptionalUint64{},
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound = 123456
-			},
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
-	defer cs.Close()
-
-	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-
-	headerNonce := uint64(123456) - 4
-	prevHeader := createHeaderV2(headerNonce, generateRandomHash(), generateRandomHash())
-
-	cs.GenerateBlocks(3)
-
-	logger.SetLogLevel("*:DEBUG")
-	for i := 0; i <= 12; i++ {
-		log.Error("CONTOOOOOOOOOOOOR", "CONTOOOOOOOOOOOOR", i)
-
-		if i%3 == 0 {
-			incomingHeader, headerHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, []*transaction.Event{})
-			err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
-			require.Nil(t, err)
-
-			prevHeader = incomingHeader.Header
-		}
-
-		err = cs.GenerateBlocks(1)
-		require.Nil(t, err)
-	}
-}
-
 func createIncomingHeader(nodeHandler process.NodeHandler, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) (*sovereign.IncomingHeader, []byte) {
 	*headerNonce++
 	prevHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), prevHeader)
@@ -176,7 +122,7 @@ func generateRandomHash() []byte {
 	return randomBytes
 }
 
-func createTransactionsEvent(dataCodecHandler dataCodec.SovereignDataCodec, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
+func createTransactionsEvent(dataCodecHandler incomingHeader.SovereignDataCodec, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
 	tokenData, _ := dataCodecHandler.SerializeTokenData(createTokenData(amountToTransfer))
 	eventData, _ := dataCodecHandler.SerializeEventData(createEventData())
 
