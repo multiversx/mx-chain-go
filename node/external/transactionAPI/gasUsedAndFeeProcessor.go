@@ -58,24 +58,17 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	}
 
 	hasRefundForSender := false
-	totalRefunds := big.NewInt(0)
 	for _, scr := range tx.SmartContractResults {
 		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
 			continue
 		}
+		if scr.RcvAddr != tx.Sender {
+			continue
+		}
 
+		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, scr.Value)
 		hasRefundForSender = true
-		totalRefunds.Add(totalRefunds, scr.Value)
-	}
-
-	if totalRefunds.Cmp(big.NewInt(0)) > 0 {
-		gasUsed, fee = gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, totalRefunds)
-		tx.GasUsed = gasUsed
-		tx.Fee = fee.String()
-	}
-
-	if isRelayedAfterFix {
-		return
+		break
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
@@ -84,10 +77,6 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayed(tx *transaction.ApiTransactionResult) (*big.Int, bool) {
 	if !tx.IsRelayed {
 		return nil, false
-	}
-
-	if len(tx.InnerTransactions) > 0 {
-		return gfp.feeComputer.ComputeTransactionFee(tx), true
 	}
 
 	if len(tx.Data) == 0 {
@@ -178,6 +167,16 @@ func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnLogEvent(tx *transactio
 		tx.GasUsed = tx.GasLimit
 		tx.Fee = fee.String()
 	}
+}
+
+func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnRefundValue(tx *transaction.ApiTransactionResult, refund *big.Int) {
+
+	gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refund)
+
+	tx.GasUsed = gasUsed
+
+	tx.Fee = fee.String()
+
 }
 
 func (gfp *gasUsedAndFeeProcessor) isESDTOperationWithSCCall(tx *transaction.ApiTransactionResult) bool {

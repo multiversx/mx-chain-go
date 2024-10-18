@@ -135,11 +135,6 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			feeInfo.SetFee(initialPaidFee)
 		}
 
-		if len(txHandler.GetUserTransactions()) > 0 {
-			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult)
-			continue
-		}
-
 		totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
 		isRelayedAfterFix := isRelayed && isFeeFixActive
 		if isRelayedAfterFix {
@@ -155,7 +150,6 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 
 func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults, isRelayedAfterFix bool) {
 	hasRefund := false
-	totalRefunds := big.NewInt(0)
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -163,19 +157,13 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 		}
 
 		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), scr.Value)
+
+			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
+			txWithResults.GetFeeInfo().SetFee(fee)
 			hasRefund = true
-			totalRefunds.Add(totalRefunds, scr.Value)
+			break
 		}
-	}
-
-	if totalRefunds.Cmp(big.NewInt(0)) > 0 {
-		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), totalRefunds)
-		txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
-		txWithResults.GetFeeInfo().SetFee(fee)
-	}
-
-	if isRelayedAfterFix {
-		return
 	}
 
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefund)
@@ -241,31 +229,6 @@ func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transact
 	innerFee := tep.txFeeCalculator.ComputeTxFee(innerTx)
 
 	return big.NewInt(0).Add(fee, innerFee), true
-}
-
-func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults) {
-	refundsValue := big.NewInt(0)
-	for _, scrHandler := range txWithResults.scrs {
-		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
-		if !ok {
-			continue
-		}
-
-		if !isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
-			continue
-		}
-
-		refundsValue.Add(refundsValue, scr.Value)
-	}
-
-	gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), refundsValue)
-
-	txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
-	txWithResults.GetFeeInfo().SetFee(fee)
-
-	hasRefunds := refundsValue.Cmp(big.NewInt(0)) == 1
-	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefunds)
-
 }
 
 func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
