@@ -11,6 +11,7 @@ type feeComputer interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx *transaction.ApiTransactionResult, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int
 	ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64
+	ComputeGasUnitForRelayedV3(tx *transaction.ApiTransactionResult) uint64
 	ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int
 	IsInterfaceNil() bool
 }
