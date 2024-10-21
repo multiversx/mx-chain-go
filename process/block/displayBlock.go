@@ -270,7 +270,7 @@ func (txc *transactionCounter) displayLastCrossChainNotarizedHeader(
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"ShardID",
-		fmt.Sprintf("%d", lastCrossChainData.GetShardID())}),
+		getShardName(lastCrossChainData.GetShardID())}),
 	)
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
