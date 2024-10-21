@@ -108,7 +108,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 
 	// TODO: This condition will permit to the sovereign chain to follow the main chain headers starting with a header
 	// having a nonce higher than nonce 1 (the first block after genesis)
-	if scsbt.isGenesisLastCrossNotarizedHeader() {
+	if scsbt.IsGenesisLastCrossNotarizedHeader() {
 		scsbt.crossNotarizer.AddNotarizedHeader(core.MainChainShardId, extendedShardHeaderHandler, extendedShardHeaderHash)
 	}
 
@@ -126,7 +126,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	scsbt.blockProcessor.ProcessReceivedHeader(extendedShardHeaderHandler)
 }
 
-func (scsbt *sovereignChainShardBlockTrack) isGenesisLastCrossNotarizedHeader() bool {
+func (scsbt *sovereignChainShardBlockTrack) IsGenesisLastCrossNotarizedHeader() bool {
 	lastNotarizedHeader, _, err := scsbt.crossNotarizer.GetLastNotarizedHeader(core.MainChainShardId)
 
 	isGenesisLastCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
