@@ -37,6 +37,7 @@ type node interface {
 	getDirtyHashes(common.ModifiedHashes) error
 	getChildren(db common.TrieStorageInteractor) ([]node, error)
 	isValid() bool
+	getNodeData(common.KeyBuilder) ([]common.TrieNodeData, error)
 	setDirty(bool)
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
