@@ -29,12 +29,12 @@ func TestSovereignChainSimulator_CreateNftWithManyQuantityShouldFail(t *testing.
 
 	expectedError := "invalid arguments to process built-in function, invalid quantity for esdt type"
 
-	txData := createNftArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
+	txData := createNftCreateArgs("da2-NFT2-geg42g", uint64(7), big.NewInt(2), core.NonFungibleV2, creatorAddress)
 	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungibleV2, core.NonFungibleV2.String())
 	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
 	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.DynamicNFT, core.DynamicNFT.String())
-	txData = createNftArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
+	txData = createNftCreateArgs("da3-NFT3-gew3gr", uint64(7), big.NewInt(2), core.DynamicNFT, creatorAddress)
 	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 }
 
@@ -46,15 +46,15 @@ func TestSovereignChainSimulator_CreateNftWithInvalidTypeShouldFail(t *testing.T
 	expectedError := "invalid arguments to process built-in function, invalid esdt type"
 
 	expectedFullError := fmt.Sprintf("%s %d (%s)", expectedError, core.Fungible, core.Fungible.String())
-	txData := createNftArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
+	txData := createNftCreateArgs("da-TKN-ten731", uint64(0), big.NewInt(1), core.Fungible, creatorAddress)
 	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
 	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.NonFungible, core.NonFungible.String())
-	txData = createNftArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
+	txData = createNftCreateArgs("da-NFT-4g4325", uint64(7), big.NewInt(1), core.NonFungible, creatorAddress)
 	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 
 	expectedFullError = fmt.Sprintf("%s %d (%s)", expectedError, core.ESDTType(8), core.ESDTType(8).String())
-	txData = createNftArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
+	txData = createNftCreateArgs("da-NFT-ten731", uint64(7), big.NewInt(1), core.ESDTType(8), creatorAddress)
 	executeSimpleEsdtOperationWithError(t, txData, expectedFullError)
 }
 
@@ -222,7 +222,7 @@ func createAllEsdtTypes(
 		if token.Type == core.Fungible {
 			txData = createLocalMintArgs(token.Identifier, token.Amount)
 		} else {
-			txData = createNftArgs(token.Identifier, token.Nonce, token.Amount, token.Type, creatorAddress)
+			txData = createNftCreateArgs(token.Identifier, token.Nonce, token.Amount, token.Type, creatorAddress)
 		}
 		chainSim.SendTransactionWithSuccess(t, cs, sender, nonce, contract, chainSim.ZeroValue, txData, uint64(20000000))
 	}
@@ -243,7 +243,7 @@ func createLocalMintArgs(
 		"@" + hex.EncodeToString(amount.Bytes())
 }
 
-func createNftArgs(
+func createNftCreateArgs(
 	identifier string,
 	nonce uint64,
 	amount *big.Int,
@@ -350,7 +350,7 @@ func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifierAndMakeTransact
 	nftIdentifier := nftCollection + "-" + hex.EncodeToString(big.NewInt(int64(nftNonce)).Bytes())
 	nftAmount := big.NewInt(1)
 	nftType := core.NonFungibleV2
-	args = createNftArgs(nftCollection, nftNonce, nftAmount, nftType, hex.EncodeToString(initialAddrBytes))
+	args = createNftCreateArgs(nftCollection, nftNonce, nftAmount, nftType, hex.EncodeToString(initialAddrBytes))
 	chainSim.SendTransactionWithSuccess(t, cs, initialAddrBytes, &nonce, contractAddress, chainSim.ZeroValue, args, uint64(20000000))
 	nft := chainSim.ArgsDepositToken{
 		Identifier: nftCollection,
