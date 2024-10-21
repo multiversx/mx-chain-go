@@ -256,13 +256,8 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-// DoEndRoundJobByParticipant calls the unexported doEndRoundJobByParticipant function
-func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
-	return sr.doEndRoundJobByParticipant(cnsDta)
-}
-
 // DoEndRoundJobByLeader calls the unexported doEndRoundJobByNode function
-func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
+func (sr *subroundEndRound) DoEndRoundJobByNode() bool {
 	return sr.doEndRoundJobByNode()
 }
 
@@ -272,8 +267,8 @@ func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 }
 
 // CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
-func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, pk []byte) {
-	sr.createAndBroadcastProof(signature, bitmap, pk)
+func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte) {
+	sr.createAndBroadcastProof(signature, bitmap)
 }
 
 // ReceivedBlockHeaderFinalInfo calls the unexported receivedProof function
