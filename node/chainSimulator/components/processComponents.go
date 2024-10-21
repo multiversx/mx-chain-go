@@ -21,9 +21,8 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	nodeDisabled "github.com/multiversx/mx-chain-go/node/disabled"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -156,12 +155,25 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs := nodeDisabled.NewDisabledWhiteListDataVerifier()
+	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
+	if err != nil {
+		return nil, err
+	}
 
 	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
@@ -196,8 +208,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,

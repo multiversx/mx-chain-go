@@ -1,0 +1,11 @@
+=============== Oct 2, 2024 (UTC) ===============
+13:52:27.549022 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+=============== Oct 2, 2024 (UTC) ===============
+13:52:27.549119 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+13:52:27.582832 version@stat F·[] S·0B[] Sc·[]
+13:52:27.610915 db@open opening
+13:52:27.611013 journal@recovery F·1
+13:52:27.611084 journal@recovery recovering @34
+13:52:27.611238 version@stat F·[] S·0B[] Sc·[]
+13:52:27.639861 db@janitor F·2 G·0
+13:52:27.639925 db@open done T·28.983823ms
