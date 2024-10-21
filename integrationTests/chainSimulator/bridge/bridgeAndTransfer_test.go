@@ -81,7 +81,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
 	chainSim.SetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
-	// TODO uncomment after rust framework and contract framework will be updated with all esdt types
+	// TODO MX-15942 uncomment after rust framework and contract framework will be updated with all esdt types
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: argsEsdtSafe.ChainPrefix + "-TKN-123456",
