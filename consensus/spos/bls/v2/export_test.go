@@ -216,19 +216,9 @@ func (sr *subroundBlock) ReceivedBlockBody(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockBody(context.Background(), cnsDta)
 }
 
-// ReceivedBlockHeaderBeforeEquivalentProofs method is called when a block header is received through the block header channel
-func (sr *subroundBlock) ReceivedBlockHeaderBeforeEquivalentProofs(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeaderBeforeEquivalentProofs(context.Background(), cnsDta)
-}
-
 // ReceivedBlockHeader method is called when a block header is received through the block header channel
 func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
 	sr.receivedBlockHeader(header)
-}
-
-// ReceivedBlockBodyAndHeader is called when both a header and block body have been received
-func (sr *subroundBlock) ReceivedBlockBodyAndHeader(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockBodyAndHeader(context.Background(), cnsDta)
 }
 
 // subroundSignature
@@ -241,19 +231,9 @@ func (sr *subroundSignature) DoSignatureJob() bool {
 	return sr.doSignatureJob(context.Background())
 }
 
-// ReceivedSignature method is called when a signature is received through the signature channel
-func (sr *subroundSignature) ReceivedSignature(cnsDta *consensus.Message) bool {
-	return sr.receivedSignature(context.Background(), cnsDta)
-}
-
 // DoSignatureConsensusCheck method checks if the consensus in the subround Signature is achieved
 func (sr *subroundSignature) DoSignatureConsensusCheck() bool {
 	return sr.doSignatureConsensusCheck()
-}
-
-// AreSignaturesCollected method checks if the number of signatures received from the nodes are more than the given threshold
-func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
-	return sr.areSignaturesCollected(threshold)
 }
 
 // subroundEndRound

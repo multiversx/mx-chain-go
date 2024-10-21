@@ -20,13 +20,13 @@ import (
 
 // subroundStartRound defines the data needed by the subround StartRound
 type subroundStartRound struct {
-	outportMutex sync.RWMutex
 	*spos.Subround
 	processingThresholdPercentage int
 
-	outportHandler       outport.OutportHandler
 	sentSignatureTracker spos.SentSignaturesTracker
 	worker               spos.WorkerHandler
+	outportHandler       outport.OutportHandler
+	outportMutex         sync.RWMutex
 }
 
 // NewSubroundStartRound creates a subroundStartRound object
@@ -52,10 +52,10 @@ func NewSubroundStartRound(
 	srStartRound := subroundStartRound{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
-		outportHandler:                disabled.NewDisabledOutport(),
 		sentSignatureTracker:          sentSignatureTracker,
-		outportMutex:                  sync.RWMutex{},
 		worker:                        worker,
+		outportHandler:                disabled.NewDisabledOutport(),
+		outportMutex:                  sync.RWMutex{},
 	}
 	srStartRound.Job = srStartRound.doStartRoundJob
 	srStartRound.Check = srStartRound.doStartRoundConsensusCheck

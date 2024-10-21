@@ -258,7 +258,7 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(0), startCalled.Load())
 	})
-	t.Run("equivalent messages enabled, with previous consensus type not consensusV2", func(t *testing.T) {
+	t.Run("equivalent messages enabled, with previous consensus type consensusNone", func(t *testing.T) {
 		t.Parallel()
 		startCalled := atomic.Int32{}
 		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
@@ -281,6 +281,35 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, sh)
 		sh.currentConsensusType = consensusNone
+
+		err = sh.initSubroundsForEpoch(0)
+		require.Nil(t, err)
+		require.Equal(t, consensusV2, sh.currentConsensusType)
+		require.Equal(t, int32(1), startCalled.Load())
+	})
+	t.Run("equivalent messages enabled, with previous consensus type consensusV1", func(t *testing.T) {
+		t.Parallel()
+		startCalled := atomic.Int32{}
+		handlerArgs, consensusCore := getDefaultArgumentsSubroundHandler()
+		chronology := &consensus.ChronologyHandlerMock{
+			StartRoundCalled: func() {
+				startCalled.Add(1)
+			},
+		}
+		enableEpoch := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		handlerArgs.Chronology = chronology
+		handlerArgs.EnableEpochsHandler = enableEpoch
+		consensusCore.SetEnableEpochsHandler(enableEpoch)
+		consensusCore.SetChronology(chronology)
+
+		sh, err := NewSubroundsHandler(handlerArgs)
+		require.Nil(t, err)
+		require.NotNil(t, sh)
+		sh.currentConsensusType = consensusV1
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)

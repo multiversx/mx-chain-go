@@ -209,9 +209,7 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	fct.worker.AddReceivedMessageCall(bls.MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
 	fct.worker.AddReceivedMessageCall(bls.MtBlockBody, subroundBlockInstance.receivedBlockBody)
-	fct.worker.AddReceivedMessageCall(bls.MtBlockHeader, subroundBlockInstance.receivedBlockHeaderBeforeEquivalentProofs)
 	fct.worker.AddReceivedHeaderHandler(subroundBlockInstance.receivedBlockHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
@@ -249,8 +247,6 @@ func (fct *factory) generateSignatureSubround() error {
 		return err
 	}
 
-	// TODO[cleanup cns finality]: remove this
-	fct.worker.AddReceivedMessageCall(bls.MtSignature, subroundSignatureObject.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
 	return nil
