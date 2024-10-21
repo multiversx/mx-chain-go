@@ -17,5 +17,4 @@ type ArgsCreateTransaction struct {
 	Options          uint32
 	Guardian         string
 	GuardianSigHex   string
-	Relayer          string
 }

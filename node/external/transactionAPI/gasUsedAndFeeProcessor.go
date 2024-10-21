@@ -62,9 +62,6 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
 			continue
 		}
-		if scr.RcvAddr != tx.Sender {
-			continue
-		}
 
 		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, scr.Value)
 		hasRefundForSender = true
