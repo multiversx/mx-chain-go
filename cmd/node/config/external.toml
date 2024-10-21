@@ -51,7 +51,7 @@
 
     # URL for the WebSocket client/server connection
     # This value represents the IP address and port number that the WebSocket client or server will use to establish a connection.
-    URL = "127.0.0.1:22111"
+    URL = "ws://127.0.0.1:22111"
 
     # After a message will be sent it will wait for an ack message if this flag is enabled
     WithAcknowledge = true

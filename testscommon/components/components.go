@@ -687,7 +687,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				{
 					MarshallerType:     "json",
 					Mode:               "client",
-					URL:                "localhost:12345",
+					URL:                "ws://localhost:12345",
 					RetryDurationInSec: 1,
 				},
 			},

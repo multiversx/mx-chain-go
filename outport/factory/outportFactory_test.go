@@ -122,7 +122,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
-					URL:                "localhost",
+					URL:                "ws://localhost",
 					RetryDurationInSec: 1,
 					MarshallerType:     "json",
 					Mode:               data.ModeClient,
@@ -132,7 +132,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            false,
-					URL:                "localhost",
+					URL:                "ws://localhost",
 					RetryDurationInSec: 1,
 					MarshallerType:     "json",
 					Mode:               data.ModeClient,
@@ -142,7 +142,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
-					URL:                "localhost",
+					URL:                "ws://localhost",
 					RetryDurationInSec: 1,
 					MarshallerType:     "json",
 					Mode:               data.ModeClient,
