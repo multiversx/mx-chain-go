@@ -266,7 +266,7 @@ func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContain
 		return nil, nil, err
 	}
 
-	incomingHeader2, err := incomingHeader.CreateIncomingHeaderProcessor(&sbp.generalConfig.SovereignConfig.NotifierConfig, sbp.dataPool, sbp.generalConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
+	incomingHeader2, err := incomingHeader.CreateIncomingHeaderProcessor(sbp.generalConfig.SovereignConfig.NotifierConfig.WebSocketConfig, sbp.dataPool, sbp.generalConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		sbp.runTypeComponents)
 	if err != nil {
 		return nil, nil, err
