@@ -32,7 +32,6 @@ var rootHash = "uncomputed root hash"
 
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
-	IsLastNotarizedHeaderGenesisWhileSyncing() (uint64, bool)
 	IsGenesisLastCrossNotarizedHeader() bool
 }
 
@@ -58,22 +57,23 @@ type sovereignChainBlockProcessor struct {
 	scToProtocol          process.SmartContractToProtocolHandler
 	epochEconomics        process.EndOfEpochEconomics
 
-	crossChainGenesisBlockHash []byte
+	mainChainNotarizationStartRound uint64
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
 type ArgsSovereignChainBlockProcessor struct {
-	ShardProcessor               *shardProcessor
-	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
-	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
-	OutGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
-	OperationsHasher             hashing.Hasher
-	EpochStartDataCreator        process.EpochStartDataCreator
-	EpochRewardsCreator          process.RewardsCreator
-	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
-	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
-	SCToProtocol                 process.SmartContractToProtocolHandler
-	EpochEconomics               process.EndOfEpochEconomics
+	ShardProcessor                  *shardProcessor
+	ValidatorStatisticsProcessor    process.ValidatorStatisticsProcessor
+	OutgoingOperationsFormatter     sovereign.OutgoingOperationsFormatter
+	OutGoingOperationsPool          sovereignBlock.OutGoingOperationsPool
+	OperationsHasher                hashing.Hasher
+	EpochStartDataCreator           process.EpochStartDataCreator
+	EpochRewardsCreator             process.RewardsCreator
+	ValidatorInfoCreator            process.EpochStartValidatorInfoCreator
+	EpochSystemSCProcessor          process.EpochStartSystemSCProcessor
+	SCToProtocol                    process.SmartContractToProtocolHandler
+	EpochEconomics                  process.EndOfEpochEconomics
+	MainChainNotarizationStartRound uint64
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -109,22 +109,18 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		return nil, process.ErrNilEpochEconomics
 	}
 
-	crossChainGenesisBlockHash := make([]byte, 32)
-	crossChainGenesisBlockHash[0] = byte('G')
-	crossChainGenesisBlockHash[1] = byte('E')
-
 	scbp := &sovereignChainBlockProcessor{
-		shardProcessor:               args.ShardProcessor,
-		validatorStatisticsProcessor: args.ValidatorStatisticsProcessor,
-		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
-		outGoingOperationsPool:       args.OutGoingOperationsPool,
-		operationsHasher:             args.OperationsHasher,
-		epochStartDataCreator:        args.EpochStartDataCreator,
-		epochRewardsCreator:          args.EpochRewardsCreator,
-		validatorInfoCreator:         args.ValidatorInfoCreator,
-		scToProtocol:                 args.SCToProtocol,
-		epochEconomics:               args.EpochEconomics,
-		crossChainGenesisBlockHash:   crossChainGenesisBlockHash,
+		shardProcessor:                  args.ShardProcessor,
+		validatorStatisticsProcessor:    args.ValidatorStatisticsProcessor,
+		outgoingOperationsFormatter:     args.OutgoingOperationsFormatter,
+		outGoingOperationsPool:          args.OutGoingOperationsPool,
+		operationsHasher:                args.OperationsHasher,
+		epochStartDataCreator:           args.EpochStartDataCreator,
+		epochRewardsCreator:             args.EpochRewardsCreator,
+		validatorInfoCreator:            args.ValidatorInfoCreator,
+		scToProtocol:                    args.SCToProtocol,
+		epochEconomics:                  args.EpochEconomics,
+		mainChainNotarizationStartRound: args.MainChainNotarizationStartRound,
 	}
 
 	scbp.baseProcessor.epochSystemSCProcessor = args.EpochSystemSCProcessor
@@ -667,20 +663,6 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	/////headersToRequest := make([][]byte, 0)
-
-	// if scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() {
-	// 	scbp.hdrsForCurrBlock.missingHdrs++
-	// 	scbp.hdrsForCurrBlock.hdrHashAndInfo[string(scbp.crossChainGenesisBlockHash)] = &hdrInfo{
-	// 		hdr:         nil,
-	// 		usedInBlock: false,
-	// 	}
-	//
-	// 	log.Error("REQUESTING crossChainGenesisBlockHash")
-	//
-	// 	scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(scbp.crossChainGenesisBlockHash)
-	// }
-
 	extendedShardHeaderHashes := sovereignChainHeader.GetExtendedShardHeaderHashes()
 	for i := 0; i < len(extendedShardHeaderHashes); i++ {
 		hdr, err := process.GetExtendedShardHeaderFromPool(
@@ -693,7 +675,6 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 				hdr:         nil,
 				usedInBlock: true,
 			}
-			/////headersToRequest = append(headersToRequest, extendedShardHeaderHashes[i])
 			go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(extendedShardHeaderHashes[i])
 			continue
 		}
@@ -703,16 +684,6 @@ func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtend
 			usedInBlock: true,
 		}
 	}
-
-	/////neededNonceTorRequest, shouldRequestOneMore := scbp.extendedShardHeaderTracker.IsLastNotarizedHeaderGenesisWhileSyncing()
-	/////if shouldRequestOneMore {
-	/////	log.Error("shouldRequestOneMore", "neededNonceTorRequest", neededNonceTorRequest)
-	/////	scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(neededNonceTorRequest)
-	/////}
-	/////
-	/////for _, headerToRequest := range headersToRequest {
-	/////	go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(headerToRequest)
-	/////}
 
 	return scbp.hdrsForCurrBlock.missingHdrs
 }
@@ -801,21 +772,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		go scbp.checkAndRequestIfExtendedShardHeadersMissing()
 	}()
 
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//if len(sovereignChainHeader.GetExtendedShardHeaderHashes()) != 0 {
-	//	log.Error("THIS HEADER HAS EXTENDED SHARD HEADERS TO CHECK")
-	//	err = scbp.checkExtendedShardHeadersValidity()
-	//	if err != nil {
-	//		return nil, nil, err
-	//	}
-	//
-	//} else {
-	//	log.Error("NOO EXTENDED SHARD HEADERS TO CHECK")
-	//}
-
 	err = scbp.checkExtendedShardHeadersValidity()
 	if err != nil {
 		return nil, nil, err
@@ -883,44 +839,17 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 		return nil
 	}
 
-	if scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() && extendedShardHdrs[0].GetRound() == 11 {
+	if scbp.receivedGenesisMainChainHeaderWithoutPreGenesis(extendedShardHdrs[0]) {
+		// we are missing pre-genesis header, so we can't link it to previous header
 		if len(extendedShardHdrs) == 1 {
 			return nil
-		} else if len(extendedShardHdrs) > 1 {
-			lastCrossNotarizedHeader = extendedShardHdrs[0]
 		}
 
+		lastCrossNotarizedHeader = extendedShardHdrs[0]
+		extendedShardHdrs = extendedShardHdrs[1:]
+
 		log.Error("TRICKED&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-		//return nil
 	}
-
-	//if scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() { //lastCrossNotarizedHeader.GetNonce() == 0 {
-	//
-	//	///scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(extendedShardHdrs[0].GetNonce() - 1)
-	//
-	//	if len(extendedShardHdrs) == 1 {
-	//		return nil
-	//	} else if len(extendedShardHdrs) > 1 {
-	//		lastCrossNotarizedHeader = extendedShardHdrs[0]
-	//	}
-	//
-	//	log.Error("NA BELEA")
-	//
-	//}
-
-	//if lastCrossNotarizedHeader.GetNonce() == 0 && len(extendedShardHdrs) == 1 {
-	//	return nil
-	//}
-
-	//if len(extendedShardHdrs) == 1 {
-	//	log.Error("checkExtendedShardHeadersValidity", "LEN EXTEDNDED IS 1")
-	//	return nil
-	//}
-
-	//lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-	//if err != nil {
-	//	return err
-	//}
 
 	log.Error("checkExtendedShardHeadersValidity", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
 
@@ -935,6 +864,13 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 	}
 
 	return nil
+}
+
+// this will return true if we receive the genesis main chain header in following cases:
+// - no notifier is attached => we did not track main chain and don't have pre-genesis header
+// - node is in re-sync/start in epoch => no previous main chain tracking(notifier is also disabled)
+func (scbp *sovereignChainBlockProcessor) receivedGenesisMainChainHeaderWithoutPreGenesis(incomingHeader data.HeaderHandler) bool {
+	return scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() && incomingHeader.GetRound() == scbp.mainChainNotarizationStartRound
 }
 
 func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
@@ -1036,11 +972,15 @@ func (scbp *sovereignChainBlockProcessor) createEpochStartDataCrossChain(sovHdr 
 	}
 
 	if lastCrossNotarizedHeader.GetNonce() == 0 {
-		log.Error("createEpochStartDataCrossChain NO CROSS CHAIN HEADER")
+		log.Debug("sovereignChainBlockProcessor.createEpochStartDataCrossChain: no cross chain header notarized yet")
 		return nil
 	}
 
-	log.Error("createEpochStartDataCrossChain BINGOOOOO")
+	log.Debug("sovereignChainBlockProcessor.createEpochStartDataCrossChain",
+		"lastCrossNotarizedHeaderHash", lastCrossNotarizedHeaderHash,
+		"lastCrossNotarizedHeaderRound", lastCrossNotarizedHeader.GetRound(),
+		"lastCrossNotarizedHeaderNonce", lastCrossNotarizedHeader.GetNonce(),
+	)
 
 	sovHdr.EpochStart.LastFinalizedCrossChainHeader = block.EpochStartCrossChainData{
 		ShardID:    core.MainChainShardId,
@@ -1124,11 +1064,6 @@ func (scbp *sovereignChainBlockProcessor) checkAndRequestIfExtendedShardHeadersM
 }
 
 func (scbp *sovereignChainBlockProcessor) requestMissingHeaders(missingNonces []uint64, shardId uint32) {
-	/////if scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() && shardId == core.MainChainShardId && len(missingNonces) > 0 {
-	/////	log.Error("go scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(missingNonces[0] - 1)")
-	/////	go scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(missingNonces[0] - 1)
-	/////}
-
 	for _, nonce := range missingNonces {
 		scbp.addHeaderIntoTrackerPool(nonce, shardId)
 		go scbp.extendedShardHeaderRequester.RequestExtendedShardHeaderByNonce(nonce)
@@ -1902,17 +1837,6 @@ func (scbp *sovereignChainBlockProcessor) updateCrossShardInfo(processedExtended
 		return err
 	}
 
-	if lastCrossNotarizedHeader.GetNonce() == 10 {
-		marshalledHeader, errMarshal := scbp.marshalizer.Marshal(lastCrossNotarizedHeader)
-		if errMarshal != nil {
-			log.Debug("updateCrossShardInfo.Marshal", "error", errMarshal.Error())
-		}
-
-		log.Error("INDEX HEADER BEFORE GENESIS")
-
-		scbp.saveExtendedShardHeader(lastCrossNotarizedHeader, scbp.crossChainGenesisBlockHash, marshalledHeader)
-	}
-
 	// processedExtendedShardHdrs is also sorted
 	for i := 0; i < len(processedExtendedShardHdrs); i++ {
 		hdr := processedExtendedShardHdrs[i]
@@ -1950,11 +1874,6 @@ func (scbp *sovereignChainBlockProcessor) saveExtendedShardHeader(header data.He
 			"saveExtendedShardHeader.Put -> ExtendedShardHdrNonceHashDataUnit",
 			"err", errNotCritical)
 	}
-
-	log.Error("sovereignChainBlockProcessor.saveExtendedShardHeader",
-		"headerHash", headerHash,
-		"nonce", header.GetNonce(),
-	)
 
 	errNotCritical = scbp.store.Put(dataRetriever.ExtendedShardHeadersUnit, headerHash, marshalizedHeader)
 	if errNotCritical != nil {
@@ -2167,25 +2086,6 @@ func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shard
 	actualShardID := shardID
 	if shardID == core.MetachainShardId {
 		actualShardID = core.MainChainShardId
-
-		//hdr, _, _ := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-		//
-		//noncesToPrevFinal = hdr.GetNonce()
-
-		//scbp.crossNotarizer.getLastCrossNotarizedHeaders().RemoveLastNotarizedHeaders()
-		//noncesToPrevFinal += 1
-		//lastCrossNotarizedHdr, _, err :=  scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-		//if err != nil {
-		//	log.Error("sovereignChainBlockProcessor.cleanupBlockTrackerPoolsForShard", "error", err)
-		//} else {
-		//	noncesToPrevFinal =
-		//}
-
-		//scbp.blockTracker.CleanupHeadersBehindNonce(
-		//	shardID,
-		//	0,
-		//	hdr.GetNonce(),
-		//)
 
 	}
 	scbp.baseCleanupBlockTrackerPoolsForShard(actualShardID, noncesToPrevFinal)
