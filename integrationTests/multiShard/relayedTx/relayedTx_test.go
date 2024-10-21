@@ -51,14 +51,14 @@ func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *tes
 
 func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
-	relayedV3Test bool,
+	baseCostFixEnabled bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(baseCostFixEnabled)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -115,14 +115,14 @@ func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 
 func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
-	relayedV3Test bool,
+	baseCostFixEnabled bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(baseCostFixEnabled)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -211,14 +211,14 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 
 func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
-	relayedV3Test bool,
+	baseCostFixEnabled bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(baseCostFixEnabled)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()

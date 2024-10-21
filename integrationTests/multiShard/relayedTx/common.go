@@ -15,16 +15,16 @@ import (
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	initialVal := big.NewInt(10000000000)
 	epochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
-	if !relayedV3Test {
+	if !baseCostFixEnabled {
 		epochsConfig.FixRelayedBaseCostEnableEpoch = integrationTests.UnreachableEpoch
 		epochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = integrationTests.UnreachableEpoch
 	}
 	nodes, idxProposers := createAndMintNodes(initialVal, epochsConfig)
 
-	players, relayerAccount := createAndMintPlayers(relayedV3Test, nodes, initialVal)
+	players, relayerAccount := createAndMintPlayers(baseCostFixEnabled, nodes, initialVal)
 
 	return nodes, idxProposers, players, relayerAccount
 }
