@@ -1,8 +1,6 @@
 package processor
 
 import (
-	"runtime/debug"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -36,7 +34,6 @@ func NewEquivalentProofsInterceptorProcessor(args ArgEquivalentProofsInterceptor
 
 func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) error {
 	if check.IfNil(args.EquivalentProofsPool) {
-		debug.PrintStack()
 		return process.ErrNilEquivalentProofsPool
 	}
 	if check.IfNil(args.Marshaller) {
