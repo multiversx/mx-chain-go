@@ -26,7 +26,7 @@ const (
 // 2. transfer from main chain to sovereign chain
 // 3. transfer again the same tokens from sovereign chain to main chain
 // tokens are originated from sovereign chain
-// esdt-safe contract in main chain will issue its own tokens ar registerToken step
+// esdt-safe contract in main chain will issue its own tokens at registerToken step
 // and will work with a mapper between sov_id <-> main_id
 func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 	if testing.Short() {
@@ -78,7 +78,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 
 	receiverShardId := uint32(0)
 
-	// TODO uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
+	// TODO MX-15942 uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
 	tokens := make([]chainSim.ArgsDepositToken, 0)
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab1-TKN-fasd35",
@@ -193,7 +193,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 	// generate hello contracts in each shard
 	// hello contract has one endpoint "hello" which receives a number as argument
 	// if number is 0 then will throw error, otherwise will do nothing
-	receiverContracts := generateHelloInAllShards(t, cs)
+	receiverContracts := deployReceiverContractInAllShards(t, cs)
 
 	// transfer sovereign chain -> main chain with transfer data
 	// execute 2nd time the same operations
@@ -204,7 +204,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		receiver := receiverContracts[receiverShardId]
 
 		// execute operations received from sovereign chain
-		// expecting the token to be minted in esdt-safe contract with the same properties and transferred to receiver address
+		// expecting the token to be minted in esdt-safe contract with the same properties and transferred to receiver contract address
 		trnsData := &transferData{
 			GasLimit: uint64(10000000),
 			Function: []byte("hello"),
@@ -226,6 +226,8 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, receivedToken.Amount)
 		if isSftOrMeta(receivedToken.Type) { // expect the contract to have 1 token
 			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(1))
+		} else {
+			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(0))
 		}
 
 		nextShardId(&receiverShardId)
@@ -488,7 +490,7 @@ func getTokenTicker(tokenIdentifier string) string {
 	return strings.Split(tokenIdentifier, "-")[1]
 }
 
-func generateHelloInAllShards(t *testing.T, cs chainSim.ChainSimulator) map[uint32]dtos.WalletAddress {
+func deployReceiverContractInAllShards(t *testing.T, cs chainSim.ChainSimulator) map[uint32]dtos.WalletAddress {
 	nodeHandler := cs.GetNodeHandler(0)
 	systemContractDeploy := chainSim.GetSysContactDeployAddressBytes(t, nodeHandler)
 
