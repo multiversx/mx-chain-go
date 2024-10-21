@@ -270,6 +270,7 @@ func TransferESDTNFT(
 func IssueFungible(
 	t *testing.T,
 	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -288,7 +289,7 @@ func IssueFungible(
 	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 	RequireSuccessfulTransaction(t, txResult)
 
-	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), tokenTicker, core.FungibleESDT)
+	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
 }
 
 // GetIssuedEsdtIdentifier will return the token identifier for and issued token

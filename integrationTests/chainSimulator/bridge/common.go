@@ -71,6 +71,7 @@ type esdtSafeDeployFunc func(
 	nonce *uint64,
 	systemContractDeploy []byte,
 	argsEsdtSafe ArgsEsdtSafe,
+	contractWasmPath string,
 ) []byte
 
 // This function will:
@@ -85,6 +86,7 @@ func deployBridgeSetup(
 	ownerAddress string,
 	argsEsdtSafe ArgsEsdtSafe,
 	deployEsdtSafeContract esdtSafeDeployFunc,
+	contractWasmPath string,
 ) *ArgsBridgeSetup {
 	nodeHandler := cs.GetNodeHandler(0)
 
@@ -93,7 +95,7 @@ func deployBridgeSetup(
 	require.Nil(t, err)
 	nonce := uint64(0)
 
-	esdtSafeAddress := deployEsdtSafeContract(t, cs, ownerAddrBytes, &nonce, systemContractDeploy, argsEsdtSafe)
+	esdtSafeAddress := deployEsdtSafeContract(t, cs, ownerAddrBytes, &nonce, systemContractDeploy, argsEsdtSafe, contractWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@00" // no fee
@@ -134,25 +136,12 @@ func enshrineEsdtSafeContract(
 	nonce *uint64,
 	systemContractDeploy []byte,
 	argsEsdtSafe ArgsEsdtSafe,
+	contractWasmPath string,
 ) []byte {
 	esdtSafeArgs := "@" + // is_sovereign_chain
 		"@01" + lengthOn4Bytes(len(argsEsdtSafe.IssuePaymentToken)) + hex.EncodeToString([]byte(argsEsdtSafe.IssuePaymentToken)) + // token identifier
 		"@01" + lengthOn4Bytes(len(argsEsdtSafe.ChainPrefix)) + hex.EncodeToString([]byte(argsEsdtSafe.ChainPrefix)) // prefix
-	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, enshrineEsdtSafeWasmPath)
-}
-
-func simpleEnshrineEsdtSafeContract(
-	t *testing.T,
-	cs chainSim.ChainSimulator,
-	ownerAddress []byte,
-	nonce *uint64,
-	systemContractDeploy []byte,
-	argsEsdtSafe ArgsEsdtSafe,
-) []byte {
-	esdtSafeArgs := "@" + // is_sovereign_chain
-		"@01" + lengthOn4Bytes(len(argsEsdtSafe.IssuePaymentToken)) + hex.EncodeToString([]byte(argsEsdtSafe.IssuePaymentToken)) + // token identifier
-		"@01" + lengthOn4Bytes(len(argsEsdtSafe.ChainPrefix)) + hex.EncodeToString([]byte(argsEsdtSafe.ChainPrefix)) // prefix
-	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, simpleEnshrineEsdtSafeWasmPath)
+	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, contractWasmPath)
 }
 
 // deposit will deposit tokens in the bridge sc safe contract
