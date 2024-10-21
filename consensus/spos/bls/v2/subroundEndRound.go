@@ -224,15 +224,10 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 	return sr.doEndRoundJobByNode()
 }
 
-func (sr *subroundEndRound) doEndRoundJobByNode() bool {
-	if !sr.waitForSignalSync() {
-		return false
+func (sr *subroundEndRound) commitBlock(proof data.HeaderProofHandler) error {
+	if sr.blockCommitted {
+		return nil
 	}
-
-	sr.mutProcessingEndRound.Lock()
-	defer sr.mutProcessingEndRound.Unlock()
-
-	proof := sr.sendProof()
 
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(sr.GetHeader(), sr.GetBody())
@@ -244,15 +239,32 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	}
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.CommitBlock", "error", err)
-		return false
+		return err
 	}
 
 	if proof != nil {
 		err = sr.EquivalentProofsPool().AddProof(proof)
 		if err != nil {
 			log.Debug("doEndRoundJobByNode.AddProof", "error", err)
-			return false
+			return err
 		}
+	}
+
+	return nil
+}
+
+func (sr *subroundEndRound) doEndRoundJobByNode() bool {
+	if !sr.waitForSignalSync() {
+		return false
+	}
+
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
+
+	proof := sr.sendProof()
+	err := sr.commitBlock(proof)
+	if err != nil {
+		return false
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -566,20 +578,6 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 	}
 
 	log.Debug("step 3: invalid signers info has been sent")
-}
-
-func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
-	if cnsDta == nil {
-		return sr.isConsensusHeaderReceived()
-	}
-
-	if check.IfNil(sr.GetHeader()) {
-		return false, nil
-	}
-
-	header := sr.GetHeader().ShallowClone()
-
-	return true, header
 }
 
 func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandler) {

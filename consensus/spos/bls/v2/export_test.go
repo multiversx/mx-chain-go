@@ -261,11 +261,6 @@ func (sr *subroundEndRound) DoEndRoundJobByNode() bool {
 	return sr.doEndRoundJobByNode()
 }
 
-// HaveConsensusHeaderWithFullInfo calls the unexported haveConsensusHeaderWithFullInfo function
-func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
-	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
-}
-
 // CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
 func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte) {
 	sr.createAndBroadcastProof(signature, bitmap)
