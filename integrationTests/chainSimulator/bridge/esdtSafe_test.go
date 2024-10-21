@@ -65,7 +65,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 	// deploy bridge setup
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, ArgsEsdtSafe{}, esdtSafeContract)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, ArgsEsdtSafe{}, esdtSafeContract, esdtSafeWasmPath)
 	esdtSafeAddr, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	esdtSafeAddrShard := chainSim.GetShardForAddress(cs, esdtSafeAddr)
 
@@ -273,7 +273,7 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 	// deploy bridge setup
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	chainSim.InitAddressesAndSysAccState(t, cs, initialAddress)
-	bridgeData := deployBridgeSetup(t, cs, initialAddress, ArgsEsdtSafe{}, esdtSafeContract)
+	bridgeData := deployBridgeSetup(t, cs, initialAddress, ArgsEsdtSafe{}, esdtSafeContract, esdtSafeWasmPath)
 	esdtSafeAddr, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	esdtSafeAddrShard := chainSim.GetShardForAddress(cs, esdtSafeAddr)
 
@@ -340,7 +340,7 @@ func generateAccountsAndTokens(
 
 	account := createNewAccount(cs, &accountShardId)
 	supply := big.NewInt(14556666767)
-	tokenId := chainSim.IssueFungible(t, cs, account.Wallet.Bytes, &account.Nonce, issueCost, "TKN", "TKN", 18, supply)
+	tokenId := chainSim.IssueFungible(t, cs, cs.GetNodeHandler(core.MetachainShardId), account.Wallet.Bytes, &account.Nonce, issueCost, "TKN", "TKN", 18, supply)
 	token := chainSim.ArgsDepositToken{
 		Identifier: tokenId,
 		Nonce:      uint64(0),

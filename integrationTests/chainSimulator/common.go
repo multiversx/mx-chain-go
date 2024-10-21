@@ -289,7 +289,7 @@ func IssueFungible(
 	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 	RequireSuccessfulTransaction(t, txResult)
 
-	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+	return GetIssuedEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
 }
 
 // GetIssuedEsdtIdentifier will return the token identifier for and issued token

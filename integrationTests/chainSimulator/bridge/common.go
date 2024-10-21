@@ -124,9 +124,10 @@ func esdtSafeContract(
 	nonce *uint64,
 	systemContractDeploy []byte,
 	_ ArgsEsdtSafe,
+	contractWasmPath string,
 ) []byte {
 	esdtSafeArgs := "@" // is_sovereign_chain
-	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, esdtSafeWasmPath)
+	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, contractWasmPath)
 }
 
 func enshrineEsdtSafeContract(
