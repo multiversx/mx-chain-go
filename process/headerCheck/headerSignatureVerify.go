@@ -130,8 +130,11 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler, pub
 	if len(pubKeysBitmap) == 0 {
 		return nil, process.ErrNilPubKeysBitmap
 	}
-	if pubKeysBitmap[0]&1 == 0 {
-		return nil, process.ErrBlockProposerSignatureMissing
+
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		if pubKeysBitmap[0]&1 == 0 {
+			return nil, process.ErrBlockProposerSignatureMissing
+		}
 	}
 
 	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
@@ -172,6 +175,7 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 }
 
 // VerifySignature will check if signature is correct
+// TODO: Adapt header signature verification for the changes related to equivalent proofs
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
 	if err != nil {
