@@ -370,13 +370,9 @@ func (sr *subroundBlock) isEpochChangeBlockForEquivalentMessagesActivation(heade
 func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
 	if err != nil {
-		if sr.isEpochChangeBlockForEquivalentMessagesActivation(header) {
-			// for the first block after activation we won't add the proof
-			// TODO: fix this on verifications as well
-			return true
-		}
-
-		return false
+		// for the first block after activation we won't add the proof
+		// TODO: fix this on verifications as well
+		return sr.isEpochChangeBlockForEquivalentMessagesActivation(header)
 	}
 
 	if !isProofEmpty(prevBlockProof) {
