@@ -70,7 +70,7 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 
 		// we return the nil error here as to allow the proposer execute as much as it can, even if it ends up in a
 		// totally unlikely situation in which it can not marshall a block.
-		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, nil
+		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, err
 	}
 
 	defer func() {
