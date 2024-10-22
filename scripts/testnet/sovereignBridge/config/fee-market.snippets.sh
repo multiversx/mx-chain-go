@@ -75,6 +75,43 @@ upgradeFeeMarketContractCall() {
     printTxStatus ${OUTFILE}
 }
 
+removeFeeInFeeMarketContract() {
+    echo "Removing fee in Fee Market contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/remove-fee-fee-market-contract.interaction.json"
+    removeFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
+}
+removeFeeInFeeMarketContractSovereign() {
+    echo "Removing fee in Fee Market contract on sovereign chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/remove-fee-fee-market-contract-sovereign.interaction.json"
+    removeFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
+}
+removeFeeInFeeMarketContractCall() {
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
+        exit 1
+    fi
+
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
+    local OUTFILE=$4
+
+    mxpy contract call ${ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
+        --gas-limit=10000000 \
+        --function="removeFee" \
+        --outfile=${OUTFILE} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+
+    printTxStatus ${OUTFILE}
+}
+
 setFixedFeeMarketContract() {
     echo "Setting fixed fee in market contract on main chain..."
 
