@@ -261,7 +261,6 @@ func (txc *transactionCounter) displayLastCrossChainNotarizedHeader(
 	}
 
 	lastCrossChainData := sovHeader.GetLastFinalizedCrossChainHeaderHandler()
-
 	lines = append(lines, display.NewLineData(false, []string{
 		"Last cross chain notarized header",
 		"Hash",

@@ -870,8 +870,9 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 }
 
 // this will return true if we receive the genesis main chain header in following cases:
-// - no notifier is attached => we did not track main chain and don't have pre-genesis header
-// - node is in re-sync/start in epoch => no previous main chain tracking(notifier is also disabled)
+//   - no notifier is attached => we did not track main chain and don't have pre-genesis header
+//   - node is in re-sync/start in the exact epoch when we start to notarize main chain => no previous
+//     main chain tracking(notifier is also disabled)
 func (scbp *sovereignChainBlockProcessor) receivedGenesisMainChainHeaderWithoutPreGenesis(incomingHeader data.HeaderHandler) bool {
 	return scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() && incomingHeader.GetRound() == scbp.mainChainNotarizationStartRound
 }

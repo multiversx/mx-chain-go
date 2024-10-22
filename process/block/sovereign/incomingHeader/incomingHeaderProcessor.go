@@ -102,10 +102,11 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	)
 	round := header.GetHeaderHandler().GetRound()
 
-	// pre-genesis header, needed to track/link genesis header on top of this one
+	// pre-genesis header, needed to track/link genesis header on top of this one. Every node with an enabled notifier
+	// will validate that the next genesis header with round == mainChainNotarizationStartRound is on top of pre-genesis header.
 	// just save internal header to tracker, no need to process anything from it
 	if round == ihp.mainChainNotarizationStartRound-1 {
-		log.Debug("received pre-genesis header")
+		log.Debug("received pre-genesis header", "round", header.GetHeaderHandler().GetRound())
 		return ihp.extendedHeaderProc.addPreGenesisExtendedHeaderToPool(header)
 	}
 
