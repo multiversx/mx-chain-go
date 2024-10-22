@@ -15,7 +15,6 @@ deployFeeMarketContract() {
         --gas-limit=200000000 \
         --arguments \
             ${ESDT_SAFE_ADDRESS} \
-            ${PRICE_AGGREGATOR_ADDRESS} \
             00 \
         --outfile=${OUTFILE} \
         --recall-nonce \
