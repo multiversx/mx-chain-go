@@ -138,48 +138,63 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 	sovBlockTracker, castOk := nodeHandler.GetProcessComponents().BlockTracker().(sovChainBlockTracer)
 	require.True(t, castOk)
 
-	for currRound := startRound - 4; currRound < startRound+5; currRound++ {
-
+	for currIncomingHeaderRound := startRound - 4; currIncomingHeaderRound < startRound+5; currIncomingHeaderRound++ {
 		incomingHeader, incomingHeaderHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, []*transaction.Event{})
 		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(incomingHeaderHash, incomingHeader)
 		require.Nil(t, err)
 
-		lastCrossNotarizedHeader, _, err := sovBlockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-		require.Nil(t, err)
+		// Handlers are notified on go routines, wait a bit so that pools are updated
+		time.Sleep(time.Millisecond * 10)
+
+		// We just received header in pool and notified all subscribed components, header has not been processed + committed.
+		// We check how leader will compute the longest incoming header chain
+		extendedHeaderHash := getExtendedHeaderHash(t, nodeHandler, incomingHeader)
+		if currIncomingHeaderRound <= 100 {
+			longestChain, _, err := sovBlockTracker.ComputeLongestExtendedShardChainFromLastNotarized()
+			require.Nil(t, err)
+			require.Empty(t, longestChain)
+
+		} else {
+			longestChain, longestChainHdrHashes, err := sovBlockTracker.ComputeLongestExtendedShardChainFromLastNotarized()
+			require.Nil(t, err)
+			require.Len(t, longestChain, 1)
+			require.Equal(t, [][]byte{extendedHeaderHash}, longestChainHdrHashes)
+		}
 
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
 
 		currentSovBlock := nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler)
+		lastCrossNotarizedHeader, _, err := sovBlockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+		require.Nil(t, err)
 
-		log.Error("currRound", "currRound", currRound)
-
-		if currRound <= 99 {
+		// Process + commit sovereign block with received incoming header
+		if currIncomingHeaderRound <= 99 {
 			require.Zero(t, lastCrossNotarizedHeader.GetRound())
 			require.True(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
-		} else if currRound == 100 {
-			logger.SetLogLevel("*:DEBUG")
-		} else if currRound == 101 {
-			require.Equal(t, startRound-1, lastCrossNotarizedHeader.GetRound())
+		} else if currIncomingHeaderRound == 100 {
+			require.Equal(t, uint64(100), lastCrossNotarizedHeader.GetRound())
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
-
-			log.Error("DSADSADSADSAD")
-
-			//require.Equal(t, [][]byte{incomingHeaderHash}, currentSovBlock.GetExtendedShardHeaderHashes())
+			require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
 		} else {
-			require.Equal(t, currRound-2, lastCrossNotarizedHeader.GetRound())
+			require.Equal(t, currIncomingHeaderRound-1, lastCrossNotarizedHeader.GetRound())
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
-
-			//longestChain, _, err := sovBlockTracker.ComputeLongestExtendedShardChainFromLastNotarized()
-			//require.Nil(t, err)
-			//require.Len(t, longestChain, 1)
-			//require.Equal(t, currRound-1, longestChain[0].GetRound())
+			require.Equal(t, [][]byte{extendedHeaderHash}, currentSovBlock.GetExtendedShardHeaderHashes())
 		}
 
 		prevHeader = incomingHeader.Header
-
 	}
+}
+
+func getExtendedHeaderHash(t *testing.T, nodeHandler process.NodeHandler, incomingHeader *sovereign.IncomingHeader) []byte {
+	extendedHeader, err := nodeHandler.GetIncomingHeaderSubscriber().CreateExtendedHeader(incomingHeader)
+	require.Nil(t, err)
+
+	extendedHeaderHash, err := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), extendedHeader)
+	require.Nil(t, err)
+
+	return extendedHeaderHash
 }
 
 func TestSovereignChainSimulator_IncomingHeader2(t *testing.T) {
