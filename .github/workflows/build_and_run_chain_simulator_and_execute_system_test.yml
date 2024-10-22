@@ -164,7 +164,7 @@ jobs:
       - name: Run tests and generate HTML report
         run: |
           set +e
-          pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
+          pytest --html=report.html --self-contained-html --continue-on-collection-errors
           PYTEST_EXIT_CODE=$?
           set -e
           echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> $GITHUB_ENV
