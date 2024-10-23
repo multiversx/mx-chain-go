@@ -107,17 +107,20 @@ func (ssh *sovereignShardStorageHandler) saveLastCrossChainNotarizedHeaders(
 	if errors.Is(err, epochStart.ErrEpochStartDataForShardNotFound) {
 		log.Debug("no cross chain header has been notarized yet")
 		return []bootstrapStorage.BootstrapHeaderInfo{}, nil
+	} else if err != nil {
+		return nil, err
 	}
 
+	lastCrossChainHeaderHash := lastCrossChainNotarizedData.GetHeaderHash()
 	log.Debug("sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders",
-		"hash", lastCrossChainNotarizedData.GetHeaderHash(),
+		"hash", lastCrossChainHeaderHash,
 	)
 
-	neededHdr, ok := headers[string(lastCrossChainNotarizedData.GetHeaderHash())]
+	neededHdr, ok := headers[string(lastCrossChainHeaderHash)]
 	if !ok {
 		return nil, fmt.Errorf("%w in sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders: hash: %s",
 			epochStart.ErrMissingHeader,
-			hex.EncodeToString(lastCrossChainNotarizedData.GetHeaderHash()))
+			hex.EncodeToString(lastCrossChainHeaderHash))
 	}
 
 	extendedShardHeader, ok := neededHdr.(data.ShardHeaderExtendedHandler)
@@ -127,7 +130,7 @@ func (ssh *sovereignShardStorageHandler) saveLastCrossChainNotarizedHeaders(
 		)
 	}
 
-	err = ssh.saveExtendedHeaderToStorage(extendedShardHeader)
+	err = ssh.saveExtendedHeaderToStorage(extendedShardHeader, lastCrossChainHeaderHash)
 	if err != nil {
 		return nil, err
 	}
@@ -136,19 +139,17 @@ func (ssh *sovereignShardStorageHandler) saveLastCrossChainNotarizedHeaders(
 	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MainChainShardId,
 		Nonce:   lastCrossChainNotarizedData.GetNonce(),
-		Hash:    lastCrossChainNotarizedData.GetHeaderHash(),
+		Hash:    lastCrossChainHeaderHash,
 	})
 
 	return crossNotarizedHeaders, nil
 }
 
-func (bsh *sovereignShardStorageHandler) saveExtendedHeaderToStorage(extendedShardHeader data.HeaderHandler) error {
+func (bsh *sovereignShardStorageHandler) saveExtendedHeaderToStorage(extendedShardHeader data.HeaderHandler, headerHash []byte) error {
 	headerBytes, err := bsh.marshalizer.Marshal(extendedShardHeader)
 	if err != nil {
 		return err
 	}
-
-	headerHash := bsh.hasher.Compute(string(headerBytes))
 
 	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 	if err != nil {

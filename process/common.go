@@ -291,7 +291,6 @@ func GetExtendedSharHeaderFromStorage(
 	marshaller marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 ) (*block.ShardHeaderExtended, error) {
-
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.ExtendedShardHeadersUnit, hash, marshaller, storageService)
 	if err != nil {
 		return nil, err
@@ -313,7 +312,6 @@ func GetExtendedHeaderFromStorageWithNonce(
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	marshaller marshal.Marshalizer,
 ) (*block.ShardHeaderExtended, []byte, error) {
-
 	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
