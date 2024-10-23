@@ -110,7 +110,7 @@ func (tsp *TestScProcessor) GetGasRemaining() uint64 {
 			continue
 		}
 
-		return tx.GetGasLimit()
+		return tx.GetValue().Uint64()
 	}
 
 	return 0
