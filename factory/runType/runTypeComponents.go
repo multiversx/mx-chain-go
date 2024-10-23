@@ -15,7 +15,6 @@ import (
 	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
-	disabled2 "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
@@ -301,7 +300,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		exportHandlerFactoryCreator:             updateFactory.NewExportHandlerFactoryCreator(),
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
-		incomingHeaderProcessor:                 disabled2.NewIncomingHeaderSubscriber(),
+		//incomingHeaderProcessor:                 disabled2.NewIncomingHeaderSubscriber(),
 	}, nil
 }
 
