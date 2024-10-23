@@ -440,6 +440,10 @@ func GetGeneralConfig() config.Config {
 						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
 					},
 				},
+				WebSocketConfig: config.WebSocketConfig{
+					HasherType:     "keccak",
+					MarshallerType: "json",
+				},
 			},
 			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
 				SubscribedEvents: []config.SubscribedEvent{
