@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -17,6 +18,7 @@ type SposWorkerMock struct {
 		receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool,
 	)
 	AddReceivedHeaderHandlerCalled         func(handler func(data.HeaderHandler))
+	AddReceivedProofHandlerCalled          func(handler func(proofHandler spos.ProofHandler))
 	RemoveAllReceivedMessagesCallsCalled   func()
 	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) error
 	SendConsensusMessageCalled             func(cnsDta *consensus.Message) bool
@@ -43,6 +45,12 @@ func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consens
 func (sposWorkerMock *SposWorkerMock) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 	if sposWorkerMock.AddReceivedHeaderHandlerCalled != nil {
 		sposWorkerMock.AddReceivedHeaderHandlerCalled(handler)
+	}
+}
+
+func (sposWorkerMock *SposWorkerMock) AddReceivedProofHandler(handler func(proofHandler spos.ProofHandler)) {
+	if sposWorkerMock.AddReceivedProofHandlerCalled != nil {
+		sposWorkerMock.AddReceivedProofHandlerCalled(handler)
 	}
 }
 

@@ -796,90 +796,6 @@ func TestSubroundEndRound_CheckSignaturesValidityShouldReturnNil(t *testing.T) {
 	assert.Equal(t, nil, err)
 }
 
-func TestSubroundEndRound_DoEndRoundJobByParticipant_RoundCanceledShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetRoundCanceled(true)
-
-	cnsData := consensus.Message{}
-	res := sr.DoEndRoundJobByParticipant(&cnsData)
-	assert.False(t, res)
-}
-
-func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusDataNotSetShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetData(nil)
-
-	cnsData := consensus.Message{}
-	res := sr.DoEndRoundJobByParticipant(&cnsData)
-	assert.False(t, res)
-}
-
-func TestSubroundEndRound_DoEndRoundJobByParticipant_PreviousSubroundNotFinishedShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetStatus(2, spos.SsNotFinished)
-	cnsData := consensus.Message{}
-	res := sr.DoEndRoundJobByParticipant(&cnsData)
-	assert.False(t, res)
-}
-
-func TestSubroundEndRound_DoEndRoundJobByParticipant_CurrentSubroundFinishedShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-
-	// set previous as finished
-	sr.SetStatus(2, spos.SsFinished)
-
-	// set current as finished
-	sr.SetStatus(3, spos.SsFinished)
-
-	cnsData := consensus.Message{}
-	res := sr.DoEndRoundJobByParticipant(&cnsData)
-	assert.False(t, res)
-}
-
-func TestSubroundEndRound_DoEndRoundJobByParticipant_ConsensusHeaderNotReceivedShouldReturnFalse(t *testing.T) {
-	t.Parallel()
-
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetHeader(nil)
-
-	// set previous as finished
-	sr.SetStatus(2, spos.SsFinished)
-
-	// set current as not finished
-	sr.SetStatus(3, spos.SsNotFinished)
-
-	cnsData := consensus.Message{}
-	res := sr.DoEndRoundJobByParticipant(&cnsData)
-	assert.False(t, res)
-}
-
-func TestSubroundEndRound_DoEndRoundJobByParticipant_ShouldReturnTrue(t *testing.T) {
-	t.Parallel()
-
-	hdr := &block.Header{Nonce: 37}
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetHeader(hdr)
-	sr.AddReceivedHeader(hdr)
-
-	// set previous as finished
-	sr.SetStatus(2, spos.SsFinished)
-
-	// set current as not finished
-	sr.SetStatus(3, spos.SsNotFinished)
-
-	cnsData := consensus.Message{}
-	res := sr.DoEndRoundJobByParticipant(&cnsData)
-	assert.True(t, res)
-}
-
 func TestSubroundEndRound_IsConsensusHeaderReceived_NoReceivedHeadersShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
@@ -919,50 +835,7 @@ func TestSubroundEndRound_IsConsensusHeaderReceivedShouldReturnTrue(t *testing.T
 	assert.Equal(t, hdr, retHdr)
 }
 
-func TestSubroundEndRound_HaveConsensusHeaderWithFullInfoNilHdrShouldNotWork(t *testing.T) {
-	t.Parallel()
-
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetHeader(nil)
-
-	cnsData := consensus.Message{}
-
-	haveHdr, hdr := sr.HaveConsensusHeaderWithFullInfo(&cnsData)
-	assert.False(t, haveHdr)
-	assert.Nil(t, hdr)
-}
-
-func TestSubroundEndRound_HaveConsensusHeaderWithFullInfoShouldWork(t *testing.T) {
-	t.Parallel()
-
-	originalPubKeyBitMap := []byte{0, 1, 2}
-	newPubKeyBitMap := []byte{3, 4, 5}
-	originalLeaderSig := []byte{6, 7, 8}
-	newLeaderSig := []byte{9, 10, 11}
-	originalSig := []byte{12, 13, 14}
-	newSig := []byte{15, 16, 17}
-	hdr := block.Header{
-		PubKeysBitmap:   originalPubKeyBitMap,
-		Signature:       originalSig,
-		LeaderSignature: originalLeaderSig,
-	}
-	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
-	sr.SetHeader(&hdr)
-
-	cnsData := consensus.Message{
-		PubKeysBitmap:      newPubKeyBitMap,
-		LeaderSignature:    newLeaderSig,
-		AggregateSignature: newSig,
-	}
-	haveHdr, newHdr := sr.HaveConsensusHeaderWithFullInfo(&cnsData)
-	assert.True(t, haveHdr)
-	require.NotNil(t, newHdr)
-	assert.Equal(t, newPubKeyBitMap, newHdr.GetPubKeysBitmap())
-	assert.Equal(t, newLeaderSig, newHdr.GetLeaderSignature())
-	assert.Equal(t, newSig, newHdr.GetSignature())
-}
-
-func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCalled(t *testing.T) {
+func TestSubroundEndRound_CreateAndBroadcastProofShouldBeCalled(t *testing.T) {
 	t.Parallel()
 
 	chanRcv := make(chan bool, 1)
@@ -976,11 +849,7 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	container.SetBroadcastMessenger(messenger)
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetHeader(&block.Header{LeaderSignature: leaderSigInHdr})
-
-	leader, err := sr.GetLeader()
-	assert.Nil(t, err)
-
-	sr.CreateAndBroadcastHeaderFinalInfo([]byte("sig"), []byte("bitmap"), leaderSigInHdr, []byte(leader))
+	sr.CreateAndBroadcastProof([]byte("sig"), []byte("bitmap"))
 
 	select {
 	case <-chanRcv:
@@ -989,7 +858,7 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	}
 }
 
-func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
+func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
@@ -1003,13 +872,9 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		sr.SetStatus(2, spos.SsFinished)
 		sr.SetStatus(3, spos.SsNotFinished)
 
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
 		assert.True(t, res)
 	})
 	t.Run("should work with equivalent messages flag on", func(t *testing.T) {
@@ -1048,12 +913,6 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			},
 		})
 
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
 		ch := make(chan bool, 1)
 		consensusState := initializers.InitConsensusState()
 		sr, _ := spos.NewSubround(
@@ -1087,7 +946,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		srEndRound.SetStatus(2, spos.SsFinished)
 		srEndRound.SetStatus(3, spos.SsNotFinished)
 
-		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
+		proof := &block.HeaderProof{}
+		srEndRound.ReceivedProof(proof)
 		assert.True(t, res)
 	})
 	t.Run("should return false when header is nil", func(t *testing.T) {
@@ -1096,13 +956,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(nil)
 
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 		assert.False(t, res)
 	})
 	t.Run("should return false when final info is not valid", func(t *testing.T) {
@@ -1121,12 +976,9 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 
 		container.SetHeaderSigVerifier(headerSigVerifier)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		sr.SetHeader(&block.Header{})
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 		assert.False(t, res)
 	})
 	t.Run("should return false when consensus data is not set", func(t *testing.T) {
@@ -1135,11 +987,9 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetData(nil)
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 		assert.False(t, res)
 	})
 	t.Run("should return false when sender is not in consensus group", func(t *testing.T) {
@@ -1147,11 +997,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("OTHER"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 		assert.False(t, res)
 	})
 	t.Run("should return false when sender is self", func(t *testing.T) {
@@ -1160,11 +1007,9 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetSelfPubKey("A")
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 		assert.False(t, res)
 	})
 	t.Run("should return false when different data is received", func(t *testing.T) {
@@ -1173,11 +1018,9 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetData([]byte("Y"))
-		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-		res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
+
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
 		assert.False(t, res)
 	})
 	t.Run("should return true when final info already received", func(t *testing.T) {
@@ -1227,13 +1070,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
-		cnsData := consensus.Message{
-			// apply the data which is mocked in consensus state so the checks will pass
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
-		}
-
-		res := srEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
+		proof := &block.HeaderProof{}
+		srEndRound.ReceivedProof(proof)
 		assert.True(t, res)
 	})
 }
@@ -1266,72 +1104,6 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	res := sr.IsOutOfTime()
 	assert.True(t, res)
-}
-
-func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerifyLeaderSignatureFails(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-
-	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
-		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
-			return errors.New("error")
-		},
-		VerifySignatureCalled: func(header data.HeaderHandler) error {
-			return nil
-		},
-	}
-
-	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	cnsDta := &consensus.Message{}
-	sr.SetHeader(&block.Header{})
-	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
-	assert.False(t, isValid)
-}
-
-func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnFalseWhenVerifySignatureFails(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-
-	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
-		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
-			return nil
-		},
-		VerifySignatureCalled: func(header data.HeaderHandler) error {
-			return errors.New("error")
-		},
-	}
-
-	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	cnsDta := &consensus.Message{}
-	sr.SetHeader(&block.Header{})
-	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
-	assert.False(t, isValid)
-}
-
-func TestSubroundEndRound_IsBlockHeaderFinalInfoValidShouldReturnTrue(t *testing.T) {
-	t.Parallel()
-
-	container := consensusMocks.InitConsensusCore()
-
-	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
-		VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
-			return nil
-		},
-		VerifySignatureCalled: func(header data.HeaderHandler) error {
-			return nil
-		},
-	}
-
-	container.SetHeaderSigVerifier(headerSigVerifier)
-	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-	cnsDta := &consensus.Message{}
-	sr.SetHeader(&block.Header{})
-	isValid := sr.IsBlockHeaderFinalInfoValid(cnsDta)
-	assert.True(t, isValid)
 }
 
 func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
@@ -1536,7 +1308,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 	})
 }
 
-func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
+func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 	t.Parallel()
 
 	t.Run("equivalent messages flag enabled and message already received", func(t *testing.T) {
@@ -1594,7 +1366,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
 		}
 
-		r := srEndRound.DoEndRoundJobByLeader()
+		r := srEndRound.DoEndRoundJobByNode()
 		require.False(t, r)
 		require.True(t, wasHasEquivalentProofCalled)
 	})
@@ -1642,7 +1414,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		sr.SetHeader(&block.Header{})
 
-		r := sr.DoEndRoundJobByLeader()
+		r := sr.DoEndRoundJobByNode()
 		require.False(t, r)
 
 		assert.False(t, verifyFirstCall)
@@ -1695,7 +1467,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		sr.SetHeader(&block.Header{})
 
-		r := sr.DoEndRoundJobByLeader()
+		r := sr.DoEndRoundJobByNode()
 		require.True(t, r)
 
 		assert.False(t, verifyFirstCall)
@@ -1770,7 +1542,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 			PreviousHeaderProof:      nil,
 		})
 
-		r := srEndRound.DoEndRoundJobByLeader()
+		r := srEndRound.DoEndRoundJobByNode()
 		require.True(t, r)
 		require.True(t, wasSetCurrentHeaderProofCalled)
 	})

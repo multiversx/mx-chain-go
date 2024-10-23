@@ -261,13 +261,13 @@ func (sr *subroundEndRound) DoEndRoundJobByNode() bool {
 	return sr.doEndRoundJobByNode()
 }
 
-// CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
-func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte) {
+// CreateAndBroadcastProof calls the unexported createAndBroadcastHeaderFinalInfo function
+func (sr *subroundEndRound) CreateAndBroadcastProof(signature []byte, bitmap []byte) {
 	sr.createAndBroadcastProof(signature, bitmap)
 }
 
-// ReceivedBlockHeaderFinalInfo calls the unexported receivedProof function
-func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(proof spos.ProofHandler) {
+// ReceivedProof calls the unexported receivedProof function
+func (sr *subroundEndRound) ReceivedProof(proof spos.ProofHandler) {
 	sr.receivedProof(proof)
 }
 
