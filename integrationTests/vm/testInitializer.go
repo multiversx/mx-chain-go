@@ -1371,12 +1371,15 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 		chainHandler,
 		guardedAccountHandler,
 	)
+
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+
 	res, err := CreateTxProcessorWithOneSCExecutorWithVMs(
 		accounts,
 		vmContainer,
 		blockchainHook,
 		feeAccumulator,
-		mock.NewMultiShardsCoordinatorMock(2),
+		shardCoordinator,
 		enableEpochsConfig,
 		roundsConfig,
 		wasmVMChangeLocker,
@@ -1390,9 +1393,36 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 		return nil, err
 	}
 
+	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
+		VmContainer:              vmContainer,
+		EconomicsFee:             res.EconomicsHandler,
+		BlockChainHook:           blockchainHook,
+		MainBlockChain:           chainHandler,
+		APIBlockChain:            chainHandler,
+		WasmVMChangeLocker:       wasmVMChangeLocker,
+		Bootstrapper:             syncDisabled.NewDisabledBootstrapper(),
+		AllowExternalQueriesChan: common.GetClosedUnbufferedChannel(),
+		HistoryRepository:        &dblookupext.HistoryRepositoryStub{},
+		ShardCoordinator:         shardCoordinator,
+		StorageService: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{}, nil
+			},
+		},
+		Marshaller:               integrationTests.TestMarshalizer,
+		Hasher:                   integrationtests.TestHasher,
+		Uint64ByteSliceConverter: integrationTests.TestUint64Converter,
+	}
+	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
+	if err != nil {
+		log.Error("NewSCQueryService()", "error", err)
+		return nil, err
+	}
+
 	return &VMTestContext{
 		TxProcessor:            res.TxProc,
 		ScProcessor:            res.SCProc,
+		SCQueryService:         scQueryService,
 		Accounts:               accounts,
 		BlockchainHook:         blockchainHook,
 		VMContainer:            vmContainer,
