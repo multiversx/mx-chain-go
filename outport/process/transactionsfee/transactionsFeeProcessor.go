@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -135,7 +136,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			feeInfo.SetFee(initialPaidFee)
 		}
 
-		totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
+		userTx, totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
 		isRelayedAfterFix := isRelayed && isFeeFixActive
 		if isRelayedAfterFix {
 			feeInfo.SetFee(totalFee)
@@ -144,11 +145,16 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 
 		}
 
-		tep.prepareTxWithResults(txHashHex, txWithResult, isRelayedAfterFix)
+		tep.prepareTxWithResults(txHashHex, txWithResult, userTx, epoch)
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults, isRelayedAfterFix bool) {
+func (tep *transactionsFeeProcessor) prepareTxWithResults(
+	txHashHex string,
+	txWithResults *transactionWithResults,
+	userTx data.TransactionHandler,
+	epoch uint32,
+) {
 	hasRefund := false
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
@@ -157,6 +163,20 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 		}
 
 		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
+			if !check.IfNilReflect(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
+				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, scr.Value)
+
+				tx := txWithResults.GetTxHandler()
+				gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(tx)
+				feeRelayedTx := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsedRelayedTx)
+
+				txWithResults.GetFeeInfo().SetGasUsed(gasUsed + gasUsedRelayedTx)
+				txWithResults.GetFeeInfo().SetFee(fee.Add(fee, feeRelayedTx))
+				hasRefund = true
+
+				break
+			}
+
 			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), scr.Value)
 
 			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
@@ -169,14 +189,14 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefund)
 }
 
-func (tep *transactionsFeeProcessor) getFeeOfRelayed(tx *transactionWithResults) (*big.Int, bool) {
+func (tep *transactionsFeeProcessor) getFeeOfRelayed(tx *transactionWithResults) (data.TransactionHandler, *big.Int, bool) {
 	if len(tx.GetTxHandler().GetData()) == 0 {
-		return nil, false
+		return nil, nil, false
 	}
 
 	funcName, args, err := tep.argsParser.ParseCallData(string(tx.GetTxHandler().GetData()))
 	if err != nil {
-		return nil, false
+		return nil, nil, false
 	}
 
 	if funcName == core.RelayedTransaction {
@@ -187,18 +207,18 @@ func (tep *transactionsFeeProcessor) getFeeOfRelayed(tx *transactionWithResults)
 		return tep.handleRelayedV2(args, tx)
 	}
 
-	return nil, false
+	return nil, nil, false
 }
 
-func (tep *transactionsFeeProcessor) handleRelayedV1(args [][]byte, tx *transactionWithResults) (*big.Int, bool) {
+func (tep *transactionsFeeProcessor) handleRelayedV1(args [][]byte, tx *transactionWithResults) (data.TransactionHandler, *big.Int, bool) {
 	if len(args) != 1 {
-		return nil, false
+		return nil, nil, false
 	}
 
 	innerTx := &transaction.Transaction{}
 	err := tep.marshaller.Unmarshal(innerTx, args[0])
 	if err != nil {
-		return nil, false
+		return nil, nil, false
 	}
 
 	txHandler := tx.GetTxHandler()
@@ -207,10 +227,10 @@ func (tep *transactionsFeeProcessor) handleRelayedV1(args [][]byte, tx *transact
 
 	innerFee := tep.txFeeCalculator.ComputeTxFee(innerTx)
 
-	return big.NewInt(0).Add(fee, innerFee), true
+	return innerTx, big.NewInt(0).Add(fee, innerFee), true
 }
 
-func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transactionWithResults) (*big.Int, bool) {
+func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transactionWithResults) (data.TransactionHandler, *big.Int, bool) {
 	txHandler := tx.GetTxHandler()
 
 	innerTx := &transaction.Transaction{}
@@ -228,7 +248,7 @@ func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transact
 
 	innerFee := tep.txFeeCalculator.ComputeTxFee(innerTx)
 
-	return big.NewInt(0).Add(fee, innerFee), true
+	return innerTx, big.NewInt(0).Add(fee, innerFee), true
 }
 
 func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
