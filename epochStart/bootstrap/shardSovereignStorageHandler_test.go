@@ -84,20 +84,20 @@ func TestSovereignShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	bootStrapData := getStoredBootstrapData(t, sovShardStorage.marshalizer, bootStorer, hdr1.GetRound())
 	require.Equal(t, &bootstrapStorage.BootstrapData{
 		LastHeader: bootstrapStorage.BootstrapHeaderInfo{
-			Nonce: 1,
-			Epoch: 1,
+			Nonce: hdr1.GetNonce(),
+			Epoch: hdr1.GetEpoch(),
 			Hash:  hdrHash,
 		},
 		LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{},
 		LastSelfNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{{
-			Nonce: 1,
-			Epoch: 1,
+			Nonce: hdr1.GetNonce(),
+			Epoch: hdr1.GetEpoch(),
 			Hash:  hdrHash,
 		}},
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
 		NodesCoordinatorConfigKey:  nil,
-		EpochStartTriggerConfigKey: []byte(fmt.Sprint(1)),
+		EpochStartTriggerConfigKey: []byte(fmt.Sprint(hdr1.GetEpoch())),
 		HighestFinalBlockNonce:     hdr1.GetNonce(),
 		LastRound:                  0,
 	}, bootStrapData)
@@ -146,7 +146,7 @@ func TestSovereignShardStorageHandler_SaveDataToStorageCheckLastCrossChainNotari
 			},
 		},
 	}
-	hdr1 := &block.SovereignChainHeader{
+	sovHdr := &block.SovereignChainHeader{
 		Header: &block.Header{
 			Nonce: 2,
 			Round: 2,
@@ -163,14 +163,14 @@ func TestSovereignShardStorageHandler_SaveDataToStorageCheckLastCrossChainNotari
 		},
 	}
 	headers := map[string]data.HeaderHandler{
-		string(hash1): hdr1,
+		string(hash1): sovHdr,
 		string(lastFinalizedCrossChainHeaderHash): lastFinalizedCrossChainHeader,
 	}
 
 	components := &ComponentsNeededForBootstrap{
-		EpochStartMetaBlock: hdr1,
-		PreviousEpochStart:  hdr1,
-		ShardHeader:         hdr1,
+		EpochStartMetaBlock: sovHdr,
+		PreviousEpochStart:  sovHdr,
+		ShardHeader:         sovHdr,
 		Headers:             headers,
 		NodesConfig:         &nodesCoordinator.NodesCoordinatorRegistry{},
 	}
@@ -181,36 +181,36 @@ func TestSovereignShardStorageHandler_SaveDataToStorageCheckLastCrossChainNotari
 	bootStorer, err := sovShardStorage.storageService.GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(t, err)
 
-	hdrHash, err := core.CalculateHash(sovShardStorage.marshalizer, sovShardStorage.hasher, hdr1)
+	hdrHash, err := core.CalculateHash(sovShardStorage.marshalizer, sovShardStorage.hasher, sovHdr)
 	require.Nil(t, err)
 
-	bootStrapData := getStoredBootstrapData(t, sovShardStorage.marshalizer, bootStorer, hdr1.GetRound())
+	bootStrapData := getStoredBootstrapData(t, sovShardStorage.marshalizer, bootStorer, sovHdr.GetRound())
 	require.Equal(t, &bootstrapStorage.BootstrapData{
 		LastHeader: bootstrapStorage.BootstrapHeaderInfo{
-			Nonce: 2,
-			Epoch: 2,
+			Nonce: sovHdr.GetNonce(),
+			Epoch: sovHdr.GetEpoch(),
 			Hash:  hdrHash,
 		},
 		LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{
 			{
 				ShardId: core.MainChainShardId,
-				Epoch:   1,
-				Nonce:   4,
+				Epoch:   lastFinalizedCrossChainHeader.GetEpoch(),
+				Nonce:   lastFinalizedCrossChainHeader.GetNonce(),
 				Hash:    lastFinalizedCrossChainHeaderHash,
 			},
 		},
 		LastSelfNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{
 			{
-				Nonce: 2,
-				Epoch: 2,
+				Nonce: sovHdr.GetNonce(),
+				Epoch: sovHdr.GetEpoch(),
 				Hash:  hdrHash,
 			},
 		},
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
 		NodesCoordinatorConfigKey:  nil,
-		EpochStartTriggerConfigKey: []byte(fmt.Sprint(2)),
-		HighestFinalBlockNonce:     hdr1.GetNonce(),
+		EpochStartTriggerConfigKey: []byte(fmt.Sprint(sovHdr.GetEpoch())),
+		HighestFinalBlockNonce:     sovHdr.GetNonce(),
 		LastRound:                  0,
 	}, bootStrapData)
 
