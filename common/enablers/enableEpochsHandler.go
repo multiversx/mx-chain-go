@@ -732,6 +732,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
 		},
+		common.UseGasBoundedShouldFailExecutionFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch,
+		},
 		common.DynamicESDTFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
@@ -773,6 +779,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch,
+		},
+		common.FixRelayedMoveBalanceToNonPayableSCFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch,
 		},
 	}
 }

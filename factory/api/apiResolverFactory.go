@@ -244,6 +244,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
+		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
+		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
@@ -411,6 +413,8 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		Accounts:                 accountsAdapterApi,
 		BlockChain:               apiBlockchain,
+		EpochStartTrigger:        args.processComponents.EpochStartTrigger(),
+		RoundHandler:             args.processComponents.RoundHandler(),
 	}
 
 	var vmFactory process.VirtualMachinesContainerFactory

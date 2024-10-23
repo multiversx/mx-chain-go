@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
@@ -43,6 +45,7 @@ type apiTransactionProcessor struct {
 	transactionResultsProcessor *apiTransactionResultsProcessor
 	refundDetector              *refundDetector
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
+	enableEpochsHandler         common.EnableEpochsHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -65,7 +68,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	refundDetectorInstance := NewRefundDetector()
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		args.FeeComputer,
+		args.AddressPubKeyConverter,
+		smartContract.NewArgumentParser(),
+		args.TxMarshaller,
+		args.EnableEpochsHandler,
+	)
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
@@ -83,7 +92,51 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		transactionResultsProcessor: txResultsProc,
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
+		enableEpochsHandler:         args.EnableEpochsHandler,
 	}, nil
+}
+
+// GetSCRsByTxHash will return a list of smart contract results based on a provided tx hash and smart contract result hash
+func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	decodedScrHash, err := hex.DecodeString(scrHash)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedTxHash, err := hex.DecodeString(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if !atp.historyRepository.IsEnabled() {
+		return nil, fmt.Errorf("cannot return smat contract results: %w", ErrDBLookExtensionIsNotEnabled)
+	}
+
+	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	resultsHashes, err := atp.historyRepository.GetResultsHashesByTxHash(decodedTxHash, miniblockMetadata.Epoch)
+	if err != nil {
+		// It's perfectly normal to have transactions without SCRs.
+		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
+			return []*transaction.ApiSmartContractResult{}, nil
+		}
+		return nil, err
+	}
+
+	scrsAPI := make([]*transaction.ApiSmartContractResult, 0, len(resultsHashes.ScResultsHashesAndEpoch))
+	for _, scrHashesEpoch := range resultsHashes.ScResultsHashesAndEpoch {
+		scrs, errGet := atp.transactionResultsProcessor.getSmartContractResultsInTransactionByHashesAndEpoch(scrHashesEpoch.ScResultsHashes, scrHashesEpoch.Epoch)
+		if errGet != nil {
+			return nil, errGet
+		}
+
+		scrsAPI = append(scrsAPI, scrs...)
+	}
+
+	return scrsAPI, nil
 }
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
@@ -144,6 +197,13 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	fee := atp.feeComputer.ComputeTransactionFee(tx)
 	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
 	tx.InitiallyPaidFee = fee.String()
+
+	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
+	if isRelayedAfterFix {
+		fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
+		tx.InitiallyPaidFee = fee.String()
+	}
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {

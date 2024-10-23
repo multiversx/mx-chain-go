@@ -73,6 +73,14 @@ func (m *managedProcessComponents) Close() error {
 	return nil
 }
 
+// BlockChainHookImpl returns the block chain hook
+func (m *managedProcessComponents) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	m.mutProcessComponents.Lock()
+	defer m.mutProcessComponents.Unlock()
+
+	return m.processComponents.vmFactoryForProcessing.BlockChainHookImpl()
+}
+
 // CheckSubcomponents verifies all subcomponents
 func (m *managedProcessComponents) CheckSubcomponents() error {
 	m.mutProcessComponents.RLock()

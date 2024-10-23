@@ -35,7 +35,7 @@ func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
 	_, _ = vm.CreateAccount(sh1Context.Accounts, sh1Addr, 0, big.NewInt(1000000000))
 
 	// create the nft and ensure that it exists on the account's trie and the liquidity is set on the system account
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID, 1, big.NewInt(1))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID, 1, big.NewInt(1), uint32(core.NonFungible))
 	utils.CheckESDTNFTBalance(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(1))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(1))
 
@@ -86,7 +86,7 @@ func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
 	defer metaContext.Close()
 
 	// create the nft and ensure that it exists on the account's trie and the liquidity is set on the system account
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(1))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(1), uint32(core.NonFungible))
 	utils.CheckESDTNFTBalance(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(1))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(1))
 
@@ -136,7 +136,7 @@ func TestSystemAccountLiquidityAfterSFTWipe(t *testing.T) {
 	defer metaContext.Close()
 
 	// create the nft and ensure that it exists on the account's trie and the liquidity is set on the system account
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(10))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(10), uint32(core.SemiFungible))
 	utils.CheckESDTNFTBalance(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(10))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(10))
 
