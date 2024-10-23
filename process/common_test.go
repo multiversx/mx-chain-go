@@ -2460,5 +2460,4 @@ func TestGetExtendedHeaderFromStorageWithNonce(t *testing.T) {
 		require.Nil(t, headerHash)
 		require.Nil(t, header)
 	})
-
 }
