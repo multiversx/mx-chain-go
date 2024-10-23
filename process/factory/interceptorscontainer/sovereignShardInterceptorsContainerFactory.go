@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // ArgsSovereignShardInterceptorsContainerFactory is a struct placeholder for args needed to create a sovereign
@@ -41,8 +40,6 @@ func NewSovereignShardInterceptorsContainerFactory(
 		incomingHeaderSubscriber:          args.IncomingHeaderSubscriber,
 	}, nil
 }
-
-var log = logger.GetOrCreate("ddsa")
 
 // Create returns an interceptor container that will hold all sovereign interceptors
 func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {

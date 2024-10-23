@@ -439,11 +439,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedRunTypeComponents,
 	)
 
-	err = managedRunTypeComponents.SetIncomingHeaderProcessor(incomingHeaderHandler)
-	if err != nil {
-		return true, err
-	}
-
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedRunTypeComponents,
 		managedCoreComponents,
@@ -1712,13 +1707,8 @@ func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreCompone
 	return sovRunType.CreateSovereignArgsRunTypeComponents(*argsRunType, *snr.configs.SovereignExtraConfig)
 }
 
-type SovereignManagedRunTypeComps interface {
-	mainFactory.RunTypeComponentsHandler
-	SetIncomingHeaderProcessor(incomingHeaderProc process.IncomingHeaderSubscriber) error
-}
-
 // CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (SovereignManagedRunTypeComps, error) {
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
 	argsSovRunType, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
 	if err != nil {
 		return nil, err

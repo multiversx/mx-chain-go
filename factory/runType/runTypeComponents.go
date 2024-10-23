@@ -122,7 +122,6 @@ type runTypeComponents struct {
 	exportHandlerFactoryCreator             mainFactory.ExportHandlerFactoryCreator
 	validatorAccountsSyncerFactoryHandler   syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	shardRequestersContainerCreatorHandler  storageRequestFactory.ShardRequestersContainerCreatorHandler
-	incomingHeaderProcessor                 process.IncomingHeaderSubscriber
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -300,7 +299,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		exportHandlerFactoryCreator:             updateFactory.NewExportHandlerFactoryCreator(),
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
-		//incomingHeaderProcessor:                 disabled2.NewIncomingHeaderSubscriber(),
 	}, nil
 }
 

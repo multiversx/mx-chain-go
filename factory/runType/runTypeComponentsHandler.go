@@ -827,33 +827,6 @@ func (mrc *managedRunTypeComponents) ShardRequestersContainerCreatorHandler() st
 	return mrc.runTypeComponents.shardRequestersContainerCreatorHandler
 }
 
-func (mrc *managedRunTypeComponents) SetIncomingHeaderProcessor(incomingHeaderProc process.IncomingHeaderSubscriber) error {
-	mrc.mutRunTypeComponents.RLock()
-	defer mrc.mutRunTypeComponents.RUnlock()
-
-	if check.IfNil(mrc.runTypeComponents) {
-		return nil
-	}
-
-	if check.IfNil(incomingHeaderProc) {
-		return errors.ErrNilIncomingHeaderSubscriber
-	}
-
-	mrc.runTypeComponents.incomingHeaderProcessor = incomingHeaderProc
-	return nil
-}
-
-func (mrc *managedRunTypeComponents) IncomingHeaderSubscriberHandler() process.IncomingHeaderSubscriber {
-	mrc.mutRunTypeComponents.RLock()
-	defer mrc.mutRunTypeComponents.RUnlock()
-
-	if check.IfNil(mrc.runTypeComponents) {
-		return nil
-	}
-
-	return mrc.runTypeComponents.incomingHeaderProcessor
-}
-
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil
