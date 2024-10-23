@@ -213,7 +213,7 @@ func (txc *transactionCounter) displaySovereignChainHeader(
 ) []*display.LineData {
 	lines = txc.displayExtendedShardHeaderHashesIncluded(lines, header.GetExtendedShardHeaderHashes())
 	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingMiniBlockHeaderHandler())
-	lines = txc.displayLastCrossChainNotarizedHeader(lines, header.GetEpochStartHandler())
+	lines = txc.displayLastCrossChainNotarizedHeader(lines, header)
 
 	return lines
 }
@@ -254,17 +254,13 @@ func (txc *transactionCounter) displayOutGoingTxData(
 
 func (txc *transactionCounter) displayLastCrossChainNotarizedHeader(
 	lines []*display.LineData,
-	epochsStartHandler data.EpochStartHandler,
+	sovHeader sovereignChainHeader,
 ) []*display.LineData {
-	if len(epochsStartHandler.GetLastFinalizedHeaderHandlers()) == 0 {
-		return lines
-	}
-	lastCrossChainData := epochsStartHandler.GetLastFinalizedHeaderHandlers()[0]
-
-	if lastCrossChainData.GetShardID() != core.MainChainShardId {
+	if len(sovHeader.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()) == 0 {
 		return lines
 	}
 
+	lastCrossChainData := sovHeader.GetLastFinalizedCrossChainHeaderHandler()
 	lines = append(lines, display.NewLineData(false, []string{
 		"Last cross chain notarized header",
 		"Hash",
@@ -273,7 +269,7 @@ func (txc *transactionCounter) displayLastCrossChainNotarizedHeader(
 	lines = append(lines, display.NewLineData(false, []string{
 		"",
 		"ShardID",
-		fmt.Sprintf("%d", lastCrossChainData.GetShardID())}),
+		getShardName(lastCrossChainData.GetShardID())}),
 	)
 	lines = append(lines, display.NewLineData(false, []string{
 		"",

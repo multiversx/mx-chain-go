@@ -839,6 +839,10 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 		return nil
 	}
 
+	log.Trace("checkExtendedShardHeadersValidity",
+		"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
+		"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
+	)
 	if scbp.receivedGenesisMainChainHeaderWithoutPreGenesis(extendedShardHdrs[0]) {
 		// we are missing pre-genesis header, so we can't link it to previous header
 		if len(extendedShardHdrs) == 1 {
@@ -847,14 +851,13 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 
 		lastCrossNotarizedHeader = extendedShardHdrs[0]
 		extendedShardHdrs = extendedShardHdrs[1:]
-
-		log.Error("TRICKED&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	}
 
-	log.Error("checkExtendedShardHeadersValidity", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
-
 	for _, extendedShardHdr := range extendedShardHdrs {
-		log.Error("checkExtendedShardHeadersValidity", "extendedShardHeader nonce", extendedShardHdr.GetNonce())
+		log.Trace("checkExtendedShardHeadersValidity",
+			"extendedShardHeader nonce", extendedShardHdr.GetNonce(),
+			"extendedShardHeader round", extendedShardHdr.GetRound(),
+		)
 		err = scbp.headerValidator.IsHeaderConstructionValid(extendedShardHdr, lastCrossNotarizedHeader)
 		if err != nil {
 			return fmt.Errorf("%w : checkExtendedShardHeadersValidity -> isHdrConstructionValid", err)
@@ -867,8 +870,9 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 }
 
 // this will return true if we receive the genesis main chain header in following cases:
-// - no notifier is attached => we did not track main chain and don't have pre-genesis header
-// - node is in re-sync/start in epoch => no previous main chain tracking(notifier is also disabled)
+//   - no notifier is attached => we did not track main chain and don't have pre-genesis header
+//   - node is in re-sync/start in the exact epoch when we start to notarize main chain => no previous
+//     main chain tracking(notifier is also disabled)
 func (scbp *sovereignChainBlockProcessor) receivedGenesisMainChainHeaderWithoutPreGenesis(incomingHeader data.HeaderHandler) bool {
 	return scbp.extendedShardHeaderTracker.IsGenesisLastCrossNotarizedHeader() && incomingHeader.GetRound() == scbp.mainChainNotarizationStartRound
 }

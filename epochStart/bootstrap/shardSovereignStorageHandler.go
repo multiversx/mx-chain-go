@@ -53,14 +53,14 @@ func (ssh *sovereignShardStorageHandler) SaveDataToStorage(components *Component
 		return err
 	}
 
-	lastCrossNotarizedHdrs, err := ssh.saveLastCrossChainNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
+	lastCrossNotarizedHeaders, err := ssh.saveLastCrossChainNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
 
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
-		LastCrossNotarizedHeaders:  lastCrossNotarizedHdrs,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
 		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
@@ -98,74 +98,74 @@ func (ssh *sovereignShardStorageHandler) saveTriggerRegistry(components *Compone
 }
 
 func (ssh *sovereignShardStorageHandler) saveLastCrossChainNotarizedHeaders(
-	meta data.MetaHeaderHandler,
+	sovBlock data.MetaHeaderHandler,
 	headers map[string]data.HeaderHandler,
 ) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
-	log.Debug("saveLastCrossChainNotarizedHeaders")
+	log.Debug("sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders")
 
-	shardData, err := getEpochStartShardData(meta, core.MainChainShardId)
+	lastCrossChainNotarizedData, err := getEpochStartShardData(sovBlock, core.MainChainShardId)
 	if errors.Is(err, epochStart.ErrEpochStartDataForShardNotFound) {
-		log.Error("NO CROSS CHAIN EPOCH START DATA FOUND")
+		log.Debug("no cross chain header has been notarized yet")
 		return []bootstrapStorage.BootstrapHeaderInfo{}, nil
+	} else if err != nil {
+		return nil, err
 	}
 
-	log.Error("CROSS CHAIN EPOCH START DATA FOUND")
+	lastCrossChainHeaderHash := lastCrossChainNotarizedData.GetHeaderHash()
+	log.Debug("sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders",
+		"hash", lastCrossChainHeaderHash,
+	)
 
-	neededHdr, ok := headers[string(shardData.GetHeaderHash())]
+	neededHdr, ok := headers[string(lastCrossChainHeaderHash)]
 	if !ok {
-		return nil, fmt.Errorf("%w in saveLastCrossChainNotarizedHeaders: hash: %s",
+		return nil, fmt.Errorf("%w in sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders: hash: %s",
 			epochStart.ErrMissingHeader,
-			hex.EncodeToString(shardData.GetHeaderHash()))
+			hex.EncodeToString(lastCrossChainHeaderHash))
 	}
 
-	extendedShardHeader, ok := neededHdr.(*block.ShardHeaderExtended)
+	extendedShardHeader, ok := neededHdr.(data.ShardHeaderExtendedHandler)
 	if !ok {
-		return nil, fmt.Errorf("%w in sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders", epochStart.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w in sovereignShardStorageHandler.saveLastCrossChainNotarizedHeaders for extended shard header",
+			epochStart.ErrWrongTypeAssertion,
+		)
 	}
 
-	_, err = ssh.saveExtendedHeaderToStorage(extendedShardHeader)
+	err = ssh.saveExtendedHeaderToStorage(extendedShardHeader, lastCrossChainHeaderHash)
 	if err != nil {
 		return nil, err
 	}
 
-	crossNotarizedHdrs := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
-	crossNotarizedHdrs = append(crossNotarizedHdrs, bootstrapStorage.BootstrapHeaderInfo{
+	crossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
+	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MainChainShardId,
-		Nonce:   shardData.GetNonce(),
-		Hash:    shardData.GetHeaderHash(),
+		Nonce:   lastCrossChainNotarizedData.GetNonce(),
+		Hash:    lastCrossChainHeaderHash,
 	})
 
-	return crossNotarizedHdrs, nil
+	return crossNotarizedHeaders, nil
 }
 
-func (bsh *sovereignShardStorageHandler) saveExtendedHeaderToStorage(extendedShardHeader data.HeaderHandler) ([]byte, error) {
+func (bsh *sovereignShardStorageHandler) saveExtendedHeaderToStorage(extendedShardHeader data.HeaderHandler, headerHash []byte) error {
 	headerBytes, err := bsh.marshalizer.Marshal(extendedShardHeader)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	headerHash := bsh.hasher.Compute(string(headerBytes))
 
 	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	err = metaHdrStorage.Put(headerHash, headerBytes)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(extendedShardHeader.GetNonce())
 	metaHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	err = metaHdrNonceStorage.Put(nonceToByteSlice, headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return headerHash, nil
+	return metaHdrNonceStorage.Put(nonceToByteSlice, headerHash)
 }
