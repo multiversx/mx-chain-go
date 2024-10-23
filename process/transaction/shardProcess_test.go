@@ -3876,6 +3876,69 @@ func TestTxProcessor_AddNonExecutableLog(t *testing.T) {
 	})
 }
 
+func TestTxProcessor_ProcessMoveBalanceToNonPayableContract(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+
+	innerTx := transaction.Transaction{}
+	innerTx.Nonce = 1
+	innerTx.SndAddr = []byte("SRC")
+	innerTx.RcvAddr = make([]byte, 32)
+	innerTx.Value = big.NewInt(100)
+	innerTx.RelayerAddr = []byte("SRC")
+
+	tx := transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = []byte("SRC")
+	tx.RcvAddr = []byte("SRC")
+	tx.Value = big.NewInt(0)
+	tx.InnerTransactions = []*transaction.Transaction{&innerTx}
+
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
+	}
+
+	acntSrc := createUserAcc(innerTx.SndAddr)
+	initialBalance := big.NewInt(100)
+	_ = acntSrc.AddToBalance(initialBalance)
+	acntDst := createUserAcc(innerTx.RcvAddr)
+
+	adb := createAccountStub(innerTx.SndAddr, innerTx.RcvAddr, acntSrc, acntDst)
+
+	args := createArgsForTxProcessor()
+	args.Accounts = adb
+	args.ShardCoordinator = shardCoordinator
+	cnt := 0
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+			cnt++
+			if cnt == 1 {
+				return process.RelayedTxV3, process.RelayedTxV3
+			}
+
+			return process.MoveBalance, process.MoveBalance
+		},
+	}
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+		common.RelayedTransactionsV3Flag,
+		common.FixRelayedBaseCostFlag,
+		common.FixRelayedMoveBalanceToNonPayableSCFlag,
+	)
+	args.ScProcessor = &testscommon.SCProcessorMock{
+		IsPayableCalled: func(sndAddress, recvAddress []byte) (bool, error) {
+			return false, nil
+		},
+	}
+	execTx, _ := txproc.NewTxProcessor(args)
+
+	_, err := execTx.ProcessTransaction(&tx)
+	assert.Nil(t, err)
+
+	balance := acntSrc.GetBalance()
+	require.Equal(t, initialBalance, balance) // disabled economics data, testing only tx.value
+}
+
 func TestTxProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 

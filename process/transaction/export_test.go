@@ -57,7 +57,13 @@ func (txProc *txProcessor) ProcessUserTx(
 	relayedNonce uint64,
 	originalTxHash []byte,
 ) (vmcommon.ReturnCode, error) {
-	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, originalTxHash)
+	return txProc.processUserTx(
+		originalTx,
+		userTx,
+		relayedTxValue,
+		relayedNonce,
+		originalTxHash,
+		nonRelayedV3UserTxIdx)
 }
 
 // ProcessMoveBalanceCostRelayedUserTx calls the un-exported method processMoveBalanceCostRelayedUserTx
@@ -87,7 +93,8 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		relayedNonce,
 		originalTx,
 		originalTxHash,
-		errorMsg)
+		errorMsg,
+		nonRelayedV3UserTxIdx)
 }
 
 // CheckMaxGasPrice calls the un-exported method checkMaxGasPrice

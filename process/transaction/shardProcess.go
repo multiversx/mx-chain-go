@@ -31,6 +31,8 @@ var _ process.TransactionProcessor = (*txProcessor)(nil)
 // for move balance transactions that provide more gas than needed
 const RefundGasMessage = "refundedGas"
 
+const nonRelayedV3UserTxIdx = -1
+
 type relayedFees struct {
 	totalFee, remainingFee, relayerFee *big.Int
 }
@@ -500,14 +502,28 @@ func (txProc *txProcessor) processMoveBalance(
 
 	isPayable, err := txProc.scProcessor.IsPayable(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
+		errRefund := txProc.revertConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
+		if errRefund != nil {
+			log.Error("failed to return funds to sender after check if receiver is payable", "error", errRefund)
+		}
 		return err
 	}
 	if !isPayable {
+		err = txProc.revertConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
+		if err != nil {
+			log.Error("failed to return funds to sender while transferring to non payable sc", "error", err)
+		}
+
 		return process.ErrAccountNotPayable
 	}
 
 	err = txProc.checkIfValidTxToMetaChain(tx, tx.RcvAddr)
 	if err != nil {
+		errLocal := txProc.revertConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
+		if errLocal != nil {
+			log.Error("failed to return funds to sender while sending invalid tx to metachain", "error", errLocal)
+		}
+
 		return err
 	}
 
@@ -541,6 +557,31 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	return nil
+}
+
+func (txProc *txProcessor) revertConsumedValueFromSender(
+	tx *transaction.Transaction,
+	acntSrc state.UserAccountHandler,
+	isUserTxOfRelayed bool,
+) error {
+	if !isUserTxOfRelayed {
+		return nil
+	}
+
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag) {
+		return nil
+	}
+
+	if check.IfNil(acntSrc) {
+		return nil
+	}
+
+	err := acntSrc.AddToBalance(tx.Value)
+	if err != nil {
+		return err
+	}
+
+	return txProc.accounts.SaveAccount(acntSrc)
 }
 
 func (txProc *txProcessor) processSCDeployment(
@@ -608,12 +649,13 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 			tx.Nonce,
 			tx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			nonRelayedV3UserTxIdx)
 	}
 
 	defer txProc.saveFailedLogsIfNeeded(originalTxHash)
 
-	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, originalTxHash)
+	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, originalTxHash, nonRelayedV3UserTxIdx)
 }
 
 func (txProc *txProcessor) processTxAtRelayer(
@@ -704,8 +746,8 @@ func (txProc *txProcessor) processRelayedTxV3(
 	var innerTxFee *big.Int
 	innerTxsTotalFees := big.NewInt(0)
 	executedUserTxs := make([]*transaction.Transaction, 0)
-	for _, innerTx := range innerTxs {
-		innerTxFee, innerTxRetCode, innerTxErr = txProc.processInnerTx(tx, innerTx, originalTxHash)
+	for innerTxIdx, innerTx := range innerTxs {
+		innerTxFee, innerTxRetCode, innerTxErr = txProc.processInnerTx(tx, innerTx, originalTxHash, innerTxIdx)
 		innerTxsTotalFees.Add(innerTxsTotalFees, innerTxFee)
 		if innerTxErr != nil || innerTxRetCode != vmcommon.Ok {
 			continue
@@ -742,6 +784,7 @@ func (txProc *txProcessor) processInnerTx(
 	tx *transaction.Transaction,
 	innerTx *transaction.Transaction,
 	originalTxHash []byte,
+	innerTxIdx int,
 ) (*big.Int, vmcommon.ReturnCode, error) {
 
 	txFee := txProc.computeInnerTxFee(innerTx)
@@ -755,7 +798,8 @@ func (txProc *txProcessor) processInnerTx(
 			tx.Nonce,
 			tx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			innerTxIdx)
 	}
 
 	if check.IfNil(acntSnd) {
@@ -766,7 +810,8 @@ func (txProc *txProcessor) processInnerTx(
 			tx.Nonce,
 			tx,
 			originalTxHash,
-			process.ErrRelayedTxV3SenderShardMismatch.Error())
+			process.ErrRelayedTxV3SenderShardMismatch.Error(),
+			innerTxIdx)
 	}
 
 	// TODO: remove adding and then removing the fee at the sender
@@ -779,10 +824,11 @@ func (txProc *txProcessor) processInnerTx(
 			tx.Nonce,
 			tx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			innerTxIdx)
 	}
 
-	result, err := txProc.processUserTx(tx, innerTx, tx.Value, tx.Nonce, originalTxHash)
+	result, err := txProc.processUserTx(tx, innerTx, tx.Value, tx.Nonce, originalTxHash, innerTxIdx)
 	return txFee, result, err
 }
 
@@ -963,6 +1009,7 @@ func (txProc *txProcessor) processUserTx(
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
 	originalTxHash []byte,
+	innerTxIdx int,
 ) (vmcommon.ReturnCode, error) {
 
 	relayerAdr := originalTx.SndAddr
@@ -979,7 +1026,8 @@ func (txProc *txProcessor) processUserTx(
 			relayedNonce,
 			originalTx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			innerTxIdx)
 	}
 
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
@@ -996,7 +1044,8 @@ func (txProc *txProcessor) processUserTx(
 			relayedNonce,
 			originalTx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			innerTxIdx)
 	}
 
 	scrFromTx, err := txProc.makeSCRFromUserTx(userTx, relayerAdr, relayedTxValue, originalTxHash)
@@ -1046,7 +1095,8 @@ func (txProc *txProcessor) processUserTx(
 			relayedNonce,
 			originalTx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			innerTxIdx)
 	}
 
 	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
@@ -1057,7 +1107,8 @@ func (txProc *txProcessor) processUserTx(
 			relayedNonce,
 			originalTx,
 			originalTxHash,
-			err.Error())
+			err.Error(),
+			innerTxIdx)
 	}
 
 	if errors.Is(err, process.ErrFailedTransaction) {
@@ -1135,7 +1186,14 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 	originalTx *transaction.Transaction,
 	originalTxHash []byte,
 	errorMsg string,
+	innerTxIdx int,
 ) error {
+
+	returnMessage := []byte(errorMsg)
+	isUserTxOfRelayedV3 := innerTxIdx != nonRelayedV3UserTxIdx
+	if isUserTxOfRelayedV3 {
+		returnMessage = []byte(fmt.Sprintf("%s while executing inner tx at index %d", errorMsg, innerTxIdx))
+	}
 	scrForRelayer := &smartContractResult.SmartContractResult{
 		Nonce:          relayedNonce,
 		Value:          big.NewInt(0).Set(relayedTxValue),
@@ -1143,7 +1201,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 		SndAddr:        userTx.SndAddr,
 		PrevTxHash:     originalTxHash,
 		OriginalTxHash: originalTxHash,
-		ReturnMessage:  []byte(errorMsg),
+		ReturnMessage:  returnMessage,
 	}
 
 	relayerAcnt, err := txProc.getAccountFromAddress(relayerAdr)

@@ -1281,6 +1281,39 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltInTooMu
 	require.Equal(t, expectedFee, fee)
 }
 
+func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueRelayedV3(t *testing.T) {
+	t.Parallel()
+
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
+	tx := &transaction.Transaction{
+		GasPrice: 1000000000,
+		GasLimit: 99000000,
+		InnerTransactions: []*transaction.Transaction{
+			{
+				GasPrice: 1000000000,
+				GasLimit: 85000000,
+				Data:     []byte("createNewDelegationContract@00@00"),
+			},
+			{
+				GasPrice: 1000000000,
+				GasLimit: 50000,
+			},
+			{
+				GasPrice: 1000000000,
+				GasLimit: 50000,
+			},
+		},
+	}
+
+	expectedGasUsed := uint64(55349500)
+	expectedFee, _ := big.NewInt(0).SetString("899500000000000", 10)
+
+	refundValue, _ := big.NewInt(0).SetString("299005000000000", 10)
+	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
+	require.Equal(t, expectedGasUsed, gasUsed)
+	require.Equal(t, expectedFee, fee)
+}
+
 func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	t.Parallel()
 

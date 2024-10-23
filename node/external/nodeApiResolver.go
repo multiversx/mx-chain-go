@@ -189,6 +189,11 @@ func (nar *nodeApiResolver) GetTransaction(hash string, withResults bool) (*tran
 	return nar.apiTransactionHandler.GetTransaction(hash, withResults)
 }
 
+// GetSCRsByTxHash will return a list of smart contract results based on a provided tx hash and smart contract result hash
+func (nar *nodeApiResolver) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	return nar.apiTransactionHandler.GetSCRsByTxHash(txHash, scrHash)
+}
+
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
 func (nar *nodeApiResolver) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	return nar.apiTransactionHandler.GetTransactionsPool(fields)
