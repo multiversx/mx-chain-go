@@ -264,7 +264,7 @@ func (sp *shardProcessor) ProcessBlock(
 			)
 		}
 
-		err = sp.waitForMetaHdrHashesAndProofs(haveTime())
+		err = sp.waitForMetaHdrHashes(haveTime())
 
 		sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 		missingMetaHdrs := sp.hdrsForCurrBlock.missingHdrs
@@ -291,6 +291,13 @@ func (sp *shardProcessor) ProcessBlock(
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
+	}
+
+	// check proofs for shard data
+	for _, metaBlockHash := range header.GetMetaBlockHashes() {
+		if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
+			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+		}
 	}
 
 	defer func() {
@@ -1803,9 +1810,6 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.Epoch)
 		if shouldConsiderProofsForNotarization {
 			notarizedMetaHdrsBasedOnProofs++
-
-			hasProofForShardHdr := sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHashes[i])
-			sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHashes[i])].hasProof = hasProofForShardHdr
 		}
 	}
 
@@ -1952,7 +1956,6 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{
 				hdr:         createAndProcessInfo.currMetaHdr,
 				usedInBlock: true,
-				hasProof:    true,
 			}
 			createAndProcessInfo.numHdrsAdded++
 			lastMetaHdr = createAndProcessInfo.currMetaHdr
@@ -2020,7 +2023,6 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 		sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{
 			hdr:         createAndProcessInfo.currMetaHdr,
 			usedInBlock: true,
-			hasProof:    true,
 		}
 		createAndProcessInfo.numHdrsAdded++
 		createAndProcessInfo.hdrAdded = true
@@ -2259,7 +2261,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 	return newBody, nil
 }
 
-func (sp *shardProcessor) waitForMetaHdrHashesAndProofs(waitTime time.Duration) error {
+func (sp *shardProcessor) waitForMetaHdrHashes(waitTime time.Duration) error {
 	select {
 	case <-sp.chRcvAllMetaHdrs:
 		return nil

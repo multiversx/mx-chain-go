@@ -60,7 +60,6 @@ type nonceAndHashInfo struct {
 
 type hdrInfo struct {
 	usedInBlock bool
-	hasProof    bool
 	hdr         data.HeaderHandler
 }
 
@@ -620,9 +619,9 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
 		isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-		hasMissingProof := isFlagEnabledForHeader && !headerInfo.hasProof
+		hasMissingProof := isFlagEnabledForHeader && !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 		if headerInfo.usedInBlock != usedInBlock || hasMissingProof {
 			continue
 		}
@@ -645,7 +644,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
 		isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-		hasMissingProof := isFlagEnabledForHeader && !headerInfo.hasProof
+		hasMissingProof := isFlagEnabledForHeader && !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(metaBlockHash))
 		if headerInfo.usedInBlock != usedInBlock || hasMissingProof {
 			continue
 		}
