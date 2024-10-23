@@ -320,14 +320,14 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	hdrHash1 := []byte("hdrHash1")
-	hdrHash2 := []byte("hdrHash2")
-
 	t.Run("fail to sync missing headers", func(t *testing.T) {
 		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
 
 		metaBlock := &block.MetaBlock{
 			Epoch: 2,
@@ -362,6 +362,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 	t.Run("fail to get synced headers", func(t *testing.T) {
 		t.Parallel()
 
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
+
 		metaBlock := &block.MetaBlock{
 			Epoch: 2,
 			EpochStart: block.EpochStart{
@@ -394,6 +400,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 
 	t.Run("empty prev meta block when first epoch", func(t *testing.T) {
 		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
 
 		metaBlock := &block.MetaBlock{
 			Epoch: 1,
@@ -444,6 +456,12 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+
+		hdrHash1 := []byte("hdrHash1")
+		hdrHash2 := []byte("hdrHash2")
 
 		metaBlock := &block.MetaBlock{
 			Epoch: 2,
