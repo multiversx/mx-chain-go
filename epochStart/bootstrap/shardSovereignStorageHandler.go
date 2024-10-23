@@ -140,6 +140,7 @@ func (ssh *sovereignShardStorageHandler) saveLastCrossChainNotarizedHeaders(
 		ShardId: core.MainChainShardId,
 		Nonce:   lastCrossChainNotarizedData.GetNonce(),
 		Hash:    lastCrossChainHeaderHash,
+		Epoch:   lastCrossChainNotarizedData.GetEpoch(),
 	})
 
 	return crossNotarizedHeaders, nil
@@ -151,21 +152,21 @@ func (bsh *sovereignShardStorageHandler) saveExtendedHeaderToStorage(extendedSha
 		return err
 	}
 
-	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
+	extendedHdrStorer, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 	if err != nil {
 		return err
 	}
 
-	err = metaHdrStorage.Put(headerHash, headerBytes)
+	err = extendedHdrStorer.Put(headerHash, headerBytes)
 	if err != nil {
 		return err
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(extendedShardHeader.GetNonce())
-	metaHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+	extendedHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
 	if err != nil {
 		return err
 	}
 
-	return metaHdrNonceStorage.Put(nonceToByteSlice, headerHash)
+	return extendedHdrNonceStorage.Put(nonceToByteSlice, headerHash)
 }
