@@ -285,8 +285,8 @@ func GetMetaHeaderFromStorage(
 	return hdr, nil
 }
 
-// GetExtendedSharHeaderFromStorage gets the extended shard header, which is associated with the given hash, from storage
-func GetExtendedSharHeaderFromStorage(
+// GetExtendedShardHeaderFromStorage gets the extended shard header, which is associated with the given hash, from storage
+func GetExtendedShardHeaderFromStorage(
 	hash []byte,
 	marshaller marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
@@ -322,7 +322,7 @@ func GetExtendedHeaderFromStorageWithNonce(
 		return nil, nil, err
 	}
 
-	hdr, err := GetExtendedSharHeaderFromStorage(hash, marshaller, storageService)
+	hdr, err := GetExtendedShardHeaderFromStorage(hash, marshaller, storageService)
 	if err != nil {
 		return nil, nil, err
 	}
