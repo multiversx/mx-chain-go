@@ -352,7 +352,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, localEsdtBalance, uint32(core.Fungible))
 
 	txData := txDataBuilder.NewBuilder()
 	valueToSendToSc := int64(1000)

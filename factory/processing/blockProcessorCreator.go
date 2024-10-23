@@ -179,6 +179,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	err = builtInFuncFactory.SetBlockchainHook(vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 		Marshalizer:             pcf.coreData.InternalMarshalizer(),
