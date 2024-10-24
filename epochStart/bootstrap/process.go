@@ -585,11 +585,17 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
+	crossHeaderRequester, err := e.bootStrapShardProcessor.createCrossHeaderRequester()
+	if err != nil {
+		return err
+	}
+
 	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler: e.requestHandler,
+		Storage:              disabled.CreateMemUnit(),
+		Cache:                e.dataPool.Headers(),
+		Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:       e.requestHandler,
+		CrossHeaderRequester: crossHeaderRequester,
 	}
 	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 	if err != nil {
