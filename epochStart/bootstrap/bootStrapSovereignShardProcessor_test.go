@@ -300,13 +300,13 @@ func TestBootStrapSovereignShardProcessor_createHeadersSyncer(t *testing.T) {
 	sovProc := createSovBootStrapProc()
 	sovProc.dataPool = dataRetrieverMock.NewPoolsHolderMock()
 
-	headerSyncer, err := sovProc.createHeadersSyncer()
-	require.Nil(t, headerSyncer)
+	requester, err := sovProc.createCrossHeaderRequester()
+	require.Nil(t, requester)
 	require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 	require.ErrorContains(t, err, "extendedHeaderRequester")
 
 	sovProc.requestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
-	headerSyncer, err = sovProc.createHeadersSyncer()
-	require.NotNil(t, headerSyncer)
-	require.Nil(t, err)
+	requester, err = sovProc.createCrossHeaderRequester()
+	require.NotNil(t, requester)
+	require.Equal(t, "*sync.extendedHeaderRequester", fmt.Sprintf("%T", requester))
 }

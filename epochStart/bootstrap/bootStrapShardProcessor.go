@@ -449,18 +449,6 @@ func (bp *bootStrapShardProcessor) createEpochStartInterceptorsContainers(args b
 	return bootStrapFactory.NewEpochStartInterceptorsContainer(args)
 }
 
-func (bp *bootStrapShardProcessor) createHeadersSyncer() (epochStart.HeadersByHashSyncer, error) {
-	metaHdrRequester, err := updateSync.NewMetaHeaderRequester(bp.requestHandler)
-	if err != nil {
-		return nil, err
-	}
-
-	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:              disabled.CreateMemUnit(),
-		Cache:                bp.dataPool.Headers(),
-		Marshalizer:          bp.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:       bp.requestHandler,
-		CrossHeaderRequester: metaHdrRequester,
-	}
-	return updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+func (bp *bootStrapShardProcessor) createCrossHeaderRequester() (updateSync.CrossHeaderRequester, error) {
+	return updateSync.NewMetaHeaderRequester(bp.requestHandler)
 }

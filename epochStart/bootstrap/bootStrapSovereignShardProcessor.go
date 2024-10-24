@@ -289,23 +289,11 @@ func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContain
 	return interceptorsContainerFactory.Create()
 }
 
-func (sbp *sovereignBootStrapShardProcessor) createHeadersSyncer() (epochStart.HeadersByHashSyncer, error) {
-	extendedHeaderRequester, castOk := sbp.requestHandler.(updateSync.ExtendedShardHeaderRequestHandler)
+func (bp *sovereignBootStrapShardProcessor) createCrossHeaderRequester() (updateSync.CrossHeaderRequester, error) {
+	extendedHeaderRequester, castOk := bp.requestHandler.(updateSync.ExtendedShardHeaderRequestHandler)
 	if !castOk {
 		return nil, fmt.Errorf("%w in sovereignBootStrapShardProcessor.createHeadersSyncer for extendedHeaderRequester", process.ErrWrongTypeAssertion)
 	}
 
-	extendedHdrRequester, err := updateSync.NewExtendedHeaderRequester(extendedHeaderRequester)
-	if err != nil {
-		return nil, err
-	}
-
-	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:              disabled.CreateMemUnit(),
-		Cache:                sbp.dataPool.Headers(),
-		Marshalizer:          sbp.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:       sbp.requestHandler,
-		CrossHeaderRequester: extendedHdrRequester,
-	}
-	return updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	return updateSync.NewExtendedHeaderRequester(extendedHeaderRequester)
 }
