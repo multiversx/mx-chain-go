@@ -79,11 +79,6 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*syn
 	return p, nil
 }
 
-type extendedShardHeaderRequestHandler interface {
-	RequestExtendedShardHeaderByNonce(nonce uint64)
-	RequestExtendedShardHeader(hash []byte)
-}
-
 // SyncMissingHeadersByHash syncs the missing headers
 func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
 	_ = core.EmptyChannel(m.chReceivedAll)
@@ -115,16 +110,6 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 			requestedHdrs++
 			if m.crossHeaderRequester.ShouldRequestHeader(shardId) {
 				m.crossHeaderRequester.RequestHeader([]byte(hash))
-				continue
-			}
-
-			if shardId == core.MainChainShardId {
-
-				reqHandlerSov := m.requestHandler.(extendedShardHeaderRequestHandler)
-
-				log.Error("syncHeadersByHash.SyncMissingHeadersByHash extendedShardHeaderRequestHandler")
-
-				reqHandlerSov.RequestExtendedShardHeader([]byte(hash))
 				continue
 			}
 

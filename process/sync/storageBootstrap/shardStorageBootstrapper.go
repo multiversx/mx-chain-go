@@ -87,7 +87,7 @@ func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHe
 
 		log.Error("shardStorageBootstrapper.applyCrossNotarizedHeaders")
 
-		extendedHeader, err := process.GetExtendedSharHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
+		extendedHeader, err := process.GetExtendedShardHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			return err
 		}
@@ -117,7 +117,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
 		var metaBlock *block.ShardHeaderExtended
-		metaBlock, err = process.GetExtendedSharHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
+		metaBlock, err = process.GetExtendedShardHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("meta block is not found in MetaBlockUnit storage",
 				"hash", metaBlockHash)
