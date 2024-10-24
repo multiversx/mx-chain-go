@@ -113,15 +113,15 @@ removeFeeInFeeMarketContractCall() {
 }
 
 setFixedFeeMarketContract() {
-    echo "Setting fixed fee in market contract on main chain..."
+    echo "Setting fixed fee in Fee Market contract on main chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-fixed-feemarket-contract.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-fixed-fee-fee-market-contract.interaction.json"
     setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 setFixedFeeMarketContractSovereign() {
-    echo "Setting fixed fee in market contract on sovereign chain..."
+    echo "Setting fixed fee in Fee Market contract on sovereign chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-fixed-feemarket-contract-sovereign.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-fixed-fee-fee-market-contract-sovereign.interaction.json"
     setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 setFixedFeeMarketContractCall() {
@@ -140,7 +140,7 @@ setFixedFeeMarketContractCall() {
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
-        --function="addFee" \
+        --function="setFee" \
         --arguments \
             str:SVN-c53da0 \
             0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
@@ -153,15 +153,15 @@ setFixedFeeMarketContractCall() {
 }
 
 setAnyTokenFeeMarketContract() {
-    echo "Setting any token fee in market contract on main chain..."
+    echo "Setting any token fee in Fee Market contract on main chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-anytoken-feemarket-contract.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-anytoken-fee-fee-market-contract.interaction.json"
     setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 setAnyTokenFeeMarketContractSovereign() {
-    echo "Setting any token fee in market contract on sovereign chain..."
+    echo "Setting any token fee in Fee Market contract on sovereign chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-anytoken-feemarket-contract-sovereign.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-anytoken-fee-fee-market-contract-sovereign.interaction.json"
     setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 setAnyTokenFeeMarketContractCall() {
