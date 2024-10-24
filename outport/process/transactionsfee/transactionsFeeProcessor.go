@@ -163,7 +163,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 		}
 
 		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
-			if !check.IfNilReflect(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
+			if !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
 				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, scr.Value)
 
 				tx := txWithResults.GetTxHandler()
@@ -271,7 +271,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 
 	for _, event := range txWithResults.log.GetLogEvents() {
 		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
-			if !check.IfNilReflect(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
+			if !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
 				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, big.NewInt(0))
 
 				gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(tx)
@@ -326,10 +326,62 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 			continue
 		}
 
-		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
+		userTx := tep.getUserTxOfRelayed(txFromStorage)
+		if check.IfNil(userTx) {
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
 
-		scrHandler.GetFeeInfo().SetGasUsed(gasUsed)
-		scrHandler.GetFeeInfo().SetFee(fee)
+			scrHandler.GetFeeInfo().SetGasUsed(gasUsed)
+			scrHandler.GetFeeInfo().SetFee(fee)
+		} else {
+			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, scr.Value)
+
+			gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(txFromStorage)
+			feeRelayedTx := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txFromStorage, gasUsedRelayedTx)
+
+			scrHandler.GetFeeInfo().SetGasUsed(gasUsed + gasUsedRelayedTx)
+			scrHandler.GetFeeInfo().SetFee(fee.Add(fee, feeRelayedTx))
+		}
+	}
+
+	return nil
+}
+
+func (tep *transactionsFeeProcessor) getUserTxOfRelayed(tx data.TransactionHandler) data.TransactionHandler {
+	if len(tx.GetData()) == 0 {
+		return nil
+	}
+
+	funcName, args, err := tep.argsParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return nil
+	}
+
+	if funcName == core.RelayedTransaction {
+		if len(args) != 1 {
+			return nil
+		}
+
+		userTx := &transaction.Transaction{}
+		err := tep.marshaller.Unmarshal(userTx, args[0])
+		if err != nil {
+			return nil
+		}
+
+		return userTx
+	}
+
+	if funcName == core.RelayedTransactionV2 {
+		userTx := &transaction.Transaction{}
+		userTx.RcvAddr = args[0]
+		userTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
+		userTx.Data = args[2]
+		userTx.Signature = args[3]
+		userTx.Value = big.NewInt(0)
+		userTx.GasPrice = tx.GetGasPrice()
+		userTx.GasLimit = tx.GetGasLimit() - tep.txFeeCalculator.ComputeGasLimit(tx)
+		userTx.SndAddr = tx.GetRcvAddr()
+
+		return userTx
 	}
 
 	return nil
