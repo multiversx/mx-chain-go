@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -43,6 +44,9 @@ func main() {
 		"The blocks are sent with an arbitrary period between them."
 	app.Flags = []cli.Flag{
 		logLevel,
+		grpcEnabled,
+		sovereignBridgeCertificateFile,
+		sovereignBridgeCertificatePkFile,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -71,14 +75,14 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	//mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer()
-	//if err != nil {
-	//	log.Error("cannot create grpc server", "error", err)
-	//	return err
-	//}
+	mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer(ctx)
+	if err != nil {
+		log.Error("cannot create grpc server", "error", err)
+		return err
+	}
 
 	defer func() {
-		//grpcServerConn.Stop()
+		grpcServerConn.Stop()
 		err = host.Close()
 		log.LogIfError(err)
 	}()
@@ -94,10 +98,10 @@ func startMockNotifier(ctx *cli.Context) error {
 	for {
 		headerV2 := createHeaderV2(nonce, prevHash, prevRandSeed)
 
-		//confirmedBridgeOps, err := mockedGRPCServer.ExtractRandomBridgeTopicsForConfirmation()
-		//log.LogIfError(err)
+		confirmedBridgeOps, err := mockedGRPCServer.ExtractRandomBridgeTopicsForConfirmation()
+		log.LogIfError(err)
 
-		outportBlock, err := createOutportBlock(headerV2, subscribedAddr, nil)
+		outportBlock, err := createOutportBlock(headerV2, subscribedAddr, confirmedBridgeOps)
 		if err != nil {
 			return err
 		}
@@ -148,15 +152,19 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 	return factoryHost.CreateWebSocketHost(args)
 }
 
-func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
+func createAndStartGRPCServer(ctx *cli.Context) (MockServer, GRPCServerMock, error) {
+	if !ctx.Bool(grpcEnabled.Name) {
+		return NewDisabledMockServer(), NewDisabledGRPCServer(), nil
+	}
+
 	listener, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	tlsConfig, err := cert.LoadTLSServerConfig(cert.FileCfg{
-		CertFile: "certificate.crt",
-		PkFile:   "private_key.pem",
+		CertFile: getAbsolutePath(ctx.GlobalString(sovereignBridgeCertificateFile.Name)),
+		PkFile:   getAbsolutePath(ctx.GlobalString(sovereignBridgeCertificatePkFile.Name)),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -180,6 +188,19 @@ func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
 	}()
 
 	return mockedServer, grpcServer, nil
+}
+
+func getAbsolutePath(path string) string {
+	if !strings.HasPrefix(path, "~") {
+		return path
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Error("Error getting home directory: " + err.Error())
+		return ""
+	}
+	return strings.Replace(path, "~", homeDir, 1)
 }
 
 func generateRandomHash() []byte {
@@ -214,10 +235,10 @@ func createOutportBlock(headerV2 *block.HeaderV2, subscribedAddr []byte, confirm
 	logs := make([]*outport.LogData, 0)
 	logs = append(logs, incomingLogs...)
 
-	//bridgeConfirmationLogs := createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps, subscribedAddr)
-	//if len(bridgeConfirmationLogs) != 0 {
-	//	logs = append(logs, bridgeConfirmationLogs...)
-	//}
+	bridgeConfirmationLogs := createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps, subscribedAddr)
+	if len(bridgeConfirmationLogs) != 0 {
+		logs = append(logs, bridgeConfirmationLogs...)
+	}
 
 	return &outport.OutportBlock{
 		BlockData: blockData,
@@ -264,8 +285,8 @@ func createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps []*ConfirmedBrid
 				Events: []*transaction.Event{
 					{
 						Address:    subscribedAddr,
-						Identifier: []byte("executedBridgeOp"),
-						Topics:     [][]byte{confirmedBridgeOp.HashOfHashes, confirmedBridgeOp.BridgeOpHash},
+						Identifier: []byte("execute"),
+						Topics:     [][]byte{[]byte("executedBridgeOp"), confirmedBridgeOp.HashOfHashes, confirmedBridgeOp.BridgeOpHash},
 					},
 				},
 			},
@@ -291,9 +312,12 @@ func createTransferTopics(addr []byte, ct int64) ([][]byte, error) {
 		tokenMetaData,          // meta data
 	}
 
-	topic := append([][]byte{addr}, transferNFT...)
-	topic = append(topic, transferESDT...)
-	return topic, nil
+	topics := make([][]byte, 0)
+	topics = append(topics, []byte("deposit"))
+	topics = append(topics, addr)
+	topics = append(topics, transferNFT...)
+	topics = append(topics, transferESDT...)
+	return topics, nil
 }
 
 func createESDTTokenData(
