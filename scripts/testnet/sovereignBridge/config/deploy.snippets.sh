@@ -2,7 +2,7 @@
 # - deploy all main chain contracts and update sovereign configs
 # - deploy sovereign nodes with all services
 deploySovereignWithCrossChainContracts() {
-    deployMainChainContractsAndSetupObserver || return
+    deployMainChainContractsAndSetupObserver $1 || return
 
     sovereignDeploy
 }
@@ -20,13 +20,11 @@ deployMainChainContractsAndSetupObserver() {
 
     setFeeMarketAddress
 
-    disableFeeInFeeMarketContract
-
     unpauseEsdtSafeContract
 
     setGenesisContract
 
-    updateSovereignConfig
+    updateSovereignConfig $1
 
     prepareObserver
 }
@@ -57,8 +55,6 @@ sovereignDeploy() {
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign
-
-    disableFeeInFeeMarketContractSovereign
 
     unpauseEsdtSafeContractSovereign
 }

@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 
 def update_env(lines, identifier, value) -> []:
@@ -21,7 +22,8 @@ def build_and_run_bridge_server(server_path):
 
     build_command = "go build"
     kill_screen_service = "screen -ls | grep 'sovereignBridgeService' | awk -F. '{print $1}' | xargs -I{} screen -X -S {} quit"
-    run_service = "screen -dmS sovereignBridgeService -L -Logfile sovereignBridgeService.log ./server"
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_service = f"screen -dmS sovereignBridgeService -L -Logfile sovereignBridgeService_{current_time}.log ./server"
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
