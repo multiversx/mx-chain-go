@@ -10,6 +10,8 @@ import (
 const (
 	addressLen = 32
 	hashSize   = 32
+	lenSize    = 4
+	u64Size    = 8
 )
 
 var (
