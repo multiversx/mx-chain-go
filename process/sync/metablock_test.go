@@ -174,6 +174,22 @@ func TestNewMetaBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilMetaBlocksPool, err)
 }
 
+func TestNewMetaBootstrap_NilProofsPool(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return nil
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilProofsPool, err)
+}
+
 func TestNewMetaBootstrap_NilStoreShouldErr(t *testing.T) {
 	t.Parallel()
 

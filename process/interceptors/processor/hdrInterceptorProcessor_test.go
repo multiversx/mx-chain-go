@@ -57,6 +57,17 @@ func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
 }
 
+func TestNewHdrInterceptorProcessor_NilProofsPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.Proofs = nil
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+
+	assert.Nil(t, hip)
+	assert.Equal(t, process.ErrNilEquivalentProofsPool, err)
+}
+
 func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
 	t.Parallel()
 

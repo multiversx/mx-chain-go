@@ -277,6 +277,22 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
 }
 
+func TestNewShardBootstrap_NilProofsPool(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return nil
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilProofsPool, err)
+}
+
 func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
 	t.Parallel()
 
