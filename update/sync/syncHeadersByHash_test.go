@@ -41,6 +41,10 @@ func TestNewMissingheadersByHashSyncer_NilParamsShouldErr(t *testing.T) {
 	nilRequestHandlerArgs.RequestHandler = nil
 	testInput[nilRequestHandlerArgs] = update.ErrNilRequestHandler
 
+	nilCrossHeaderRequesterArgs := okArgs
+	nilCrossHeaderRequesterArgs.CrossHeaderRequester = nil
+	testInput[nilCrossHeaderRequesterArgs] = errNilCrossHeaderRequester
+
 	for args, expectedErr := range testInput {
 		mhhs, err := NewMissingheadersByHashSyncer(args)
 		require.True(t, check.IfNil(mhhs))
