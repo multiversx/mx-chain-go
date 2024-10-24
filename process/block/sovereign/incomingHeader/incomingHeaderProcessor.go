@@ -6,7 +6,6 @@ import (
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -27,7 +26,7 @@ type ArgsIncomingHeaderProcessor struct {
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	MainChainNotarizationStartRound uint64
-	DataCodec                       dataCodec.SovereignDataCodec
+	DataCodec                       SovereignDataCodec
 	TopicsChecker                   TopicsChecker
 }
 
