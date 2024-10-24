@@ -173,10 +173,13 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 }
 
 func getMisingHeadersByHashSyncerArgs() ArgsNewMissingHeadersByHashSyncer {
+	requestHandler := &testscommon.RequestHandlerStub{}
+	metaHdrRequester, _ := NewMetaHeaderRequester(requestHandler)
 	return ArgsNewMissingHeadersByHashSyncer{
-		Storage:        genericMocks.NewStorerMock(),
-		Cache:          &testscommon.HeadersCacherStub{},
-		Marshalizer:    &mock.MarshalizerMock{},
-		RequestHandler: &testscommon.RequestHandlerStub{},
+		Storage:              genericMocks.NewStorerMock(),
+		Cache:                &testscommon.HeadersCacherStub{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		RequestHandler:       requestHandler,
+		CrossHeaderRequester: metaHdrRequester,
 	}
 }
