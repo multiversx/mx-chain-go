@@ -176,25 +176,37 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 
 		args := createArgs()
 		args.MainChainNotarizationStartRound = startRound
-		wasHeaderAdded := false
+		wasHeaderAddedCt := 0
 		args.HeadersPool = &mock.HeadersCacherStub{
 			AddHeaderInShardCalled: func(headerHash []byte, header data.HeaderHandler, shardID uint32) {
-				wasHeaderAdded = true
-				require.Equal(t, header.GetRound(), startRound)
+				wasHeaderAddedCt++
+				switch wasHeaderAddedCt {
+				case 1:
+					// pre-genesis header, just track internal header
+					require.Empty(t, header.(data.ShardHeaderExtendedHandler).GetIncomingEventHandlers())
+					require.Equal(t, header.GetRound(), startRound-1)
+				case 2:
+					require.NotEmpty(t, header.(data.ShardHeaderExtendedHandler).GetIncomingEventHandlers())
+					require.Equal(t, header.GetRound(), startRound)
+				}
 			},
 		}
 		handler, _ := NewIncomingHeaderProcessor(args)
-		headers := createIncomingHeadersWithIncrementalRound(startRound)
+		headers := createIncomingHeadersWithIncrementalRound(startRound + 1)
 
-		for i := 0; i < len(headers)-1; i++ {
+		for i := 0; i <= int(startRound-2); i++ {
 			err := handler.AddHeader([]byte("hash"), headers[i])
 			require.Nil(t, err)
-			require.False(t, wasHeaderAdded)
+			require.Zero(t, wasHeaderAddedCt)
 		}
 
-		err := handler.AddHeader([]byte("hash"), headers[startRound])
+		err := handler.AddHeader([]byte("hash"), headers[startRound-1])
 		require.Nil(t, err)
-		require.True(t, wasHeaderAdded)
+		require.Equal(t, 1, wasHeaderAddedCt)
+
+		err = handler.AddHeader([]byte("hash"), headers[startRound])
+		require.Nil(t, err)
+		require.Equal(t, 2, wasHeaderAddedCt)
 	})
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
