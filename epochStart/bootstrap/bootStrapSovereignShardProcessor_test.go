@@ -293,3 +293,20 @@ func TestBootStrapSovereignShardProcessor_createEpochStartInterceptorsContainers
 	require.Empty(t, allKeys)
 	require.Zero(t, fullContainer.Len())
 }
+
+func TestBootStrapSovereignShardProcessor_createHeadersSyncer(t *testing.T) {
+	t.Parallel()
+
+	sovProc := createSovBootStrapProc()
+	sovProc.dataPool = dataRetrieverMock.NewPoolsHolderMock()
+
+	headerSyncer, err := sovProc.createHeadersSyncer()
+	require.Nil(t, headerSyncer)
+	require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	require.ErrorContains(t, err, "extendedHeaderRequester")
+
+	sovProc.requestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+	headerSyncer, err = sovProc.createHeadersSyncer()
+	require.NotNil(t, headerSyncer)
+	require.Nil(t, err)
+}
