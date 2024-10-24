@@ -97,7 +97,7 @@ func TestProofsPool_RegisterHandler(t *testing.T) {
 	pp.RegisterHandler(nil)
 	pp.RegisterHandler(handler)
 
-	pp.AddProof(generateProof())
+	_ = pp.AddProof(generateProof())
 
 	wg.Wait()
 
