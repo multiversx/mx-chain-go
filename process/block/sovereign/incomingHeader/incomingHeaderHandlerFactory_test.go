@@ -6,8 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ func createWSCfg() config.WebSocketConfig {
 func TestCreateIncomingHeaderProcessor(t *testing.T) {
 	t.Parallel()
 
-	runTypeComps := mainFactoryMocks.NewRunTypeComponentsStub()
+	runTypeComps := mock.NewRunTypeComponentsStub()
 	headersPool := &dataRetriever.PoolsHolderStub{
 		HeadersCalled: func() retriever.HeadersPool {
 			return &pool.HeadersPoolStub{}
