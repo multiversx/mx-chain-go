@@ -163,24 +163,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 		}
 
 		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
-			if !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
-				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, scr.Value)
-
-				tx := txWithResults.GetTxHandler()
-				gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(tx)
-				feeRelayedTx := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsedRelayedTx)
-
-				txWithResults.GetFeeInfo().SetGasUsed(gasUsed + gasUsedRelayedTx)
-				txWithResults.GetFeeInfo().SetFee(fee.Add(fee, feeRelayedTx))
-				hasRefund = true
-
-				break
-			}
-
-			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), scr.Value)
-
-			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
-			txWithResults.GetFeeInfo().SetFee(fee)
+			tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, scr.Value, epoch)
 			hasRefund = true
 			break
 		}
@@ -271,22 +254,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 
 	for _, event := range txWithResults.log.GetLogEvents() {
 		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
-			if !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
-				gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, big.NewInt(0))
-
-				gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(tx)
-				feeRelayedTx := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsedRelayedTx)
-
-				txWithResults.GetFeeInfo().SetGasUsed(gasUsed + gasUsedRelayedTx)
-				txWithResults.GetFeeInfo().SetFee(fee.Add(fee, feeRelayedTx))
-
-				break
-			}
-
-			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), big.NewInt(0))
-			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
-			txWithResults.GetFeeInfo().SetFee(fee)
-
+			tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, big.NewInt(0), epoch)
 			continue
 		}
 		if core.SignalErrorOperation == string(event.GetIdentifier()) {
@@ -295,7 +263,30 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 			txWithResults.GetFeeInfo().SetFee(fee)
 		}
 	}
+}
 
+func (tep *transactionsFeeProcessor) setGasUsedAndFeeBasedOnRefundValue(
+	txWithResults *transactionWithResults,
+	userTx data.TransactionHandler,
+	refund *big.Int,
+	epoch uint32,
+) {
+	if !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch) {
+		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, refund)
+
+		tx := txWithResults.GetTxHandler()
+		gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(tx)
+		feeRelayedTx := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsedRelayedTx)
+
+		txWithResults.GetFeeInfo().SetGasUsed(gasUsed + gasUsedRelayedTx)
+		txWithResults.GetFeeInfo().SetFee(fee.Add(fee, feeRelayedTx))
+
+		return
+	}
+
+	gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), refund)
+	txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
+	txWithResults.GetFeeInfo().SetFee(fee)
 }
 
 func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {

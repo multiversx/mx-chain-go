@@ -159,20 +159,7 @@ func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(
 
 func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnLogEvent(tx *transaction.ApiTransactionResult, userTx *transaction.ApiTransactionResult, hasRefund bool, event *transaction.Events) {
 	if core.WriteLogIdentifier == event.Identifier && !hasRefund {
-		if !check.IfNilReflect(userTx) && gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch) {
-			gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, big.NewInt(0))
-			gasUsedRelayedTx := gfp.feeComputer.ComputeGasLimit(tx)
-			feeRelayedTx := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsedRelayedTx)
-
-			tx.GasUsed = gasUsed + gasUsedRelayedTx
-
-			fee.Add(fee, feeRelayedTx)
-			tx.Fee = fee.String()
-		} else {
-			gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, big.NewInt(0))
-			tx.GasUsed = gasUsed
-			tx.Fee = fee.String()
-		}
+		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, userTx, big.NewInt(0))
 	}
 	if core.SignalErrorOperation == event.Identifier {
 		fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, tx.GasLimit)
