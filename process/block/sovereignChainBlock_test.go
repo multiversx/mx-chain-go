@@ -52,17 +52,18 @@ func createSovChainBlockProcessorArgs() blproc.ArgsSovereignChainBlockProcessor 
 	baseArgs := createSovChainBaseBlockProcessorArgs()
 	sp, _ := blproc.NewShardProcessor(baseArgs)
 	return blproc.ArgsSovereignChainBlockProcessor{
-		ShardProcessor:               sp,
-		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-		OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-		OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-		OperationsHasher:             &testscommon.HasherStub{},
-		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
-		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
-		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
-		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
-		EpochEconomics:               &mock.EpochEconomicsStub{},
-		SCToProtocol:                 &mock.SCToProtocolStub{},
+		ShardProcessor:                  sp,
+		ValidatorStatisticsProcessor:    &testscommon.ValidatorStatisticsProcessorStub{},
+		OutgoingOperationsFormatter:     &sovereign.OutgoingOperationsFormatterMock{},
+		OutGoingOperationsPool:          &sovereign.OutGoingOperationsPoolMock{},
+		OperationsHasher:                &testscommon.HasherStub{},
+		EpochStartDataCreator:           &mock.EpochStartDataCreatorStub{},
+		EpochRewardsCreator:             &testscommon.RewardsCreatorStub{},
+		ValidatorInfoCreator:            &testscommon.EpochValidatorInfoCreatorStub{},
+		EpochSystemSCProcessor:          &testscommon.EpochStartSystemSCStub{},
+		EpochEconomics:                  &mock.EpochEconomicsStub{},
+		SCToProtocol:                    &mock.SCToProtocolStub{},
+		MainChainNotarizationStartRound: 11,
 	}
 }
 

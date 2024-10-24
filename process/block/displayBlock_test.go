@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
@@ -126,7 +127,7 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 		sovChainHeader,
 	)
 
-	require.Equal(t, []*display.LineData{
+	expectedLines := []*display.LineData{
 		{
 			Values:              []string{"ExtendedShardHeaderHashes", "ExtendedShardHeaderHash_1", hex.EncodeToString(extendedShardHeaderHashes[0])},
 			HorizontalRuleAfter: false,
@@ -155,7 +156,45 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
 			HorizontalRuleAfter: true,
 		},
-	}, lines)
+	}
+	require.Equal(t, expectedLines, lines)
+
+	crossChainData := block.EpochStartCrossChainData{
+		ShardID:    core.MainChainShardId,
+		Epoch:      5,
+		Round:      12,
+		Nonce:      13,
+		HeaderHash: []byte{0xa, 0xb},
+	}
+	sovChainHeader.EpochStart.LastFinalizedCrossChainHeader = crossChainData
+	lastFinalizedCrossChainHeaderLines := []*display.LineData{
+		{
+			Values:              []string{"Last cross chain notarized header", "Hash", hex.EncodeToString(crossChainData.HeaderHash)},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "ShardID", getShardName(core.MainChainShardId)},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Epoch", "5"},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Round", "12"},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Nonce", "13"},
+			HorizontalRuleAfter: true,
+		},
+	}
+	expectedLines = append(expectedLines, lastFinalizedCrossChainHeaderLines...)
+	lines = txCounter.displaySovereignChainHeader(
+		shardLines,
+		sovChainHeader,
+	)
+	require.Equal(t, expectedLines, lines)
 }
 
 func TestDisplayBlock_DisplayExtendedShardHeaderHashesIncluded(t *testing.T) {

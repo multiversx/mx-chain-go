@@ -68,6 +68,21 @@ func createIncomingMb(scrs []*scrInfo) []*block.MiniBlock {
 	}
 }
 
+func (ehp *extendedHeaderProcessor) addPreGenesisExtendedHeaderToPool(incomingHeader sovereign.IncomingHeaderHandler) error {
+	headerV2, castOk := incomingHeader.GetHeaderHandler().(*block.HeaderV2)
+	if !castOk {
+		return errInvalidHeaderType
+	}
+
+	extendedHeader := &block.ShardHeaderExtended{
+		Header:             headerV2,
+		IncomingMiniBlocks: []*block.MiniBlock{},
+		IncomingEvents:     []*transaction.Event{},
+	}
+
+	return ehp.addExtendedHeaderToPool(extendedHeader)
+}
+
 func (ehp *extendedHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
 	extendedHeaderHash, err := core.CalculateHash(ehp.marshaller, ehp.hasher, extendedHeader)
 	if err != nil {

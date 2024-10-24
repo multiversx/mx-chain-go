@@ -1,4 +1,4 @@
-package testscommon
+package sovereign
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"

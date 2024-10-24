@@ -17,3 +17,8 @@ func (eshts *ExtendedShardHeaderTrackerStub) ComputeLongestExtendedShardChainFro
 	}
 	return nil, nil, nil
 }
+
+// IsGenesisLastCrossNotarizedHeader -
+func (eshts *ExtendedShardHeaderTrackerStub) IsGenesisLastCrossNotarizedHeader() bool {
+	return false
+}

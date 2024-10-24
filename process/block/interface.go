@@ -40,6 +40,8 @@ type validatorStatsRootHashGetter interface {
 type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
 	GetOutGoingMiniBlockHeaderHandler() data.OutGoingMiniBlockHeaderHandler
+	GetEpochStartHandler() data.EpochStartHandler
+	GetLastFinalizedCrossChainHeaderHandler() data.EpochStartChainDataHandler
 }
 
 type crossNotarizer interface {

@@ -90,7 +90,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&mock.BoostrapStorerStub{},
 			&testscommon.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
-			&mock.ExtendedShardHeaderTrackerStub{},
+			&testscommon.ExtendedShardHeaderTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
 			&sync.RWMutex{},
 			&testscommon.ScheduledTxsExecutionStub{},
