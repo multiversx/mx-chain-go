@@ -28,15 +28,17 @@ type syncHeadersByHash struct {
 	stopSyncing             bool
 	syncedAll               bool
 	requestHandler          process.RequestHandler
+	crossHeaderRequester    CrossHeaderRequester
 	waitTimeBetweenRequests time.Duration
 }
 
 // ArgsNewMissingHeadersByHashSyncer defines the arguments needed for the sycner
 type ArgsNewMissingHeadersByHashSyncer struct {
-	Storage        storage.Storer
-	Cache          dataRetriever.HeadersPool
-	Marshalizer    marshal.Marshalizer
-	RequestHandler process.RequestHandler
+	Storage              storage.Storer
+	Cache                dataRetriever.HeadersPool
+	Marshalizer          marshal.Marshalizer
+	RequestHandler       process.RequestHandler
+	CrossHeaderRequester CrossHeaderRequester
 }
 
 // NewMissingheadersByHashSyncer creates a syncer for all missing headers
@@ -53,6 +55,9 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*syn
 	if check.IfNil(args.RequestHandler) {
 		return nil, process.ErrNilRequestHandler
 	}
+	if check.IfNil(args.CrossHeaderRequester) {
+		return nil, errNilCrossHeaderRequester
+	}
 
 	p := &syncHeadersByHash{
 		mutMissingHdrs:          sync.Mutex{},
@@ -66,6 +71,7 @@ func NewMissingheadersByHashSyncer(args ArgsNewMissingHeadersByHashSyncer) (*syn
 		syncedAll:               false,
 		marshalizer:             args.Marshalizer,
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
+		crossHeaderRequester:    args.CrossHeaderRequester,
 	}
 
 	p.pool.RegisterHandler(p.receivedHeader)
@@ -102,8 +108,8 @@ func (m *syncHeadersByHash) SyncMissingHeadersByHash(shardIDs []uint32, headersH
 			}
 
 			requestedHdrs++
-			if shardId == core.MetachainShardId {
-				m.requestHandler.RequestMetaHeader([]byte(hash))
+			if m.crossHeaderRequester.ShouldRequestHeader(shardId) {
+				m.crossHeaderRequester.RequestHeader([]byte(hash))
 				continue
 			}
 
