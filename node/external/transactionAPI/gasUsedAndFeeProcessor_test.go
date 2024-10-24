@@ -346,3 +346,51 @@ func TestComputeAndAttachGasUsedAndFeeFailedRelayedV1(t *testing.T) {
 	require.Equal(t, "1198000000000000", txWithSRefundSCR.Fee)
 	require.Equal(t, "1274230000000000", txWithSRefundSCR.InitiallyPaidFee)
 }
+
+func TestComputeAndAttachGasUsedAndFeeRelayedV1CreateNewDelegationContractWithRefund(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag
+		},
+	}
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(enableEpochsHandler))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		smartContract.NewArgumentParser(),
+		&marshal.JsonMarshalizer{},
+		enableEpochsHandler,
+	)
+
+	txWithSRefundSCR := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithSRefundSCR, "testData/relayedV1CreateNewDelegationContract.json")
+	require.NoError(t, err)
+
+	snd, _ := pubKeyConverter.Decode(txWithSRefundSCR.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithSRefundSCR.Receiver)
+	val, _ := big.NewInt(0).SetString(txWithSRefundSCR.Value, 10)
+	txWithSRefundSCR.Tx = &transaction.Transaction{
+		Nonce:    txWithSRefundSCR.Nonce,
+		Value:    val,
+		RcvAddr:  rcv,
+		SndAddr:  snd,
+		GasPrice: txWithSRefundSCR.GasPrice,
+		GasLimit: txWithSRefundSCR.GasLimit,
+		Data:     txWithSRefundSCR.Data,
+	}
+
+	txWithSRefundSCR.InitiallyPaidFee = ""
+	txWithSRefundSCR.Fee = ""
+	txWithSRefundSCR.GasUsed = 0
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithSRefundSCR)
+	require.Equal(t, uint64(56328500), txWithSRefundSCR.GasUsed)
+	require.Equal(t, "1878500000000000", txWithSRefundSCR.Fee)
+	require.Equal(t, "2177505000000000", txWithSRefundSCR.InitiallyPaidFee)
+}
