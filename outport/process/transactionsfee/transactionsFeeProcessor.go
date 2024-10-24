@@ -279,7 +279,6 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 
 				txWithResults.GetFeeInfo().SetGasUsed(gasUsed + gasUsedRelayedTx)
 				txWithResults.GetFeeInfo().SetFee(fee.Add(fee, feeRelayedTx))
-				hasRefund = true
 
 				break
 			}
