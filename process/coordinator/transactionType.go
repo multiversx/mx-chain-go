@@ -90,11 +90,6 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		}
 		return process.InvalidTransaction, process.InvalidTransaction
 	}
-
-	if tth.isRelayedTransactionV3(tx) {
-		return process.RelayedTxV3, process.RelayedTxV3
-	}
-
 	if len(tx.GetData()) == 0 {
 		return process.MoveBalance, process.MoveBalance
 	}
@@ -193,10 +188,6 @@ func (tth *txTypeHandler) isRelayedTransactionV1(functionName string) bool {
 
 func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
 	return functionName == core.RelayedTransactionV2
-}
-
-func (tth *txTypeHandler) isRelayedTransactionV3(tx data.TransactionHandler) bool {
-	return len(tx.GetUserTransactions()) != 0
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {

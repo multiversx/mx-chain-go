@@ -39,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
@@ -116,12 +115,11 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:             testscommon.NewGasScheduleNotifierMock(gasSchedule),
-		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
-		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCDeployFlag),
-		WasmVMChangeLocker:      &sync.RWMutex{},
-		VMOutputCacher:          txcache.NewDisabledCache(),
-		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
+		GasSchedule:         testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCDeployFlag),
+		WasmVMChangeLocker:  &sync.RWMutex{},
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 }
 

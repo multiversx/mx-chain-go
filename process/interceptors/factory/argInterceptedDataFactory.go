@@ -57,5 +57,4 @@ type ArgInterceptedDataFactory struct {
 	SignaturesHandler            process.SignaturesHandler
 	HeartbeatExpiryTimespanInSec int64
 	PeerID                       core.PeerID
-	RelayedTxV3Processor         process.RelayedTxV3Processor
 }

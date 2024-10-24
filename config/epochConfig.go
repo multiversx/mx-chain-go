@@ -119,7 +119,6 @@ type EnableEpochs struct {
 	EGLDInMultiTransferEnableEpoch                           uint32
 	CryptoOpcodesV2EnableEpoch                               uint32
 	UnJailCleanupEnableEpoch                                 uint32
-	RelayedTransactionsV3EnableEpoch                         uint32
 	FixRelayedBaseCostEnableEpoch                            uint32
 	MultiESDTNFTTransferAndExecuteByUserEnableEpoch          uint32
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32

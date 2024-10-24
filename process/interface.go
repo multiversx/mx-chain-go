@@ -699,7 +699,6 @@ type feeHandler interface {
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
-	ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -726,7 +725,6 @@ type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
-	SetTxTypeHandler(txTypeHandler TxTypeHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1359,19 +1357,5 @@ type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
-	IsInterfaceNil() bool
-}
-
-// RelayedTxV3Processor defines a component able to check and process relayed transactions v3
-type RelayedTxV3Processor interface {
-	CheckRelayedTx(tx *transaction.Transaction) error
-	IsInterfaceNil() bool
-}
-
-// FailedTxLogsAccumulator defines a component able to accumulate logs during a relayed tx execution
-type FailedTxLogsAccumulator interface {
-	GetLogs(txHash []byte) (data.TransactionHandler, []*vmcommon.LogEntry, bool)
-	SaveLogs(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error
-	Remove(txHash []byte)
 	IsInterfaceNil() bool
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -23,10 +22,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,10 +34,8 @@ var errSignerMockVerifySigFails = errors.New("errSignerMockVerifySigFails")
 
 var senderShard = uint32(2)
 var recvShard = uint32(3)
-var relayerShard = senderShard
 var senderAddress = []byte("12345678901234567890123456789012")
 var recvAddress = []byte("23456789012345678901234567890123")
-var relayerAddress = []byte("34567890123456789012345678901234")
 var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
@@ -95,9 +90,6 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		if bytes.Equal(address, recvAddress) {
 			return recvShard
 		}
-		if bytes.Equal(address, relayerAddress) {
-			return relayerShard
-		}
 
 		return shardCoordinator.CurrentShard
 	}
@@ -122,8 +114,6 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		false,
 		&hashingMocks.HasherMock{},
 		txVerChecker,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 }
 
@@ -142,9 +132,6 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		}
 		if bytes.Equal(address, recvAddress) {
 			return recvShard
-		}
-		if bytes.Equal(address, relayerAddress) {
-			return relayerShard
 		}
 
 		return shardCoordinator.CurrentShard
@@ -170,8 +157,6 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 }
 
@@ -191,21 +176,8 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		if bytes.Equal(address, recvAddress) {
 			return recvShard
 		}
-		if bytes.Equal(address, relayerAddress) {
-			return relayerShard
-		}
 
 		return shardCoordinator.CurrentShard
-	}
-
-	txFeeHandler := createFreeTxFeeHandler()
-	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
-		EconomicsFee:           txFeeHandler,
-		ShardCoordinator:       shardCoordinator,
-		MaxTransactionsAllowed: 10,
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	return transaction.NewInterceptedTransaction(
@@ -221,15 +193,13 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 			},
 		},
 		shardCoordinator,
-		txFeeHandler,
+		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
 		smartContract.NewArgumentParser(),
 		tx.ChainID,
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(tx.Version),
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
-		relayedTxV3Processor,
 	)
 }
 
@@ -254,8 +224,6 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -281,8 +249,6 @@ func TestNewInterceptedTransaction_NilArgsParser(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -308,8 +274,6 @@ func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		nil,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -335,8 +299,6 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -362,8 +324,6 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -389,8 +349,6 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -416,8 +374,6 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -443,8 +399,6 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -470,8 +424,6 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -497,8 +449,6 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -524,8 +474,6 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -551,8 +499,6 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -578,8 +524,6 @@ func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -605,66 +549,10 @@ func TestNewInterceptedTransaction_NilTxSignHasherShouldErr(t *testing.T) {
 		false,
 		nil,
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
 	assert.Equal(t, process.ErrNilHasher, err)
-}
-
-func TestNewInterceptedTransaction_NilEnableEpochsHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	txi, err := transaction.NewInterceptedTransaction(
-		make([]byte, 0),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		createMockPubKeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
-		&testscommon.WhiteListHandlerStub{},
-		&testscommon.ArgumentParserMock{},
-		[]byte("chainID"),
-		false,
-		&hashingMocks.HasherMock{},
-		versioning.NewTxVersionChecker(1),
-		nil,
-		&processMocks.RelayedTxV3ProcessorMock{},
-	)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
-}
-
-func TestNewInterceptedTransaction_NilRelayedV3ProcessorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	txi, err := transaction.NewInterceptedTransaction(
-		make([]byte, 0),
-		&mock.MarshalizerMock{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		&mock.SingleSignKeyGenMock{},
-		&mock.SignerMock{},
-		createMockPubKeyConverter(),
-		mock.NewOneShardCoordinatorMock(),
-		&economicsmocks.EconomicsHandlerStub{},
-		&testscommon.WhiteListHandlerStub{},
-		&testscommon.ArgumentParserMock{},
-		[]byte("chainID"),
-		false,
-		&hashingMocks.HasherMock{},
-		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		nil,
-	)
-
-	assert.Nil(t, txi)
-	assert.Equal(t, process.ErrNilRelayedTxV3Processor, err)
 }
 
 func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
@@ -692,8 +580,6 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -1110,32 +996,6 @@ func TestInterceptedTransaction_CheckValidityOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestInterceptedTransaction_CheckValidityRelayerAddressShouldError(t *testing.T) {
-	t.Parallel()
-
-	minTxVersion := uint32(1)
-	chainID := []byte("chain")
-	tx := &dataTransaction.Transaction{
-		Nonce:       1,
-		Value:       big.NewInt(2),
-		Data:        []byte("data"),
-		GasLimit:    3,
-		GasPrice:    4,
-		RcvAddr:     recvAddress,
-		SndAddr:     senderAddress,
-		Signature:   sigOk,
-		ChainID:     chainID,
-		Version:     minTxVersion,
-		RelayerAddr: []byte("45678901234567890123456789012345"),
-	}
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
-
-	err := txi.CheckValidity()
-
-	assert.True(t, errors.Is(err, process.ErrWrongTransaction))
-	assert.True(t, strings.Contains(err.Error(), "relayer address found on transaction"))
-}
-
 func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *testing.T) {
 	t.Parallel()
 
@@ -1190,8 +1050,6 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	err := txi.CheckValidity()
@@ -1252,8 +1110,6 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShouldWork(t *testing
 		true,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	err := txi.CheckValidity()
@@ -1339,8 +1195,6 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, err)
@@ -1421,31 +1275,6 @@ func TestInterceptedTransaction_GetSenderAddress(t *testing.T) {
 	assert.NotNil(t, result)
 }
 
-func TestInterceptedTransaction_GetRelayerAddress(t *testing.T) {
-	t.Parallel()
-
-	relayerAddr := []byte("34567890123456789012345678901234")
-	minTxVersion := uint32(1)
-	chainID := []byte("chain")
-	tx := &dataTransaction.Transaction{
-		Nonce:       0,
-		Value:       big.NewInt(2),
-		Data:        []byte("data"),
-		GasLimit:    3,
-		GasPrice:    4,
-		RcvAddr:     recvAddress,
-		SndAddr:     senderAddress,
-		Signature:   sigOk,
-		ChainID:     chainID,
-		Version:     minTxVersion,
-		RelayerAddr: relayerAddr,
-	}
-
-	txi, _ := createInterceptedTxFromPlainTx(tx, createFreeTxFeeHandler(), chainID, minTxVersion)
-	result := txi.RelayerAddress()
-	assert.Equal(t, relayerAddr, result)
-}
-
 func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testing.T) {
 	t.Parallel()
 
@@ -1505,8 +1334,6 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 	require.Nil(t, err)
 
@@ -1602,14 +1429,6 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	err = txi.CheckValidity()
 	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
 	assert.Contains(t, err.Error(), "inner transaction")
-
-	userTx.Data = []byte("")
-	userTxData, _ = marshalizer.Marshal(userTx)
-	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
-	tx.InnerTransactions = []*dataTransaction.Transaction{{Nonce: 100}}
-	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
-	err = txi.CheckValidity()
-	assert.True(t, strings.Contains(err.Error(), process.ErrMultipleRelayedTxTypesIsNotAllowed.Error()))
 }
 
 func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
@@ -1673,193 +1492,12 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
 	assert.Contains(t, err.Error(), "inner transaction")
 
-	userTx.Data = []byte("")
-	marshalizer := &mock.MarshalizerMock{}
-	userTxData, _ := marshalizer.Marshal(userTx)
-	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTxData))
-	tx.InnerTransactions = []*dataTransaction.Transaction{{Nonce: 100}}
-	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
-	err = txi.CheckValidity()
-	assert.True(t, strings.Contains(err.Error(), process.ErrMultipleRelayedTxTypesIsNotAllowed.Error()))
-
-	tx.InnerTransactions = nil
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)
-}
-
-func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
-	t.Parallel()
-
-	minTxVersion := uint32(1)
-	chainID := []byte("chain")
-	innerTx := &dataTransaction.Transaction{
-		Nonce:       1,
-		Value:       big.NewInt(2),
-		Data:        []byte("data inner tx 1"),
-		GasLimit:    3,
-		GasPrice:    4,
-		RcvAddr:     recvAddress,
-		SndAddr:     senderAddress,
-		Signature:   sigOk,
-		ChainID:     chainID,
-		Version:     minTxVersion,
-		RelayerAddr: relayerAddress,
-	}
-
-	tx := &dataTransaction.Transaction{
-		Nonce:             1,
-		Value:             big.NewInt(0),
-		GasLimit:          10,
-		GasPrice:          4,
-		RcvAddr:           relayerAddress,
-		SndAddr:           relayerAddress,
-		Signature:         sigOk,
-		ChainID:           chainID,
-		Version:           minTxVersion,
-		InnerTransactions: []*dataTransaction.Transaction{innerTx},
-	}
-
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.Nil(t, err)
-	})
-	t.Run("inner txs on inner tx should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		innerTxCopy.InnerTransactions = []*dataTransaction.Transaction{{}}
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
-	})
-	t.Run("different relayer on inner tx should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		innerTxCopy.RelayerAddr = recvAddress
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrRelayedTxV3RelayerMismatch, err)
-	})
-	t.Run("different sender than receiver should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		txCopy.RcvAddr = recvAddress
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrRelayedTxV3SenderDoesNotMatchReceiver, err)
-	})
-	t.Run("empty signature on inner tx should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		innerTxCopy.Signature = nil
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.NotNil(t, err)
-	})
-	t.Run("bad signature on inner tx should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		innerTxCopy.Signature = sigBad
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.NotNil(t, err)
-	})
-	t.Run("inner tx on inner tx(recursive) should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-		innerTx2 := &dataTransaction.Transaction{
-			Nonce:     2,
-			Value:     big.NewInt(3),
-			Data:      []byte(""),
-			GasLimit:  3,
-			GasPrice:  4,
-			RcvAddr:   recvAddress,
-			SndAddr:   senderAddress,
-			Signature: sigOk,
-			ChainID:   chainID,
-			Version:   minTxVersion,
-		}
-		innerTxCopy.InnerTransactions = []*dataTransaction.Transaction{innerTx2}
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.NotNil(t, err)
-	})
-	t.Run("relayed v3 not enabled yet should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-		marshalizer := &mock.MarshalizerMock{}
-		txBuff, _ := marshalizer.Marshal(&txCopy)
-		txi, _ := transaction.NewInterceptedTransaction(
-			txBuff,
-			marshalizer,
-			marshalizer,
-			&hashingMocks.HasherMock{},
-			createKeyGenMock(),
-			createDummySigner(),
-			&testscommon.PubkeyConverterStub{
-				LenCalled: func() int {
-					return 32
-				},
-			},
-			mock.NewMultipleShardsCoordinatorMock(),
-			createFreeTxFeeHandler(),
-			&testscommon.WhiteListHandlerStub{},
-			&testscommon.ArgumentParserMock{},
-			txCopy.ChainID,
-			false,
-			&hashingMocks.HasherMock{},
-			versioning.NewTxVersionChecker(0),
-			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			&processMocks.RelayedTxV3ProcessorMock{},
-		)
-
-		assert.NotNil(t, txi)
-		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrRelayedTxV3Disabled, err)
-	})
-	t.Run("inner txs + relayed v2 should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		innerTxCopy := *innerTx
-		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
-		marshaller := &marshallerMock.MarshalizerMock{}
-		userTxData, _ := marshaller.Marshal(innerTxCopy)
-		txCopy.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
-		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
-		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrMultipleRelayedTxTypesIsNotAllowed, err)
-	})
 }
 
 // ------- IsInterfaceNil
@@ -1991,8 +1629,6 @@ func TestInterceptedTransaction_Fee(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Equal(t, big.NewInt(0), txin.Fee())
@@ -2036,8 +1672,6 @@ func TestInterceptedTransaction_String(t *testing.T) {
 		false,
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(0),
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	expectedFormat := fmt.Sprintf(

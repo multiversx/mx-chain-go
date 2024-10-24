@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 // EconomicsHandlerStub -
@@ -47,8 +46,6 @@ type EconomicsHandlerStub struct {
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
-	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
-	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
 	ComputeMoveBalanceFeeInEpochCalled                  func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 }
 
@@ -364,22 +361,6 @@ func (e *EconomicsHandlerStub) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx 
 func (e *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
 	if e.ComputeTxFeeBasedOnGasUsedInEpochCalled != nil {
 		return e.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
-	}
-	return nil
-}
-
-// ComputeRelayedTxFees -
-func (e *EconomicsHandlerStub) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
-	if e.ComputeRelayedTxFeesCalled != nil {
-		return e.ComputeRelayedTxFeesCalled(tx)
-	}
-	return big.NewInt(0), big.NewInt(0), nil
-}
-
-// SetTxTypeHandler -
-func (e *EconomicsHandlerStub) SetTxTypeHandler(txTypeHandler process.TxTypeHandler) error {
-	if e.SetTxTypeHandlerCalled != nil {
-		return e.SetTxTypeHandlerCalled(txTypeHandler)
 	}
 	return nil
 }
