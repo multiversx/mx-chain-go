@@ -56,9 +56,7 @@ func (epip *equivalentProofsInterceptorProcessor) Save(data process.InterceptedD
 		return process.ErrWrongTypeAssertion
 	}
 
-	epip.equivalentProofsPool.AddNotarizedProof(interceptedProof.GetProof())
-
-	return nil
+	return epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
 }
 
 // RegisterHandler registers a callback function to be notified of incoming equivalent proofs
