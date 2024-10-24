@@ -13,7 +13,6 @@ import (
 	factoryHost "github.com/multiversx/mx-chain-communication-go/websocket/factory"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -238,12 +237,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 		return nil, err
 	}
 
-	nonce := big.NewInt(int64(ct)).Bytes()
-	gasLimit := big.NewInt(69327).Bytes()
-	dummyFuncWithArgsAndGas := []byte("@0a@@66756e6332@61726731@")
-
-	logData := append(nonce, dummyFuncWithArgsAndGas...)
-	logData = append(logData, gasLimit...)
+	eventData := createEventData(ct, subscribedAddr)
 
 	return []*outport.LogData{
 		{
@@ -254,7 +248,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 						Address:    subscribedAddr,
 						Identifier: []byte("deposit"),
 						Topics:     topics,
-						Data:       logData,
+						Data:       eventData,
 					},
 				},
 			},
@@ -283,21 +277,18 @@ func createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps []*ConfirmedBrid
 
 func createTransferTopics(addr []byte, ct int64) ([][]byte, error) {
 	nftTransferNonce := big.NewInt(ct%2 + 1)
-	nftTransferValue := big.NewInt(100)
-	nftMetaData, err := createNFTMetaData(nftTransferValue, nftTransferNonce.Uint64(), addr)
-	if err != nil {
-		return nil, err
-	}
-
+	nftMetaData := createESDTTokenData(core.NonFungibleV2, big.NewInt(1).Bytes(), "hash", "name", "attributes", addr, big.NewInt(1000).Bytes(), "uri1", "uri2")
 	transferNFT := [][]byte{
 		[]byte("ASH-a642d1"),     // id
 		nftTransferNonce.Bytes(), // nonce != 0
 		nftMetaData,              // meta data
 	}
+
+	tokenMetaData := createESDTTokenData(core.Fungible, big.NewInt(50+ct).Bytes(), "", "", "", addr, big.NewInt(0).Bytes())
 	transferESDT := [][]byte{
-		[]byte("WEGLD-bd4d79"),      // id
-		big.NewInt(0).Bytes(),       // nonce = 0
-		big.NewInt(50 + ct).Bytes(), // value
+		[]byte("WEGLD-bd4d79"), // id
+		big.NewInt(0).Bytes(),  // nonce = 0
+		tokenMetaData,          // meta data
 	}
 
 	topic := append([][]byte{addr}, transferNFT...)
@@ -305,21 +296,67 @@ func createTransferTopics(addr []byte, ct int64) ([][]byte, error) {
 	return topic, nil
 }
 
-func createNFTMetaData(value *big.Int, nonce uint64, creator []byte) ([]byte, error) {
-	esdtData := &esdt.ESDigitalToken{
-		Type:  uint32(core.NonFungible),
-		Value: value,
-		TokenMetaData: &esdt.MetaData{
-			URIs:       [][]byte{[]byte("uri1"), []byte("uri2"), []byte("uri3")},
-			Nonce:      nonce,
-			Hash:       []byte("NFT hash"),
-			Name:       []byte("name nft"),
-			Attributes: []byte("attributes"),
-			Creator:    creator,
-		},
+func createESDTTokenData(
+	esdtType core.ESDTType,
+	amount []byte,
+	hash string,
+	name string,
+	attributes string,
+	creator []byte,
+	royalties []byte,
+	uris ...string,
+) []byte {
+	esdtTokenData := make([]byte, 0)
+	esdtTokenData = append(esdtTokenData, uint8(esdtType))                                    // esdt type
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(amount)), lenSize)...)     // length of amount
+	esdtTokenData = append(esdtTokenData, amount...)                                          // amount
+	esdtTokenData = append(esdtTokenData, []byte{0x00}...)                                    // not frozen
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(hash)), lenSize)...)       // length of hash
+	esdtTokenData = append(esdtTokenData, hash...)                                            // hash
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(name)), lenSize)...)       // length of name
+	esdtTokenData = append(esdtTokenData, name...)                                            // name
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(attributes)), lenSize)...) // length of attributes
+	esdtTokenData = append(esdtTokenData, attributes...)                                      // attributes
+	esdtTokenData = append(esdtTokenData, creator...)                                         // creator
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(royalties)), lenSize)...)  // length of royalties
+	esdtTokenData = append(esdtTokenData, royalties...)                                       // royalties
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uris)), lenSize)...)       // number of uris
+	for _, uri := range uris {
+		esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uri)), lenSize)...) // length of uri
+		esdtTokenData = append(esdtTokenData, []byte(uri)...)                              // uri
 	}
 
-	return marshaller.Marshal(esdtData)
+	return esdtTokenData
+}
+
+func createEventData(nonce uint64, addr []byte) []byte {
+	gasLimit := uint64(10000000)
+	function := []byte("func")
+	args := [][]byte{[]byte("arg1")}
+
+	eventData := make([]byte, 0)
+	eventData = append(eventData, numberToBytes(nonce, u64Size)...)                 // event nonce
+	eventData = append(eventData, addr...)                                          // original sender
+	eventData = append(eventData, []byte{0x01}...)                                  // has transfer data
+	eventData = append(eventData, numberToBytes(gasLimit, u64Size)...)              // gas limit bytes
+	eventData = append(eventData, numberToBytes(uint64(len(function)), lenSize)...) // length of function
+	eventData = append(eventData, function...)                                      // function
+	eventData = append(eventData, numberToBytes(uint64(len(args)), lenSize)...)     // number of arguments
+	for _, arg := range args {
+		eventData = append(eventData, numberToBytes(uint64(len(arg)), lenSize)...) // length of current argument
+		eventData = append(eventData, arg...)                                      // current argument
+	}
+
+	return eventData
+}
+
+func numberToBytes(number uint64, size int) []byte {
+	result := make([]byte, size)
+	for i := 0; i < size; i++ {
+		shift := uint(8 * (size - 1 - i))
+		result[i] = byte((number >> shift) & 0xFF)
+	}
+	return result
 }
 
 func createBlockData(headerV2 *block.HeaderV2) (*outport.BlockData, error) {
