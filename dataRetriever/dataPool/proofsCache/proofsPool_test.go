@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/stretchr/testify/assert"
@@ -81,6 +82,28 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	require.Equal(t, proof4, proof)
 }
 
+func TestProofsPool_RegisterHandler(t *testing.T) {
+	t.Parallel()
+
+	pp := proofscache.NewProofsPool()
+
+	wasCalled := false
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	handler := func(proof data.HeaderProofHandler) {
+		wasCalled = true
+		wg.Done()
+	}
+	pp.RegisterHandler(nil)
+	pp.RegisterHandler(handler)
+
+	pp.AddProof(generateProof())
+
+	wg.Wait()
+
+	assert.True(t, wasCalled)
+}
+
 func TestProofsPool_Concurrency(t *testing.T) {
 	t.Parallel()
 
@@ -95,7 +118,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 5 {
+			switch idx % 6 {
 			case 0, 1, 2:
 				_ = pp.AddProof(generateProof())
 			case 3:
@@ -105,6 +128,10 @@ func TestProofsPool_Concurrency(t *testing.T) {
 				}
 			case 4:
 				_ = pp.CleanupProofsBehindNonce(generateRandomShardID(), generateRandomNonce())
+			case 5:
+				handler := func(proof data.HeaderProofHandler) {
+				}
+				pp.RegisterHandler(handler)
 			default:
 				assert.Fail(t, "should have not beed called")
 			}

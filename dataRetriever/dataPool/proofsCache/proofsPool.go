@@ -13,12 +13,16 @@ var log = logger.GetOrCreate("dataRetriever/proofscache")
 type proofsPool struct {
 	mutCache sync.RWMutex
 	cache    map[uint32]*proofsCache
+
+	mutAddedProofHandlers sync.RWMutex
+	addedProofHandlers    []func(headerProof data.HeaderProofHandler)
 }
 
 // NewProofsPool creates a new proofs pool component
 func NewProofsPool() *proofsPool {
 	return &proofsPool{
-		cache: make(map[uint32]*proofsCache),
+		cache:              make(map[uint32]*proofsCache),
+		addedProofHandlers: make([]func(headerProof data.HeaderProofHandler), 0),
 	}
 }
 
@@ -35,8 +39,7 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
-		log.Trace("there was already a valid proof for header, headerHash: %s", headerHash)
-		return nil
+		return fmt.Errorf("there was already a valid proof for header, headerHash: %s", headerHash)
 	}
 
 	pp.mutCache.Lock()
@@ -58,7 +61,18 @@ func (pp *proofsPool) AddProof(
 
 	proofsPerShard.addProof(headerProof)
 
+	pp.callAddedProofHandlers(headerProof)
+
 	return nil
+}
+
+func (pp *proofsPool) callAddedProofHandlers(headerProof data.HeaderProofHandler) {
+	pp.mutAddedProofHandlers.RLock()
+	defer pp.mutAddedProofHandlers.RUnlock()
+
+	for _, handler := range pp.addedProofHandlers {
+		go handler(headerProof)
+	}
 }
 
 // CleanupProofsBehindNonce will cleanup proofs from pool based on nonce
@@ -117,6 +131,18 @@ func (pp *proofsPool) HasProof(
 ) bool {
 	_, err := pp.GetProof(shardID, headerHash)
 	return err == nil
+}
+
+// RegisterHandler registers a new handler to be called when a new data is added
+func (pp *proofsPool) RegisterHandler(handler func(headerProof data.HeaderProofHandler)) {
+	if handler == nil {
+		log.Error("attempt to register a nil handler to proofs pool")
+		return
+	}
+
+	pp.mutAddedProofHandlers.Lock()
+	pp.addedProofHandlers = append(pp.addedProofHandlers, handler)
+	pp.mutAddedProofHandlers.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
