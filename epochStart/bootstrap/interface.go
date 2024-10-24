@@ -122,6 +122,7 @@ type bootStrapShardProcessorHandler interface {
 	createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error)
 	createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error)
 	createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error)
+	createHeadersSyncer() (epochStart.HeadersByHashSyncer, error)
 }
 
 type epochStartTopicProviderHandler interface {

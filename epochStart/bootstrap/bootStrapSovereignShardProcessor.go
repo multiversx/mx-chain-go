@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 )
 
 type sovereignBootStrapShardProcessor struct {
@@ -285,4 +287,25 @@ func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContain
 	}
 
 	return interceptorsContainerFactory.Create()
+}
+
+func (sbp *sovereignBootStrapShardProcessor) createHeadersSyncer() (epochStart.HeadersByHashSyncer, error) {
+	extendedHeaderRequester, castOk := sbp.requestHandler.(updateSync.ExtendedShardHeaderRequestHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in sovereignBootStrapShardProcessor.createHeadersSyncer for extendedHeaderRequester", process.ErrWrongTypeAssertion)
+	}
+
+	extendedHdrRequester, err := updateSync.NewExtendedHeaderRequester(extendedHeaderRequester)
+	if err != nil {
+		return nil, err
+	}
+
+	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
+		Storage:              disabled.CreateMemUnit(),
+		Cache:                sbp.dataPool.Headers(),
+		Marshalizer:          sbp.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:       sbp.requestHandler,
+		CrossHeaderRequester: extendedHdrRequester,
+	}
+	return updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 }

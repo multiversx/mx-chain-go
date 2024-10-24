@@ -585,13 +585,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
-		Storage:        disabled.CreateMemUnit(),
-		Cache:          e.dataPool.Headers(),
-		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler: e.requestHandler,
-	}
-	e.headersSyncer, err = updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
+	e.headersSyncer, err = e.bootStrapShardProcessor.createHeadersSyncer()
 	if err != nil {
 		return err
 	}

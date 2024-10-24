@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 )
 
 type bootStrapShardProcessor struct {
@@ -446,4 +447,20 @@ func (bp *bootStrapShardProcessor) createStorageEpochStartMetaSyncer(args ArgsNe
 
 func (bp *bootStrapShardProcessor) createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	return bootStrapFactory.NewEpochStartInterceptorsContainer(args)
+}
+
+func (bp *bootStrapShardProcessor) createHeadersSyncer() (epochStart.HeadersByHashSyncer, error) {
+	metaHdrRequester, err := updateSync.NewMetaHeaderRequester(bp.requestHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	syncMissingHeadersArgs := updateSync.ArgsNewMissingHeadersByHashSyncer{
+		Storage:              disabled.CreateMemUnit(),
+		Cache:                bp.dataPool.Headers(),
+		Marshalizer:          bp.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:       bp.requestHandler,
+		CrossHeaderRequester: metaHdrRequester,
+	}
+	return updateSync.NewMissingheadersByHashSyncer(syncMissingHeadersArgs)
 }
