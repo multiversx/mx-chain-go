@@ -834,15 +834,16 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 		return err
 	}
 
+	log.Trace("checkExtendedShardHeadersValidity",
+		"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
+		"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
+	)
+
 	extendedShardHdrs := scbp.sortExtendedShardHeadersForCurrentBlockByNonce()
 	if len(extendedShardHdrs) == 0 {
 		return nil
 	}
 
-	log.Trace("checkExtendedShardHeadersValidity",
-		"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
-		"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
-	)
 	if scbp.receivedGenesisMainChainHeaderWithoutPreGenesis(extendedShardHdrs[0]) {
 		// we are missing pre-genesis header, so we can't link it to previous header
 		if len(extendedShardHdrs) == 1 {
@@ -851,6 +852,11 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 
 		lastCrossNotarizedHeader = extendedShardHdrs[0]
 		extendedShardHdrs = extendedShardHdrs[1:]
+
+		log.Debug("checkExtendedShardHeadersValidity missing pre genesis, updating lastCrossNotarizedHeader",
+			"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
+			"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
+		)
 	}
 
 	for _, extendedShardHdr := range extendedShardHdrs {
