@@ -5,7 +5,6 @@ import (
 
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -35,7 +34,6 @@ type incomingHeaderProcessor struct {
 	eventsProc         *incomingEventsProcessor
 	extendedHeaderProc *extendedHeaderProcessor
 
-	txPool                          TransactionPool
 	outGoingPool                    sovereignBlock.OutGoingOperationsPool
 	mainChainNotarizationStartRound uint64
 }
@@ -75,6 +73,7 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 
 	extendedHearProc := &extendedHeaderProcessor{
 		headersPool: args.HeadersPool,
+		txPool:      args.TxPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
 	}
@@ -84,7 +83,6 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	return &incomingHeaderProcessor{
 		eventsProc:                      eventsProc,
 		extendedHeaderProc:              extendedHearProc,
-		txPool:                          args.TxPool,
 		outGoingPool:                    args.OutGoingOperationsPool,
 		mainChainNotarizationStartRound: args.MainChainNotarizationStartRound,
 	}, nil
@@ -116,22 +114,13 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	err = ihp.extendedHeaderProc.addExtendedHeaderToPool(extendedHeader)
+	err = ihp.extendedHeaderProc.addExtendedHeaderAndSCRsToPool(extendedHeader, res.scrs)
 	if err != nil {
 		return err
 	}
 
 	ihp.addConfirmedBridgeOpsToPool(res.confirmedBridgeOps)
-	ihp.addSCRsToPool(res.scrs)
 	return nil
-}
-
-func (ihp *incomingHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
-	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
-
-	for _, scrData := range scrs {
-		ihp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
-	}
 }
 
 func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) {
