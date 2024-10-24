@@ -529,9 +529,14 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	managedProcessComponents.ForkDetector()
+
 	sovereignWsReceiver, err := createSovereignWsReceiver(
 		&configs.SovereignExtraConfig.NotifierConfig,
+		managedCoreComponents.GenesisNodesSetup().GetRoundDuration(),
+		managedProcessComponents.ForkDetector(),
 		incomingHeaderHandler,
+		managedConsensusComponents.Bootstrapper(),
 	)
 	if err != nil {
 		return true, err
@@ -1884,7 +1889,10 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 
 func createSovereignWsReceiver(
 	config *config.NotifierConfig,
+	roundDuration uint64,
+	forkDetector process.ForkDetector,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	bootstrapper process.Bootstrapper,
 ) (notifierProcess.WSClient, error) {
 	argsNotifier := factory.ArgsCreateSovereignNotifier{
 		MarshallerType:   config.WebSocketConfig.MarshallerType,
@@ -1897,10 +1905,26 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
-	if err != nil {
-		return nil, err
-	}
+	go func(incomingHeaderHandler process.IncomingHeaderSubscriber, sovereignNotifier notifierProcess.SovereignNotifier) {
+		for !(bootstrapper.GetNodeState() == common.NsSynchronized && forkDetector.GetHighestFinalBlockNonce() != 0) {
+			timeToWaitResync := (process.MaxRoundsWithoutNewBlockReceived + 1) * roundDuration
+			time.Sleep(time.Duration(timeToWaitResync) * time.Millisecond)
+			log.Error("NOT STATE NOT SYNCED YET")
+		}
+
+		log.Error("SYYYYYYNNNCCCCCEEEEEEED")
+
+		err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
+		if err != nil {
+			log.Error("ERROR SYNCING", "err", err)
+		}
+
+	}(incomingHeaderHandler, sovereignNotifier)
+
+	//err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
 		WebSocketConfig: notifierCfg.WebSocketConfig{

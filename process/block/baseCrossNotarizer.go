@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 )
@@ -23,7 +24,7 @@ func (bbn *baseBlockNotarizer) getLastCrossNotarizedHeadersForShard(shardID uint
 	}
 
 	headerInfo := &bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: lastCrossNotarizedHeader.GetShardID(),
+		ShardId: core.MainChainShardId,
 		Nonce:   lastCrossNotarizedHeader.GetNonce(),
 		Hash:    lastCrossNotarizedHeaderHash,
 	}
