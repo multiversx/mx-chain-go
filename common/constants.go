@@ -498,6 +498,9 @@ const (
 	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 is enabled
 	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
 
+	// MetricRelayedTransactionsV3DisableEpoch represents the epoch when the relayed transactions v3 are disabled
+	MetricRelayedTransactionsV3DisableEpoch = "erd_relayed_transaction_v3_disable_epoch"
+
 	// MetricFixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost is enabled
 	MetricFixRelayedBaseCostEnableEpoch = "erd_fix_relayed_base_cost_enable_epoch"
 
@@ -1235,6 +1238,7 @@ const (
 	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
 	UnJailCleanupFlag                                  core.EnableEpochFlag = "UnJailCleanupFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	RelayedTransactionsV3DisableFlag                   core.EnableEpochFlag = "RelayedTransactionsV3DisableFlag"
 	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"

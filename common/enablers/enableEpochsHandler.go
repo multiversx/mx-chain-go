@@ -768,6 +768,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
 		},
+		common.RelayedTransactionsV3DisableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3DisableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3DisableEpoch,
+		},
 		common.FixRelayedBaseCostFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch

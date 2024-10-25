@@ -122,6 +122,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricSenderInOutTransferEnableEpoch, uint64(enableEpochs.SenderInOutTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV2EnableEpoch, uint64(enableEpochs.RelayedTransactionsV2EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3EnableEpoch, uint64(enableEpochs.RelayedTransactionsV3EnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3DisableEpoch, uint64(enableEpochs.RelayedTransactionsV3DisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricFixRelayedBaseCostEnableEpoch, uint64(enableEpochs.FixRelayedBaseCostEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricUnbondTokensV2EnableEpoch, uint64(enableEpochs.UnbondTokensV2EnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSaveJailedAlwaysEnableEpoch, uint64(enableEpochs.SaveJailedAlwaysEnableEpoch))

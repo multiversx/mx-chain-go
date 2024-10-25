@@ -257,7 +257,8 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 	if len(tx.InnerTransactions) == 0 {
 		return nil
 	}
-	if !inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
+	if !inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) ||
+		inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3DisableFlag) {
 		return process.ErrRelayedTxV3Disabled
 	}
 	err := inTx.relayedTxV3Processor.CheckRelayedTx(tx)

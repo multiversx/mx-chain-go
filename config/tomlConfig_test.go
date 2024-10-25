@@ -878,6 +878,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
     RelayedTransactionsV3EnableEpoch = 99
 
+    # RelayedTransactionsV3DisableEpoch represents the epoch when the relayed transactions V3 will be disabled
+	RelayedTransactionsV3DisableEpoch = 100
+
     # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
     FixRelayedBaseCostEnableEpoch = 100
 
@@ -1005,6 +1008,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,
 			RelayedTransactionsV3EnableEpoch:                         99,
+			RelayedTransactionsV3DisableEpoch:                        100,
 			FixRelayedBaseCostEnableEpoch:                            100,
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,

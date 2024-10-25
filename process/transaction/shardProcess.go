@@ -135,6 +135,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		common.RelayedTransactionsV2Flag,
 		common.RelayedNonceFixFlag,
 		common.RelayedTransactionsV3Flag,
+		common.RelayedTransactionsV3DisableFlag,
 		common.FixRelayedBaseCostFlag,
 	})
 	if err != nil {
@@ -710,7 +711,8 @@ func (txProc *txProcessor) processRelayedTxV3(
 	tx *transaction.Transaction,
 	relayerAcnt state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) ||
+		txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3DisableFlag) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV3Disabled)
 	}
 	if check.IfNil(relayerAcnt) {

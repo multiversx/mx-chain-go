@@ -124,6 +124,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          107,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           108,
 		UseGasBoundedShouldFailExecutionEnableEpoch:              110,
+		RelayedTransactionsV3DisableEpoch:                        111,
 	}
 }
 
@@ -448,6 +449,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
+	require.Equal(t, cfg.RelayedTransactionsV3DisableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3DisableFlag))
 	require.Equal(t, cfg.FixRelayedBaseCostEnableEpoch, handler.GetActivationEpoch(common.FixRelayedBaseCostFlag))
 	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.MultiESDTNFTTransferAndExecuteByUserFlag))
 	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))

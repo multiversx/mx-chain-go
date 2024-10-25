@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -42,6 +43,7 @@ var (
 	alterConfigsFuncRelayedV3EarlyActivation = func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
 		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3DisableEpoch = integrationTests.UnreachableEpoch
 	}
 )
 

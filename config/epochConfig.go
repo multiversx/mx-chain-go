@@ -120,6 +120,7 @@ type EnableEpochs struct {
 	CryptoOpcodesV2EnableEpoch                               uint32
 	UnJailCleanupEnableEpoch                                 uint32
 	RelayedTransactionsV3EnableEpoch                         uint32
+	RelayedTransactionsV3DisableEpoch                        uint32
 	FixRelayedBaseCostEnableEpoch                            uint32
 	MultiESDTNFTTransferAndExecuteByUserEnableEpoch          uint32
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32
