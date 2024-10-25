@@ -333,7 +333,9 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, chainSim.GetShardForAddress(cs, account.addrBech32))
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(executeToken), account.addrBech32, token.Amount) // token original amount
 	}
-} // transfer from sovereign chain to main chain with transfer data
+}
+
+// transfer from sovereign chain to main chain with transfer data
 // tokens are originated from sovereign chain
 func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 	if testing.Short() {
