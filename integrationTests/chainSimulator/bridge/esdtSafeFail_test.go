@@ -14,12 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 )
 
-// 1. transfer from sovereign chain to main chain
-// 2. transfer from main chain to sovereign chain
-// 3. transfer again the same tokens from sovereign chain to main chain
+// transfer from sovereign chain to main chain with transfer data
 // tokens are originated from sovereign chain
-// esdt-safe contract in main chain will issue its own tokens at registerToken step
-// and will work with a mapper between sov_id <-> main_id
 func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -61,19 +57,16 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 	esdtSafeAddr, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	esdtSafeAddrShard := chainSim.GetShardForAddress(cs, esdtSafeAddr)
 
-	nodeHandler := cs.GetNodeHandler(esdtSafeAddrShard)
-
-	wallet, err := cs.GenerateAndMintWalletAddress(esdtSafeAddrShard, chainSim.InitialAmount)
+	wallet, err := cs.GenerateAndMintWalletAddress(0, chainSim.InitialAmount)
 	require.Nil(t, err)
 	nonce := uint64(0)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	systemContractDeploy := chainSim.GetSysContactDeployAddressBytes(t, nodeHandler)
-	helloAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemContractDeploy, "", helloWasmPath)
-	helloAddrBech32, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(helloAddress)
+	receiverShardId := uint32(0)
 
+	// TODO MX-15942 uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
 	tokens := make([]chainSim.ArgsDepositToken, 0)
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab1-TKN-fasd35",
@@ -81,10 +74,51 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		Amount:     big.NewInt(14556666767),
 		Type:       core.Fungible,
 	})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab1-NFTV2-1ds234",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(1),
+		Type:       core.NonFungibleV2,
+	})
+	//tokens = append(tokens, chainSim.ArgsDepositToken{
+	//	Identifier: "ab2-DNFT-fdfe3r",
+	//	Nonce:      uint64(1),
+	//	Amount:     big.NewInt(1),
+	//	Type:       core.DynamicNFT,
+	//})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab2-SFT-gw4fw2",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(1421),
+		Type:       core.SemiFungible,
+	})
+	//tokens = append(tokens, chainSim.ArgsDepositToken{
+	//	Identifier: "ab4-DSFT-g43g2s",
+	//	Nonce:      uint64(1),
+	//	Amount:     big.NewInt(1534),
+	//	Type:       core.DynamicSFT,
+	//})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab5-META-1ds234",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(6231),
+		Type:       core.MetaFungible,
+	})
+	//tokens = append(tokens, chainSim.ArgsDepositToken{
+	//	Identifier: "ab5-DMETA-f23g2f",
+	//	Nonce:      uint64(1),
+	//	Amount:     big.NewInt(162367),
+	//	Type:       core.DynamicMeta,
+	//})
+
+	// generate hello contracts in each shard
+	// hello contract has one endpoint "hello" which receives a number as argument
+	// if number is 0 then will throw error, otherwise will do nothing
+	receiverContracts := deployReceiverContractInAllShards(t, cs)
 
 	tokensMapper := make(map[string]string)
 
-	// transfer sovereign chain -> main chain with transfer data
+	// transfer sovereign chain -> main chain -> sovereign chain
 	// token originated from sovereign chain
 	for _, token := range tokens {
 		// register sovereign token identifier
@@ -92,16 +126,21 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		registerTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, token)
 		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), getTokenTicker(token.Identifier), token.Type.String())
 
+		// get contract from next shard
+		receiver := receiverContracts[receiverShardId]
+
 		// execute operations received from sovereign chain
 		// expecting the token to be minted in esdt-safe contract with the same properties and transferred with SC call to hello contract
+		// -------------
+		// for (dynamic) SFT/MetaESDT the contract will create one more token and keep it forever
+		// because if the same token is received 2nd time, the contract will just add quantity, not create different token
 		trnsData := &transferData{
 			GasLimit: uint64(10000000),
 			Function: []byte("hello"),
 			Args:     [][]byte{{0x00}},
 		}
-		txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, helloAddress, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{token}, wallet.Bytes, trnsData)
-		// expecting the operation to fail in hello contract with error "Value should be greater than 0"
-		// but receive the callback in esdt-safe contract
+		// the executed operation in hello contract is expected to fail, tokens will be minted and then burned
+		txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, receiver.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, []chainSim.ArgsDepositToken{token}, wallet.Bytes, trnsData)
 		chainSim.RequireSuccessfulTransaction(t, txResult)
 		receivedToken := chainSim.ArgsDepositToken{
 			Identifier: tokensMapper[token.Identifier],
@@ -109,16 +148,21 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 			Amount:     token.Amount,
 			Type:       token.Type,
 		}
+		if isSftOrMeta(receivedToken.Type) {
+			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(1))
+		} else {
+			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(0))
+		}
 
-		// no tokens in contracts
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(0))
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), helloAddrBech32, big.NewInt(0))
+		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, receiverShardId)
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, big.NewInt(0))
 
-		// tokens should be burned because operation failed
 		_ = cs.GenerateBlocks(5)
-		tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(getTokenIdentifier(receivedToken))
+		tokenSupply, err := cs.GetNodeHandler(esdtSafeAddrShard).GetFacadeHandler().GetTokenSupply(getTokenIdentifier(receivedToken))
 		require.Nil(t, err)
 		require.NotNil(t, tokenSupply)
 		require.Equal(t, receivedToken.Amount.String(), tokenSupply.Burned)
+
+		nextShardId(&receiverShardId)
 	}
 }

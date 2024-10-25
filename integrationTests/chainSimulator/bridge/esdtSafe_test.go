@@ -518,7 +518,9 @@ func deployReceiverContractInAllShards(t *testing.T, cs chainSim.ChainSimulator)
 }
 
 func isNft(esdtType core.ESDTType) bool {
-	return esdtType == core.NonFungible || esdtType == core.NonFungibleV2
+	return esdtType == core.NonFungible ||
+		esdtType == core.NonFungibleV2 ||
+		esdtType == core.DynamicNFT
 }
 
 func isSftOrMeta(esdtType core.ESDTType) bool {
