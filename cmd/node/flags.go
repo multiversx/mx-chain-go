@@ -617,6 +617,13 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 		configs.FlagsConfig.DisableConsensusWatchdog = true
 	}
 
+	// JLS: 2024.10.25: force operation mode to be historical balances, by default
+	configs.FlagsConfig.OperationMode = operationmodes.OperationModeHistoricalBalances
+	// JLS: 2024.10.25: p2p tweaks
+	configs.FullArchiveP2pConfig.Node.ThresholdMinConnectedPeers = 0
+	configs.FullArchiveP2pConfig.KadDhtPeerDiscovery.Enabled = false
+	configs.MainP2pConfig.Node.ThresholdMinConnectedPeers = 0
+	configs.MainP2pConfig.KadDhtPeerDiscovery.Enabled = false
 	operationModes, err := operationmodes.ParseOperationModes(configs.FlagsConfig.OperationMode)
 	if err != nil {
 		return err

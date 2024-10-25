@@ -534,7 +534,9 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Info("application is now running")
+	log.Info("Application is now running")
+	log.Info("Since this node is running in deep history mode, the consensus, heartbeat, p2p components are disabled!")
+	log.Info("Waiting to respond on API requests...")
 
 	delayInSecBeforeAllowingVmQueries := configs.GeneralConfig.WebServerAntiflood.VmQueryDelayAfterStartInSec
 	if delayInSecBeforeAllowingVmQueries == 0 {

@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/alarm"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/nodetype"
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
@@ -25,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -223,12 +222,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	alarmScheduler := alarm.NewAlarmScheduler()
-	// TODO: disable watchdog if block processing cutoff is enabled
-	watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
-	if err != nil {
-		return nil, err
-	}
+	//alarmScheduler := alarm.NewAlarmScheduler()
+	//// TODO: disable watchdog if block processing cutoff is enabled
+	//watchdogTimer, err := watchdog.NewWatchdog(alarmScheduler, ccf.chanStopNodeProcess, log)
+	//if err != nil {
+	//	return nil, err
+	//}
+	// JLS: 2024.10.25: no real alarm scheduler, no watchdog
+	alarmScheduler := &mock.AlarmSchedulerStub{}
+	watchdogTimer := &mock.WatchdogMock{}
 
 	roundNotifier := forking.NewGenericRoundNotifier()
 	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)

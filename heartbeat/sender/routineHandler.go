@@ -25,9 +25,10 @@ func newRoutineHandler(peerAuthenticationSender senderHandler, heartbeatSender s
 		delayAfterHardforkMessageBroadcast: time.Minute,
 	}
 
-	var ctx context.Context
-	ctx, handler.cancel = context.WithCancel(context.Background())
-	go handler.processLoop(ctx)
+	// var ctx context.Context
+	_, handler.cancel = context.WithCancel(context.Background())
+	// JLS: 2024.10.25: disable heartbeat sender go routine
+	// go handler.processLoop(ctx)
 
 	return handler
 }

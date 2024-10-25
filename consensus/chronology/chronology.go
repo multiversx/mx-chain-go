@@ -112,9 +112,10 @@ func (chr *chronology) StartRounds() {
 	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
 	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
-	var ctx context.Context
-	ctx, chr.cancelFunc = context.WithCancel(context.Background())
-	go chr.startRounds(ctx)
+	//var ctx context.Context
+	_, chr.cancelFunc = context.WithCancel(context.Background())
+	// JLS: 2024.10.25: disable chronology sender go routine
+	//go chr.startRounds(ctx)
 }
 
 func (chr *chronology) startRounds(ctx context.Context) {

@@ -148,17 +148,18 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
-	err = mainNetworkComp.netMessenger.Bootstrap()
-	if err != nil {
-		return nil, err
-	}
-
-	mainNetworkComp.netMessenger.WaitForConnections(ncf.bootstrapWaitTime, ncf.mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap)
-
-	err = fullArchiveNetworkComp.netMessenger.Bootstrap()
-	if err != nil {
-		return nil, err
-	}
+	// JLS: 2024.10.25: we do not need to bootstrap the p2p components, nor wait for p2p connections
+	//err = mainNetworkComp.netMessenger.Bootstrap()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//mainNetworkComp.netMessenger.WaitForConnections(ncf.bootstrapWaitTime, ncf.mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap)
+	//
+	//err = fullArchiveNetworkComp.netMessenger.Bootstrap()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	return &networkComponents{
 		mainNetworkHolder:        mainNetworkComp,

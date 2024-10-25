@@ -179,9 +179,10 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 
 // StartWorking actually starts the consensus working mechanism
 func (wrk *Worker) StartWorking() {
-	var ctx context.Context
-	ctx, wrk.cancelFunc = context.WithCancel(context.Background())
-	go wrk.checkChannels(ctx)
+	// var ctx context.Context
+	_, wrk.cancelFunc = context.WithCancel(context.Background())
+	// JLS: 2024.10.25: disable consensus sender go routine
+	// go wrk.checkChannels(ctx)
 }
 
 func checkNewWorkerParams(args *WorkerArgs) error {
