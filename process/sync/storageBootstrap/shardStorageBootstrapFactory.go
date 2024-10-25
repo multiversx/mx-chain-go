@@ -8,8 +8,8 @@ type shardStorageBootstrapperFactory struct {
 }
 
 // NewShardStorageBootstrapperFactory creates a new instance of shardStorageBootstrapperFactory for run type normal
-func NewShardStorageBootstrapperFactory() (*shardStorageBootstrapperFactory, error) {
-	return &shardStorageBootstrapperFactory{}, nil
+func NewShardStorageBootstrapperFactory() *shardStorageBootstrapperFactory {
+	return &shardStorageBootstrapperFactory{}
 }
 
 // CreateBootstrapperFromStorage creates a new instance of shardStorageBootstrapperFactory for run type normal

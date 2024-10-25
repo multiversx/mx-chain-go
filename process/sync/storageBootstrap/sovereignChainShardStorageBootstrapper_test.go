@@ -108,3 +108,12 @@ func TestSovereignShardBootstrapFactory_applyCrossNotarizedHeaders(t *testing.T)
 	require.True(t, wasCrossChainHdrNotarized)
 	require.True(t, wasCrossChainHdrTracked)
 }
+
+func TestSovereignShardBootstrapFactory_cleanupNotarizedStorageForHigherNoncesIfExist(t *testing.T) {
+	extendedHeader := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{},
+		},
+	}
+	testCleanupNotarizedStorageForHigherNoncesIfExist(t, core.MainChainShardId, extendedHeader, NewSovereignShardStorageBootstrapperFactory())
+}

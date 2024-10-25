@@ -152,7 +152,22 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 	assert.True(t, wasCalledEpochNotifier)
 }
 
-func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(t *testing.T) {
+func TestShardStorageBootstrapper_cleanupNotarizedStorageForHigherNoncesIfExist(t *testing.T) {
+	testCleanupNotarizedStorageForHigherNoncesIfExist(t, core.MetachainShardId, &block.MetaBlock{}, NewShardStorageBootstrapperFactory())
+}
+
+type bootStrapCleaner interface {
+	cleanupNotarizedStorageForHigherNoncesIfExist(
+		crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
+	)
+}
+
+func testCleanupNotarizedStorageForHigherNoncesIfExist(
+	t *testing.T,
+	shardID uint32,
+	header data.HeaderHandler,
+	factory BootstrapperFromStorageCreator,
+) {
 	baseArgs := createMockShardStorageBoostrapperArgs()
 
 	bForceError := true
@@ -163,8 +178,8 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 	metaHash := []byte("meta_hash")
 
 	metaNonceToDelete := metaNonce + maxNumOfConsecutiveNoncesNotFoundAccepted + 2
-	metaBlock := &block.MetaBlock{Nonce: metaNonceToDelete}
-	marshalledMetaBlock, _ := baseArgs.Marshalizer.Marshal(metaBlock)
+	_ = header.SetNonce(metaNonceToDelete)
+	marshalledMetaBlock, _ := baseArgs.Marshalizer.Marshal(header)
 
 	baseArgs.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(u uint64) []byte {
@@ -210,32 +225,35 @@ func TestShardStorageBootstrapper_CleanupNotarizedStorageForHigherNoncesIfExist(
 	args := ArgsShardStorageBootstrapper{
 		ArgsBaseStorageBootstrapper: baseArgs,
 	}
-	ssb, _ := NewShardStorageBootstrapper(args)
+	ssb, err := factory.CreateBootstrapperFromStorage(args)
+	require.Nil(t, err)
+
+	ssbCleaner, castOk := ssb.(bootStrapCleaner)
+	require.True(t, castOk)
 
 	crossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
-
 	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 1})
-	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 0, numCalled)
 
-	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: core.MetachainShardId, Nonce: metaNonce})
-	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: shardID, Nonce: metaNonce})
+	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 0, numCalled)
 	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted, numKeysNotFound-1)
 
 	numKeysNotFound = 0
 	metaNonceToDelete = metaNonce + maxNumOfConsecutiveNoncesNotFoundAccepted + 1
-	metaBlock = &block.MetaBlock{Nonce: metaNonceToDelete}
-	marshalledMetaBlock, _ = baseArgs.Marshalizer.Marshal(metaBlock)
+	_ = header.SetNonce(metaNonceToDelete)
+	marshalledMetaBlock, _ = baseArgs.Marshalizer.Marshal(header)
 
-	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 0, numCalled)
 	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted*2, numKeysNotFound-1)
 
 	numKeysNotFound = 0
 	bForceError = false
 
-	ssb.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 2, numCalled)
 	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted*2, numKeysNotFound-1)
 }
