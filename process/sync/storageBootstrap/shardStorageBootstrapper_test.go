@@ -244,12 +244,12 @@ func TestShardStorageBootstrapper_GetCrossNotarizedHeaderNonceShouldWork(t *test
 	crossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 
 	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 1})
-	nonce, err := getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	nonce, err := getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders, core.MetachainShardId)
 	assert.Equal(t, sync.ErrHeaderNotFound, err)
 	assert.Equal(t, uint64(0), nonce)
 
 	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: core.MetachainShardId, Nonce: 2})
-	nonce, err = getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	nonce, err = getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders, core.MetachainShardId)
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(2), nonce)
 }

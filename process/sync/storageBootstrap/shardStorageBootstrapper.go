@@ -1,6 +1,8 @@
 package storageBootstrap
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -81,25 +83,23 @@ func (ssb *shardStorageBootstrapper) getHeaderWithNonce(nonce uint64, shardID ui
 
 func (ssb *shardStorageBootstrapper) applyCrossNotarizedHeaders(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) error {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
-		if crossNotarizedHeader.ShardId != core.MainChainShardId {
+		if crossNotarizedHeader.ShardId != core.MetachainShardId {
 			continue
 		}
 
-		log.Error("shardStorageBootstrapper.applyCrossNotarizedHeaders")
-
-		extendedHeader, err := process.GetExtendedShardHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
+		metaBlock, err := process.GetMetaHeaderFromStorage(crossNotarizedHeader.Hash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			return err
 		}
 
-		log.Error("added cross notarized header in block tracker",
-			"shard", core.MainChainShardId,
-			"round", extendedHeader.GetRound(),
-			"nonce", extendedHeader.GetNonce(),
+		log.Debug("added cross notarized header in block tracker",
+			"shard", core.MetachainShardId,
+			"round", metaBlock.GetRound(),
+			"nonce", metaBlock.GetNonce(),
 			"hash", crossNotarizedHeader.Hash)
 
-		ssb.blockTracker.AddCrossNotarizedHeader(core.MainChainShardId, extendedHeader, crossNotarizedHeader.Hash)
-		ssb.blockTracker.AddTrackedHeader(extendedHeader, crossNotarizedHeader.Hash)
+		ssb.blockTracker.AddCrossNotarizedHeader(core.MetachainShardId, metaBlock, crossNotarizedHeader.Hash)
+		ssb.blockTracker.AddTrackedHeader(metaBlock, crossNotarizedHeader.Hash)
 	}
 
 	return nil
@@ -116,8 +116,8 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		var metaBlock *block.ShardHeaderExtended
-		metaBlock, err = process.GetExtendedShardHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
+		var metaBlock *block.MetaBlock
+		metaBlock, err = process.GetMetaHeaderFromStorage(metaBlockHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("meta block is not found in MetaBlockUnit storage",
 				"hash", metaBlockHash)
@@ -129,8 +129,8 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorage(shardHeaderHash []b
 			"nonce", metaBlock.GetNonce(),
 			"hash", metaBlockHash)
 
-		ssb.removeMetaFromMetaHeaderNonceToHashUnit(metaBlock, metaBlockHash)
-		ssb.removeMetaFromMetaBlockUnit(metaBlock, metaBlockHash)
+		ssb.removeHdrFromHeaderNonceToHashUnit(metaBlock, metaBlockHash, dataRetriever.MetaHdrNonceHashDataUnit)
+		ssb.removeBlockFromBlockUnit(metaBlock, metaBlockHash, dataRetriever.MetaBlockUnit)
 	}
 }
 
@@ -139,7 +139,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 ) {
 	var numConsecutiveNoncesNotFound int
 
-	lastCrossNotarizedNonce, err := getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders)
+	lastCrossNotarizedNonce, err := getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders, core.MetachainShardId)
 	if err != nil {
 		log.Warn("cleanupNotarizedStorageForHigherNoncesIfExist", "error", err.Error())
 		return
@@ -151,7 +151,7 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 	for {
 		nonce++
 
-		metaBlock, metaBlockHash, err := process.GetExtendedHeaderFromStorageWithNonce(
+		metaBlock, metaBlockHash, err := process.GetMetaHeaderFromStorageWithNonce(
 			nonce,
 			ssb.store,
 			ssb.uint64Converter,
@@ -179,53 +179,61 @@ func (ssb *shardStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExi
 			"nonce", metaBlock.GetNonce(),
 			"hash", metaBlockHash)
 
-		ssb.removeMetaFromMetaHeaderNonceToHashUnit(metaBlock, metaBlockHash)
-		ssb.removeMetaFromMetaBlockUnit(metaBlock, metaBlockHash)
+		ssb.removeHdrFromHeaderNonceToHashUnit(metaBlock, metaBlockHash, dataRetriever.MetaHdrNonceHashDataUnit)
+		ssb.removeBlockFromBlockUnit(metaBlock, metaBlockHash, dataRetriever.MetaBlockUnit)
 	}
 }
 
-func (ssb *shardStorageBootstrapper) removeMetaFromMetaHeaderNonceToHashUnit(metaBlock *block.ShardHeaderExtended, metaBlockHash []byte) {
-	nonceToByteSlice := ssb.uint64Converter.ToByteSlice(metaBlock.GetNonce())
-	metaHdrNonceHashStorer, err := ssb.store.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+func (ssb *shardStorageBootstrapper) removeHdrFromHeaderNonceToHashUnit(
+	block data.HeaderHandler,
+	hash []byte,
+	unitType dataRetriever.UnitType,
+) {
+	nonceToByteSlice := ssb.uint64Converter.ToByteSlice(block.GetNonce())
+	hdrNonceHashStorer, err := ssb.store.GetStorer(unitType)
 	if err != nil {
 		log.Debug("could not get storage unit",
-			"unit", dataRetriever.ExtendedShardHeadersNonceHashDataUnit,
+			"unit", unitType,
 			"error", err.Error())
 		return
 	}
 
-	err = metaHdrNonceHashStorer.Remove(nonceToByteSlice)
+	err = hdrNonceHashStorer.Remove(nonceToByteSlice)
 	if err != nil {
-		log.Debug("meta block was not removed from MetaHdrNonceHashDataUnit storage",
-			"shardId", metaBlock.GetShardID(),
-			"nonce", metaBlock.GetNonce(),
-			"hash", metaBlockHash,
+		log.Debug(fmt.Sprintf("block was not removed from %s storage", unitType.String()),
+			"shardId", block.GetShardID(),
+			"nonce", block.GetNonce(),
+			"hash", hash,
 			"error", err.Error())
 	}
 }
 
-func (ssb *shardStorageBootstrapper) removeMetaFromMetaBlockUnit(metaBlock *block.ShardHeaderExtended, metaBlockHash []byte) {
-	metaBlockStorer, err := ssb.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
+func (ssb *shardStorageBootstrapper) removeBlockFromBlockUnit(
+	block data.HeaderHandler,
+	hash []byte,
+	unitType dataRetriever.UnitType,
+) {
+	blockStorer, err := ssb.store.GetStorer(unitType)
 	if err != nil {
 		log.Debug("could not get storage unit",
-			"unit", dataRetriever.ExtendedShardHeadersUnit,
+			"unit", unitType,
 			"error", err.Error())
 		return
 	}
 
-	err = metaBlockStorer.Remove(metaBlockHash)
+	err = blockStorer.Remove(hash)
 	if err != nil {
-		log.Debug("meta block was not removed from MetaBlockUnit storage",
-			"shardId", metaBlock.GetShardID(),
-			"nonce", metaBlock.GetNonce(),
-			"hash", metaBlockHash,
+		log.Debug(fmt.Sprintf("block was not removed from %s storage", unitType.String()),
+			"shardId", block.GetShardID(),
+			"nonce", block.GetNonce(),
+			"hash", hash,
 			"error", err.Error())
 	}
 }
 
-func getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo) (uint64, error) {
+func getLastCrossNotarizedHeaderNonce(crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo, shardID uint32) (uint64, error) {
 	for _, crossNotarizedHeader := range crossNotarizedHeaders {
-		if crossNotarizedHeader.ShardId != core.MainChainShardId {
+		if crossNotarizedHeader.ShardId != shardID {
 			continue
 		}
 
