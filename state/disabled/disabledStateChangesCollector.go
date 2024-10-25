@@ -1,6 +1,10 @@
 package disabled
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -13,13 +17,12 @@ func NewDisabledStateChangesCollector() state.StateChangesCollector {
 	return &disabledStateChangesCollector{}
 }
 
-// AddStateChange does nothing
-func (d *disabledStateChangesCollector) AddStateChange(_ state.StateChangeDTO) {
+// AddSaveAccountStateChange -
+func (d *disabledStateChangesCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange) {
 }
 
-// GetStateChanges returns an empty slice
-func (d *disabledStateChangesCollector) GetStateChanges() []state.StateChangesForTx {
-	return make([]state.StateChangesForTx, 0)
+// AddStateChange does nothing
+func (d *disabledStateChangesCollector) AddStateChange(_ state.StateChange) {
 }
 
 // Reset does nothing
@@ -27,7 +30,27 @@ func (d *disabledStateChangesCollector) Reset() {
 }
 
 // AddTxHashToCollectedStateChanges does nothing
-func (d *disabledStateChangesCollector) AddTxHashToCollectedStateChanges(_ []byte) {
+func (d *disabledStateChangesCollector) AddTxHashToCollectedStateChanges(_ []byte, _ *transaction.Transaction) {
+}
+
+// SetIndexToLastStateChange -
+func (d *disabledStateChangesCollector) SetIndexToLastStateChange(index int) error {
+	return nil
+}
+
+// RevertToIndex -
+func (d *disabledStateChangesCollector) RevertToIndex(index int) error {
+	return nil
+}
+
+// Publish returns nil
+func (d *disabledStateChangesCollector) Publish() error {
+	return nil
+}
+
+// GetStateChangesForTxs -
+func (d *disabledStateChangesCollector) GetStateChangesForTxs() map[string]*stateChange.StateChanges {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -3,6 +3,7 @@ package disabled
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -129,12 +130,7 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 }
 
 // SetTxHashForLatestStateChanges -
-func (a *accountsAdapter) SetTxHashForLatestStateChanges(_ []byte) {
-}
-
-// ResetStateChangesCollector -
-func (a *accountsAdapter) ResetStateChangesCollector() []state.StateChangesForTx {
-	return nil
+func (a *accountsAdapter) SetTxHashForLatestStateChanges(_ []byte, _ *transaction.Transaction) {
 }
 
 // Close -

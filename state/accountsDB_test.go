@@ -16,7 +16,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -30,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -42,10 +50,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const trieDbOperationDelay = time.Second
@@ -81,7 +85,7 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 }
 
@@ -149,9 +153,10 @@ func getDefaultStateComponents(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: enableEpochsHandler,
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   enableEpochsHandler,
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -175,7 +180,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -371,8 +376,8 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	dtt := &trieMock.DataTrieTrackerStub{
-		SaveDirtyDataCalled: func(_ common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
-			var stateChanges []state.DataTrieChange
+		SaveDirtyDataCalled: func(_ common.Trie) ([]*data.DataTrieChange, []core.TrieData, error) {
+			var stateChanges []*data.DataTrieChange
 			oldVal := []core.TrieData{
 				{
 					Key:     []byte("key"),
@@ -432,6 +437,7 @@ func TestAccountsDB_SaveAccountCollectsAllStateChanges(t *testing.T) {
 			return autoBalanceFlagEnabled
 		},
 	}
+
 	_, adb := getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs)
 	address := generateRandomByteArray(32)
 
@@ -456,16 +462,19 @@ func stepCreateAccountWithDataTrieAndCode(
 	_ = userAcc.SaveKeyValue(key1, []byte("value"))
 	_ = userAcc.SaveKeyValue(key2, []byte("value"))
 	_ = adb.SaveAccount(userAcc)
-	adb.SetTxHashForLatestStateChanges([]byte("accountCreationTxHash"))
+
+	txHash := []byte("accountCreationTxHash")
+
+	adb.SetTxHashForLatestStateChanges(txHash, &transaction.Transaction{})
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
 	stateChangesForTx := adb.ResetStateChangesCollector()
 	assert.Equal(t, 1, len(stateChangesForTx))
 
-	stateChanges := stateChangesForTx[0].StateChanges
+	stateChanges := stateChangesForTx[string(txHash)].StateChanges
 	assert.Equal(t, 2, len(stateChanges))
-	assert.Equal(t, []byte("accountCreationTxHash"), stateChangesForTx[0].TxHash)
+	assert.Equal(t, txHash, stateChangesForTx[string(txHash)].StateChanges[0].GetTxHash())
 
 	codeStateChange := stateChanges[0]
 	assert.Equal(t, codeHash, codeStateChange.MainTrieKey)
@@ -505,14 +514,17 @@ func stepMigrateDataTrieValAndChangeCode(
 	userAcc.SetCode(code)
 	_ = userAcc.SaveKeyValue([]byte("key1"), []byte("value1"))
 	_ = adb.SaveAccount(userAcc)
-	adb.SetTxHashForLatestStateChanges([]byte("accountUpdateTxHash"))
+
+	txHash := []byte("accountCreationTxHash")
+
+	adb.SetTxHashForLatestStateChanges(txHash, &transaction.Transaction{})
 
 	stateChangesForTx := adb.ResetStateChangesCollector()
 	assert.Equal(t, 1, len(stateChangesForTx))
-	assert.Equal(t, 3, len(stateChangesForTx[0].StateChanges))
-	assert.Equal(t, []byte("accountUpdateTxHash"), stateChangesForTx[0].TxHash)
+	assert.Equal(t, 3, len(stateChangesForTx[string(txHash)].StateChanges))
+	assert.Equal(t, txHash, stateChangesForTx[string(txHash)].StateChanges[0].GetTxHash())
 
-	stateChanges := stateChangesForTx[0].StateChanges
+	stateChanges := stateChangesForTx[string(txHash)].StateChanges
 	oldCodeEntryChange := stateChanges[0]
 	assert.Equal(t, oldCodeHash, oldCodeEntryChange.MainTrieKey)
 	assert.Equal(t, []byte(nil), oldCodeEntryChange.MainTrieVal)
@@ -1919,9 +1931,10 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2000,9 +2013,10 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2202,9 +2216,10 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2369,9 +2384,10 @@ func TestAccountsDB_Close(t *testing.T) {
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2657,9 +2673,10 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm
@@ -2929,6 +2946,8 @@ func TestAccountsDb_Concurrent(t *testing.T) {
 
 	numAccounts := 100000
 	accountsAddresses := generateAccounts(t, numAccounts, adb)
+
+	adb.SetTxHashForLatestStateChanges([]byte("txHash"), &transaction.Transaction{})
 	rootHash, _ := adb.Commit()
 
 	testAccountMethodsConcurrency(t, adb, accountsAddresses, rootHash)
@@ -2977,9 +2996,10 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: enableEpochsHandler,
+		Hasher:                hasher,
+		Marshaller:            marshaller,
+		EnableEpochsHandler:   enableEpochsHandler,
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
 	argsAccountsDB.StoragePruningManager = spm

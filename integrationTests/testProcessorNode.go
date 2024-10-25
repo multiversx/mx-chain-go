@@ -2234,6 +2234,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		StateChangesCollector:        &stateMock.StateChangesCollectorStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {

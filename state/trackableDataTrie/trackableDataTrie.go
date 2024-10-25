@@ -8,15 +8,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("state/trackableDataTrie")
@@ -29,12 +32,13 @@ type dirtyData struct {
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData           map[string]dirtyData
-	tr                  common.Trie
-	hasher              hashing.Hasher
-	marshaller          marshal.Marshalizer
-	enableEpochsHandler common.EnableEpochsHandler
-	identifier          []byte
+	dirtyData             map[string]dirtyData
+	tr                    common.Trie
+	hasher                hashing.Hasher
+	marshaller            marshal.Marshalizer
+	enableEpochsHandler   common.EnableEpochsHandler
+	identifier            []byte
+	stateChangesCollector state.StateChangesCollector
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -43,6 +47,7 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
+	stateChangesCollector state.StateChangesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -53,6 +58,10 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(stateChangesCollector) {
+		return nil, state.ErrNilStateChangesCollector
+	}
+
 	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
 		common.AutoBalanceDataTriesFlag,
 	})
@@ -61,12 +70,13 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
-		tr:                  nil,
-		hasher:              hasher,
-		marshaller:          marshaller,
-		dirtyData:           make(map[string]dirtyData),
-		identifier:          identifier,
-		enableEpochsHandler: enableEpochsHandler,
+		tr:                    nil,
+		hasher:                hasher,
+		marshaller:            marshaller,
+		dirtyData:             make(map[string]dirtyData),
+		identifier:            identifier,
+		enableEpochsHandler:   enableEpochsHandler,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
@@ -77,6 +87,7 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	// search in dirty data cache
 	if dataEntry, found := tdt.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
+
 		return dataEntry.value, 0, nil
 	}
 
@@ -95,6 +106,20 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	}
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
+
+	stateChange := &stateChange.StateChange{
+		Type:        "read",
+		MainTrieKey: tdt.identifier,
+		MainTrieVal: nil,
+		DataTrieChanges: []*stateChange.DataTrieChange{
+			{
+				Type: "read",
+				Key:  key,
+				Val:  val,
+			},
+		},
+	}
+	tdt.stateChangesCollector.AddStateChange(stateChange)
 
 	return val, depth, nil
 }
@@ -223,9 +248,9 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
-		return make([]state.DataTrieChange, 0), make([]core.TrieData, 0), nil
+		return make([]*stateChange.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdt.tr) {
@@ -246,10 +271,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]state.DataT
 	return tdt.updateTrie(dtr)
 }
 
-func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
-	newData := make([]state.DataTrieChange, len(tdt.dirtyData))
-	deletedKeys := make([]state.DataTrieChange, 0)
+	newData := make([]*stateChange.DataTrieChange, len(tdt.dirtyData))
+	deletedKeys := make([]*stateChange.DataTrieChange, 0)
 
 	index := 0
 	for key, dataEntry := range tdt.dirtyData {
@@ -266,9 +291,10 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
-				state.DataTrieChange{
-					Key: []byte(key),
-					Val: nil,
+				&stateChange.DataTrieChange{
+					Type: "write",
+					Key:  []byte(key),
+					Val:  nil,
 				},
 			)
 		}
@@ -296,16 +322,20 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
-		newData[dataEntry.index] = state.DataTrieChange{
-			Key: dataTrieKey,
-			Val: dataTrieVal,
+		newData[dataEntry.index] = &stateChange.DataTrieChange{
+			Type: "write",
+			Key:  dataTrieKey,
+			Val:  dataTrieVal,
 		}
 	}
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	stateChanges := make([]state.DataTrieChange, 0)
+	stateChanges := make([]*stateChange.DataTrieChange, 0)
 	for i := range newData {
+		if newData[i] == nil {
+			continue
+		}
 		if len(newData[i].Key) == 0 {
 			continue
 		}

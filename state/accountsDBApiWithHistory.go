@@ -6,9 +6,11 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsDBApiWithHistory struct {
@@ -136,12 +138,7 @@ func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
 }
 
 // SetTxHashForLatestStateChanges returns nil
-func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte) {
-}
-
-// ResetStateChangesCollector returns nil
-func (accountsDB *accountsDBApiWithHistory) ResetStateChangesCollector() []StateChangesForTx {
-	return nil
+func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte, _ *transaction.Transaction) {
 }
 
 // Close will handle the closing of the underlying components

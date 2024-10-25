@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -103,9 +104,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                coreComponents.Hasher(),
+		Marshaller:            coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 

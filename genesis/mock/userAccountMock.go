@@ -6,8 +6,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ErrNegativeValue -
@@ -148,7 +149,7 @@ func (uam *UserAccountMock) GetUserName() []byte {
 }
 
 // SaveDirtyData -
-func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
+func (uam *UserAccountMock) SaveDirtyData(_ common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	return nil, nil, nil
 }
 

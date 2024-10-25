@@ -6,15 +6,18 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ state.UserAccountHandler = (*UserAccountStub)(nil)
 
 // UserAccountStub -
 type UserAccountStub struct {
+	Nonce            uint64
 	Balance          *big.Int
 	DeveloperRewards *big.Int
 	UserName         []byte
@@ -106,7 +109,7 @@ func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 
 // GetNonce -
 func (u *UserAccountStub) GetNonce() uint64 {
-	return 0
+	return u.Nonce
 }
 
 // SetCode -
@@ -189,7 +192,7 @@ func (u *UserAccountStub) IsGuarded() bool {
 }
 
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	return nil, nil, nil
 }
 
