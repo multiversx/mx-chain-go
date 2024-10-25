@@ -58,7 +58,7 @@ func (ssb *sovereignChainShardStorageBootstrapper) cleanupNotarizedStorage(shard
 
 	shardHeader, err := process.GetShardHeaderFromStorage(shardHeaderHash, ssb.marshalizer, ssb.store)
 	if err != nil {
-		log.Debug("shard header is not found in BlockHeaderUnit storage",
+		log.Debug("sovereign shard header is not found in BlockHeaderUnit storage",
 			"hash", shardHeaderHash)
 		return
 	}

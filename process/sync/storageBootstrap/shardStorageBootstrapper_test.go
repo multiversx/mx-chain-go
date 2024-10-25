@@ -156,12 +156,6 @@ func TestShardStorageBootstrapper_cleanupNotarizedStorageForHigherNoncesIfExist(
 	testCleanupNotarizedStorageForHigherNoncesIfExist(t, core.MetachainShardId, &block.MetaBlock{}, NewShardStorageBootstrapperFactory())
 }
 
-type bootStrapCleaner interface {
-	cleanupNotarizedStorageForHigherNoncesIfExist(
-		crossNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo,
-	)
-}
-
 func testCleanupNotarizedStorageForHigherNoncesIfExist(
 	t *testing.T,
 	shardID uint32,
@@ -228,16 +222,16 @@ func testCleanupNotarizedStorageForHigherNoncesIfExist(
 	ssb, err := factory.CreateBootstrapperFromStorage(args)
 	require.Nil(t, err)
 
-	ssbCleaner, castOk := ssb.(bootStrapCleaner)
+	storageHandler, castOk := ssb.(storageBootstrapperHandler)
 	require.True(t, castOk)
 
 	crossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0)
 	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: 0, Nonce: 1})
-	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	storageHandler.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 0, numCalled)
 
 	crossNotarizedHeaders = append(crossNotarizedHeaders, bootstrapStorage.BootstrapHeaderInfo{ShardId: shardID, Nonce: metaNonce})
-	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	storageHandler.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 0, numCalled)
 	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted, numKeysNotFound-1)
 
@@ -246,14 +240,14 @@ func testCleanupNotarizedStorageForHigherNoncesIfExist(
 	_ = header.SetNonce(metaNonceToDelete)
 	marshalledMetaBlock, _ = baseArgs.Marshalizer.Marshal(header)
 
-	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	storageHandler.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 0, numCalled)
 	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted*2, numKeysNotFound-1)
 
 	numKeysNotFound = 0
 	bForceError = false
 
-	ssbCleaner.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
+	storageHandler.cleanupNotarizedStorageForHigherNoncesIfExist(crossNotarizedHeaders)
 	assert.Equal(t, 2, numCalled)
 	assert.Equal(t, maxNumOfConsecutiveNoncesNotFoundAccepted*2, numKeysNotFound-1)
 }
