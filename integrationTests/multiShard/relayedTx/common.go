@@ -15,17 +15,16 @@ import (
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	initialVal := big.NewInt(10000000000)
 	epochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
-	if !relayedV3Test {
-		epochsConfig.RelayedTransactionsV3EnableEpoch = integrationTests.UnreachableEpoch
+	if !baseCostFixEnabled {
 		epochsConfig.FixRelayedBaseCostEnableEpoch = integrationTests.UnreachableEpoch
 		epochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = integrationTests.UnreachableEpoch
 	}
 	nodes, idxProposers := createAndMintNodes(initialVal, epochsConfig)
 
-	players, relayerAccount := createAndMintPlayers(relayedV3Test, nodes, initialVal)
+	players, relayerAccount := createAndMintPlayers(baseCostFixEnabled, nodes, initialVal)
 
 	return nodes, idxProposers, players, relayerAccount
 }
@@ -90,7 +89,7 @@ func CreateAndSendRelayedAndUserTx(
 ) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
-	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData, nil)
+	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
 	relayedTx := createRelayedTx(txDispatcherNode.EconomicsData, relayer, userTx)
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
@@ -113,31 +112,8 @@ func CreateAndSendRelayedAndUserTxV2(
 ) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
-	userTx := createUserTx(player, rcvAddr, value, 0, txData, nil)
+	userTx := createUserTx(player, rcvAddr, value, 0, txData)
 	relayedTx := createRelayedTxV2(txDispatcherNode.EconomicsData, relayer, userTx, gasLimit)
-
-	_, err := txDispatcherNode.SendTransaction(relayedTx)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-
-	return relayedTx, userTx
-}
-
-// CreateAndSendRelayedAndUserTxV3 will create and send a relayed user transaction for relayed v3
-func CreateAndSendRelayedAndUserTxV3(
-	nodes []*integrationTests.TestProcessorNode,
-	relayer *integrationTests.TestWalletAccount,
-	player *integrationTests.TestWalletAccount,
-	rcvAddr []byte,
-	value *big.Int,
-	gasLimit uint64,
-	txData []byte,
-) (*transaction.Transaction, *transaction.Transaction) {
-	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
-
-	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData, relayer.Address)
-	relayedTx := createRelayedTxV3(txDispatcherNode.EconomicsData, relayer, userTx)
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
 	if err != nil {
@@ -153,19 +129,17 @@ func createUserTx(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-	relayerAddress []byte,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:       player.Nonce,
-		Value:       big.NewInt(0).Set(value),
-		RcvAddr:     rcvAddr,
-		SndAddr:     player.Address,
-		GasPrice:    integrationTests.MinTxGasPrice,
-		GasLimit:    gasLimit,
-		Data:        txData,
-		ChainID:     integrationTests.ChainID,
-		Version:     integrationTests.MinTransactionVersion,
-		RelayerAddr: relayerAddress,
+		Nonce:    player.Nonce,
+		Value:    big.NewInt(0).Set(value),
+		RcvAddr:  rcvAddr,
+		SndAddr:  player.Address,
+		GasPrice: integrationTests.MinTxGasPrice,
+		GasLimit: gasLimit,
+		Data:     txData,
+		ChainID:  integrationTests.ChainID,
+		Version:  integrationTests.MinTransactionVersion,
 	}
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
@@ -238,37 +212,6 @@ func createRelayedTxV2(
 	return tx
 }
 
-func createRelayedTxV3(
-	economicsFee process.FeeHandler,
-	relayer *integrationTests.TestWalletAccount,
-	userTx *transaction.Transaction,
-) *transaction.Transaction {
-	tx := &transaction.Transaction{
-		Nonce:             relayer.Nonce,
-		Value:             big.NewInt(0),
-		RcvAddr:           relayer.Address,
-		SndAddr:           relayer.Address,
-		GasPrice:          integrationTests.MinTxGasPrice,
-		Data:              []byte(""),
-		ChainID:           userTx.ChainID,
-		Version:           userTx.Version,
-		InnerTransactions: []*transaction.Transaction{userTx},
-	}
-	gasLimit := economicsFee.ComputeGasLimit(tx)
-	tx.GasLimit = userTx.GasLimit + gasLimit
-
-	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
-	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
-	relayer.Nonce++
-
-	relayer.Balance.Sub(relayer.Balance, tx.Value)
-
-	txFee := economicsFee.ComputeTxFee(tx)
-	relayer.Balance.Sub(relayer.Balance, txFee)
-
-	return tx
-}
-
 func createAndSendSimpleTransaction(
 	nodes []*integrationTests.TestProcessorNode,
 	player *integrationTests.TestWalletAccount,
@@ -279,7 +222,7 @@ func createAndSendSimpleTransaction(
 ) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, player.Address)
 
-	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData, nil)
+	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
 	_, err := txDispatcherNode.SendTransaction(userTx)
 	if err != nil {
 		fmt.Println(err.Error())
