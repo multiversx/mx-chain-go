@@ -3,7 +3,6 @@ package storageBootstrap
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -70,10 +69,11 @@ func (ssb *sovereignChainShardStorageBootstrapper) cleanupNotarizedStorage(shard
 			"error", process.ErrWrongTypeAssertion,
 			"expected shard header of type", "SovereignChainHeaderHandler",
 		)
+		return
 	}
 
 	for _, extendedHeaderHash := range sovereignHeader.GetExtendedShardHeaderHashes() {
-		var extendedHeader *block.ShardHeaderExtended
+		var extendedHeader data.HeaderHandler
 		extendedHeader, err = process.GetExtendedShardHeaderFromStorage(extendedHeaderHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("extended block is not found in ExtendedShardHeadersUnit storage",

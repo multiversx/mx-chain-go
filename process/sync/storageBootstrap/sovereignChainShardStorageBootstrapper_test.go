@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -116,4 +117,82 @@ func TestSovereignShardBootstrapFactory_cleanupNotarizedStorageForHigherNoncesIf
 		},
 	}
 	testCleanupNotarizedStorageForHigherNoncesIfExist(t, core.MainChainShardId, extendedHeader, NewSovereignShardStorageBootstrapperFactory())
+}
+
+func TestSovereignShardBootstrapFactory_cleanupNotarizedStorage(t *testing.T) {
+	t.Parallel()
+
+	baseArgs := createMockShardStorageBoostrapperArgs()
+	extendedHdr := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 4,
+			},
+		},
+	}
+
+	hdrNonceBytes := []byte("nonce_4")
+	baseArgs.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
+		ToByteSliceCalled: func(u uint64) []byte {
+			require.Equal(t, u, extendedHdr.GetNonce())
+			return hdrNonceBytes
+		},
+	}
+
+	extendedHdrhash := []byte("hash")
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			SoftwareVersion: process.SovereignHeaderVersion,
+		},
+
+		ExtendedShardHeaderHashes: [][]byte{extendedHdrhash},
+	}
+
+	wasExtendedHeaderRemoved := false
+	wasExtendedHeaderNonceRemoved := false
+	extendedHdrStorer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return baseArgs.Marshalizer.Marshal(extendedHdr)
+		},
+		RemoveCalled: func(key []byte) error {
+			require.Equal(t, extendedHdrhash, key)
+			wasExtendedHeaderRemoved = true
+			return nil
+		},
+	}
+	extendedHdrNonceStorer := &storageStubs.StorerStub{
+		RemoveCalled: func(key []byte) error {
+			require.Equal(t, hdrNonceBytes, key)
+			wasExtendedHeaderNonceRemoved = true
+			return nil
+		},
+	}
+	sovHdrStorer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			return baseArgs.Marshalizer.Marshal(sovHdr)
+		},
+	}
+
+	baseArgs.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			switch unitType {
+			case dataRetriever.ExtendedShardHeadersUnit:
+				return extendedHdrStorer, nil
+			case dataRetriever.BlockHeaderUnit:
+				return sovHdrStorer, nil
+			case dataRetriever.ExtendedShardHeadersNonceHashDataUnit:
+				return extendedHdrNonceStorer, nil
+			}
+			return &storageStubs.StorerStub{}, nil
+		},
+	}
+	args := ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: baseArgs,
+	}
+	ssb, _ := NewShardStorageBootstrapper(args)
+	scssb, _ := NewSovereignChainShardStorageBootstrapper(ssb)
+
+	scssb.cleanupNotarizedStorage([]byte("hash"))
+	require.True(t, wasExtendedHeaderRemoved)
+	require.True(t, wasExtendedHeaderNonceRemoved)
 }
