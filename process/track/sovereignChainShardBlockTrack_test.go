@@ -563,9 +563,10 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 
 		headers, _, _ := scsbt.ComputeLongestExtendedShardChainFromLastNotarized()
 
-		require.Equal(t, 2, len(headers))
+		require.Equal(t, 3, len(headers))
 		assert.Equal(t, shardHeaderExtended1, headers[0])
 		assert.Equal(t, shardHeaderExtended2, headers[1])
+		assert.Equal(t, shardHeaderExtended3, headers[2])
 	})
 }
 

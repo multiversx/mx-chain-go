@@ -378,15 +378,15 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	})
 	mutRequest.Unlock()
 
-	require.Equal(t, 2, len(shardIDAddCalled))
-	require.Equal(t, 2, len(nonceAddCalled))
-	require.Equal(t, 2, len(shardIDRequestCalled))
-	require.Equal(t, 2, len(nonceRequestCalled))
+	require.Equal(t, 1, len(shardIDAddCalled))
+	require.Equal(t, 1, len(nonceAddCalled))
+	require.Equal(t, 1, len(shardIDRequestCalled))
+	require.Equal(t, 1, len(nonceRequestCalled))
 
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
+	assert.Equal(t, []uint32{shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce}, nonceAddCalled)
+	assert.Equal(t, []uint32{shardID}, shardIDRequestCalled)
+	assert.Equal(t, []uint64{fromNonce}, nonceRequestCalled)
 }
 
 func TestSovereignChainShardBlockTrack_getBlockFinality(t *testing.T) {
