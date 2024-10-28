@@ -388,3 +388,13 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
 	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
 }
+
+func TestSovereignChainShardBlockTrack_getBlockFinality(t *testing.T) {
+	t.Parallel()
+
+	blockProcessorArguments := CreateSovereignChainBlockProcessorMockArguments()
+	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
+	scpb, _ := track.NewSovereignChainBlockProcessor(bp)
+	require.Equal(t, uint64(process.BlockFinality), scpb.GetBlockFinality(core.SovereignChainShardId))
+	require.Zero(t, scpb.GetBlockFinality(core.MainChainShardId))
+}
