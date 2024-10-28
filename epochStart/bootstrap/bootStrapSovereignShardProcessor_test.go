@@ -294,7 +294,7 @@ func TestBootStrapSovereignShardProcessor_createEpochStartInterceptorsContainers
 	require.Zero(t, fullContainer.Len())
 }
 
-func TestBootStrapSovereignShardProcessor_createHeadersSyncer(t *testing.T) {
+func TestBootStrapSovereignShardProcessor_createCrossHeaderRequester(t *testing.T) {
 	t.Parallel()
 
 	sovProc := createSovBootStrapProc()
