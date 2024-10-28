@@ -256,34 +256,19 @@ func (sr *subroundEndRound) CheckSignaturesValidity(bitmap []byte) error {
 	return sr.checkSignaturesValidity(bitmap)
 }
 
-// DoEndRoundJobByParticipant calls the unexported doEndRoundJobByParticipant function
-func (sr *subroundEndRound) DoEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
-	return sr.doEndRoundJobByParticipant(cnsDta)
+// DoEndRoundJobByLeader calls the unexported doEndRoundJobByNode function
+func (sr *subroundEndRound) DoEndRoundJobByNode() bool {
+	return sr.doEndRoundJobByNode()
 }
 
-// DoEndRoundJobByLeader calls the unexported doEndRoundJobByLeader function
-func (sr *subroundEndRound) DoEndRoundJobByLeader() bool {
-	return sr.doEndRoundJobByLeader()
+// CreateAndBroadcastProof calls the unexported createAndBroadcastHeaderFinalInfo function
+func (sr *subroundEndRound) CreateAndBroadcastProof(signature []byte, bitmap []byte) {
+	sr.createAndBroadcastProof(signature, bitmap)
 }
 
-// HaveConsensusHeaderWithFullInfo calls the unexported haveConsensusHeaderWithFullInfo function
-func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
-	return sr.haveConsensusHeaderWithFullInfo(cnsDta)
-}
-
-// CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
-func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte, pk []byte) {
-	sr.createAndBroadcastHeaderFinalInfoForKey(signature, bitmap, leaderSignature, pk)
-}
-
-// ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
-func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
-	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
-}
-
-// IsBlockHeaderFinalInfoValid calls the unexported isBlockHeaderFinalInfoValid function
-func (sr *subroundEndRound) IsBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
-	return sr.isBlockHeaderFinalInfoValid(cnsDta)
+// ReceivedProof calls the unexported receivedProof function
+func (sr *subroundEndRound) ReceivedProof(proof consensus.ProofHandler) {
+	sr.receivedProof(proof)
 }
 
 // IsConsensusHeaderReceived calls the unexported isConsensusHeaderReceived function
