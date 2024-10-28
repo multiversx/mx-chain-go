@@ -23,14 +23,14 @@ func getDefaultStateChange() *data.StateChange {
 func TestNewStateChangesCollector(t *testing.T) {
 	t.Parallel()
 
-	stateChangesCollector := NewStateChangesCollector()
+	stateChangesCollector := NewStateChangesCollector(true, true)
 	require.False(t, stateChangesCollector.IsInterfaceNil())
 }
 
 func TestStateChangesCollector_AddStateChange(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector()
+	scc := NewStateChangesCollector(true, true)
 	assert.Equal(t, 0, len(scc.stateChanges))
 
 	numStateChanges := 10
@@ -46,7 +46,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 	t.Run("getStateChanges with tx hash", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector()
+		scc := NewStateChangesCollector(true, true)
 		assert.Equal(t, 0, len(scc.stateChanges))
 		assert.Equal(t, 0, len(scc.GetStateChanges()))
 
@@ -79,7 +79,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 	t.Run("getStateChanges without tx hash", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector()
+		scc := NewStateChangesCollector(true, true)
 		assert.Equal(t, 0, len(scc.stateChanges))
 		assert.Equal(t, 0, len(scc.GetStateChanges()))
 
@@ -101,7 +101,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector()
+	scc := NewStateChangesCollector(true, true)
 	assert.Equal(t, 0, len(scc.stateChanges))
 	assert.Equal(t, 0, len(scc.GetStateChanges()))
 
@@ -137,7 +137,7 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector()
+	scc := NewStateChangesCollector(true, true)
 	numStateChanges := len(scc.stateChanges)
 
 	err := scc.RevertToIndex(-1)
@@ -150,7 +150,7 @@ func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector()
+	scc := NewStateChangesCollector(true, true)
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
@@ -196,7 +196,7 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Run("should fail if valid index", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector()
+		scc := NewStateChangesCollector(true, true)
 
 		err := scc.SetIndexToLastStateChange(-1)
 		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
@@ -209,7 +209,7 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector()
+		scc := NewStateChangesCollector(true, true)
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
@@ -233,7 +233,7 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 func TestStateChangesCollector_Reset(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector()
+	scc := NewStateChangesCollector(true, true)
 	assert.Equal(t, 0, len(scc.stateChanges))
 
 	numStateChanges := 10
@@ -257,7 +257,7 @@ func TestStateChangesCollector_Reset(t *testing.T) {
 func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector()
+	scc := NewStateChangesCollector(true, true)
 	assert.Equal(t, 0, len(scc.stateChanges))
 
 	numStateChanges := 10

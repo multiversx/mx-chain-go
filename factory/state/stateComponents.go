@@ -2,9 +2,12 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -122,34 +125,38 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateChangesCollector, error) {
-	if !scf.config.StateTriesConfig.CollectStateChangesEnabled {
+	if scf.config.StateTriesConfig.StateChangesDataAnalysis {
+		// TODO: move to toml config file
+		dbConfig := config.DBConfig{
+			FilePath:          "stateChanges",
+			Type:              "LvlDBSerial",
+			BatchDelaySeconds: 2,
+			MaxBatchSize:      100,
+			MaxOpenFiles:      10,
+		}
+
+		persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
+		if err != nil {
+			return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
+		}
+		return stateChanges.NewDataAnalysisStateChangesCollector(db)
+	}
+
+	if len(scf.config.StateTriesConfig.StateChangesTypesToCollect) == 0 {
 		return disabled.NewDisabledStateChangesCollector(), nil
 	}
 
-	if !scf.config.StateTriesConfig.CollectStateChangesWithReadEnabled {
-		return stateChanges.NewStateChangesCollector(), nil
-	}
-
-	// TODO: move to toml config file
-	dbConfig := config.DBConfig{
-		FilePath:          "stateChanges",
-		Type:              "LvlDBSerial",
-		BatchDelaySeconds: 2,
-		MaxBatchSize:      100,
-		MaxOpenFiles:      10,
-	}
-
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
+	collectRead, collectWrite, err := parseStateChangesTypesToCollect(scf.config.StateTriesConfig.StateChangesTypesToCollect)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse state changes types to collect: %w", err)
 	}
 
-	db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
-	if err != nil {
-		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
-	}
-
-	return stateChanges.NewDataAnalysisStateChangesCollector(db)
+	return stateChanges.NewStateChangesCollector(collectRead, collectWrite), nil
 }
 
 func (scf *stateComponentsFactory) createSnapshotManager(
@@ -374,4 +381,34 @@ func (pc *stateComponents) Close() error {
 		return fmt.Errorf("state components close failed: %s", errString)
 	}
 	return nil
+}
+
+func parseStateChangesTypesToCollect(stateChangesTypes []string) (collectRead bool, collectWrite bool, err error) {
+	types := sanitizeActionTypes(data.ActionType_value)
+	for _, stateChangeType := range stateChangesTypes {
+		if value, ok := types[strings.ToLower(stateChangeType)]; ok {
+			switch value {
+			case 0:
+				collectRead = true
+
+			case 1:
+				collectWrite = true
+
+			default:
+				return false, false, fmt.Errorf("unknown action type %s", stateChangeType)
+			}
+		}
+	}
+
+	return collectRead, collectWrite, nil
+}
+
+func sanitizeActionTypes(actionTypes map[string]int32) map[string]int32 {
+	sanitizedActionTypes := make(map[string]int32, len(actionTypes))
+
+	for actionType, value := range actionTypes {
+		sanitizedActionTypes[strings.ToLower(actionType)] = value
+	}
+
+	return sanitizedActionTypes
 }

@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -57,7 +58,7 @@ func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalys
 	}
 
 	return &dataAnalysisCollector{
-		stateChangesCollector: NewStateChangesCollector(),
+		stateChangesCollector: NewStateChangesCollector(true, true),
 		cachedTxs:             make(map[string]*transaction.Transaction),
 		storer:                storer,
 	}, nil
@@ -161,6 +162,10 @@ func (scc *dataAnalysisCollector) Reset() {
 
 	scc.resetStateChangesUnprotected()
 	scc.cachedTxs = make(map[string]*transaction.Transaction)
+}
+
+func (scc *dataAnalysisCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
+	panic("implement me")
 }
 
 // Publish will export state changes

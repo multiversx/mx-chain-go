@@ -601,3 +601,6 @@ var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
 
 // ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
 var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
+
+// ErrOnlyReadStateChangesToCollect signals that only read state changes to collect have been configured to be collected.
+var ErrOnlyReadStateChangesToCollect = errors.New("cannot collect only read state changes")

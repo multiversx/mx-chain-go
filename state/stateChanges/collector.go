@@ -21,13 +21,18 @@ type StateChangesForTx struct {
 }
 
 type stateChangesCollector struct {
+	collectRead  bool
+	collectWrite bool
+
 	stateChanges    []state.StateChange
 	stateChangesMut sync.RWMutex
 }
 
 // NewStateChangesCollector creates a new StateChangesCollector
-func NewStateChangesCollector() *stateChangesCollector {
+func NewStateChangesCollector(collectRead bool, collectWrite bool) *stateChangesCollector {
 	return &stateChangesCollector{
+		collectRead:  collectRead,
+		collectWrite: collectWrite,
 		stateChanges: make([]state.StateChange, 0),
 	}
 }
@@ -42,8 +47,11 @@ func (scc *stateChangesCollector) AddStateChange(stateChange state.StateChange) 
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
-	// TODO: add custom type for stateChange type
-	if stateChange.GetType() == data.Write {
+	if stateChange.GetType() == data.Write && scc.collectWrite {
+		scc.stateChanges = append(scc.stateChanges, stateChange)
+	}
+
+	if stateChange.GetType() == data.Read && scc.collectRead {
 		scc.stateChanges = append(scc.stateChanges, stateChange)
 	}
 }
@@ -182,11 +190,6 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 		}
 	}
 
-	return nil
-}
-
-// Publish returns nil
-func (scc *stateChangesCollector) Publish() error {
 	return nil
 }
 
