@@ -307,6 +307,6 @@ func TestBootStrapSovereignShardProcessor_createCrossHeaderRequester(t *testing.
 
 	sovProc.requestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
 	requester, err = sovProc.createCrossHeaderRequester()
-	require.NotNil(t, requester)
+	require.Nil(t, err)
 	require.Equal(t, "*sync.extendedHeaderRequester", fmt.Sprintf("%T", requester))
 }
