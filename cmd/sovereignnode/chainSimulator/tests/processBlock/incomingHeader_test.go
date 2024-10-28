@@ -139,17 +139,17 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 	require.True(t, castOk)
 
 	for currIncomingHeaderRound := startRound - 4; currIncomingHeaderRound < startRound+5; currIncomingHeaderRound++ {
-		incomingHeader, incomingHeaderHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, []*transaction.Event{})
-		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(incomingHeaderHash, incomingHeader)
-		require.Nil(t, err)
+		incomingHdr, incomingHeaderHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, []*transaction.Event{})
 
-		// Handlers are notified on go routines, wait a bit so that pools are updated
+		// Handlers are notified on go routines; wait a bit so that pools are updated
+		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(incomingHeaderHash, incomingHdr)
+		require.Nil(t, err)
 		time.Sleep(time.Millisecond * 10)
 
 		// We just received header in pool and notified all subscribed components, header has not been processed + committed.
 		// We check how leader will compute the longest incoming header chain
-		extendedHeaderHash := getExtendedHeaderHash(t, nodeHandler, incomingHeader)
-		if currIncomingHeaderRound <= 100 {
+		extendedHeaderHash := getExtendedHeaderHash(t, nodeHandler, incomingHdr)
+		if currIncomingHeaderRound < startRound {
 			longestChain, _, err := sovBlockTracker.ComputeLongestExtendedShardChainFromLastNotarized()
 			require.Nil(t, err)
 			require.Empty(t, longestChain)
@@ -161,6 +161,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 			require.Equal(t, [][]byte{extendedHeaderHash}, longestChainHdrHashes)
 		}
 
+		// Process + commit sovereign block with received incoming header
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
 
@@ -168,22 +169,22 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 		lastCrossNotarizedHeader, _, err := sovBlockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 		require.Nil(t, err)
 
-		// Process + commit sovereign block with received incoming header
+		// Check tracker and blockchain hook state for incoming processed data
 		if currIncomingHeaderRound <= 99 {
 			require.Zero(t, lastCrossNotarizedHeader.GetRound())
 			require.True(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
-		} else if currIncomingHeaderRound == 100 {
+		} else if currIncomingHeaderRound == 100 { // pre-genesis header incoming header is notarized
 			require.Equal(t, uint64(100), lastCrossNotarizedHeader.GetRound())
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
-		} else {
+		} else { // since genesis main-chain header, each incoming header is instantly notarized (0 block finality)
 			require.Equal(t, currIncomingHeaderRound, lastCrossNotarizedHeader.GetRound())
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Equal(t, [][]byte{extendedHeaderHash}, currentSovBlock.GetExtendedShardHeaderHashes())
 		}
 
-		prevHeader = incomingHeader.Header
+		prevHeader = incomingHdr.Header
 	}
 }
 
