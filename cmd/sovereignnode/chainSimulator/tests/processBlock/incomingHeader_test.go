@@ -178,7 +178,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
 		} else {
-			require.Equal(t, currIncomingHeaderRound-1, lastCrossNotarizedHeader.GetRound())
+			require.Equal(t, currIncomingHeaderRound, lastCrossNotarizedHeader.GetRound())
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Equal(t, [][]byte{extendedHeaderHash}, currentSovBlock.GetExtendedShardHeaderHashes())
 		}

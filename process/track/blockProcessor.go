@@ -1,7 +1,6 @@
 package track
 
 import (
-	"runtime/debug"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -239,7 +238,7 @@ func (bp *blockProcessor) computeSelfNotarizedHeaders(headers []data.HeaderHandl
 
 // ComputeLongestChain computes the longest chain for a given shard starting from a given header
 func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
-	debug.PrintStack()
+	//debug.PrintStack()
 
 	headers := make([]data.HeaderHandler, 0)
 	headersHashes := make([][]byte, 0)
