@@ -62,7 +62,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
-	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/process/txsSender"
 	"github.com/multiversx/mx-chain-go/redundancy"
@@ -134,7 +133,6 @@ type processComponents struct {
 	receiptsRepository               mainFactory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
-	relayedTxV3Processor             process.RelayedTxV3Processor
 	epochStartTriggerHanlder         epochStart.TriggerHandler
 }
 
@@ -518,16 +516,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	argsRelayedTxV3Processor := transaction.ArgRelayedTxV3Processor{
-		EconomicsFee:           pcf.coreData.EconomicsData(),
-		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		MaxTransactionsAllowed: pcf.config.RelayedTransactionConfig.MaxTransactionsAllowed,
-	}
-	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(argsRelayedTxV3Processor)
-	if err != nil {
-		return nil, err
-	}
-
 	interceptorContainerFactory, blackListHandler, err := pcf.newInterceptorContainerFactory(
 		headerSigVerifier,
 		pcf.bootstrapComponents.HeaderIntegrityVerifier(),
@@ -537,7 +525,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		mainPeerShardMapper,
 		fullArchivePeerShardMapper,
 		hardforkTrigger,
-		relayedTxV3Processor,
 	)
 	if err != nil {
 		return nil, err
@@ -634,7 +621,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
-		relayedTxV3Processor,
 	)
 	if err != nil {
 		return nil, err
@@ -724,7 +710,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator(relayedTxV3Processor, epochStartTrigger)
+	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator(epochStartTrigger)
 	if err != nil {
 		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
@@ -777,7 +763,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:                   pcf.accountsParser,
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
-		relayedTxV3Processor:             relayedTxV3Processor,
 		epochStartTriggerHanlder:         epochStartTrigger,
 	}, nil
 }
@@ -1510,7 +1495,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 	mainPeerShardMapper *networksharding.PeerShardMapper,
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
-	relayedTxV3Processor process.RelayedTxV3Processor,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	nodeOperationMode := common.NormalOperation
 	if pcf.prefConfigs.Preferences.FullArchive {
@@ -1529,7 +1513,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			fullArchivePeerShardMapper,
 			hardforkTrigger,
 			nodeOperationMode,
-			relayedTxV3Processor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1543,7 +1526,6 @@ func (pcf *processComponentsFactory) newInterceptorContainerFactory(
 			fullArchivePeerShardMapper,
 			hardforkTrigger,
 			nodeOperationMode,
-			relayedTxV3Processor,
 		)
 	}
 
@@ -1683,7 +1665,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
-	relayedTxV3Processor process.RelayedTxV3Processor,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1717,7 +1698,6 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            nodeOperationMode,
-		RelayedTxV3Processor:         relayedTxV3Processor,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1738,7 +1718,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 	fullArchivePeerShardMapper *networksharding.PeerShardMapper,
 	hardforkTrigger factory.HardforkTrigger,
 	nodeOperationMode common.NodeOperation,
-	relayedTxV3Processor process.RelayedTxV3Processor,
 ) (process.InterceptorsContainerFactory, process.TimeCacher, error) {
 	headerBlackList := cache.NewTimeCache(timeSpanForBadHeaders)
 	metaInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -1772,7 +1751,6 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		FullArchivePeerShardMapper:   fullArchivePeerShardMapper,
 		HardforkTrigger:              hardforkTrigger,
 		NodeOperationMode:            nodeOperationMode,
-		RelayedTxV3Processor:         relayedTxV3Processor,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
