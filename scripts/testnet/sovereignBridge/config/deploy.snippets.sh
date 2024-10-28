@@ -46,11 +46,11 @@ sovereignDeploy() {
 
     setEsdtSafeAddressInHeaderVerifier
 
+    setHeaderVerifierAddressInEsdtSafe
+
     createObserver
 
     sovereignStart
-
-    setHeaderVerifierAddressInEsdtSafe
 
     getFundsInAddressSovereign
 
