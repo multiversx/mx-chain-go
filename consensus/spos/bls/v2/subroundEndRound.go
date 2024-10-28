@@ -94,12 +94,12 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
-func (sr *subroundEndRound) isProofForCurrentConsensus(proof spos.ProofHandler) bool {
+func (sr *subroundEndRound) isProofForCurrentConsensus(proof consensus.ProofHandler) bool {
 	return bytes.Equal(sr.GetData(), proof.GetHeaderHash())
 }
 
 // receivedProof method is called when a block header final info is received
-func (sr *subroundEndRound) receivedProof(proof spos.ProofHandler) {
+func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 

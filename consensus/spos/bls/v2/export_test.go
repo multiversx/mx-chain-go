@@ -267,7 +267,7 @@ func (sr *subroundEndRound) CreateAndBroadcastProof(signature []byte, bitmap []b
 }
 
 // ReceivedProof calls the unexported receivedProof function
-func (sr *subroundEndRound) ReceivedProof(proof spos.ProofHandler) {
+func (sr *subroundEndRound) ReceivedProof(proof consensus.ProofHandler) {
 	sr.receivedProof(proof)
 }
 
