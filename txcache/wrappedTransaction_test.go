@@ -10,8 +10,7 @@ import (
 func Test_computeTxFee(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
-	txFee := tx.computeFee(txGasHandler)
+	tx.computeFee(txGasHandler)
 
-	require.Equal(t, float64(51500000000000), txFee)
-	require.Equal(t, txFee, tx.TxFee)
+	require.Equal(t, "51500000000000", tx.TxFee.String())
 }

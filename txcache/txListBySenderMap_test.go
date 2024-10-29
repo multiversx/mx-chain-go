@@ -1,12 +1,10 @@
 package txcache
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -115,113 +113,10 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	require.True(t, alice.accountNonceKnown.IsSet())
 }
 
-func TestBenchmarkSendersMap_GetSnapshotAscending(t *testing.T) {
-	numSendersValues := []int{50000, 100000, 300000}
-
-	t.Run("scores with uniform distribution", func(t *testing.T) {
-		fmt.Println(t.Name())
-
-		for _, numSenders := range numSendersValues {
-			myMap := newSendersMapToTest()
-
-			// Many senders, each with a single transaction
-			for i := 0; i < numSenders; i++ {
-				sender := fmt.Sprintf("sender-%d", i)
-				hash := []byte(fmt.Sprintf("transaction-%d", i))
-				myMap.addTx(createTx(hash, sender, 1))
-
-				// Artificially set a score to each sender:
-				txList, _ := myMap.getListForSender(sender)
-				txList.score.Set(uint32(i % (maxSenderScore + 1)))
-			}
-
-			sw := core.NewStopWatch()
-			sw.Start("time")
-			snapshot := myMap.getSnapshotAscending()
-			sw.Stop("time")
-
-			require.Len(t, snapshot, numSenders)
-			fmt.Printf("took %v to sort %d senders\n", sw.GetMeasurementsMap()["time"], numSenders)
-		}
-
-		// Results:
-		//
-		// (a) Summary: 0.02s to sort 300k senders:
-		// cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
-		// took 0.003156466 to sort 50000 senders
-		// took 0.007549091 to sort 100000 senders
-		// took 0.022103215 to sort 300000 senders
-	})
-
-	t.Run("scores with skewed distribution", func(t *testing.T) {
-		fmt.Println(t.Name())
-
-		for _, numSenders := range numSendersValues {
-			myMap := newSendersMapToTest()
-
-			// Many senders, each with a single transaction
-			for i := 0; i < numSenders; i++ {
-				sender := fmt.Sprintf("sender-%d", i)
-				hash := []byte(fmt.Sprintf("transaction-%d", i))
-				myMap.addTx(createTx(hash, sender, 1))
-
-				// Artificially set a score to each sender:
-				txList, _ := myMap.getListForSender(sender)
-				txList.score.Set(uint32(i % 3))
-			}
-
-			sw := core.NewStopWatch()
-			sw.Start("time")
-			snapshot := myMap.getSnapshotAscending()
-			sw.Stop("time")
-
-			require.Len(t, snapshot, numSenders)
-			fmt.Printf("took %v to sort %d senders\n", sw.GetMeasurementsMap()["time"], numSenders)
-		}
-
-		// Results:
-		//
-		// (a) Summary: 0.02s to sort 300k senders:
-		// cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
-		// took 0.00423772 to sort 50000 senders
-		// took 0.00683838 to sort 100000 senders
-		// took 0.025094983 to sort 300000 senders
-	})
-}
-
-func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
-	myMap := newSendersMapToTest()
-
-	var wg sync.WaitGroup
-
-	for i := 0; i < 100; i++ {
-		wg.Add(2)
-
-		go func() {
-			for j := 0; j < 100; j++ {
-				myMap.getSnapshotAscending()
-			}
-
-			wg.Done()
-		}()
-
-		go func() {
-			for j := 0; j < 1000; j++ {
-				sender := fmt.Sprintf("Sender-%d", j)
-				myMap.removeSender(sender)
-			}
-
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-}
-
 func newSendersMapToTest() *txListBySenderMap {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	return newTxListBySenderMap(4, senderConstraints{
 		maxNumBytes: math.MaxUint32,
 		maxNumTxs:   math.MaxUint32,
-	}, newDefaultScoreComputer(txGasHandler), txGasHandler)
+	}, txGasHandler)
 }

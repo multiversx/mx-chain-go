@@ -41,11 +41,10 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
 	senderConstraintsObj := config.getSenderConstraints()
-	scoreComputerObj := newDefaultScoreComputer(txGasHandler)
 
 	txCache := &TxCache{
 		name:           config.Name,
-		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler),
+		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj, txGasHandler),
 		txByHash:       newTxByHashMap(numChunks),
 		config:         config,
 	}
@@ -97,16 +96,10 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns transactions with total gas ~ "gasRequested".
-//
-// Selection is performed in more passes.
-// In each pass, each sender is allowed to contribute a batch of transactions,
-// with a number of transactions and total gas proportional to the sender's score.
-func (cache *TxCache) SelectTransactions(gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
+func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransaction {
 	senders, transactions := cache.doSelectTransactions(
 		logSelect,
 		gasRequested,
-		baseNumPerSenderBatch,
-		baseGasPerSenderBatch,
 	)
 
 	go cache.diagnoseCounters()
@@ -115,7 +108,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64, baseNumPerSenderBa
 	return transactions
 }
 
-func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) ([]*txListForSender, []*WrappedTransaction) {
+func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, gasRequested uint64) ([]*txListForSender, []*WrappedTransaction) {
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
@@ -126,70 +119,22 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, gasRe
 		"num senders", cache.CountSenders(),
 	)
 
-	senders := cache.getSendersEligibleForSelection()
+	senders := cache.getSenders()
 	transactions := make([]*WrappedTransaction, 0)
-
-	shouldContinueSelection := true
-	selectedGas := uint64(0)
-	selectedNum := 0
-
-	for pass := 0; shouldContinueSelection; pass++ {
-		selectedNumInThisPass := 0
-
-		for _, txList := range senders {
-			score := txList.getScore()
-
-			// Slighly suboptimal: we recompute the constraints for each pass,
-			// even though they are constant with respect to a sender, in the scope of a selection.
-			// However, this is not a performance bottleneck.
-			numPerBatch, gasPerBatch := cache.computeSelectionSenderConstraints(score, baseNumPerSenderBatch, baseGasPerSenderBatch)
-
-			isFirstBatch := pass == 0
-			batchSelectionJournal := txList.selectBatchTo(isFirstBatch, transactions[selectedNum:], numPerBatch, gasPerBatch)
-			selectedGas += batchSelectionJournal.selectedGas
-			selectedNum += batchSelectionJournal.selectedNum
-			selectedNumInThisPass += batchSelectionJournal.selectedNum
-
-			shouldContinueSelection := selectedGas < gasRequested
-			if !shouldContinueSelection {
-				break
-			}
-		}
-
-		nothingSelectedInThisPass := selectedNumInThisPass == 0
-		if nothingSelectedInThisPass {
-			// No more passes needed
-			break
-		}
-	}
-
-	transactions = transactions[:selectedNum]
 
 	stopWatch.Stop("selection")
 
 	contextualLogger.Debug(
 		"doSelectTransactions(): end",
 		"duration", stopWatch.GetMeasurement("selection"),
-		"num txs selected", selectedNum,
+		"num txs selected", len(transactions),
 	)
 
 	return senders, transactions
 }
 
-func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
-	return cache.txListBySender.getSnapshotDescending()
-}
-
-func (cache *TxCache) computeSelectionSenderConstraints(score int, baseNumPerBatch int, baseGasPerBatch uint64) (int, uint64) {
-	if score == 0 {
-		return 1, 1
-	}
-
-	scoreDivision := float64(score) / float64(maxSenderScore)
-	numPerBatch := int(float64(baseNumPerBatch) * scoreDivision)
-	gasPerBatch := uint64(float64(baseGasPerBatch) * scoreDivision)
-
-	return numPerBatch, gasPerBatch
+func (cache *TxCache) getSenders() []*txListForSender {
+	return cache.txListBySender.getSenders()
 }
 
 // RemoveTxByHash removes tx by hash

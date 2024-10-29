@@ -311,7 +311,7 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-	sorted := cache.SelectTransactions(math.MaxUint64, 2, math.MaxUint64)
+	sorted := cache.SelectTransactions(math.MaxUint64)
 	require.Len(t, sorted, 8)
 }
 
@@ -326,7 +326,7 @@ func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-	sorted := cache.SelectTransactions(math.MaxUint64, 2, 200000)
+	sorted := cache.SelectTransactions(math.MaxUint64)
 	numSelected := 1 + 1 + 3 // 1 alice, 1 carol, 3 bob
 
 	require.Len(t, sorted, numSelected)
@@ -349,7 +349,7 @@ func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
 
 	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 
-	sorted := cache.SelectTransactions(math.MaxUint64, 2, math.MaxUint64)
+	sorted := cache.SelectTransactions(math.MaxUint64)
 	require.Len(t, sorted, numSelected)
 }
 
@@ -373,7 +373,7 @@ func Test_SelectTransactions(t *testing.T) {
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted := cache.SelectTransactions(math.MaxUint64, 2, math.MaxUint64)
+	sorted := cache.SelectTransactions(math.MaxUint64)
 
 	// Check order
 	nonces := make(map[string]uint64, nSenders)
@@ -489,7 +489,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			cache.SelectTransactions(math.MaxUint64, 100, math.MaxUint64)
+			cache.SelectTransactions(math.MaxUint64)
 		}
 
 		wg.Done()
@@ -622,36 +622,6 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 	}
 
 	cache.Clear()
-}
-
-func TestTxCache_computeSelectionSenderConstraints(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-	baseBatchSize := 100
-	baseBandwidth := uint64(120000000)
-
-	batchSize, bandwidth := cache.computeSelectionSenderConstraints(100, baseBatchSize, baseBandwidth)
-	require.Equal(t, 100, batchSize)
-	require.Equal(t, 120000000, int(bandwidth))
-
-	batchSize, bandwidth = cache.computeSelectionSenderConstraints(99, baseBatchSize, baseBandwidth)
-	require.Equal(t, 99, batchSize)
-	require.Equal(t, 118800000, int(bandwidth))
-
-	batchSize, bandwidth = cache.computeSelectionSenderConstraints(74, baseBatchSize, baseBandwidth)
-	require.Equal(t, 74, batchSize)
-	require.Equal(t, 88800000, int(bandwidth))
-
-	batchSize, bandwidth = cache.computeSelectionSenderConstraints(74, baseBatchSize, baseBandwidth)
-	require.Equal(t, 74, batchSize)
-	require.Equal(t, 88800000, int(bandwidth))
-
-	batchSize, bandwidth = cache.computeSelectionSenderConstraints(1, baseBatchSize, baseBandwidth)
-	require.Equal(t, 1, batchSize)
-	require.Equal(t, 1200000, int(bandwidth))
-
-	batchSize, bandwidth = cache.computeSelectionSenderConstraints(0, baseBatchSize, baseBandwidth)
-	require.Equal(t, 1, batchSize)
-	require.Equal(t, 1, int(bandwidth))
 }
 
 func newUnconstrainedCacheToTest() *TxCache {

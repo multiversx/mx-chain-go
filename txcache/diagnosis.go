@@ -48,7 +48,7 @@ func (cache *TxCache) diagnoseSenders() {
 		return
 	}
 
-	senders := cache.txListBySender.getSnapshotDescending()
+	senders := cache.txListBySender.getSenders()
 
 	if len(senders) == 0 {
 		return
@@ -83,8 +83,6 @@ func (cache *TxCache) diagnoseSelection() {
 	senders, transactions := cache.doSelectTransactions(
 		logDiagnoseSelection,
 		diagnosisSelectionGasRequested,
-		diagnosisSelectionBaseNumPerSenderBatch,
-		diagnosisSelectionBaseGasPerSenderBatch,
 	)
 
 	displaySelectionOutcome(logDiagnoseSelection, senders, transactions)
