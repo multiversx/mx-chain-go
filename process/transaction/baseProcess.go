@@ -152,9 +152,14 @@ func (txProc *baseTxProcessor) checkTxValues(
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
 
-	feePayer, err := txProc.getFeePayer(tx, acntSnd)
+	feePayer, isRelayedV3, err := txProc.getFeePayer(tx, acntSnd)
 	if err != nil {
 		return err
+	}
+
+	// early exit for relayed v3, the cost will be compared with the sender balance
+	if isRelayedV3 {
+		return nil
 	}
 
 	if feePayer.GetBalance().Cmp(txFee) < 0 {
@@ -182,17 +187,17 @@ func (txProc *baseTxProcessor) checkTxValues(
 func (txProc *baseTxProcessor) getFeePayer(
 	tx *transaction.Transaction,
 	acntSnd state.UserAccountHandler,
-) (state.UserAccountHandler, error) {
+) (state.UserAccountHandler, bool, error) {
 	if !isRelayedTxV3(tx) {
-		return acntSnd, nil
+		return acntSnd, false, nil
 	}
 
 	acntRelayer, _, err := txProc.getAccounts(tx.RelayerAddr, tx.RelayerAddr)
 	if err != nil {
-		return nil, err
+		return nil, true, err
 	}
 
-	return acntRelayer, nil
+	return acntRelayer, true, nil
 }
 
 func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *big.Int {

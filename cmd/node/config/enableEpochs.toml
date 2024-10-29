@@ -325,7 +325,7 @@
     UnJailCleanupEnableEpoch = 4
 
     # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
-    FixRelayedBaseCostEnableEpoch = 4
+    FixRelayedBaseCostEnableEpoch = 1
 
     # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
@@ -334,7 +334,7 @@
     FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 4
 
     # RelayedTransactionsV3 represents the epoch when the relayed transactions v3 will be enabled
-    RelayedTransactionsV3 = 5
+    RelayedTransactionsV3 = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

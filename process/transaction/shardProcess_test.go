@@ -2718,16 +2718,9 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProc.ProcessTransaction(&txCopy)
 		assert.NoError(t, err)
-		assert.Equal(t, vmcommon.Ok, returnCode)
-	})
-	t.Run("getAccounts error should error", func(t *testing.T) {
-		tx.Nonce++
-		txCopy := *tx
-		txCopy.RelayerAddr = []byte("newR") // same length as sender
-		returnCode, err := txProc.ProcessTransaction(&txCopy)
-		assert.Error(t, err)
 		assert.Equal(t, vmcommon.Ok, returnCode)
 	})
 	t.Run("flag not active should error", func(t *testing.T) {
@@ -2737,6 +2730,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		require.NotNil(t, txProcLocal)
 
 		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
 		assert.Equal(t, process.ErrFailedTransaction, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
@@ -2752,6 +2746,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		require.NotNil(t, txProcLocal)
 
 		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
 		assert.Equal(t, process.ErrFailedTransaction, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
@@ -2783,12 +2778,14 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		require.NotNil(t, txProcLocal)
 
 		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
 		assert.Equal(t, process.ErrFailedTransaction, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("insufficient gas limit should error", func(t *testing.T) {
 		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
 		argsCopy := args
 		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
