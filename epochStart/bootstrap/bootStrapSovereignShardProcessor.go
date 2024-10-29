@@ -292,7 +292,7 @@ func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContain
 func (bp *sovereignBootStrapShardProcessor) createCrossHeaderRequester() (updateSync.CrossHeaderRequester, error) {
 	extendedHeaderRequester, castOk := bp.requestHandler.(updateSync.ExtendedShardHeaderRequestHandler)
 	if !castOk {
-		return nil, fmt.Errorf("%w in sovereignBootStrapShardProcessor.createHeadersSyncer for extendedHeaderRequester", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w in sovereignBootStrapShardProcessor.createCrossHeaderRequester for extendedHeaderRequester", process.ErrWrongTypeAssertion)
 	}
 
 	return updateSync.NewExtendedHeaderRequester(extendedHeaderRequester)

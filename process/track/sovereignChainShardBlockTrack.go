@@ -126,6 +126,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	scsbt.blockProcessor.ProcessReceivedHeader(extendedShardHeaderHandler)
 }
 
+// IsGenesisLastCrossNotarizedHeader returns true if the last cross chain notarized header is the dummy genesis header
 func (scsbt *sovereignChainShardBlockTrack) IsGenesisLastCrossNotarizedHeader() bool {
 	lastNotarizedHeader, _, err := scsbt.crossNotarizer.GetLastNotarizedHeader(core.MainChainShardId)
 

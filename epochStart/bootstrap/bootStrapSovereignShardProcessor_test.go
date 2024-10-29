@@ -294,7 +294,7 @@ func TestBootStrapSovereignShardProcessor_createEpochStartInterceptorsContainers
 	require.Zero(t, fullContainer.Len())
 }
 
-func TestBootStrapSovereignShardProcessor_createHeadersSyncer(t *testing.T) {
+func TestBootStrapSovereignShardProcessor_createCrossHeaderRequester(t *testing.T) {
 	t.Parallel()
 
 	sovProc := createSovBootStrapProc()
@@ -307,6 +307,6 @@ func TestBootStrapSovereignShardProcessor_createHeadersSyncer(t *testing.T) {
 
 	sovProc.requestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
 	requester, err = sovProc.createCrossHeaderRequester()
-	require.NotNil(t, requester)
+	require.Nil(t, err)
 	require.Equal(t, "*sync.extendedHeaderRequester", fmt.Sprintf("%T", requester))
 }
