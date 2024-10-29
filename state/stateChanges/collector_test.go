@@ -269,7 +269,7 @@ func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
 		})
 	}
 
-	stateChangesForTx := scc.GetStateChangesForTxs()
+	stateChangesForTx := scc.Publish()
 
 	require.Len(t, stateChangesForTx, 2)
 	require.Len(t, stateChangesForTx["hash0"].StateChanges, 5)

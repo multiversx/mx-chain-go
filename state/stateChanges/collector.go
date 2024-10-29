@@ -92,13 +92,12 @@ func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, 
 	return stateChangesForTxs, nil
 }
 
-// GetStateChangesForTxs will retrieve the state changes linked with the tx hash.
-func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
+// Publish will retrieve the state changes linked with the tx hash.
+func (scc *stateChangesCollector) Publish() (map[string]*data.StateChanges, error) {
 	scc.stateChangesMut.RLock()
 	defer scc.stateChangesMut.RUnlock()
 
 	stateChangesForTxs := make(map[string]*data.StateChanges)
-
 	for _, stateChange := range scc.stateChanges {
 		txHash := string(stateChange.GetTxHash())
 
@@ -117,7 +116,7 @@ func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.State
 		}
 	}
 
-	return stateChangesForTxs
+	return stateChangesForTxs, nil
 }
 
 // Reset resets the state changes collector

@@ -150,6 +150,7 @@ func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]dataAna
 	return dataAnalysisStateChangesForTxs, nil
 }
 
+// AddTxHashToCollectedStateChanges will add the transaction to the cache
 func (scc *dataAnalysisCollector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
 	scc.cachedTxs[string(txHash)] = tx
 	scc.addTxHashToCollectedStateChanges(txHash)
@@ -164,30 +165,26 @@ func (scc *dataAnalysisCollector) Reset() {
 	scc.cachedTxs = make(map[string]*transaction.Transaction)
 }
 
-func (scc *dataAnalysisCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
-	panic("implement me")
-}
-
-// Publish will export state changes
-func (scc *dataAnalysisCollector) Publish() error {
+// Publish will write the stored state changes
+func (scc *dataAnalysisCollector) Publish() (map[string]*data.StateChanges, error) {
 	stateChangesForTx, err := scc.getDataAnalysisStateChangesForTxs()
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("failed to retrieve data analysis state changes for tx: %w", err)
 	}
 
 	for _, stateChange := range stateChangesForTx {
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to marshal state changes to JSON: %w", err)
 		}
 
 		err = scc.storer.Put(stateChange.TxHash, marshalledData)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to store marshalled data: %w", err)
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

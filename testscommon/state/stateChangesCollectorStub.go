@@ -86,7 +86,7 @@ func (s *StateChangesCollectorStub) IsInterfaceNil() bool {
 }
 
 // GetStateChangesForTxs -
-func (s *StateChangesCollectorStub) GetStateChangesForTxs() map[string]*stateChange.StateChanges {
+func (s *StateChangesCollectorStub) Publish() map[string]*stateChange.StateChanges {
 	if s.GetStateChangesForTxsCalled != nil {
 		return s.GetStateChangesForTxsCalled()
 	}

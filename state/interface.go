@@ -362,7 +362,7 @@ type StateChangesCollector interface {
 	AddStateChange(stateChange StateChange)
 	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange)
 	Reset()
-	GetStateChangesForTxs() map[string]*data.StateChanges
+	Publish() (map[string]*data.StateChanges, error)
 	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
