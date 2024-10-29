@@ -1229,3 +1229,9 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
 // ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
 var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")
+
+// ErrRelayedTxV3Disabled signals that relayed tx v3 are disabled
+var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 are disabled")
+
+// ErrGuardedRelayerNotAllowed signals that the provided relayer is guarded
+var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")

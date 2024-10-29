@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -91,24 +92,46 @@ func (txv *txValidator) checkAccount(
 		return err
 	}
 
-	account, err := txv.getSenderUserAccount(interceptedTx, accountHandler)
+	feePayerAccount, err := txv.getFeePayerAccount(interceptedTx, accountHandler)
 	if err != nil {
 		return err
 	}
 
-	return txv.checkBalance(interceptedTx, account)
+	return txv.checkBalance(interceptedTx, feePayerAccount)
 }
 
-func (txv *txValidator) getSenderUserAccount(
+func (txv *txValidator) getFeePayerAccount(
 	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
 ) (state.UserAccountHandler, error) {
-	senderAddress := interceptedTx.SenderAddress()
-	account, ok := accountHandler.(state.UserAccountHandler)
+	payerAddress := interceptedTx.SenderAddress()
+	payerAccount := accountHandler
+
+	tx := interceptedTx.Transaction()
+	relayedTx, ok := tx.(data.RelayedTransactionHandler)
+	if ok {
+		hasValidRelayer := len(relayedTx.GetRelayerAddr()) == len(tx.GetSndAddr()) && len(relayedTx.GetRelayerAddr()) > 0
+		hasValidRelayerSignature := len(relayedTx.GetRelayerSignature()) == len(relayedTx.GetSignature()) && len(relayedTx.GetRelayerSignature()) > 0
+		isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+		if isRelayedV3 {
+			payerAddress = relayedTx.GetRelayerAddr()
+			relayerAccount, err := txv.accounts.GetExistingAccount(payerAddress)
+			if err != nil {
+				return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
+					process.ErrAccountNotFound,
+					txv.pubKeyConverter.SilentEncode(payerAddress, log),
+					txv.shardCoordinator.SelfId(),
+					err.Error(),
+				)
+			}
+			payerAccount = relayerAccount
+		}
+	}
+	account, ok := payerAccount.(state.UserAccountHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w, account is not of type *state.Account, address: %s",
 			process.ErrWrongTypeAssertion,
-			txv.pubKeyConverter.SilentEncode(senderAddress, log),
+			txv.pubKeyConverter.SilentEncode(payerAddress, log),
 		)
 	}
 	return account, nil
@@ -118,10 +141,9 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactio
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
-		senderAddress := interceptedTx.SenderAddress()
 		return fmt.Errorf("%w, for address: %s, wanted %v, have %v",
 			process.ErrInsufficientFunds,
-			txv.pubKeyConverter.SilentEncode(senderAddress, log),
+			txv.pubKeyConverter.SilentEncode(account.AddressBytes(), log),
 			txFee,
 			accountBalance,
 		)

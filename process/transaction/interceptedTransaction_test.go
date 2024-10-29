@@ -36,6 +36,7 @@ var senderShard = uint32(2)
 var recvShard = uint32(3)
 var senderAddress = []byte("12345678901234567890123456789012")
 var recvAddress = []byte("23456789012345678901234567890123")
+var relayerAddress = []byte("34567890123456789012345678901234")
 var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
@@ -1495,6 +1496,46 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Nil(t, err)
+}
+
+func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
+	t.Parallel()
+
+	minTxVersion := uint32(1)
+	chainID := []byte("chain")
+	tx := &dataTransaction.Transaction{
+		Nonce:       1,
+		Value:       big.NewInt(2),
+		GasLimit:    3,
+		GasPrice:    4,
+		RcvAddr:     recvAddress,
+		SndAddr:     senderAddress,
+		ChainID:     chainID,
+		Version:     minTxVersion,
+		RelayerAddr: relayerAddress,
+	}
+	txi, _ := createInterceptedTxFromPlainTxWithArgParser(tx)
+	err := txi.CheckValidity()
+	assert.Equal(t, err, process.ErrNilSignature)
+
+	tx.Signature = sigOk
+	tx.RelayerSignature = sigOk
+
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(recvAddress) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(0).Bytes()) + "@" + hex.EncodeToString([]byte("some method")) + "@" + hex.EncodeToString(sigOk))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.True(t, errors.Is(err, process.ErrRecursiveRelayedTxIsNotAllowed))
+
+	tx.Data = nil
+	tx.RelayerSignature = bytes.Repeat([]byte("a"), len(sigOk)) // same length but invalid relayer sig
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.NotNil(t, err)
+
+	tx.RelayerSignature = sigOk
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.Nil(t, err)

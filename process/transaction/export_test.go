@@ -55,6 +55,7 @@ func (txProc *txProcessor) ProcessUserTx(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
+	relayerAddr []byte,
 	originalTxHash []byte,
 ) (vmcommon.ReturnCode, error) {
 	return txProc.processUserTx(
@@ -62,6 +63,7 @@ func (txProc *txProcessor) ProcessUserTx(
 		userTx,
 		relayedTxValue,
 		relayedNonce,
+		relayerAddr,
 		originalTxHash)
 }
 

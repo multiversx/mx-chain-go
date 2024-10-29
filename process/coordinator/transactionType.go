@@ -83,6 +83,16 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.InvalidTransaction
 	}
 
+	relayedTxV3, ok := tx.(data.RelayedTransactionHandler)
+	if ok {
+		hasValidRelayer := len(relayedTxV3.GetRelayerAddr()) == len(tx.GetSndAddr()) && len(relayedTxV3.GetRelayerAddr()) > 0
+		hasValidRelayerSignature := len(relayedTxV3.GetRelayerSignature()) == len(relayedTxV3.GetSignature()) && len(relayedTxV3.GetRelayerSignature()) > 0
+		isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+		if isRelayedV3 {
+			return process.RelayedTxV3, process.RelayedTxV3
+		}
+	}
+
 	isEmptyAddress := tth.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.GetData()) > 0 {

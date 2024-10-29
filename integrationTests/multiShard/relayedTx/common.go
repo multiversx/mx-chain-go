@@ -123,6 +123,28 @@ func CreateAndSendRelayedAndUserTxV2(
 	return relayedTx, userTx
 }
 
+// CreateAndSendRelayedAndUserTxV3 will create and send a relayed user transaction v3
+func CreateAndSendRelayedAndUserTxV3(
+	nodes []*integrationTests.TestProcessorNode,
+	relayer *integrationTests.TestWalletAccount,
+	player *integrationTests.TestWalletAccount,
+	rcvAddr []byte,
+	value *big.Int,
+	gasLimit uint64,
+	txData []byte,
+) (*transaction.Transaction, *transaction.Transaction) {
+	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
+
+	relayedTx := createRelayedTxV3(txDispatcherNode.EconomicsData, relayer, player, rcvAddr, value, gasLimit, txData)
+
+	_, err := txDispatcherNode.SendTransaction(relayedTx)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	return relayedTx, relayedTx
+}
+
 func createUserTx(
 	player *integrationTests.TestWalletAccount,
 	rcvAddr []byte,
@@ -206,6 +228,41 @@ func createRelayedTxV2(
 
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
+	txFee := economicsFee.ComputeTxFee(tx)
+	relayer.Balance.Sub(relayer.Balance, txFee)
+
+	return tx
+}
+
+func createRelayedTxV3(
+	economicsFee process.FeeHandler,
+	relayer *integrationTests.TestWalletAccount,
+	player *integrationTests.TestWalletAccount,
+	rcvAddr []byte,
+	value *big.Int,
+	gasLimit uint64,
+	txData []byte,
+) *transaction.Transaction {
+	tx := &transaction.Transaction{
+		Nonce:       player.Nonce,
+		Value:       big.NewInt(0).Set(value),
+		RcvAddr:     rcvAddr,
+		SndAddr:     player.Address,
+		GasPrice:    integrationTests.MinTxGasPrice,
+		GasLimit:    gasLimit + integrationTests.MinTxGasLimit,
+		Data:        txData,
+		ChainID:     integrationTests.ChainID,
+		Version:     integrationTests.MinTransactionVersion,
+		RelayerAddr: relayer.Address,
+	}
+	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
+	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
+	tx.RelayerSignature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
+
+	player.Nonce++
+	player.Balance.Sub(player.Balance, value)
+
+	relayer.Nonce++
 	txFee := economicsFee.ComputeTxFee(tx)
 	relayer.Balance.Sub(relayer.Balance, txFee)
 

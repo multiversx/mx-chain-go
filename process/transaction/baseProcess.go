@@ -152,10 +152,15 @@ func (txProc *baseTxProcessor) checkTxValues(
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
 
-	if acntSnd.GetBalance().Cmp(txFee) < 0 {
+	feePayer, err := txProc.getFeePayer(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
+	if feePayer.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
-			acntSnd.GetBalance().String(),
+			feePayer.GetBalance().String(),
 			txFee.String(),
 		)
 	}
@@ -167,11 +172,27 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	cost := big.NewInt(0).Add(txFee, tx.Value)
-	if acntSnd.GetBalance().Cmp(cost) < 0 {
+	if feePayer.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) getFeePayer(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+) (state.UserAccountHandler, error) {
+	if !isRelayedTxV3(tx) {
+		return acntSnd, nil
+	}
+
+	acntRelayer, _, err := txProc.getAccounts(tx.RelayerAddr, tx.RelayerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return acntRelayer, nil
 }
 
 func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *big.Int {

@@ -333,6 +333,9 @@
     # FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
     FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 4
 
+    # RelayedTransactionsV3 represents the epoch when the relayed transactions v3 will be enabled
+    RelayedTransactionsV3 = 5
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

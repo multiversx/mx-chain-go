@@ -488,15 +488,24 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 	return ed.ComputeGasLimitInEpoch(tx, currentEpoch)
 }
 
-// ComputeGasLimitInEpoch returns the gas limit need by the provided transaction in order to be executed in a specific epoch
+// ComputeGasLimitInEpoch returns the gas limit needed by the provided transaction in order to be executed in a specific epoch
 func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
 	gasLimit := ed.getMinGasLimit(epoch)
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
 	txInstance, ok := tx.(*transaction.Transaction)
-	if ok && ed.txVersionHandler.IsGuardedTransaction(txInstance) {
-		gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
+	if ok {
+		if ed.txVersionHandler.IsGuardedTransaction(txInstance) {
+			gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
+		}
+
+		hasValidRelayer := len(txInstance.GetRelayerAddr()) == len(txInstance.GetSndAddr()) && len(txInstance.GetRelayerAddr()) > 0
+		hasValidRelayerSignature := len(txInstance.GetRelayerSignature()) == len(txInstance.GetSignature()) && len(txInstance.GetRelayerSignature()) > 0
+		isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+		if isRelayedV3 {
+			gasLimit += ed.MinGasLimitInEpoch(epoch)
+		}
 	}
 
 	return gasLimit
