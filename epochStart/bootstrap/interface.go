@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -122,6 +123,7 @@ type bootStrapShardProcessorHandler interface {
 	createEpochStartMetaSyncer() (epochStart.StartOfEpochMetaSyncer, error)
 	createStorageEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (epochStart.StartOfEpochMetaSyncer, error)
 	createEpochStartInterceptorsContainers(args bootStrapFactory.ArgsEpochStartInterceptorContainer) (process.InterceptorsContainer, process.InterceptorsContainer, error)
+	createCrossHeaderRequester() (updateSync.CrossHeaderRequester, error)
 }
 
 type epochStartTopicProviderHandler interface {
