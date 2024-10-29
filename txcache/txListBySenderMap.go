@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"math/rand"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -13,7 +12,6 @@ type txListBySenderMap struct {
 	backingMap        *maps.ConcurrentMap
 	senderConstraints senderConstraints
 	counter           atomic.Counter
-	scoreComputer     scoreComputer
 	txGasHandler      TxGasHandler
 	mutex             sync.Mutex
 }
@@ -22,7 +20,6 @@ type txListBySenderMap struct {
 func newTxListBySenderMap(
 	nChunksHint uint32,
 	senderConstraints senderConstraints,
-	scoreComputer scoreComputer,
 	txGasHandler TxGasHandler,
 ) *txListBySenderMap {
 	backingMap := maps.NewConcurrentMap(nChunksHint)
@@ -30,7 +27,6 @@ func newTxListBySenderMap(
 	return &txListBySenderMap{
 		backingMap:        backingMap,
 		senderConstraints: senderConstraints,
-		scoreComputer:     scoreComputer,
 		txGasHandler:      txGasHandler,
 	}
 }
@@ -39,7 +35,8 @@ func newTxListBySenderMap(
 func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	return listForSender.AddTx(tx, txMap.txGasHandler)
+	tx.computeFee(txMap.txGasHandler)
+	return listForSender.AddTx(tx)
 }
 
 // getOrAddListForSender gets or lazily creates a list (using double-checked locking pattern)
@@ -71,7 +68,7 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.scoreComputer)
+	listForSender := newTxListForSender(sender, &txMap.senderConstraints)
 
 	txMap.backingMap.Set(sender, listForSender)
 	txMap.counter.Increment()
@@ -140,60 +137,15 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 	return evictedTxHashes
 }
 
-func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
-	scoreGroups := txMap.getSendersGroupedByScore()
-	listsSnapshot := make([]*txListForSender, 0, txMap.counter.Get())
-
-	for i := 0; i < len(scoreGroups); i++ {
-		listsSnapshot = append(listsSnapshot, scoreGroups[i]...)
-	}
-
-	return listsSnapshot
-}
-
-func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
-	scoreGroups := txMap.getSendersGroupedByScore()
-	listsSnapshot := make([]*txListForSender, 0, txMap.counter.Get())
-
-	for i := len(scoreGroups) - 1; i >= 0; i-- {
-		listsSnapshot = append(listsSnapshot, scoreGroups[i]...)
-	}
-
-	return listsSnapshot
-}
-
-func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender {
-	groups := make([][]*txListForSender, maxSenderScore+1)
-	// Hint for pre-allocating slice for each group (imprecise, but reasonable).
-	groupSizeHint := txMap.counter.Get() / int64(maxSenderScore) / 2
+func (txMap *txListBySenderMap) getSenders() []*txListForSender {
+	senders := make([]*txListForSender, 0, txMap.counter.Get())
 
 	txMap.backingMap.IterCb(func(key string, item interface{}) {
 		listForSender := item.(*txListForSender)
-		score := listForSender.getScore()
-
-		if groups[score] == nil {
-			groups[score] = make([]*txListForSender, 0, groupSizeHint)
-		}
-
-		groups[score] = append(groups[score], listForSender)
+		senders = append(senders, listForSender)
 	})
 
-	txMap.shuffleSendersWithinScoreGroups(groups)
-	displaySendersScoreHistogram(groups)
-
-	return groups
-}
-
-func (txMap *txListBySenderMap) shuffleSendersWithinScoreGroups(groups [][]*txListForSender) {
-	for _, group := range groups {
-		if group == nil {
-			continue
-		}
-
-		rand.Shuffle(len(group), func(j, k int) {
-			group[j], group[k] = group[k], group[j]
-		})
-	}
+	return senders
 }
 
 func (txMap *txListBySenderMap) clear() {

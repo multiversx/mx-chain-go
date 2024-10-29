@@ -18,38 +18,21 @@ type txListForSender struct {
 	totalBytes        atomic.Counter
 	constraints       *senderConstraints
 
-	selectionPointer       *list.Element
-	selectionPreviousNonce uint64
-	selectionDetectedGap   bool
-
-	score             atomic.Uint32
-	avgPpuNumerator   float64
-	avgPpuDenominator uint64
-	noncesTracker     *noncesTracker
-	scoreComputer     scoreComputer
-
 	mutex sync.RWMutex
 }
 
-type batchSelectionJournal struct {
-	selectedNum int
-	selectedGas uint64
-}
-
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, constraints *senderConstraints, scoreComputer scoreComputer) *txListForSender {
+func newTxListForSender(sender string, constraints *senderConstraints) *txListForSender {
 	return &txListForSender{
-		items:         list.New(),
-		sender:        sender,
-		constraints:   constraints,
-		noncesTracker: newNoncesTracker(),
-		scoreComputer: scoreComputer,
+		items:       list.New(),
+		sender:      sender,
+		constraints: constraints,
 	}
 }
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler TxGasHandler) (bool, [][]byte) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]byte) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -65,11 +48,10 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler T
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
-	listForSender.onAddedTransaction(tx, gasHandler)
+	listForSender.onAddedTransaction(tx)
 
 	// TODO: Check how does the sender get removed if empty afterwards (maybe the answer is: "it never gets empty after applySizeConstraints()").
 	evicted := listForSender.applySizeConstraints()
-	listForSender.recomputeScore()
 	return true, evicted
 }
 
@@ -103,41 +85,8 @@ func (listForSender *txListForSender) isCapacityExceeded() bool {
 	return tooManyBytes || tooManyTxs
 }
 
-func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction, gasHandler TxGasHandler) {
-	nonce := tx.Tx.GetNonce()
-	gasLimit := tx.Tx.GetGasLimit()
-
+func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction) {
 	listForSender.totalBytes.Add(tx.Size)
-	listForSender.avgPpuNumerator += tx.computeFee(gasHandler)
-	listForSender.avgPpuDenominator += gasLimit
-	listForSender.noncesTracker.addNonce(nonce)
-}
-
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) recomputeScore() {
-	scoreParams := listForSender.getScoreParams()
-	score := listForSender.scoreComputer.computeScore(scoreParams)
-	listForSender.score.Set(uint32(score))
-}
-
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) getScoreParams() senderScoreParams {
-	numTxs := listForSender.countTx()
-	minTransactionNonce := uint64(0)
-	firstTx := listForSender.getLowestNonceTx()
-
-	if firstTx != nil {
-		minTransactionNonce = firstTx.Tx.GetNonce()
-	}
-
-	hasSpotlessSequenceOfNonces := listForSender.noncesTracker.isSpotlessSequence(minTransactionNonce, numTxs)
-
-	return senderScoreParams{
-		avgPpuNumerator:             listForSender.avgPpuNumerator,
-		avgPpuDenominator:           listForSender.avgPpuDenominator,
-		isAccountNonceKnown:         listForSender.accountNonceKnown.IsSet(),
-		hasSpotlessSequenceOfNonces: hasSpotlessSequenceOfNonces,
-	}
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -194,7 +143,6 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 	if isFound {
 		listForSender.items.Remove(marker)
 		listForSender.onRemovedListElement(marker)
-		listForSender.recomputeScore()
 	}
 
 	return isFound
@@ -202,13 +150,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
 	tx := element.Value.(*WrappedTransaction)
-	nonce := tx.Tx.GetNonce()
-	gasLimit := tx.Tx.GetGasLimit()
-
 	listForSender.totalBytes.Subtract(tx.Size)
-	listForSender.avgPpuNumerator -= tx.TxFee
-	listForSender.avgPpuDenominator -= gasLimit
-	listForSender.noncesTracker.removeNonce(nonce)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -239,85 +181,6 @@ func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTra
 // IsEmpty checks whether the list is empty
 func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTxWithLock() == 0
-}
-
-// selectBatchTo copies a batch (usually small) of transactions of a limited gas bandwidth and limited number of transactions to a destination slice
-// It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, numPerBatch int, gasPerBatch uint64) batchSelectionJournal {
-	// We can't read from multiple goroutines at the same time
-	// And we can't mutate the sender's list while reading it
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
-
-	if isFirstBatch {
-		// Reset the internal state used for copy operations
-		listForSender.selectionPreviousNonce = 0
-		listForSender.selectionPointer = listForSender.items.Front()
-
-		accountNonce, firstTxNonce, hasInitialGap := listForSender.hasInitialGap()
-		if hasInitialGap {
-			log.Trace("selectBatchTo(): initial gap detected",
-				"sender", listForSender.sender,
-				"accountNonce", accountNonce,
-				"firstTxNonce", firstTxNonce,
-			)
-		}
-
-		listForSender.selectionDetectedGap = hasInitialGap
-	}
-
-	// If a nonce gap is detected, no transaction is returned in this read.
-	if listForSender.selectionDetectedGap {
-		return batchSelectionJournal{}
-	}
-
-	selectedGas := uint64(0)
-	selectedNum := 0
-
-	for {
-		if listForSender.selectionPointer == nil {
-			break
-		}
-
-		// End because of count
-		if selectedNum == numPerBatch || selectedNum == len(destination) {
-			break
-		}
-
-		// End because of gas limit
-		if selectedGas >= gasPerBatch {
-			break
-		}
-
-		tx := listForSender.selectionPointer.Value.(*WrappedTransaction)
-		nonce := tx.Tx.GetNonce()
-		gasLimit := tx.Tx.GetGasLimit()
-
-		isMiddleGap := listForSender.selectionPreviousNonce > 0 && nonce > listForSender.selectionPreviousNonce+1
-		if isMiddleGap {
-			log.Trace("selectBatchTo(): middle gap detected",
-				"sender", listForSender.sender,
-				"previousNonce", listForSender.selectionPreviousNonce,
-				"nonce", nonce,
-			)
-
-			listForSender.selectionDetectedGap = true
-			break
-		}
-
-		destination[selectedNum] = tx
-
-		listForSender.selectionPreviousNonce = nonce
-		listForSender.selectionPointer = listForSender.selectionPointer.Next()
-
-		selectedNum += 1
-		selectedGas += gasLimit
-	}
-
-	return batchSelectionJournal{
-		selectedNum: selectedNum,
-		selectedGas: selectedGas,
-	}
 }
 
 // getTxsHashes returns the hashes of transactions in the list
@@ -446,10 +309,6 @@ func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
 
 	value := front.Value.(*WrappedTransaction)
 	return value
-}
-
-func (listForSender *txListForSender) getScore() int {
-	return int(listForSender.score.Get())
 }
 
 // GetKey returns the key

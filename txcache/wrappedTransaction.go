@@ -13,14 +13,11 @@ type WrappedTransaction struct {
 	SenderShardID   uint32
 	ReceiverShardID uint32
 	Size            int64
-	TxFee           float64
+
+	TxFee *big.Int
 }
 
-// computeFee computes the transaction fee.
-// The returned fee is also held on the transaction object.
-func (wrappedTx *WrappedTransaction) computeFee(txGasHandler TxGasHandler) float64 {
-	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx)
-	feeAsFloat, _ := new(big.Float).SetInt(fee).Float64()
-	wrappedTx.TxFee = feeAsFloat
-	return feeAsFloat
+// computeFee computes (and caches) the transaction fee.
+func (wrappedTx *WrappedTransaction) computeFee(txGasHandler TxGasHandler) {
+	wrappedTx.TxFee = txGasHandler.ComputeTxFee(wrappedTx.Tx)
 }

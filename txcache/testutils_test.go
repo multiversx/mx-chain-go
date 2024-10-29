@@ -17,7 +17,7 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapByHash := cache.txByHash
 	internalMapBySender := cache.txListBySender
 
-	senders := internalMapBySender.getSnapshotAscending()
+	senders := internalMapBySender.getSenders()
 	numInMapByHash := len(internalMapByHash.keys())
 	numInMapBySender := 0
 	numMissingInMapByHash := 0
@@ -52,13 +52,6 @@ func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSe
 	}
 
 	return list
-}
-
-func (cache *TxCache) getScoreOfSender(sender string) int {
-	list := cache.getListForSender(sender)
-	scoreParams := list.getScoreParams()
-	computer := cache.txListBySender.scoreComputer
-	return computer.computeScore(scoreParams)
 }
 
 func (listForSender *txListForSender) getTxHashesAsStrings() []string {

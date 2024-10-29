@@ -6,10 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type scoreComputer interface {
-	computeScore(scoreParams senderScoreParams) int
-}
-
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler interface {
 	MinGasPrice() uint64

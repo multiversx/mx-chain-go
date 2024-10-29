@@ -8,19 +8,18 @@ import (
 )
 
 type printedTransaction struct {
-	Hash       string  `json:"hash"`
-	Nonce      uint64  `json:"nonce"`
-	GasPrice   uint64  `json:"gasPrice"`
-	GasLimit   uint64  `json:"gasLimit"`
-	Sender     string  `json:"sender"`
-	Receiver   string  `json:"receiver"`
-	DataLength int     `json:"dataLength"`
-	Fee        float64 `json:"fee"`
+	Hash       string `json:"hash"`
+	Nonce      uint64 `json:"nonce"`
+	GasPrice   uint64 `json:"gasPrice"`
+	GasLimit   uint64 `json:"gasLimit"`
+	Sender     string `json:"sender"`
+	Receiver   string `json:"receiver"`
+	DataLength int    `json:"dataLength"`
+	Fee        string `json:"fee"`
 }
 
 type printedSender struct {
 	Address       string `json:"address"`
-	Score         int    `json:"score"`
 	Nonce         uint64 `json:"nonce"`
 	IsNonceKnown  bool   `json:"isNonceKnown"`
 	HasInitialGap bool   `json:"hasInitialGap"`
@@ -76,14 +75,13 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		GasPrice:   transaction.GetGasPrice(),
 		GasLimit:   transaction.GetGasLimit(),
 		DataLength: len(transaction.GetData()),
-		Fee:        wrappedTx.TxFee,
+		Fee:        wrappedTx.TxFee.String(),
 	}
 }
 
 func convertTxListForSenderToPrintedSender(txListForSender *txListForSender) *printedSender {
 	return &printedSender{
 		Address:       hex.EncodeToString([]byte(txListForSender.sender)),
-		Score:         txListForSender.getScore(),
 		Nonce:         txListForSender.accountNonce.Get(),
 		IsNonceKnown:  txListForSender.accountNonceKnown.IsSet(),
 		HasInitialGap: txListForSender.hasInitialGapWithLock(),
