@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	process2 "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
+	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	"github.com/stretchr/testify/require"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -179,7 +180,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase1(t *testing.T) {
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
 
-		currentSovHeader := getCurrentSovereignHeader(nodeHandler)
+		currentSovHeader := common.GetCurrentSovereignHeader(nodeHandler)
 		lastCrossNotarizedHeader, _, err := sovBlockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 		require.Nil(t, err)
 
@@ -266,7 +267,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase2(t *testing.T) {
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
 
-		currentSovBlock := getCurrentSovereignHeader(nodeHandler)
+		currentSovBlock := common.GetCurrentSovereignHeader(nodeHandler)
 		require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
 
 		checkLastCrossNotarizedRound(t, sovBlockTracker, lastCrossNotarizedRound)
@@ -285,7 +286,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase2(t *testing.T) {
 
 		checkLastCrossNotarizedRound(t, sovBlockTracker, lastCrossNotarizedRound)
 
-		currentSovBlock := getCurrentSovereignHeader(nodeHandler)
+		currentSovBlock := common.GetCurrentSovereignHeader(nodeHandler)
 		if i%3 == 0 {
 			extendedHeaderHash := getExtendedHeaderHash(t, nodeHandler, incomingHdr)
 			require.Equal(t, [][]byte{extendedHeaderHash}, currentSovBlock.GetExtendedShardHeaderHashes())
@@ -350,7 +351,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 	lastCrossNotarizedRound := uint64(100)
 	checkLastCrossNotarizedRound(t, sovBlockTracker, lastCrossNotarizedRound)
 
-	currentSovBlock := getCurrentSovereignHeader(nodeHandler)
+	currentSovBlock := common.GetCurrentSovereignHeader(nodeHandler)
 	require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
 
 	extendedHeaderHashes := make([][]byte, 0)
@@ -358,14 +359,13 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 	// From now on, we generate 3 incoming headers per sovereign block
 	for i := 1; i < 50; i++ {
 		incomingHdr := addIncomingHeader(t, nodeHandler, &incomingHdrNonce, prevHeader)
-		currentSovBlock = getCurrentSovereignHeader(nodeHandler)
 		extendedHeaderHashes = append(extendedHeaderHashes, getExtendedHeaderHash(t, nodeHandler, incomingHdr))
 
 		if i%3 == 0 {
 			err = cs.GenerateBlocks(1)
 			require.Nil(t, err)
 
-			currentSovBlock = getCurrentSovereignHeader(nodeHandler)
+			currentSovBlock = common.GetCurrentSovereignHeader(nodeHandler)
 			require.Len(t, extendedHeaderHashes, 3)
 			require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
 
@@ -488,10 +488,6 @@ func getSovereignBlockTracker(t *testing.T, nodeHandler process.NodeHandler) sov
 	require.True(t, castOk)
 
 	return sovBlockTracker
-}
-
-func getCurrentSovereignHeader(nodeHandler process.NodeHandler) data.SovereignChainHeaderHandler {
-	return nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler)
 }
 
 func checkLastCrossNotarizedRound(t *testing.T, sovBlockTracker sovChainBlockTracer, lastCrossNotarizedRound uint64) {
