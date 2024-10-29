@@ -30,7 +30,7 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 
 // ResetStateChangesCollector -
 func (adb *AccountsDB) ResetStateChangesCollector() map[string]*data.StateChanges {
-	stateChanges := adb.stateChangesCollector.Publish()
+	stateChanges, _ := adb.stateChangesCollector.Publish()
 
 	adb.stateChangesCollector.Reset()
 
