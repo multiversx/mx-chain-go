@@ -29,12 +29,15 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 }
 
 // ResetStateChangesCollector -
-func (adb *AccountsDB) ResetStateChangesCollector() map[string]*data.StateChanges {
-	stateChanges, _ := adb.stateChangesCollector.Publish()
+func (adb *AccountsDB) ResetStateChangesCollector() (map[string]*data.StateChanges, error) {
+	stateChanges, err := adb.stateChangesCollector.Publish()
+	if err != nil {
+		return nil, err
+	}
 
 	adb.stateChangesCollector.Reset()
 
-	return stateChanges
+	return stateChanges, nil
 }
 
 // GetCode -

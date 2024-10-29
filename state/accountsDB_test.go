@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -179,7 +180,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(false, true),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -468,7 +469,8 @@ func stepCreateAccountWithDataTrieAndCode(
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
-	stateChangesForTx := adb.ResetStateChangesCollector()
+	stateChangesForTx, err := adb.ResetStateChangesCollector()
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 
 	stateChanges := stateChangesForTx[string(txHash)].StateChanges
@@ -518,7 +520,8 @@ func stepMigrateDataTrieValAndChangeCode(
 
 	adb.SetTxHashForLatestStateChanges(txHash, &transaction.Transaction{})
 
-	stateChangesForTx := adb.ResetStateChangesCollector()
+	stateChangesForTx, err := adb.ResetStateChangesCollector()
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 	assert.Equal(t, 3, len(stateChangesForTx[string(txHash)].StateChanges))
 	assert.Equal(t, txHash, stateChangesForTx[string(txHash)].StateChanges[0].GetTxHash())
