@@ -254,45 +254,162 @@ func TestStateChangesCollector_Reset(t *testing.T) {
 	assert.Equal(t, 0, len(scc.GetStateChanges()))
 }
 
-func TestStateChangesCollector_GetStateChangesForTx(t *testing.T) {
+func TestStateChangesCollector_Publish(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector(true, true)
-	assert.Equal(t, 0, len(scc.stateChanges))
+	t.Run("collect only write", func(t *testing.T) {
+		t.Parallel()
 
-	numStateChanges := 10
-	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(&data.StateChange{
-			Type: data.Write,
-			// distribute evenly based on parity of the index
-			TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+		scc := NewStateChangesCollector(false, true)
+		assert.Equal(t, 0, len(scc.stateChanges))
+
+		numStateChanges := 20
+		for i := 0; i < numStateChanges; i++ {
+			if i%2 == 0 {
+				scc.AddStateChange(&data.StateChange{
+					Type: data.Write,
+					// distribute evenly based on parity of the index
+					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+				})
+			} else {
+				scc.AddStateChange(&data.StateChange{
+					Type: data.Read,
+					// distribute evenly based on parity of the index
+					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+				})
+			}
+		}
+
+		stateChangesForTx, err := scc.Publish()
+		require.NoError(t, err)
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash0"].StateChanges, 10)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+			"hash0": {
+				[]*data.StateChange{
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+				},
+			},
 		})
-	}
+	})
 
-	stateChangesForTx := scc.Publish()
+	t.Run("collect only read", func(t *testing.T) {
+		t.Parallel()
 
-	require.Len(t, stateChangesForTx, 2)
-	require.Len(t, stateChangesForTx["hash0"].StateChanges, 5)
-	require.Len(t, stateChangesForTx["hash1"].StateChanges, 5)
+		scc := NewStateChangesCollector(true, false)
+		assert.Equal(t, 0, len(scc.stateChanges))
 
-	require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
-		"hash0": {
-			[]*data.StateChange{
-				{Type: data.Write, TxHash: []byte("hash0")},
-				{Type: data.Write, TxHash: []byte("hash0")},
-				{Type: data.Write, TxHash: []byte("hash0")},
-				{Type: data.Write, TxHash: []byte("hash0")},
-				{Type: data.Write, TxHash: []byte("hash0")},
+		numStateChanges := 20
+		for i := 0; i < numStateChanges; i++ {
+			if i%2 == 0 {
+				scc.AddStateChange(&data.StateChange{
+					Type: data.Write,
+					// distribute evenly based on parity of the index
+					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+				})
+			} else {
+				scc.AddStateChange(&data.StateChange{
+					Type: data.Read,
+					// distribute evenly based on parity of the index
+					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+				})
+			}
+		}
+
+		stateChangesForTx, err := scc.Publish()
+		require.NoError(t, err)
+
+		require.Len(t, stateChangesForTx, 1)
+		require.Len(t, stateChangesForTx["hash1"].StateChanges, 10)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+			"hash1": {
+				[]*data.StateChange{
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+				},
 			},
-		},
-		"hash1": {
-			[]*data.StateChange{
-				{Type: data.Write, TxHash: []byte("hash1")},
-				{Type: data.Write, TxHash: []byte("hash1")},
-				{Type: data.Write, TxHash: []byte("hash1")},
-				{Type: data.Write, TxHash: []byte("hash1")},
-				{Type: data.Write, TxHash: []byte("hash1")},
+		})
+	})
+
+	t.Run("collect both read and write", func(t *testing.T) {
+		t.Parallel()
+
+		scc := NewStateChangesCollector(true, true)
+		assert.Equal(t, 0, len(scc.stateChanges))
+
+		numStateChanges := 20
+		for i := 0; i < numStateChanges; i++ {
+			if i%2 == 0 {
+				scc.AddStateChange(&data.StateChange{
+					Type: data.Write,
+					// distribute evenly based on parity of the index
+					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+				})
+			} else {
+				scc.AddStateChange(&data.StateChange{
+					Type: data.Read,
+					// distribute evenly based on parity of the index
+					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
+				})
+			}
+		}
+
+		stateChangesForTx, err := scc.Publish()
+		require.NoError(t, err)
+
+		require.Len(t, stateChangesForTx, 2)
+		require.Len(t, stateChangesForTx["hash0"].StateChanges, 10)
+		require.Len(t, stateChangesForTx["hash1"].StateChanges, 10)
+
+		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
+			"hash0": {
+				[]*data.StateChange{
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+					{Type: data.Write, TxHash: []byte("hash0")},
+				},
 			},
-		},
+			"hash1": {
+				[]*data.StateChange{
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+					{Type: data.Read, TxHash: []byte("hash1")},
+				},
+			},
+		})
 	})
 }
