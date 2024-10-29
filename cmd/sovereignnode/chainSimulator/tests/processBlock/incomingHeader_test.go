@@ -103,7 +103,10 @@ type sovChainBlockTracer interface {
 
 var log = logger.GetOrCreate("dsa")
 
-func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *testing.T) {
+// In this test we simulate:
+// - a sovereign chain with the same round time as mainnet
+// - for each generated block in sovereign chain, we receive an incoming header from mainnet
+func TestSovereignChainSimulator_AddIncomingHeaderCase1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -132,14 +135,14 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	headerNonce := startRound - 5
-	prevHeader := createHeaderV2(headerNonce, generateRandomHash(), generateRandomHash())
+	incomingHdrNonce := startRound - 5
+	prevHeader := createHeaderV2(incomingHdrNonce, generateRandomHash(), generateRandomHash())
 
 	sovBlockTracker, castOk := nodeHandler.GetProcessComponents().BlockTracker().(sovChainBlockTracer)
 	require.True(t, castOk)
 
 	for currIncomingHeaderRound := startRound - 4; currIncomingHeaderRound < startRound+5; currIncomingHeaderRound++ {
-		incomingHdr, incomingHeaderHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, []*transaction.Event{})
+		incomingHdr, incomingHeaderHash := createIncomingHeader(nodeHandler, &incomingHdrNonce, prevHeader, []*transaction.Event{})
 
 		// Handlers are notified on go routines; wait a bit so that pools are updated
 		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(incomingHeaderHash, incomingHdr)
@@ -188,21 +191,15 @@ func TestSovereignChainSimulator_AddIncomingHeaderExpectCorrectGenesisBlock(t *t
 	}
 }
 
-func getExtendedHeaderHash(t *testing.T, nodeHandler process.NodeHandler, incomingHeader *sovereign.IncomingHeader) []byte {
-	extendedHeader, err := nodeHandler.GetIncomingHeaderSubscriber().CreateExtendedHeader(incomingHeader)
-	require.Nil(t, err)
-
-	extendedHeaderHash, err := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), extendedHeader)
-	require.Nil(t, err)
-
-	return extendedHeaderHash
-}
-
-func TestSovereignChainSimulator_IncomingHeader2(t *testing.T) {
+// In this test we simulate:
+// - a sovereign chain with a lower round time than mainnet
+// - we will receive a mainnet block at every 3 generated sovereign blocks
+func TestSovereignChainSimulator_AddIncomingHeaderCase2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	startRound := uint64(101)
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
@@ -211,11 +208,14 @@ func TestSovereignChainSimulator_IncomingHeader2(t *testing.T) {
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         core.OptionalUint64{},
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       2,
+			RoundsPerEpoch: core.OptionalUint64{
+				Value:    20,
+				HasValue: true,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound = 123456
+				cfg.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound = startRound
 			},
 		},
 	})
@@ -226,38 +226,86 @@ func TestSovereignChainSimulator_IncomingHeader2(t *testing.T) {
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	headerNonce := uint64(123456) - 4
-	prevHeader := createHeaderV2(headerNonce, generateRandomHash(), generateRandomHash())
+	incomingHdrNonce := startRound - 1
+	prevHeader := createHeaderV2(incomingHdrNonce, generateRandomHash(), generateRandomHash())
+	incomingHdr, incomingHeaderHash := createSimpleIncomingHeader(nodeHandler, &incomingHdrNonce, prevHeader)
+	sovBlockTracker, castOk := nodeHandler.GetProcessComponents().BlockTracker().(sovChainBlockTracer)
+	require.True(t, castOk)
+	err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(incomingHeaderHash, incomingHdr)
+	require.Nil(t, err)
 
-	cs.GenerateBlocks(3)
+	for i := 0; i < 3; i++ {
+		err = cs.GenerateBlocks(1)
+		require.Nil(t, err)
 
-	logger.SetLogLevel("*:DEBUG")
-	for i := 0; i <= 12; i++ {
-		log.Error("CONTOOOOOOOOOOOOR", "CONTOOOOOOOOOOOOR", i)
+		currentSovBlock := getCurrentSovereignHeader(nodeHandler)
+		lastCrossNotarizedHeader, _, err := sovBlockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+		require.Nil(t, err)
+		require.Equal(t, uint64(100), lastCrossNotarizedHeader.GetRound())
+		require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
+		require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
+	}
 
+	lastCrossNotarizedRound := uint64(100)
+	for i := 0; i < 50; i++ {
 		if i%3 == 0 {
-			incomingHeader, headerHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, []*transaction.Event{})
-			err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
-			require.Nil(t, err)
-
-			prevHeader = incomingHeader.Header
+			prevHeader = incomingHdr.Header
+			incomingHdr, incomingHeaderHash = createSimpleIncomingHeader(nodeHandler, &incomingHdrNonce, prevHeader)
+			err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(incomingHeaderHash, incomingHdr)
+			lastCrossNotarizedRound++
 		}
 
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
+
+		currentSovBlock := getCurrentSovereignHeader(nodeHandler)
+		lastCrossNotarizedHeader, _, err := sovBlockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+		require.Nil(t, err)
+		require.Equal(t, lastCrossNotarizedRound, lastCrossNotarizedHeader.GetRound())
+		require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
+
+		if i%3 == 0 {
+			extendedHeaderHash := getExtendedHeaderHash(t, nodeHandler, incomingHdr)
+			require.Equal(t, [][]byte{extendedHeaderHash}, currentSovBlock.GetExtendedShardHeaderHashes())
+		} else {
+			require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
+		}
 	}
+
+}
+
+func getExtendedHeaderHash(t *testing.T, nodeHandler process.NodeHandler, incomingHeader *sovereign.IncomingHeader) []byte {
+	extendedHeader, err := nodeHandler.GetIncomingHeaderSubscriber().CreateExtendedHeader(incomingHeader)
+	require.Nil(t, err)
+
+	extendedHeaderHash, err := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), extendedHeader)
+	require.Nil(t, err)
+
+	return extendedHeaderHash
 }
 
 func createIncomingHeader(nodeHandler process.NodeHandler, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) (*sovereign.IncomingHeader, []byte) {
 	*headerNonce++
 	prevHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), prevHeader)
-	incomingHeader := &sovereign.IncomingHeader{
+	incomingHdr := &sovereign.IncomingHeader{
 		Header:         createHeaderV2(*headerNonce, prevHeaderHash, prevHeader.GetRandSeed()),
 		IncomingEvents: txsEvent,
 	}
-	headerHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader.Header)
+	headerHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHdr.Header)
 
-	return incomingHeader, headerHash
+	return incomingHdr, headerHash
+}
+
+func createSimpleIncomingHeader(nodeHandler process.NodeHandler, headerNonce *uint64, prevHeader *block.HeaderV2) (*sovereign.IncomingHeader, []byte) {
+	prevHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), prevHeader)
+	incomingHdr := &sovereign.IncomingHeader{
+		Header:         createHeaderV2(*headerNonce, prevHeaderHash, prevHeader.GetRandSeed()),
+		IncomingEvents: []*transaction.Event{},
+	}
+	headerHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHdr.Header)
+	*headerNonce++
+
+	return incomingHdr, headerHash
 }
 
 func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.HeaderV2 {
@@ -315,4 +363,8 @@ func createEventData() sovereign.EventData {
 		Sender:       sender,
 		TransferData: nil,
 	}
+}
+
+func getCurrentSovereignHeader(nodeHandler process.NodeHandler) data.SovereignChainHeaderHandler {
+	return nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler)
 }
