@@ -288,7 +288,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 
 		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
 			"hash0": {
-				[]*data.StateChange{
+				StateChanges: []*data.StateChange{
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
@@ -335,7 +335,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 
 		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
 			"hash1": {
-				[]*data.StateChange{
+				StateChanges: []*data.StateChange{
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
@@ -383,7 +383,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 
 		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
 			"hash0": {
-				[]*data.StateChange{
+				StateChanges: []*data.StateChange{
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
