@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
@@ -312,7 +311,7 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-	sorted := cache.SelectTransactions(10, math.MaxUint64, 2, math.MaxUint64)
+	sorted := cache.SelectTransactions(math.MaxUint64, 2, math.MaxUint64)
 	require.Len(t, sorted, 8)
 }
 
@@ -327,7 +326,7 @@ func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-	sorted := cache.SelectTransactions(5, math.MaxUint64, 2, 200000)
+	sorted := cache.SelectTransactions(math.MaxUint64, 2, 200000)
 	numSelected := 1 + 1 + 3 // 1 alice, 1 carol, 3 bob
 
 	require.Len(t, sorted, numSelected)
@@ -350,7 +349,7 @@ func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
 
 	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 
-	sorted := cache.SelectTransactions(10, math.MaxUint64, 2, math.MaxUint64)
+	sorted := cache.SelectTransactions(math.MaxUint64, 2, math.MaxUint64)
 	require.Len(t, sorted, numSelected)
 }
 
@@ -361,7 +360,6 @@ func Test_SelectTransactions(t *testing.T) {
 	nSenders := 1000
 	nTransactionsPerSender := 100
 	nTotalTransactions := nSenders * nTransactionsPerSender
-	nRequestedTransactions := math.MaxInt16
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := fmt.Sprintf("sender:%d", senderTag)
@@ -375,9 +373,7 @@ func Test_SelectTransactions(t *testing.T) {
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted := cache.SelectTransactions(nRequestedTransactions, math.MaxUint64, 2, math.MaxUint64)
-
-	require.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
+	sorted := cache.SelectTransactions(math.MaxUint64, 2, math.MaxUint64)
 
 	// Check order
 	nonces := make(map[string]uint64, nSenders)
@@ -493,7 +489,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			cache.SelectTransactions(100, math.MaxUint64, 100, math.MaxUint64)
+			cache.SelectTransactions(math.MaxUint64, 100, math.MaxUint64)
 		}
 
 		wg.Done()

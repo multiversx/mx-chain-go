@@ -82,7 +82,6 @@ func (cache *TxCache) diagnoseSelection() {
 
 	senders, transactions := cache.doSelectTransactions(
 		logDiagnoseSelection,
-		diagnosisSelectionNumRequested,
 		diagnosisSelectionGasRequested,
 		diagnosisSelectionBaseNumPerSenderBatch,
 		diagnosisSelectionBaseGasPerSenderBatch,

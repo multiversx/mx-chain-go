@@ -96,15 +96,14 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 }
 
 // SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
-// It returns at most "numRequested" transactions, with total gas ~ "gasRequested".
+// It returns transactions with total gas ~ "gasRequested".
 //
 // Selection is performed in more passes.
 // In each pass, each sender is allowed to contribute a batch of transactions,
 // with a number of transactions and total gas proportional to the sender's score.
-func (cache *TxCache) SelectTransactions(numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
+func (cache *TxCache) SelectTransactions(gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
 	senders, transactions := cache.doSelectTransactions(
 		logSelect,
-		numRequested,
 		gasRequested,
 		baseNumPerSenderBatch,
 		baseGasPerSenderBatch,
@@ -116,7 +115,7 @@ func (cache *TxCache) SelectTransactions(numRequested int, gasRequested uint64, 
 	return transactions
 }
 
-func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) ([]*txListForSender, []*WrappedTransaction) {
+func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) ([]*txListForSender, []*WrappedTransaction) {
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
@@ -128,7 +127,7 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRe
 	)
 
 	senders := cache.getSendersEligibleForSelection()
-	transactions := make([]*WrappedTransaction, numRequested)
+	transactions := make([]*WrappedTransaction, 0)
 
 	shouldContinueSelection := true
 	selectedGas := uint64(0)
@@ -151,7 +150,7 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRe
 			selectedNum += batchSelectionJournal.selectedNum
 			selectedNumInThisPass += batchSelectionJournal.selectedNum
 
-			shouldContinueSelection := selectedNum < numRequested && selectedGas < gasRequested
+			shouldContinueSelection := selectedGas < gasRequested
 			if !shouldContinueSelection {
 				break
 			}
