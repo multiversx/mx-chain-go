@@ -397,7 +397,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 				},
 			},
 			"hash1": {
-				[]*data.StateChange{
+				StateChanges: []*data.StateChange{
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
