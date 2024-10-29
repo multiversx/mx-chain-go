@@ -9,12 +9,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	coreEsdt "github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -24,8 +26,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func getTokensSuppliesProcessorArgs() ArgsTokensSuppliesProcessor {
@@ -202,7 +202,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 			&hashingMocks.HasherMock{},
 			&marshallerMock.MarshalizerMock{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			stateChanges.NewStateChangesCollector(),
+			&stateMock.StateChangesCollectorStub{},
 		)
 		dtlp, _ := parsers.NewDataTrieLeafParser([]byte("addr"), &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), dtt, dtlp)

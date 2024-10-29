@@ -37,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -180,7 +179,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

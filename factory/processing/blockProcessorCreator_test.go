@@ -8,6 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
@@ -17,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -27,8 +29,6 @@ import (
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_newBlockProcessorCreatorForShard(t *testing.T) {
@@ -107,7 +107,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		Hasher:                coreComponents.Hasher(),
 		Marshaller:            coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
