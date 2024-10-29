@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
-	process2 "github.com/multiversx/mx-chain-go/process"
+	proc "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	"github.com/stretchr/testify/require"
@@ -34,6 +34,12 @@ const (
 	topicIDDepositIncomingTransfer = "deposit"
 	hashSize                       = 32
 )
+
+type sovChainBlockTracer interface {
+	proc.BlockTracker
+	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
+	IsGenesisLastCrossNotarizedHeader() bool
+}
 
 // This test will simulate an incoming header.
 // At the end of the test the amount of tokens needs to be in the receiver account
@@ -93,12 +99,6 @@ func TestSovereignChainSimulator_IncomingHeader(t *testing.T) {
 	require.NotNil(t, esdts)
 	require.True(t, esdts[token] != nil)
 	require.Equal(t, amountToTransfer, esdts[token].Value.String())
-}
-
-type sovChainBlockTracer interface {
-	process2.BlockTracker
-	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
-	IsGenesisLastCrossNotarizedHeader() bool
 }
 
 // In this test we simulate:
