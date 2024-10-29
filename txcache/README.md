@@ -9,7 +9,6 @@
 ### Configuration
 
 1. **maxSenderScore:** `100`, the maximum score a sender can have. The minimum score is `0`.
-2. **numRequested:** `30_000`, the maximum number of transactions to be returned to a proposer (one _selection session_).
 3. **gasRequested:** `10_000_000_000`, the maximum total gas limit of the transactions to be returned to a proposer (one _selection session_).
 4. **baseNumPerSenderBatch:**: `100`, defines the maximum number of transactions to be selected from the transactions pool, for a sender with the maximum possible score, in a _single pass_. Senders with lower scores will have fewer transactions selected in a single pass.
 5. **baseGasPerSenderBatch:**: `120_000_000`, defines the maximum gas for transactions to be selected from the transactions pool, for a sender with the maximum possible score, in a single pass. Senders with lower scores will have less gas selected in a single pass.
@@ -20,7 +19,6 @@
 
 When a proposer asks the mempool for transactions, it provides the following parameters:
 
- - `numRequested`: the maximum number of transactions to be returned
  - `gasRequested`: the maximum total gas limit of the transactions to be returned
  - `baseNumPerSenderBatch`: a base value for the number of transactions to be returned per sender, per selection _pass_. This value is used to compute the actual number of transactions to be returned per sender, per selection _pass_, based on the sender's score (see **Paragraph 2**).
  - `baseGasPerSenderBatch`: a base value for the total gas limit of the transactions to be returned per sender, per selection _pass_. This value is used to compute the actual total gas limit of the transactions to be returned per sender, per selection _pass_, based on the sender's score (see **Paragraph 2**). Due to how the selection is performed, the theoretical maximum gas might be exceeded (a bit), as follows: `theoretical maximum = (baseGasPerSenderBatch - 1) + max(baseGasPerSenderBatch, max gas limit of a transaction)`. Think of a sender with maximum score, having two transactions, one with `gasLimit = baseGasPerSenderBatch - 1`, and the other with `gasLimit = max gas limit of a transaction`.
@@ -45,9 +43,9 @@ Examples:
 
 The mempool selects transactions as follows:
  - before starting the selection loop, get a snapshot of the senders (sorted by score, descending)
- - in the selection loop, do as many _passes_ as needed to satisfy `numRequested` and `gasRequested` (see **Paragraph 1**).
+ - in the selection loop, do as many _passes_ as needed to satisfy `gasRequested` (see **Paragraph 1**).
  - within a _pass_, go through all the senders (appropriately sorted) and select a batch of transactions from each sender. The size of the batch is computed as described in **Paragraph 2**.
- - if either `numRequested` or `gasRequested` is satisfied, stop the _pass_ early.
+ - if `gasRequested` is satisfied, stop the _pass_ early.
 
 ### Paragraph 4
 
@@ -77,6 +75,12 @@ worstPpu = (50000 * 1_000_000_000 + (600_000_000 - 50000) * (1_000_000_000 / 100
 ```
 excellentPpu = 1_000_000_000 * 5 = 5_000_000_000
 ```
+
+Examples:
+ - ...
+
+#### Spotless sequence of transactions
+
 ### Account nonce notifications
 
 ### Transactions addition
