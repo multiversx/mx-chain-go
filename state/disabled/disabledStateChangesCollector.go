@@ -48,6 +48,11 @@ func (d *disabledStateChangesCollector) Publish() (map[string]*data.StateChanges
 	return nil, nil
 }
 
+// Store -
+func (d *disabledStateChangesCollector) Store() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (d *disabledStateChangesCollector) IsInterfaceNil() bool {
 	return d == nil
