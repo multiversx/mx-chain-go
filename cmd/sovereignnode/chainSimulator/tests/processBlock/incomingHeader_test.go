@@ -84,11 +84,11 @@ func TestSovereignChainSimulator_IncomingHeader(t *testing.T) {
 			txsEvent = nil
 		}
 
-		incomingHeader, headerHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, txsEvent)
-		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
+		incomingHdr, headerHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, txsEvent)
+		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHdr)
 		require.Nil(t, err)
 
-		prevHeader = incomingHeader.Header
+		prevHeader = incomingHdr.Header
 
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
@@ -189,7 +189,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase1(t *testing.T) {
 			require.Zero(t, lastCrossNotarizedHeader.GetRound())
 			require.True(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Empty(t, currentSovHeader.GetExtendedShardHeaderHashes())
-		} else if currIncomingHeaderRound == 100 { // pre-genesis header incoming header is notarized
+		} else if currIncomingHeaderRound == 100 { // pre-genesis incoming header is notarized
 			require.Equal(t, uint64(100), lastCrossNotarizedHeader.GetRound())
 			require.False(t, sovBlockTracker.IsGenesisLastCrossNotarizedHeader())
 			require.Empty(t, currentSovHeader.GetExtendedShardHeaderHashes())
