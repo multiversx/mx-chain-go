@@ -34,6 +34,8 @@ const (
 	mockRelayerTxSignature                  = "rsig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
 	roundsPerEpoch                          = 30
+	guardAccountCost                        = 250_000
+	extraGasLimitForGuarded                 = minGasLimit
 )
 
 var (
@@ -41,10 +43,12 @@ var (
 )
 
 func TestRelayedV3WithChainSimulator(t *testing.T) {
-	t.Run("successful intra shard move balance with exact gas", testRelayedV3MoveBalance(0, 0, false))
-	t.Run("successful intra shard move balance with extra gas", testRelayedV3MoveBalance(0, 0, true))
-	t.Run("successful cross shard move balance with exact gas", testRelayedV3MoveBalance(0, 1, false))
-	t.Run("successful cross shard move balance with extra gas", testRelayedV3MoveBalance(0, 1, true))
+	t.Run("successful intra shard move balance", testRelayedV3MoveBalance(0, 0, false, false))
+	t.Run("successful intra shard guarded move balance", testRelayedV3MoveBalance(0, 0, false, true))
+	t.Run("successful intra shard move balance with extra gas", testRelayedV3MoveBalance(0, 0, true, false))
+	t.Run("successful cross shard move balance", testRelayedV3MoveBalance(0, 1, false, false))
+	t.Run("successful cross shard guarded move balance", testRelayedV3MoveBalance(0, 1, false, true))
+	t.Run("successful cross shard move balance with extra gas", testRelayedV3MoveBalance(0, 1, true, false))
 	t.Run("intra shard move balance, lower nonce", testRelayedV3MoveBalanceLowerNonce(0, 0))
 	t.Run("cross shard move balance, lower nonce", testRelayedV3MoveBalanceLowerNonce(0, 1))
 	t.Run("intra shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 0))
@@ -62,6 +66,7 @@ func testRelayedV3MoveBalance(
 	relayerShard uint32,
 	destinationShard uint32,
 	extraGas bool,
+	guardedTx bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
@@ -87,22 +92,59 @@ func testRelayedV3MoveBalance(
 		receiver, err := cs.GenerateAndMintWalletAddress(destinationShard, big.NewInt(0))
 		require.NoError(t, err)
 
+		guardian, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
 		// generate one block so the minting has effect
 		err = cs.GenerateBlocks(1)
 		require.NoError(t, err)
+
+		senderNonce := uint64(0)
+		if guardedTx {
+			// Set guardian for sender
+			setGuardianTxData := "SetGuardian@" + hex.EncodeToString(guardian.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+			setGuardianGasLimit := minGasLimit + 1500*len(setGuardianTxData) + guardAccountCost
+			setGuardianTx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, big.NewInt(0), setGuardianTxData, uint64(setGuardianGasLimit))
+			_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(setGuardianTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+			require.NoError(t, err)
+			senderNonce++
+
+			// fast-forward until the guardian becomes active
+			err = cs.GenerateBlocks(roundsPerEpoch * 20)
+			require.NoError(t, err)
+
+			// guard account
+			guardAccountTxData := "GuardAccount"
+			guardAccountGasLimit := minGasLimit + 1500*len(guardAccountTxData) + guardAccountCost
+			guardAccountTx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, big.NewInt(0), guardAccountTxData, uint64(guardAccountGasLimit))
+			_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(guardAccountTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+			require.NoError(t, err)
+			senderNonce++
+		}
+
+		senderBalanceBefore := getBalance(t, cs, sender)
 
 		gasLimit := minGasLimit * 2
 		extraGasLimit := 0
 		if extraGas {
 			extraGasLimit = minGasLimit
 		}
-		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, receiver.Bytes, relayer.Bytes, oneEGLD, "", uint64(gasLimit+extraGasLimit))
+		if guardedTx {
+			gasLimit += extraGasLimitForGuarded
+		}
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, receiver.Bytes, relayer.Bytes, oneEGLD, "", uint64(gasLimit+extraGasLimit))
+
+		if guardedTx {
+			relayedTx.GuardianAddr = guardian.Bytes
+			relayedTx.GuardianSignature = []byte(mockTxSignature)
+			relayedTx.Options = 2
+		}
 
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
 		// check fee fields
-		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, big.NewInt(0), true)
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, big.NewInt(0), true, guardedTx)
 		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
 		require.Equal(t, fee.String(), result.Fee)
 		require.Equal(t, gasUsed, result.GasUsed)
@@ -114,7 +156,7 @@ func testRelayedV3MoveBalance(
 
 		// check sender balance
 		senderBalanceAfter := getBalance(t, cs, sender)
-		senderBalanceDiff := big.NewInt(0).Sub(initialBalance, senderBalanceAfter)
+		senderBalanceDiff := big.NewInt(0).Sub(senderBalanceBefore, senderBalanceAfter)
 		require.Equal(t, oneEGLD.String(), senderBalanceDiff.String())
 
 		// check receiver balance
@@ -283,7 +325,7 @@ func testRelayedV3ScCall(
 		require.NotZero(t, refundValue.Uint64())
 
 		// check fee fields
-		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false)
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false, false)
 		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
 		require.Equal(t, fee.String(), result.Fee)
 		require.Equal(t, gasUsed, result.GasUsed)
@@ -298,7 +340,7 @@ func testRelayedV3ScCall(
 		require.Equal(t, initialBalance.String(), senderBalanceAfter.String())
 
 		// check owner balance
-		_, feeDeploy, _ := computeTxGasAndFeeBasedOnRefund(resultDeploy, refundDeploy, false)
+		_, feeDeploy, _ := computeTxGasAndFeeBasedOnRefund(resultDeploy, refundDeploy, false, false)
 		ownerBalanceAfter := getBalance(t, cs, owner)
 		ownerFee := big.NewInt(0).Sub(initialBalance, ownerBalanceAfter)
 		require.Equal(t, feeDeploy.String(), ownerFee.String())
@@ -375,7 +417,7 @@ func testRelayedV3ScCallInvalidGasLimit(
 		require.Zero(t, refundValue.Uint64())
 
 		// check fee fields, should consume full gas
-		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false)
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false, false)
 		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
 		require.Equal(t, fee.String(), result.Fee)
 		require.Equal(t, result.InitiallyPaidFee, result.Fee)
@@ -457,7 +499,7 @@ func testRelayedV3ScCallInvalidMethod(
 		require.Zero(t, refundValue.Uint64()) // no refund, tx failed
 
 		// check fee fields, should consume full gas
-		initiallyPaidFee, fee, _ := computeTxGasAndFeeBasedOnRefund(result, refundValue, false)
+		initiallyPaidFee, fee, _ := computeTxGasAndFeeBasedOnRefund(result, refundValue, false, false)
 		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
 
 		// check relayer balance
@@ -825,11 +867,16 @@ func computeTxGasAndFeeBasedOnRefund(
 	result *transaction.ApiTransactionResult,
 	refund *big.Int,
 	isMoveBalance bool,
+	guardedTx bool,
 ) (*big.Int, *big.Int, uint64) {
 	deductedGasPrice := uint64(minGasPrice / deductionFactor)
 
 	initialTx := result.Tx
 	gasForFullPrice := uint64(minGasLimit + gasPerDataByte*len(initialTx.GetData()))
+	if guardedTx {
+		gasForFullPrice += extraGasLimitForGuarded
+	}
+
 	if result.ProcessingTypeOnSource == process.RelayedTxV3.String() {
 		gasForFullPrice += uint64(minGasLimit) // relayer fee
 	}
