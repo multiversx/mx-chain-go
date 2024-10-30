@@ -3,6 +3,7 @@ package stateChanges
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -167,24 +168,29 @@ func (scc *dataAnalysisCollector) Reset() {
 
 // Publish will write the stored state changes
 func (scc *dataAnalysisCollector) Publish() (map[string]*data.StateChanges, error) {
+	return nil, errors.New("cannot publish data analysis state changes to outport driver")
+}
+
+// Store will persist the collected state changes for data analysis.
+func (scc *dataAnalysisCollector) Store() error {
 	stateChangesForTx, err := scc.getDataAnalysisStateChangesForTxs()
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve data analysis state changes for tx: %w", err)
+		return fmt.Errorf("failed to retrieve data analysis state changes for tx: %w", err)
 	}
 
 	for _, stateChange := range stateChangesForTx {
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal state changes to JSON: %w", err)
+			return fmt.Errorf("failed to marshal state changes to JSON: %w", err)
 		}
 
 		err = scc.storer.Put(stateChange.TxHash, marshalledData)
 		if err != nil {
-			return nil, fmt.Errorf("failed to store marshalled data: %w", err)
+			return fmt.Errorf("failed to store marshalled data: %w", err)
 		}
 	}
 
-	return nil, nil
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

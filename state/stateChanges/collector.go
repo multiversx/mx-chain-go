@@ -119,6 +119,11 @@ func (scc *stateChangesCollector) Publish() (map[string]*data.StateChanges, erro
 	return stateChangesForTxs, nil
 }
 
+// Store will not do anything as state changes will be further published to the outport driver in this mode.
+func Store() error {
+	return nil
+}
+
 // Reset resets the state changes collector
 func (scc *stateChangesCollector) Reset() {
 	scc.stateChangesMut.Lock()
