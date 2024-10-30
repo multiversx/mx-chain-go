@@ -4,6 +4,7 @@ package main
 // TODO: Create a baseNodeRunner that uses common code from here and nodeRunner.go to avoid duplicated code
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1905,21 +1906,33 @@ func createSovereignWsReceiver(
 		return nil, err
 	}
 
-	go func(incomingHeaderHandler process.IncomingHeaderSubscriber, sovereignNotifier notifierProcess.SovereignNotifier) {
-		for !(bootstrapper.GetNodeState() == common.NsSynchronized && forkDetector.GetHighestFinalBlockNonce() != 0) {
-			timeToWaitResync := (process.MaxRoundsWithoutNewBlockReceived + 1) * roundDuration
-			time.Sleep(time.Duration(timeToWaitResync) * time.Millisecond)
-			log.Error("NOT STATE NOT SYNCED YET")
-		}
+	notifierBoot := &notifierBootstrapper{
+		incomingHeaderHandler: incomingHeaderHandler,
+		sovereignNotifier:     sovereignNotifier,
+		nodeSyncedChan:        make(chan bool, 1),
+		cancelFunc:            nil,
+		roundDuration:         roundDuration,
+		forkDetector:          forkDetector,
+	}
 
-		log.Error("SYYYYYYNNNCCCCCEEEEEEED")
+	bootstrapper.AddSyncStateListener(notifierBoot.receivedSyncState)
+	notifierBoot.StartWorking()
 
-		err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
-		if err != nil {
-			log.Error("ERROR SYNCING", "err", err)
-		}
-
-	}(incomingHeaderHandler, sovereignNotifier)
+	//go func(incomingHeaderHandler process.IncomingHeaderSubscriber, sovereignNotifier notifierProcess.SovereignNotifier) {
+	//	for !(bootstrapper.GetNodeState() == common.NsSynchronized && forkDetector.GetHighestFinalBlockNonce() != 0) {
+	//		timeToWaitResync := (process.MaxRoundsWithoutNewBlockReceived + 1) * roundDuration
+	//		time.Sleep(time.Duration(timeToWaitResync) * time.Millisecond)
+	//		log.Error("NOT STATE NOT SYNCED YET")
+	//	}
+	//
+	//	log.Error("SYYYYYYNNNCCCCCEEEEEEED")
+	//
+	//	err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
+	//	if err != nil {
+	//		log.Error("ERROR SYNCING", "err", err)
+	//	}
+	//
+	//}(incomingHeaderHandler, sovereignNotifier)
 
 	//err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
 	//if err != nil {
@@ -1941,6 +1954,54 @@ func createSovereignWsReceiver(
 	}
 
 	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
+}
+
+type notifierBootstrapper struct {
+	incomingHeaderHandler process.IncomingHeaderSubscriber
+	sovereignNotifier     notifierProcess.SovereignNotifier
+	nodeSyncedChan        chan bool
+	cancelFunc            func()
+	roundDuration         uint64
+	forkDetector          process.ForkDetector
+}
+
+func (nb *notifierBootstrapper) receivedSyncState(isNodeSynchronized bool) {
+	if isNodeSynchronized && nb.forkDetector.GetHighestFinalBlockNonce() != 0 {
+		select {
+		case nb.nodeSyncedChan <- true:
+		default:
+		}
+	}
+}
+
+func (nb *notifierBootstrapper) StartWorking() {
+	var ctx context.Context
+	ctx, nb.cancelFunc = context.WithCancel(context.Background())
+	go nb.checkChannels(ctx)
+}
+
+func (nb *notifierBootstrapper) checkChannels(ctx context.Context) {
+	timeToWaitResync := (process.MaxRoundsWithoutNewBlockReceived + 1) * nb.roundDuration
+	ticker := time.NewTicker(time.Duration(timeToWaitResync) * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Debug("worker's go routine is stopping...")
+			return
+		case _ = <-nb.nodeSyncedChan:
+			err := nb.sovereignNotifier.RegisterHandler(nb.incomingHeaderHandler)
+			if err != nil {
+				log.Error("ERROR SYNCING", "err", err)
+			}
+			log.Error("SYYYYYYNNNCCCCCEEEEEEED")
+			return
+		case <-ticker.C:
+			log.Error("NOT STATE NOT SYNCED YET")
+		}
+
+	}
 }
 
 func getNotifierSubscribedEvents(events []config.SubscribedEvent) []notifierCfg.SubscribedEvent {
