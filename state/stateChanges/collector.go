@@ -120,7 +120,7 @@ func (scc *stateChangesCollector) Publish() (map[string]*data.StateChanges, erro
 }
 
 // Store will not do anything as state changes will be further published to the outport driver in this mode.
-func Store() error {
+func (scc *stateChangesCollector) Store() error {
 	return nil
 }
 

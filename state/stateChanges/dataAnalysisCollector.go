@@ -3,7 +3,6 @@ package stateChanges
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 
@@ -166,9 +165,31 @@ func (scc *dataAnalysisCollector) Reset() {
 	scc.cachedTxs = make(map[string]*transaction.Transaction)
 }
 
-// Publish will write the stored state changes
+// Publish will retrieve the state changes linked with the tx hash.
 func (scc *dataAnalysisCollector) Publish() (map[string]*data.StateChanges, error) {
-	return nil, errors.New("cannot publish data analysis state changes to outport driver")
+	scc.stateChangesMut.RLock()
+	defer scc.stateChangesMut.RUnlock()
+
+	stateChangesForTxs := make(map[string]*data.StateChanges)
+	for _, stateChange := range scc.stateChanges {
+		txHash := string(stateChange.GetTxHash())
+
+		st, ok := stateChange.(*data.StateChange)
+		if !ok {
+			continue
+		}
+
+		_, ok = stateChangesForTxs[txHash]
+		if !ok {
+			stateChangesForTxs[txHash] = &data.StateChanges{
+				StateChanges: []*data.StateChange{st},
+			}
+		} else {
+			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges, st)
+		}
+	}
+
+	return stateChangesForTxs, nil
 }
 
 // Store will persist the collected state changes for data analysis.
