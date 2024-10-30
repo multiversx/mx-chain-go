@@ -17,6 +17,7 @@ type StateChangesCollectorStub struct {
 	SetIndexToLastStateChangeCalled        func(index int) error
 	RevertToIndexCalled                    func(index int) error
 	PublishCalled                          func() (map[string]*stateChange.StateChanges, error)
+	StoreCalled                            func() error
 	IsInterfaceNilCalled                   func() bool
 }
 
@@ -73,6 +74,14 @@ func (s *StateChangesCollectorStub) Publish() (map[string]*stateChange.StateChan
 	}
 
 	return nil, nil
+}
+
+func (s *StateChangesCollectorStub) Store() error {
+	if s.StoreCalled != nil {
+		return s.StoreCalled()
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -
