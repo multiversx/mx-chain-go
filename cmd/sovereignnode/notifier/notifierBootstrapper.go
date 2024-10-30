@@ -57,10 +57,10 @@ func (nb *notifierBootstrapper) receivedSyncState(isNodeSynchronized bool) {
 func (nb *notifierBootstrapper) Start() {
 	var ctx context.Context
 	ctx, nb.cancelFunc = context.WithCancel(context.Background())
-	go nb.checkChannels(ctx)
+	go nb.checkNodeState(ctx)
 }
 
-func (nb *notifierBootstrapper) checkChannels(ctx context.Context) {
+func (nb *notifierBootstrapper) checkNodeState(ctx context.Context) {
 	timeToWaitReSync := (process.MaxRoundsWithoutNewBlockReceived + 1) * nb.roundDuration
 	ticker := time.NewTicker(time.Duration(timeToWaitReSync) * time.Millisecond)
 	defer ticker.Stop()
@@ -84,11 +84,12 @@ func (nb *notifierBootstrapper) checkChannels(ctx context.Context) {
 	}
 }
 
-func (nb *notifierBootstrapper) Close() {
+func (nb *notifierBootstrapper) Close() error {
 	if nb.cancelFunc != nil {
 		nb.cancelFunc()
 	}
 
 	nrReads := core.EmptyChannel(nb.nodeSyncedChan)
 	log.Debug("notifierBootstrapper: emptied channel", "nodeSyncedChan nrReads", nrReads)
+	return nil
 }
