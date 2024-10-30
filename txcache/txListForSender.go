@@ -213,6 +213,38 @@ func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
 	return result
 }
 
+// getTxsWithoutGaps returns the transactions in the list (gaps are handled, affected transactions are excluded)
+func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	accountNonce := listForSender.accountNonce.Get()
+	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
+
+	result := make([]*WrappedTransaction, 0, listForSender.countTx())
+	previousNonce := uint64(0)
+
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(*WrappedTransaction)
+		nonce := value.Tx.GetNonce()
+
+		// Detect initial gaps.
+		if len(result) == 0 && accountNonceKnown && accountNonce > nonce {
+			break
+		}
+
+		// Detect middle gaps.
+		if len(result) > 0 && nonce != previousNonce+1 {
+			break
+		}
+
+		result = append(result, value)
+		previousNonce = nonce
+	}
+
+	return result
+}
+
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) countTx() uint64 {
 	return uint64(listForSender.items.Len())
