@@ -14,10 +14,19 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 
-	TxFee *big.Int
+	PricePerGasUnitQuotient  uint64
+	PricePerGasUnitRemainder uint64
 }
 
-// computeFee computes (and caches) the transaction fee.
-func (wrappedTx *WrappedTransaction) computeFee(txGasHandler TxGasHandler) {
-	wrappedTx.TxFee = txGasHandler.ComputeTxFee(wrappedTx.Tx)
+// computePricePerGasUnit computes (and caches) the (average) price per gas unit.
+func (wrappedTx *WrappedTransaction) computePricePerGasUnit(txGasHandler TxGasHandler) {
+	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx)
+	gasLimit := big.NewInt(0).SetUint64(wrappedTx.Tx.GetGasLimit())
+
+	quotient := new(big.Int)
+	remainder := new(big.Int)
+	quotient, remainder = quotient.QuoRem(fee, gasLimit, remainder)
+
+	wrappedTx.PricePerGasUnitQuotient = quotient.Uint64()
+	wrappedTx.PricePerGasUnitRemainder = remainder.Uint64()
 }

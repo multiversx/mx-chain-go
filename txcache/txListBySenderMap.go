@@ -35,7 +35,7 @@ func newTxListBySenderMap(
 func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	tx.computeFee(txMap.txGasHandler)
+	tx.computePricePerGasUnit(txMap.txGasHandler)
 	return listForSender.AddTx(tx)
 }
 
