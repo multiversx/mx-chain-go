@@ -10,13 +10,12 @@ import (
 
 func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountThreshold:                2,
-		CountPerSenderThreshold:       math.MaxUint32,
-		NumSendersToPreemptivelyEvict: 2,
+		Name:                       "untitled",
+		NumChunks:                  16,
+		NumBytesThreshold:          maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountThreshold:             2,
+		CountPerSenderThreshold:    math.MaxUint32,
 	}
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
@@ -39,13 +38,12 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 
 func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		CountThreshold:                math.MaxUint32,
-		CountPerSenderThreshold:       math.MaxUint32,
-		NumBytesThreshold:             1000,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		NumSendersToPreemptivelyEvict: 2,
+		Name:                       "untitled",
+		NumChunks:                  16,
+		NumBytesThreshold:          1000,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountThreshold:             math.MaxUint32,
+		CountPerSenderThreshold:    math.MaxUint32,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
@@ -72,12 +70,11 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 
 func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     1,
-		CountThreshold:                0,
-		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
+		Name:                       "untitled",
+		NumChunks:                  1,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountThreshold:             0,
+		CountPerSenderThreshold:    math.MaxUint32,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
@@ -93,18 +90,17 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 }
 
 // This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
-// 25000 senders with 10 transactions each, with default "NumSendersToPreemptivelyEvict".
+// 25000 senders with 10 transactions each, with default "NumItemsToPreemptivelyEvict".
 // ~1 second on average laptop.
 func TestTxCache_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             1000000000,
-		CountThreshold:                240000,
-		NumSendersToPreemptivelyEvict: 1000,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
+		Name:                       "untitled",
+		NumChunks:                  16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          1000000000,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountThreshold:             240000,
+		CountPerSenderThreshold:    math.MaxUint32,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
@@ -119,5 +115,4 @@ func TestTxCache_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 
 	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.
 	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
-	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToPreemptivelyEvict*uint32(numTxsPerSender))
 }
