@@ -101,26 +101,27 @@ func mergeBunchesOfTransactions(bunches []BunchOfTransactions) []BunchOfTransact
 }
 
 func mergeTwoBunchesOfTransactions(first BunchOfTransactions, second BunchOfTransactions) BunchOfTransactions {
-	result := make(BunchOfTransactions, len(first)+len(second))
+	result := make(BunchOfTransactions, 0, len(first)+len(second))
 
-	resultIndex := 0
 	firstIndex := 0
 	secondIndex := 0
 
-	for resultIndex < len(result) {
+	for firstIndex < len(first) && secondIndex < len(second) {
 		a := first[firstIndex]
 		b := second[secondIndex]
 
 		if isTransactionGreater(a, b) {
-			result[resultIndex] = a
+			result = append(result, a)
 			firstIndex++
 		} else {
-			result[resultIndex] = b
+			result = append(result, b)
 			secondIndex++
 		}
-
-		resultIndex++
 	}
+
+	// Append any remaining elements.
+	result = append(result, first[firstIndex:]...)
+	result = append(result, second[secondIndex:]...)
 
 	return result
 }
