@@ -1,12 +1,14 @@
 package notifier
 
 import (
+	"context"
+	"errors"
 	"reflect"
 	"runtime"
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/errors"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
@@ -38,7 +40,7 @@ func TestNewNotifierBootstrapper(t *testing.T) {
 		args.IncomingHeaderHandler = nil
 		nb, err := NewNotifierBootstrapper(args)
 		require.Nil(t, nb)
-		require.Equal(t, errors.ErrNilIncomingHeaderSubscriber, err)
+		require.Equal(t, errorsMx.ErrNilIncomingHeaderSubscriber, err)
 	})
 	t.Run("nil sovereign notifier", func(t *testing.T) {
 		args := createArgs()
@@ -52,7 +54,7 @@ func TestNewNotifierBootstrapper(t *testing.T) {
 		args.ForkDetector = nil
 		nb, err := NewNotifierBootstrapper(args)
 		require.Nil(t, nb)
-		require.Equal(t, errors.ErrNilForkDetector, err)
+		require.Equal(t, errorsMx.ErrNilForkDetector, err)
 	})
 	t.Run("nil bootstrapper", func(t *testing.T) {
 		args := createArgs()
@@ -66,7 +68,7 @@ func TestNewNotifierBootstrapper(t *testing.T) {
 		args.RoundDuration = 0
 		nb, err := NewNotifierBootstrapper(args)
 		require.Nil(t, nb)
-		require.Equal(t, errors.ErrInvalidRoundDuration, err)
+		require.Equal(t, errorsMx.ErrInvalidRoundDuration, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		args := createArgs()
@@ -123,6 +125,11 @@ func TestNotifierBootstrapper_Start(t *testing.T) {
 	require.Zero(t, registerCalledCt)
 	require.Zero(t, getHighestNonceCalledCt)
 
+	nb.receivedSyncState(false)
+	time.Sleep(time.Millisecond * 50)
+	require.Zero(t, registerCalledCt)
+	require.Zero(t, registerCalledCt)
+
 	nb.receivedSyncState(true)
 	time.Sleep(time.Millisecond * 50)
 	require.Zero(t, registerCalledCt)
@@ -138,5 +145,86 @@ func TestNotifierBootstrapper_Start(t *testing.T) {
 		time.Sleep(time.Millisecond * 50)
 		require.Equal(t, 1, registerCalledCt)
 		require.Equal(t, i, getHighestNonceCalledCt)
+	}
+}
+
+func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	args.RoundDuration = 10
+
+	registerCalledCt := 0
+	args.SovereignNotifier = &testscommon.SovereignNotifierStub{
+		RegisterHandlerCalled: func(handler notifierProcess.IncomingHeaderSubscriber) error {
+			require.Equal(t, args.IncomingHeaderHandler, handler)
+
+			defer func() {
+				registerCalledCt++
+			}()
+
+			switch registerCalledCt {
+			case 0, 1:
+				return errors.New("local error")
+			}
+
+			return nil
+		},
+	}
+
+	args.ForkDetector = &mock.ForkDetectorStub{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return 1
+		},
+	}
+
+	nb, _ := NewNotifierBootstrapper(args)
+
+	nb.Start()
+
+	defer func() {
+		err := nb.Close()
+		require.Nil(t, err)
+	}()
+
+	time.Sleep(time.Millisecond * 200)
+	require.Zero(t, registerCalledCt)
+
+	nb.receivedSyncState(true)
+	time.Sleep(time.Millisecond * 50)
+	require.Equal(t, 1, registerCalledCt)
+
+	nb.receivedSyncState(true)
+	time.Sleep(time.Millisecond * 50)
+	require.Equal(t, 2, registerCalledCt)
+
+	// Once registered, the waiting is done, no other register is called
+	for i := 3; i < 10; i++ {
+		nb.receivedSyncState(true)
+		time.Sleep(time.Millisecond * 50)
+		require.Equal(t, 3, registerCalledCt)
+	}
+}
+
+func TestCheckNodeState_CtxDone(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	nb, _ := NewNotifierBootstrapper(args)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	doneChan := make(chan struct{})
+
+	go func() {
+		nb.checkNodeState(ctx)
+		close(doneChan)
+	}()
+
+	cancel()
+
+	select {
+	case <-doneChan:
+	case <-time.After(time.Second):
+		require.Fail(t, "checkNodeState did not exit on ctx.Done() as expected")
 	}
 }
