@@ -125,6 +125,24 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 }
 
 func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateChangesCollector, error) {
+	if len(scf.config.StateTriesConfig.StateChangesTypesToCollect) == 0 {
+		return disabled.NewDisabledStateChangesCollector(), nil
+	}
+
+	collectRead, collectWrite, err := parseStateChangesTypesToCollect(scf.config.StateTriesConfig.StateChangesTypesToCollect)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse state changes types to collect: %w", err)
+	}
+
+	var opts []stateChanges.CollectorOption
+
+	if collectRead {
+		opts = append(opts, stateChanges.WithCollectRead())
+	}
+	if collectWrite {
+		opts = append(opts, stateChanges.WithCollectRead())
+	}
+
 	if scf.config.StateTriesConfig.StateChangesDataAnalysis {
 		// TODO: move to toml config file
 		dbConfig := config.DBConfig{
@@ -144,19 +162,11 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 		if err != nil {
 			return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 		}
-		return stateChanges.NewDataAnalysisStateChangesCollector(db)
+
+		opts = append(opts, stateChanges.WithStorer(db))
 	}
 
-	if len(scf.config.StateTriesConfig.StateChangesTypesToCollect) == 0 {
-		return disabled.NewDisabledStateChangesCollector(), nil
-	}
-
-	collectRead, collectWrite, err := parseStateChangesTypesToCollect(scf.config.StateTriesConfig.StateChangesTypesToCollect)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse state changes types to collect: %w", err)
-	}
-
-	return stateChanges.NewStateChangesCollector(collectRead, collectWrite), nil
+	return stateChanges.NewCollector(opts...), nil
 }
 
 func (scf *stateComponentsFactory) createSnapshotManager(

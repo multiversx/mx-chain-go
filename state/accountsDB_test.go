@@ -180,7 +180,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(false, true),
+		StateChangesCollector: stateChanges.NewCollector(stateChanges.WithCollectWrite()),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

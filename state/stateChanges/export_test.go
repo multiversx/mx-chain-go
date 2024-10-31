@@ -1,13 +1,13 @@
 package stateChanges
 
 // GetStateChanges -
-func (scc *stateChangesCollector) GetStateChanges() []StateChangesForTx {
-	scs, _ := scc.getStateChangesForTxs()
+func (c *collector) GetStateChanges() []StateChangesForTx {
+	scs, _ := c.getStateChangesForTxs()
 	return scs
 }
 
 // GetStateChanges -
-func (dsc *dataAnalysisCollector) GetStateChanges() []dataAnalysisStateChangesForTx {
-	scs, _ := dsc.getDataAnalysisStateChangesForTxs()
+func (c *collector) GetDataAnalysisStateChanges() []dataAnalysisStateChangesForTx {
+	scs, _ := c.getDataAnalysisStateChangesForTxs()
 	return scs
 }

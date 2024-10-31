@@ -2,6 +2,7 @@ package stateChanges
 
 import (
 	"fmt"
+	"math/big"
 	"strconv"
 	"testing"
 
@@ -10,34 +11,93 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/mock"
+	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 
 	"github.com/stretchr/testify/require"
 )
 
-func getDefaultStateChange() *data.StateChange {
+func getWriteStateChange() *data.StateChange {
 	return &data.StateChange{
 		Type: data.Write,
+	}
+}
+
+func getReadStateChange() *data.StateChange {
+	return &data.StateChange{
+		Type: data.Read,
 	}
 }
 
 func TestNewStateChangesCollector(t *testing.T) {
 	t.Parallel()
 
-	stateChangesCollector := NewStateChangesCollector(true, true)
+	stateChangesCollector := NewCollector()
 	require.False(t, stateChangesCollector.IsInterfaceNil())
 }
 
 func TestStateChangesCollector_AddStateChange(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector(true, true)
-	assert.Equal(t, 0, len(scc.stateChanges))
+	t.Run("default collector", func(t *testing.T) {
+		t.Parallel()
 
-	numStateChanges := 10
-	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(getDefaultStateChange())
-	}
-	assert.Equal(t, numStateChanges, len(scc.stateChanges))
+		c := NewCollector()
+		assert.Equal(t, 0, len(c.stateChanges))
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			c.AddStateChange(getWriteStateChange())
+		}
+		assert.Equal(t, 0, len(c.stateChanges))
+	})
+
+	t.Run("collect only write", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateChanges))
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			c.AddStateChange(getWriteStateChange())
+		}
+
+		c.AddStateChange(getReadStateChange())
+		assert.Equal(t, numStateChanges, len(c.stateChanges))
+	})
+
+	t.Run("collect only read", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectRead())
+		assert.Equal(t, 0, len(c.stateChanges))
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			c.AddStateChange(getReadStateChange())
+		}
+
+		c.AddStateChange(getWriteStateChange())
+		assert.Equal(t, numStateChanges, len(c.stateChanges))
+	})
+
+	t.Run("collect both read and write", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectRead(), WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateChanges))
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			if i%2 == 0 {
+				c.AddStateChange(getReadStateChange())
+			} else {
+				c.AddStateChange(getWriteStateChange())
+			}
+		}
+		assert.Equal(t, numStateChanges, len(c.stateChanges))
+	})
 }
 
 func TestStateChangesCollector_GetStateChanges(t *testing.T) {
@@ -46,26 +106,26 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 	t.Run("getStateChanges with tx hash", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(true, true)
-		assert.Equal(t, 0, len(scc.stateChanges))
-		assert.Equal(t, 0, len(scc.GetStateChanges()))
+		c := NewCollector(WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateChanges))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			scc.AddStateChange(&data.StateChange{
+			c.AddStateChange(&data.StateChange{
 				Type:        data.Write,
 				MainTrieKey: []byte(strconv.Itoa(i)),
 			})
 		}
-		assert.Equal(t, numStateChanges, len(scc.stateChanges))
-		assert.Equal(t, 0, len(scc.GetStateChanges()))
-		scc.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
-		assert.Equal(t, numStateChanges, len(scc.stateChanges))
-		assert.Equal(t, 1, len(scc.GetStateChanges()))
-		assert.Equal(t, []byte("txHash"), scc.GetStateChanges()[0].TxHash)
-		assert.Equal(t, numStateChanges, len(scc.GetStateChanges()[0].StateChanges))
+		assert.Equal(t, numStateChanges, len(c.stateChanges))
+		stateChangesForTxs, _ := c.getStateChangesForTxs()
+		assert.Equal(t, 0, len(stateChangesForTxs))
+		c.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
+		assert.Equal(t, numStateChanges, len(c.stateChanges))
+		assert.Equal(t, 1, len(c.GetStateChanges()))
+		assert.Equal(t, []byte("txHash"), c.GetStateChanges()[0].TxHash)
+		assert.Equal(t, numStateChanges, len(c.GetStateChanges()[0].StateChanges))
 
-		stateChangesForTx := scc.GetStateChanges()
+		stateChangesForTx := c.GetStateChanges()
 		assert.Equal(t, 1, len(stateChangesForTx))
 		assert.Equal(t, []byte("txHash"), stateChangesForTx[0].TxHash)
 		for i := 0; i < len(stateChangesForTx[0].StateChanges); i++ {
@@ -79,21 +139,21 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 	t.Run("getStateChanges without tx hash", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(true, true)
-		assert.Equal(t, 0, len(scc.stateChanges))
-		assert.Equal(t, 0, len(scc.GetStateChanges()))
+		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+		assert.Equal(t, 0, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.GetStateChanges()))
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			scc.AddStateChange(&data.StateChange{
+			c.AddStateChange(&data.StateChange{
 				Type:        data.Write,
 				MainTrieKey: []byte(strconv.Itoa(i)),
 			})
 		}
-		assert.Equal(t, numStateChanges, len(scc.stateChanges))
-		assert.Equal(t, 0, len(scc.GetStateChanges()))
+		assert.Equal(t, numStateChanges, len(c.stateChanges))
+		assert.Equal(t, 0, len(c.GetStateChanges()))
 
-		stateChangesForTx := scc.GetStateChanges()
+		stateChangesForTx := c.GetStateChanges()
 		assert.Equal(t, 0, len(stateChangesForTx))
 	})
 }
@@ -101,11 +161,11 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector(true, true)
-	assert.Equal(t, 0, len(scc.stateChanges))
-	assert.Equal(t, 0, len(scc.GetStateChanges()))
+	c := NewCollector(WithCollectWrite())
+	assert.Equal(t, 0, len(c.stateChanges))
+	assert.Equal(t, 0, len(c.GetStateChanges()))
 
-	scc.AddTxHashToCollectedStateChanges([]byte("txHash0"), &transaction.Transaction{})
+	c.AddTxHashToCollectedStateChanges([]byte("txHash0"), &transaction.Transaction{})
 
 	stateChange := &data.StateChange{
 		Type:            data.Write,
@@ -113,15 +173,15 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 		MainTrieVal:     []byte("mainTrieVal"),
 		DataTrieChanges: []*data.DataTrieChange{{Key: []byte("dataTrieKey"), Val: []byte("dataTrieVal")}},
 	}
-	scc.AddStateChange(stateChange)
+	c.AddStateChange(stateChange)
 
-	assert.Equal(t, 1, len(scc.stateChanges))
-	assert.Equal(t, 0, len(scc.GetStateChanges()))
-	scc.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
-	assert.Equal(t, 1, len(scc.stateChanges))
-	assert.Equal(t, 1, len(scc.GetStateChanges()))
+	assert.Equal(t, 1, len(c.stateChanges))
+	assert.Equal(t, 0, len(c.GetStateChanges()))
+	c.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
+	assert.Equal(t, 1, len(c.stateChanges))
+	assert.Equal(t, 1, len(c.GetStateChanges()))
 
-	stateChangesForTx := scc.GetStateChanges()
+	stateChangesForTx := c.GetStateChanges()
 	assert.Equal(t, 1, len(stateChangesForTx))
 	assert.Equal(t, []byte("txHash"), stateChangesForTx[0].TxHash)
 	assert.Equal(t, 1, len(stateChangesForTx[0].StateChanges))
@@ -137,57 +197,57 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector(true, true)
-	numStateChanges := len(scc.stateChanges)
+	c := NewCollector(WithCollectWrite())
+	numStateChanges := len(c.stateChanges)
 
-	err := scc.RevertToIndex(-1)
+	err := c.RevertToIndex(-1)
 	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 
-	err = scc.RevertToIndex(numStateChanges + 1)
+	err = c.RevertToIndex(numStateChanges + 1)
 	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 }
 
 func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector(true, true)
+	c := NewCollector(WithCollectWrite())
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(getDefaultStateChange())
-		err := scc.SetIndexToLastStateChange(i)
+		c.AddStateChange(getWriteStateChange())
+		err := c.SetIndexToLastStateChange(i)
 		require.Nil(t, err)
 	}
-	scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+	c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
 
 	for i := numStateChanges; i < numStateChanges*2; i++ {
-		scc.AddStateChange(getDefaultStateChange())
-		scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
+		c.AddStateChange(getWriteStateChange())
+		c.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
 	}
-	err := scc.SetIndexToLastStateChange(numStateChanges)
+	err := c.SetIndexToLastStateChange(numStateChanges)
 	require.Nil(t, err)
 
-	assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
 
-	err = scc.RevertToIndex(numStateChanges)
+	err = c.RevertToIndex(numStateChanges)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges*2-1, len(scc.stateChanges))
+	assert.Equal(t, numStateChanges*2-1, len(c.stateChanges))
 
-	err = scc.RevertToIndex(numStateChanges - 1)
+	err = c.RevertToIndex(numStateChanges - 1)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges-1, len(scc.stateChanges))
+	assert.Equal(t, numStateChanges-1, len(c.stateChanges))
 
-	err = scc.RevertToIndex(numStateChanges / 2)
+	err = c.RevertToIndex(numStateChanges / 2)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges/2, len(scc.stateChanges))
+	assert.Equal(t, numStateChanges/2, len(c.stateChanges))
 
-	err = scc.RevertToIndex(1)
+	err = c.RevertToIndex(1)
 	require.Nil(t, err)
-	assert.Equal(t, 1, len(scc.stateChanges))
+	assert.Equal(t, 1, len(c.stateChanges))
 
-	err = scc.RevertToIndex(0)
+	err = c.RevertToIndex(0)
 	require.Nil(t, err)
-	assert.Equal(t, 0, len(scc.stateChanges))
+	assert.Equal(t, 0, len(c.stateChanges))
 }
 
 func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
@@ -196,62 +256,62 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 	t.Run("should fail if valid index", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(true, true)
+		c := NewCollector(WithCollectWrite())
 
-		err := scc.SetIndexToLastStateChange(-1)
+		err := c.SetIndexToLastStateChange(-1)
 		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 
-		numStateChanges := len(scc.stateChanges)
-		err = scc.SetIndexToLastStateChange(numStateChanges + 1)
+		numStateChanges := len(c.stateChanges)
+		err = c.SetIndexToLastStateChange(numStateChanges + 1)
 		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(true, true)
+		c := NewCollector(WithCollectWrite())
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			scc.AddStateChange(getDefaultStateChange())
-			err := scc.SetIndexToLastStateChange(i)
+			c.AddStateChange(getWriteStateChange())
+			err := c.SetIndexToLastStateChange(i)
 			require.Nil(t, err)
 		}
-		scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
 
 		for i := numStateChanges; i < numStateChanges*2; i++ {
-			scc.AddStateChange(getDefaultStateChange())
-			scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
+			c.AddStateChange(getWriteStateChange())
+			c.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
 		}
-		err := scc.SetIndexToLastStateChange(numStateChanges)
+		err := c.SetIndexToLastStateChange(numStateChanges)
 		require.Nil(t, err)
 
-		assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
+		assert.Equal(t, numStateChanges*2, len(c.stateChanges))
 	})
 }
 
 func TestStateChangesCollector_Reset(t *testing.T) {
 	t.Parallel()
 
-	scc := NewStateChangesCollector(true, true)
-	assert.Equal(t, 0, len(scc.stateChanges))
+	c := NewCollector(WithCollectWrite())
+	assert.Equal(t, 0, len(c.stateChanges))
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(getDefaultStateChange())
+		c.AddStateChange(getWriteStateChange())
 	}
-	scc.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
+	c.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
 	for i := numStateChanges; i < numStateChanges*2; i++ {
-		scc.AddStateChange(getDefaultStateChange())
+		c.AddStateChange(getWriteStateChange())
 	}
-	assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
 
-	assert.Equal(t, 1, len(scc.GetStateChanges()))
+	assert.Equal(t, 1, len(c.GetStateChanges()))
 
-	scc.Reset()
-	assert.Equal(t, 0, len(scc.stateChanges))
+	c.Reset()
+	assert.Equal(t, 0, len(c.stateChanges))
 
-	assert.Equal(t, 0, len(scc.GetStateChanges()))
+	assert.Equal(t, 0, len(c.GetStateChanges()))
 }
 
 func TestStateChangesCollector_Publish(t *testing.T) {
@@ -260,19 +320,19 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 	t.Run("collect only write", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(false, true)
-		assert.Equal(t, 0, len(scc.stateChanges))
+		c := NewCollector(WithCollectWrite())
+		assert.Equal(t, 0, len(c.stateChanges))
 
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				scc.AddStateChange(&data.StateChange{
+				c.AddStateChange(&data.StateChange{
 					Type: data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
-				scc.AddStateChange(&data.StateChange{
+				c.AddStateChange(&data.StateChange{
 					Type: data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
@@ -280,7 +340,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx, err := scc.Publish()
+		stateChangesForTx, err := c.Publish()
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 1)
@@ -307,19 +367,19 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 	t.Run("collect only read", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(true, false)
-		assert.Equal(t, 0, len(scc.stateChanges))
+		c := NewCollector(WithCollectRead())
+		assert.Equal(t, 0, len(c.stateChanges))
 
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				scc.AddStateChange(&data.StateChange{
+				c.AddStateChange(&data.StateChange{
 					Type: data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
-				scc.AddStateChange(&data.StateChange{
+				c.AddStateChange(&data.StateChange{
 					Type: data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
@@ -327,7 +387,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx, err := scc.Publish()
+		stateChangesForTx, err := c.Publish()
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 1)
@@ -354,19 +414,19 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 	t.Run("collect both read and write", func(t *testing.T) {
 		t.Parallel()
 
-		scc := NewStateChangesCollector(true, true)
-		assert.Equal(t, 0, len(scc.stateChanges))
+		c := NewCollector(WithCollectRead())
+		assert.Equal(t, 0, len(c.stateChanges))
 
 		numStateChanges := 20
 		for i := 0; i < numStateChanges; i++ {
 			if i%2 == 0 {
-				scc.AddStateChange(&data.StateChange{
+				c.AddStateChange(&data.StateChange{
 					Type: data.Write,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
 				})
 			} else {
-				scc.AddStateChange(&data.StateChange{
+				c.AddStateChange(&data.StateChange{
 					Type: data.Read,
 					// distribute evenly based on parity of the index
 					TxHash: []byte(fmt.Sprintf("hash%d", i%2)),
@@ -374,7 +434,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 			}
 		}
 
-		stateChangesForTx, err := scc.Publish()
+		stateChangesForTx, err := c.Publish()
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 2)
@@ -412,4 +472,164 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 			},
 		})
 	})
+}
+
+func TestNewDataAnalysisCollector(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithStorer(&mock.PersisterStub{}))
+		require.False(t, c.IsInterfaceNil())
+		require.NotNil(t, c.storer)
+	})
+}
+
+func TestDataAnalysisStateChangesCollector_AddSaveAccountStateChange(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil old account should return early", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+
+		c.AddSaveAccountStateChange(
+			nil,
+			&mockState.UserAccountStub{},
+			&data.StateChange{
+				Type:        data.Write,
+				Index:       2,
+				TxHash:      []byte("txHash1"),
+				MainTrieKey: []byte("key1"),
+			},
+		)
+
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+		stateChangesForTx := c.GetStateChanges()
+		require.Equal(t, 1, len(stateChangesForTx))
+
+		sc := stateChangesForTx[0].StateChanges[0]
+		dasc, ok := sc.(*dataAnalysisStateChangeDTO)
+		require.True(t, ok)
+
+		require.False(t, dasc.Nonce)
+		require.False(t, dasc.Balance)
+		require.False(t, dasc.CodeHash)
+		require.False(t, dasc.RootHash)
+		require.False(t, dasc.DeveloperReward)
+		require.False(t, dasc.OwnerAddress)
+		require.False(t, dasc.UserName)
+		require.False(t, dasc.CodeMetadata)
+	})
+
+	t.Run("nil new account should return early", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+
+		c.AddSaveAccountStateChange(
+			&mockState.UserAccountStub{},
+			nil,
+			&data.StateChange{
+				Type:        data.Write,
+				Index:       2,
+				TxHash:      []byte("txHash1"),
+				MainTrieKey: []byte("key1"),
+			},
+		)
+
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+		stateChangesForTx := c.GetStateChanges()
+		require.Equal(t, 1, len(stateChangesForTx))
+
+		sc := stateChangesForTx[0].StateChanges[0]
+		dasc, ok := sc.(*dataAnalysisStateChangeDTO)
+		require.True(t, ok)
+
+		require.False(t, dasc.Nonce)
+		require.False(t, dasc.Balance)
+		require.False(t, dasc.CodeHash)
+		require.False(t, dasc.RootHash)
+		require.False(t, dasc.DeveloperReward)
+		require.False(t, dasc.OwnerAddress)
+		require.False(t, dasc.UserName)
+		require.False(t, dasc.CodeMetadata)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+
+		c.AddSaveAccountStateChange(
+			&mockState.UserAccountStub{
+				Nonce:            0,
+				Balance:          big.NewInt(0),
+				DeveloperRewards: big.NewInt(0),
+				UserName:         []byte{0},
+				Owner:            []byte{0},
+				Address:          []byte{0},
+				CodeMetadata:     []byte{0},
+				CodeHash:         []byte{0},
+				GetRootHashCalled: func() []byte {
+					return []byte{0}
+				},
+			},
+			&mockState.UserAccountStub{
+				Nonce:            1,
+				Balance:          big.NewInt(1),
+				DeveloperRewards: big.NewInt(1),
+				UserName:         []byte{1},
+				Owner:            []byte{1},
+				Address:          []byte{1},
+				CodeMetadata:     []byte{1},
+				CodeHash:         []byte{1},
+				GetRootHashCalled: func() []byte {
+					return []byte{1}
+				},
+			},
+			&data.StateChange{
+				Type:        data.Write,
+				Index:       2,
+				TxHash:      []byte("txHash1"),
+				MainTrieKey: []byte("key1"),
+			},
+		)
+
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+		stateChangesForTx := c.GetStateChanges()
+		require.Equal(t, 1, len(stateChangesForTx))
+
+		sc := stateChangesForTx[0].StateChanges[0]
+		dasc, ok := sc.(*dataAnalysisStateChangeDTO)
+		require.True(t, ok)
+
+		require.True(t, dasc.Nonce)
+		require.True(t, dasc.Balance)
+		require.True(t, dasc.CodeHash)
+		require.True(t, dasc.RootHash)
+		require.True(t, dasc.DeveloperReward)
+		require.True(t, dasc.OwnerAddress)
+		require.True(t, dasc.UserName)
+		require.True(t, dasc.CodeMetadata)
+	})
+}
+
+func TestDataAnalysisStateChangesCollector_Reset(t *testing.T) {
+	t.Parallel()
+
+	c := NewCollector(WithCollectWrite(), WithStorer(&mock.PersisterStub{}))
+
+	numStateChanges := 10
+	for i := 0; i < numStateChanges; i++ {
+		c.AddStateChange(getWriteStateChange())
+	}
+	require.Equal(t, numStateChanges, len(c.stateChanges))
+
+	c.Reset()
+	require.Equal(t, 0, len(c.GetStateChanges()))
 }
