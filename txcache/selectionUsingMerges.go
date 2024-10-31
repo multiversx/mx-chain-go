@@ -24,26 +24,7 @@ func (cache *TxCache) selectTransactionsUsingMerges(gasRequested uint64) (BunchO
 	return selection, senders
 }
 
-func selectUntilReachedGasRequested(bunch BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
-	accumulatedGas := uint64(0)
-
-	for index, transaction := range bunch {
-		accumulatedGas += transaction.Tx.GetGasLimit()
-
-		if accumulatedGas > gasRequested {
-			return bunch[0:index]
-		}
-	}
-
-	return bunch
-}
-
 func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOfTransactions {
-	// If number of bunches is odd, add a phony bunch (to ease pairing logic).
-	if len(bunches)%2 == 1 {
-		bunches = append(bunches, make(BunchOfTransactions, 0))
-	}
-
 	jobs := make([]*mergingJob, numJobsForMerging)
 
 	for i := 0; i < numJobsForMerging; i++ {
@@ -63,7 +44,7 @@ func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOf
 		wg.Add(1)
 
 		go func(job *mergingJob) {
-			job.output = mergeBunchesOfTransactions(job.input)[0]
+			job.output = mergeBunches(job.input)
 			defer wg.Done()
 		}(job)
 	}
@@ -77,30 +58,32 @@ func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOf
 		outputBunchesOfJobs = append(outputBunchesOfJobs, job.output)
 	}
 
-	return mergeBunchesOfTransactions(outputBunchesOfJobs)[0]
+	return mergeBunches(outputBunchesOfJobs)
 }
 
-func mergeBunchesOfTransactions(bunches []BunchOfTransactions) []BunchOfTransactions {
-	if len(bunches) == 1 {
-		return bunches
-	}
-
-	// Make pairs of bunches, merge a pair into one bunch.
-	newBunches := make([]BunchOfTransactions, 0, len(bunches)/2)
-
-	for i := 0; i < len(bunches); i += 2 {
-		first := bunches[i]
-		second := bunches[i+1]
-
-		newBunch := mergeTwoBunchesOfTransactions(first, second)
-		newBunches = append(newBunches, newBunch)
-	}
-
-	// Recursive call:
-	return mergeBunchesOfTransactions(newBunches)
+func mergeBunches(bunches []BunchOfTransactions) BunchOfTransactions {
+	return mergeTwoBunchesOfBunches(bunches, make([]BunchOfTransactions, 0))
 }
 
-func mergeTwoBunchesOfTransactions(first BunchOfTransactions, second BunchOfTransactions) BunchOfTransactions {
+func mergeTwoBunchesOfBunches(first []BunchOfTransactions, second []BunchOfTransactions) BunchOfTransactions {
+	if len(first) == 0 && len(second) == 1 {
+		return second[0]
+	}
+	if len(first) == 1 && len(second) == 0 {
+		return first[0]
+	}
+	if len(first) == 0 && len(second) == 0 {
+		return make(BunchOfTransactions, 0)
+	}
+
+	return mergeTwoBunches(
+		mergeTwoBunchesOfBunches(first[0:len(first)/2], first[len(first)/2:]),
+		mergeTwoBunchesOfBunches(second[0:len(second)/2], second[len(second)/2:]),
+	)
+}
+
+// Empty bunches are handled.
+func mergeTwoBunches(first BunchOfTransactions, second BunchOfTransactions) BunchOfTransactions {
 	result := make(BunchOfTransactions, 0, len(first)+len(second))
 
 	firstIndex := 0
@@ -160,4 +143,18 @@ func isTransactionGreater(transaction *WrappedTransaction, otherTransaction *Wra
 
 	// In the end, compare by transaction hash
 	return string(transaction.TxHash) > string(otherTransaction.TxHash)
+}
+
+func selectUntilReachedGasRequested(bunch BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
+	accumulatedGas := uint64(0)
+
+	for index, transaction := range bunch {
+		accumulatedGas += transaction.Tx.GetGasLimit()
+
+		if accumulatedGas > gasRequested {
+			return bunch[0:index]
+		}
+	}
+
+	return bunch
 }
