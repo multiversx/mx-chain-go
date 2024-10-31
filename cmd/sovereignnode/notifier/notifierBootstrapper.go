@@ -70,15 +70,15 @@ func (nb *notifierBootstrapper) checkNodeState(ctx context.Context) {
 		case <-ctx.Done():
 			log.Debug("worker's go routine is stopping...")
 			return
-		case _ = <-nb.nodeSyncedChan:
+		case <-nb.nodeSyncedChan:
 			err := nb.sovereignNotifier.RegisterHandler(nb.incomingHeaderHandler)
 			if err != nil {
-				log.Error("ERROR SYNCING", "err", err)
+				log.Error("notifierBootstrapper: sovereignNotifier.RegisterHandler", "err", err)
 			}
-			log.Error("SYYYYYYNNNCCCCCEEEEEEED")
+			log.Debug("notifierBootstrapper.checkNodeState", "is node synced", true)
 			return
 		case <-ticker.C:
-			log.Error("NOT STATE NOT SYNCED YET")
+			log.Debug("notifierBootstrapper.checkNodeState", "is node synced", false)
 		}
 
 	}
