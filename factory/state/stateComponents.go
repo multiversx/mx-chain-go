@@ -393,10 +393,9 @@ func parseStateChangesTypesToCollect(stateChangesTypes []string) (collectRead bo
 
 			case 1:
 				collectWrite = true
-
-			default:
-				return false, false, fmt.Errorf("unknown action type %s", stateChangeType)
 			}
+		} else {
+			return false, false, fmt.Errorf("unknown action type %s", stateChangeType)
 		}
 	}
 

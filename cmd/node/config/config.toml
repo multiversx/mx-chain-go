@@ -662,6 +662,7 @@
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
+    StateChangesDataAnalysis = false
     StateChangesTypesToCollect = []
 
 [BlockSizeThrottleConfig]
