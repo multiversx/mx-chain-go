@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
@@ -12,6 +14,7 @@ import (
 
 var log = logger.GetOrCreate("notifier-bootstrap")
 
+// ArgsNotifierBootstrapper defines args needed to create a new notifier bootstrapper
 type ArgsNotifierBootstrapper struct {
 	IncomingHeaderHandler process.IncomingHeaderSubscriber
 	SovereignNotifier     notifierProcess.SovereignNotifier
@@ -30,7 +33,12 @@ type notifierBootstrapper struct {
 	roundDuration  uint64
 }
 
+// NewNotifierBootstrapper creates a sovereign notifier ws receiver connection bootstrapper
 func NewNotifierBootstrapper(args ArgsNotifierBootstrapper) (*notifierBootstrapper, error) {
+	if err := checkArgs(args); err != nil {
+		return nil, err
+	}
+
 	nb := &notifierBootstrapper{
 		incomingHeaderHandler: args.IncomingHeaderHandler,
 		sovereignNotifier:     args.SovereignNotifier,
@@ -45,6 +53,26 @@ func NewNotifierBootstrapper(args ArgsNotifierBootstrapper) (*notifierBootstrapp
 	return nb, nil
 }
 
+func checkArgs(args ArgsNotifierBootstrapper) error {
+	if check.IfNil(args.IncomingHeaderHandler) {
+		return errors.ErrNilIncomingHeaderSubscriber
+	}
+	if check.IfNil(args.SovereignNotifier) {
+		return errNilSovereignNotifier
+	}
+	if check.IfNil(args.ForkDetector) {
+		return errors.ErrNilForkDetector
+	}
+	if check.IfNil(args.Bootstrapper) {
+		return process.ErrNilBootstrapper
+	}
+	if args.RoundDuration == 0 {
+		return errors.ErrInvalidRoundDuration
+	}
+
+	return nil
+}
+
 func (nb *notifierBootstrapper) receivedSyncState(isNodeSynchronized bool) {
 	if isNodeSynchronized && nb.forkDetector.GetHighestFinalBlockNonce() != 0 {
 		select {
@@ -54,6 +82,9 @@ func (nb *notifierBootstrapper) receivedSyncState(isNodeSynchronized bool) {
 	}
 }
 
+// Start will start waiting on a go routine to be notified via nodeSyncedChan when the sovereign node is synced.
+// Meanwhile, it will print the current node state in log. When node is fully synced, it will register the incoming header
+// processor to the websocket listener and exit the waiting loop.
 func (nb *notifierBootstrapper) Start() {
 	var ctx context.Context
 	ctx, nb.cancelFunc = context.WithCancel(context.Background())
@@ -68,22 +99,24 @@ func (nb *notifierBootstrapper) checkNodeState(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("worker's go routine is stopping...")
+			log.Debug("notifierBootstrapper.checkNodeState: worker's go routine is stopping...")
 			return
 		case <-nb.nodeSyncedChan:
 			err := nb.sovereignNotifier.RegisterHandler(nb.incomingHeaderHandler)
 			if err != nil {
 				log.Error("notifierBootstrapper: sovereignNotifier.RegisterHandler", "err", err)
+				continue
 			}
+
 			log.Debug("notifierBootstrapper.checkNodeState", "is node synced", true)
 			return
 		case <-ticker.C:
 			log.Debug("notifierBootstrapper.checkNodeState", "is node synced", false)
 		}
-
 	}
 }
 
+// Close cancels current context and empties channel reads
 func (nb *notifierBootstrapper) Close() error {
 	if nb.cancelFunc != nil {
 		nb.cancelFunc()
@@ -92,4 +125,9 @@ func (nb *notifierBootstrapper) Close() error {
 	nrReads := core.EmptyChannel(nb.nodeSyncedChan)
 	log.Debug("notifierBootstrapper: emptied channel", "nodeSyncedChan nrReads", nrReads)
 	return nil
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (nb *notifierBootstrapper) IsInterfaceNil() bool {
+	return nb == nil
 }
