@@ -15,7 +15,7 @@ type printedTransaction struct {
 	Sender     string `json:"sender"`
 	Receiver   string `json:"receiver"`
 	DataLength int    `json:"dataLength"`
-	Fee        string `json:"fee"`
+	PPU        uint64 `json:"ppu"`
 }
 
 type printedSender struct {
@@ -75,7 +75,7 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		GasPrice:   transaction.GetGasPrice(),
 		GasLimit:   transaction.GetGasLimit(),
 		DataLength: len(transaction.GetData()),
-		Fee:        wrappedTx.TxFee.String(),
+		PPU:        wrappedTx.PricePerGasUnitQuotient,
 	}
 }
 
