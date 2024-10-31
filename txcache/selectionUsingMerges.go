@@ -1,6 +1,9 @@
 package txcache
 
-import "sync"
+import (
+	"bytes"
+	"sync"
+)
 
 type BunchOfTransactions []*WrappedTransaction
 
@@ -112,37 +115,35 @@ func mergeTwoBunches(first BunchOfTransactions, second BunchOfTransactions) Bunc
 // Equality is out of scope (not possible in our case).
 func isTransactionGreater(transaction *WrappedTransaction, otherTransaction *WrappedTransaction) bool {
 	// First, compare by price per unit
-	if transaction.PricePerGasUnitQuotient > otherTransaction.PricePerGasUnitQuotient {
-		return true
+	ppuQuotient := transaction.PricePerGasUnitQuotient
+	ppuQuotientOther := otherTransaction.PricePerGasUnitQuotient
+	if ppuQuotient != ppuQuotientOther {
+		return ppuQuotient > ppuQuotientOther
 	}
-	if transaction.PricePerGasUnitQuotient < otherTransaction.PricePerGasUnitQuotient {
-		return false
-	}
-	if transaction.PricePerGasUnitRemainder > otherTransaction.PricePerGasUnitRemainder {
-		return true
-	}
-	if transaction.PricePerGasUnitRemainder < otherTransaction.PricePerGasUnitRemainder {
-		return false
+
+	ppuRemainder := transaction.PricePerGasUnitRemainder
+	ppuRemainderOther := otherTransaction.PricePerGasUnitRemainder
+	if ppuRemainder != ppuRemainderOther {
+		return ppuRemainder > ppuRemainderOther
 	}
 
 	// Then, compare by gas price (to promote the practice of a higher gas price)
-	if transaction.Tx.GetGasPrice() > otherTransaction.Tx.GetGasPrice() {
-		return true
-	}
-	if transaction.Tx.GetGasPrice() < otherTransaction.Tx.GetGasPrice() {
-		return false
+	gasPrice := transaction.Tx.GetGasPrice()
+	gasPriceOther := otherTransaction.Tx.GetGasPrice()
+	if gasPrice != gasPriceOther {
+		return gasPrice > gasPriceOther
 	}
 
 	// Then, compare by gas limit (promote the practice of lower gas limit)
-	if transaction.Tx.GetGasLimit() < otherTransaction.Tx.GetGasLimit() {
-		return true
-	}
-	if transaction.Tx.GetGasLimit() > otherTransaction.Tx.GetGasLimit() {
-		return false
+	// Compare Gas Limits (promote lower gas limit)
+	gasLimit := transaction.Tx.GetGasLimit()
+	gasLimitOther := otherTransaction.Tx.GetGasLimit()
+	if gasLimit != gasLimitOther {
+		return gasLimit < gasLimitOther
 	}
 
 	// In the end, compare by transaction hash
-	return string(transaction.TxHash) > string(otherTransaction.TxHash)
+	return bytes.Compare(transaction.TxHash, otherTransaction.TxHash) > 0
 }
 
 func selectUntilReachedGasRequested(bunch BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
