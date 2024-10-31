@@ -33,7 +33,7 @@ type notifierBootstrapper struct {
 	roundDuration  uint64
 }
 
-// NewNotifierBootstrapper creates a sovereign notifier ws receiver connection bootstrapper
+// NewNotifierBootstrapper creates a ws receiver connection registration bootstrapper
 func NewNotifierBootstrapper(args ArgsNotifierBootstrapper) (*notifierBootstrapper, error) {
 	if err := checkArgs(args); err != nil {
 		return nil, err
