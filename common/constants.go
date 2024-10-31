@@ -1237,5 +1237,6 @@ const (
 	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
+	UseGasBoundedShouldFailExecutionFlag               core.EnableEpochFlag = "UseGasBoundedShouldFailExecutionFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
