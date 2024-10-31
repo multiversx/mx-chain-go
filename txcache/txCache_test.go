@@ -26,14 +26,13 @@ func Test_NewTxCache(t *testing.T) {
 	}
 
 	withEvictionConfig := ConfigSourceMe{
-		Name:                          "test",
-		NumChunks:                     16,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		CountThreshold:                math.MaxUint32,
-		NumSendersToPreemptivelyEvict: 100,
+		Name:                       "test",
+		NumChunks:                  16,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountPerSenderThreshold:    math.MaxUint32,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          maxNumBytesUpperBound,
+		CountThreshold:             math.MaxUint32,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
@@ -70,10 +69,6 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig = withEvictionConfig
 	badConfig.CountThreshold = 0
 	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", txGasHandler)
-
-	badConfig = withEvictionConfig
-	badConfig.NumSendersToPreemptivelyEvict = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumSendersToPreemptivelyEvict", txGasHandler)
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, txGasHandler TxGasHandler) {
@@ -443,14 +438,13 @@ func Test_Keys(t *testing.T) {
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	config := ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		CountThreshold:                100,
-		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
+		Name:                       "untitled",
+		NumChunks:                  16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountThreshold:             100,
+		CountPerSenderThreshold:    math.MaxUint32,
 	}
 
 	// 11 * 10
@@ -462,14 +456,13 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	require.LessOrEqual(t, cache.CountTx(), uint64(100))
 
 	config = ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		CountThreshold:                250000,
-		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
+		Name:                       "untitled",
+		NumChunks:                  16,
+		EvictionEnabled:            true,
+		NumBytesThreshold:          maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
+		CountThreshold:             250000,
+		CountPerSenderThreshold:    math.MaxUint32,
 	}
 
 	// 100 * 1000

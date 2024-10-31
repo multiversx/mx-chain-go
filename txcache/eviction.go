@@ -40,8 +40,7 @@ func (cache *TxCache) doEviction() *evictionJournal {
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("eviction")
 
-	// TODO: reimplement.
-	evictionJournal := evictionJournal{}
+	evictionJournal := cache.evictLeastLikelyToSelectTransactions()
 
 	stopWatch.Stop("eviction")
 
@@ -77,4 +76,53 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 	numTxs := cache.CountTx()
 	tooManyTxs := numTxs > uint64(cache.config.CountThreshold)
 	return tooManyTxs
+}
+
+func (cache *TxCache) evictLeastLikelyToSelectTransactions() evictionJournal {
+	senders := cache.getSenders()
+	bunches := make([]BunchOfTransactions, 0, len(senders))
+
+	for _, sender := range senders {
+		// Include transactions after gaps, as well (important), unlike when selecting transactions for processing.
+		bunches = append(bunches, sender.getTxs())
+	}
+
+	mergedBunch := mergeBunchesOfTransactionsInParallel(bunches)
+
+	// Select a reasonable number of transactions to evict.
+	transactionsToEvict := mergedBunch[3*len(mergedBunch)/4:]
+	transactionsToEvictHashes := make([][]byte, len(transactionsToEvict))
+
+	// For each sender, find the "lowest" (in nonce) transaction to evict.
+	lowestToEvictBySender := make(map[string]uint64)
+
+	for _, tx := range transactionsToEvict {
+		transactionsToEvictHashes = append(transactionsToEvictHashes, tx.TxHash)
+		sender := string(tx.Tx.GetSndAddr())
+
+		if _, ok := lowestToEvictBySender[sender]; ok {
+			continue
+		}
+
+		lowestToEvictBySender[sender] = tx.Tx.GetNonce()
+	}
+
+	// Remove those transactions from "txListBySender".
+	for sender, nonce := range lowestToEvictBySender {
+		list, ok := cache.txListBySender.getListForSender(sender)
+		if !ok {
+			continue
+		}
+
+		list.evictTransactionsWithHigherNonces(nonce - 1)
+	}
+
+	// Remove those transactions from "txByHash".
+	cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
+
+	evictionJournal := evictionJournal{
+		numTxs: uint32(len(transactionsToEvict)),
+	}
+
+	return evictionJournal
 }

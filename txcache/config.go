@@ -16,18 +16,16 @@ const maxNumItemsPerSenderLowerBound = 1
 const maxNumBytesPerSenderLowerBound = maxNumItemsPerSenderLowerBound * 1
 const maxNumBytesPerSenderUpperBound = 33_554_432 // 32 MB
 const numTxsToPreemptivelyEvictLowerBound = 1
-const numSendersToPreemptivelyEvictLowerBound = 1
 
 // ConfigSourceMe holds cache configuration
 type ConfigSourceMe struct {
-	Name                          string
-	NumChunks                     uint32
-	EvictionEnabled               bool
-	NumBytesThreshold             uint32
-	NumBytesPerSenderThreshold    uint32
-	CountThreshold                uint32
-	CountPerSenderThreshold       uint32
-	NumSendersToPreemptivelyEvict uint32
+	Name                       string
+	NumChunks                  uint32
+	EvictionEnabled            bool
+	NumBytesThreshold          uint32
+	NumBytesPerSenderThreshold uint32
+	CountThreshold             uint32
+	CountPerSenderThreshold    uint32
 }
 
 type senderConstraints struct {
@@ -55,9 +53,6 @@ func (config *ConfigSourceMe) verify() error {
 		}
 		if config.CountThreshold < maxNumItemsLowerBound {
 			return fmt.Errorf("%w: config.CountThreshold is invalid", common.ErrInvalidConfig)
-		}
-		if config.NumSendersToPreemptivelyEvict < numSendersToPreemptivelyEvictLowerBound {
-			return fmt.Errorf("%w: config.NumSendersToPreemptivelyEvict is invalid", common.ErrInvalidConfig)
 		}
 	}
 

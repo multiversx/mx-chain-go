@@ -279,18 +279,18 @@ func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) [][]byte 
 	listForSender.accountNonce.Set(nonce)
 	_ = listForSender.accountNonceKnown.SetReturningPrevious()
 
-	return listForSender.evictTransactionsWithLowerNonces(nonce)
+	return listForSender.evictTransactionsWithLowerNoncesNoLock(nonce)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNonce uint64) [][]byte {
+func (listForSender *txListForSender) evictTransactionsWithLowerNoncesNoLock(givenNonce uint64) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
 
 	for element := listForSender.items.Front(); element != nil; {
 		tx := element.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 
-		if txNonce >= accountNonce {
+		if txNonce >= givenNonce {
 			break
 		}
 
@@ -304,6 +304,25 @@ func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNo
 	}
 
 	return evictedTxHashes
+}
+
+func (listForSender *txListForSender) evictTransactionsWithHigherNonces(givenNonce uint64) {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	for element := listForSender.items.Back(); element != nil; {
+		tx := element.Value.(*WrappedTransaction)
+		txNonce := tx.Tx.GetNonce()
+
+		if txNonce <= givenNonce {
+			break
+		}
+
+		prevElement := element.Prev()
+		_ = listForSender.items.Remove(element)
+		listForSender.onRemovedListElement(element)
+		element = prevElement
+	}
 }
 
 // This function should only be used in critical section (listForSender.mutex).

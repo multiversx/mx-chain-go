@@ -173,7 +173,7 @@ func TestListForSender_NotifyAccountNonce(t *testing.T) {
 	require.True(t, list.accountNonceKnown.IsSet())
 }
 
-func TestListForSender_evictTransactionsWithLowerNonces(t *testing.T) {
+func TestListForSender_evictTransactionsWithLowerNoncesNoLock(t *testing.T) {
 	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
@@ -183,13 +183,13 @@ func TestListForSender_evictTransactionsWithLowerNonces(t *testing.T) {
 
 	require.Equal(t, 4, list.items.Len())
 
-	list.evictTransactionsWithLowerNonces(43)
+	list.evictTransactionsWithLowerNoncesNoLock(43)
 	require.Equal(t, 3, list.items.Len())
 
-	list.evictTransactionsWithLowerNonces(44)
+	list.evictTransactionsWithLowerNoncesNoLock(44)
 	require.Equal(t, 2, list.items.Len())
 
-	list.evictTransactionsWithLowerNonces(99)
+	list.evictTransactionsWithLowerNoncesNoLock(99)
 	require.Equal(t, 0, list.items.Len())
 }
 
