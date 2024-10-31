@@ -321,6 +321,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		missingNonces = append(missingNonces, extraMissingNonces...)
 	}
 
+	log.Error("baseProcessor.requestHeadersIfMissing")
+
 	bp.requestMissingHeadersFunc(missingNonces, shardId)
 	return nil
 }
