@@ -414,7 +414,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 	t.Run("collect both read and write", func(t *testing.T) {
 		t.Parallel()
 
-		c := NewCollector(WithCollectRead())
+		c := NewCollector(WithCollectRead(), WithCollectWrite())
 		assert.Equal(t, 0, len(c.stateChanges))
 
 		numStateChanges := 20
