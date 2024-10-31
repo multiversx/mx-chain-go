@@ -81,11 +81,17 @@ func mergeTwoBunchesOfTransactions(first BunchOfTransactions, second BunchOfTran
 
 // Equality is out of scope (not possible in our case).
 func isTransactionGreater(transaction *WrappedTransaction, otherTransaction *WrappedTransaction) bool {
-	// First, compare by fee (PLS CHANGE TO PPU)
-	cmpFee := transaction.TxFee.Cmp(otherTransaction.TxFee)
-	if cmpFee > 0 {
+	// First, compare by price per unit
+	if transaction.PricePerGasUnitQuotient > otherTransaction.PricePerGasUnitQuotient {
 		return true
-	} else if cmpFee < 0 {
+	}
+	if transaction.PricePerGasUnitQuotient < otherTransaction.PricePerGasUnitQuotient {
+		return false
+	}
+	if transaction.PricePerGasUnitRemainder > otherTransaction.PricePerGasUnitRemainder {
+		return true
+	}
+	if transaction.PricePerGasUnitRemainder < otherTransaction.PricePerGasUnitRemainder {
 		return false
 	}
 
