@@ -119,7 +119,7 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, gasRe
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions := cache.selectTransactionsUsingMerges(gasRequested)
+	transactions := cache.selectTransactionsUsingHeap(gasRequested)
 
 	stopWatch.Stop("selection")
 
