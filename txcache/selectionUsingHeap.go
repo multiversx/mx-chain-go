@@ -13,6 +13,7 @@ func (cache *TxCache) selectTransactionsUsingHeap(gasRequested uint64) BunchOfTr
 	return selectTransactionsFromBunchesUsingHeap(bunches, gasRequested)
 }
 
+// Selection tolerates concurrent transaction additions / removals.
 func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
 	selectedTransactions := make(BunchOfTransactions, 0, 30000)
 
@@ -27,8 +28,7 @@ func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRe
 			continue
 		}
 
-		// Items are reused (see below).
-		// Each sender gets one (and only one) item in the heap.
+		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
 		heap.Push(transactionsHeap, &TransactionsHeapItem{
 			senderIndex:      i,
 			transactionIndex: 0,
@@ -55,7 +55,7 @@ func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRe
 		item.transactionIndex++
 
 		if item.transactionIndex < len(bunches[item.senderIndex]) {
-			// Items are reused (same originating sender).
+			// Item is reused (same originating sender), pushed back on the heap.
 			item.transaction = bunches[item.senderIndex][item.transactionIndex]
 			heap.Push(transactionsHeap, item)
 		}
