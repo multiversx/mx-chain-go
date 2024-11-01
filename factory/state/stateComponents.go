@@ -107,7 +107,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	peerAdapter, err := scf.createPeerAdapter(triesContainer)
+	peerAdapter, err := scf.createPeerAdapter(triesContainer, stateChangesCollector)
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +158,9 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 			return nil, err
 		}
 
-		db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
+		db, err := persisterFactory.Create(dbConfig.FilePath)
 		if err != nil {
-			return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
+			return nil, fmt.Errorf("%w while creating the db for state changes", err)
 		}
 
 		opts = append(opts, stateChanges.WithStorer(db))
@@ -281,7 +281,10 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	return accountsAdapter, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
 }
 
-func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {
+func (scf *stateComponentsFactory) createPeerAdapter(
+	triesContainer common.TriesHolder,
+	stateChangesCollector state.StateChangesCollector,
+) (state.AccountsAdapter, error) {
 	accountFactory := factoryState.NewPeerAccountCreator()
 	merkleTrie := triesContainer.Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
@@ -300,11 +303,6 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 	}
 
 	snapshotManager, err := scf.createSnapshotManager(accountFactory, sm, iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider())
-	if err != nil {
-		return nil, err
-	}
-
-	stateChangesCollector, err := scf.createStateChangesCollector()
 	if err != nil {
 		return nil, err
 	}

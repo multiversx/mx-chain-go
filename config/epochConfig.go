@@ -122,6 +122,7 @@ type EnableEpochs struct {
 	FixRelayedBaseCostEnableEpoch                            uint32
 	MultiESDTNFTTransferAndExecuteByUserEnableEpoch          uint32
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32
+	UseGasBoundedShouldFailExecutionEnableEpoch              uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
