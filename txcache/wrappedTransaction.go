@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
+type BunchOfTransactions []*WrappedTransaction
+
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction struct {
 	Tx              data.TransactionHandler
