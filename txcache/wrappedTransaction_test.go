@@ -50,4 +50,35 @@ func TestWrappedTransaction_isTransactionMoreDesirableByProtocol(t *testing.T) {
 
 		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
 	})
+
+	t.Run("decide by gas price (set them up to have the same PPU)", func(t *testing.T) {
+		a := createTx([]byte("a-2"), "a", 1).withGasPrice(oneBillion + 1)
+		b := createTx([]byte("b-2"), "b", 1).withGasPrice(oneBillion)
+
+		a.PricePerGasUnitQuotient = 42
+		b.PricePerGasUnitQuotient = 42
+		a.PricePerGasUnitRemainder = 0
+		b.PricePerGasUnitRemainder = 0
+
+		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
+	})
+
+	t.Run("decide by gas limit (set them up to have the same PPU and gas price)", func(t *testing.T) {
+		a := createTx([]byte("a-2"), "a", 1).withGasLimit(55000)
+		b := createTx([]byte("b-2"), "b", 1).withGasLimit(60000)
+
+		a.PricePerGasUnitQuotient = 42
+		b.PricePerGasUnitQuotient = 42
+		a.PricePerGasUnitRemainder = 0
+		b.PricePerGasUnitRemainder = 0
+
+		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
+	})
+
+	t.Run("decide by transaction hash (set them up to have the same PPU, gas price and gas limit)", func(t *testing.T) {
+		a := createTx([]byte("a-2"), "a", 1)
+		b := createTx([]byte("b-2"), "b", 1)
+
+		require.True(t, b.isTransactionMoreDesirableByProtocol(a))
+	})
 }
