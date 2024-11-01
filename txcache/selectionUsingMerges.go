@@ -48,7 +48,7 @@ func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOf
 
 		go func(job *mergingJob) {
 			job.output = mergeBunches(job.input)
-			defer wg.Done()
+			wg.Done()
 		}(job)
 	}
 
