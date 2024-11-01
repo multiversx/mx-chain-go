@@ -17,7 +17,7 @@ func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRe
 	selectedTransactions := make(BunchOfTransactions, 0, 30000)
 
 	// Items popped from the heap are added to "selectedTransactions".
-	transactionsHeap := &TransactionHeap{}
+	transactionsHeap := &TransactionsMaxHeap{}
 	heap.Init(transactionsHeap)
 
 	// Initialize the heap with the first transaction of each bunch
@@ -27,8 +27,10 @@ func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRe
 			continue
 		}
 
-		heap.Push(transactionsHeap, &HeapItem{
-			bunchIndex:       i,
+		// Items are reused (see below).
+		// Each sender gets one (and only one) item in the heap.
+		heap.Push(transactionsHeap, &TransactionsHeapItem{
+			senderIndex:      i,
 			transactionIndex: 0,
 			transaction:      bunch[0],
 		})
@@ -39,7 +41,7 @@ func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRe
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
 		// Always pick the best transaction.
-		item := heap.Pop(transactionsHeap).(*HeapItem)
+		item := heap.Pop(transactionsHeap).(*TransactionsHeapItem)
 
 		accumulatedGas += item.transaction.Tx.GetGasLimit()
 		if accumulatedGas > gasRequested {
@@ -52,43 +54,12 @@ func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRe
 		// add the next one to the heap (to compete with the others).
 		item.transactionIndex++
 
-		if item.transactionIndex < len(bunches[item.bunchIndex]) {
-			item.transaction = bunches[item.bunchIndex][item.transactionIndex]
+		if item.transactionIndex < len(bunches[item.senderIndex]) {
+			// Items are reused (same originating sender).
+			item.transaction = bunches[item.senderIndex][item.transactionIndex]
 			heap.Push(transactionsHeap, item)
 		}
 	}
 
 	return selectedTransactions
-}
-
-type HeapItem struct {
-	bunchIndex       int
-	transactionIndex int
-	transaction      *WrappedTransaction
-}
-
-type TransactionHeap []*HeapItem
-
-func (h TransactionHeap) Len() int { return len(h) }
-
-func (h TransactionHeap) Less(i, j int) bool {
-	return h[i].transaction.isTransactionMoreDesirableByProtocol(h[j].transaction)
-}
-
-func (h TransactionHeap) Swap(i, j int) {
-	h[i], h[j] = h[j], h[i]
-}
-
-func (h *TransactionHeap) Push(x interface{}) {
-	*h = append(*h, x.(*HeapItem))
-}
-
-func (h *TransactionHeap) Pop() interface{} {
-	// Standard code when storing the heap in a slice:
-	// https://pkg.go.dev/container/heap
-	old := *h
-	n := len(old)
-	item := old[n-1]
-	*h = old[0 : n-1]
-	return item
 }
