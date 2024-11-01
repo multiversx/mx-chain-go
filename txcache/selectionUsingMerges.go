@@ -2,12 +2,13 @@ package txcache
 
 import (
 	"bytes"
+	"fmt"
 	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 type BunchOfTransactions []*WrappedTransaction
-
-const numJobsForMerging = 4
 
 type mergingJob struct {
 	input  []BunchOfTransactions
@@ -22,46 +23,65 @@ func (cache *TxCache) selectTransactionsUsingMerges(gasRequested uint64) BunchOf
 		bunches = append(bunches, sender.getTxsWithoutGaps())
 	}
 
-	mergedBunch := mergeBunchesOfTransactionsInParallel(bunches)
+	mergedBunch := mergeBunchesInParallel(bunches, numJobsForMerging)
 	selection := selectUntilReachedGasRequested(mergedBunch, gasRequested)
 	return selection
 }
 
-func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOfTransactions {
-	jobs := make([]*mergingJob, numJobsForMerging)
+func mergeBunchesInParallel(bunches []BunchOfTransactions, numJobs int) BunchOfTransactions {
+	jobs := make([]*mergingJob, numJobs)
 
-	for i := 0; i < numJobsForMerging; i++ {
+	for i := 0; i < numJobs; i++ {
 		jobs[i] = &mergingJob{
-			input: make([]BunchOfTransactions, 0, len(bunches)/numJobsForMerging),
+			input: make([]BunchOfTransactions, 0, len(bunches)/numJobs),
 		}
 	}
 
 	for i, bunch := range bunches {
-		jobs[i%numJobsForMerging].input = append(jobs[i%numJobsForMerging].input, bunch)
+		jobs[i%numJobs].input = append(jobs[i%numJobs].input, bunch)
 	}
 
 	// Run jobs in parallel
 	wg := sync.WaitGroup{}
 
-	for _, job := range jobs {
+	stopWatch := core.NewStopWatch()
+
+	for i, job := range jobs {
 		wg.Add(1)
 
-		go func(job *mergingJob) {
+		go func(job *mergingJob, i int) {
+			stopWatch.Start(fmt.Sprintf("job %d", i))
+
 			job.output = mergeBunches(job.input)
+
+			stopWatch.Stop(fmt.Sprintf("job %d", i))
+
 			wg.Done()
-		}(job)
+		}(job, i)
 	}
 
 	wg.Wait()
 
 	// Merge the results of the jobs
-	outputBunchesOfJobs := make([]BunchOfTransactions, 0, numJobsForMerging)
+	outputBunchesOfJobs := make([]BunchOfTransactions, 0, numJobs)
 
 	for _, job := range jobs {
 		outputBunchesOfJobs = append(outputBunchesOfJobs, job.output)
 	}
 
-	return mergeBunches(outputBunchesOfJobs)
+	stopWatch.Start("final merge")
+
+	finalMerge := mergeBunches(outputBunchesOfJobs)
+
+	stopWatch.Stop("final merge")
+
+	for i := 0; i < numJobs; i++ {
+		fmt.Println("job", i, stopWatch.GetMeasurement(fmt.Sprintf("job %d", i)))
+	}
+
+	fmt.Println("final merge", stopWatch.GetMeasurement("final merge"))
+
+	return finalMerge
 }
 
 func mergeBunches(bunches []BunchOfTransactions) BunchOfTransactions {
