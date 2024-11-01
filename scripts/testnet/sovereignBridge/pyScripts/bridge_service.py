@@ -63,7 +63,7 @@ def main():
 
     updated_lines = update_env(lines, "WALLET_PATH", os.path.expanduser(wallet))
     updated_lines = update_env(updated_lines, "MULTIVERSX_PROXY", os.path.expanduser(proxy))
-    updated_lines = update_env(updated_lines, "MULTI_SIG_SC_ADDRESS", header_verifier_address)
+    updated_lines = update_env(updated_lines, "HEADER_VERIFIER_SC_ADDRESS", header_verifier_address)
     updated_lines = update_env(updated_lines, "ESDT_SAFE_SC_ADDRESS", esdt_safe_address)
     updated_lines = update_env(updated_lines, "CERT_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/certificate.crt"))
     updated_lines = update_env(updated_lines, "CERT_PK_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/private_key.pem"))
