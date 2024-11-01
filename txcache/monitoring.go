@@ -25,16 +25,9 @@ func displaySendersScoreHistogram(scoreGroups [][]*txListForSender) {
 	log.Debug("displaySendersScoreHistogram()", "histogram", stringBuilder.String())
 }
 
-func displaySelectionOutcome(contextualLogger logger.Logger, sortedSenders []*txListForSender, selection []*WrappedTransaction) {
+func displaySelectionOutcome(contextualLogger logger.Logger, selection []*WrappedTransaction) {
 	if contextualLogger.GetLevel() > logger.LogTrace {
 		return
-	}
-
-	if len(sortedSenders) > 0 {
-		contextualLogger.Trace("displaySelectionOutcome() - senders (as newline-separated JSON):")
-		contextualLogger.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
-	} else {
-		contextualLogger.Trace("displaySelectionOutcome() - senders: none")
 	}
 
 	if len(selection) > 0 {

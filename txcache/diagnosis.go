@@ -80,10 +80,10 @@ func (cache *TxCache) diagnoseSelection() {
 		return
 	}
 
-	senders, transactions := cache.doSelectTransactions(
+	transactions := cache.doSelectTransactions(
 		logDiagnoseSelection,
 		diagnosisSelectionGasRequested,
 	)
 
-	displaySelectionOutcome(logDiagnoseSelection, senders, transactions)
+	displaySelectionOutcome(logDiagnoseSelection, transactions)
 }

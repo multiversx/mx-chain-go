@@ -14,7 +14,7 @@ type mergingJob struct {
 	output BunchOfTransactions
 }
 
-func (cache *TxCache) selectTransactionsUsingMerges(gasRequested uint64) (BunchOfTransactions, []*txListForSender) {
+func (cache *TxCache) selectTransactionsUsingMerges(gasRequested uint64) BunchOfTransactions {
 	senders := cache.getSenders()
 	bunches := make([]BunchOfTransactions, 0, len(senders))
 
@@ -24,7 +24,7 @@ func (cache *TxCache) selectTransactionsUsingMerges(gasRequested uint64) (BunchO
 
 	mergedBunch := mergeBunchesOfTransactionsInParallel(bunches)
 	selection := selectUntilReachedGasRequested(mergedBunch, gasRequested)
-	return selection, senders
+	return selection
 }
 
 func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOfTransactions {
