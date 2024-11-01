@@ -15,17 +15,18 @@ const maxNumBytesUpperBound = 1_073_741_824 // one GB
 const maxNumItemsPerSenderLowerBound = 1
 const maxNumBytesPerSenderLowerBound = maxNumItemsPerSenderLowerBound * 1
 const maxNumBytesPerSenderUpperBound = 33_554_432 // 32 MB
-const numTxsToPreemptivelyEvictLowerBound = 1
+const numItemsToPreemptivelyEvictLowerBound = 1
 
 // ConfigSourceMe holds cache configuration
 type ConfigSourceMe struct {
-	Name                       string
-	NumChunks                  uint32
-	EvictionEnabled            bool
-	NumBytesThreshold          uint32
-	NumBytesPerSenderThreshold uint32
-	CountThreshold             uint32
-	CountPerSenderThreshold    uint32
+	Name                        string
+	NumChunks                   uint32
+	EvictionEnabled             bool
+	NumBytesThreshold           uint32
+	NumBytesPerSenderThreshold  uint32
+	CountThreshold              uint32
+	CountPerSenderThreshold     uint32
+	NumItemsToPreemptivelyEvict uint32
 }
 
 type senderConstraints struct {
@@ -33,7 +34,6 @@ type senderConstraints struct {
 	maxNumBytes uint32
 }
 
-// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (config *ConfigSourceMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", common.ErrInvalidConfig)
@@ -53,6 +53,9 @@ func (config *ConfigSourceMe) verify() error {
 		}
 		if config.CountThreshold < maxNumItemsLowerBound {
 			return fmt.Errorf("%w: config.CountThreshold is invalid", common.ErrInvalidConfig)
+		}
+		if config.NumItemsToPreemptivelyEvict < numItemsToPreemptivelyEvictLowerBound {
+			return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", common.ErrInvalidConfig)
 		}
 	}
 
@@ -85,7 +88,6 @@ type ConfigDestinationMe struct {
 	NumItemsToPreemptivelyEvict uint32
 }
 
-// TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
 func (config *ConfigDestinationMe) verify() error {
 	if len(config.Name) == 0 {
 		return fmt.Errorf("%w: config.Name is invalid", common.ErrInvalidConfig)
@@ -99,7 +101,7 @@ func (config *ConfigDestinationMe) verify() error {
 	if config.MaxNumBytes < maxNumBytesLowerBound || config.MaxNumBytes > maxNumBytesUpperBound {
 		return fmt.Errorf("%w: config.MaxNumBytes is invalid", common.ErrInvalidConfig)
 	}
-	if config.NumItemsToPreemptivelyEvict < numTxsToPreemptivelyEvictLowerBound {
+	if config.NumItemsToPreemptivelyEvict < numItemsToPreemptivelyEvictLowerBound {
 		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", common.ErrInvalidConfig)
 	}
 
