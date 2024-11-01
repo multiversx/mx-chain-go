@@ -183,13 +183,13 @@ func TestListForSender_evictTransactionsWithLowerNoncesNoLock(t *testing.T) {
 
 	require.Equal(t, 4, list.items.Len())
 
-	list.evictTransactionsWithLowerNoncesNoLock(43)
+	list.evictTransactionsWithLowerNoncesNoLockReturnEvicted(43)
 	require.Equal(t, 3, list.items.Len())
 
-	list.evictTransactionsWithLowerNoncesNoLock(44)
+	list.evictTransactionsWithLowerNoncesNoLockReturnEvicted(44)
 	require.Equal(t, 2, list.items.Len())
 
-	list.evictTransactionsWithLowerNoncesNoLock(99)
+	list.evictTransactionsWithLowerNoncesNoLockReturnEvicted(99)
 	require.Equal(t, 0, list.items.Len())
 }
 

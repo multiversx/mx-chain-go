@@ -279,11 +279,11 @@ func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) [][]byte 
 	listForSender.accountNonce.Set(nonce)
 	_ = listForSender.accountNonceKnown.SetReturningPrevious()
 
-	return listForSender.evictTransactionsWithLowerNoncesNoLock(nonce)
+	return listForSender.evictTransactionsWithLowerNoncesNoLockReturnEvicted(nonce)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) evictTransactionsWithLowerNoncesNoLock(givenNonce uint64) [][]byte {
+func (listForSender *txListForSender) evictTransactionsWithLowerNoncesNoLockReturnEvicted(givenNonce uint64) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
 
 	for element := listForSender.items.Front(); element != nil; {
