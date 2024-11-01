@@ -10,12 +10,14 @@ import (
 
 func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunks:                  16,
-		NumBytesThreshold:          maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountThreshold:             2,
-		CountPerSenderThreshold:    math.MaxUint32,
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              4,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
 	}
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
@@ -23,11 +25,13 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	require.NotNil(t, cache)
 
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", 1).withGasPrice(1 * oneBillion))
-	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1).withGasPrice(1 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1).withGasPrice(2 * oneBillion))
 	cache.AddTx(createTx([]byte("hash-carol"), "carol", 1).withGasPrice(3 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-eve"), "eve", 1).withGasPrice(4 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-dan"), "dan", 1).withGasPrice(5 * oneBillion))
 
 	journal := cache.doEviction()
-	require.Equal(t, uint32(2), journal.numTxs)
+	require.Equal(t, uint32(1), journal.numEvicted)
 
 	// Alice and Bob evicted. Carol still there (better score).
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -38,12 +42,14 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 
 func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunks:                  16,
-		NumBytesThreshold:          1000,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountThreshold:             math.MaxUint32,
-		CountPerSenderThreshold:    math.MaxUint32,
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           1000,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
@@ -57,7 +63,7 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-eve"), "eve", 1).withSize(256).withGasLimit(500000).withGasPrice(3 * oneBillion))
 
 	journal := cache.doEviction()
-	require.Equal(t, uint32(2), journal.numTxs)
+	require.Equal(t, 2, journal.numEvicted)
 
 	// Alice and Bob evicted (lower score). Carol and Eve still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -70,11 +76,14 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 
 func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunks:                  1,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountThreshold:             0,
-		CountPerSenderThreshold:    math.MaxUint32,
+		Name:                        "untitled",
+		NumChunks:                   1,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              4,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
@@ -82,11 +91,26 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
-
 	_ = cache.isEvictionInProgress.SetReturningPrevious()
+
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", uint64(2)))
+	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", uint64(3)))
+	cache.AddTx(createTx([]byte("hash-alice-4"), "alice", uint64(4)))
+	cache.AddTx(createTx([]byte("hash-alice-5"), "alice", uint64(5)))
+
+	// Nothing is evicted because eviction is already in progress.
 	journal := cache.doEviction()
 	require.Nil(t, journal)
+	require.Equal(t, uint64(5), cache.CountTx())
+
+	cache.isEvictionInProgress.Reset()
+
+	// Now eviction can happen.
+	journal = cache.doEviction()
+	require.NotNil(t, journal)
+	require.Equal(t, 1, journal.numEvicted)
+	require.Equal(t, 4, int(cache.CountTx()))
 }
 
 // This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:

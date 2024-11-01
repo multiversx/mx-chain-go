@@ -146,6 +146,11 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 			}
 		}
 
+		if len(transactionsToEvict) == 0 {
+			// No more transactions to evict.
+			break
+		}
+
 		// For each sender, find the "lowest" (in nonce) transaction to evict.
 		lowestToEvictBySender := make(map[string]uint64)
 
