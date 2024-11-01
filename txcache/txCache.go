@@ -270,9 +270,9 @@ func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()
 }
 
-// MaxSize is not implemented
+// MaxSize returns the maximum number of transactions that can be stored in the cache.
+// See: https://github.com/multiversx/mx-chain-go/blob/v1.8.4/dataRetriever/txpool/shardedTxPool.go#L55
 func (cache *TxCache) MaxSize() int {
-	// TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
 	return int(cache.config.CountThreshold)
 }
 

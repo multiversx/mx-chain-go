@@ -15,7 +15,7 @@ const maxNumBytesUpperBound = 1_073_741_824 // one GB
 const maxNumItemsPerSenderLowerBound = 1
 const maxNumBytesPerSenderLowerBound = maxNumItemsPerSenderLowerBound * 1
 const maxNumBytesPerSenderUpperBound = 33_554_432 // 32 MB
-const numItemsToPreemptivelyEvictLowerBound = 1
+const numItemsToPreemptivelyEvictLowerBound = uint32(1)
 
 // ConfigSourceMe holds cache configuration
 type ConfigSourceMe struct {
@@ -47,16 +47,15 @@ func (config *ConfigSourceMe) verify() error {
 	if config.CountPerSenderThreshold < maxNumItemsPerSenderLowerBound {
 		return fmt.Errorf("%w: config.CountPerSenderThreshold is invalid", common.ErrInvalidConfig)
 	}
-	if config.EvictionEnabled {
-		if config.NumBytesThreshold < maxNumBytesLowerBound || config.NumBytesThreshold > maxNumBytesUpperBound {
-			return fmt.Errorf("%w: config.NumBytesThreshold is invalid", common.ErrInvalidConfig)
-		}
-		if config.CountThreshold < maxNumItemsLowerBound {
-			return fmt.Errorf("%w: config.CountThreshold is invalid", common.ErrInvalidConfig)
-		}
-		if config.NumItemsToPreemptivelyEvict < numItemsToPreemptivelyEvictLowerBound {
-			return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", common.ErrInvalidConfig)
-		}
+
+	if config.NumBytesThreshold < maxNumBytesLowerBound || config.NumBytesThreshold > maxNumBytesUpperBound {
+		return fmt.Errorf("%w: config.NumBytesThreshold is invalid", common.ErrInvalidConfig)
+	}
+	if config.CountThreshold < maxNumItemsLowerBound {
+		return fmt.Errorf("%w: config.CountThreshold is invalid", common.ErrInvalidConfig)
+	}
+	if config.NumItemsToPreemptivelyEvict < numItemsToPreemptivelyEvictLowerBound {
+		return fmt.Errorf("%w: config.NumItemsToPreemptivelyEvict is invalid", common.ErrInvalidConfig)
 	}
 
 	return nil

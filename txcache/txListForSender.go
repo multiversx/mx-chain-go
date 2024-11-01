@@ -306,7 +306,7 @@ func (listForSender *txListForSender) evictTransactionsWithLowerNoncesNoLockRetu
 	return evictedTxHashes
 }
 
-func (listForSender *txListForSender) evictTransactionsWithHigherNonces(givenNonce uint64) {
+func (listForSender *txListForSender) evictTransactionsWithHigherOrEqualNonces(givenNonce uint64) {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
@@ -314,7 +314,7 @@ func (listForSender *txListForSender) evictTransactionsWithHigherNonces(givenNon
 		tx := element.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 
-		if txNonce <= givenNonce {
+		if txNonce < givenNonce {
 			break
 		}
 
