@@ -529,42 +529,25 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	sovereignNotifier, err := createSovereignNotifier(&configs.SovereignExtraConfig.NotifierConfig)
-	if err != nil {
-		return true, err
-	}
-
-	sovereignWsReceiver, err := createSovereignWsReceiver(
+	notifierServices, err := createNotifierWSReceiverServicesIfNeeded(
 		&configs.SovereignExtraConfig.NotifierConfig,
-		sovereignNotifier,
-	)
-	if err != nil {
-		return true, err
-	}
-
-	sovereignNotifierBootstrapper, err := startSovereignNotifierBootstrapper(
 		incomingHeaderHandler,
-		sovereignNotifier,
 		managedCoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		managedProcessComponents.ForkDetector(),
 		managedConsensusComponents.Bootstrapper(),
 	)
-	if err != nil {
-		return true, err
-	}
 
 	log.Debug("creating node structure")
 
-	extraOptionNotifierReceiver := func(n *node.Node) error {
-		n.AddClosableComponent(sovereignWsReceiver)
+	extraOptionsNotifier := func(n *node.Node) error {
+		for _, notifierService := range notifierServices {
+			n.AddClosableComponent(notifierService)
+		}
+
 		return nil
 	}
 	extraOptionOutGoingBridgeSender := func(n *node.Node) error {
 		n.AddClosableComponent(outGoingBridgeOpHandler)
-		return nil
-	}
-	extraOptionNotifierBootstrapper := func(n *node.Node) error {
-		n.AddClosableComponent(sovereignNotifierBootstrapper)
 		return nil
 	}
 
@@ -585,9 +568,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
 		node.NewSovereignNodeFactory(configs.GeneralConfig.SovereignConfig.GenesisConfig.NativeESDT),
-		extraOptionNotifierReceiver,
+		extraOptionsNotifier,
 		extraOptionOutGoingBridgeSender,
-		extraOptionNotifierBootstrapper,
 	)
 	if err != nil {
 		return true, err
@@ -1902,6 +1884,43 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func createNotifierWSReceiverServicesIfNeeded(
+	config *config.NotifierConfig,
+	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	roundDuration uint64,
+	forkDetector process.ForkDetector,
+	bootstrapper process.Bootstrapper,
+) ([]mainFactory.Closer, error) {
+	if !config.Enabled {
+		return make([]mainFactory.Closer, 0), nil
+	}
+
+	sovereignNotifier, err := createSovereignNotifier(config)
+	if err != nil {
+		return nil, err
+	}
+
+	sovereignWsReceiver, err := createSovereignWsReceiver(
+		config,
+		sovereignNotifier,
+	)
+	if err != nil {
+		return nil, err
+	}
+	sovereignNotifierBootstrapper, err := startSovereignNotifierBootstrapper(
+		incomingHeaderHandler,
+		sovereignNotifier,
+		roundDuration,
+		forkDetector,
+		bootstrapper,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return []mainFactory.Closer{sovereignWsReceiver, sovereignNotifierBootstrapper}, nil
 }
 
 func createSovereignWsReceiver(
