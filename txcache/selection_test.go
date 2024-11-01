@@ -1,8 +1,10 @@
 package txcache
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,17 +32,49 @@ func Test_mergeTwoBunches(t *testing.T) {
 }
 
 func Test_mergeBunches(t *testing.T) {
+	sw := core.NewStopWatch()
+
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
+
+		sw.Start(t.Name())
 		merged := mergeBunches(bunches)
+		sw.Stop(t.Name())
+
 		require.Len(t, merged, 1000*1000)
 	})
 
 	t.Run("numSenders = 1000, numTransactions = 1000, parallel (4 jobs)", func(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
+
+		sw.Start(t.Name())
 		merged := mergeBunchesInParallel(bunches, 4)
+		sw.Stop(t.Name())
+
 		require.Len(t, merged, 1000*1000)
 	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+}
+
+func TestTxCache_selectTransactionsFromBunchesUsingHeap(t *testing.T) {
+	sw := core.NewStopWatch()
+
+	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
+		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
+
+		sw.Start(t.Name())
+		merged := selectTransactionsFromBunchesUsingHeap(bunches, 10_000_000_000)
+		sw.Stop(t.Name())
+
+		require.Equal(t, 200001, len(merged))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
 }
 
 func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []BunchOfTransactions {
