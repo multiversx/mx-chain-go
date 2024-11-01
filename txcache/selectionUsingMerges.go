@@ -65,24 +65,17 @@ func mergeBunchesOfTransactionsInParallel(bunches []BunchOfTransactions) BunchOf
 }
 
 func mergeBunches(bunches []BunchOfTransactions) BunchOfTransactions {
-	return mergeTwoBunchesOfBunches(bunches, make([]BunchOfTransactions, 0))
-}
-
-func mergeTwoBunchesOfBunches(first []BunchOfTransactions, second []BunchOfTransactions) BunchOfTransactions {
-	if len(first) == 0 && len(second) == 1 {
-		return second[0]
-	}
-	if len(first) == 1 && len(second) == 0 {
-		return first[0]
-	}
-	if len(first) == 0 && len(second) == 0 {
+	if len(bunches) == 0 {
 		return make(BunchOfTransactions, 0)
 	}
+	if len(bunches) == 1 {
+		return bunches[0]
+	}
 
-	return mergeTwoBunches(
-		mergeTwoBunchesOfBunches(first[0:len(first)/2], first[len(first)/2:]),
-		mergeTwoBunchesOfBunches(second[0:len(second)/2], second[len(second)/2:]),
-	)
+	mid := len(bunches) / 2
+	left := mergeBunches(bunches[:mid])
+	right := mergeBunches(bunches[mid:])
+	return mergeTwoBunches(left, right)
 }
 
 // Empty bunches are handled.
