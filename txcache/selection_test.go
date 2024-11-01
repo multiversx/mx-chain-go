@@ -28,3 +28,36 @@ func Test_mergeTwoBunches(t *testing.T) {
 		require.Equal(t, "hash-alice-1", string(merged[1].TxHash))
 	})
 }
+
+func Test_mergeBunches(t *testing.T) {
+	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
+		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
+		merged := mergeBunches(bunches)
+		require.Len(t, merged, 1000*1000)
+	})
+
+	t.Run("numSenders = 1000, numTransactions = 1000, parallel (4 jobs)", func(t *testing.T) {
+		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
+		merged := mergeBunchesInParallel(bunches, 4)
+		require.Len(t, merged, 1000*1000)
+	})
+}
+
+func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []BunchOfTransactions {
+	bunches := make([]BunchOfTransactions, 0, nSenders)
+
+	for senderTag := 0; senderTag < nSenders; senderTag++ {
+		bunch := make(BunchOfTransactions, 0, nTransactionsPerSender)
+		sender := createFakeSenderAddress(senderTag)
+
+		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
+			transactionHash := createFakeTxHash(sender, txNonce)
+			transaction := createTx(transactionHash, string(sender), uint64(txNonce))
+			bunch = append(bunch, transaction)
+		}
+
+		bunches = append(bunches, bunch)
+	}
+
+	return bunches
+}

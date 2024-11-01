@@ -89,7 +89,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		bunches = append(bunches, sender.getTxs())
 	}
 
-	transactions := mergeBunchesOfTransactionsInParallel(bunches)
+	transactions := mergeBunchesInParallel(bunches, numJobsForMerging)
 	transactionsHashes := make([][]byte, len(transactions))
 
 	for i, tx := range transactions {
