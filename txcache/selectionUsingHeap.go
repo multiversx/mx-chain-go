@@ -72,7 +72,7 @@ type TransactionHeap []*HeapItem
 func (h TransactionHeap) Len() int { return len(h) }
 
 func (h TransactionHeap) Less(i, j int) bool {
-	return isTransactionGreater(h[i].transaction, h[j].transaction)
+	return h[i].transaction.isTransactionMoreDesirableByProtocol(h[j].transaction)
 }
 
 func (h TransactionHeap) Swap(i, j int) {

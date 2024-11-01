@@ -1,11 +1,7 @@
 package txcache
 
 import (
-	"bytes"
-	"fmt"
 	"sync"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 type BunchOfTransactions []*WrappedTransaction
@@ -44,18 +40,11 @@ func mergeBunchesInParallel(bunches []BunchOfTransactions, numJobs int) BunchOfT
 	// Run jobs in parallel
 	wg := sync.WaitGroup{}
 
-	stopWatch := core.NewStopWatch()
-
 	for i, job := range jobs {
 		wg.Add(1)
 
 		go func(job *mergingJob, i int) {
-			stopWatch.Start(fmt.Sprintf("job %d", i))
-
 			job.output = mergeBunches(job.input)
-
-			stopWatch.Stop(fmt.Sprintf("job %d", i))
-
 			wg.Done()
 		}(job, i)
 	}
@@ -69,18 +58,7 @@ func mergeBunchesInParallel(bunches []BunchOfTransactions, numJobs int) BunchOfT
 		outputBunchesOfJobs = append(outputBunchesOfJobs, job.output)
 	}
 
-	stopWatch.Start("final merge")
-
 	finalMerge := mergeBunches(outputBunchesOfJobs)
-
-	stopWatch.Stop("final merge")
-
-	for i := 0; i < numJobs; i++ {
-		fmt.Println("job", i, stopWatch.GetMeasurement(fmt.Sprintf("job %d", i)))
-	}
-
-	fmt.Println("final merge", stopWatch.GetMeasurement("final merge"))
-
 	return finalMerge
 }
 
@@ -109,7 +87,7 @@ func mergeTwoBunches(first BunchOfTransactions, second BunchOfTransactions) Bunc
 		a := first[firstIndex]
 		b := second[secondIndex]
 
-		if isTransactionGreater(a, b) {
+		if a.isTransactionMoreDesirableByProtocol(b) {
 			result = append(result, a)
 			firstIndex++
 		} else {
@@ -123,40 +101,6 @@ func mergeTwoBunches(first BunchOfTransactions, second BunchOfTransactions) Bunc
 	result = append(result, second[secondIndex:]...)
 
 	return result
-}
-
-// Equality is out of scope (not possible in our case).
-func isTransactionGreater(transaction *WrappedTransaction, otherTransaction *WrappedTransaction) bool {
-	// First, compare by price per unit
-	ppuQuotient := transaction.PricePerGasUnitQuotient
-	ppuQuotientOther := otherTransaction.PricePerGasUnitQuotient
-	if ppuQuotient != ppuQuotientOther {
-		return ppuQuotient > ppuQuotientOther
-	}
-
-	ppuRemainder := transaction.PricePerGasUnitRemainder
-	ppuRemainderOther := otherTransaction.PricePerGasUnitRemainder
-	if ppuRemainder != ppuRemainderOther {
-		return ppuRemainder > ppuRemainderOther
-	}
-
-	// Then, compare by gas price (to promote the practice of a higher gas price)
-	gasPrice := transaction.Tx.GetGasPrice()
-	gasPriceOther := otherTransaction.Tx.GetGasPrice()
-	if gasPrice != gasPriceOther {
-		return gasPrice > gasPriceOther
-	}
-
-	// Then, compare by gas limit (promote the practice of lower gas limit)
-	// Compare Gas Limits (promote lower gas limit)
-	gasLimit := transaction.Tx.GetGasLimit()
-	gasLimitOther := otherTransaction.Tx.GetGasLimit()
-	if gasLimit != gasLimitOther {
-		return gasLimit < gasLimitOther
-	}
-
-	// In the end, compare by transaction hash
-	return bytes.Compare(transaction.TxHash, otherTransaction.TxHash) > 0
 }
 
 func selectUntilReachedGasRequested(bunch BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
