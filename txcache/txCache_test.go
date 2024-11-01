@@ -437,41 +437,90 @@ func Test_Keys(t *testing.T) {
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	config := ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunks:                  16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountThreshold:             100,
-		CountPerSenderThreshold:    math.MaxUint32,
-	}
 
-	// 11 * 10
-	cache, err := NewTxCache(config, txGasHandler)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
+	t.Run("numSenders = 11, numTransactions = 10, countThreshold = 100, numItemsToPreemptivelyEvict = 1", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              100,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 1,
+		}
 
-	addManyTransactionsWithUniformDistribution(cache, 11, 10)
-	require.LessOrEqual(t, cache.CountTx(), uint64(100))
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
 
-	config = ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunks:                  16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountThreshold:             250000,
-		CountPerSenderThreshold:    math.MaxUint32,
-	}
+		addManyTransactionsWithUniformDistribution(cache, 11, 10)
 
-	// 100 * 1000
-	cache, err = NewTxCache(config, txGasHandler)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
+		// Eviction happens if the cache capacity is already exceeded,
+		// but not if the capacity will be exceeded after the addition.
+		// Thus, for the given value of "NumItemsToPreemptivelyEvict", there will be "countThreshold" + 1 transactions in the cache.
+		require.Equal(t, 101, int(cache.CountTx()))
+	})
 
-	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
-	require.LessOrEqual(t, cache.CountTx(), uint64(250000))
+	t.Run("numSenders = 11, numTransactions = 10, countThreshold = 100, numItemsToPreemptivelyEvict = 2", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              100,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 2,
+		}
+
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 11, 10)
+		require.Equal(t, 100, int(cache.CountTx()))
+	})
+
+	t.Run("numSenders = 100, numTransactions = 1000, countThreshold = 250000 (no eviction)", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              250000,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 1,
+		}
+
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 100, 1000)
+		require.Equal(t, 100000, int(cache.CountTx()))
+	})
+
+	t.Run("numSenders = 1000, numTransactions = 500, countThreshold = 250000, NumItemsToPreemptivelyEvict = 50000", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              250000,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 50000,
+		}
+
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 1000, 500)
+		require.Equal(t, 250000, int(cache.CountTx()))
+	})
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {

@@ -7,11 +7,12 @@ import (
 // evictionJournal keeps a short journal about the eviction process
 // This is useful for debugging and reasoning about the eviction
 type evictionJournal struct {
-	numTxs uint32
+	numTxs    int
+	numPasses int
 }
 
-// doEviction does cache eviction
-// We do not allow more evictions to start concurrently
+// doEviction does cache eviction.
+// We do not allow more evictions to start concurrently.
 func (cache *TxCache) doEviction() *evictionJournal {
 	if cache.isEvictionInProgress.IsSet() {
 		return nil
@@ -53,11 +54,12 @@ func (cache *TxCache) doEviction() *evictionJournal {
 		"evicted txs", evictionJournal.numTxs,
 	)
 
-	return &evictionJournal
+	return evictionJournal
 }
 
 func (cache *TxCache) isCapacityExceeded() bool {
-	return cache.areThereTooManyBytes() || cache.areThereTooManySenders() || cache.areThereTooManyTxs()
+	exceeded := cache.areThereTooManyBytes() || cache.areThereTooManySenders() || cache.areThereTooManyTxs()
+	return exceeded
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -78,7 +80,7 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 	return tooManyTxs
 }
 
-func (cache *TxCache) evictLeastLikelyToSelectTransactions() evictionJournal {
+func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 	senders := cache.getSenders()
 	bunches := make([]BunchOfTransactions, 0, len(senders))
 
@@ -87,42 +89,57 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() evictionJournal {
 		bunches = append(bunches, sender.getTxs())
 	}
 
-	mergedBunch := mergeBunchesOfTransactionsInParallel(bunches)
+	transactions := mergeBunchesOfTransactionsInParallel(bunches)
+	transactionsHashes := make([][]byte, len(transactions))
 
-	// Select a reasonable number of transactions to evict.
-	transactionsToEvict := mergedBunch[3*len(mergedBunch)/4:]
-	transactionsToEvictHashes := make([][]byte, len(transactionsToEvict))
+	for i, tx := range transactions {
+		transactionsHashes[i] = tx.TxHash
+	}
 
-	// For each sender, find the "lowest" (in nonce) transaction to evict.
-	lowestToEvictBySender := make(map[string]uint64)
+	journal := &evictionJournal{}
 
-	for _, tx := range transactionsToEvict {
-		transactionsToEvictHashes = append(transactionsToEvictHashes, tx.TxHash)
-		sender := string(tx.Tx.GetSndAddr())
-
-		if _, ok := lowestToEvictBySender[sender]; ok {
-			continue
+	for pass := 1; cache.isCapacityExceeded(); pass++ {
+		cutoffIndex := len(transactions) - int(cache.config.NumItemsToPreemptivelyEvict)*pass
+		if cutoffIndex <= 0 {
+			cutoffIndex = 0
 		}
 
-		lowestToEvictBySender[sender] = tx.Tx.GetNonce()
-	}
+		transactionsToEvict := transactions[cutoffIndex:]
+		transactionsToEvictHashes := transactionsHashes[cutoffIndex:]
 
-	// Remove those transactions from "txListBySender".
-	for sender, nonce := range lowestToEvictBySender {
-		list, ok := cache.txListBySender.getListForSender(sender)
-		if !ok {
-			continue
+		transactions = transactions[:cutoffIndex]
+		transactionsHashes = transactionsHashes[:cutoffIndex]
+
+		// For each sender, find the "lowest" (in nonce) transaction to evict.
+		lowestToEvictBySender := make(map[string]uint64)
+
+		for _, tx := range transactionsToEvict {
+			transactionsToEvictHashes = append(transactionsToEvictHashes, tx.TxHash)
+			sender := string(tx.Tx.GetSndAddr())
+
+			if _, ok := lowestToEvictBySender[sender]; ok {
+				continue
+			}
+
+			lowestToEvictBySender[sender] = tx.Tx.GetNonce()
 		}
 
-		list.evictTransactionsWithHigherNonces(nonce - 1)
+		// Remove those transactions from "txListBySender".
+		for sender, nonce := range lowestToEvictBySender {
+			list, ok := cache.txListBySender.getListForSender(sender)
+			if !ok {
+				continue
+			}
+
+			list.evictTransactionsWithHigherNonces(nonce - 1)
+		}
+
+		// Remove those transactions from "txByHash".
+		cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
+
+		journal.numPasses = pass
+		journal.numTxs += len(transactionsToEvict)
 	}
 
-	// Remove those transactions from "txByHash".
-	cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
-
-	evictionJournal := evictionJournal{
-		numTxs: uint32(len(transactionsToEvict)),
-	}
-
-	return evictionJournal
+	return journal
 }
