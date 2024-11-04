@@ -228,7 +228,7 @@ func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction 
 		nonce := value.Tx.GetNonce()
 
 		// Detect initial gaps.
-		if len(result) == 0 && accountNonceKnown && accountNonce > nonce {
+		if len(result) == 0 && accountNonceKnown && accountNonce != nonce {
 			break
 		}
 
