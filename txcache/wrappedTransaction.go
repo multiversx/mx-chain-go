@@ -1,8 +1,6 @@
 package txcache
 
 import (
-	"bytes"
-
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -16,11 +14,12 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 
-	PricePerUnit float64
+	PricePerUnit uint64
+	HashFnv32    uint32
 }
 
-// computePricePerGasUnit computes (and caches) the (average) price per gas unit.
-func (transaction *WrappedTransaction) computePricePerGasUnit(txGasHandler TxGasHandler) {
+// precomputeFields computes (and caches) the (average) price per gas unit.
+func (transaction *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
 	fee := txGasHandler.ComputeTxFee(transaction.Tx).Uint64()
 
 	gasLimit := transaction.Tx.GetGasLimit()
@@ -28,7 +27,19 @@ func (transaction *WrappedTransaction) computePricePerGasUnit(txGasHandler TxGas
 		return
 	}
 
-	transaction.PricePerUnit = float64(fee) / float64(gasLimit)
+	transaction.PricePerUnit = fee / gasLimit
+	transaction.HashFnv32 = fnv32(string(transaction.TxHash))
+}
+
+// fnv32 implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
+func fnv32(key string) uint32 {
+	hash := uint32(2166136261)
+	const prime32 = uint32(16777619)
+	for i := 0; i < len(key); i++ {
+		hash *= prime32
+		hash ^= uint32(key[i])
+	}
+	return hash
 }
 
 // Equality is out of scope (not possible in our case).
@@ -40,21 +51,6 @@ func (transaction *WrappedTransaction) isTransactionMoreDesirableByProtocol(othe
 		return ppu > ppuOther
 	}
 
-	// Then, compare by gas price (to promote the practice of a higher gas price)
-	gasPrice := transaction.Tx.GetGasPrice()
-	gasPriceOther := otherTransaction.Tx.GetGasPrice()
-	if gasPrice != gasPriceOther {
-		return gasPrice > gasPriceOther
-	}
-
-	// Then, compare by gas limit (promote the practice of lower gas limit)
-	// Compare Gas Limits (promote lower gas limit)
-	gasLimit := transaction.Tx.GetGasLimit()
-	gasLimitOther := otherTransaction.Tx.GetGasLimit()
-	if gasLimit != gasLimitOther {
-		return gasLimit < gasLimitOther
-	}
-
-	// In the end, compare by transaction hash
-	return bytes.Compare(transaction.TxHash, otherTransaction.TxHash) > 0
+	// In the end, compare by hash number of transaction hash
+	return transaction.HashFnv32 > otherTransaction.HashFnv32
 }
