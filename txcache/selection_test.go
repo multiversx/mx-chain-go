@@ -15,10 +15,11 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		merged := selectTransactionsFromBunches(bunches, 10_000_000_000)
+		merged, accumulatedGas := selectTransactionsFromBunches(bunches, 10_000_000_000)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
+		require.Equal(t, uint64(10_000_000_000), accumulatedGas)
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {
