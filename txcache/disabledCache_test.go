@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"math"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,7 +17,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.Nil(t, tx)
 	require.False(t, ok)
 
-	selection := cache.SelectTransactions(42, math.MaxUint64, 42, math.MaxUint64)
+	selection := cache.SelectTransactions(42)
 	require.Equal(t, 0, len(selection))
 
 	removed := cache.RemoveTxByHash([]byte{})
