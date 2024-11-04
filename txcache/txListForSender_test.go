@@ -200,16 +200,19 @@ func TestListForSender_hasInitialGap(t *testing.T) {
 	// No transaction, no gap
 	_, _, hasInitialGap := list.hasInitialGap()
 	require.False(t, hasInitialGap)
+	require.Len(t, list.getTxsWithoutGaps(), 0)
 
 	// One gap
 	list.AddTx(createTx([]byte("tx-43"), ".", 43))
 	_, _, hasInitialGap = list.hasInitialGap()
 	require.True(t, hasInitialGap)
+	require.Len(t, list.getTxsWithoutGaps(), 0)
 
 	// Resolve gap
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
 	_, _, hasInitialGap = list.hasInitialGap()
 	require.False(t, hasInitialGap)
+	require.Len(t, list.getTxsWithoutGaps(), 2)
 }
 
 func TestListForSender_getTxHashes(t *testing.T) {
