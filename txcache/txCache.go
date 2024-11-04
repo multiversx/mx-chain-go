@@ -106,7 +106,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransact
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions := cache.doSelectTransactions(gasRequested)
+	transactions, accumulatedGas := cache.doSelectTransactions(gasRequested)
 
 	stopWatch.Stop("selection")
 
@@ -114,6 +114,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransact
 		"doSelectTransactions: end",
 		"duration", stopWatch.GetMeasurement("selection"),
 		"num txs selected", len(transactions),
+		"gas", accumulatedGas,
 	)
 
 	go cache.diagnoseCounters()
