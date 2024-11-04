@@ -1,0 +1,60 @@
+{
+  "type": "normal",
+  "processingTypeOnSource": "RelayedTx",
+  "processingTypeOnDestination": "RelayedTx",
+  "hash": "efe3e8fa273fc2db4d559185e9729f7bbf17f617e28424b6a6533fb193caf561",
+  "nonce": 125,
+  "value": "0",
+  "receiver": "erd1x9hax7mdqux0nak9ahxrc2g75h5ckpfs4ssr8l7tkxscaa293x6q8ffd4e",
+  "sender": "erd1tn62hjp72rznp8vq0lplva5csav6rccpqqdungpxtqz0g2hcq6uq9k4cc6",
+  "gasPrice": 1000000000,
+  "gasLimit": 6148000,
+  "data": "cmVsYXllZFR4QDdiMjI2ZTZmNmU2MzY1MjIzYTM0MzcyYzIyNzM2NTZlNjQ2NTcyMjIzYTIyNGQ1NzJmNTQ2NTMyMzA0ODQ0NTA2ZTMyNzg2NTMzNGQ1MDQzNmI2NTcwNjU2ZDRjNDI1NDQzNzM0OTQ0NTAyZjc5Mzc0NzY4NmE3NjU2NDY2OTYyNTEzZDIyMmMyMjcyNjU2MzY1Njk3NjY1NzIyMjNhMjI0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDY0MTQ0MzU1MzM3NTg2MjUwNzk1NTQzNzU3NzRiNDk1MTM0NmUzNzMxNTE3OTZmNGE1ODM1NzM1NDQyNzI2NzNkMjIyYzIyNzY2MTZjNzU2NTIyM2EzMTMwMzAzMDMwMzAzMDMwMzAzMDMwMzAzMDMwMzAzMDMwMzAzMDJjMjI2NzYxNzM1MDcyNjk2MzY1MjIzYTMxMzAzMDMwMzAzMDMwMzAzMDMwMmMyMjY3NjE3MzRjNjk2ZDY5NzQyMjNhMzUzMDMwMzAzMDMwMzAyYzIyNjQ2MTc0NjEyMjNhMjI1OTU3NTI2YjUxNDQ0MTc4NTE0NDQxNzk1MTQ0NDE3YTUxNDQ0MTMwNTE0NDQxMzEyMjJjMjI3MzY5Njc2ZTYxNzQ3NTcyNjUyMjNhMjI3NjRjNjQ2ZDMyMmY0ZTQ0NTQ0NDc3MzgzMTMxNTEzMDYyNzgyYjU4NGI1MTc4NTA0NTJmNzY0OTU3NDM2ODRlNzI2OTU1NmE3ODcyNzAyZjU5Mzg1MDRlNzI0ZDQ1NmM2NTQ3NmUzNTMxNTM3NjUyNTk2NDQ3MzQ2ZjQ3NTc3MjQ5Njk0MzQ4Mzk2YTMxNzY0ZjRiNmY1OTJmNDg1NTUyNjE0ZTQxNDg0MjUxM2QzZDIyMmMyMjYzNjg2MTY5NmU0OTQ0MjIzYTIyNTY0MTNkM2QyMjJjMjI3NjY1NzI3MzY5NmY2ZTIyM2EzMjdk",
+  "sourceShard": 0,
+  "destinationShard": 0,
+  "logs": {
+    "address": "erd1qqqqqqqqqqqqqpgq8efw6ak0e9q2as9zzr38aa2r9gy4lxcnq6uqpefzvu",
+    "events": [
+      {
+        "address": "erd1qqqqqqqqqqqqqpgq8efw6ak0e9q2as9zzr38aa2r9gy4lxcnq6uqpefzvu",
+        "identifier": "signalError",
+        "topics": [
+          "MW/Te20HDPn2xe3MPCkepemLBTCsIDP/y7GhjvVFibQ=",
+          "ZnVuY3Rpb24gZG9lcyBub3QgYWNjZXB0IEVHTEQgcGF5bWVudA=="
+        ],
+        "data": "QDY1Nzg2NTYzNzU3NDY5NmY2ZTIwNjY2MTY5NmM2NTY0",
+        "additionalData": [
+          "QDY1Nzg2NTYzNzU3NDY5NmY2ZTIwNjY2MTY5NmM2NTY0"
+        ]
+      },
+      {
+        "address": "erd1qqqqqqqqqqqqqpgq8efw6ak0e9q2as9zzr38aa2r9gy4lxcnq6uqpefzvu",
+        "identifier": "signalError",
+        "topics": [
+          "XPSryD5QxTCdgH/D9naYh1mh4wEAG8mgJlgE9Cr4Brg=",
+          "ZnVuY3Rpb24gZG9lcyBub3QgYWNjZXB0IEVHTEQgcGF5bWVudA=="
+        ],
+        "data": null,
+        "additionalData": [
+          ""
+        ]
+      },
+      {
+        "address": "erd1x9hax7mdqux0nak9ahxrc2g75h5ckpfs4ssr8l7tkxscaa293x6q8ffd4e",
+        "identifier": "internalVMErrors",
+        "topics": [
+          "AAAAAAAAAAAFAD5S7XbPyUCuwKIQ4n71QyoJX5sTBrg=",
+          "YWRk"
+        ],
+        "data": "CglydW50aW1lLmdvOjg1NiBbZXhlY3V0aW9uIGZhaWxlZF0gW2FkZF0KCXJ1bnRpbWUuZ286ODU2IFtleGVjdXRpb24gZmFpbGVkXSBbYWRkXQoJcnVudGltZS5nbzo4NTMgW2Z1bmN0aW9uIGRvZXMgbm90IGFjY2VwdCBFR0xEIHBheW1lbnRd",
+        "additionalData": [
+          "CglydW50aW1lLmdvOjg1NiBbZXhlY3V0aW9uIGZhaWxlZF0gW2FkZF0KCXJ1bnRpbWUuZ286ODU2IFtleGVjdXRpb24gZmFpbGVkXSBbYWRkXQoJcnVudGltZS5nbzo4NTMgW2Z1bmN0aW9uIGRvZXMgbm90IGFjY2VwdCBFR0xEIHBheW1lbnRd"
+        ]
+      }
+    ]
+  },
+  "status": "success",
+  "operation": "transfer",
+  "function": "add",
+  "isRelayed": true
+}
