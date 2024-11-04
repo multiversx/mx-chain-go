@@ -293,26 +293,41 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
+		require.Equal(t, 3193030061, int(fnv32("hash-alice-4")))
+
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+		require.Equal(t, 3193030058, int(fnv32("hash-alice-3")))
+
 		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		require.Equal(t, 3193030059, int(fnv32("hash-alice-2")))
+
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		require.Equal(t, 3193030056, int(fnv32("hash-alice-1")))
+
 		cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
+		require.Equal(t, 187766579, int(fnv32("hash-bob-7")))
+
 		cache.AddTx(createTx([]byte("hash-bob-6"), "bob", 6))
+		require.Equal(t, 187766578, int(fnv32("hash-bob-6")))
+
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
+		require.Equal(t, 187766577, int(fnv32("hash-bob-5")))
+
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
+		require.Equal(t, 3082288595, int(fnv32("hash-carol-1")))
 
 		selected := cache.SelectTransactions(math.MaxUint64)
 		require.Len(t, selected, 8)
 
 		// Check order
-		require.Equal(t, "hash-carol-1", string(selected[0].TxHash))
-		require.Equal(t, "hash-bob-5", string(selected[1].TxHash))
-		require.Equal(t, "hash-bob-6", string(selected[2].TxHash))
-		require.Equal(t, "hash-bob-7", string(selected[3].TxHash))
-		require.Equal(t, "hash-alice-1", string(selected[4].TxHash))
-		require.Equal(t, "hash-alice-2", string(selected[5].TxHash))
-		require.Equal(t, "hash-alice-3", string(selected[6].TxHash))
-		require.Equal(t, "hash-alice-4", string(selected[7].TxHash))
+		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
+		require.Equal(t, "hash-alice-2", string(selected[1].TxHash))
+		require.Equal(t, "hash-alice-3", string(selected[2].TxHash))
+		require.Equal(t, "hash-alice-4", string(selected[3].TxHash))
+		require.Equal(t, "hash-carol-1", string(selected[4].TxHash))
+		require.Equal(t, "hash-bob-5", string(selected[5].TxHash))
+		require.Equal(t, "hash-bob-6", string(selected[6].TxHash))
+		require.Equal(t, "hash-bob-7", string(selected[7].TxHash))
 	})
 
 	t.Run("alice > carol > bob", func(t *testing.T) {

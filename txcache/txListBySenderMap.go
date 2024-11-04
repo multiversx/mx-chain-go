@@ -36,7 +36,7 @@ func newTxListBySenderMap(
 func (txMap *txListBySenderMap) addTxReturnEvicted(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	tx.computePricePerGasUnit(txMap.txGasHandler)
+	tx.precomputeFields(txMap.txGasHandler)
 
 	added, evictedHashes := listForSender.AddTx(tx)
 

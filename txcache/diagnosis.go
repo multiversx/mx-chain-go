@@ -11,14 +11,14 @@ import (
 )
 
 type printedTransaction struct {
-	Hash       string  `json:"hash"`
-	PPU        float64 `json:"ppu"`
-	Nonce      uint64  `json:"nonce"`
-	Sender     string  `json:"sender"`
-	GasPrice   uint64  `json:"gasPrice"`
-	GasLimit   uint64  `json:"gasLimit"`
-	Receiver   string  `json:"receiver"`
-	DataLength int     `json:"dataLength"`
+	Hash       string `json:"hash"`
+	PPU        uint64 `json:"ppu"`
+	Nonce      uint64 `json:"nonce"`
+	Sender     string `json:"sender"`
+	GasPrice   uint64 `json:"gasPrice"`
+	GasLimit   uint64 `json:"gasLimit"`
+	Receiver   string `json:"receiver"`
+	DataLength int    `json:"dataLength"`
 }
 
 // Diagnose checks the state of the cache for inconsistencies and displays a summary, senders and transactions.
