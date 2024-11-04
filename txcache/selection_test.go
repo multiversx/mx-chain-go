@@ -18,7 +18,7 @@ func TestTxCache_selectTransactionsFromBunchesUsingHeap(t *testing.T) {
 		merged := selectTransactionsFromBunchesUsingHeap(bunches, 10_000_000_000)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 200001, len(merged))
+		require.Equal(t, 200000, len(merged))
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {

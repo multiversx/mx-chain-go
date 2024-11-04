@@ -89,8 +89,8 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	}
 
 	isFound := listForSender.RemoveTx(tx)
-	isEmpty := listForSender.IsEmpty()
-	if isEmpty {
+
+	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
 	}
 
@@ -122,19 +122,34 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return numRemoved
 }
 
-func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) [][]byte {
+func (txMap *txListBySenderMap) notifyAccountNonceReturnEvictedTransactions(accountKey []byte, nonce uint64) [][]byte {
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
 		return nil
 	}
 
-	evictedTxHashes := listForSender.notifyAccountNonce(nonce)
+	evictedTxHashes := listForSender.notifyAccountNonceReturnEvictedTransactions(nonce)
+
 	if listForSender.IsEmpty() {
 		txMap.removeSender(sender)
 	}
 
 	return evictedTxHashes
+}
+
+func (txMap *txListBySenderMap) evictTransactionsWithHigherOrEqualNonces(accountKey []byte, nonce uint64) {
+	sender := string(accountKey)
+	listForSender, ok := txMap.getListForSender(sender)
+	if !ok {
+		return
+	}
+
+	listForSender.evictTransactionsWithHigherOrEqualNonces(nonce)
+
+	if listForSender.IsEmpty() {
+		txMap.removeSender(sender)
+	}
 }
 
 func (txMap *txListBySenderMap) getSenders() []*txListForSender {

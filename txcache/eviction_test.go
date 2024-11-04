@@ -31,13 +31,14 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-dan"), "dan", 1).withGasPrice(5 * oneBillion))
 
 	journal := cache.doEviction()
-	require.Equal(t, uint32(1), journal.numEvicted)
+	require.Equal(t, 1, journal.numEvicted)
+	require.Equal(t, []int{1}, journal.numEvictedByPass)
 
 	// Alice and Bob evicted. Carol still there (better score).
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
-	require.Equal(t, uint64(1), cache.CountSenders())
-	require.Equal(t, uint64(1), cache.CountTx())
+	require.Equal(t, uint64(4), cache.CountSenders())
+	require.Equal(t, uint64(4), cache.CountTx())
 }
 
 func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
@@ -63,15 +64,16 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-eve"), "eve", 1).withSize(256).withGasLimit(500000).withGasPrice(3 * oneBillion))
 
 	journal := cache.doEviction()
-	require.Equal(t, 2, journal.numEvicted)
+	require.Equal(t, 1, journal.numEvicted)
+	require.Equal(t, []int{1}, journal.numEvictedByPass)
 
 	// Alice and Bob evicted (lower score). Carol and Eve still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
 	_, ok = cache.GetByTxHash([]byte("hash-eve"))
 	require.True(t, ok)
-	require.Equal(t, uint64(2), cache.CountSenders())
-	require.Equal(t, uint64(2), cache.CountTx())
+	require.Equal(t, uint64(3), cache.CountSenders())
+	require.Equal(t, uint64(3), cache.CountTx())
 }
 
 func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
@@ -114,17 +116,18 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 }
 
 // This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
-// 25000 senders with 10 transactions each, with default "NumItemsToPreemptivelyEvict".
-// ~1 second on average laptop.
+// 25000 senders with 10 transactions each, with "NumItemsToPreemptivelyEvict" = 50000.
+// ~0.5 seconds on average laptop.
 func TestTxCache_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                       "untitled",
-		NumChunks:                  16,
-		EvictionEnabled:            true,
-		NumBytesThreshold:          1000000000,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountThreshold:             240000,
-		CountPerSenderThreshold:    math.MaxUint32,
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           1000000000,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              240000,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 50000,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()

@@ -161,12 +161,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 
 		// Remove those transactions from "txListBySender".
 		for sender, nonce := range lowestToEvictBySender {
-			list, ok := cache.txListBySender.getListForSender(sender)
-			if !ok {
-				continue
-			}
-
-			list.evictTransactionsWithHigherOrEqualNonces(nonce)
+			cache.txListBySender.evictTransactionsWithHigherOrEqualNonces([]byte(sender), nonce)
 		}
 
 		// Remove those transactions from "txByHash".
