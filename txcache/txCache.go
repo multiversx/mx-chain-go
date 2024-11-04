@@ -66,7 +66,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
-	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx)
 	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
@@ -117,7 +117,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransact
 	)
 
 	go cache.diagnoseCounters()
-	go displaySelectionOutcome(logSelect, transactions)
+	go displaySelectionOutcome(logSelect, "selection", transactions)
 
 	return transactions
 }
