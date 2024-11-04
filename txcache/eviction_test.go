@@ -1,9 +1,11 @@
 package txcache
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -115,31 +117,88 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	require.Equal(t, 4, int(cache.CountTx()))
 }
 
-// This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
-// 25000 senders with 10 transactions each, with "NumItemsToPreemptivelyEvict" = 50000.
-// ~0.5 seconds on average laptop.
-func TestTxCache_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
+func TestTxCache_DoEviction_Benchmark(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000000000,
 		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
-		CountThreshold:              240000,
+		CountThreshold:              300000,
 		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 50000,
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	numSenders := 25000
-	numTxsPerSender := 10
 
-	cache, err := NewTxCache(config, txGasHandler)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
+	sw := core.NewStopWatch()
 
-	addManyTransactionsWithUniformDistribution(cache, numSenders, numTxsPerSender)
+	t.Run("numSenders = 35000, numTransactions = 10", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
 
-	// Sometimes (due to map iteration non-determinism), more eviction happens - one more step of 100 senders.
-	require.LessOrEqual(t, uint32(cache.CountTx()), config.CountThreshold)
+		cache.config.EvictionEnabled = false
+		addManyTransactionsWithUniformDistribution(cache, 35000, 10)
+		cache.config.EvictionEnabled = true
+
+		require.Equal(t, uint64(350000), cache.CountTx())
+
+		sw.Start(t.Name())
+		journal := cache.doEviction()
+		sw.Stop(t.Name())
+
+		require.Equal(t, 50000, journal.numEvicted)
+		require.Equal(t, 1, len(journal.numEvictedByPass))
+	})
+
+	t.Run("numSenders = 100000, numTransactions = 5", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		cache.config.EvictionEnabled = false
+		addManyTransactionsWithUniformDistribution(cache, 100000, 5)
+		cache.config.EvictionEnabled = true
+
+		require.Equal(t, uint64(500000), cache.CountTx())
+
+		sw.Start(t.Name())
+		journal := cache.doEviction()
+		sw.Stop(t.Name())
+
+		require.Equal(t, 200000, journal.numEvicted)
+		require.Equal(t, 4, len(journal.numEvictedByPass))
+	})
+
+	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		cache.config.EvictionEnabled = false
+		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
+		cache.config.EvictionEnabled = true
+
+		require.Equal(t, uint64(1000000), cache.CountTx())
+
+		sw.Start(t.Name())
+		journal := cache.doEviction()
+		sw.Stop(t.Name())
+
+		require.Equal(t, 700000, journal.numEvicted)
+		require.Equal(t, 14, len(journal.numEvictedByPass))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+
+	// (1)
+	// Vendor ID:                GenuineIntel
+	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//     CPU family:           6
+	//     Model:                140
+	//     Thread(s) per core:   2
+	//     Core(s) per socket:   4
+	//
+	// 0.079401s (TestTxCache_DoEviction_Benchmark/numSenders_=_35000,_numTransactions_=_10)
+	// 0.366044s (TestTxCache_DoEviction_Benchmark/numSenders_=_100000,_numTransactions_=_5)
+	// 0.611849s (TestTxCache_DoEviction_Benchmark/numSenders_=_10000,_numTransactions_=_100)
 }

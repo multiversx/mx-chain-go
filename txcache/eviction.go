@@ -100,8 +100,8 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 
 	// Heap is reused among passes.
 	// Items popped from the heap are added to "transactionsToEvict" (slice is re-created in each pass).
-	transactionsHeap := &TransactionsMinHeap{}
-	heap.Init(transactionsHeap)
+	transactionsHeap := make(TransactionsMinHeap, 0, len(bunches))
+	heap.Init(&transactionsHeap)
 
 	// Initialize the heap with the first transaction of each bunch
 	for i, bunch := range bunches {
@@ -111,7 +111,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, &TransactionsHeapItem{
+		heap.Push(&transactionsHeap, &TransactionsHeapItem{
 			senderIndex:      i,
 			transactionIndex: 0,
 			transaction:      bunch[0],
@@ -125,7 +125,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		// Select transactions (sorted).
 		for transactionsHeap.Len() > 0 {
 			// Always pick the "worst" transaction.
-			item := heap.Pop(transactionsHeap).(*TransactionsHeapItem)
+			item := heap.Pop(&transactionsHeap).(*TransactionsHeapItem)
 
 			if len(transactionsToEvict) >= int(cache.config.NumItemsToPreemptivelyEvict) {
 				// We have enough transactions to evict in this pass.
@@ -142,7 +142,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 			if item.transactionIndex < len(bunches[item.senderIndex]) {
 				// Item is reused (same originating sender), pushed back on the heap.
 				item.transaction = bunches[item.senderIndex][item.transactionIndex]
-				heap.Push(transactionsHeap, item)
+				heap.Push(&transactionsHeap, item)
 			}
 		}
 

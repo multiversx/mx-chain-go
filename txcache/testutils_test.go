@@ -59,6 +59,20 @@ func (listForSender *txListForSender) getTxHashesAsStrings() []string {
 	return hashesAsStrings(hashes)
 }
 
+func (listForSender *txListForSender) getTxsHashes() [][]byte {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	result := make([][]byte, 0, listForSender.countTx())
+
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(*WrappedTransaction)
+		result = append(result, value.TxHash)
+	}
+
+	return result
+}
+
 func hashesAsStrings(hashes [][]byte) []string {
 	result := make([]string, len(hashes))
 	for i := 0; i < len(hashes); i++ {
