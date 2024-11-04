@@ -2,7 +2,6 @@ package txcache
 
 import (
 	"bytes"
-	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 )
@@ -17,36 +16,22 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 
-	PricePerGasUnitQuotient  uint64
-	PricePerGasUnitRemainder uint64
+	PricePerUnit float64
 }
 
 // computePricePerGasUnit computes (and caches) the (average) price per gas unit.
 func (transaction *WrappedTransaction) computePricePerGasUnit(txGasHandler TxGasHandler) {
 	fee := txGasHandler.ComputeTxFee(transaction.Tx)
-	gasLimit := big.NewInt(0).SetUint64(transaction.Tx.GetGasLimit())
-
-	quotient := new(big.Int)
-	remainder := new(big.Int)
-	quotient, remainder = quotient.QuoRem(fee, gasLimit, remainder)
-
-	transaction.PricePerGasUnitQuotient = quotient.Uint64()
-	transaction.PricePerGasUnitRemainder = remainder.Uint64()
+	transaction.PricePerUnit = float64(fee.Uint64()) / float64(transaction.Tx.GetGasLimit())
 }
 
 // Equality is out of scope (not possible in our case).
 func (transaction *WrappedTransaction) isTransactionMoreDesirableByProtocol(otherTransaction *WrappedTransaction) bool {
 	// First, compare by price per unit
-	ppuQuotient := transaction.PricePerGasUnitQuotient
-	ppuQuotientOther := otherTransaction.PricePerGasUnitQuotient
-	if ppuQuotient != ppuQuotientOther {
-		return ppuQuotient > ppuQuotientOther
-	}
-
-	ppuRemainder := transaction.PricePerGasUnitRemainder
-	ppuRemainderOther := otherTransaction.PricePerGasUnitRemainder
-	if ppuRemainder != ppuRemainderOther {
-		return ppuRemainder > ppuRemainderOther
+	ppu := transaction.PricePerUnit
+	ppuOther := otherTransaction.PricePerUnit
+	if ppu != ppuOther {
+		return ppu > ppuOther
 	}
 
 	// Then, compare by gas price (to promote the practice of a higher gas price)
