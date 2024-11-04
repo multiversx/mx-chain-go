@@ -12,9 +12,9 @@ import (
 func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	myMap.addTx(createTx([]byte("a"), "alice", 1))
-	myMap.addTx(createTx([]byte("aa"), "alice", 2))
-	myMap.addTx(createTx([]byte("b"), "bob", 1))
+	myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", 1))
+	myMap.addTxReturnEvicted(createTx([]byte("aa"), "alice", 2))
+	myMap.addTxReturnEvicted(createTx([]byte("b"), "bob", 1))
 
 	// There are 2 senders
 	require.Equal(t, int64(2), myMap.counter.Get())
@@ -27,9 +27,9 @@ func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T
 	txAlice2 := createTx([]byte("a2"), "alice", 2)
 	txBob := createTx([]byte("b"), "bob", 1)
 
-	myMap.addTx(txAlice1)
-	myMap.addTx(txAlice2)
-	myMap.addTx(txBob)
+	myMap.addTxReturnEvicted(txAlice1)
+	myMap.addTxReturnEvicted(txAlice2)
+	myMap.addTxReturnEvicted(txBob)
 	require.Equal(t, int64(2), myMap.counter.Get())
 	require.Equal(t, uint64(2), myMap.testGetListForSender("alice").countTx())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
@@ -51,7 +51,7 @@ func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T
 func TestSendersMap_RemoveSender(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	myMap.addTx(createTx([]byte("a"), "alice", 1))
+	myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", 1))
 	require.Equal(t, int64(1), myMap.counter.Get())
 
 	// Bob is unknown
@@ -86,9 +86,9 @@ func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
 		go func(i int) {
-			myMap.addTx(createTx([]byte("a"), "alice", uint64(i)))
-			myMap.addTx(createTx([]byte("b"), "bob", uint64(i)))
-			myMap.addTx(createTx([]byte("c"), "carol", uint64(i)))
+			myMap.addTxReturnEvicted(createTx([]byte("a"), "alice", uint64(i)))
+			myMap.addTxReturnEvicted(createTx([]byte("b"), "bob", uint64(i)))
+			myMap.addTxReturnEvicted(createTx([]byte("c"), "carol", uint64(i)))
 
 			wg.Done()
 		}(i)
@@ -103,7 +103,7 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	// Discarded notification, since sender not added yet
 	myMap.notifyAccountNonceReturnEvictedTransactions([]byte("alice"), 42)
 
-	myMap.addTx(createTx([]byte("tx-42"), "alice", 42))
+	myMap.addTxReturnEvicted(createTx([]byte("tx-42"), "alice", 42))
 	alice, _ := myMap.getListForSender("alice")
 	require.Equal(t, uint64(0), alice.accountNonce.Get())
 	require.False(t, alice.accountNonceKnown.IsSet())

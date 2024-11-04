@@ -619,7 +619,7 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 
 	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
-	cache.txListBySender.addTx(createTx([]byte("alice-x"), "alice", 42))
+	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42))
 
 	require.False(t, cache.Has([]byte("alice-x")))
 	ok, added = cache.AddTx(createTx([]byte("alice-x"), "alice", 42))

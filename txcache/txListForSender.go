@@ -50,7 +50,6 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]b
 
 	listForSender.onAddedTransaction(tx)
 
-	// TODO: Check how does the sender get removed if empty afterwards (maybe the answer is: "it never gets empty after applySizeConstraints()").
 	evicted := listForSender.applySizeConstraints()
 	return true, evicted
 }

@@ -31,12 +31,22 @@ func newTxListBySenderMap(
 	}
 }
 
-// addTx adds a transaction in the map, in the corresponding list (selected by its sender)
-func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, [][]byte) {
+// addTxReturnEvicted adds a transaction in the map, in the corresponding list (selected by its sender).
+// This function returns a boolean indicating whether the transaction was added, and a slice of evicted transaction hashes (upon applying sender-level constraints).
+func (txMap *txListBySenderMap) addTxReturnEvicted(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
 	tx.computePricePerGasUnit(txMap.txGasHandler)
-	return listForSender.AddTx(tx)
+
+	added, evictedHashes := listForSender.AddTx(tx)
+
+	if listForSender.IsEmpty() {
+		// Generally speaking, a sender cannot become empty after upon applying sender-level constraints.
+		// However:
+		txMap.removeSender(sender)
+	}
+
+	return added, evictedHashes
 }
 
 // getOrAddListForSender gets or lazily creates a list (using double-checked locking pattern)
