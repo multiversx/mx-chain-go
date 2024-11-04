@@ -52,7 +52,7 @@ func NewShardedData(name string, config storageunit.CacheConfig) (*shardedData, 
 		NumChunks:                   config.Shards,
 		MaxNumItems:                 config.Capacity,
 		MaxNumBytes:                 uint32(config.SizeInBytes),
-		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.ShardedDataNumItemsToPreemptivelyEvict,
 	}
 
 	err := configPrototype.Verify()

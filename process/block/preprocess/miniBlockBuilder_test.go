@@ -664,7 +664,7 @@ func Test_MiniBlocksBuilderCheckAddTransactionWrongTypeAssertion(t *testing.T) {
 		SenderShardID:   0,
 		ReceiverShardID: 0,
 		Size:            0,
-		TxFee:           0,
+		PricePerUnit:    0.0,
 	}
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -917,6 +917,6 @@ func createWrappedTransaction(
 		SenderShardID:   senderShardID,
 		ReceiverShardID: receiverShardID,
 		Size:            int64(len(txMarshalled)),
-		TxFee:           51500000000000,
+		PricePerUnit:    1000000000,
 	}
 }

@@ -51,13 +51,13 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 	halfOfCapacity := args.Config.Capacity / 2
 
 	configPrototypeSourceMe := txcache.ConfigSourceMe{
-		NumChunks:                     args.Config.Shards,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             uint32(halfOfSizeInBytes),
-		CountThreshold:                halfOfCapacity,
-		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
-		CountPerSenderThreshold:       args.Config.SizePerSender,
-		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
+		NumChunks:                   args.Config.Shards,
+		EvictionEnabled:             true,
+		NumBytesThreshold:           uint32(halfOfSizeInBytes),
+		CountThreshold:              halfOfCapacity,
+		NumBytesPerSenderThreshold:  args.Config.SizeInBytesPerSender,
+		CountPerSenderThreshold:     args.Config.SizePerSender,
+		NumItemsToPreemptivelyEvict: storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
 	}
 
 	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).
@@ -68,7 +68,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumChunks:                   args.Config.Shards,
 		MaxNumBytes:                 uint32(halfOfSizeInBytes) / numCrossTxCaches,
 		MaxNumItems:                 halfOfCapacity / numCrossTxCaches,
-		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.TxPoolDestinationMeNumItemsToPreemptivelyEvict,
 	}
 
 	shardedTxPoolObject := &shardedTxPool{

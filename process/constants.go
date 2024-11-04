@@ -138,22 +138,7 @@ const MaxHeadersToWhitelistInAdvance = 300
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
 
-// TxCacheSelectionNumRequested defines the maximum number of transactions that should be selected from the cache
-const TxCacheSelectionNumRequested = 30_000
-
 // TxCacheSelectionGasRequested defines the maximum total gas for transactions that should be selected from the cache.
 // Note: due to how the selection is performed, the theoretical maximum gas might be exceeded (a bit), as follows:
 // theoretical maximum = (TxCacheSelectionGasRequested - 1) + theoretical maximum of TxCacheSelectionBaseGasPerSenderBatch (see below).
 const TxCacheSelectionGasRequested = 10_000_000_000
-
-// TxCacheSelectionBaseNumPerSenderBatch defines the maximum number of transactions to be selected
-// from the transactions pool, for a sender with the maximum possible score, in a single pass.
-// Senders with lower scores will have fewer transactions selected in a single pass.
-const TxCacheSelectionBaseNumPerSenderBatch = 100
-
-// TxCacheSelectionBaseGasPerSenderBatch defines the maximum gas for transactions to be selected
-// from the transactions pool, for a sender with the maximum possible score, in a single pass.
-// Senders with lower scores will have less gas selected in a single pass.
-// Note: due to how the selection is performed, the theoretical maximum gas might be exceeded (a bit), as follows:
-// theoretical maximum = (TxCacheSelectionBaseGasPerSenderBatch - 1) + max(TxCacheSelectionBaseGasPerSenderBatch, max gas limit of a transaction).
-const TxCacheSelectionBaseGasPerSenderBatch = 120000000
