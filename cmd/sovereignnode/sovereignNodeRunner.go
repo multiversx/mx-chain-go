@@ -1894,6 +1894,7 @@ func createNotifierWSReceiverServicesIfNeeded(
 	bootstrapper process.Bootstrapper,
 ) ([]mainFactory.Closer, error) {
 	if !config.Enabled {
+		log.Info("running without any notifier attached")
 		return make([]mainFactory.Closer, 0), nil
 	}
 
