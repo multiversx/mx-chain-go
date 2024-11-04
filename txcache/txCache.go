@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -59,7 +58,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
-	logAdd.Trace("AddTx()", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
+	logAdd.Trace("AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
 
 	if cache.config.EvictionEnabled {
 		_ = cache.doEviction()
@@ -75,11 +74,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		logAdd.Debug("AddTx(): slight inconsistency detected:", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		logAdd.Debug("AddTx: slight inconsistency detected:", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
-		logRemove.Debug("AddTx() with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
+		logRemove.Debug("AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
@@ -97,37 +96,28 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns transactions with total gas ~ "gasRequested".
 func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransaction {
-	transactions := cache.doSelectTransactions(
-		logSelect,
-		gasRequested,
-	)
-
-	go cache.diagnoseCounters()
-	go displaySelectionOutcome(logSelect, transactions)
-
-	return transactions
-}
-
-func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, gasRequested uint64) []*WrappedTransaction {
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
-	contextualLogger.Debug(
-		"doSelectTransactions(): begin",
+	logSelect.Debug(
+		"doSelectTransactions: begin",
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions := cache.selectTransactionsUsingHeap(gasRequested)
+	transactions := cache.doSelectTransactions(gasRequested)
 
 	stopWatch.Stop("selection")
 
-	contextualLogger.Debug(
-		"doSelectTransactions(): end",
+	logSelect.Debug(
+		"doSelectTransactions: end",
 		"duration", stopWatch.GetMeasurement("selection"),
 		"num txs selected", len(transactions),
 	)
+
+	go cache.diagnoseCounters()
+	go displaySelectionOutcome(logSelect, transactions)
 
 	return transactions
 }
@@ -143,7 +133,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
-		logRemove.Trace("RemoveTxByHash(), but !foundInByHash", "tx", txHash)
+		// Could have been previously removed (e.g. due to NotifyAccountNonce).
 		return false
 	}
 
@@ -157,10 +147,10 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		// - B reaches "cache.txByHash.RemoveTxsBulk()"
 		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
 		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		logRemove.Debug("RemoveTxByHash(), but !foundInBySender", "tx", txHash)
+		logRemove.Debug("RemoveTxByHash, but !foundInBySender", "tx", txHash)
 	}
 
-	logRemove.Trace("RemoveTxByHash()", "tx", txHash)
+	logRemove.Trace("RemoveTxByHash", "tx", txHash)
 	return true
 }
 
@@ -292,7 +282,7 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	evicted := cache.txListBySender.notifyAccountNonceReturnEvictedTransactions(accountKey, nonce)
 
 	if len(evicted) > 0 {
-		logRemove.Trace("NotifyAccountNonce() with eviction", "sender", accountKey, "nonce", nonce, "num evicted txs", len(evicted))
+		logRemove.Trace("NotifyAccountNonce with eviction", "sender", accountKey, "nonce", nonce, "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 }

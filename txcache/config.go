@@ -72,7 +72,7 @@ func (config *ConfigSourceMe) getSenderConstraints() senderConstraints {
 func (config *ConfigSourceMe) String() string {
 	bytes, err := json.Marshal(config)
 	if err != nil {
-		log.Error("ConfigSourceMe.String()", "err", err)
+		log.Error("ConfigSourceMe.String", "err", err)
 	}
 
 	return string(bytes)
@@ -111,7 +111,7 @@ func (config *ConfigDestinationMe) verify() error {
 func (config *ConfigDestinationMe) String() string {
 	bytes, err := json.Marshal(config)
 	if err != nil {
-		log.Error("ConfigDestinationMe.String()", "err", err)
+		log.Error("ConfigDestinationMe.String", "err", err)
 	}
 
 	return string(bytes)

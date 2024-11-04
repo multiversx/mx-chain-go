@@ -2,7 +2,7 @@ package txcache
 
 import "container/heap"
 
-func (cache *TxCache) selectTransactionsUsingHeap(gasRequested uint64) BunchOfTransactions {
+func (cache *TxCache) doSelectTransactions(gasRequested uint64) BunchOfTransactions {
 	senders := cache.getSenders()
 	bunches := make([]BunchOfTransactions, 0, len(senders))
 
@@ -10,12 +10,12 @@ func (cache *TxCache) selectTransactionsUsingHeap(gasRequested uint64) BunchOfTr
 		bunches = append(bunches, sender.getTxsWithoutGaps())
 	}
 
-	return selectTransactionsFromBunchesUsingHeap(bunches, gasRequested)
+	return selectTransactionsFromBunches(bunches, gasRequested)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunchesUsingHeap(bunches []BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
-	selectedTransactions := make(BunchOfTransactions, 0, 30000)
+func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested uint64) BunchOfTransactions {
+	selectedTransactions := make(BunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
 	transactionsHeap := &TransactionsMaxHeap{}
