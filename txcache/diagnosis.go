@@ -8,7 +8,6 @@ import (
 // Diagnose checks the state of the cache for inconsistencies and displays a summary, senders and transactions.
 func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseCounters()
-	cache.diagnoseSenders()
 	cache.diagnoseTransactions()
 	cache.diagnoseSelection()
 }
@@ -30,7 +29,7 @@ func (cache *TxCache) diagnoseCounters() {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	log.Debug("diagnoseCounters()",
+	log.Debug("diagnoseCounters",
 		"fine", fine,
 		"numTxsEstimate", numTxsEstimate,
 		"numTxsInChunks", numTxsInChunks,
@@ -41,22 +40,6 @@ func (cache *TxCache) diagnoseCounters() {
 		"numSendersInChunks", numSendersInChunks,
 		"len(sendersKeys)", len(sendersKeys),
 	)
-}
-
-func (cache *TxCache) diagnoseSenders() {
-	if logDiagnoseSenders.GetLevel() > logger.LogTrace {
-		return
-	}
-
-	senders := cache.txListBySender.getSenders()
-
-	if len(senders) == 0 {
-		return
-	}
-
-	numToDisplay := core.MinInt(diagnosisMaxSendersToDisplay, len(senders))
-	logDiagnoseSenders.Trace("diagnoseSenders()", "numSenders", len(senders), "numToDisplay", numToDisplay)
-	logDiagnoseSenders.Trace(marshalSendersToNewlineDelimitedJson(senders[:numToDisplay]))
 }
 
 func (cache *TxCache) diagnoseTransactions() {
@@ -71,7 +54,7 @@ func (cache *TxCache) diagnoseTransactions() {
 	}
 
 	numToDisplay := core.MinInt(diagnosisMaxTransactionsToDisplay, len(transactions))
-	logDiagnoseTransactions.Trace("diagnoseTransactions()", "numTransactions", len(transactions), "numToDisplay", numToDisplay)
+	logDiagnoseTransactions.Trace("diagnoseTransactions", "numTransactions", len(transactions), "numToDisplay", numToDisplay)
 	logDiagnoseTransactions.Trace(marshalTransactionsToNewlineDelimitedJson(transactions[:numToDisplay]))
 }
 
@@ -86,4 +69,17 @@ func (cache *TxCache) diagnoseSelection() {
 	)
 
 	displaySelectionOutcome(logDiagnoseSelection, transactions)
+}
+
+func displaySelectionOutcome(contextualLogger logger.Logger, selection []*WrappedTransaction) {
+	if contextualLogger.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	if len(selection) > 0 {
+		contextualLogger.Trace("displaySelectionOutcome - transactions (as newline-separated JSON):")
+		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
+	} else {
+		contextualLogger.Trace("displaySelectionOutcome - transactions: none")
+	}
 }

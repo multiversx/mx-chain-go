@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTxCache_selectTransactionsFromBunchesUsingHeap(t *testing.T) {
+func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		merged := selectTransactionsFromBunchesUsingHeap(bunches, 10_000_000_000)
+		merged := selectTransactionsFromBunches(bunches, 10_000_000_000)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
