@@ -662,8 +662,9 @@
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
     StateStatisticsEnabled = false
-    StateChangesDataAnalysis = false
     StateChangesTypesToCollect = []
+    StateChangesDataAnalysis = false
+    StateChangesPeerAccountsEnabled = false
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB

@@ -135,12 +135,11 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 	}
 
 	var opts []stateChanges.CollectorOption
-
 	if collectRead {
 		opts = append(opts, stateChanges.WithCollectRead())
 	}
 	if collectWrite {
-		opts = append(opts, stateChanges.WithCollectRead())
+		opts = append(opts, stateChanges.WithCollectWrite())
 	}
 
 	if scf.config.StateTriesConfig.StateChangesDataAnalysis {
@@ -167,6 +166,14 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 	}
 
 	return stateChanges.NewCollector(opts...), nil
+}
+
+func (scf *stateComponentsFactory) createStateChangesCollectorPeerAccounts() (state.StateChangesCollector, error) {
+	if !scf.config.StateTriesConfig.StateChangesPeerAccountsEnabled {
+		return disabled.NewDisabledStateChangesCollector(), nil
+	}
+
+	return scf.createStateChangesCollector()
 }
 
 func (scf *stateComponentsFactory) createSnapshotManager(
@@ -304,7 +311,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
-	stateChangesCollector, err := scf.createStateChangesCollector()
+	stateChangesCollector, err := scf.createStateChangesCollectorPeerAccounts()
 	if err != nil {
 		return nil, err
 	}
