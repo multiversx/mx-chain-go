@@ -34,7 +34,7 @@ func (cache *TxCache) doEviction() *evictionJournal {
 		return nil
 	}
 
-	logRemove.Debug("doEviction(): before eviction",
+	logRemove.Debug("doEviction: before eviction",
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
@@ -48,7 +48,7 @@ func (cache *TxCache) doEviction() *evictionJournal {
 	stopWatch.Stop("eviction")
 
 	logRemove.Debug(
-		"doEviction(): after eviction",
+		"doEviction: after eviction",
 		"num bytes", cache.NumBytes(),
 		"num now", cache.CountTx(),
 		"num senders", cache.CountSenders(),
@@ -169,6 +169,8 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 
 		journal.numEvictedByPass = append(journal.numEvictedByPass, len(transactionsToEvict))
 		journal.numEvicted += len(transactionsToEvict)
+
+		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num evicted", len(transactionsToEvict))
 	}
 
 	return journal
