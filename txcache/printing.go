@@ -8,14 +8,14 @@ import (
 )
 
 type printedTransaction struct {
-	Hash       string `json:"hash"`
-	Nonce      uint64 `json:"nonce"`
-	GasPrice   uint64 `json:"gasPrice"`
-	GasLimit   uint64 `json:"gasLimit"`
-	Sender     string `json:"sender"`
-	Receiver   string `json:"receiver"`
-	DataLength int    `json:"dataLength"`
-	PPU        uint64 `json:"ppu"`
+	Hash       string  `json:"hash"`
+	Nonce      uint64  `json:"nonce"`
+	GasPrice   uint64  `json:"gasPrice"`
+	GasLimit   uint64  `json:"gasLimit"`
+	Sender     string  `json:"sender"`
+	Receiver   string  `json:"receiver"`
+	DataLength int     `json:"dataLength"`
+	PPU        float64 `json:"ppu"`
 }
 
 type printedSender struct {
@@ -75,7 +75,7 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		GasPrice:   transaction.GetGasPrice(),
 		GasLimit:   transaction.GetGasLimit(),
 		DataLength: len(transaction.GetData()),
-		PPU:        wrappedTx.PricePerGasUnitQuotient,
+		PPU:        wrappedTx.PricePerUnit,
 	}
 }
 

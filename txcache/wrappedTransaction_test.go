@@ -14,16 +14,14 @@ func TestWrappedTransaction_computePricePerGasUnit(t *testing.T) {
 		tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
 		tx.computePricePerGasUnit(txGasHandler)
 
-		require.Equal(t, oneBillion, int(tx.PricePerGasUnitQuotient))
-		require.Equal(t, 0, int(tx.PricePerGasUnitRemainder))
+		require.Equal(t, float64(oneBillion), tx.PricePerUnit)
 	})
 
 	t.Run("move balance gas limit and execution gas limit (1)", func(t *testing.T) {
 		tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
 		tx.computePricePerGasUnit(txGasHandler)
 
-		require.Equal(t, 999980777, int(tx.PricePerGasUnitQuotient))
-		require.Equal(t, 3723, int(tx.PricePerGasUnitRemainder))
+		require.InDelta(t, float64(999980777), tx.PricePerUnit, 0.1)
 	})
 
 	t.Run("move balance gas limit and execution gas limit (2)", func(t *testing.T) {
@@ -33,8 +31,7 @@ func TestWrappedTransaction_computePricePerGasUnit(t *testing.T) {
 		actualFee := 51500*oneBillion + (oneMilion-51500)*oneBillion/100
 		require.Equal(t, 60985000000000, actualFee)
 
-		require.Equal(t, actualFee/oneMilion, int(tx.PricePerGasUnitQuotient))
-		require.Equal(t, 0, int(tx.PricePerGasUnitRemainder))
+		require.InDelta(t, actualFee/oneMilion, tx.PricePerUnit, 0.1)
 	})
 }
 
@@ -55,10 +52,8 @@ func TestWrappedTransaction_isTransactionMoreDesirableByProtocol(t *testing.T) {
 		a := createTx([]byte("a-2"), "a", 1).withGasPrice(oneBillion + 1)
 		b := createTx([]byte("b-2"), "b", 1).withGasPrice(oneBillion)
 
-		a.PricePerGasUnitQuotient = 42
-		b.PricePerGasUnitQuotient = 42
-		a.PricePerGasUnitRemainder = 0
-		b.PricePerGasUnitRemainder = 0
+		a.PricePerUnit = 42
+		b.PricePerUnit = 42
 
 		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
 	})
@@ -67,10 +62,8 @@ func TestWrappedTransaction_isTransactionMoreDesirableByProtocol(t *testing.T) {
 		a := createTx([]byte("a-2"), "a", 1).withGasLimit(55000)
 		b := createTx([]byte("b-2"), "b", 1).withGasLimit(60000)
 
-		a.PricePerGasUnitQuotient = 42
-		b.PricePerGasUnitQuotient = 42
-		a.PricePerGasUnitRemainder = 0
-		b.PricePerGasUnitRemainder = 0
+		a.PricePerUnit = 42
+		b.PricePerUnit = 42
 
 		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
 	})
