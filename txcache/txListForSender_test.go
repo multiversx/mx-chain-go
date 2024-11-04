@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -198,47 +199,40 @@ func TestListForSender_hasInitialGap(t *testing.T) {
 	list.notifyAccountNonceReturnEvictedTransactions(42)
 
 	// No transaction, no gap
-	_, _, hasInitialGap := list.hasInitialGap()
-	require.False(t, hasInitialGap)
 	require.Len(t, list.getTxsWithoutGaps(), 0)
 
 	// One gap
 	list.AddTx(createTx([]byte("tx-43"), ".", 43))
-	_, _, hasInitialGap = list.hasInitialGap()
-	require.True(t, hasInitialGap)
 	require.Len(t, list.getTxsWithoutGaps(), 0)
 
 	// Resolve gap
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
-	_, _, hasInitialGap = list.hasInitialGap()
-	require.False(t, hasInitialGap)
 	require.Len(t, list.getTxsWithoutGaps(), 2)
-}
-
-func TestListForSender_getTxHashes(t *testing.T) {
-	list := newUnconstrainedListToTest()
-	require.Len(t, list.getTxsHashes(), 0)
-
-	list.AddTx(createTx([]byte("A"), ".", 1))
-	require.Len(t, list.getTxsHashes(), 1)
-
-	list.AddTx(createTx([]byte("B"), ".", 2))
-	list.AddTx(createTx([]byte("C"), ".", 3))
-	require.Len(t, list.getTxsHashes(), 3)
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {
 	list := newUnconstrainedListToTest()
 
-	go func() {
-		// These are called concurrently with addition: during eviction, during removal etc.
-		approximatelyCountTxInLists([]*txListForSender{list})
-		list.IsEmpty()
-	}()
+	wg := sync.WaitGroup{}
 
-	go func() {
-		list.AddTx(createTx([]byte("test"), ".", 42))
-	}()
+	doOperations := func() {
+		// These might be called concurrently:
+		_ = list.IsEmpty()
+		_ = list.getTxs()
+		_ = list.getTxsWithoutGaps()
+		_ = list.countTxWithLock()
+		_ = list.notifyAccountNonceReturnEvictedTransactions(42)
+		_, _ = list.AddTx(createTx([]byte("test"), ".", 42))
+
+		wg.Done()
+	}
+
+	for i := 0; i < 100; i++ {
+		wg.Add(1)
+		go doOperations()
+	}
+
+	wg.Wait()
 }
 
 func newUnconstrainedListToTest() *txListForSender {

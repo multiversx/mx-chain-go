@@ -182,21 +182,6 @@ func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTxWithLock() == 0
 }
 
-// getTxsHashes returns the hashes of transactions in the list
-func (listForSender *txListForSender) getTxsHashes() [][]byte {
-	listForSender.mutex.RLock()
-	defer listForSender.mutex.RUnlock()
-
-	result := make([][]byte, 0, listForSender.countTx())
-
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		result = append(result, value.TxHash)
-	}
-
-	return result
-}
-
 // getTxs returns the transactions in the list
 func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
 	listForSender.mutex.RLock()
@@ -229,11 +214,13 @@ func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction 
 
 		// Detect initial gaps.
 		if len(result) == 0 && accountNonceKnown && accountNonce != nonce {
+			log.Trace("txListForSender.getTxsWithoutGaps, initial gap", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
 			break
 		}
 
 		// Detect middle gaps.
 		if len(result) > 0 && nonce != previousNonce+1 {
+			log.Trace("txListForSender.getTxsWithoutGaps, middle gap", "sender", listForSender.sender, "nonce", nonce, "previousNonce", previousNonce)
 			break
 		}
 
@@ -253,16 +240,6 @@ func (listForSender *txListForSender) countTxWithLock() uint64 {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 	return uint64(listForSender.items.Len())
-}
-
-func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
-	count := uint64(0)
-
-	for _, listForSender := range lists {
-		count += listForSender.countTxWithLock()
-	}
-
-	return count
 }
 
 // Removes transactions with lower nonces and returns their hashes.
@@ -322,43 +299,6 @@ func (listForSender *txListForSender) evictTransactionsWithHigherOrEqualNonces(g
 		listForSender.onRemovedListElement(element)
 		element = prevElement
 	}
-}
-
-// This function should only be used in critical section (listForSender.mutex).
-// When a gap is detected, the (known) account nonce and the first transactio nonce are also returned.
-func (listForSender *txListForSender) hasInitialGap() (uint64, uint64, bool) {
-	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
-	if !accountNonceKnown {
-		return 0, 0, false
-	}
-
-	firstTx := listForSender.getLowestNonceTx()
-	if firstTx == nil {
-		return 0, 0, false
-	}
-
-	accountNonce := listForSender.accountNonce.Get()
-	firstTxNonce := firstTx.Tx.GetNonce()
-	hasGap := firstTxNonce > accountNonce
-	return accountNonce, firstTxNonce, hasGap
-}
-
-func (listForSender *txListForSender) hasInitialGapWithLock() bool {
-	listForSender.mutex.RLock()
-	defer listForSender.mutex.RUnlock()
-	_, _, hasInitialGap := listForSender.hasInitialGap()
-	return hasInitialGap
-}
-
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
-	front := listForSender.items.Front()
-	if front == nil {
-		return nil
-	}
-
-	value := front.Value.(*WrappedTransaction)
-	return value
 }
 
 // GetKey returns the key
