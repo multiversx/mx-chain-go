@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -162,7 +163,6 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
-	_ = tpn.EconomicsData.SetTxTypeHandler(txTypeHandler)
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength: TestAddressPubkeyConverter.Len(),
@@ -236,6 +236,8 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
+		TxMarshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:      tpn.EnableEpochsHandler,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
