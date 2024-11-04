@@ -21,8 +21,14 @@ type WrappedTransaction struct {
 
 // computePricePerGasUnit computes (and caches) the (average) price per gas unit.
 func (transaction *WrappedTransaction) computePricePerGasUnit(txGasHandler TxGasHandler) {
-	fee := txGasHandler.ComputeTxFee(transaction.Tx)
-	transaction.PricePerUnit = float64(fee.Uint64()) / float64(transaction.Tx.GetGasLimit())
+	fee := txGasHandler.ComputeTxFee(transaction.Tx).Uint64()
+
+	gasLimit := transaction.Tx.GetGasLimit()
+	if gasLimit == 0 {
+		return
+	}
+
+	transaction.PricePerUnit = float64(fee) / float64(gasLimit)
 }
 
 // Equality is out of scope (not possible in our case).
