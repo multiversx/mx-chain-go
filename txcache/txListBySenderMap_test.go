@@ -101,14 +101,14 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	// Discarded notification, since sender not added yet
-	myMap.notifyAccountNonce([]byte("alice"), 42)
+	myMap.notifyAccountNonceReturnEvictedTransactions([]byte("alice"), 42)
 
 	myMap.addTx(createTx([]byte("tx-42"), "alice", 42))
 	alice, _ := myMap.getListForSender("alice")
 	require.Equal(t, uint64(0), alice.accountNonce.Get())
 	require.False(t, alice.accountNonceKnown.IsSet())
 
-	myMap.notifyAccountNonce([]byte("alice"), 42)
+	myMap.notifyAccountNonceReturnEvictedTransactions([]byte("alice"), 42)
 	require.Equal(t, uint64(42), alice.accountNonce.Get())
 	require.True(t, alice.accountNonceKnown.IsSet())
 }

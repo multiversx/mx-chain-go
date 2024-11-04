@@ -167,7 +167,7 @@ func TestListForSender_NotifyAccountNonce(t *testing.T) {
 	require.Equal(t, uint64(0), list.accountNonce.Get())
 	require.False(t, list.accountNonceKnown.IsSet())
 
-	list.notifyAccountNonce(42)
+	list.notifyAccountNonceReturnEvictedTransactions(42)
 
 	require.Equal(t, uint64(42), list.accountNonce.Get())
 	require.True(t, list.accountNonceKnown.IsSet())
@@ -195,7 +195,7 @@ func TestListForSender_evictTransactionsWithLowerNoncesNoLock(t *testing.T) {
 
 func TestListForSender_hasInitialGap(t *testing.T) {
 	list := newUnconstrainedListToTest()
-	list.notifyAccountNonce(42)
+	list.notifyAccountNonceReturnEvictedTransactions(42)
 
 	// No transaction, no gap
 	_, _, hasInitialGap := list.hasInitialGap()
