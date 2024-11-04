@@ -308,14 +308,15 @@ type FacadeConfig struct {
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	SnapshotsEnabled                   bool
-	AccountsStatePruningEnabled        bool
-	PeerStatePruningEnabled            bool
-	CollectStateChangesEnabled         bool
-	CollectStateChangesWithReadEnabled bool
-	MaxStateTrieLevelInMemory          uint
-	MaxPeerTrieLevelInMemory           uint
-	StateStatisticsEnabled             bool
+	SnapshotsEnabled                bool
+	AccountsStatePruningEnabled     bool
+	PeerStatePruningEnabled         bool
+	StateChangesDataAnalysis        bool
+	StateChangesTypesToCollect      []string
+	StateChangesPeerAccountsEnabled bool
+	MaxStateTrieLevelInMemory       uint
+	MaxPeerTrieLevelInMemory        uint
+	StateStatisticsEnabled          bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager

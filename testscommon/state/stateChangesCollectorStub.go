@@ -16,9 +16,9 @@ type StateChangesCollectorStub struct {
 	AddTxHashToCollectedStateChangesCalled func(txHash []byte, tx *transaction.Transaction)
 	SetIndexToLastStateChangeCalled        func(index int) error
 	RevertToIndexCalled                    func(index int) error
-	PublishCalled                          func() error
+	PublishCalled                          func() (map[string]*stateChange.StateChanges, error)
+	StoreCalled                            func() error
 	IsInterfaceNilCalled                   func() bool
-	GetStateChangesForTxsCalled            func() map[string]*stateChange.StateChanges
 }
 
 // AddStateChange -
@@ -68,9 +68,17 @@ func (s *StateChangesCollectorStub) RevertToIndex(index int) error {
 }
 
 // Publish -
-func (s *StateChangesCollectorStub) Publish() error {
+func (s *StateChangesCollectorStub) Publish() (map[string]*stateChange.StateChanges, error) {
 	if s.PublishCalled != nil {
 		return s.PublishCalled()
+	}
+
+	return nil, nil
+}
+
+func (s *StateChangesCollectorStub) Store() error {
+	if s.StoreCalled != nil {
+		return s.StoreCalled()
 	}
 
 	return nil
@@ -83,13 +91,4 @@ func (s *StateChangesCollectorStub) IsInterfaceNil() bool {
 	}
 
 	return false
-}
-
-// GetStateChangesForTxs -
-func (s *StateChangesCollectorStub) GetStateChangesForTxs() map[string]*stateChange.StateChanges {
-	if s.GetStateChangesForTxsCalled != nil {
-		return s.GetStateChangesForTxsCalled()
-	}
-
-	return nil
 }

@@ -180,7 +180,7 @@ func getDefaultStateComponents(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: stateChanges.NewCollector(stateChanges.WithCollectWrite()),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -469,7 +469,8 @@ func stepCreateAccountWithDataTrieAndCode(
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
-	stateChangesForTx := adb.ResetStateChangesCollector()
+	stateChangesForTx, err := adb.ResetStateChangesCollector()
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 
 	stateChanges := stateChangesForTx[string(txHash)].StateChanges
@@ -519,7 +520,8 @@ func stepMigrateDataTrieValAndChangeCode(
 
 	adb.SetTxHashForLatestStateChanges(txHash, &transaction.Transaction{})
 
-	stateChangesForTx := adb.ResetStateChangesCollector()
+	stateChangesForTx, err := adb.ResetStateChangesCollector()
+	assert.Nil(t, err)
 	assert.Equal(t, 1, len(stateChangesForTx))
 	assert.Equal(t, 3, len(stateChangesForTx[string(txHash)].StateChanges))
 	assert.Equal(t, txHash, stateChangesForTx[string(txHash)].StateChanges[0].GetTxHash())

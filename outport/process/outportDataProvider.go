@@ -139,7 +139,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateChanges := odp.stateChangesCollector.GetStateChangesForTxs()
+	stateChanges, err := odp.stateChangesCollector.Publish()
+	if err != nil {
+		return nil, fmt.Errorf("failed to publish state changes: %w", err)
+	}
 
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{

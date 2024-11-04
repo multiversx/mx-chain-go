@@ -362,22 +362,22 @@ type StateChangesCollector interface {
 	AddStateChange(stateChange StateChange)
 	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange)
 	Reset()
+	Publish() (map[string]*data.StateChanges, error)
+	Store() error
 	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
-	Publish() error
 	IsInterfaceNil() bool
-	GetStateChangesForTxs() map[string]*data.StateChanges
 }
 
 // StateChange defines the behaviour of a state change holder
 type StateChange interface {
-	GetType() string
+	GetType() data.ActionType
 	GetIndex() int32
 	GetTxHash() []byte
 	GetMainTrieKey() []byte
 	GetMainTrieVal() []byte
-	GetOperation() string
+	GetOperation() data.Operation
 	GetDataTrieChanges() []*data.DataTrieChange
 
 	SetTxHash(txHash []byte)

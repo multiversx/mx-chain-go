@@ -5,15 +5,16 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	mockTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
-	"github.com/stretchr/testify/assert"
 )
 
 func createMockAccountsArgs() state.ArgsAccountsDB {
@@ -29,7 +30,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
-		StateChangesCollector: stateChanges.NewStateChangesCollector(),
+		StateChangesCollector: &stateMock.StateChangesCollectorStub{},
 	}
 }
 
