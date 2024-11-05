@@ -5336,7 +5336,7 @@ func TestDelegationSystemSC_ExecuteRemoveDelegationFromSource(t *testing.T) {
 	eei.returnMessage = ""
 	output = d.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, output)
-	require.Equal(t, eei.returnMessage, "cannot increase service fee in the cooldown period, wait 1 more epochs")
+	require.Equal(t, eei.returnMessage, "cannot migrate to another service provider during cooldown period, wait 1 more epochs")
 
 	currentEpoch = 10
 	eei.returnMessage = ""
