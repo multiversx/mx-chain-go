@@ -141,7 +141,7 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 	}
 
 	for i := range tokenIDs {
-		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
+		tx = esdtNftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i], 1)
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
@@ -275,7 +275,7 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = esdtNftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData, 1)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -397,7 +397,7 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = esdtNftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData, 1)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -519,7 +519,7 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = esdtNftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData, 1)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -732,7 +732,7 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = esdtNftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData, 1)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)

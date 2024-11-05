@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -276,7 +277,7 @@ func deployForwarderAndTestContract(
 
 	forwarderSCAddress := utils.DoDeploySecond(t, testContext, pathToForwarder, ownerAccount, gasPrice, deployGasLimit, nil, big.NewInt(0))
 
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance, uint32(core.Fungible))
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -514,7 +515,7 @@ func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int,
 	pathToContract = "testdata/forwarderQueue/forwarder-queue-promises.wasm"
 	forwarderSCAddress := utils.DoDeploySecond(t, forwarderShard, pathToContract, forwarderOwnerAccount, gasPrice, gasLimit, nil, big.NewInt(0))
 
-	utils.CreateAccountWithESDTBalance(t, forwarderShard.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, forwarderShard.Accounts, forwarderSCAddress, egldBalance, esdtToken, 0, esdtBalance, uint32(core.Fungible))
 
 	utils.CheckESDTNFTBalance(t, forwarderShard, forwarderSCAddress, esdtToken, 0, esdtBalance)
 
