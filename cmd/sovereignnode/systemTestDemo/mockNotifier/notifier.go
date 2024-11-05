@@ -332,23 +332,23 @@ func createESDTTokenData(
 	uris ...string,
 ) []byte {
 	esdtTokenData := make([]byte, 0)
-	esdtTokenData = append(esdtTokenData, uint8(esdtType))                                    // esdt type
-	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(amount)), lenSize)...)     // length of amount
-	esdtTokenData = append(esdtTokenData, amount...)                                          // amount
-	esdtTokenData = append(esdtTokenData, []byte{0x00}...)                                    // not frozen
-	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(hash)), lenSize)...)       // length of hash
-	esdtTokenData = append(esdtTokenData, hash...)                                            // hash
-	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(name)), lenSize)...)       // length of name
-	esdtTokenData = append(esdtTokenData, name...)                                            // name
-	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(attributes)), lenSize)...) // length of attributes
-	esdtTokenData = append(esdtTokenData, attributes...)                                      // attributes
-	esdtTokenData = append(esdtTokenData, creator...)                                         // creator
-	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(royalties)), lenSize)...)  // length of royalties
-	esdtTokenData = append(esdtTokenData, royalties...)                                       // royalties
-	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uris)), lenSize)...)       // number of uris
+	esdtTokenData = append(esdtTokenData, uint8(esdtType))                                        // esdt type
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(amount)), lenItemSize)...)     // length of amount
+	esdtTokenData = append(esdtTokenData, amount...)                                              // amount
+	esdtTokenData = append(esdtTokenData, []byte{0x00}...)                                        // not frozen
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(hash)), lenItemSize)...)       // length of hash
+	esdtTokenData = append(esdtTokenData, hash...)                                                // hash
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(name)), lenItemSize)...)       // length of name
+	esdtTokenData = append(esdtTokenData, name...)                                                // name
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(attributes)), lenItemSize)...) // length of attributes
+	esdtTokenData = append(esdtTokenData, attributes...)                                          // attributes
+	esdtTokenData = append(esdtTokenData, creator...)                                             // creator
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(royalties)), lenItemSize)...)  // length of royalties
+	esdtTokenData = append(esdtTokenData, royalties...)                                           // royalties
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uris)), lenItemSize)...)       // number of uris
 	for _, uri := range uris {
-		esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uri)), lenSize)...) // length of uri
-		esdtTokenData = append(esdtTokenData, []byte(uri)...)                              // uri
+		esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uri)), lenItemSize)...) // length of uri
+		esdtTokenData = append(esdtTokenData, []byte(uri)...)                                  // uri
 	}
 
 	return esdtTokenData
@@ -360,16 +360,16 @@ func createEventData(nonce uint64, addr []byte) []byte {
 	args := [][]byte{[]byte("arg1")}
 
 	eventData := make([]byte, 0)
-	eventData = append(eventData, numberToBytes(nonce, u64Size)...)                 // event nonce
-	eventData = append(eventData, addr...)                                          // original sender
-	eventData = append(eventData, []byte{0x01}...)                                  // has transfer data
-	eventData = append(eventData, numberToBytes(gasLimit, u64Size)...)              // gas limit bytes
-	eventData = append(eventData, numberToBytes(uint64(len(function)), lenSize)...) // length of function
-	eventData = append(eventData, function...)                                      // function
-	eventData = append(eventData, numberToBytes(uint64(len(args)), lenSize)...)     // number of arguments
+	eventData = append(eventData, numberToBytes(nonce, u64Size)...)                     // event nonce
+	eventData = append(eventData, addr...)                                              // original sender
+	eventData = append(eventData, []byte{0x01}...)                                      // has transfer data
+	eventData = append(eventData, numberToBytes(gasLimit, u64Size)...)                  // gas limit bytes
+	eventData = append(eventData, numberToBytes(uint64(len(function)), lenItemSize)...) // length of function
+	eventData = append(eventData, function...)                                          // function
+	eventData = append(eventData, numberToBytes(uint64(len(args)), lenItemSize)...)     // number of arguments
 	for _, arg := range args {
-		eventData = append(eventData, numberToBytes(uint64(len(arg)), lenSize)...) // length of current argument
-		eventData = append(eventData, arg...)                                      // current argument
+		eventData = append(eventData, numberToBytes(uint64(len(arg)), lenItemSize)...) // length of current argument
+		eventData = append(eventData, arg...)                                          // current argument
 	}
 
 	return eventData
