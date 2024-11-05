@@ -263,9 +263,17 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 	}
 
 	wasCalled := false
+	getNumRegisteredHandlersCalledCt := 0
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerStub{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			wasCalled = true
+		},
+		GetNumRegisteredHandlersCalled: func() int {
+			defer func() {
+				getNumRegisteredHandlersCalledCt++
+			}()
+
+			return getNumRegisteredHandlersCalledCt
 		},
 	}
 
@@ -273,8 +281,12 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
 	scbp.DoJobOnReceivedCrossNotarizedHeader(core.SovereignChainShardId)
+	require.False(t, wasCalled)
+	require.Equal(t, 1, getNumRegisteredHandlersCalledCt)
 
-	assert.True(t, wasCalled)
+	scbp.DoJobOnReceivedCrossNotarizedHeader(core.SovereignChainShardId)
+	require.True(t, wasCalled)
+	require.Equal(t, 2, getNumRegisteredHandlersCalledCt)
 }
 
 func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardHeaders(t *testing.T) {
