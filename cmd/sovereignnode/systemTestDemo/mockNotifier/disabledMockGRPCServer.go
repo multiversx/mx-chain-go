@@ -8,7 +8,7 @@ func NewDisabledMockServer() *disabledMockServer {
 	return &disabledMockServer{}
 }
 
-// ExtractRandomBridgeTopicsForConfirmation returns empty confirmed bridge op
+// ExtractRandomBridgeTopicsForConfirmation -
 func (dms *disabledMockServer) ExtractRandomBridgeTopicsForConfirmation() ([]*ConfirmedBridgeOp, error) {
 	return make([]*ConfirmedBridgeOp, 0), nil
 }

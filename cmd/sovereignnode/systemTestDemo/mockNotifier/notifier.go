@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -375,12 +376,9 @@ func createEventData(nonce uint64, addr []byte) []byte {
 }
 
 func numberToBytes(number uint64, size int) []byte {
-	result := make([]byte, size)
-	for i := 0; i < size; i++ {
-		shift := uint(8 * (size - 1 - i))
-		result[i] = byte((number >> shift) & 0xFF)
-	}
-	return result
+	result := make([]byte, 8)
+	binary.BigEndian.PutUint64(result, number)
+	return result[8-size:]
 }
 
 func createBlockData(headerV2 *block.HeaderV2) (*outport.BlockData, error) {

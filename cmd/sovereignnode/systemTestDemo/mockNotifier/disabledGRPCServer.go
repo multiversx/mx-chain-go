@@ -8,6 +8,6 @@ func NewDisabledGRPCServer() *disabledGRPCServer {
 	return &disabledGRPCServer{}
 }
 
-// Stop does nothing
+// Stop -
 func (dgs *disabledGRPCServer) Stop() {
 }

@@ -20,7 +20,7 @@ var (
 	}
 	sovereignBridgeCertificateFile = cli.StringFlag{
 		Name:  "certificate",
-		Usage: "The path for sovereign outgoing bridge certificate file.",
+		Usage: "The path for sovereign grpc bridge service certificate file.",
 		Value: "~/MultiversX/testnet/node/config/certificate.crt",
 	}
 	sovereignBridgeCertificatePkFile = cli.StringFlag{
