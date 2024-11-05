@@ -89,10 +89,8 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 
 	for _, sender := range senders {
 		// Include transactions after gaps, as well (important), unlike when selecting transactions for processing.
-		bunch := sender.getTxs()
 		// Reverse the order of transactions (will come in handy later, when creating the min-heap).
-		reverseSlice(bunch)
-
+		bunch := sender.getTxsReversed()
 		bunches = append(bunches, bunch)
 	}
 

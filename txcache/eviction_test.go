@@ -117,7 +117,7 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	require.Equal(t, 4, int(cache.CountTx()))
 }
 
-func TestBenchmarkTxCache_DoEviction_Benchmark(t *testing.T) {
+func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,

@@ -197,6 +197,21 @@ func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
 	return result
 }
 
+// getTxsReversed returns the transactions in the list, in reverse nonce order
+func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	result := make([]*WrappedTransaction, 0, listForSender.countTx())
+
+	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+		value := element.Value.(*WrappedTransaction)
+		result = append(result, value)
+	}
+
+	return result
+}
+
 // getTxsWithoutGaps returns the transactions in the list (gaps are handled, affected transactions are excluded)
 func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction {
 	listForSender.mutex.RLock()
