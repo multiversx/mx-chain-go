@@ -151,7 +151,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase1(t *testing.T) {
 	var prevSovHdr data.SovereignChainHeaderHandler
 	var previousExtendedHeader data.HeaderHandler
 
-	for currIncomingHeaderRound := startRound - 5; currIncomingHeaderRound < startRound+1500; currIncomingHeaderRound++ {
+	for currIncomingHeaderRound := startRound - 5; currIncomingHeaderRound < startRound+200; currIncomingHeaderRound++ {
 
 		// Handlers are notified on go routines; wait a bit so that pools are updated
 		incomingHdr := addIncomingHeader(t, nodeHandler, &incomingHdrNonce, prevIncomingHeader)
@@ -386,29 +386,45 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 	currentSovBlock := common.GetCurrentSovereignHeader(nodeHandler)
 	require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
 
+	prevSovBlock := currentSovBlock
 	extendedHeaderHashes := make([][]byte, 0)
 	// From now on, we generate 3 incoming headers per sovereign block
-	for i := 1; i < 100; i++ {
+	for i := 1; i < 300; i++ {
 		incomingHdr := addIncomingHeader(t, nodeHandler, &incomingHdrNonce, prevHeader)
 		extendedHeaderHashes = append(extendedHeaderHashes, getExtendedHeaderHash(t, nodeHandler, incomingHdr))
 
-		//time.Sleep(time.Millisecond * 50)
-
 		if i%3 == 0 {
+			time.Sleep(time.Millisecond * 50)
+
 			err = cs.GenerateBlocks(1)
 			require.Nil(t, err)
 
-			//currentSovBlock = common.GetCurrentSovereignHeader(nodeHandler)
-			//require.Len(t, extendedHeaderHashes, 3)
-			//require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
-			//
-			//lastCrossNotarizedRound += 3
-			//extendedHeaderHashes = make([][]byte, 0)
+			currentSovBlock = common.GetCurrentSovereignHeader(nodeHandler)
+
+			if currentSovBlock.IsStartOfEpochBlock() {
+				require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
+			} else if prevSovBlock.IsStartOfEpochBlock() {
+				require.Len(t, currentSovBlock.GetExtendedShardHeaderHashes(), 6)
+				require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
+
+				lastCrossNotarizedRound += 6
+				extendedHeaderHashes = make([][]byte, 0)
+			} else {
+				require.Len(t, currentSovBlock.GetExtendedShardHeaderHashes(), 3)
+				require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
+
+				lastCrossNotarizedRound += 3
+				extendedHeaderHashes = make([][]byte, 0)
+			}
+
 		}
 
-		//checkLastCrossNotarizedRound(t, sovBlockTracker, lastCrossNotarizedRound)
+		checkLastCrossNotarizedRound(t, sovBlockTracker, lastCrossNotarizedRound)
 		prevHeader = incomingHdr.Header
+		prevSovBlock = currentSovBlock
 	}
+
+	require.Equal(t, uint32(4), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
 
 }
 
