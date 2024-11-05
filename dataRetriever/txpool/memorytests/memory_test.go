@@ -39,13 +39,13 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 1024, "0"), memoryAssertion{10, 16}, memoryAssertion{4, 10}))
 	journals = append(journals, runScenario(t, newScenario(1, 60000, 256, "0"), memoryAssertion{30, 36}, memoryAssertion{10, 16}))
 	journals = append(journals, runScenario(t, newScenario(10, 10000, 100, "0"), memoryAssertion{36, 46}, memoryAssertion{16, 24}))
-	journals = append(journals, runScenario(t, newScenario(100000, 1, 1024, "0"), memoryAssertion{120, 136}, memoryAssertion{40, 60}))
+	journals = append(journals, runScenario(t, newScenario(100000, 1, 1024, "0"), memoryAssertion{120, 136}, memoryAssertion{30, 60}))
 
 	// With larger memory footprint
 
-	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{90, 120}))
-	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{100, 140}))
-	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{130, 190}))
+	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{80, 120}))
+	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{90, 140}))
+	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{120, 190}))
 	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{60, 90}))
 	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{60, 90}))
 
@@ -53,7 +53,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	journals = append(journals, runScenario(t, newScenario(100, 1, core.MegabyteSize, "1_0"), memoryAssertion{90, 100}, memoryAssertion{0, 1}))
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 10240, "1_0"), memoryAssertion{96, 128}, memoryAssertion{0, 4}))
-	journals = append(journals, runScenario(t, newScenario(10, 10000, 1000, "1_0"), memoryAssertion{96, 136}, memoryAssertion{16, 32}))
+	journals = append(journals, runScenario(t, newScenario(10, 10000, 1000, "1_0"), memoryAssertion{96, 136}, memoryAssertion{16, 25}))
 	journals = append(journals, runScenario(t, newScenario(150000, 1, 128, "1_0"), memoryAssertion{50, 75}, memoryAssertion{30, 40}))
 	journals = append(journals, runScenario(t, newScenario(1, 150000, 128, "1_0"), memoryAssertion{50, 75}, memoryAssertion{30, 40}))
 
