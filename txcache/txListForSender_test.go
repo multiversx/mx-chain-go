@@ -194,20 +194,33 @@ func TestListForSender_evictTransactionsWithLowerNoncesNoLock(t *testing.T) {
 	require.Equal(t, 0, list.items.Len())
 }
 
-func TestListForSender_hasInitialGap(t *testing.T) {
+func TestListForSender_getTxs(t *testing.T) {
 	list := newUnconstrainedListToTest()
 	list.notifyAccountNonceReturnEvictedTransactions(42)
 
 	// No transaction, no gap
+	require.Len(t, list.getTxs(), 0)
+	require.Len(t, list.getTxsReversed(), 0)
 	require.Len(t, list.getTxsWithoutGaps(), 0)
 
 	// One gap
 	list.AddTx(createTx([]byte("tx-43"), ".", 43))
+	require.Len(t, list.getTxs(), 1)
+	require.Len(t, list.getTxsReversed(), 1)
 	require.Len(t, list.getTxsWithoutGaps(), 0)
 
 	// Resolve gap
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
+	require.Len(t, list.getTxs(), 2)
+	require.Len(t, list.getTxsReversed(), 2)
 	require.Len(t, list.getTxsWithoutGaps(), 2)
+
+	require.Equal(t, []byte("tx-42"), list.getTxs()[0].TxHash)
+	require.Equal(t, []byte("tx-43"), list.getTxs()[1].TxHash)
+	require.Equal(t, list.getTxs(), list.getTxsWithoutGaps())
+
+	require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
+	require.Equal(t, []byte("tx-42"), list.getTxsReversed()[1].TxHash)
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {
@@ -219,6 +232,7 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 		// These might be called concurrently:
 		_ = list.IsEmpty()
 		_ = list.getTxs()
+		_ = list.getTxsReversed()
 		_ = list.getTxsWithoutGaps()
 		_ = list.countTxWithLock()
 		_ = list.notifyAccountNonceReturnEvictedTransactions(42)
