@@ -95,7 +95,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
 // It returns transactions with total gas ~ "gasRequested".
-func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransaction {
+func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*WrappedTransaction, uint64) {
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
@@ -106,7 +106,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransact
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(gasRequested)
+	transactions, accumulatedGas := cache.doSelectTransactions(gasRequested, maxNum)
 
 	stopWatch.Stop("selection")
 
@@ -120,7 +120,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64) []*WrappedTransact
 	go cache.diagnoseCounters()
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
-	return transactions
+	return transactions, accumulatedGas
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {

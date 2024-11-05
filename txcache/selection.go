@@ -2,7 +2,7 @@ package txcache
 
 import "container/heap"
 
-func (cache *TxCache) doSelectTransactions(gasRequested uint64) (BunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (BunchOfTransactions, uint64) {
 	senders := cache.getSenders()
 	bunches := make([]BunchOfTransactions, 0, len(senders))
 
@@ -10,11 +10,11 @@ func (cache *TxCache) doSelectTransactions(gasRequested uint64) (BunchOfTransact
 		bunches = append(bunches, sender.getTxsWithoutGaps())
 	}
 
-	return selectTransactionsFromBunches(bunches, gasRequested)
+	return selectTransactionsFromBunches(bunches, gasRequested, maxNum)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested uint64) (BunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested uint64, maxNum int) (BunchOfTransactions, uint64) {
 	selectedTransactions := make(BunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -45,6 +45,9 @@ func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested u
 		gasLimit := item.transaction.Tx.GetGasLimit()
 
 		if accumulatedGas+gasLimit > gasRequested {
+			break
+		}
+		if len(selectedTransactions) >= maxNum {
 			break
 		}
 

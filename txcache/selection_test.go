@@ -79,22 +79,3 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	// 0.204968s (TestTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
 	// 0.506842s (TestTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
 }
-
-func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []BunchOfTransactions {
-	bunches := make([]BunchOfTransactions, 0, nSenders)
-
-	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		bunch := make(BunchOfTransactions, 0, nTransactionsPerSender)
-		sender := createFakeSenderAddress(senderTag)
-
-		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			transactionHash := createFakeTxHash(sender, txNonce)
-			transaction := createTx(transactionHash, string(sender), uint64(txNonce))
-			bunch = append(bunch, transaction)
-		}
-
-		bunches = append(bunches, bunch)
-	}
-
-	return bunches
-}
