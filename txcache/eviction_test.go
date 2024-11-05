@@ -117,7 +117,7 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	require.Equal(t, 4, int(cache.CountTx()))
 }
 
-func TestTxCache_DoEviction_Benchmark(t *testing.T) {
+func TestBenchmarkTxCache_DoEviction_Benchmark(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
@@ -168,6 +168,24 @@ func TestTxCache_DoEviction_Benchmark(t *testing.T) {
 		require.Equal(t, 4, len(journal.numEvictedByPass))
 	})
 
+	t.Run("numSenders = 400000, numTransactions = 1", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		cache.config.EvictionEnabled = false
+		addManyTransactionsWithUniformDistribution(cache, 400000, 1)
+		cache.config.EvictionEnabled = true
+
+		require.Equal(t, uint64(400000), cache.CountTx())
+
+		sw.Start(t.Name())
+		journal := cache.doEviction()
+		sw.Stop(t.Name())
+
+		require.Equal(t, 100000, journal.numEvicted)
+		require.Equal(t, 2, len(journal.numEvictedByPass))
+	})
+
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
 		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
@@ -198,7 +216,8 @@ func TestTxCache_DoEviction_Benchmark(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.079401s (TestTxCache_DoEviction_Benchmark/numSenders_=_35000,_numTransactions_=_10)
-	// 0.366044s (TestTxCache_DoEviction_Benchmark/numSenders_=_100000,_numTransactions_=_5)
-	// 0.611849s (TestTxCache_DoEviction_Benchmark/numSenders_=_10000,_numTransactions_=_100)
+	// 0.093771s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_35000,_numTransactions_=_10)
+	// 0.424683s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_100000,_numTransactions_=_5)
+	// 0.448017s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_10000,_numTransactions_=_100)
+	// 0.476738s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_400000,_numTransactions_=_1)
 }
