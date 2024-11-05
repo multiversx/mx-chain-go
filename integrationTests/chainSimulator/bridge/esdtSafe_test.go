@@ -337,6 +337,8 @@ func TestChainSimulator_DepositAndExecuteOperations(t *testing.T) {
 
 // transfer from sovereign chain to main chain with transfer data
 // tokens are originated from sovereign chain
+// the execution is always expected to fail because of transfer data arguments
+// also checking that tokens are burned
 func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -452,7 +454,6 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 
 		// execute operations received from sovereign chain
 		// expecting the token to be minted in esdt-safe contract with the same properties and transferred with SC call to hello contract
-		// -------------
 		// for (dynamic) SFT/MetaESDT the contract will create one more token and keep it forever
 		trnsData := &transferData{
 			GasLimit: uint64(10000000),
