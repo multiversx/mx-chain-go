@@ -2,10 +2,12 @@ package txcache
 
 import (
 	"encoding/binary"
+	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 )
 
 const oneMilion = 1000000
@@ -95,12 +97,37 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := createFakeSenderAddress(senderTag)
 
-		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			txHash := createFakeTxHash(sender, txNonce)
-			tx := createTx(txHash, string(sender), uint64(txNonce))
-			cache.AddTx(tx)
+		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {
+			transactionHash := createFakeTxHash(sender, nonce)
+			gasPrice := oneBillion + rand.Intn(3*oneBillion)
+			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
+
+			cache.AddTx(transaction)
 		}
 	}
+}
+
+func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []BunchOfTransactions {
+	bunches := make([]BunchOfTransactions, 0, nSenders)
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
+	for senderTag := 0; senderTag < nSenders; senderTag++ {
+		bunch := make(BunchOfTransactions, 0, nTransactionsPerSender)
+		sender := createFakeSenderAddress(senderTag)
+
+		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {
+			transactionHash := createFakeTxHash(sender, nonce)
+			gasPrice := oneBillion + rand.Intn(3*oneBillion)
+			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
+			transaction.precomputeFields(txGasHandler)
+
+			bunch = append(bunch, transaction)
+		}
+
+		bunches = append(bunches, bunch)
+	}
+
+	return bunches
 }
 
 func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {

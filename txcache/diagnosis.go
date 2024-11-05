@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -112,7 +113,7 @@ func (cache *TxCache) diagnoseSelection() {
 		return
 	}
 
-	transactions, _ := cache.doSelectTransactions(diagnosisSelectionGasRequested)
+	transactions, _ := cache.doSelectTransactions(diagnosisSelectionGasRequested, math.MaxInt)
 	displaySelectionOutcome(logDiagnoseSelection, "diagnoseSelection", transactions)
 }
 

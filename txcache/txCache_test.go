@@ -316,8 +316,9 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 		require.Equal(t, 3082288595, int(fnv32("hash-carol-1")))
 
-		selected := cache.SelectTransactions(math.MaxUint64)
+		selected, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
 		require.Len(t, selected, 8)
+		require.Equal(t, 400000, int(accumulatedGas))
 
 		// Check order
 		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
@@ -337,8 +338,9 @@ func Test_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
 		cache.AddTx(createTx([]byte("hash-carol-3"), "carol", 3).withGasPrice(75))
 
-		selected := cache.SelectTransactions(math.MaxUint64)
+		selected, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
 		require.Len(t, selected, 3)
+		require.Equal(t, 150000, int(accumulatedGas))
 
 		// Check order
 		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
@@ -360,9 +362,9 @@ func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-		selected := cache.SelectTransactions(760000)
-
+		selected, accumulatedGas := cache.SelectTransactions(760000, math.MaxInt)
 		require.Len(t, selected, 5)
+		require.Equal(t, 750000, int(accumulatedGas))
 
 		// Check order
 		require.Equal(t, "hash-carol-1", string(selected[0].TxHash))
@@ -390,8 +392,9 @@ func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
 
 	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 
-	sorted := cache.SelectTransactions(math.MaxUint64)
+	sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
 	require.Len(t, sorted, numSelected)
+	require.Equal(t, 300000, int(accumulatedGas))
 }
 
 func Test_SelectTransactions(t *testing.T) {
@@ -414,7 +417,9 @@ func Test_SelectTransactions(t *testing.T) {
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted := cache.SelectTransactions(math.MaxUint64)
+	sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+	require.Len(t, sorted, nTotalTransactions)
+	require.Equal(t, 5_000_000_000, int(accumulatedGas))
 
 	// Check order
 	nonces := make(map[string]uint64, nSenders)
@@ -596,7 +601,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			cache.SelectTransactions(math.MaxUint64)
+			_, _ = cache.SelectTransactions(math.MaxUint64, math.MaxInt)
 		}
 
 		wg.Done()
