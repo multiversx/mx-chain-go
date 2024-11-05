@@ -10,6 +10,152 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
+	t.Run("all having same PPU", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+
+		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
+		require.Equal(t, 3193030061, int(fnv32("hash-alice-4")))
+
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+		require.Equal(t, 3193030058, int(fnv32("hash-alice-3")))
+
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		require.Equal(t, 3193030059, int(fnv32("hash-alice-2")))
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		require.Equal(t, 3193030056, int(fnv32("hash-alice-1")))
+
+		cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
+		require.Equal(t, 187766579, int(fnv32("hash-bob-7")))
+
+		cache.AddTx(createTx([]byte("hash-bob-6"), "bob", 6))
+		require.Equal(t, 187766578, int(fnv32("hash-bob-6")))
+
+		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
+		require.Equal(t, 187766577, int(fnv32("hash-bob-5")))
+
+		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
+		require.Equal(t, 3082288595, int(fnv32("hash-carol-1")))
+
+		selected, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		require.Len(t, selected, 8)
+		require.Equal(t, 400000, int(accumulatedGas))
+
+		// Check order
+		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
+		require.Equal(t, "hash-alice-2", string(selected[1].TxHash))
+		require.Equal(t, "hash-alice-3", string(selected[2].TxHash))
+		require.Equal(t, "hash-alice-4", string(selected[3].TxHash))
+		require.Equal(t, "hash-carol-1", string(selected[4].TxHash))
+		require.Equal(t, "hash-bob-5", string(selected[5].TxHash))
+		require.Equal(t, "hash-bob-6", string(selected[6].TxHash))
+		require.Equal(t, "hash-bob-7", string(selected[7].TxHash))
+	})
+
+	t.Run("alice > carol > bob", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withGasPrice(100))
+		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
+		cache.AddTx(createTx([]byte("hash-carol-3"), "carol", 3).withGasPrice(75))
+
+		selected, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		require.Len(t, selected, 3)
+		require.Equal(t, 150000, int(accumulatedGas))
+
+		// Check order
+		require.Equal(t, "hash-alice-1", string(selected[0].TxHash))
+		require.Equal(t, "hash-carol-3", string(selected[1].TxHash))
+		require.Equal(t, "hash-bob-5", string(selected[2].TxHash))
+	})
+}
+
+func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
+	t.Run("transactions with no data field", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+
+		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withGasLimit(500000))
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withGasLimit(200000))
+		cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7).withGasLimit(400000))
+		cache.AddTx(createTx([]byte("hash-bob-6"), "bob", 6).withGasLimit(50000))
+		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
+		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
+
+		selected, accumulatedGas := cache.SelectTransactions(760000, math.MaxInt)
+		require.Len(t, selected, 5)
+		require.Equal(t, 750000, int(accumulatedGas))
+
+		// Check order
+		require.Equal(t, "hash-carol-1", string(selected[0].TxHash))
+		require.Equal(t, "hash-bob-5", string(selected[1].TxHash))
+		require.Equal(t, "hash-bob-6", string(selected[2].TxHash))
+		require.Equal(t, "hash-alice-1", string(selected[3].TxHash))
+		require.Equal(t, "hash-bob-7", string(selected[4].TxHash))
+	})
+}
+
+func TestTxCache_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+	cache.AddTx(createTx([]byte("hash-alice-5"), "alice", 5))
+	cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+	cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 44))
+	cache.AddTx(createTx([]byte("hash-bob-45"), "bob", 45))
+	cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+	cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+	cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10))
+	cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
+
+	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
+
+	sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+	require.Len(t, sorted, numSelected)
+	require.Equal(t, 300000, int(accumulatedGas))
+}
+
+func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+
+	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
+	nSenders := 1000
+	nTransactionsPerSender := 100
+	nTotalTransactions := nSenders * nTransactionsPerSender
+
+	for senderTag := 0; senderTag < nSenders; senderTag++ {
+		sender := fmt.Sprintf("sender:%d", senderTag)
+
+		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
+			txHash := fmt.Sprintf("hash:%d:%d", senderTag, txNonce)
+			tx := createTx([]byte(txHash), sender, uint64(txNonce))
+			cache.AddTx(tx)
+		}
+	}
+
+	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
+
+	sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+	require.Len(t, sorted, nTotalTransactions)
+	require.Equal(t, 5_000_000_000, int(accumulatedGas))
+
+	// Check order
+	nonces := make(map[string]uint64, nSenders)
+
+	for _, tx := range sorted {
+		nonce := tx.Tx.GetNonce()
+		sender := string(tx.Tx.GetSndAddr())
+		previousNonce := nonces[sender]
+
+		require.LessOrEqual(t, previousNonce, nonce)
+		nonces[sender] = nonce
+	}
+}
+
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		merged, accumulatedGas := selectTransactionsFromBunches([]BunchOfTransactions{}, 10_000_000_000, math.MaxInt)
