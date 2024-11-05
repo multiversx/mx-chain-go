@@ -190,8 +190,7 @@ func (sd *shardedData) RemoveData(key []byte, cacheID string) {
 }
 
 // RemoveDataFromAllShards will remove data from the store given only
-//
-//	the data hash. It will iterate over all shard store map and will remove it everywhere
+// the data hash. It will iterate over all shard store map and will remove it everywhere
 func (sd *shardedData) RemoveDataFromAllShards(key []byte) {
 	sd.mutShardedDataStore.RLock()
 	defer sd.mutShardedDataStore.RUnlock()
