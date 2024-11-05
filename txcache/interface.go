@@ -8,8 +8,6 @@ import (
 
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler interface {
-	MinGasPrice() uint64
-	MaxGasLimitPerTx() uint64
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	IsInterfaceNil() bool
 }
