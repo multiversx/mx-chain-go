@@ -12,7 +12,6 @@ import (
 
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
-const oneTrillion = oneBillion * 1000
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
 func (cache *TxCache) areInternalMapsConsistent() bool {
