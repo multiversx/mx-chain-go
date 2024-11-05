@@ -38,7 +38,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 	})
 }
 
-func TestWrappedTransaction_isTransactionMoreDesirableByProtocol(t *testing.T) {
+func TestWrappedTransaction_isTransactionMoreDesirableToNetwork(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	t.Run("decide by price per unit", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestWrappedTransaction_isTransactionMoreDesirableByProtocol(t *testing.T) {
 		b := createTx([]byte("b-1"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
 		b.precomputeFields(txGasHandler)
 
-		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
+		require.True(t, a.isTransactionMoreDesirableToNetwork(b))
 	})
 
 	t.Run("decide by transaction hash (set them up to have the same PPU)", func(t *testing.T) {
@@ -60,6 +60,6 @@ func TestWrappedTransaction_isTransactionMoreDesirableByProtocol(t *testing.T) {
 		b.precomputeFields(txGasHandler)
 		require.Equal(t, 1654268265, int(b.HashFnv32))
 
-		require.True(t, a.isTransactionMoreDesirableByProtocol(b))
+		require.True(t, a.isTransactionMoreDesirableToNetwork(b))
 	})
 }

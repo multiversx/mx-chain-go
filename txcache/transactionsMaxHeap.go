@@ -5,7 +5,7 @@ type TransactionsMaxHeap []*TransactionsHeapItem
 func (maxHeap TransactionsMaxHeap) Len() int { return len(maxHeap) }
 
 func (maxHeap TransactionsMaxHeap) Less(i, j int) bool {
-	return maxHeap[i].transaction.isTransactionMoreDesirableByProtocol(maxHeap[j].transaction)
+	return maxHeap[i].transaction.isTransactionMoreDesirableToNetwork(maxHeap[j].transaction)
 }
 
 func (maxHeap TransactionsMaxHeap) Swap(i, j int) {

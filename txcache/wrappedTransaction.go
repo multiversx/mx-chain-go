@@ -43,7 +43,7 @@ func fnv32(key string) uint32 {
 }
 
 // Equality is out of scope (not possible in our case).
-func (transaction *WrappedTransaction) isTransactionMoreDesirableByProtocol(otherTransaction *WrappedTransaction) bool {
+func (transaction *WrappedTransaction) isTransactionMoreDesirableToNetwork(otherTransaction *WrappedTransaction) bool {
 	// First, compare by price per unit
 	ppu := transaction.PricePerUnit
 	ppuOther := otherTransaction.PricePerUnit
