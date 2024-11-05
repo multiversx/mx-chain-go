@@ -158,8 +158,12 @@ func (bpp *basePreProcess) removeTxsFromPools(
 
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		currentMiniBlock := body.MiniBlocks[i]
+		cm, _ := bpp.marshalizer.Marshal(currentMiniBlock)
+		hash := bpp.hasher.Compute(string(cm))
+
+		log.Debug("removeTxsFromPools", "currentMiniBlockType", currentMiniBlock.Type, "mbHash", hash, "mb", currentMiniBlock)
 		if !isMiniBlockCorrect(currentMiniBlock.Type) {
-			log.Trace("removeTxsFromPools.isMiniBlockCorrect: false",
+			log.Debug("removeTxsFromPools.isMiniBlockCorrect: false",
 				"miniblock type", currentMiniBlock.Type)
 			continue
 		}

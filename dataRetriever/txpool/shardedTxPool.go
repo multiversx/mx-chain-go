@@ -246,12 +246,13 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	numRemoved := 0
 	for _, key := range txHashes {
+		log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "key", key)
 		if txPool.removeTx(key, cacheID) {
 			numRemoved++
 		}
 	}
 
-	log.Trace("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)

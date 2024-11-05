@@ -1055,12 +1055,31 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *block.Body) error {
-	newBody, err := bp.getFinalMiniBlocks(header, body)
+	newBody, err := bp.getMiniBlocksToRemove(header, body)
 	if err != nil {
 		return err
 	}
 
 	return bp.txCoordinator.RemoveTxsFromPool(newBody)
+}
+
+func (bp *baseProcessor) getMiniBlocksToRemove(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
+		return body, nil
+	}
+
+	var miniBlocks block.MiniBlockSlice
+
+	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
+		log.Warn("baseProcessor.getFinalMiniBlocks: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
+		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
+	}
+
+	for _, miniBlock := range body.MiniBlocks {
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {

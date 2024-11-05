@@ -63,22 +63,22 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
-		return false
-	}
+	//isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	//if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
+	//	return false
+	//}
 
 	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
 		return false
 	}
 
-	if sr.IsLeaderJobDone(sr.Current()) {
-		return false
-	}
-
-	if sr.IsSubroundFinished(sr.Current()) {
-		return false
-	}
+	//if sr.IsLeaderJobDone(sr.Current()) {
+	//	return false
+	//}
+	//
+	//if sr.IsSubroundFinished(sr.Current()) {
+	//	return false
+	//}
 
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
@@ -92,6 +92,11 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	header, body, err := sr.createBlock(header)
 	if err != nil {
 		printLogMessage(ctx, "doBlockJob.createBlock", err)
+		return false
+	}
+
+	if true {
+		sr.BlockProcessor().RevertCurrentBlock()
 		return false
 	}
 
