@@ -38,7 +38,11 @@ func createMockArgumentsForDelegationManager() ArgsNewDelegationManager {
 		ConfigChangeAddress:    configChangeAddress,
 		GasCost:                vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
 		Marshalizer:            &mock.MarshalizerMock{},
-		EnableEpochsHandler:    enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.DelegationManagerFlag, common.ValidatorToDelegationFlag, common.MultiClaimOnDelegationFlag),
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
+			common.DelegationManagerFlag,
+			common.ValidatorToDelegationFlag,
+			common.MultiClaimOnDelegationFlag,
+			common.DelegationImprovementsV3Flag),
 	}
 }
 
@@ -1297,4 +1301,128 @@ func TestDelegationManager_CorrectOwnerOnAccount(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, updateCalled)
 	})
+}
+
+func TestDelegationManagerSystemSC_ChangeStakingProvider(t *testing.T) {
+	t.Parallel()
+
+	d, eei := createTestEEIAndDelegationFormMergeValidator()
+	_ = prepareVmInputContextAndDelegationManager(d, eei)
+
+	removeDelegationShouldFail := true
+	moveDelegationToDestinationShouldFail := true
+	moveStakeFromValidatorToValidatorShouldFail := true
+
+	_ = eei.SetSystemSCContainer(
+		&mock.SystemSCContainerStub{
+			GetCalled: func(key []byte) (vm.SystemSmartContract, error) {
+				return &mock.SystemSCStub{
+					ExecuteCalled: func(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+						switch args.Function {
+						case "removeDelegationFromSource":
+							if removeDelegationShouldFail {
+								d.eei.AddReturnMessage("remove delegation from source failed")
+								return vmcommon.UserError
+							}
+							return vmcommon.Ok
+						case "moveDelegationToDestination":
+							if moveDelegationToDestinationShouldFail {
+								d.eei.AddReturnMessage("move delegation to destination failed")
+								return vmcommon.UserError
+							}
+							return vmcommon.Ok
+						case "moveStakeFromValidatorToValidator":
+							if moveStakeFromValidatorToValidatorShouldFail {
+								d.eei.AddReturnMessage("move stake from validator to validator failed")
+								return vmcommon.UserError
+							}
+							return vmcommon.Ok
+						}
+						return vmcommon.FunctionNotFound
+					},
+				}, nil
+			}})
+
+	vmInput := getDefaultVmInputForDelegationManager("changeStakingProvider", [][]byte{})
+	vmInput.CallerAddr = bytes.Repeat([]byte{1}, 32)
+	vmInput.RecipientAddr = vm.DelegationManagerSCAddress
+	vmInput.Arguments = [][]byte{bytes.Repeat([]byte{2}, 32), bytes.Repeat([]byte{3}, 32)}
+
+	enableEpochsHandler, _ := d.enableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.RemoveActiveFlags(common.DelegationImprovementsV3Flag)
+
+	returnCode := d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "invalid function to call")
+
+	enableEpochsHandler.AddActiveFlags(common.DelegationImprovementsV3Flag)
+	eei.returnMessage = ""
+
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, vm.ErrInvalidNumOfArguments.Error())
+
+	eei.returnMessage = ""
+	vmInput.Arguments = append(vmInput.Arguments, []byte{})
+	eei.gasRemaining = 0
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 1
+
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.OutOfGas, returnCode)
+	require.Equal(t, eei.returnMessage, vm.ErrNotEnoughGas.Error())
+
+	eei.gasRemaining = 10
+	eei.returnMessage = ""
+
+	vmInput.CallValue = big.NewInt(10)
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "invalid call value")
+
+	eei.gasRemaining = 10
+	eei.returnMessage = ""
+
+	vmInput.CallValue = big.NewInt(0)
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "input argument missmatch, not an address")
+
+	eei.returnMessage = ""
+	vmInput.Arguments[1] = vm.FirstDelegationSCAddress
+	vmInput.Arguments[2] = vm.FirstDelegationSCAddress
+
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "invalid addresses, they are equal")
+
+	eei.returnMessage = ""
+	vmInput.Arguments[0] = bytes.Repeat([]byte{3}, 33)
+	vmInput.Arguments[1] = vm.FirstDelegationSCAddress
+	vmInput.Arguments[2] = createNewAddress(vm.FirstDelegationSCAddress)
+
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "invalid amount, too long")
+
+	eei.returnMessage = ""
+	vmInput.Arguments[0] = big.NewInt(100).Bytes()
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "remove delegation from source failed")
+
+	eei.returnMessage = ""
+	removeDelegationShouldFail = false
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "move delegation to destination failed")
+
+	eei.returnMessage = ""
+	moveDelegationToDestinationShouldFail = false
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.UserError, returnCode)
+	require.Equal(t, eei.returnMessage, "move stake from validator to validator failed")
+
+	moveStakeFromValidatorToValidatorShouldFail = false
+	returnCode = d.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, returnCode)
 }
