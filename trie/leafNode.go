@@ -46,34 +46,6 @@ func newLeafNode(
 	}, nil
 }
 
-func (ln *leafNode) getHash() []byte {
-	return ln.hash
-}
-
-func (ln *leafNode) setGivenHash(hash []byte) {
-	ln.hash = hash
-}
-
-func (ln *leafNode) isDirty() bool {
-	return ln.dirty
-}
-
-func (ln *leafNode) getMarshalizer() marshal.Marshalizer {
-	return ln.marsh
-}
-
-func (ln *leafNode) setMarshalizer(marshalizer marshal.Marshalizer) {
-	ln.marsh = marshalizer
-}
-
-func (ln *leafNode) getHasher() hashing.Hasher {
-	return ln.hasher
-}
-
-func (ln *leafNode) setHasher(hasher hashing.Hasher) {
-	ln.hasher = hasher
-}
-
 func (ln *leafNode) getCollapsed() (node, error) {
 	return ln, nil
 }
@@ -201,23 +173,10 @@ func (ln *leafNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (ln *leafNode) resolveCollapsed(_ byte, _ common.TrieStorageInteractor) error {
-	return nil
-}
-
-func (ln *leafNode) isCollapsed() bool {
-	return false
-}
-
-func (ln *leafNode) isPosCollapsed(_ int) bool {
-	return false
-}
-
 func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
-	err = ln.isEmptyOrNil()
-	if err != nil {
-		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
-	}
+	ln.mutex.RLock()
+	defer ln.mutex.RUnlock()
+
 	if bytes.Equal(key, ln.Key) {
 		return ln.Value, currentDepth, nil
 	}
@@ -240,12 +199,6 @@ func (ln *leafNode) insert(
 	goRoutinesManager common.TrieGoroutinesManager,
 	db common.TrieStorageInteractor,
 ) (node, [][]byte) {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		goRoutinesManager.SetError(fmt.Errorf("insert error %w", err))
-		return nil, [][]byte{}
-	}
-
 	oldHash := make([][]byte, 0)
 	if !ln.dirty {
 		oldHash = append(oldHash, ln.hash)
@@ -278,6 +231,8 @@ func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (n
 	if bytes.Equal(ln.Value, newData.Value) {
 		return nil, [][]byte{}
 	}
+	ln.mutex.Lock()
+	defer ln.mutex.Unlock()
 
 	ln.Value = newData.Value
 	ln.Version = uint32(newData.Version)
@@ -354,7 +309,7 @@ func (ln *leafNode) delete(
 	return false, ln, [][]byte{}
 }
 
-func (ln *leafNode) reduceNode(pos int) (node, bool, error) {
+func (ln *leafNode) reduceNode(pos int, _ common.TrieStorageInteractor) (node, bool, error) {
 	k := append([]byte{byte(pos)}, ln.Key...)
 
 	oldLnVersion, err := ln.getVersion()
@@ -422,14 +377,6 @@ func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]node, error) 
 	return nil, nil
 }
 
-func (ln *leafNode) isValid() bool {
-	return len(ln.Value) > 0
-}
-
-func (ln *leafNode) setDirty(dirty bool) {
-	ln.dirty = dirty
-}
-
 func (ln *leafNode) loadChildren(_ func([]byte) (node, error)) ([][]byte, []node, error) {
 	return nil, nil, nil
 }
@@ -476,15 +423,6 @@ func (ln *leafNode) getAllLeavesOnChannel(
 			return nil
 		}
 	}
-}
-
-func (ln *leafNode) getAllHashes(_ common.TrieStorageInteractor) ([][]byte, error) {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getAllHashes error: %w", err)
-	}
-
-	return [][]byte{ln.hash}, nil
 }
 
 func (ln *leafNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {

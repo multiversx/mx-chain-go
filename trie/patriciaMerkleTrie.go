@@ -118,7 +118,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	}
 
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		return nil, 0, nil
 	}
 

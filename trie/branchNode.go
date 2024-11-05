@@ -60,34 +60,6 @@ func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos 
 	}
 }
 
-func (bn *branchNode) getHash() []byte {
-	return bn.hash
-}
-
-func (bn *branchNode) setGivenHash(hash []byte) {
-	bn.hash = hash
-}
-
-func (bn *branchNode) isDirty() bool {
-	return bn.dirty
-}
-
-func (bn *branchNode) getMarshalizer() marshal.Marshalizer {
-	return bn.marsh
-}
-
-func (bn *branchNode) setMarshalizer(marshalizer marshal.Marshalizer) {
-	bn.marsh = marshalizer
-}
-
-func (bn *branchNode) getHasher() hashing.Hasher {
-	return bn.hasher
-}
-
-func (bn *branchNode) setHasher(hasher hashing.Hasher) {
-	bn.hasher = hasher
-}
-
 func (bn *branchNode) getCollapsed() (node, error) {
 	return bn.getCollapsedBn()
 }
@@ -310,7 +282,7 @@ func (bn *branchNode) commitSnapshot(
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
+		_, err = bn.resolveIfCollapsed(byte(i), db)
 		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
 		if err != nil {
 			return err
@@ -363,26 +335,6 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	return marshaledNode, nil
 }
 
-func (bn *branchNode) resolveCollapsed(pos byte, db common.TrieStorageInteractor) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("resolveCollapsed error %w", err)
-	}
-	if childPosOutOfRange(pos) {
-		return ErrChildPosOutOfRange
-	}
-	if len(bn.EncodedChildren[pos]) != 0 {
-		var child node
-		child, err = getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
-		if err != nil {
-			return err
-		}
-		child.setGivenHash(bn.EncodedChildren[pos])
-		bn.children[pos] = child
-	}
-	return nil
-}
-
 func (bn *branchNode) isCollapsed() bool {
 	for i := range bn.children {
 		if bn.children[i] != nil {
@@ -392,15 +344,29 @@ func (bn *branchNode) isCollapsed() bool {
 	return true
 }
 
-func (bn *branchNode) isPosCollapsed(pos int) bool {
-	return bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
+func (bn *branchNode) resolveIfCollapsed(pos byte, db common.TrieStorageInteractor) (node, error) {
+	if childPosOutOfRange(pos) {
+		return nil, ErrChildPosOutOfRange
+	}
+
+	bn.childrenMutexes[pos].Lock()
+	defer bn.childrenMutexes[pos].Unlock()
+
+	isPosCollapsed := bn.children[pos] == nil && len(bn.EncodedChildren[pos]) != 0
+	if !isPosCollapsed {
+		handleStorageInteractorStats(db)
+		return bn.children[pos], nil
+	}
+
+	child, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
+	if err != nil {
+		return nil, err
+	}
+	bn.children[pos] = child
+	return child, nil
 }
 
 func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.TrieStorageInteractor) (value []byte, maxDepth uint32, err error) {
-	err = bn.isEmptyOrNil()
-	if err != nil {
-		return nil, currentDepth, fmt.Errorf("tryGet error %w", err)
-	}
 	if len(key) == 0 {
 		return nil, currentDepth, nil
 	}
@@ -409,22 +375,19 @@ func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.TrieStor
 		return nil, currentDepth, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db)
+
+	child, err := bn.resolveIfCollapsed(childPos, db)
 	if err != nil {
 		return nil, currentDepth, err
 	}
-	if bn.children[childPos] == nil {
+	if check.IfNil(child) {
 		return nil, currentDepth, nil
 	}
 
-	return bn.children[childPos].tryGet(key, currentDepth+1, db)
+	return child.tryGet(key, currentDepth+1, db)
 }
 
 func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return nil, nil, fmt.Errorf("getNext error %w", err)
-	}
 	if len(key) == 0 {
 		return nil, nil, ErrValueTooShort
 	}
@@ -433,7 +396,7 @@ func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (node
 		return nil, nil, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	err = resolveIfCollapsed(bn, childPos, db)
+	_, err := bn.resolveIfCollapsed(childPos, db)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -449,12 +412,6 @@ func (bn *branchNode) insert(
 	goRoutinesManager common.TrieGoroutinesManager,
 	db common.TrieStorageInteractor,
 ) (node, [][]byte) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		goRoutinesManager.SetError(fmt.Errorf("insert error %w", err))
-		return nil, [][]byte{}
-	}
-
 	dataForInsertion, err := splitDataForChildren(newData)
 	if err != nil {
 		goRoutinesManager.SetError(err)
@@ -464,6 +421,9 @@ func (bn *branchNode) insert(
 	hashesMutex := &sync.Mutex{}
 	modifiedHashes := make([][]byte, 0)
 	bnHasBeenModified := &atomic.Flag{}
+	newChildrenMutex := &sync.Mutex{}
+	bnNewChildren := make([]node, nrOfChildren)
+
 	waitGroup := sync.WaitGroup{}
 
 	for childPos := range dataForInsertion {
@@ -476,8 +436,11 @@ func (bn *branchNode) insert(
 		}
 
 		if !goRoutinesManager.CanStartGoRoutine() {
-			newModifiedHashes, bnModified := bn.insertOnChild(dataForInsertion[childPos], childPos, goRoutinesManager, db)
-			if bnModified {
+			newChild, newModifiedHashes := bn.insertOnChild(dataForInsertion[childPos], childPos, goRoutinesManager, db)
+			if !check.IfNil(newChild) {
+				newChildrenMutex.Lock()
+				bnNewChildren[childPos] = newChild
+				newChildrenMutex.Unlock()
 				bnHasBeenModified.SetValue(true)
 			}
 
@@ -492,8 +455,11 @@ func (bn *branchNode) insert(
 
 		waitGroup.Add(1)
 		go func(childPos int) {
-			newModifiedHashes, bnModified := bn.insertOnChild(dataForInsertion[childPos], childPos, goRoutinesManager, db)
-			if bnModified {
+			newChild, newModifiedHashes := bn.insertOnChild(dataForInsertion[childPos], childPos, goRoutinesManager, db)
+			if !check.IfNil(newChild) {
+				newChildrenMutex.Lock()
+				bnNewChildren[childPos] = newChild
+				newChildrenMutex.Unlock()
 				bnHasBeenModified.SetValue(true)
 			}
 			if len(newModifiedHashes) != 0 {
@@ -507,11 +473,17 @@ func (bn *branchNode) insert(
 
 	waitGroup.Wait()
 
-	if bnHasBeenModified.IsSet() {
-		return bn, modifiedHashes
+	if !bnHasBeenModified.IsSet() {
+		return nil, [][]byte{}
 	}
 
-	return nil, [][]byte{}
+	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, bnNewChildren)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return nil, [][]byte{}
+	}
+
+	return bn, modifiedHashes
 }
 
 func (bn *branchNode) insertOnChild(
@@ -519,18 +491,23 @@ func (bn *branchNode) insertOnChild(
 	childPos int,
 	goRoutinesManager common.TrieGoroutinesManager,
 	db common.TrieStorageInteractor,
-) ([][]byte, bool) {
-	err := resolveIfCollapsed(bn, byte(childPos), db)
+) (node, [][]byte) {
+	child, err := bn.resolveIfCollapsed(byte(childPos), db)
 	if err != nil {
 		goRoutinesManager.SetError(err)
-		return nil, false
+		return nil, nil
 	}
 
-	if bn.children[childPos] == nil {
-		return bn.insertOnNilChild(dataForInsertion, byte(childPos), goRoutinesManager, db)
+	if check.IfNil(child) {
+		return bn.insertOnNilChild(dataForInsertion, goRoutinesManager, db)
 	}
 
-	return bn.insertOnExistingChild(dataForInsertion, byte(childPos), goRoutinesManager, db)
+	newNode, modifiedHashes := child.insert(dataForInsertion, goRoutinesManager, db)
+	if check.IfNil(newNode) {
+		return nil, [][]byte{}
+	}
+
+	return newNode, modifiedHashes
 }
 
 // the prerequisite for this to work is that the data is already sorted
@@ -573,13 +550,12 @@ func splitDataForChildren(newData []core.TrieData) ([][]core.TrieData, error) {
 
 func (bn *branchNode) insertOnNilChild(
 	newData []core.TrieData,
-	childPos byte,
 	goRoutinesManager common.TrieGoroutinesManager,
 	db common.TrieStorageInteractor,
-) ([][]byte, bool) {
+) (node, [][]byte) {
 	if len(newData) == 0 {
 		goRoutinesManager.SetError(ErrValueTooShort)
-		return [][]byte{}, false
+		return nil, [][]byte{}
 	}
 
 	var newNode node
@@ -588,46 +564,23 @@ func (bn *branchNode) insertOnNilChild(
 	newNode, err := newLeafNode(newData[0], bn.marsh, bn.hasher)
 	if err != nil {
 		goRoutinesManager.SetError(err)
-		return [][]byte{}, false
+		return nil, [][]byte{}
 	}
 
 	if len(newData) > 1 {
 		newNode, modifiedHashes = newNode.insert(newData[1:], goRoutinesManager, db)
 		if check.IfNil(newNode) {
-			return [][]byte{}, false
+			return nil, [][]byte{}
 		}
 	}
 
-	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return [][]byte{}, false
-	}
-
-	return modifiedHashes, true
+	return newNode, modifiedHashes
 }
 
-func (bn *branchNode) insertOnExistingChild(
-	newData []core.TrieData,
-	childPos byte,
-	goRoutinesManager common.TrieGoroutinesManager,
-	db common.TrieStorageInteractor,
-) ([][]byte, bool) {
-	newNode, modifiedHashes := bn.children[childPos].insert(newData, goRoutinesManager, db)
-	if check.IfNil(newNode) {
-		return [][]byte{}, false
-	}
-
-	modifiedHashes, err := bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return [][]byte{}, false
-	}
-
-	return modifiedHashes, true
-}
-
-func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos byte, newNode node) ([][]byte, error) {
+func (bn *branchNode) modifyNodeAfterInsert(
+	modifiedHashes [][]byte,
+	newBnChildren []node,
+) ([][]byte, error) {
 	bn.mutex.Lock()
 	defer bn.mutex.Unlock()
 
@@ -635,13 +588,20 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes [][]byte, childPos by
 		modifiedHashes = append(modifiedHashes, bn.hash)
 	}
 
-	childVersion, err := newNode.getVersion()
-	if err != nil {
-		return nil, err
+	for i := range newBnChildren {
+		if check.IfNil(newBnChildren[i]) {
+			continue
+		}
+
+		childVersion, err := newBnChildren[i].getVersion()
+		if err != nil {
+			return nil, err
+		}
+
+		bn.children[i] = newBnChildren[i]
+		bn.setVersionForChild(childVersion, byte(i))
 	}
 
-	bn.children[childPos] = newNode
-	bn.setVersionForChild(childVersion, childPos)
 	bn.dirty = true
 	bn.hash = nil
 
@@ -653,12 +613,6 @@ func (bn *branchNode) delete(
 	goRoutinesManager common.TrieGoroutinesManager,
 	db common.TrieStorageInteractor,
 ) (bool, node, [][]byte) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		goRoutinesManager.SetError(fmt.Errorf("delete error %w", err))
-		return false, nil, [][]byte{}
-	}
-
 	dataForRemoval, err := splitDataForChildren(data)
 	if err != nil {
 		goRoutinesManager.SetError(err)
@@ -667,9 +621,8 @@ func (bn *branchNode) delete(
 
 	hashesMutex := &sync.Mutex{}
 	modifiedHashes := make([][]byte, 0)
-	oldHash := make([]byte, len(bn.hash))
-	copy(oldHash, bn.hash)
 	hasBeenModified := &atomic.Flag{}
+	newChildren := NewModifiedChildren()
 	waitGroup := sync.WaitGroup{}
 
 	for childPos := range dataForRemoval {
@@ -682,7 +635,14 @@ func (bn *branchNode) delete(
 		}
 
 		if !goRoutinesManager.CanStartGoRoutine() {
-			newModifiedHashes := bn.deleteChild(dataForRemoval[childPos], childPos, hasBeenModified, goRoutinesManager, db)
+			newChild, newModifiedHashes, hasNewChild := bn.deleteChild(dataForRemoval[childPos], childPos, goRoutinesManager, db)
+			if !hasNewChild {
+				continue
+			}
+
+			newChildren.AddChild(childPos, newChild)
+			hasBeenModified.SetValue(true)
+
 			if len(newModifiedHashes) != 0 {
 				hashesMutex.Lock()
 				modifiedHashes = append(modifiedHashes, newModifiedHashes...)
@@ -694,7 +654,15 @@ func (bn *branchNode) delete(
 
 		waitGroup.Add(1)
 		go func(childPos int) {
-			newModifiedHashes := bn.deleteChild(dataForRemoval[childPos], childPos, hasBeenModified, goRoutinesManager, db)
+			newChild, newModifiedHashes, hasNewChild := bn.deleteChild(dataForRemoval[childPos], childPos, goRoutinesManager, db)
+			if !hasNewChild {
+				waitGroup.Done()
+				return
+			}
+
+			newChildren.AddChild(childPos, newChild)
+			hasBeenModified.SetValue(true)
+
 			if len(newModifiedHashes) != 0 {
 				hashesMutex.Lock()
 				modifiedHashes = append(modifiedHashes, newModifiedHashes...)
@@ -710,30 +678,28 @@ func (bn *branchNode) delete(
 		return false, bn, [][]byte{}
 	}
 
-	if len(oldHash) != 0 {
-		modifiedHashes = append(modifiedHashes, oldHash)
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
+	modifiedHashes, err = bn.setNewChildren(modifiedHashes, newChildren)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false, nil, [][]byte{}
 	}
-	bn.dirty = true
 
 	numChildren, pos := getChildPosition(bn)
 	if numChildren == 0 {
 		return true, nil, modifiedHashes
 	}
 	if numChildren == 1 {
-		err = resolveIfCollapsed(bn, byte(pos), db)
-		if err != nil {
-			goRoutinesManager.SetError(err)
-			return false, nil, [][]byte{}
-		}
-
-		err = resolveIfCollapsed(bn.children[pos], byte(pos), db)
+		_, err = bn.resolveIfCollapsed(byte(pos), db)
 		if err != nil {
 			goRoutinesManager.SetError(err)
 			return false, nil, [][]byte{}
 		}
 
 		var newChildHash bool
-		newNode, newChildHash, err := bn.children[pos].reduceNode(pos)
+		newNode, newChildHash, err := bn.children[pos].reduceNode(pos, db)
 		if err != nil {
 			goRoutinesManager.SetError(err)
 			return false, nil, [][]byte{}
@@ -752,55 +718,58 @@ func (bn *branchNode) delete(
 func (bn *branchNode) deleteChild(
 	dataForRemoval []core.TrieData,
 	childPos int,
-	hasBeenModified *atomic.Flag,
 	goRoutinesManager common.TrieGoroutinesManager,
 	db common.TrieStorageInteractor,
-) [][]byte {
-	err := resolveIfCollapsed(bn, byte(childPos), db)
+) (node, [][]byte, bool) {
+	child, err := bn.resolveIfCollapsed(byte(childPos), db)
 	if err != nil {
 		goRoutinesManager.SetError(err)
-		return [][]byte{}
+		return nil, [][]byte{}, false
 	}
 
-	if bn.children[childPos] == nil {
-		return [][]byte{}
+	if check.IfNil(child) {
+		return nil, [][]byte{}, false
 	}
 
-	dirty, newNode, oldHashes := bn.children[childPos].delete(dataForRemoval, goRoutinesManager, db)
+	dirty, newNode, oldHashes := child.delete(dataForRemoval, goRoutinesManager, db)
 	if !goRoutinesManager.ShouldContinueProcessing() || !dirty {
-		return oldHashes
+		return nil, oldHashes, false
 	}
 
-	err = bn.setNewChild(byte(childPos), newNode)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return [][]byte{}
-	}
-
-	hasBeenModified.SetValue(true)
-	return oldHashes
+	return newNode, oldHashes, true
 }
 
-func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
-	bn.mutex.Lock()
-	defer bn.mutex.Unlock()
+func (bn *branchNode) setNewChildren(
+	modifiedHashes [][]byte,
+	newChildrenMap *modifiedChildren,
+) ([][]byte, error) {
+	if !bn.dirty {
+		modifiedHashes = append(modifiedHashes, bn.hash)
+	}
 
 	bn.hash = nil
-	bn.children[childPos] = newNode
-	if check.IfNil(newNode) {
-		bn.setVersionForChild(core.NotSpecified, childPos)
-		bn.EncodedChildren[childPos] = nil
+	bn.dirty = true
 
-		return nil
-	}
+	var rangeError error
 
-	childVersion, err := newNode.getVersion()
-	if err != nil {
-		return err
-	}
-	bn.setVersionForChild(childVersion, childPos)
+	newChildrenMap.Range(func(childPos int, newChild node) {
+		bn.children[childPos] = newChild
+		if check.IfNil(newChild) {
+			bn.setVersionForChild(core.NotSpecified, byte(childPos))
+			bn.EncodedChildren[childPos] = nil
 
-	return nil
+			return
+		}
+
+		childVersion, err := newChild.getVersion()
+		if err != nil {
+			rangeError = err
+			return
+		}
+		bn.setVersionForChild(childVersion, byte(childPos))
+	})
+
+	return modifiedHashes, rangeError
 }
 
 func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
@@ -814,7 +783,7 @@ func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {
 	bn.ChildrenVersion = []byte(nil)
 }
 
-func (bn *branchNode) reduceNode(pos int) (node, bool, error) {
+func (bn *branchNode) reduceNode(pos int, _ common.TrieStorageInteractor) (node, bool, error) {
 	newEn, err := newExtensionNode([]byte{byte(pos)}, bn, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, false, err
@@ -858,7 +827,7 @@ func (bn *branchNode) print(writer io.Writer, index int, db common.TrieStorageIn
 	str := fmt.Sprintf("B: %v - %v", hex.EncodeToString(bn.hash), bn.dirty)
 	_, _ = fmt.Fprintln(writer, str)
 	for i := 0; i < len(bn.children); i++ {
-		err := resolveIfCollapsed(bn, byte(i), db)
+		_, err := bn.resolveIfCollapsed(byte(i), db)
 		if err != nil {
 			log.Debug("branch node: print trie err", "error", err, "hash", bn.EncodedChildren[i])
 		}
@@ -912,34 +881,19 @@ func (bn *branchNode) getChildren(db common.TrieStorageInteractor) ([]node, erro
 	nextNodes := make([]node, 0)
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
+		childNode, err := bn.resolveIfCollapsed(byte(i), db)
 		if err != nil {
 			return nil, err
 		}
 
-		if bn.children[i] == nil {
+		if check.IfNil(childNode) {
 			continue
 		}
 
-		nextNodes = append(nextNodes, bn.children[i])
+		nextNodes = append(nextNodes, childNode)
 	}
 
 	return nextNodes, nil
-}
-
-func (bn *branchNode) isValid() bool {
-	nrChildren := 0
-	for i := range bn.EncodedChildren {
-		if len(bn.EncodedChildren[i]) != 0 || bn.children[i] != nil {
-			nrChildren++
-		}
-	}
-
-	return nrChildren >= 2
-}
-
-func (bn *branchNode) setDirty(dirty bool) {
-	bn.dirty = dirty
 }
 
 func (bn *branchNode) loadChildren(getNode func([]byte) (node, error)) ([][]byte, []node, error) {
@@ -993,7 +947,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 			log.Trace("branchNode.getAllLeavesOnChannel context done")
 			return nil
 		default:
-			err = resolveIfCollapsed(bn, byte(i), db)
+			_, err = bn.resolveIfCollapsed(byte(i), db)
 			if err != nil {
 				return err
 			}
@@ -1014,37 +968,6 @@ func (bn *branchNode) getAllLeavesOnChannel(
 	}
 
 	return nil
-}
-
-func (bn *branchNode) getAllHashes(db common.TrieStorageInteractor) ([][]byte, error) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getAllHashes error: %w", err)
-	}
-
-	var childrenHashes [][]byte
-	hashes := make([][]byte, 0)
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
-		if err != nil {
-			return nil, err
-		}
-
-		if bn.children[i] == nil {
-			continue
-		}
-
-		childrenHashes, err = bn.children[i].getAllHashes(db)
-		if err != nil {
-			return nil, err
-		}
-
-		hashes = append(hashes, childrenHashes...)
-	}
-
-	hashes = append(hashes, bn.hash)
-
-	return hashes, nil
 }
 
 func (bn *branchNode) getNextHashAndKey(key []byte) (bool, []byte, []byte) {
@@ -1084,7 +1007,7 @@ func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel i
 	}
 
 	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
+		_, err = bn.resolveIfCollapsed(byte(i), db)
 		if err != nil {
 			return err
 		}
@@ -1173,14 +1096,14 @@ func (bn *branchNode) collectLeavesForMigration(
 			continue
 		}
 
-		err = resolveIfCollapsed(bn, byte(i), db)
+		childNode, err := bn.resolveIfCollapsed(byte(i), db)
 		if err != nil {
 			return false, err
 		}
 
 		clonedKeyBuilder := keyBuilder.Clone()
 		clonedKeyBuilder.BuildKey([]byte{byte(i)})
-		shouldContinueMigrating, err := bn.children[i].collectLeavesForMigration(migrationArgs, db, clonedKeyBuilder)
+		shouldContinueMigrating, err := childNode.collectLeavesForMigration(migrationArgs, db, clonedKeyBuilder)
 		if err != nil {
 			return false, err
 		}

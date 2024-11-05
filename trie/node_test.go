@@ -214,53 +214,8 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
+	ln.hash = nodeHash
 	assert.Equal(t, ln, nodeInstance)
-}
-
-func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	childPos := byte(2)
-	_ = bn.commitDirty(0, 5, db, db)
-
-	err := resolveIfCollapsed(collapsedBn, childPos, db)
-	assert.Nil(t, err)
-	assert.False(t, collapsedBn.isCollapsed())
-}
-
-func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(0, 5, db, db)
-
-	err := resolveIfCollapsed(collapsedEn, 0, db)
-	assert.Nil(t, err)
-	assert.False(t, collapsedEn.isCollapsed())
-}
-
-func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
-
-	err := resolveIfCollapsed(ln, 0, db)
-	assert.Nil(t, err)
-	assert.False(t, ln.isCollapsed())
-}
-
-func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var nodeInstance *extensionNode
-
-	err := resolveIfCollapsed(nodeInstance, 0, nil)
-	assert.Equal(t, ErrNilNode, err)
 }
 
 func TestNode_concat(t *testing.T) {

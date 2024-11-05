@@ -333,31 +333,16 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	_ = en.commitDirty(0, 5, db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 
-	err := collapsedEn.resolveCollapsed(0, db)
+	child, err := collapsedEn.resolveIfCollapsed(db)
 	assert.Nil(t, err)
+	assert.Equal(t, en.child.(*branchNode).EncodedChildren[2], child.(*branchNode).EncodedChildren[2])
+	assert.Equal(t, en.child.(*branchNode).EncodedChildren[6], child.(*branchNode).EncodedChildren[6])
+	assert.Equal(t, en.child.(*branchNode).EncodedChildren[13], child.(*branchNode).EncodedChildren[13])
 	assert.Equal(t, en.child.getHash(), collapsedEn.child.getHash())
 
 	h1, _ := encodeNodeAndGetHash(resolved)
 	h2, _ := encodeNodeAndGetHash(collapsedEn.child)
 	assert.Equal(t, h1, h2)
-}
-
-func TestExtensionNode_resolveCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	err := en.resolveCollapsed(0, nil)
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-}
-
-func TestExtensionNode_resolveCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	err := en.resolveCollapsed(2, nil)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
 func TestExtensionNode_isCollapsed(t *testing.T) {
@@ -431,30 +416,6 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(2), maxDepth)
-}
-
-func TestExtensionNode_tryGetEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-	key := []byte("dog")
-
-	val, maxDepth, err := en.tryGet(key, 0, nil)
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
-}
-
-func TestExtensionNode_tryGetNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-	key := []byte("dog")
-
-	val, maxDepth, err := en.tryGet(key, 0, nil)
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestExtensionNode_getNext(t *testing.T) {
@@ -615,22 +576,6 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
 
-func TestExtensionNode_insertInNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	th, _ := throttler.NewNumGoRoutinesThrottler(5)
-	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-	assert.Nil(t, err)
-	data := []core.TrieData{getTrieDataWithDefaultVersion("key", "val")}
-
-	newNode, _ := en.insert(data, goRoutinesManager, nil)
-	assert.Nil(t, newNode)
-	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilExtensionNode))
-	assert.Nil(t, newNode)
-}
-
 func TestExtensionNode_delete(t *testing.T) {
 	t.Parallel()
 
@@ -703,38 +648,6 @@ func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
 	assert.Equal(t, [][]byte{}, oldHashes)
 }
 
-func TestExtendedNode_deleteEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-	data := []core.TrieData{{Key: []byte("dog")}}
-
-	th, _ := throttler.NewNumGoRoutinesThrottler(5)
-	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-	assert.Nil(t, err)
-
-	dirty, newNode, _ := en.delete(data, goRoutinesManager, nil)
-	assert.False(t, dirty)
-	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrEmptyExtensionNode))
-	assert.Nil(t, newNode)
-}
-
-func TestExtensionNode_deleteNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-	data := []core.TrieData{{Key: []byte("dog")}}
-
-	th, _ := throttler.NewNumGoRoutinesThrottler(5)
-	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-	assert.Nil(t, err)
-
-	dirty, newNode, _ := en.delete(data, goRoutinesManager, nil)
-	assert.False(t, dirty)
-	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilExtensionNode))
-	assert.Nil(t, newNode)
-}
-
 func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	t.Parallel()
 
@@ -776,7 +689,7 @@ func TestExtensionNode_reduceNode(t *testing.T) {
 	expected.hasher = en.hasher
 	expected.child = en.child
 
-	n, newChildPos, err := en.reduceNode(2)
+	n, newChildPos, err := en.reduceNode(2, nil)
 	assert.Equal(t, expected, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildPos)
@@ -835,16 +748,6 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 	children, err := collapsedEn.getChildren(db)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(children))
-}
-
-func TestExtensionNode_isValid(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-	assert.True(t, en.isValid())
-
-	en.child = nil
-	assert.False(t, en.isValid())
 }
 
 func TestExtensionNode_setDirty(t *testing.T) {
@@ -981,30 +884,6 @@ func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
 	err := en.getDirtyHashes(dirtyHashes)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dirtyHashes))
-}
-
-func TestExtensionNode_getAllHashes(t *testing.T) {
-	t.Parallel()
-
-	trieNodes := 5
-	en, _ := getEnAndCollapsedEn()
-
-	hashes, err := en.getAllHashes(testscommon.NewMemDbMock())
-	assert.Nil(t, err)
-	assert.Equal(t, trieNodes, len(hashes))
-}
-
-func TestExtensionNode_getAllHashesResolvesCollapsed(t *testing.T) {
-	t.Parallel()
-
-	trieNodes := 5
-	db := testscommon.NewMemDbMock()
-	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-
-	hashes, err := collapsedEn.getAllHashes(db)
-	assert.Nil(t, err)
-	assert.Equal(t, trieNodes, len(hashes))
 }
 
 func TestExtensionNode_getNextHashAndKey(t *testing.T) {
