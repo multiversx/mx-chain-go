@@ -107,7 +107,7 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	return isFound
 }
 
-// Important: this doesn't remove the transactions from txCache.txByHash. That's done by the caller.
+// Important note: this doesn't remove the transactions from txCache.txByHash. That is the responsibility of the caller (of this function).
 func (txMap *txListBySenderMap) removeSender(sender string) bool {
 	logRemove.Trace("txListBySenderMap.removeSender", "sender", sender)
 
@@ -148,6 +148,8 @@ func (txMap *txListBySenderMap) notifyAccountNonceReturnEvictedTransactions(acco
 	return evictedTxHashes
 }
 
+// evictTransactionsWithHigherOrEqualNonces removes transactions with nonces higher or equal to the given nonce.
+// Useful for the eviction flow.
 func (txMap *txListBySenderMap) evictTransactionsWithHigherOrEqualNonces(accountKey []byte, nonce uint64) {
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)

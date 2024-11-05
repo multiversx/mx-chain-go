@@ -93,8 +93,8 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	return tx, ok
 }
 
-// SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
-// It returns transactions with total gas ~ "gasRequested".
+// SelectTransactions selects the best transactions to be included in the next miniblock.
+// It returns up to "maxNum" transactions, with total gas <= "gasRequested".
 func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*WrappedTransaction, uint64) {
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
@@ -134,7 +134,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
-		// Could have been previously removed (e.g. due to NotifyAccountNonce).
+		// Transaction might have been removed in the meantime (e.g. due to NotifyAccountNonce).
 		return false
 	}
 
