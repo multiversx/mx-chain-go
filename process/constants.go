@@ -142,4 +142,4 @@ const MaxGasFeeHigherFactorAccepted = 10
 const TxCacheSelectionGasRequested = 10_000_000_000
 
 // TxCacheSelectionMaxNumTxs defines the maximum number of transactions that should be selected from the cache.
-const TxCacheSelectionMaxNumTxs = 30000
+const TxCacheSelectionMaxNumTxs = 50000
