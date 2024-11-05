@@ -182,7 +182,7 @@ func (listForSender *txListForSender) IsEmpty() bool {
 	return listForSender.countTxWithLock() == 0
 }
 
-// getTxs returns the transactions in the list
+// getTxs returns the transactions of the sender
 func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
@@ -197,7 +197,7 @@ func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
 	return result
 }
 
-// getTxsReversed returns the transactions in the list, in reverse nonce order
+// getTxsReversed returns the transactions of the sender, in reverse nonce order
 func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
@@ -212,7 +212,7 @@ func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
 	return result
 }
 
-// getTxsWithoutGaps returns the transactions in the list (gaps are handled, affected transactions are excluded)
+// getTxsWithoutGaps returns the transactions of the sender (gaps are handled, affected transactions are excluded)
 func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
@@ -257,7 +257,7 @@ func (listForSender *txListForSender) countTxWithLock() uint64 {
 	return uint64(listForSender.items.Len())
 }
 
-// Removes transactions with lower nonces and returns their hashes.
+// notifyAccountNonceReturnEvictedTransactions sets the known account nonce, removes the transactions with lower nonces, and returns their hashes
 func (listForSender *txListForSender) notifyAccountNonceReturnEvictedTransactions(nonce uint64) [][]byte {
 	// Optimization: if nonce is the same, do nothing.
 	if listForSender.accountNonce.Get() == nonce {
