@@ -64,11 +64,11 @@ sovereignDeploy() {
 # - start sovereign nodes
 # - deploy main chain observer
 sovereignStart() {
+    deployObserver
+
     updateAndStartBridgeService
 
     $TESTNET_DIR/sovereignStart.sh
-
-    deployObserver
 }
 
 # This function will restart sovereign:
