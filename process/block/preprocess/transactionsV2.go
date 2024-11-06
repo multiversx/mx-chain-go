@@ -275,6 +275,10 @@ func (txs *transactions) createScheduledMiniBlocks(
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
 
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
+
 	mbInfo := txs.initCreateScheduledMiniBlocks()
 	for index := range sortedTxs {
 		if !haveTime() && !haveAdditionalTime() {
