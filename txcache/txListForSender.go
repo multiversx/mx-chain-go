@@ -259,8 +259,9 @@ func (listForSender *txListForSender) countTxWithLock() uint64 {
 
 // notifyAccountNonceReturnEvictedTransactions sets the known account nonce, removes the transactions with lower nonces, and returns their hashes
 func (listForSender *txListForSender) notifyAccountNonceReturnEvictedTransactions(nonce uint64) [][]byte {
-	// Optimization: if nonce is the same, do nothing.
+	// Optimization: if nonce is the same, do nothing (good for heavy load).
 	if listForSender.accountNonce.Get() == nonce {
+		logRemove.Trace("notifyAccountNonceReturnEvictedTransactions, nonce is the same", "sender", listForSender.sender, "nonce", nonce)
 		return nil
 	}
 
@@ -270,7 +271,11 @@ func (listForSender *txListForSender) notifyAccountNonceReturnEvictedTransaction
 	listForSender.accountNonce.Set(nonce)
 	_ = listForSender.accountNonceKnown.SetReturningPrevious()
 
-	return listForSender.evictTransactionsWithLowerNoncesNoLockReturnEvicted(nonce)
+	evicted := listForSender.evictTransactionsWithLowerNoncesNoLockReturnEvicted(nonce)
+
+	logRemove.Trace("notifyAccountNonceReturnEvictedTransactions, nonce changed", "sender", listForSender.sender, "nonce", nonce, "num evicted txs", len(evicted))
+
+	return evicted
 }
 
 // This function should only be used in critical section (listForSender.mutex)
