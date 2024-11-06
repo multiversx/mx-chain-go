@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
@@ -125,6 +126,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	// The accounts adapter isn't yet available, it will be set a bit later (see below).
+	accountNonceProvider, err := factoryState.NewAccountNonceProvider(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
 		CryptoComponents:     instance.CryptoComponentsHolder,
@@ -136,6 +143,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		PrefsConfig:          *args.Configs.PreferencesConfig,
 		Config:               *args.Configs.GeneralConfig,
 		ShardIDStr:           args.ShardIDStr,
+		AccountNonceProvider: accountNonceProvider,
 	})
 	if err != nil {
 		return nil, err
@@ -168,10 +176,24 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createDataPool(args)
+	err = accountNonceProvider.SetAccountsAdapter(instance.StateComponentsHolder.AccountsAdapterAPI())
 	if err != nil {
 		return nil, err
 	}
+
+	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
+		Config:               args.Configs.GeneralConfig,
+		EconomicsData:        instance.CoreComponentsHolder.EconomicsData(),
+		ShardCoordinator:     instance.BootstrapComponentsHolder.ShardCoordinator(),
+		Marshalizer:          instance.CoreComponentsHolder.InternalMarshalizer(),
+		PathManager:          instance.CoreComponentsHolder.PathHandler(),
+		EpochNotifier:        instance.CoreComponentsHolder.EpochNotifier(),
+		AccountNonceProvider: accountNonceProvider,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
 	if err != nil {
 		return nil, err
@@ -250,22 +272,6 @@ func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
 	} else {
 		node.ChainHandler, err = blockchain.NewBlockChain(node.StatusCoreComponents.AppStatusHandler())
 	}
-
-	return err
-}
-
-func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNode) error {
-	var err error
-
-	argsDataPool := dataRetrieverFactory.ArgsDataPool{
-		Config:           args.Configs.GeneralConfig,
-		EconomicsData:    node.CoreComponentsHolder.EconomicsData(),
-		ShardCoordinator: node.BootstrapComponentsHolder.ShardCoordinator(),
-		Marshalizer:      node.CoreComponentsHolder.InternalMarshalizer(),
-		PathManager:      node.CoreComponentsHolder.PathHandler(),
-	}
-
-	node.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(argsDataPool)
 
 	return err
 }

@@ -302,6 +302,7 @@ type ArgTestProcessorNode struct {
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
+	AccountNonceProvider    dataRetriever.AccountNonceProvider
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -566,6 +567,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		tpn.HeaderIntegrityVerifier = CreateHeaderIntegrityVerifier()
 	}
 
+	// TODO: maybe initialize these properly, and pass the account nonce provider.
 	tpn.initDataPools()
 
 	if !check.IfNil(args.DataPool) {

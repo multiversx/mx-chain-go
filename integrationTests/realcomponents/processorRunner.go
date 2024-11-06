@@ -57,6 +57,7 @@ type ProcessorRunner struct {
 	NodesCoordinator     nodesCoord.NodesCoordinator
 	StatusComponents     factory.StatusComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
+	AccountNonceProvider dataRetriever.AccountNonceProvider
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
@@ -72,6 +73,10 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
+	var err error
+	pr.AccountNonceProvider, err = factoryState.NewAccountNonceProvider(nil)
+	require.Nil(tb, err)
+
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createStatusCoreComponents(tb)
@@ -81,6 +86,9 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createStateComponents(tb)
 	pr.createStatusComponents(tb)
 	pr.createProcessComponents(tb)
+
+	err = pr.AccountNonceProvider.SetAccountsAdapter(pr.StateComponents.AccountsAdapterAPI())
+	require.Nil(tb, err)
 }
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
@@ -206,6 +214,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
+		AccountNonceProvider: pr.AccountNonceProvider,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -234,6 +243,7 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
 		FlagsConfigs:                  config.ContextFlagsConfig{},
+		AccountNonceProvider:          pr.AccountNonceProvider,
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)

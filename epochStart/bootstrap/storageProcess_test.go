@@ -35,6 +35,7 @@ func createMockStorageEpochStartBootstrapArgs(
 		ImportDbConfig:             config.ImportDbConfig{},
 		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
 		TimeToWaitForRequestedData: time.Second,
+		AccountNonceProvider:       testscommon.NewAccountNonceProviderStub(),
 	}
 }
 

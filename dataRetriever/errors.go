@@ -265,3 +265,6 @@ var ErrNilValidatorInfoStorage = errors.New("nil validator info storage")
 
 // ErrValidatorInfoNotFound signals that no validator info was found
 var ErrValidatorInfoNotFound = errors.New("validator info not found")
+
+// ErrNilAccountNonceProvider signals that a nil AccountNonceProvider has been provided
+var ErrNilAccountNonceProvider = errors.New("nil AccountNonceProvider")
