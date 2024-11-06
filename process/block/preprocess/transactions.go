@@ -917,9 +917,10 @@ func (txs *transactions) processAndRemoveBadTransaction(
 }
 
 func (txs *transactions) notifyTransactionProviderIfNeeded() {
+	txs.accountTxsShards.RLock()
+
 	log.Debug("notifyTransactionProviderIfNeeded", "len(txs.accountTxsShards.accountsInfo)", len(txs.accountTxsShards.accountsInfo))
 
-	txs.accountTxsShards.RLock()
 	for senderAddress, txShardInfoValue := range txs.accountTxsShards.accountsInfo {
 		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
 			continue
