@@ -12,7 +12,6 @@ import (
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
 	Config               storageunit.CacheConfig
-	EpochNotifier        dataRetriever.EpochNotifier
 	TxGasHandler         txcache.TxGasHandler
 	AccountNonceProvider dataRetriever.AccountNonceProvider
 	NumberOfShards       uint32
@@ -37,9 +36,6 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 	if config.Shards == 0 {
 		return fmt.Errorf("%w: config.Shards (map chunks) is not valid", dataRetriever.ErrCacheConfigInvalidShards)
-	}
-	if check.IfNil(args.EpochNotifier) {
-		return fmt.Errorf("%w: EpochNotifier is not valid", dataRetriever.ErrNilEpochNotifier)
 	}
 	if check.IfNil(args.TxGasHandler) {
 		return fmt.Errorf("%w: TxGasHandler is not valid", dataRetriever.ErrNilTxGasHandler)

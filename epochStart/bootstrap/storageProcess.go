@@ -115,7 +115,6 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 			ShardCoordinator:     sesb.shardCoordinator,
 			Marshalizer:          sesb.coreComponentsHolder.InternalMarshalizer(),
 			PathManager:          sesb.coreComponentsHolder.PathHandler(),
-			EpochNotifier:        sesb.coreComponentsHolder.EpochNotifier(),
 			AccountNonceProvider: sesb.accountNonceProvider,
 		},
 	)

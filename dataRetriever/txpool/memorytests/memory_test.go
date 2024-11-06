@@ -113,7 +113,6 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	args := txpool.ArgShardedTxPool{
 		Config:               config,
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		EpochNotifier:        &testscommon.EpochNotifierStub{},
 		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 		NumberOfShards:       2,
 		SelfShardID:          0,

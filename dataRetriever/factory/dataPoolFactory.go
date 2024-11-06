@@ -39,7 +39,6 @@ type ArgsDataPool struct {
 	ShardCoordinator     sharding.Coordinator
 	Marshalizer          marshal.Marshalizer
 	PathManager          storage.PathManagerHandler
-	EpochNotifier        dataRetriever.EpochNotifier
 	AccountNonceProvider dataRetriever.AccountNonceProvider
 }
 
@@ -62,9 +61,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	if check.IfNil(args.PathManager) {
 		return nil, dataRetriever.ErrNilPathManager
 	}
-	if check.IfNil(args.EpochNotifier) {
-		return nil, dataRetriever.ErrNilEpochNotifier
-	}
 	if check.IfNil(args.AccountNonceProvider) {
 		return nil, dataRetriever.ErrNilAccountNonceProvider
 	}
@@ -73,7 +69,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
 		Config:               factory.GetCacherFromConfig(mainConfig.TxDataPool),
-		EpochNotifier:        args.EpochNotifier,
 		NumberOfShards:       args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:          args.ShardCoordinator.SelfId(),
 		TxGasHandler:         args.EconomicsData,

@@ -110,7 +110,6 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 		ShardCoordinator:     dcf.shardCoordinator,
 		Marshalizer:          dcf.core.InternalMarshalizer(),
 		PathManager:          dcf.core.PathHandler(),
-		EpochNotifier:        dcf.core.EpochNotifier(),
 		AccountNonceProvider: dcf.accountNonceProvider,
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)

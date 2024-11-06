@@ -27,7 +27,6 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
-	epochNotifier                dataRetriever.EpochNotifier
 	txGasHandler                 txcache.TxGasHandler
 	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
@@ -79,7 +78,6 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
-		epochNotifier:                args.EpochNotifier,
 		txGasHandler:                 args.TxGasHandler,
 		accountNonceProvider:         args.AccountNonceProvider,
 	}

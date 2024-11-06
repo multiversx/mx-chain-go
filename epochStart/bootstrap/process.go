@@ -362,7 +362,6 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 			ShardCoordinator:     e.shardCoordinator,
 			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
 			PathManager:          e.coreComponentsHolder.PathHandler(),
-			EpochNotifier:        e.coreComponentsHolder.EpochNotifier(),
 			AccountNonceProvider: e.accountNonceProvider,
 		},
 	)

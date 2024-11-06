@@ -187,7 +187,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		ShardCoordinator:     instance.BootstrapComponentsHolder.ShardCoordinator(),
 		Marshalizer:          instance.CoreComponentsHolder.InternalMarshalizer(),
 		PathManager:          instance.CoreComponentsHolder.PathHandler(),
-		EpochNotifier:        instance.CoreComponentsHolder.EpochNotifier(),
 		AccountNonceProvider: accountNonceProvider,
 	})
 	if err != nil {

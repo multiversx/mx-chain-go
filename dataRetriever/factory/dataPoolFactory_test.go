@@ -54,12 +54,6 @@ func TestNewDataPoolFromConfig_MissingDependencyShouldErr(t *testing.T) {
 	require.Equal(t, dataRetriever.ErrNilPathManager, err)
 
 	args = getGoodArgs()
-	args.EpochNotifier = nil
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	require.Equal(t, dataRetriever.ErrNilEpochNotifier, err)
-
-	args = getGoodArgs()
 	args.AccountNonceProvider = nil
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
@@ -164,7 +158,6 @@ func getGoodArgs() ArgsDataPool {
 		ShardCoordinator:     mock.NewMultipleShardsCoordinatorMock(),
 		Marshalizer:          &mock.MarshalizerMock{},
 		PathManager:          &testscommon.PathManagerStub{},
-		EpochNotifier:        &testscommon.EpochNotifierStub{},
 		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 	}
 }
