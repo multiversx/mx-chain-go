@@ -919,7 +919,9 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 func (txs *transactions) notifyTransactionProviderIfNeeded() {
 	txs.accountTxsShards.RLock()
+	log.Debug("createAndProcessMiniBlocksFromMeV2", "notifyTransactionProviderIfNeeded")
 	for senderAddress, txShardInfoValue := range txs.accountTxsShards.accountsInfo {
+		log.Debug("notifyTransactionProviderIfNeeded", "sender", senderAddress)
 		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
 			continue
 		}
