@@ -918,6 +918,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 }
 
 func (txs *transactions) notifyTransactionProviderIfNeeded() {
+	log.Debug("notifyTransactionProviderIfNeeded", "len(txs.accountTxsShards.accountsInfo)", len(txs.accountTxsShards.accountsInfo))
+
 	txs.accountTxsShards.RLock()
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "notifyTransactionProviderIfNeeded")
 	for senderAddress, txShardInfoValue := range txs.accountTxsShards.accountsInfo {
