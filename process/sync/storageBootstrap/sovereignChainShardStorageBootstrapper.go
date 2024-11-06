@@ -72,8 +72,8 @@ func (ssb *sovereignChainShardStorageBootstrapper) cleanupNotarizedStorage(shard
 		return
 	}
 
+	var extendedHeader data.HeaderHandler
 	for _, extendedHeaderHash := range sovereignHeader.GetExtendedShardHeaderHashes() {
-		var extendedHeader data.HeaderHandler
 		extendedHeader, err = process.GetExtendedShardHeaderFromStorage(extendedHeaderHash, ssb.marshalizer, ssb.store)
 		if err != nil {
 			log.Debug("extended block is not found in ExtendedShardHeadersUnit storage",
@@ -115,7 +115,8 @@ func (ssb *sovereignChainShardStorageBootstrapper) cleanupNotarizedStorageForHig
 			ssb.marshalizer,
 		)
 		if err != nil {
-			log.Debug("extended block is not found in ExtendedShardHeadersNonceHashDataUnit storage",
+			log.Debug("sovereignChainShardStorageBootstrapper.cleanupNotarizedStorageForHigherNoncesIfExist:"+
+				"trying to cleanup an extended header from storage that is not found",
 				"nonce", nonce, "error", err.Error())
 
 			numConsecutiveNoncesNotFound++
