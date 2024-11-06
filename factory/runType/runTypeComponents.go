@@ -153,11 +153,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	epochStartBootstrapperFactory := bootstrap.NewEpochStartBootstrapperFactory()
-
-	bootstrapperFromStorageFactory, err := storageBootstrap.NewShardStorageBootstrapperFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardStorageBootstrapperFactory failed: %w", err)
-	}
+	bootstrapperFromStorageFactory := storageBootstrap.NewShardStorageBootstrapperFactory()
 
 	shardBootstrapFactory, err := storageBootstrap.NewShardBootstrapFactory()
 	if err != nil {
