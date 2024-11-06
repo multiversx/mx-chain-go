@@ -292,7 +292,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	logLevelFlagValue := flagsConfig.LogLevel
 
 	// Temporary workaround, alter log level.
-	logLevelFlagValue = "*:DEBUG,txcache:TRACE"
+	logLevelFlagValue = "*:DEBUG,txcache:TRACE,process:TRACE"
 
 	log.Warn("Altered log level", "logLevel", logLevelFlagValue)
 
