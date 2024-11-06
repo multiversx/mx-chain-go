@@ -291,11 +291,6 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	logger.ToggleLoggerName(flagsConfig.EnableLogName)
 	logLevelFlagValue := flagsConfig.LogLevel
 
-	// Temporary workaround, alter log level.
-	logLevelFlagValue = "*:DEBUG,txcache:TRACE"
-
-	log.Warn("Altered log level", "logLevel", logLevelFlagValue)
-
 	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return nil, err
