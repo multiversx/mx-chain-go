@@ -44,9 +44,6 @@ func (args *ArgShardedTxPool) verify() error {
 	if check.IfNil(args.TxGasHandler) {
 		return fmt.Errorf("%w: TxGasHandler is not valid", dataRetriever.ErrNilTxGasHandler)
 	}
-	if args.TxGasHandler.MinGasPrice() == 0 {
-		return fmt.Errorf("%w: MinGasPrice is not valid", dataRetriever.ErrCacheConfigInvalidEconomics)
-	}
 	if check.IfNil(args.AccountNonceProvider) {
 		return fmt.Errorf("%w: AccountNonceProvider is not valid", dataRetriever.ErrNilAccountNonceProvider)
 	}
