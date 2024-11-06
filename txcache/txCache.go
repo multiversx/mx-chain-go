@@ -283,7 +283,6 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	evicted := cache.txListBySender.notifyAccountNonceReturnEvictedTransactions(accountKey, nonce)
 
 	if len(evicted) > 0 {
-		logRemove.Trace("NotifyAccountNonce with eviction", "sender", accountKey, "nonce", nonce, "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 }
