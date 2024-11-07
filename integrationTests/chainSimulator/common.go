@@ -296,7 +296,7 @@ func IssueFungible(
 func GetIssuedEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
 	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
 	require.Nil(t, err)
-	require.GreaterOrEqual(t, len(issuedTokens), 1)
+	require.GreaterOrEqual(t, len(issuedTokens), 1, "no issued tokens found of type %s", tokenType)
 
 	for _, issuedToken := range issuedTokens {
 		if strings.Contains(issuedToken, ticker) {
