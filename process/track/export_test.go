@@ -237,11 +237,11 @@ func (bp *blockProcessor) ComputeSelfNotarizedHeaders(headers []data.HeaderHandl
 }
 
 func (bp *blockProcessor) GetNextHeader(longestChainHeadersIndexes *[]int, headersIndexes []int, prevHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, index int) {
-	bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, prevHeader, sortedHeaders, index, 0)
+	bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, prevHeader, sortedHeaders, index)
 }
 
 func (bp *blockProcessor) CheckHeaderFinality(header data.HeaderHandler, sortedHeaders []data.HeaderHandler, index int) error {
-	return bp.checkHeaderFinality(header, sortedHeaders, index, 0)
+	return bp.checkHeaderFinality(header, sortedHeaders, index)
 }
 
 func (bp *blockProcessor) RequestHeadersIfNeeded(lastNotarizedHeader data.HeaderHandler, sortedHeaders []data.HeaderHandler, longestChainHeaders []data.HeaderHandler, shardID uint32) {
@@ -274,8 +274,8 @@ func (scbp *sovereignChainBlockProcessor) ShouldProcessReceivedHeader(headerHand
 	return scbp.shouldProcessReceivedHeaderFunc(headerHandler)
 }
 
-func (scbp *sovereignChainBlockProcessor) GetBlockFinality(shardID uint32) uint64 {
-	return scbp.getBlockFinality(shardID)
+func (scbp *sovereignChainBlockProcessor) GetBlockFinality() uint64 {
+	return scbp.blockFinality
 }
 
 // miniBlockTrack
