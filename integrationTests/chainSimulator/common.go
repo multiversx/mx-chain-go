@@ -303,7 +303,7 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 		}
 	}
 
-	require.Fail(t, "could not issue semi fungible")
+	require.Fail(t, "could not find the issued token")
 	return ""
 }
 
