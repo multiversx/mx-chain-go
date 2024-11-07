@@ -238,6 +238,7 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
+	txs.notifyTransactionProviderIfNeeded()
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 }
 
@@ -643,10 +644,6 @@ func (txs *transactions) processTxsFromMe(
 	haveAdditionalTimeFalse := func() bool {
 		return false
 	}
-
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
 
 	calculatedMiniBlocks, _, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
@@ -1104,10 +1101,6 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	startTime = time.Now()
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
@@ -1209,10 +1202,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	if err != nil {
 		return nil, nil, err
 	}
-
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {
