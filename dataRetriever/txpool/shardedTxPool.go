@@ -204,7 +204,7 @@ func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID strin
 	sender := tx.Tx.GetSndAddr()
 	senderNonce, err := txPool.accountNonceProvider.GetAccountNonce(sender)
 	if err != nil {
-		log.Warn("shardedTxPool.addTx(): cannot get sender nonce", "sender", sender, "err", err)
+		log.Debug("shardedTxPool.addTx(): cannot get sender nonce", "sender", sender, "err", err)
 		return
 	}
 
