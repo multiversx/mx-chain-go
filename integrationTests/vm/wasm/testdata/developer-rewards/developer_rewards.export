@@ -1,0 +1,6 @@
+init
+upgrade
+doSomething
+deployChild
+getChildAddress
+claimDeveloperRewardsOnChild

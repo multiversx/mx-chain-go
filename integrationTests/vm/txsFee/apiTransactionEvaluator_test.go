@@ -30,9 +30,7 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -40,8 +38,8 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
-	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1000)
+	senderBalance := big.NewInt(100000000000)
+	gasLimit := uint64(10000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -49,7 +47,7 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(418), res.GasUnits)
+	require.Equal(t, uint64(15704), res.GasUnits)
 }
 
 func TestScDeployTransactionCost(t *testing.T) {
@@ -57,7 +55,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -77,7 +75,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -111,7 +109,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -134,7 +132,7 @@ func TestESDTTransfer(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -144,7 +142,7 @@ func TestESDTTransfer(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	tx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), 0, 0)
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
@@ -159,7 +157,7 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -172,7 +170,7 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -194,5 +192,5 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(34157), res.GasUnits)
+	require.Equal(t, uint64(177653), res.GasUnits)
 }

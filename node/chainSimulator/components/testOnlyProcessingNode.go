@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -28,6 +25,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -38,15 +39,18 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
-	InitialRound           int64
-	InitialNonce           uint64
-	GasScheduleFilename    string
-	NumShards              uint32
-	ShardIDStr             string
-	BypassTxSignatureCheck bool
-	MinNodesPerShard       uint32
-	MinNodesMeta           uint32
-	RoundDurationInMillis  uint64
+	InitialRound                int64
+	InitialNonce                uint64
+	GasScheduleFilename         string
+	NumShards                   uint32
+	ShardIDStr                  string
+	BypassTxSignatureCheck      bool
+	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
+	MinNodesMeta                uint32
+	MetaChainConsensusGroupSize uint32
+	RoundDurationInMillis       uint64
+	VmQueryDelayAfterStartInMs  uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -85,20 +89,22 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
-		Config:              *args.Configs.GeneralConfig,
-		EnableEpochsConfig:  args.Configs.EpochConfig.EnableEpochs,
-		RoundsConfig:        *args.Configs.RoundConfig,
-		EconomicsConfig:     *args.Configs.EconomicsConfig,
-		ChanStopNodeProcess: args.ChanStopNodeProcess,
-		NumShards:           args.NumShards,
-		WorkingDir:          args.Configs.FlagsConfig.WorkingDir,
-		GasScheduleFilename: args.GasScheduleFilename,
-		NodesSetupPath:      args.Configs.ConfigurationPathsHolder.Nodes,
-		InitialRound:        args.InitialRound,
-		MinNodesPerShard:    args.MinNodesPerShard,
-		MinNodesMeta:        args.MinNodesMeta,
-		RoundDurationInMs:   args.RoundDurationInMillis,
-		RatingConfig:        *args.Configs.RatingsConfig,
+		Config:                      *args.Configs.GeneralConfig,
+		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+		RoundsConfig:                *args.Configs.RoundConfig,
+		EconomicsConfig:             *args.Configs.EconomicsConfig,
+		ChanStopNodeProcess:         args.ChanStopNodeProcess,
+		NumShards:                   args.NumShards,
+		WorkingDir:                  args.Configs.FlagsConfig.WorkingDir,
+		GasScheduleFilename:         args.GasScheduleFilename,
+		NodesSetupPath:              args.Configs.ConfigurationPathsHolder.Nodes,
+		InitialRound:                args.InitialRound,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MinNodesMeta:                args.MinNodesMeta,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		RoundDurationInMs:           args.RoundDurationInMillis,
+		RatingConfig:                *args.Configs.RatingsConfig,
 	})
 	if err != nil {
 		return nil, err
@@ -155,6 +161,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
 		*args.Configs.ExternalConfig,
+		instance.CoreComponentsHolder,
 	)
 	if err != nil {
 		return nil, err
@@ -249,7 +256,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs)
 	if err != nil {
 		return nil, err
 	}
@@ -468,7 +475,7 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	err = setKeyValueMap(userAccount, addressState.Keys)
+	err = setKeyValueMap(userAccount, addressState.Pairs)
 	if err != nil {
 		return err
 	}
@@ -506,6 +513,18 @@ func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
 
 	_, err = accountsAdapter.Commit()
 	return err
+}
+
+// ForceChangeOfEpoch will force change of epoch
+func (node *testOnlyProcessingNode) ForceChangeOfEpoch() error {
+	currentHeader := node.DataComponentsHolder.Blockchain().GetCurrentBlockHeader()
+	if currentHeader == nil {
+		currentHeader = node.DataComponentsHolder.Blockchain().GetGenesisHeader()
+	}
+
+	node.ProcessComponentsHolder.EpochStartTrigger().ForceEpochStart(currentHeader.GetRound() + 1)
+
+	return nil
 }
 
 func setNonceAndBalanceForAccount(userAccount state.UserAccountHandler, nonce *uint64, balance string) error {

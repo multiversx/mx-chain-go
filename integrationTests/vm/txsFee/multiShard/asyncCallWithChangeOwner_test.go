@@ -25,7 +25,7 @@ func TestDoChangeOwnerCrossShardFromAContract(t *testing.T) {
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch: 0,
 	}
 
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
@@ -42,7 +42,7 @@ func TestDoChangeOwnerCrossShardFromAContract(t *testing.T) {
 	require.Equal(t, uint32(0), testContextSource.ShardCoordinator.ComputeId(firstContract))
 	require.Equal(t, uint32(0), testContextSource.ShardCoordinator.ComputeId(firstOwner))
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 

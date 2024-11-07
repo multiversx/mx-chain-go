@@ -214,7 +214,7 @@ func (txs *transactions) processTransaction(
 	}
 
 	if errors.Is(err, process.ErrFailedTransaction) {
-		log.Debug("transactions.processTransaction",
+		log.Trace("transactions.processTransaction",
 			"txHash", txHash,
 			"nonce", tx.Nonce,
 			"value", tx.Value,

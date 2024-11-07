@@ -43,6 +43,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		require.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
+		require.NoError(t, vmContainerFactory.Close())
 	})
 	t.Run("should work for metachain", func(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForMetachain)
@@ -53,5 +54,6 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		require.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
+		require.NoError(t, vmContainerFactory.Close())
 	})
 }
