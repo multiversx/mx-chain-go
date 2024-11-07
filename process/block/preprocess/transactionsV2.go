@@ -25,10 +25,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for index := range sortedTxs {
 		if !haveTime() {
@@ -274,10 +270,6 @@ func (txs *transactions) createScheduledMiniBlocks(
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
-
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
 
 	mbInfo := txs.initCreateScheduledMiniBlocks()
 	for index := range sortedTxs {

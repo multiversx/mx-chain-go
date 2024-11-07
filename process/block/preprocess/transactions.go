@@ -643,6 +643,10 @@ func (txs *transactions) processTxsFromMe(
 		return false
 	}
 
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
+
 	calculatedMiniBlocks, _, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		isShardStuckFalse,
@@ -1098,6 +1102,10 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		log.Debug("CreateAndProcessMiniBlocks global stuck")
 		return make(block.MiniBlockSlice, 0), nil
 	}
+
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
 
 	startTime = time.Now()
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
