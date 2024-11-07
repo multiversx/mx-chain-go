@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -235,15 +236,11 @@ func checkProtocolSustainabilityAddressBalanceIncreased(
 }
 
 func getAllFeesInEpoch(nodeHandler process.NodeHandler) (*big.Int, *big.Int) {
-	sovHdr := getCurrSovHdr(nodeHandler)
+	sovHdr := common.GetCurrentSovereignHeader(nodeHandler)
 	return sovHdr.GetAccumulatedFeesInEpoch(), sovHdr.GetDevFeesInEpoch()
 }
 
 func getAllFees(nodeHandler process.NodeHandler) (*big.Int, *big.Int) {
-	sovHdr := getCurrSovHdr(nodeHandler)
+	sovHdr := common.GetCurrentSovereignHeader(nodeHandler)
 	return sovHdr.GetAccumulatedFees(), sovHdr.GetDeveloperFees()
-}
-
-func getCurrSovHdr(nodeHandler process.NodeHandler) data.SovereignChainHeaderHandler {
-	return nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler)
 }
