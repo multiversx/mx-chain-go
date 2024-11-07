@@ -63,7 +63,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.BlockProcessingCutoffStub{},
 			&testscommon.MissingTrieNodesNotifierStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&processMocks.RelayedTxV3ProcessorMock{},
+
 		)
 
 		require.NoError(t, err)
@@ -228,7 +228,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	require.NoError(t, err)

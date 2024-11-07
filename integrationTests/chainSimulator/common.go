@@ -297,13 +297,14 @@ func IssueFungible(
 	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 	RequireSuccessfulTransaction(t, txResult)
 
-	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+	return GetIssuedEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
 }
 
-func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
+// GetIssuedEsdtIdentifier will return the token identifier for and issued token
+func GetIssuedEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
 	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
 	require.Nil(t, err)
-	require.GreaterOrEqual(t, len(issuedTokens), 1)
+	require.GreaterOrEqual(t, len(issuedTokens), 1, "no issued tokens found of type %s", tokenType)
 
 	for _, issuedToken := range issuedTokens {
 		if strings.Contains(issuedToken, ticker) {
@@ -311,7 +312,7 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 		}
 	}
 
-	require.Fail(t, "could not issue semi fungible")
+	require.Fail(t, "could not find the issued token")
 	return ""
 }
 
@@ -385,14 +386,13 @@ func IssueSemiFungible(
 		"@" + hex.EncodeToString([]byte(sftTicker))
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 
-	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
+	return GetIssuedEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
 }
 
-// RegisterAndSetAllRoles will issue an esdt token with all roles enabled
+// RegisterAndSetAllRoles will issue an esdt collection with all roles enabled
 func RegisterAndSetAllRoles(
 	t *testing.T,
 	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -409,19 +409,43 @@ func RegisterAndSetAllRoles(
 		"@" + fmt.Sprintf("%02X", numDecimals)
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	return getEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
+	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), esdtTicker, tokenType)
+}
+
+// RegisterAndSetAllRolesDynamic will issue a dynamic esdt collection with all roles enabled
+func RegisterAndSetAllRolesDynamic(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	esdtName string,
+	esdtTicker string,
+	tokenType string,
+	numDecimals int,
+) string {
+	esdtType := getTokenRegisterType(tokenType)
+	registerArgs := "registerAndSetAllRolesDynamic" +
+		"@" + hex.EncodeToString([]byte(esdtName)) +
+		"@" + hex.EncodeToString([]byte(esdtTicker)) +
+		"@" + hex.EncodeToString([]byte(esdtType))
+	if numDecimals != 0 {
+		registerArgs += "@" + fmt.Sprintf("%02X", numDecimals)
+	}
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
+
+	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), esdtTicker, tokenType)
 }
 
 func getTokenRegisterType(tokenType string) string {
 	switch tokenType {
 	case core.FungibleESDT:
 		return "FNG"
-	case core.NonFungibleESDT:
-	case core.NonFungibleESDTv2:
+	case core.NonFungibleESDT, core.NonFungibleESDTv2, core.DynamicNFTESDT:
 		return "NFT"
-	case core.SemiFungibleESDT:
+	case core.SemiFungibleESDT, core.DynamicSFTESDT:
 		return "SFT"
-	case core.MetaESDT:
+	case core.MetaESDT, core.DynamicMetaESDT:
 		return "META"
 	}
 	return ""

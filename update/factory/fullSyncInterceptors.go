@@ -77,7 +77,6 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	FullArchiveInterceptorsContainer process.InterceptorsContainer
 	AntifloodHandler                 process.P2PAntifloodHandler
 	NodeOperationMode                common.NodeOperation
-	RelayedTxV3Processor             process.RelayedTxV3Processor
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
 
@@ -152,7 +151,6 @@ func NewFullSyncInterceptorsContainerFactory(
 		EpochStartTrigger:       args.EpochStartTrigger,
 		WhiteListerVerifiedTxs:  args.WhiteListerVerifiedTxs,
 		ArgsParser:              smartContract.NewArgumentParser(),
-		RelayedTxV3Processor:    args.RelayedTxV3Processor,
 	}
 
 	icf := &fullSyncInterceptorsContainerFactory{

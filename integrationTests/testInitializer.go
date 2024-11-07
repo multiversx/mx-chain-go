@@ -75,7 +75,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -1062,17 +1061,15 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
-		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:              smartContract.NewArgumentParser(),
-		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
-		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
-		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
+		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

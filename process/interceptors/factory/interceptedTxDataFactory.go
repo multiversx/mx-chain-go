@@ -31,7 +31,6 @@ type interceptedTxDataFactory struct {
 	txSignHasher           hashing.Hasher
 	txVersionChecker       process.TxVersionCheckerHandler
 	enableEpochsHandler    common.EnableEpochsHandler
-	relayedTxV3Processor   process.RelayedTxV3Processor
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -108,7 +107,6 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		txSignHasher:           argument.CoreComponents.TxSignHasher(),
 		txVersionChecker:       argument.CoreComponents.TxVersionChecker(),
 		enableEpochsHandler:    argument.CoreComponents.EnableEpochsHandler(),
-		relayedTxV3Processor:   argument.RelayedTxV3Processor,
 	}
 
 	return itdf, nil
@@ -132,8 +130,6 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.enableEpochsHandler.IsFlagEnabled(common.TransactionSignedWithTxHashFlag),
 		itdf.txSignHasher,
 		itdf.txVersionChecker,
-		itdf.enableEpochsHandler,
-		itdf.relayedTxV3Processor,
 	)
 }
 
