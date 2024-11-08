@@ -7,6 +7,25 @@ checkWalletBalanceOnMainChain() {
     return 0
 }
 
+fund() {
+    echo "Getting funds in wallet on sovereign chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/fund.interaction.json"
+    mxpy tx new \
+       --pem="~/MultiversX/testnet/node/config/walletKey.pem" \
+       --pem-index 0 \
+       --proxy=${PROXY_SOVEREIGN} \
+       --chain=${CHAIN_ID_SOVEREIGN} \
+       --receiver=$1 \
+       --value=10000000000000000000000 \
+       --gas-limit=50000 \
+       --outfile=${OUTFILE} \
+       --recall-nonce \
+       --send
+
+    sleep 6
+}
+
 getFundsInAddressSovereign() {
     echo "Getting funds in wallet on sovereign chain..."
 

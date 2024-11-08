@@ -73,6 +73,8 @@ sovereignStart() {
     $TESTNET_DIR/sovereignStart.sh
 
     deployObserver
+
+    /home/ubuntu/Scripts/services-VM2.sh deploy
 }
 
 # This function will restart sovereign:
@@ -129,6 +131,8 @@ stopSovereign() {
     screen -S sovereignBridgeService -X kill
 
     stopObserver
+
+    /home/ubuntu/Scripts/services-VM2.sh stop
 }
 
 # This function will stop and clean sovereign:
