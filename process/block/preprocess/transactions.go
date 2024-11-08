@@ -238,7 +238,6 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	txs.notifyTransactionProviderIfNeeded()
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 }
 
@@ -1202,6 +1201,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {
