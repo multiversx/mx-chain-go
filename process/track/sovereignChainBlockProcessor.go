@@ -34,7 +34,7 @@ func NewSovereignChainBlockProcessor(blockProcessor *blockProcessor) (*sovereign
 	scbp.doJobOnReceivedCrossNotarizedHeaderFunc = scbp.doJobOnReceivedCrossNotarizedHeader
 	scbp.requestHeaderWithShardAndNonceFunc = scbp.requestHeaderWithShardAndNonce
 	scbp.requestHeadersIfNothingNewIsReceivedFunc = scbp.requestHeadersIfNothingNewIsReceived
-	scbp.getBlockFinalityFunc = scbp.getBlockFinality
+	scbp.blockFinality = 0
 
 	extendedShardHeaderRequester, ok := scbp.requestHandler.(extendedShardHeaderRequestHandler)
 	if !ok {
@@ -121,12 +121,4 @@ func (scbp *sovereignChainBlockProcessor) requestHeadersIfNothingNewIsReceived(
 	}
 
 	scbp.baseRequestHeadersIfNothingNewIsReceived(lastNotarizedHeaderNonce, latestValidHeader, highestRoundInReceivedHeaders, shardID)
-}
-
-func (scbp *sovereignChainBlockProcessor) getBlockFinality(shardID uint32) uint64 {
-	if shardID == core.MainChainShardId {
-		return 0
-	}
-
-	return scbp.blockFinality
 }
