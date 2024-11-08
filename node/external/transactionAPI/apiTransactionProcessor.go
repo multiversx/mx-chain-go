@@ -201,7 +201,7 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
 	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
 	if isRelayedAfterFix {
-		fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
+		_, fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
 		tx.InitiallyPaidFee = fee.String()
 	}
 }

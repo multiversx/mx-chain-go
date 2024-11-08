@@ -82,14 +82,13 @@ type scProcessor struct {
 	gasHandler          process.GasHandler
 	scProcessorHelper   process.SCProcessorHelperHandler
 
-	builtInGasCosts         map[string]uint64
-	persistPerByte          uint64
-	storePerByte            uint64
-	mutGasLock              sync.RWMutex
-	txLogsProcessor         process.TransactionLogProcessor
-	failedTxLogsAccumulator process.FailedTxLogsAccumulator
-	vmOutputCacher          storage.Cacher
-	isGenesisProcessing     bool
+	builtInGasCosts     map[string]uint64
+	persistPerByte      uint64
+	storePerByte        uint64
+	mutGasLock          sync.RWMutex
+	txLogsProcessor     process.TransactionLogProcessor
+	vmOutputCacher      storage.Cacher
+	isGenesisProcessing bool
 
 	executableCheckers    map[string]scrCommon.ExecutableChecker
 	mutExecutableCheckers sync.RWMutex
@@ -163,9 +162,6 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
-	if check.IfNil(args.FailedTxLogsAccumulator) {
-		return nil, process.ErrNilFailedTxLogsAccumulator
-	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
@@ -202,31 +198,30 @@ func NewSmartContractProcessorV2(args scrCommon.ArgsNewSmartContractProcessor) (
 	}
 
 	sc := &scProcessor{
-		vmContainer:             args.VmContainer,
-		argsParser:              args.ArgsParser,
-		hasher:                  args.Hasher,
-		marshalizer:             args.Marshalizer,
-		accounts:                args.AccountsDB,
-		blockChainHook:          args.BlockChainHook,
-		pubkeyConv:              args.PubkeyConv,
-		shardCoordinator:        args.ShardCoordinator,
-		scrForwarder:            args.ScrForwarder,
-		txFeeHandler:            args.TxFeeHandler,
-		economicsFee:            args.EconomicsFee,
-		txTypeHandler:           args.TxTypeHandler,
-		gasHandler:              args.GasHandler,
-		builtInGasCosts:         builtInFuncCost,
-		txLogsProcessor:         args.TxLogsProcessor,
-		failedTxLogsAccumulator: args.FailedTxLogsAccumulator,
-		badTxForwarder:          args.BadTxForwarder,
-		builtInFunctions:        args.BuiltInFunctions,
-		isGenesisProcessing:     args.IsGenesisProcessing,
-		arwenChangeLocker:       args.WasmVMChangeLocker,
-		vmOutputCacher:          args.VMOutputCacher,
-		enableEpochsHandler:     args.EnableEpochsHandler,
-		storePerByte:            baseOperationCost["StorePerByte"],
-		persistPerByte:          baseOperationCost["PersistPerByte"],
-		executableCheckers:      scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
+		vmContainer:         args.VmContainer,
+		argsParser:          args.ArgsParser,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		accounts:            args.AccountsDB,
+		blockChainHook:      args.BlockChainHook,
+		pubkeyConv:          args.PubkeyConv,
+		shardCoordinator:    args.ShardCoordinator,
+		scrForwarder:        args.ScrForwarder,
+		txFeeHandler:        args.TxFeeHandler,
+		economicsFee:        args.EconomicsFee,
+		txTypeHandler:       args.TxTypeHandler,
+		gasHandler:          args.GasHandler,
+		builtInGasCosts:     builtInFuncCost,
+		txLogsProcessor:     args.TxLogsProcessor,
+		badTxForwarder:      args.BadTxForwarder,
+		builtInFunctions:    args.BuiltInFunctions,
+		isGenesisProcessing: args.IsGenesisProcessing,
+		arwenChangeLocker:   args.WasmVMChangeLocker,
+		vmOutputCacher:      args.VMOutputCacher,
+		enableEpochsHandler: args.EnableEpochsHandler,
+		storePerByte:        baseOperationCost["StorePerByte"],
+		persistPerByte:      baseOperationCost["PersistPerByte"],
+		executableCheckers:  scrCommon.CreateExecutableCheckersMap(args.BuiltInFunctions),
 		scProcessorHelper:   scProcessorHelper,
 	}
 
@@ -1427,19 +1422,19 @@ func (sc *scProcessor) isCrossShardESDTTransfer(sender []byte, receiver []byte, 
 func (sc *scProcessor) getOriginalTxHashIfIntraShardRelayedSCR(
 	tx data.TransactionHandler,
 	txHash []byte,
-) ([]byte, bool) {
+) []byte {
 	relayedSCR, isRelayed := isRelayedTx(tx)
 	if !isRelayed {
-		return txHash, isRelayed
+		return txHash
 	}
 
 	sndShardID := sc.shardCoordinator.ComputeId(relayedSCR.SndAddr)
 	rcvShardID := sc.shardCoordinator.ComputeId(relayedSCR.RcvAddr)
 	if sndShardID != rcvShardID {
-		return txHash, isRelayed
+		return txHash
 	}
 
-	return relayedSCR.OriginalTxHash, isRelayed
+	return relayedSCR.OriginalTxHash
 }
 
 // ProcessIfError creates a smart contract result, consumes the gas and returns the value to the user
@@ -1529,15 +1524,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		processIfErrorLogs = append(processIfErrorLogs, failureContext.logs...)
 	}
 
-	logsTxHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
-	var ignorableError error
-	if isRelayed {
-		ignorableError = sc.failedTxLogsAccumulator.SaveLogs(logsTxHash, tx, processIfErrorLogs)
-	} else {
-		ignorableError = sc.txLogsProcessor.SaveLog(logsTxHash, tx, processIfErrorLogs)
-	}
+	logsTxHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
+	ignorableError := sc.txLogsProcessor.SaveLog(logsTxHash, tx, processIfErrorLogs)
 	if ignorableError != nil {
-		log.Debug("scProcessor.ProcessIfError() save log", "error", ignorableError.Error(), "isRelayed", isRelayed)
+		log.Debug("scProcessor.ProcessIfError() save log", "error", ignorableError.Error())
 	}
 
 	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)

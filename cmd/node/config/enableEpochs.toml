@@ -324,17 +324,14 @@
     # UnjailCleanupEnableEpoch represents the epoch when the cleanup of the unjailed nodes is enabled
     UnJailCleanupEnableEpoch = 4
 
-    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
-    RelayedTransactionsV3EnableEpoch = 7
-
     # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
-    FixRelayedBaseCostEnableEpoch = 7
+    FixRelayedBaseCostEnableEpoch = 4
 
     # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
 
     # FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
-    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 7
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 4
 
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 2
