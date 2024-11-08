@@ -2,6 +2,8 @@ package notifier
 
 import (
 	"context"
+	"os"
+	"syscall"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -20,6 +22,7 @@ type ArgsNotifierBootstrapper struct {
 	SovereignNotifier     notifierProcess.SovereignNotifier
 	ForkDetector          process.ForkDetector
 	Bootstrapper          process.Bootstrapper
+	SigStopNode           chan os.Signal
 	RoundDuration         uint64
 }
 
@@ -27,6 +30,7 @@ type notifierBootstrapper struct {
 	incomingHeaderHandler process.IncomingHeaderSubscriber
 	sovereignNotifier     notifierProcess.SovereignNotifier
 	forkDetector          process.ForkDetector
+	sigStopNode           chan os.Signal
 
 	nodeSyncedChan chan bool
 	cancelFunc     func()
@@ -46,6 +50,7 @@ func NewNotifierBootstrapper(args ArgsNotifierBootstrapper) (*notifierBootstrapp
 		nodeSyncedChan:        make(chan bool, 1),
 		cancelFunc:            nil,
 		roundDuration:         args.RoundDuration,
+		sigStopNode:           args.SigStopNode,
 	}
 
 	args.Bootstrapper.AddSyncStateListener(nb.receivedSyncState)
@@ -105,10 +110,11 @@ func (nb *notifierBootstrapper) checkNodeState(ctx context.Context) {
 			err := nb.sovereignNotifier.RegisterHandler(nb.incomingHeaderHandler)
 			if err != nil {
 				log.Error("notifierBootstrapper: sovereignNotifier.RegisterHandler", "err", err)
-				continue
+				nb.sigStopNode <- syscall.SIGTERM
+			} else {
+				log.Debug("notifierBootstrapper.checkNodeState", "is node synced", true)
 			}
 
-			log.Debug("notifierBootstrapper.checkNodeState", "is node synced", true)
 			return
 		case <-ticker.C:
 			log.Debug("notifierBootstrapper.checkNodeState", "is node synced", false)

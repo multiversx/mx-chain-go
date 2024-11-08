@@ -531,10 +531,22 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	notifierServices, err := createNotifierWSReceiverServicesIfNeeded(
 		&configs.SovereignExtraConfig.NotifierConfig,
+		sovereignNotifier,
+	)
+	if err != nil {
+		return true, err
+	}
+
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	sovereignNotifierBootstrapper, err := startSovereignNotifierBootstrapper(
 		incomingHeaderHandler,
 		managedCoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		managedProcessComponents.ForkDetector(),
 		managedConsensusComponents.Bootstrapper(),
+		sigs,
 	)
 
 	log.Debug("creating node structure")
@@ -604,9 +616,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		close(allowExternalVMQueriesChan)
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	err = waitForSignal(
 		sigs,
@@ -1961,6 +1970,7 @@ func startSovereignNotifierBootstrapper(
 	roundDuration uint64,
 	forkDetector process.ForkDetector,
 	bootstrapper process.Bootstrapper,
+	sigStopNode chan os.Signal,
 ) (notifier.SovereignNotifierBootstrapper, error) {
 	args := notifier.ArgsNotifierBootstrapper{
 		IncomingHeaderHandler: incomingHeaderHandler,
@@ -1968,6 +1978,7 @@ func startSovereignNotifierBootstrapper(
 		ForkDetector:          forkDetector,
 		Bootstrapper:          bootstrapper,
 		RoundDuration:         roundDuration,
+		SigStopNode:           sigStopNode,
 	}
 
 	notifierBootstrapper, err := notifier.NewNotifierBootstrapper(args)

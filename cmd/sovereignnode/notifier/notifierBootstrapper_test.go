@@ -3,8 +3,10 @@ package notifier
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"runtime"
+	"syscall"
 	"testing"
 	"time"
 
@@ -151,7 +153,10 @@ func TestNotifierBootstrapper_Start(t *testing.T) {
 func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 	t.Parallel()
 
+	sigStopNodeMock := make(chan os.Signal, 1)
+
 	args := createArgs()
+	args.SigStopNode = sigStopNodeMock
 	args.RoundDuration = 10
 
 	registerCalledCt := 0
@@ -163,12 +168,7 @@ func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 				registerCalledCt++
 			}()
 
-			switch registerCalledCt {
-			case 0, 1:
-				return errors.New("local error")
-			}
-
-			return nil
+			return errors.New("local error")
 		},
 	}
 
@@ -194,15 +194,18 @@ func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 	time.Sleep(time.Millisecond * 50)
 	require.Equal(t, 1, registerCalledCt)
 
-	nb.receivedSyncState(true)
-	time.Sleep(time.Millisecond * 50)
-	require.Equal(t, 2, registerCalledCt)
+	select {
+	case sig := <-sigStopNodeMock:
+		require.Equal(t, syscall.SIGTERM, sig)
+	case <-time.After(time.Millisecond * 100): // Timeout to avoid hanging
+		t.Error("expected SIGTERM signal on sigStopNodeMock, but none received")
+	}
 
-	// Once registered, the waiting is done, no other register is called
-	for i := 3; i < 10; i++ {
+	// Once registration fails, the waiting is done, no other register is called
+	for i := 0; i < 10; i++ {
 		nb.receivedSyncState(true)
 		time.Sleep(time.Millisecond * 50)
-		require.Equal(t, 3, registerCalledCt)
+		require.Equal(t, 1, registerCalledCt)
 	}
 }
 
