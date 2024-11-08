@@ -53,7 +53,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 		return nil, nil, err
 	}
 
-	err = sicf.generateHeaderInterceptors(core.SovereignChainShardId)
+	err = sicf.generateSovereignHeaderInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,6 +95,14 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 	}
 
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
+}
+
+func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderInterceptors() error {
+	hdrFactory, err := interceptorFactory.NewInterceptedSovereignShardHeaderDataFactory(sicf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+	return sicf.generateHeaderInterceptors(hdrFactory, core.SovereignChainShardId)
 }
 
 func (sicf *sovereignShardInterceptorsContainerFactory) generateTxInterceptors() error {

@@ -394,14 +394,10 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 
 // ------- Hdr interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors(shardID uint32) error {
-	shardC := bicf.shardCoordinator
-
-	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(bicf.argInterceptorFactory)
-	if err != nil {
-		return err
-	}
-
+func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors(
+	headerDataFactory process.InterceptedDataFactory,
+	shardID uint32,
+) error {
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        bicf.dataPool.Headers(),
 		BlockBlackList: bicf.blockBlackList,
@@ -412,13 +408,13 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors(shardID
 	}
 
 	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(shardID)
+	identifierHdr := factory.ShardBlocksTopic + bicf.shardCoordinator.CommunicationIdentifier(shardID)
 
 	// only one intrashard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHdr,
-			DataFactory:          hdrFactory,
+			DataFactory:          headerDataFactory,
 			Processor:            hdrProcessor,
 			Throttler:            bicf.globalThrottler,
 			AntifloodHandler:     bicf.antifloodHandler,

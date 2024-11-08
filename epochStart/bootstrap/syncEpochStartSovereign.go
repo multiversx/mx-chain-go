@@ -33,7 +33,7 @@ func newEpochStartSovereignSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStart
 
 func createShardSingleDataInterceptor(args ArgsNewEpochStartMetaSyncer) (process.Interceptor, error) {
 	argsInterceptedDataFactory := createArgsInterceptedDataFactory(args)
-	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedShardHeaderDataFactory(&argsInterceptedDataFactory)
+	interceptedMetaHdrDataFactory, err := interceptorsFactory.NewInterceptedSovereignShardHeaderDataFactory(&argsInterceptedDataFactory)
 	if err != nil {
 		return nil, err
 	}

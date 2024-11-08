@@ -2,7 +2,6 @@ package interceptedBlocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -12,13 +11,14 @@ type interceptedSovereignBlockHeader struct {
 }
 
 // NewSovereignInterceptedBlockHeader creates a new intercepted sovereign block header
-func NewSovereignInterceptedBlockHeader(blockHeaderInterceptor *InterceptedHeader) (*interceptedSovereignBlockHeader, error) {
-	if check.IfNil(blockHeaderInterceptor) {
-		return nil, errNilInterceptedBlockHeader
+func NewSovereignInterceptedBlockHeader(arg *ArgInterceptedBlockHeader) (*interceptedSovereignBlockHeader, error) {
+	interceptedHdr, err := NewInterceptedHeader(arg)
+	if err != nil {
+		return nil, err
 	}
 
 	sovInterceptedBlock := &interceptedSovereignBlockHeader{
-		blockHeaderInterceptor,
+		interceptedHdr,
 	}
 
 	sovInterceptedBlock.mbHeadersChecker = sovInterceptedBlock
