@@ -529,25 +529,20 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	notifierServices, err := createNotifierWSReceiverServicesIfNeeded(
-		&configs.SovereignExtraConfig.NotifierConfig,
-		sovereignNotifier,
-	)
-	if err != nil {
-		return true, err
-	}
-
-
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
-	sovereignNotifierBootstrapper, err := startSovereignNotifierBootstrapper(
+	notifierServices, err := createNotifierWSReceiverServicesIfNeeded(
+		&configs.SovereignExtraConfig.NotifierConfig,
 		incomingHeaderHandler,
 		managedCoreComponents.GenesisNodesSetup().GetRoundDuration(),
 		managedProcessComponents.ForkDetector(),
 		managedConsensusComponents.Bootstrapper(),
 		sigs,
 	)
+	if err != nil {
+		return true, err
+	}
 
 	log.Debug("creating node structure")
 
@@ -1901,6 +1896,7 @@ func createNotifierWSReceiverServicesIfNeeded(
 	roundDuration uint64,
 	forkDetector process.ForkDetector,
 	bootstrapper process.Bootstrapper,
+	sigStopNode chan os.Signal,
 ) ([]mainFactory.Closer, error) {
 	if !config.Enabled {
 		log.Info("running without any notifier attached")
@@ -1925,6 +1921,7 @@ func createNotifierWSReceiverServicesIfNeeded(
 		roundDuration,
 		forkDetector,
 		bootstrapper,
+		sigStopNode,
 	)
 	if err != nil {
 		return nil, err
