@@ -13,8 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
+	sovCommon "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 )
 
 const (
@@ -57,8 +57,10 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	args.CreateIncomingHeaderSubscriber = func(config config.WebSocketConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
-	args.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
-		return createSovereignRunTypeComponents(argsRunType, *configs.SovereignExtraConfig)
+	if args.CreateRunTypeComponents == nil {
+		args.CreateRunTypeComponents = func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+			return sovCommon.CreateSovereignRunTypeComponents(args, *configs.SovereignExtraConfig)
+		}
 	}
 	args.NodeFactory = node.NewSovereignNodeFactory(configs.SovereignExtraConfig.GenesisConfig.NativeESDT)
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
@@ -104,27 +106,4 @@ func createSovereignRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder
 	}
 
 	return managedRunTypeCoreComponents, nil
-}
-
-func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
-	argsSovRunType, err := sovRunType.CreateSovereignArgsRunTypeComponents(args, sovereignExtraConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	sovereignComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*argsSovRunType)
-	if err != nil {
-		return nil, err
-	}
-
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-	err = managedRunTypeComponents.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	return managedRunTypeComponents, nil
 }

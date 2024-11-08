@@ -14,9 +14,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	proc "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
+	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/stretchr/testify/require"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -145,7 +151,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase1(t *testing.T) {
 	var prevSovHdr data.SovereignChainHeaderHandler
 	var previousExtendedHeader data.HeaderHandler
 
-	for currIncomingHeaderRound := startRound - 5; currIncomingHeaderRound < startRound+40; currIncomingHeaderRound++ {
+	for currIncomingHeaderRound := startRound - 5; currIncomingHeaderRound < startRound+200; currIncomingHeaderRound++ {
 
 		// Handlers are notified on go routines; wait a bit so that pools are updated
 		incomingHdr := addIncomingHeader(t, nodeHandler, &incomingHdrNonce, prevIncomingHeader)
@@ -306,6 +312,22 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 	}
 
 	startRound := uint64(101)
+	sovConfig := config.SovereignConfig{}
+
+	sovRequestHandler := &testscommon.ExtendedShardHeaderRequestHandlerStub{
+		RequestExtendedShardHeaderCalled: func(hash []byte) {
+			require.Fail(t, "should not request any extended header")
+		},
+		RequestExtendedShardHeaderByNonceCalled: func(nonce uint64) {
+			require.Fail(t, "should not request any extended header")
+		},
+	}
+	sovRequestHandlerFactory := &factory2.RequestHandlerFactoryMock{
+		CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (proc.RequestHandler, error) {
+			return sovRequestHandler, nil
+		},
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
@@ -319,9 +341,19 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 				HasValue: true,
 			},
 			ApiInterface:     api.NewNoApiInterface(),
-			MinNodesPerShard: 2,
+			MinNodesPerShard: 1,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound = startRound
+				sovConfig = cfg.GeneralConfig.SovereignConfig
+			},
+			CreateRunTypeComponents: func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+				runTypeComps, err := common.CreateSovereignRunTypeComponents(args, sovConfig)
+				require.Nil(t, err)
+
+				runTypeCompsHolder := components.GetRunTypeComponentsStub(runTypeComps)
+				runTypeCompsHolder.RequestHandlerFactory = sovRequestHandlerFactory
+
+				return runTypeCompsHolder, nil
 			},
 		},
 	})
@@ -354,28 +386,45 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 	currentSovBlock := common.GetCurrentSovereignHeader(nodeHandler)
 	require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
 
+	prevSovBlock := currentSovBlock
 	extendedHeaderHashes := make([][]byte, 0)
-
 	// From now on, we generate 3 incoming headers per sovereign block
-	for i := 1; i < 50; i++ {
+	for i := 1; i < 300; i++ {
 		incomingHdr := addIncomingHeader(t, nodeHandler, &incomingHdrNonce, prevHeader)
 		extendedHeaderHashes = append(extendedHeaderHashes, getExtendedHeaderHash(t, nodeHandler, incomingHdr))
 
 		if i%3 == 0 {
+			time.Sleep(time.Millisecond * 50)
+
 			err = cs.GenerateBlocks(1)
 			require.Nil(t, err)
 
 			currentSovBlock = common.GetCurrentSovereignHeader(nodeHandler)
-			require.Len(t, extendedHeaderHashes, 3)
-			require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
 
-			lastCrossNotarizedRound += 3
-			extendedHeaderHashes = make([][]byte, 0)
+			if currentSovBlock.IsStartOfEpochBlock() {
+				require.Empty(t, currentSovBlock.GetExtendedShardHeaderHashes())
+			} else if prevSovBlock.IsStartOfEpochBlock() {
+				require.Len(t, currentSovBlock.GetExtendedShardHeaderHashes(), 6)
+				require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
+
+				lastCrossNotarizedRound += 6
+				extendedHeaderHashes = make([][]byte, 0)
+			} else {
+				require.Len(t, currentSovBlock.GetExtendedShardHeaderHashes(), 3)
+				require.Equal(t, extendedHeaderHashes, currentSovBlock.GetExtendedShardHeaderHashes())
+
+				lastCrossNotarizedRound += 3
+				extendedHeaderHashes = make([][]byte, 0)
+			}
+
 		}
 
 		checkLastCrossNotarizedRound(t, sovBlockTracker, lastCrossNotarizedRound)
 		prevHeader = incomingHdr.Header
+		prevSovBlock = currentSovBlock
 	}
+
+	require.Equal(t, uint32(4), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
 
 }
 
