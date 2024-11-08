@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
+	"github.com/multiversx/mx-chain-go/sovereignnode/notifier"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -524,14 +525,33 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedProcessComponents,
 		managedStatusCoreComponents,
 	)
+	if err != nil {
+		return true, err
+	}
 
+	sovereignNotifier, err := createSovereignNotifier(&configs.SovereignExtraConfig.NotifierConfig)
 	if err != nil {
 		return true, err
 	}
 
 	sovereignWsReceiver, err := createSovereignWsReceiver(
 		&configs.SovereignExtraConfig.NotifierConfig,
+		sovereignNotifier,
+	)
+	if err != nil {
+		return true, err
+	}
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	sovereignNotifierBootstrapper, err := startSovereignNotifierBootstrapper(
 		incomingHeaderHandler,
+		sovereignNotifier,
+		managedCoreComponents.GenesisNodesSetup().GetRoundDuration(),
+		managedProcessComponents.ForkDetector(),
+		managedConsensusComponents.Bootstrapper(),
+		sigs,
 	)
 	if err != nil {
 		return true, err
@@ -547,6 +567,11 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		n.AddClosableComponent(outGoingBridgeOpHandler)
 		return nil
 	}
+	extraOptionNotifierBootstrapper := func(n *node.Node) error {
+		n.AddClosableComponent(sovereignNotifierBootstrapper)
+		return nil
+	}
+
 	nodeHandler, err := node.CreateNode(
 		configs.GeneralConfig,
 		managedRunTypeComponents,
@@ -566,6 +591,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		node.NewSovereignNodeFactory(configs.GeneralConfig.SovereignConfig.GenesisConfig.NativeESDT),
 		extraOptionNotifierReceiver,
 		extraOptionOutGoingBridgeSender,
+		extraOptionNotifierBootstrapper,
 	)
 	if err != nil {
 		return true, err
@@ -600,9 +626,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		close(allowExternalVMQueriesChan)
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	err = waitForSignal(
 		sigs,
@@ -1884,24 +1907,8 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 
 func createSovereignWsReceiver(
 	config *config.NotifierConfig,
-	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	sovereignNotifier notifierProcess.SovereignNotifier,
 ) (notifierProcess.WSClient, error) {
-	argsNotifier := factory.ArgsCreateSovereignNotifier{
-		MarshallerType:   config.WebSocketConfig.MarshallerType,
-		SubscribedEvents: getNotifierSubscribedEvents(config.SubscribedEvents),
-		HasherType:       config.WebSocketConfig.HasherType,
-	}
-
-	sovereignNotifier, err := factory.CreateSovereignNotifier(argsNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	err = sovereignNotifier.RegisterHandler(incomingHeaderHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	argsWsReceiver := factory.ArgsWsClientReceiverNotifier{
 		WebSocketConfig: notifierCfg.WebSocketConfig{
 			Url:                config.WebSocketConfig.Url,
@@ -1917,6 +1924,42 @@ func createSovereignWsReceiver(
 	}
 
 	return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
+}
+
+func createSovereignNotifier(config *config.NotifierConfig) (notifierProcess.SovereignNotifier, error) {
+	argsNotifier := factory.ArgsCreateSovereignNotifier{
+		MarshallerType:   config.WebSocketConfig.MarshallerType,
+		SubscribedEvents: getNotifierSubscribedEvents(config.SubscribedEvents),
+		HasherType:       config.WebSocketConfig.HasherType,
+	}
+
+	return factory.CreateSovereignNotifier(argsNotifier)
+}
+
+func startSovereignNotifierBootstrapper(
+	incomingHeaderHandler process.IncomingHeaderSubscriber,
+	sovereignNotifier notifierProcess.SovereignNotifier,
+	roundDuration uint64,
+	forkDetector process.ForkDetector,
+	bootstrapper process.Bootstrapper,
+	sigStopNode chan os.Signal,
+) (notifier.SovereignNotifierBootstrapper, error) {
+	args := notifier.ArgsNotifierBootstrapper{
+		IncomingHeaderHandler: incomingHeaderHandler,
+		SovereignNotifier:     sovereignNotifier,
+		ForkDetector:          forkDetector,
+		Bootstrapper:          bootstrapper,
+		RoundDuration:         roundDuration,
+		SigStopNode:           sigStopNode,
+	}
+
+	notifierBootstrapper, err := notifier.NewNotifierBootstrapper(args)
+	if err != nil {
+		return nil, err
+	}
+
+	notifierBootstrapper.Start()
+	return notifierBootstrapper, nil
 }
 
 func getNotifierSubscribedEvents(events []config.SubscribedEvent) []notifierCfg.SubscribedEvent {
