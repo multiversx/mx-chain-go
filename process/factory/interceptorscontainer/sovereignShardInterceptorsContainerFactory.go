@@ -141,7 +141,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterc
 	interceptorsSlice := make([]process.Interceptor, 0, 1)
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
-	interceptor, err := sicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+	interceptor, err := sicf.createOneSovereignMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
 		return err
 	}
@@ -150,6 +150,15 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterc
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
 	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
+}
+
+func (bicf *baseInterceptorsContainerFactory) createOneSovereignMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+	miniBlockFactory, err := interceptorFactory.NewInterceptedSovereignMiniBlockDataFactory(bicf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return bicf.baseCreateOneMiniBlocksInterceptor(miniBlockFactory, topic)
 }
 
 func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignExtendedHeaderInterceptors() error {
