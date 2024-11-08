@@ -311,6 +311,26 @@ func (s *simulator) ForceChangeOfEpoch() error {
 	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }
 
+// ChangeEpochs will change epochs till the target epoch is reached
+func (s *simulator) ChangeEpochs(targetEpoch uint32) error {
+	currentEpoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+	if currentEpoch > targetEpoch {
+		return fmt.Errorf("target epoch is greater than current epoch")
+	}
+
+	for currentEpoch < targetEpoch {
+		time.Sleep(10 * time.Millisecond)
+		err := s.ForceChangeOfEpoch()
+		if err != nil {
+			return err
+		}
+
+		currentEpoch = s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+	}
+
+	return nil
+}
+
 func (s *simulator) allNodesCreateBlocks() error {
 	for _, node := range s.handlers {
 		// TODO MX-15150 remove this when we remove all goroutines

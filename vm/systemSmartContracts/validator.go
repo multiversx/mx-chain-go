@@ -2214,8 +2214,8 @@ func (v *validatorSC) checkArgsForMoveStakeFromValidatorToValidator(args *vmcomm
 		v.eei.AddReturnMessage("invalid number of arguments")
 		return vmcommon.UserError
 	}
-	validatorA := args.Arguments[0]
-	validatorB := args.Arguments[1]
+	validatorA := args.Arguments[1]
+	validatorB := args.Arguments[2]
 	if len(validatorA) != len(args.CallerAddr) || len(validatorB) != len(args.CallerAddr) {
 		v.eei.AddReturnMessage("invalid argument, wanted an address for the first and second argument")
 		return vmcommon.UserError
@@ -2242,9 +2242,9 @@ func (v *validatorSC) moveStakeFromValidatorToValidator(args *vmcommon.ContractC
 		return returnCode
 	}
 
-	validatorA := args.Arguments[0]
-	validatorB := args.Arguments[1]
-	stakeToMove := big.NewInt(0).SetBytes(args.Arguments[2])
+	validatorA := args.Arguments[1]
+	validatorB := args.Arguments[2]
+	stakeToMove := big.NewInt(0).SetBytes(args.Arguments[0])
 
 	validatorDataA, err := v.getOrCreateRegistrationData(validatorA)
 	if err != nil {

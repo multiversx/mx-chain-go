@@ -89,6 +89,9 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
+
+	err = chainSimulator.ChangeEpochs(150)
+	require.Nil(t, err)
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
