@@ -863,17 +863,17 @@ func TestEnableEpochConfig(t *testing.T) {
     # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
     CleanupAuctionOnLowWaitingListEnableEpoch = 95
 
+    # UseGasBoundedShouldFailExecutionEnableEpoch represents the epoch when use bounded gas function should fail execution in case of error
+    UseGasBoundedShouldFailExecutionEnableEpoch = 96
+
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
-    DynamicESDTEnableEpoch = 96
+    DynamicESDTEnableEpoch = 97
 
     # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
-    EGLDInMultiTransferEnableEpoch = 97
+    EGLDInMultiTransferEnableEpoch = 98
 
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
-    CryptoOpcodesV2EnableEpoch = 98
-
-    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
-    RelayedTransactionsV3EnableEpoch = 99
+    CryptoOpcodesV2EnableEpoch = 99
 
     # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
     FixRelayedBaseCostEnableEpoch = 100
@@ -881,8 +881,11 @@ func TestEnableEpochConfig(t *testing.T) {
     # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 101
 
+	# FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 102
+
 	# DelegationImprovementsV3EnableEpoch represents the epoch when the new delegation features are enabled
-	DelegationImprovementsV3EnableEpoch = 102
+	DelegationImprovementsV3EnableEpoch = 103
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -997,13 +1000,14 @@ func TestEnableEpochConfig(t *testing.T) {
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
 			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
-			DynamicESDTEnableEpoch:                                   96,
-			EGLDInMultiTransferEnableEpoch:                           97,
-			CryptoOpcodesV2EnableEpoch:                               98,
-			RelayedTransactionsV3EnableEpoch:                         99,
+			UseGasBoundedShouldFailExecutionEnableEpoch:              96,
+			DynamicESDTEnableEpoch:                                   97,
+			EGLDInMultiTransferEnableEpoch:                           98,
+			CryptoOpcodesV2EnableEpoch:                               99,
 			FixRelayedBaseCostEnableEpoch:                            100,
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
-			DelegationImprovementsV3EnableEpoch:                      102,
+			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
+			DelegationImprovementsV3EnableEpoch:                      103,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

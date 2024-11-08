@@ -593,7 +593,7 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 	}
 
 	// step 1 - remove delegation from source SP
-	removeDelegation := []byte("removeDelegationFromSource@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
+	removeDelegation := []byte(removeDelegationFromSource + "@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
 	vmOutput, err := d.eei.ExecuteOnDestContext(delegationAddrA, args.RecipientAddr, big.NewInt(0), removeDelegation)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
@@ -604,7 +604,7 @@ func (d *delegationManager) changeStakingProvider(args *vmcommon.ContractCallInp
 	}
 
 	// step 2 - add delegation to destination SP
-	moveDelegation := []byte("moveDelegationToDestination@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
+	moveDelegation := []byte(moveDelegationToDestination + "@" + hex.EncodeToString(args.CallerAddr) + "@" + hex.EncodeToString(amount))
 	vmOutput, err = d.eei.ExecuteOnDestContext(delegationAddrB, args.RecipientAddr, big.NewInt(0), moveDelegation)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())

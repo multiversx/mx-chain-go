@@ -39,6 +39,8 @@ const withdraw = "withdraw"
 const claimRewards = "claimRewards"
 const reDelegateRewards = "reDelegateRewards"
 const delegate = "delegate"
+const removeDelegationFromSource = "removeDelegationFromSource"
+const moveDelegationToDestination = "moveDelegationToDestination"
 
 const (
 	active    = uint32(0)
@@ -292,9 +294,9 @@ func (d *delegation) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 		return d.changeOwner(args)
 	case "synchronizeOwner":
 		return d.synchronizeOwner(args)
-	case "removeDelegationFromSource":
+	case removeDelegationFromSource:
 		return d.removeDelegationFromSource(args)
-	case "moveDelegationToDestination":
+	case moveDelegationToDestination:
 		return d.moveDelegationToDestination(args)
 	}
 
@@ -2575,7 +2577,7 @@ func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
-func (d *delegation) checkArgsForMovingDelelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) checkArgsForMovingDelegation(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !d.enableEpochsHandler.IsFlagEnabled(common.DelegationImprovementsV3Flag) {
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
@@ -2612,7 +2614,7 @@ func (d *delegation) checkCoolDownPeriodForMigration(delegatorAddress []byte) vm
 	epochDifference := uint64(d.eei.BlockChainHook().CurrentEpoch()) - lastMoveEpoch
 	if lastMoveEpoch != 0 || epochDifference < d.migrateCoolDownPeriodInEpoch {
 		waitTime := big.NewInt(int64(d.migrateCoolDownPeriodInEpoch - epochDifference)).String()
-		d.eei.AddReturnMessage("cannot migrate delegation in the cooldown period, wait " + waitTime + " more epochs")
+		d.eei.AddReturnMessage("cannot migrate to another service provider during cooldown period, wait " + waitTime + " more epochs")
 		return vmcommon.UserError
 	}
 
@@ -2620,7 +2622,7 @@ func (d *delegation) checkCoolDownPeriodForMigration(delegatorAddress []byte) vm
 }
 
 func (d *delegation) removeDelegationFromSource(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgsForMovingDelelegation(args)
+	returnCode := d.checkArgsForMovingDelegation(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2705,7 +2707,7 @@ func (d *delegation) getDelegationContractData() (*DelegationContractStatus, *De
 }
 
 func (d *delegation) moveDelegationToDestination(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgsForMovingDelelegation(args)
+	returnCode := d.checkArgsForMovingDelegation(args)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}

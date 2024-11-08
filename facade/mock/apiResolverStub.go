@@ -50,6 +50,16 @@ type ApiResolverStub struct {
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
 	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
+	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+}
+
+// GetSCRsByTxHash -
+func (ars *ApiResolverStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	if ars.GetSCRsByTxHashCalled != nil {
+		return ars.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
 }
 
 // GetTransaction -
