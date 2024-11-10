@@ -227,8 +227,9 @@ func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
 	return result
 }
 
-// getTxsWithoutGaps returns the transactions of the sender (gaps are handled, affected transactions are excluded)
-func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction {
+// getSequentialTxs returns the transactions of the sender, in the context of transactions selection.
+// Thus, gaps and duplicates are handled (affected transactions are excluded).
+func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 
@@ -241,17 +242,26 @@ func (listForSender *txListForSender) getTxsWithoutGaps() []*WrappedTransaction 
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)
 		nonce := value.Tx.GetNonce()
+		isFirstTx := len(result) == 0
 
-		// Detect initial gaps.
-		if len(result) == 0 && accountNonceKnown && accountNonce != nonce {
-			log.Trace("txListForSender.getTxsWithoutGaps, initial gap", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
-			break
-		}
+		if isFirstTx {
+			// Handle initial gaps.
+			if accountNonceKnown && accountNonce != nonce {
+				log.Trace("txListForSender.getSequentialTxs, initial gap", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
+				break
+			}
+		} else {
+			// Handle duplicates (only transactions with the highest gas price are included; see "findInsertionPlace").
+			if nonce == previousNonce {
+				log.Trace("txListForSender.getSequentialTxs, duplicate", "sender", listForSender.sender, "nonce", nonce)
+				continue
+			}
 
-		// Detect middle gaps.
-		if len(result) > 0 && nonce != previousNonce+1 {
-			log.Trace("txListForSender.getTxsWithoutGaps, middle gap", "sender", listForSender.sender, "nonce", nonce, "previousNonce", previousNonce)
-			break
+			// Handle middle gaps.
+			if nonce != previousNonce+1 {
+				log.Trace("txListForSender.getSequentialTxs, middle gap", "sender", listForSender.sender, "nonce", nonce, "previousNonce", previousNonce)
+				break
+			}
 		}
 
 		result = append(result, value)
