@@ -88,11 +88,19 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 	listForSender.totalBytes.Add(tx.Size)
 }
 
-// This function should only be used in critical section (listForSender.mutex)
+// This function should only be used in critical section (listForSender.mutex).
+// When searching for the insertion place, we consider the following rules:
+// - transactions are sorted by nonce in ascending order.
+// - transactions with the same nonce are sorted by gas price in descending order.
+// - transactions with the same nonce and gas price are sorted by hash in ascending order.
+// - duplicates are not allowed.
+// - "PPU" measurement is not relevant in this context. Competition among transactions of the same sender (and nonce) is based on gas price.
 func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTransaction) (*list.Element, error) {
 	incomingNonce := incomingTx.Tx.GetNonce()
 	incomingGasPrice := incomingTx.Tx.GetGasPrice()
 
+	// The loop iterates from the back to the front of the list.
+	// Starting from the back allows the function to quickly find the insertion point for transactions with higher nonces, which are more likely to be added.
 	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
 		currentTx := element.Value.(*WrappedTransaction)
 		currentTxNonce := currentTx.Tx.GetNonce()
@@ -100,24 +108,29 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 
 		if currentTxNonce == incomingNonce {
 			if currentTxGasPrice > incomingGasPrice {
-				// The incoming transaction will be placed right after the existing one, which has same nonce but higher price.
-				// If the nonces are the same, but the incoming gas price is higher or equal, the search loop continues.
+				// The case of same nonce, lower gas price.
+				// We've found an insertion place: right after "element".
 				return element, nil
 			}
+
 			if currentTxGasPrice == incomingGasPrice {
-				// The incoming transaction will be placed right after the existing one, which has same nonce and the same price.
-				// (but different hash, because of some other fields like receiver, value or data)
-				// This will order out the transactions having the same nonce and gas price
+				// The case of same nonce, same gas price.
 
 				comparison := bytes.Compare(currentTx.TxHash, incomingTx.TxHash)
 				if comparison == 0 {
-					// The incoming transaction will be discarded
+					// The incoming transaction will be discarded, since it's already in the cache.
 					return nil, common.ErrItemAlreadyInCache
 				}
 				if comparison < 0 {
+					// We've found an insertion place: right after "element".
 					return element, nil
 				}
+
+				// We allow the search loop to continue, since the incoming transaction has a "higher hash".
 			}
+
+			// We allow the search loop to continue, since the incoming transaction has a higher gas price.
+			continue
 		}
 
 		if currentTxNonce < incomingNonce {
@@ -125,6 +138,8 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 			// thus the incoming transaction will be placed right after this one.
 			return element, nil
 		}
+
+		// We allow the search loop to continue, since the incoming transaction has a higher nonce.
 	}
 
 	// The incoming transaction will be inserted at the head of the list.

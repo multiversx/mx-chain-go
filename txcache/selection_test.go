@@ -158,7 +158,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		merged, accumulatedGas := selectTransactionsFromBunches([]BunchOfTransactions{}, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := selectTransactionsFromBunches([]bunchOfTransactions{}, 10_000_000_000, math.MaxInt)
 
 		require.Equal(t, 0, len(merged))
 		require.Equal(t, uint64(0), accumulatedGas)

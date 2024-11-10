@@ -69,14 +69,14 @@ That is, for simple native transfers (whether they hold a data payload or not), 
 
 ### Paragraph 4
 
-Transaction **A** is considered more desirable (for the Network) than transaction **B** if **it has a higher PPU**.
+Transaction **A** is considered more valuable (for the Network) than transaction **B** if **it has a higher PPU**.
 
 If two transactions have the same PPU, they are ordered using an arbitrary, but deterministic rule: the transaction with the higher [fvn32(transactionHash)](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function) "wins" the comparison.
 
 Pseudo-code:
 
 ```
-func isTransactionMoreDesirableToNetwork(A, B):
+func isTransactionMoreValuableForNetwork(A, B):
     if A.ppu > B.ppu:
         return true
     if A.ppu < B.ppu:

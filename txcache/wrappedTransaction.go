@@ -1,10 +1,13 @@
 package txcache
 
 import (
+	"sync/atomic"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type BunchOfTransactions []*WrappedTransaction
+// bunchOfTransactions is a slice of WrappedTransaction pointers
+type bunchOfTransactions []*WrappedTransaction
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction struct {
@@ -14,21 +17,21 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 
-	PricePerUnit uint64
-	HashFnv32    uint32
+	PricePerUnit atomic.Uint64
+	HashFnv32    atomic.Uint32
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
-func (transaction *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
-	fee := txGasHandler.ComputeTxFee(transaction.Tx).Uint64()
+func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
+	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx).Uint64()
 
-	gasLimit := transaction.Tx.GetGasLimit()
+	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit == 0 {
 		return
 	}
 
-	transaction.PricePerUnit = fee / gasLimit
-	transaction.HashFnv32 = fnv32(string(transaction.TxHash))
+	wrappedTx.PricePerUnit.Store(fee / gasLimit)
+	wrappedTx.HashFnv32.Store(fnv32(string(wrappedTx.TxHash)))
 }
 
 // fnv32 implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
@@ -43,14 +46,14 @@ func fnv32(key string) uint32 {
 }
 
 // Equality is out of scope (not possible in our case).
-func (transaction *WrappedTransaction) isTransactionMoreDesirableToNetwork(otherTransaction *WrappedTransaction) bool {
+func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTransaction *WrappedTransaction) bool {
 	// First, compare by price per unit
-	ppu := transaction.PricePerUnit
-	ppuOther := otherTransaction.PricePerUnit
+	ppu := wrappedTx.PricePerUnit.Load()
+	ppuOther := otherTransaction.PricePerUnit.Load()
 	if ppu != ppuOther {
 		return ppu > ppuOther
 	}
 
 	// In the end, compare by hash number of transaction hash
-	return transaction.HashFnv32 > otherTransaction.HashFnv32
+	return wrappedTx.HashFnv32.Load() > otherTransaction.HashFnv32.Load()
 }

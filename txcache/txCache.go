@@ -19,6 +19,7 @@ type TxCache struct {
 	txListBySender       *txListBySenderMap
 	txByHash             *txByHashMap
 	config               ConfigSourceMe
+	txGasHandler         TxGasHandler
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
@@ -43,9 +44,10 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 
 	txCache := &TxCache{
 		name:           config.Name,
-		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj, txGasHandler),
+		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj),
 		txByHash:       newTxByHashMap(numChunks),
 		config:         config,
+		txGasHandler:   txGasHandler,
 	}
 
 	return txCache, nil
@@ -59,6 +61,8 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	logAdd.Trace("AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
+
+	tx.precomputeFields(cache.txGasHandler)
 
 	if cache.config.EvictionEnabled {
 		_ = cache.doEviction()
@@ -78,7 +82,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	if len(evicted) > 0 {
-		logRemove.Debug("AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
+		logRemove.Trace("AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
@@ -185,6 +189,7 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 	cache.txByHash.forEach(function)
 }
 
+// getAllTransactions returns all transactions in the cache
 func (cache *TxCache) getAllTransactions() []*WrappedTransaction {
 	transactions := make([]*WrappedTransaction, 0, cache.Len())
 

@@ -71,21 +71,21 @@ func (cache *TxCache) diagnoseTransactions() {
 
 	numToDisplay := core.MinInt(diagnosisMaxTransactionsToDisplay, len(transactions))
 	logDiagnoseTransactions.Trace("diagnoseTransactions", "numTransactions", len(transactions), "numToDisplay", numToDisplay)
-	logDiagnoseTransactions.Trace(marshalTransactionsToNewlineDelimitedJson(transactions[:numToDisplay], "diagnoseTransactions"))
+	logDiagnoseTransactions.Trace(marshalTransactionsToNewlineDelimitedJSON(transactions[:numToDisplay], "diagnoseTransactions"))
 }
 
-// marshalTransactionsToNewlineDelimitedJson converts a list of transactions to a newline-delimited JSON string.
+// marshalTransactionsToNewlineDelimitedJSON converts a list of transactions to a newline-delimited JSON string.
 // Note: each line is indexed, to improve readability. The index is easily removable for if separate analysis is needed.
-func marshalTransactionsToNewlineDelimitedJson(transactions []*WrappedTransaction, linePrefix string) string {
+func marshalTransactionsToNewlineDelimitedJSON(transactions []*WrappedTransaction, linePrefix string) string {
 	builder := strings.Builder{}
 	builder.WriteString("\n")
 
 	for i, wrappedTx := range transactions {
 		printedTx := convertWrappedTransactionToPrintedTransaction(wrappedTx)
-		printedTxJson, _ := json.Marshal(printedTx)
+		printedTxJSON, _ := json.Marshal(printedTx)
 
 		builder.WriteString(fmt.Sprintf("%s#%d: ", linePrefix, i))
-		builder.WriteString(string(printedTxJson))
+		builder.WriteString(string(printedTxJSON))
 		builder.WriteString("\n")
 	}
 
@@ -104,7 +104,7 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		GasPrice:   transaction.GetGasPrice(),
 		GasLimit:   transaction.GetGasLimit(),
 		DataLength: len(transaction.GetData()),
-		PPU:        wrappedTx.PricePerUnit,
+		PPU:        wrappedTx.PricePerUnit.Load(),
 	}
 }
 
@@ -124,7 +124,7 @@ func displaySelectionOutcome(contextualLogger logger.Logger, linePrefix string, 
 
 	if len(transactions) > 0 {
 		contextualLogger.Trace("displaySelectionOutcome - transactions (as newline-separated JSON):")
-		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJson(transactions, linePrefix))
+		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJSON(transactions, linePrefix))
 	} else {
 		contextualLogger.Trace("displaySelectionOutcome - transactions: none")
 	}

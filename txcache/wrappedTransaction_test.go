@@ -14,16 +14,16 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
 		tx.precomputeFields(txGasHandler)
 
-		require.Equal(t, oneBillion, int(tx.PricePerUnit))
-		require.Equal(t, 84696446, int(tx.HashFnv32))
+		require.Equal(t, oneBillion, int(tx.PricePerUnit.Load()))
+		require.Equal(t, 84696446, int(tx.HashFnv32.Load()))
 	})
 
 	t.Run("move balance gas limit and execution gas limit (1)", func(t *testing.T) {
 		tx := createTx([]byte("b"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
 		tx.precomputeFields(txGasHandler)
 
-		require.Equal(t, 999_980_777, int(tx.PricePerUnit))
-		require.Equal(t, 84696445, int(tx.HashFnv32))
+		require.Equal(t, 999_980_777, int(tx.PricePerUnit.Load()))
+		require.Equal(t, 84696445, int(tx.HashFnv32.Load()))
 	})
 
 	t.Run("move balance gas limit and execution gas limit (2)", func(t *testing.T) {
@@ -33,12 +33,12 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		actualFee := 51500*oneBillion + (oneMilion-51500)*oneBillion/100
 		require.Equal(t, 60_985_000_000_000, actualFee)
 
-		require.Equal(t, actualFee/oneMilion, int(tx.PricePerUnit))
-		require.Equal(t, 84696444, int(tx.HashFnv32))
+		require.Equal(t, actualFee/oneMilion, int(tx.PricePerUnit.Load()))
+		require.Equal(t, 84696444, int(tx.HashFnv32.Load()))
 	})
 }
 
-func TestWrappedTransaction_isTransactionMoreDesirableToNetwork(t *testing.T) {
+func TestWrappedTransaction_isTransactionMoreValuableForNetwork(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	t.Run("decide by price per unit", func(t *testing.T) {
@@ -48,18 +48,18 @@ func TestWrappedTransaction_isTransactionMoreDesirableToNetwork(t *testing.T) {
 		b := createTx([]byte("b-1"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
 		b.precomputeFields(txGasHandler)
 
-		require.True(t, a.isTransactionMoreDesirableToNetwork(b))
+		require.True(t, a.isTransactionMoreValuableForNetwork(b))
 	})
 
 	t.Run("decide by transaction hash (set them up to have the same PPU)", func(t *testing.T) {
 		a := createTx([]byte("a-7"), "a", 7)
 		a.precomputeFields(txGasHandler)
-		require.Equal(t, 2191299170, int(a.HashFnv32))
+		require.Equal(t, 2191299170, int(a.HashFnv32.Load()))
 
 		b := createTx([]byte("b-7"), "b", 7)
 		b.precomputeFields(txGasHandler)
-		require.Equal(t, 1654268265, int(b.HashFnv32))
+		require.Equal(t, 1654268265, int(b.HashFnv32.Load()))
 
-		require.True(t, a.isTransactionMoreDesirableToNetwork(b))
+		require.True(t, a.isTransactionMoreValuableForNetwork(b))
 	})
 }

@@ -1,10 +1,12 @@
 package txcache
 
-import "container/heap"
+import (
+	"container/heap"
+)
 
-func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (BunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
 	senders := cache.getSenders()
-	bunches := make([]BunchOfTransactions, 0, len(senders))
+	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
 		bunches = append(bunches, sender.getTxsWithoutGaps())
@@ -14,12 +16,12 @@ func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (Bun
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested uint64, maxNum int) (BunchOfTransactions, uint64) {
-	selectedTransactions := make(BunchOfTransactions, 0, initialCapacityOfSelectionSlice)
+func selectTransactionsFromBunches(bunches []bunchOfTransactions, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
-	transactionsHeap := make(TransactionsMaxHeap, 0, len(bunches))
-	heap.Init(&transactionsHeap)
+	transactionsHeap := newMaxTransactionsHeap(len(bunches))
+	heap.Init(transactionsHeap)
 
 	// Initialize the heap with the first transaction of each bunch
 	for i, bunch := range bunches {
@@ -29,7 +31,7 @@ func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested u
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(&transactionsHeap, &TransactionsHeapItem{
+		heap.Push(transactionsHeap, &transactionsHeapItem{
 			senderIndex:      i,
 			transactionIndex: 0,
 			transaction:      bunch[0],
@@ -41,7 +43,7 @@ func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested u
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
 		// Always pick the best transaction.
-		item := heap.Pop(&transactionsHeap).(*TransactionsHeapItem)
+		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.transaction.Tx.GetGasLimit()
 
 		if accumulatedGas+gasLimit > gasRequested {
@@ -61,7 +63,7 @@ func selectTransactionsFromBunches(bunches []BunchOfTransactions, gasRequested u
 		if item.transactionIndex < len(bunches[item.senderIndex]) {
 			// Item is reused (same originating sender), pushed back on the heap.
 			item.transaction = bunches[item.senderIndex][item.transactionIndex]
-			heap.Push(&transactionsHeap, item)
+			heap.Push(transactionsHeap, item)
 		}
 	}
 
