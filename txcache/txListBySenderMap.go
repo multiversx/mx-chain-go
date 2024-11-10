@@ -12,7 +12,6 @@ type txListBySenderMap struct {
 	backingMap        *maps.ConcurrentMap
 	senderConstraints senderConstraints
 	counter           atomic.Counter
-	txGasHandler      TxGasHandler
 	mutex             sync.Mutex
 }
 
@@ -20,14 +19,12 @@ type txListBySenderMap struct {
 func newTxListBySenderMap(
 	nChunksHint uint32,
 	senderConstraints senderConstraints,
-	txGasHandler TxGasHandler,
 ) *txListBySenderMap {
 	backingMap := maps.NewConcurrentMap(nChunksHint)
 
 	return &txListBySenderMap{
 		backingMap:        backingMap,
 		senderConstraints: senderConstraints,
-		txGasHandler:      txGasHandler,
 	}
 }
 
@@ -36,16 +33,8 @@ func newTxListBySenderMap(
 func (txMap *txListBySenderMap) addTxReturnEvicted(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	tx.precomputeFields(txMap.txGasHandler)
 
 	added, evictedHashes := listForSender.AddTx(tx)
-
-	if listForSender.IsEmpty() {
-		// Generally speaking, a sender cannot become empty after upon applying sender-level constraints.
-		// However:
-		txMap.removeSender(sender)
-	}
-
 	return added, evictedHashes
 }
 
@@ -94,17 +83,19 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	if !ok {
 		// This happens when a sender whose transactions were selected for processing is removed from cache in the meantime.
 		// When it comes to remove one if its transactions due to processing (commited / finalized block), they don't exist in cache anymore.
-		log.Debug("txListBySenderMap.removeTx detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
+		log.Trace("txListBySenderMap.removeTx detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
 		return false
 	}
 
 	isFound := listForSender.RemoveTx(tx)
-
-	if listForSender.IsEmpty() {
-		txMap.removeSender(sender)
-	}
-
+	txMap.removeSenderIfEmpty(listForSender)
 	return isFound
+}
+
+func (txMap *txListBySenderMap) removeSenderIfEmpty(listForSender *txListForSender) {
+	if listForSender.IsEmpty() {
+		txMap.removeSender(listForSender.sender)
+	}
 }
 
 // Important note: this doesn't remove the transactions from txCache.txByHash. That is the responsibility of the caller (of this function).
@@ -140,11 +131,7 @@ func (txMap *txListBySenderMap) notifyAccountNonceReturnEvictedTransactions(acco
 	}
 
 	evictedTxHashes := listForSender.notifyAccountNonceReturnEvictedTransactions(nonce)
-
-	if listForSender.IsEmpty() {
-		txMap.removeSender(sender)
-	}
-
+	txMap.removeSenderIfEmpty(listForSender)
 	return evictedTxHashes
 }
 
@@ -158,10 +145,7 @@ func (txMap *txListBySenderMap) evictTransactionsWithHigherOrEqualNonces(account
 	}
 
 	listForSender.evictTransactionsWithHigherOrEqualNonces(nonce)
-
-	if listForSender.IsEmpty() {
-		txMap.removeSender(sender)
-	}
+	txMap.removeSenderIfEmpty(listForSender)
 }
 
 func (txMap *txListBySenderMap) getSenders() []*txListForSender {

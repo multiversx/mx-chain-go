@@ -106,12 +106,12 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 	}
 }
 
-func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []BunchOfTransactions {
-	bunches := make([]BunchOfTransactions, 0, nSenders)
+func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []bunchOfTransactions {
+	bunches := make([]bunchOfTransactions, 0, nSenders)
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		bunch := make(BunchOfTransactions, 0, nTransactionsPerSender)
+		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)
 		sender := createFakeSenderAddress(senderTag)
 
 		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {

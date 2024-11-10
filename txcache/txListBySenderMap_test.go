@@ -5,7 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -114,9 +113,8 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 }
 
 func newSendersMapToTest() *txListBySenderMap {
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	return newTxListBySenderMap(4, senderConstraints{
 		maxNumBytes: math.MaxUint32,
 		maxNumTxs:   math.MaxUint32,
-	}, txGasHandler)
+	})
 }

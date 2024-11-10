@@ -72,12 +72,12 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumTransactions(t *testing
 	require.Equal(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 
-	// Gives priority to higher gas - though undesirably to some extent, "tx3" is evicted
+	// Gives priority to higher gas - though undesirable to some extent, "tx3" is evicted
 	_, evicted = list.AddTx(createTx([]byte("tx2++"), ".", 2).withGasPrice(1.5 * oneBillion))
 	require.Equal(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx3"}, hashesAsStrings(evicted))
 
-	// Though Undesirably to some extent, "tx3++"" is added, then evicted
+	// Though undesirable to some extent, "tx3++"" is added, then evicted
 	_, evicted = list.AddTx(createTx([]byte("tx3++"), ".", 3).withGasPrice(1.5 * oneBillion))
 	require.Equal(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx3++"}, hashesAsStrings(evicted))
