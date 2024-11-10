@@ -9,7 +9,7 @@ func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bun
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
-		bunches = append(bunches, sender.getTxsWithoutGaps())
+		bunches = append(bunches, sender.getSequentialTxs())
 	}
 
 	return selectTransactionsFromBunches(bunches, gasRequested, maxNum)

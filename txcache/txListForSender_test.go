@@ -201,26 +201,46 @@ func TestListForSender_getTxs(t *testing.T) {
 	// No transaction, no gap
 	require.Len(t, list.getTxs(), 0)
 	require.Len(t, list.getTxsReversed(), 0)
-	require.Len(t, list.getTxsWithoutGaps(), 0)
+	require.Len(t, list.getSequentialTxs(), 0)
 
 	// One gap
 	list.AddTx(createTx([]byte("tx-43"), ".", 43))
 	require.Len(t, list.getTxs(), 1)
 	require.Len(t, list.getTxsReversed(), 1)
-	require.Len(t, list.getTxsWithoutGaps(), 0)
+	require.Len(t, list.getSequentialTxs(), 0)
 
 	// Resolve gap
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
 	require.Len(t, list.getTxs(), 2)
 	require.Len(t, list.getTxsReversed(), 2)
-	require.Len(t, list.getTxsWithoutGaps(), 2)
+	require.Len(t, list.getSequentialTxs(), 2)
 
 	require.Equal(t, []byte("tx-42"), list.getTxs()[0].TxHash)
 	require.Equal(t, []byte("tx-43"), list.getTxs()[1].TxHash)
-	require.Equal(t, list.getTxs(), list.getTxsWithoutGaps())
+	require.Equal(t, list.getTxs(), list.getSequentialTxs())
 
 	require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
 	require.Equal(t, []byte("tx-42"), list.getTxsReversed()[1].TxHash)
+
+	// With nonce duplicates
+	list.AddTx(createTx([]byte("tx-42++"), ".", 42).withGasPrice(1.1 * oneBillion))
+	list.AddTx(createTx([]byte("tx-43++"), ".", 43).withGasPrice(1.1 * oneBillion))
+	require.Len(t, list.getTxs(), 4)
+	require.Len(t, list.getTxsReversed(), 4)
+	require.Len(t, list.getSequentialTxs(), 2)
+
+	require.Equal(t, []byte("tx-42++"), list.getSequentialTxs()[0].TxHash)
+	require.Equal(t, []byte("tx-43++"), list.getSequentialTxs()[1].TxHash)
+
+	require.Equal(t, []byte("tx-42++"), list.getTxs()[0].TxHash)
+	require.Equal(t, []byte("tx-42"), list.getTxs()[1].TxHash)
+	require.Equal(t, []byte("tx-43++"), list.getTxs()[2].TxHash)
+	require.Equal(t, []byte("tx-43"), list.getTxs()[3].TxHash)
+
+	require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
+	require.Equal(t, []byte("tx-43++"), list.getTxsReversed()[1].TxHash)
+	require.Equal(t, []byte("tx-42"), list.getTxsReversed()[2].TxHash)
+	require.Equal(t, []byte("tx-42++"), list.getTxsReversed()[3].TxHash)
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {
@@ -233,7 +253,7 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 		_ = list.IsEmpty()
 		_ = list.getTxs()
 		_ = list.getTxsReversed()
-		_ = list.getTxsWithoutGaps()
+		_ = list.getSequentialTxs()
 		_ = list.countTxWithLock()
 		_ = list.notifyAccountNonceReturnEvictedTransactions(42)
 		_, _ = list.AddTx(createTx([]byte("test"), ".", 42))
