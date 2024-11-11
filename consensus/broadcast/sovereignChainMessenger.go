@@ -1,6 +1,9 @@
 package broadcast
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -50,6 +53,8 @@ func NewSovereignShardChainMessenger(
 			},
 		},
 	}
+
+	scm.broadcasterFilterHandler = scm
 
 	err = scm.delayedBlockBroadcaster.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
 	if err != nil {
@@ -106,6 +111,13 @@ func (scm *sovereignChainMessenger) BroadcastBlock(blockBody data.BodyHandler, h
 func (scm *sovereignChainMessenger) BroadcastHeader(header data.HeaderHandler, pkBytes []byte) error {
 	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 	return scm.broadcastHeader(header, pkBytes, shardIdentifier)
+}
+
+func (scm *sovereignChainMessenger) shouldSkipShard(shardID uint32) bool {
+	return shardID != core.SovereignChainShardId
+}
+func (scm *sovereignChainMessenger) shouldSkipTopic(topic string) bool {
+	return strings.Contains(topic, fmt.Sprintf("%d", core.MainChainShardId))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
