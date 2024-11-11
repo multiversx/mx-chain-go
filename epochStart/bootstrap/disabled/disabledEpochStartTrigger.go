@@ -60,6 +60,11 @@ func (e *epochStartTrigger) LastCommitedEpochStartHdr() (data.HeaderHandler, err
 	return &block.HeaderV2{}, nil
 }
 
+// GetEpochStartHdrFromStorage -
+func (e *epochStartTrigger) GetEpochStartHdrFromStorage(_ uint32) (data.HeaderHandler, error) {
+	return &block.HeaderV2{}, nil
+}
+
 // GetSavedStateKey -
 func (e *epochStartTrigger) GetSavedStateKey() []byte {
 	return nil

@@ -13,6 +13,7 @@ type EpochStartTriggerStub struct {
 	EpochCalled                       func() uint32
 	MetaEpochCalled                   func() uint32
 	LastCommitedEpochStartHdrCalled   func() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorageCalled func(epoch uint32) (data.HeaderHandler, error)
 	ReceivedHeaderCalled              func(handler data.HeaderHandler)
 	UpdateCalled                      func(round uint64, nonce uint64)
 	ProcessedCalled                   func(header data.HeaderHandler)
@@ -62,6 +63,14 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 func (e *EpochStartTriggerStub) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	if e.LastCommitedEpochStartHdrCalled != nil {
 		return e.LastCommitedEpochStartHdrCalled()
+	}
+	return &block.HeaderV2{}, nil
+}
+
+// GetEpochStartHdrFromStorage -
+func (e *EpochStartTriggerStub) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error) {
+	if e.GetEpochStartHdrFromStorageCalled != nil {
+		return e.GetEpochStartHdrFromStorageCalled(epoch)
 	}
 	return &block.HeaderV2{}, nil
 }

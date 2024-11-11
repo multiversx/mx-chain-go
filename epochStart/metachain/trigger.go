@@ -417,6 +417,26 @@ func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	return process.UnmarshalMetaHeader(t.marshaller, headerBytes)
 }
 
+// GetEpochStartHdrFromStorage returns the header of the epoch start block from storage
+func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error) {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(epochStartIdentifier))
+	if err != nil {
+		return nil, err
+	}
+
+	metaHdr := &block.MetaBlock{}
+	err = t.marshaller.Unmarshal(metaHdr, epochStartMetaBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return metaHdr, nil
+}
+
 // GetSavedStateKey returns the last saved trigger state key
 func (t *trigger) GetSavedStateKey() []byte {
 	return t.triggerStateKey

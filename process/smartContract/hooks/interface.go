@@ -20,6 +20,7 @@ type BlockChainHookCounter interface {
 // EpochStartTriggerHandler defines the operations of an epoch start trigger handler needed by the blockchain hook
 type EpochStartTriggerHandler interface {
 	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	IsInterfaceNil() bool
 }
 

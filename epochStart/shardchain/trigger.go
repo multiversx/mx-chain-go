@@ -1116,6 +1116,17 @@ func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	return process.UnmarshalShardHeader(t.marshaller, headerBytes)
 }
 
+// GetEpochStartHdrFromStorage returns the epoch start header from storage
+func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error) {
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	shardHdrBuff, err := t.shardHdrStorage.SearchFirst([]byte(epochStartIdentifier))
+	if err != nil {
+		return nil, err
+	}
+
+	return process.UnmarshalShardHeader(t.marshaller, shardHdrBuff)
+}
+
 // GetSavedStateKey returns the last saved trigger state key
 func (t *trigger) GetSavedStateKey() []byte {
 	return t.triggerStateKey
