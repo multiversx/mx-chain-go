@@ -33,16 +33,16 @@ func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T
 	require.Equal(t, uint64(2), myMap.testGetListForSender("alice").countTx())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
 
-	myMap.removeTx(txAlice1)
+	_ = myMap.removeTxReturnEvicted(txAlice1)
 	require.Equal(t, int64(2), myMap.counter.Get())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("alice").countTx())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
 
-	myMap.removeTx(txAlice2)
+	_ = myMap.removeTxReturnEvicted(txAlice2)
 	// All alice's transactions have been removed now
 	require.Equal(t, int64(1), myMap.counter.Get())
 
-	myMap.removeTx(txBob)
+	_ = myMap.removeTxReturnEvicted(txBob)
 	// Also Bob has no more transactions
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
@@ -100,14 +100,14 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	// Discarded notification, since sender not added yet
-	myMap.notifyAccountNonceReturnEvictedTransactions([]byte("alice"), 42)
+	myMap.notifyAccountNonce([]byte("alice"), 42)
 
-	myMap.addTxReturnEvicted(createTx([]byte("tx-42"), "alice", 42))
+	_, _ = myMap.addTxReturnEvicted(createTx([]byte("tx-42"), "alice", 42))
 	alice, _ := myMap.getListForSender("alice")
 	require.Equal(t, uint64(0), alice.accountNonce.Get())
 	require.False(t, alice.accountNonceKnown.IsSet())
 
-	myMap.notifyAccountNonceReturnEvictedTransactions([]byte("alice"), 42)
+	myMap.notifyAccountNonce([]byte("alice"), 42)
 	require.Equal(t, uint64(42), alice.accountNonce.Get())
 	require.True(t, alice.accountNonceKnown.IsSet())
 }

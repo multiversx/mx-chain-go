@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/types"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -217,7 +216,7 @@ func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 	cache.AddTx(tx)
 
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
-	cache.txListBySender.removeTx(tx)
+	_ = cache.txListBySender.removeTxReturnEvicted(tx)
 
 	_ = cache.RemoveTxByHash(txHash)
 	require.Equal(t, 0, cache.txByHash.backingMap.Count())
@@ -508,7 +507,7 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
-	// A lot of routines concur to add & remove THE FIRST transaction of a sender
+	// A lot of routines concur to add & remove a transaction
 	for try := 0; try < 100; try++ {
 		var wg sync.WaitGroup
 
@@ -544,51 +543,6 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 		require.True(t, cache.Has([]byte("alice-x")))
 		require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
 	}
-
-	cache.Clear()
-
-	// A lot of routines concur to add & remove subsequent transactions of a sender
-	cache.AddTx(createTx([]byte("alice-w"), "alice", 41))
-
-	for try := 0; try < 100; try++ {
-		var wg sync.WaitGroup
-
-		for i := 0; i < 50; i++ {
-			wg.Add(1)
-			go func() {
-				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-				_ = cache.RemoveTxByHash([]byte("alice-x"))
-				wg.Done()
-			}()
-		}
-
-		wg.Wait()
-
-		// In this case, there is the slight chance that:
-		// go A: add to map by hash
-		// go B: won't add in map by hash, already there
-		// go A: add to map by sender (existing sender/list)
-		// go A: remove from map by hash
-		// go A: remove from map by sender
-		// go B: add to map by sender (existing sender/list)
-		// go B: can't remove from map by hash, not found
-		// go B: won't remove from map by sender (sender unknown)
-
-		// Therefore, Alice may have one or two transactions in her list.
-		require.Equal(t, 1, cache.txByHash.backingMap.Count())
-		expectedTxsConsistent := []string{"alice-w"}
-		expectedTxsSlightlyInconsistent := []string{"alice-w", "alice-x"}
-		actualTxs := cache.getHashesForSender("alice")
-		require.True(t, assert.ObjectsAreEqual(expectedTxsConsistent, actualTxs) || assert.ObjectsAreEqual(expectedTxsSlightlyInconsistent, actualTxs))
-
-		// A further addition works:
-		cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-		require.True(t, cache.Has([]byte("alice-w")))
-		require.True(t, cache.Has([]byte("alice-x")))
-		require.Equal(t, []string{"alice-w", "alice-x"}, cache.getHashesForSender("alice"))
-	}
-
-	cache.Clear()
 }
 
 func newUnconstrainedCacheToTest() *TxCache {

@@ -146,50 +146,9 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 	return nil, nil
 }
 
-// RemoveTx removes a transaction from the sender's list
-func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
-	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
-
-	marker := listForSender.findListElementWithTx(tx)
-	isFound := marker != nil
-	if isFound {
-		listForSender.items.Remove(marker)
-		listForSender.onRemovedListElement(marker)
-	}
-
-	return isFound
-}
-
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
 	tx := element.Value.(*WrappedTransaction)
 	listForSender.totalBytes.Subtract(tx.Size)
-}
-
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) findListElementWithTx(txToFind *WrappedTransaction) *list.Element {
-	txToFindHash := txToFind.TxHash
-	txToFindNonce := txToFind.Tx.GetNonce()
-
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		nonce := value.Tx.GetNonce()
-
-		// Optimization: first, compare nonces, then hashes.
-		if nonce == txToFindNonce {
-			if bytes.Equal(value.TxHash, txToFindHash) {
-				return element
-			}
-		}
-
-		// Optimization: stop search at this point, since the list is sorted by nonce
-		if nonce > txToFindNonce {
-			break
-		}
-	}
-
-	return nil
 }
 
 // IsEmpty checks whether the list is empty
@@ -245,8 +204,14 @@ func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
 		isFirstTx := len(result) == 0
 
 		if isFirstTx {
+			// Handle lower nonces.
+			if accountNonce > nonce {
+				log.Trace("txListForSender.getSequentialTxs, lower nonce", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
+				continue
+			}
+
 			// Handle initial gaps.
-			if accountNonceKnown && accountNonce != nonce {
+			if accountNonceKnown && accountNonce < nonce {
 				log.Trace("txListForSender.getSequentialTxs, initial gap", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
 				break
 			}
@@ -282,36 +247,25 @@ func (listForSender *txListForSender) countTxWithLock() uint64 {
 	return uint64(listForSender.items.Len())
 }
 
-// notifyAccountNonceReturnEvictedTransactions sets the known account nonce, removes the transactions with lower nonces, and returns their hashes
-func (listForSender *txListForSender) notifyAccountNonceReturnEvictedTransactions(nonce uint64) [][]byte {
-	// Optimization: if nonce is the same, do nothing (good for heavy load).
-	if listForSender.accountNonce.Get() == nonce {
-		logRemove.Trace("notifyAccountNonceReturnEvictedTransactions, nonce is the same", "sender", listForSender.sender, "nonce", nonce)
-		return nil
-	}
-
-	listForSender.mutex.Lock()
-	defer listForSender.mutex.Unlock()
-
+// notifyAccountNonce sets the known account nonce, removes the transactions with lower nonces, and returns their hashes
+func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	listForSender.accountNonce.Set(nonce)
 	_ = listForSender.accountNonceKnown.SetReturningPrevious()
-
-	evicted := listForSender.evictTransactionsWithLowerNoncesNoLockReturnEvicted(nonce)
-
-	logRemove.Trace("notifyAccountNonceReturnEvictedTransactions, nonce changed", "sender", listForSender.sender, "nonce", nonce, "num evicted txs", len(evicted))
-
-	return evicted
 }
 
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) evictTransactionsWithLowerNoncesNoLockReturnEvicted(givenNonce uint64) [][]byte {
+// evictTransactionsWithLowerOrEqualNonces removes transactions with nonces lower or equal to the given nonce
+func (listForSender *txListForSender) evictTransactionsWithLowerOrEqualNonces(targetNonce uint64) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
+
+	// We don't allow concurrent goroutines to mutate a given sender's list
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
 
 	for element := listForSender.items.Front(); element != nil; {
 		tx := element.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 
-		if txNonce >= givenNonce {
+		if txNonce > targetNonce {
 			break
 		}
 

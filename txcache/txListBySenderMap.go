@@ -75,21 +75,21 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 	return listForSender
 }
 
-// removeTx removes a transaction from the map
-func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
+// removeTxReturnEvicted removes a transaction from the map
+func (txMap *txListBySenderMap) removeTxReturnEvicted(tx *WrappedTransaction) [][]byte {
 	sender := string(tx.Tx.GetSndAddr())
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
 		// This happens when a sender whose transactions were selected for processing is removed from cache in the meantime.
 		// When it comes to remove one if its transactions due to processing (commited / finalized block), they don't exist in cache anymore.
-		log.Trace("txListBySenderMap.removeTx detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
-		return false
+		log.Trace("txListBySenderMap.removeTxReturnEvicted detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
+		return nil
 	}
 
-	isFound := listForSender.RemoveTx(tx)
+	evicted := listForSender.evictTransactionsWithLowerOrEqualNonces(tx.Tx.GetNonce())
 	txMap.removeSenderIfEmpty(listForSender)
-	return isFound
+	return evicted
 }
 
 func (txMap *txListBySenderMap) removeSenderIfEmpty(listForSender *txListForSender) {
@@ -123,16 +123,14 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return numRemoved
 }
 
-func (txMap *txListBySenderMap) notifyAccountNonceReturnEvictedTransactions(accountKey []byte, nonce uint64) [][]byte {
+func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		return nil
+		return
 	}
 
-	evictedTxHashes := listForSender.notifyAccountNonceReturnEvictedTransactions(nonce)
-	txMap.removeSenderIfEmpty(listForSender)
-	return evictedTxHashes
+	listForSender.notifyAccountNonce(nonce)
 }
 
 // evictTransactionsWithHigherOrEqualNonces removes transactions with nonces higher or equal to the given nonce.
