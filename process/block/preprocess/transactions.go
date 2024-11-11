@@ -719,10 +719,13 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	mapSCTxs map[string]struct{},
 	randomness []byte,
 ) (block.MiniBlockSlice, error) {
-
 	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
+
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
 
 	scheduledTxsFromMe, err := txs.computeScheduledTxsFromMe(body)
 	if err != nil {
@@ -1148,6 +1151,10 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
+
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
 
 	startTime := time.Now()
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
