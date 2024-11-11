@@ -3,7 +3,6 @@ package trie
 import (
 	"context"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -23,13 +22,11 @@ type node interface {
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
 
-	setHash() error
-	setHashConcurrent(wg *sync.WaitGroup, c chan error)
-	setRootHash() error
+	setHash(goRoutinesManager common.TrieGoroutinesManager)
+
 	getCollapsed() (node, error) // a collapsed node is a node that instead of the children holds the children hashes
 	getEncodedNode() ([]byte, error)
 	hashNode() ([]byte, error)
-	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, db common.TrieStorageInteractor) (node, [][]byte)

@@ -73,7 +73,7 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 func initTrie() common.Trie {
 	tr := emptyTrie()
 	addDefaultDataToTrie(tr)
-	trie.ExecuteUpdatesFromBatch(tr)
+	_ = tr.Commit()
 
 	return tr
 }
@@ -720,9 +720,10 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, value, err := tr.GetProof([]byte("dog"))
+	proof, value, err := tr.GetProof([]byte("dog"), rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("puppy"), value)
 	ok, _ := tr.VerifyProof(rootHash, []byte("dog"), proof)
@@ -736,7 +737,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, _, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"), rootHash)
 	assert.Nil(t, err)
 	ok, _ := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
@@ -747,7 +748,7 @@ func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	proof, _, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"), emptyTrieHash)
 	assert.Nil(t, proof)
 	assert.Equal(t, trie.ErrNilNode, err)
 }
@@ -756,10 +757,11 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	t.Parallel()
 
 	tr, val := initTrieMultipleValues(50)
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
 	for i := range val {
-		proof, _, _ := tr.GetProof(val[i])
+		proof, _, _ := tr.GetProof(val[i], rootHash)
 
 		ok, err := tr.VerifyProof(rootHash, val[i], proof)
 		assert.Nil(t, err)
@@ -778,9 +780,10 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("zebra"), []byte("horse"))
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, _, _ := tr.GetProof([]byte("dog"))
+	proof, _, _ := tr.GetProof([]byte("dog"), rootHash)
 	ok, err := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -793,9 +796,10 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, _, _ := tr.GetProof([]byte("dog"))
+	proof, _, _ := tr.GetProof([]byte("dog"), rootHash)
 	ok, err := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -836,9 +840,11 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr2.Update([]byte("dog"), []byte("puppy"))
 	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
+	_ = tr2.Commit()
+	rootHash2, _ := tr2.RootHash()
 	rootHash, _ := tr1.RootHash()
 
-	proof, _, _ := tr2.GetProof([]byte("dogglesworth"))
+	proof, _, _ := tr2.GetProof([]byte("dogglesworth"), rootHash2)
 	ok, _ := tr1.VerifyProof(rootHash, []byte("dogglesworth"), proof)
 	assert.False(t, ok)
 }
@@ -860,10 +866,11 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		_ = tr.Update(values[i], values[i])
 	}
 
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 	for i := 0; i < numRuns; i++ {
 		randNum := rand.Intn(nrLeaves)
-		proof, _, err := tr.GetProof(values[randNum])
+		proof, _, err := tr.GetProof(values[randNum], rootHash)
 		if err != nil {
 			dumpTrieContents(tr, values)
 			fmt.Printf("error getting proof for %v, err = %s\n", values[randNum], err.Error())
@@ -1015,7 +1022,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				)
 				assert.Nil(t, err)
 			case 13:
-				_, _, _ = tr.GetProof(initialRootHash) // this might error due to concurrent operations that change the roothash
+				_, _, _ = tr.GetProof(initialRootHash, initialRootHash) // this might error due to concurrent operations that change the roothash
 			case 14:
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash

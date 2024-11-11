@@ -75,16 +75,8 @@ func (bn *branchNode) getCollapsedBn() (*branchNode, error) {
 	collapsed := bn.clone()
 	for i := range bn.children {
 		if bn.children[i] != nil {
-			var ok bool
-			ok, err = hasValidHash(bn.children[i])
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				err = bn.children[i].setHash()
-				if err != nil {
-					return nil, err
-				}
+			if !hasValidHash(bn.children[i]) {
+				return nil, ErrNodeHashIsNotSet
 			}
 			collapsed.EncodedChildren[i] = bn.children[i].getHash()
 			collapsed.children[i] = nil
@@ -93,116 +85,81 @@ func (bn *branchNode) getCollapsedBn() (*branchNode, error) {
 	return collapsed, nil
 }
 
-func (bn *branchNode) setHash() error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("setHash error %w", err)
-	}
-	if bn.getHash() != nil {
-		return nil
-	}
-	if bn.isCollapsed() {
-		var hash []byte
-		hash, err = encodeNodeAndGetHash(bn)
-		if err != nil {
-			return err
-		}
-		bn.hash = hash
-		return nil
-	}
-	hash, err := hashChildrenAndNode(bn)
-	if err != nil {
-		return err
-	}
-	bn.hash = hash
-	return nil
-}
-
-func (bn *branchNode) setRootHash() error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("setRootHash error %w", err)
-	}
-	if bn.getHash() != nil {
-		return nil
-	}
-	if bn.isCollapsed() {
-		var hash []byte
-		hash, err = encodeNodeAndGetHash(bn)
-		if err != nil {
-			return err
-		}
-		bn.hash = hash
-		return nil
+func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
+	if len(bn.hash) != 0 {
+		return
 	}
 
-	var wg sync.WaitGroup
-	errc := make(chan error, nrOfChildren)
+	waitGroup := sync.WaitGroup{}
+
+	encodedChildrenMutex := &sync.Mutex{}
+	encodedChildren := make([][]byte, nrOfChildren)
 
 	for i := 0; i < nrOfChildren; i++ {
-		if bn.children[i] != nil {
-			wg.Add(1)
-			go bn.children[i].setHashConcurrent(&wg, errc)
-		}
-	}
-	wg.Wait()
-	if len(errc) != 0 {
-		for err = range errc {
-			return err
-		}
-	}
-
-	hashed, err := bn.hashNode()
-	if err != nil {
-		return err
-	}
-
-	bn.hash = hashed
-	return nil
-}
-
-func (bn *branchNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
-	defer wg.Done()
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		c <- fmt.Errorf("setHashConcurrent error %w", err)
-		return
-	}
-	if bn.getHash() != nil {
-		return
-	}
-	if bn.isCollapsed() {
-		var hash []byte
-		hash, err = encodeNodeAndGetHash(bn)
-		if err != nil {
-			c <- err
+		if !goRoutinesManager.ShouldContinueProcessing() {
 			return
 		}
-		bn.hash = hash
-		return
+
+		if !bn.shouldSetHashForChild(i) {
+			continue
+		}
+
+		if !goRoutinesManager.CanStartGoRoutine() {
+			bn.children[i].setHash(goRoutinesManager)
+			encChild, err := encodeNodeAndGetHash(bn.children[i])
+			if err != nil {
+				goRoutinesManager.SetError(err)
+				return
+			}
+
+			encodedChildrenMutex.Lock()
+			encodedChildren[i] = encChild
+			encodedChildrenMutex.Unlock()
+			continue
+		}
+
+		waitGroup.Add(1)
+		go func(childPos int) {
+			bn.children[childPos].setHash(goRoutinesManager)
+			encChild, err := encodeNodeAndGetHash(bn.children[childPos])
+			if err != nil {
+				goRoutinesManager.SetError(err)
+				return
+			}
+			encodedChildrenMutex.Lock()
+			encodedChildren[childPos] = encChild
+			encodedChildrenMutex.Unlock()
+			waitGroup.Done()
+		}(i)
 	}
-	hash, err := hashChildrenAndNode(bn)
+
+	waitGroup.Wait()
+
+	for i := range encodedChildren {
+		if len(encodedChildren[i]) == 0 {
+			continue
+		}
+
+		bn.EncodedChildren[i] = encodedChildren[i]
+	}
+
+	hash, err := encodeNodeAndGetHash(bn)
 	if err != nil {
-		c <- err
+		goRoutinesManager.SetError(err)
 		return
 	}
 	bn.hash = hash
 }
 
-func (bn *branchNode) hashChildren() error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("hashChildren error %w", err)
+func (bn *branchNode) shouldSetHashForChild(childPos int) bool {
+	bn.childrenMutexes[childPos].RLock()
+	defer bn.childrenMutexes[childPos].RUnlock()
+
+	if bn.children[childPos] != nil && bn.EncodedChildren[childPos] == nil {
+		return true
 	}
-	for i := 0; i < nrOfChildren; i++ {
-		if bn.children[i] != nil {
-			err = bn.children[i].setHash()
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
+
+	return false
 }
 
 func (bn *branchNode) hashNode() ([]byte, error) {
@@ -599,6 +556,7 @@ func (bn *branchNode) modifyNodeAfterInsert(
 		}
 
 		bn.children[i] = newBnChildren[i]
+		bn.EncodedChildren[i] = nil
 		bn.setVersionForChild(childVersion, byte(i))
 	}
 
@@ -754,9 +712,9 @@ func (bn *branchNode) setNewChildren(
 
 	newChildrenMap.Range(func(childPos int, newChild node) {
 		bn.children[childPos] = newChild
+		bn.EncodedChildren[childPos] = nil
 		if check.IfNil(newChild) {
 			bn.setVersionForChild(core.NotSpecified, byte(childPos))
-			bn.EncodedChildren[childPos] = nil
 
 			return
 		}

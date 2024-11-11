@@ -5,16 +5,14 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"io"
-	"math"
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"io"
+	"math"
 )
 
 var _ = node(&extensionNode{})
@@ -63,69 +61,50 @@ func (en *extensionNode) getCollapsedEn() (*extensionNode, error) {
 		return en, nil
 	}
 	collapsed := en.clone()
-	ok, err := hasValidHash(en.child)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		err = en.child.setHash()
-		if err != nil {
-			return nil, err
-		}
+	if !hasValidHash(en.child) {
+		return nil, ErrNodeHashIsNotSet
 	}
 	collapsed.EncodedChild = en.child.getHash()
 	collapsed.child = nil
 	return collapsed, nil
 }
 
-func (en *extensionNode) setHash() error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("setHash error %w", err)
+func (en *extensionNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
+	if len(en.hash) != 0 {
+		return
 	}
-	if en.getHash() != nil {
-		return nil
+
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return
 	}
-	if en.isCollapsed() {
-		var hash []byte
-		hash, err = encodeNodeAndGetHash(en)
+
+	if en.shouldSetHashForChild() {
+		en.child.setHash(goRoutinesManager)
+		encChild, err := encodeNodeAndGetHash(en.child)
 		if err != nil {
-			return err
+			goRoutinesManager.SetError(err)
+			return
 		}
-		en.hash = hash
-		return nil
+		en.EncodedChild = encChild
 	}
-	hash, err := hashChildrenAndNode(en)
+
+	hash, err := encodeNodeAndGetHash(en)
 	if err != nil {
-		return err
+		goRoutinesManager.SetError(err)
+		return
 	}
 	en.hash = hash
-	return nil
 }
 
-func (en *extensionNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
-	err := en.setHash()
-	if err != nil {
-		c <- err
-	}
-	wg.Done()
-}
-func (en *extensionNode) setRootHash() error {
-	return en.setHash()
-}
+func (en *extensionNode) shouldSetHashForChild() bool {
+	en.childMutex.RLock()
+	defer en.childMutex.RUnlock()
 
-func (en *extensionNode) hashChildren() error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("hashChildren error %w", err)
+	if en.child != nil && en.EncodedChild == nil {
+		return true
 	}
-	if en.child != nil {
-		err = en.child.setHash()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+
+	return false
 }
 
 func (en *extensionNode) hashNode() ([]byte, error) {
