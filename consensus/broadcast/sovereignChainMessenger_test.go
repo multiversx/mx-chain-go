@@ -226,3 +226,24 @@ func TestSovereignChainMessenger_BroadcastHeader(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, broadCastCt)
 }
+
+func TestSovereignChainMessenger_shouldSkipShard(t *testing.T) {
+	t.Parallel()
+
+	args := createSovShardMsgArgs()
+	sovMsg, _ := NewSovereignShardChainMessenger(args)
+	require.False(t, sovMsg.shouldSkipShard(core.SovereignChainShardId))
+	require.True(t, sovMsg.shouldSkipShard(core.SovereignChainShardId+1))
+	require.True(t, sovMsg.shouldSkipShard(core.MainChainShardId))
+}
+
+func TestSovereignChainMessenger_shouldSkipTopic(t *testing.T) {
+	t.Parallel()
+
+	args := createSovShardMsgArgs()
+	sovMsg, _ := NewSovereignShardChainMessenger(args)
+	require.False(t, sovMsg.shouldSkipTopic("topic"))
+	require.False(t, sovMsg.shouldSkipTopic(fmt.Sprintf("%s_%d", "topic", core.SovereignChainShardId)))
+	require.True(t, sovMsg.shouldSkipTopic(fmt.Sprintf("%s_%d", "topic", core.MainChainShardId)))
+	require.True(t, sovMsg.shouldSkipTopic(fmt.Sprintf("%s_%d_%d", "topic", core.SovereignChainShardId, core.MainChainShardId)))
+}

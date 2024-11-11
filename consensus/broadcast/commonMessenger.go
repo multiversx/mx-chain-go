@@ -43,6 +43,8 @@ type commonMessenger struct {
 	peerSignatureHandler    crypto.PeerSignatureHandler
 	delayedBlockBroadcaster delayedBroadcaster
 	keysHandler             consensus.KeysHandler
+
+	broadcasterFilterHandler broadcasterFilterHandler
 }
 
 // CommonMessengerArgs holds the arguments for creating commonMessenger instance
@@ -123,6 +125,10 @@ func (cm *commonMessenger) BroadcastConsensusMessage(message *consensus.Message)
 // BroadcastMiniBlocks will send on miniblocks topic the cross-shard miniblocks
 func (cm *commonMessenger) BroadcastMiniBlocks(miniBlocks map[uint32][]byte, pkBytes []byte) error {
 	for k, v := range miniBlocks {
+		if cm.broadcasterFilterHandler.shouldSkipShard(k) {
+			continue
+		}
+
 		miniBlocksTopic := factory.MiniBlocksTopic +
 			cm.shardCoordinator.CommunicationIdentifier(k)
 
@@ -148,6 +154,10 @@ func (cm *commonMessenger) BroadcastTransactions(transactions map[string][][]byt
 	txs := 0
 	var packets [][]byte
 	for topic, v := range transactions {
+		if cm.broadcasterFilterHandler.shouldSkipTopic(topic) {
+			continue
+		}
+
 		txs += len(v)
 		// forward txs to the destination shards in packets
 		packets, err = dataPacker.PackDataInChunks(v, common.MaxBulkTransactionSize)
@@ -240,4 +250,11 @@ func (cm *commonMessenger) broadcast(topic string, data []byte, pkBytes []byte) 
 	}
 
 	cm.messenger.BroadcastUsingPrivateKey(topic, data, pid, skBytes)
+}
+
+func (cm *commonMessenger) shouldSkipShard(_ uint32) bool {
+	return false
+}
+func (cm *commonMessenger) shouldSkipTopic(_ string) bool {
+	return false
 }
