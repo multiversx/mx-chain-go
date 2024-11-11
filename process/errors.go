@@ -1236,51 +1236,6 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 // ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
 var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")
 
-// ErrRelayedV3GasPriceMismatch signals that relayed v3 gas price is not equal with inner tx
-var ErrRelayedV3GasPriceMismatch = errors.New("relayed tx v3 gas price mismatch")
-
-// ErrRelayedTxV3SenderDoesNotMatchReceiver signals that the sender of relayed tx v3 does not match the receiver
-var ErrRelayedTxV3SenderDoesNotMatchReceiver = errors.New("relayed tx v3 sender does not match receiver")
-
-// ErrRelayedTxV3Disabled signals that the v3 version of relayed tx is disabled
-var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 is disabled")
-
-// ErrRelayedTxV3ZeroVal signals that the v3 version of relayed tx should be created with 0 as value
-var ErrRelayedTxV3ZeroVal = errors.New("relayed tx v3 value should be 0")
-
-// ErrRelayedTxV3RelayerMismatch signals that the relayer address of the inner tx does not match the real relayer
-var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
-
-// ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
-var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
-
-// ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
-var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
-
-// ErrRelayedTxV3SenderShardMismatch signals that the sender from inner transaction is from a different shard than relayer
-var ErrRelayedTxV3SenderShardMismatch = errors.New("sender shard mismatch")
-
-// ErrNilRelayerAccount signals that a nil relayer accouont has been provided
-var ErrNilRelayerAccount = errors.New("nil relayer account")
-
-// ErrRelayedTxV3TooManyInnerTransactions signals that too many inner transactions were provided
-var ErrRelayedTxV3TooManyInnerTransactions = errors.New("too many inner transactions")
-
-// ErrConsumedFeesMismatch signals that the fees consumed from relayer do not match the inner transactions fees
-var ErrConsumedFeesMismatch = errors.New("consumed fees mismatch")
-
-// ErrRelayedTxV3InvalidDataField signals that the data field is invalid
-var ErrRelayedTxV3InvalidDataField = errors.New("invalid data field")
-
-// ErrMultipleRelayedTxTypesIsNotAllowed signals that multiple types of relayed tx is not allowed
-var ErrMultipleRelayedTxTypesIsNotAllowed = errors.New("multiple relayed tx types is not allowed")
-
-// ErrNilFailedTxLogsAccumulator signals that a nil failed transaction logs accumulator has been provided
-var ErrNilFailedTxLogsAccumulator = errors.New("nil failed transaction logs accumulator")
-
-// ErrEmptyInnerTransactions signals that the inner transactions slice is empty
-var ErrEmptyInnerTransactions = errors.New("empty inner transactions")
-
 // ErrNilShardBootstrap signals that a nil shard bootstrap was provided
 var ErrNilShardBootstrap = errors.New("nil shard bootstrap")
 
