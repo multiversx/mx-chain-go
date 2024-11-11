@@ -114,7 +114,7 @@ func TestMigrateStakingProviderHappyFlow(t *testing.T) {
 
 	eventWithError := moveDelegationTx.Logs.Events[0]
 	require.Equal(t, eventWithError.Identifier, core.SignalErrorOperation)
-	require.Equal(t, "cannot migrate delegation in the cooldown period, wait 30 more epochs", string(eventWithError.Topics[1]))
+	require.Equal(t, "cannot migrate to another service provider during cooldown period, wait 30 more epochs", string(eventWithError.Topics[1]))
 
 	// check delegation values for delegator in sp1 and sp2
 	output, err := executeQuery(cs, core.MetachainShardId, sp1AddressBytes, "getUserActiveStake", [][]byte{delegator.Bytes})
