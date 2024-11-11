@@ -142,20 +142,12 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		return false
 	}
 
-	foundInBySender := cache.txListBySender.removeTx(tx)
-	if !foundInBySender {
-		// This condition can arise often at high load & eviction, when two go-routines concur to remove the same transaction:
-		// - A = remove transactions upon commit / final
-		// - B = remove transactions due to high load (eviction)
-		//
-		// - A reaches "RemoveTxByHash()", then "cache.txByHash.removeTx()".
-		// - B reaches "cache.txByHash.RemoveTxsBulk()"
-		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
-		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		logRemove.Debug("RemoveTxByHash, but !foundInBySender", "tx", txHash)
+	evicted := cache.txListBySender.removeTxReturnEvicted(tx)
+	if len(evicted) > 0 {
+		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
-	logRemove.Trace("RemoveTxByHash", "tx", txHash)
+	logRemove.Trace("RemoveTxByHash", "tx", txHash, "len(evicted)", len(evicted))
 	return true
 }
 
@@ -285,11 +277,7 @@ func (cache *TxCache) UnRegisterHandler(string) {
 // NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
 // in order to inform the cache about initial nonce gap phenomena
 func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	evicted := cache.txListBySender.notifyAccountNonceReturnEvictedTransactions(accountKey, nonce)
-
-	if len(evicted) > 0 {
-		cache.txByHash.RemoveTxsBulk(evicted)
-	}
+	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache

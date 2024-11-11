@@ -107,74 +107,19 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 }
 
-func TestListForSender_findTx(t *testing.T) {
-	list := newUnconstrainedListToTest()
-
-	txA := createTx([]byte("A"), ".", 41)
-	txANewer := createTx([]byte("ANewer"), ".", 41)
-	txB := createTx([]byte("B"), ".", 42)
-	txD := createTx([]byte("none"), ".", 43)
-	list.AddTx(txA)
-	list.AddTx(txANewer)
-	list.AddTx(txB)
-
-	elementWithA := list.findListElementWithTx(txA)
-	elementWithANewer := list.findListElementWithTx(txANewer)
-	elementWithB := list.findListElementWithTx(txB)
-	noElementWithD := list.findListElementWithTx(txD)
-
-	require.NotNil(t, elementWithA)
-	require.NotNil(t, elementWithANewer)
-	require.NotNil(t, elementWithB)
-
-	require.Equal(t, txA, elementWithA.Value.(*WrappedTransaction))
-	require.Equal(t, txANewer, elementWithANewer.Value.(*WrappedTransaction))
-	require.Equal(t, txB, elementWithB.Value.(*WrappedTransaction))
-	require.Nil(t, noElementWithD)
-}
-
-func TestListForSender_findTx_CoverNonceComparisonOptimization(t *testing.T) {
-	list := newUnconstrainedListToTest()
-
-	list.AddTx(createTx([]byte("A"), ".", 42))
-
-	// Find one with a lower nonce, not added to cache
-	noElement := list.findListElementWithTx(createTx(nil, ".", 41))
-	require.Nil(t, noElement)
-}
-
-func TestListForSender_RemoveTransaction(t *testing.T) {
-	list := newUnconstrainedListToTest()
-	tx := createTx([]byte("a"), ".", 1)
-
-	list.AddTx(tx)
-	require.Equal(t, 1, list.items.Len())
-
-	list.RemoveTx(tx)
-	require.Equal(t, 0, list.items.Len())
-}
-
-func TestListForSender_RemoveTransaction_NoPanicWhenTxMissing(t *testing.T) {
-	list := newUnconstrainedListToTest()
-	tx := createTx([]byte(""), ".", 1)
-
-	list.RemoveTx(tx)
-	require.Equal(t, 0, list.items.Len())
-}
-
 func TestListForSender_NotifyAccountNonce(t *testing.T) {
 	list := newUnconstrainedListToTest()
 
 	require.Equal(t, uint64(0), list.accountNonce.Get())
 	require.False(t, list.accountNonceKnown.IsSet())
 
-	list.notifyAccountNonceReturnEvictedTransactions(42)
+	list.notifyAccountNonce(42)
 
 	require.Equal(t, uint64(42), list.accountNonce.Get())
 	require.True(t, list.accountNonceKnown.IsSet())
 }
 
-func TestListForSender_evictTransactionsWithLowerNoncesNoLock(t *testing.T) {
+func TestListForSender_evictTransactionsWithLowerOrEqualNonces(t *testing.T) {
 	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
@@ -184,19 +129,19 @@ func TestListForSender_evictTransactionsWithLowerNoncesNoLock(t *testing.T) {
 
 	require.Equal(t, 4, list.items.Len())
 
-	list.evictTransactionsWithLowerNoncesNoLockReturnEvicted(43)
-	require.Equal(t, 3, list.items.Len())
-
-	list.evictTransactionsWithLowerNoncesNoLockReturnEvicted(44)
+	_ = list.evictTransactionsWithLowerOrEqualNonces(43)
 	require.Equal(t, 2, list.items.Len())
 
-	list.evictTransactionsWithLowerNoncesNoLockReturnEvicted(99)
+	_ = list.evictTransactionsWithLowerOrEqualNonces(44)
+	require.Equal(t, 1, list.items.Len())
+
+	_ = list.evictTransactionsWithLowerOrEqualNonces(99)
 	require.Equal(t, 0, list.items.Len())
 }
 
 func TestListForSender_getTxs(t *testing.T) {
 	list := newUnconstrainedListToTest()
-	list.notifyAccountNonceReturnEvictedTransactions(42)
+	list.notifyAccountNonce(42)
 
 	// No transaction, no gap
 	require.Len(t, list.getTxs(), 0)
@@ -241,6 +186,13 @@ func TestListForSender_getTxs(t *testing.T) {
 	require.Equal(t, []byte("tx-43++"), list.getTxsReversed()[1].TxHash)
 	require.Equal(t, []byte("tx-42"), list.getTxsReversed()[2].TxHash)
 	require.Equal(t, []byte("tx-42++"), list.getTxsReversed()[3].TxHash)
+
+	// With lower nonces
+	list.notifyAccountNonce(43)
+	require.Len(t, list.getTxs(), 4)
+	require.Len(t, list.getTxsReversed(), 4)
+	require.Len(t, list.getSequentialTxs(), 1)
+	require.Equal(t, []byte("tx-43++"), list.getSequentialTxs()[0].TxHash)
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {
@@ -255,7 +207,7 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 		_ = list.getTxsReversed()
 		_ = list.getSequentialTxs()
 		_ = list.countTxWithLock()
-		_ = list.notifyAccountNonceReturnEvictedTransactions(42)
+		list.notifyAccountNonce(42)
 		_, _ = list.AddTx(createTx([]byte("test"), ".", 42))
 
 		wg.Done()
