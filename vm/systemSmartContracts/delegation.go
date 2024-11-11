@@ -2612,7 +2612,7 @@ func (d *delegation) checkCoolDownPeriodForMigration(delegatorAddress []byte) vm
 	lastMoveEpoch := big.NewInt(0).SetBytes(lastMoveEpochData).Uint64()
 
 	epochDifference := uint64(d.eei.BlockChainHook().CurrentEpoch()) - lastMoveEpoch
-	if lastMoveEpoch != 0 || epochDifference < d.migrateCoolDownPeriodInEpoch {
+	if lastMoveEpoch != 0 && epochDifference < d.migrateCoolDownPeriodInEpoch {
 		waitTime := big.NewInt(int64(d.migrateCoolDownPeriodInEpoch - epochDifference)).String()
 		d.eei.AddReturnMessage("cannot migrate to another service provider during cooldown period, wait " + waitTime + " more epochs")
 		return vmcommon.UserError
