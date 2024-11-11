@@ -500,12 +500,7 @@ func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandle
 			gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
 		}
 
-		hasValidRelayer := len(txInstance.GetRelayerAddr()) == len(txInstance.GetSndAddr()) && len(txInstance.GetRelayerAddr()) > 0
-		hasValidRelayerSignature := len(txInstance.GetRelayerSignature()) == len(txInstance.GetSignature()) && len(txInstance.GetRelayerSignature()) > 0
-		isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
-		if isRelayedV3 {
-			gasLimit += ed.MinGasLimitInEpoch(epoch)
-		}
+		gasLimit += ed.getExtraGasLimitRelayedTx(txInstance, epoch)
 	}
 
 	return gasLimit
@@ -612,6 +607,15 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
 
 	return totalGasLimit, nil
+}
+
+// getExtraGasLimitRelayedTx returns extra gas limit for relayed tx in a specific epoch
+func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Transaction, epoch uint32) uint64 {
+	if common.IsRelayedTxV3(txInstance) {
+		return ed.MinGasLimitInEpoch(epoch)
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

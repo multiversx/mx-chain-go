@@ -2768,6 +2768,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 						IsGuardedCalled: func() bool {
 							return true
 						},
+						Balance: big.NewInt(1),
 					}, nil
 				}
 

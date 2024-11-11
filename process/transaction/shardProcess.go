@@ -605,14 +605,20 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 	tx *transaction.Transaction,
 	userTx *transaction.Transaction,
 ) (vmcommon.ReturnCode, error) {
-	isUserTxOfRelayedV3 := isRelayedTxV3(tx)
+	isUserTxOfRelayedV3 := common.IsRelayedTxV3(tx)
 	relayedValue := tx.Value
 	if isUserTxOfRelayedV3 {
 		relayedValue = big.NewInt(0)
 	}
 
 	computedFees := txProc.computeRelayedTxFees(tx, userTx, isUserTxOfRelayedV3)
-	txHash, err := txProc.processTxAtRelayer(relayerAcnt, computedFees.totalFee, computedFees.relayerFee, tx, relayedValue)
+	txHash, err := txProc.processTxAtRelayer(
+		relayerAcnt,
+		computedFees.totalFee,
+		computedFees.relayerFee,
+		tx,
+		relayedValue,
+		isUserTxOfRelayedV3)
 	if err != nil {
 		return 0, err
 	}
@@ -629,7 +635,6 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 	relayedNonce := tx.Nonce
 	relayerAddr := tx.SndAddr
 	if isUserTxOfRelayedV3 && !check.IfNil(relayerAcnt) {
-		relayedNonce = relayerAcnt.GetNonce() - 1 // nonce already increased inside processTxAtRelayer
 		relayerAddr = tx.RelayerAddr
 	}
 
@@ -642,6 +647,7 @@ func (txProc *txProcessor) processTxAtRelayer(
 	relayerFee *big.Int,
 	tx *transaction.Transaction,
 	valueToSubFromRelayer *big.Int,
+	isUserTxOfRelayedV3 bool,
 ) ([]byte, error) {
 	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
@@ -659,7 +665,9 @@ func (txProc *txProcessor) processTxAtRelayer(
 			return nil, err
 		}
 
-		relayerAcnt.IncreaseNonce(1)
+		if !isUserTxOfRelayedV3 { // won't increase relayer nonce for v3
+			relayerAcnt.IncreaseNonce(1)
+		}
 		err = txProc.accounts.SaveAccount(relayerAcnt)
 		if err != nil {
 			return nil, err

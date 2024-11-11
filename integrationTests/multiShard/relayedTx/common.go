@@ -262,7 +262,6 @@ func createRelayedTxV3(
 	player.Nonce++
 	player.Balance.Sub(player.Balance, value)
 
-	relayer.Nonce++
 	txFee := economicsFee.ComputeTxFee(tx)
 	relayer.Balance.Sub(relayer.Balance, txFee)
 

@@ -157,11 +157,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return err
 	}
 
-	// early exit for relayed v3, the cost will be compared with the sender balance
-	if isRelayedV3 {
-		return nil
-	}
-
 	if feePayer.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
@@ -176,6 +171,11 @@ func (txProc *baseTxProcessor) checkTxValues(
 		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)
 	}
 
+	// early exit for relayed v3, the cost will be compared with the sender balance
+	if isRelayedV3 {
+		return nil
+	}
+
 	cost := big.NewInt(0).Add(txFee, tx.Value)
 	if feePayer.GetBalance().Cmp(cost) < 0 {
 		return process.ErrInsufficientFunds
@@ -188,7 +188,7 @@ func (txProc *baseTxProcessor) getFeePayer(
 	tx *transaction.Transaction,
 	acntSnd state.UserAccountHandler,
 ) (state.UserAccountHandler, bool, error) {
-	if !isRelayedTxV3(tx) {
+	if !common.IsRelayedTxV3(tx) {
 		return acntSnd, false, nil
 	}
 

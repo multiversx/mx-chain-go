@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -108,24 +109,19 @@ func (txv *txValidator) getFeePayerAccount(
 	payerAccount := accountHandler
 
 	tx := interceptedTx.Transaction()
-	relayedTx, ok := tx.(data.RelayedTransactionHandler)
-	if ok {
-		hasValidRelayer := len(relayedTx.GetRelayerAddr()) == len(tx.GetSndAddr()) && len(relayedTx.GetRelayerAddr()) > 0
-		hasValidRelayerSignature := len(relayedTx.GetRelayerSignature()) == len(relayedTx.GetSignature()) && len(relayedTx.GetRelayerSignature()) > 0
-		isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
-		if isRelayedV3 {
-			payerAddress = relayedTx.GetRelayerAddr()
-			relayerAccount, err := txv.accounts.GetExistingAccount(payerAddress)
-			if err != nil {
-				return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
-					process.ErrAccountNotFound,
-					txv.pubKeyConverter.SilentEncode(payerAddress, log),
-					txv.shardCoordinator.SelfId(),
-					err.Error(),
-				)
-			}
-			payerAccount = relayerAccount
+	if common.IsRelayedTxV3(tx) {
+		relayedTx := tx.(data.RelayedTransactionHandler)
+		payerAddress = relayedTx.GetRelayerAddr()
+		relayerAccount, err := txv.accounts.GetExistingAccount(payerAddress)
+		if err != nil {
+			return nil, fmt.Errorf("%w for address %s and shard %d, err: %s",
+				process.ErrAccountNotFound,
+				txv.pubKeyConverter.SilentEncode(payerAddress, log),
+				txv.shardCoordinator.SelfId(),
+				err.Error(),
+			)
 		}
+		payerAccount = relayerAccount
 	}
 	account, ok := payerAccount.(state.UserAccountHandler)
 	if !ok {

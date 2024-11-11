@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -211,7 +212,7 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 }
 
 func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTx *transaction.Transaction) error {
-	if isRelayedTxV3(userTx) {
+	if common.IsRelayedTxV3(userTx) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
@@ -232,13 +233,8 @@ func isRelayedTx(funcName string) bool {
 		core.RelayedTransactionV2 == funcName
 }
 
-func isRelayedTxV3(tx *transaction.Transaction) bool {
-	return len(tx.RelayerAddr) == len(tx.SndAddr) && len(tx.RelayerAddr) > 0 &&
-		len(tx.RelayerSignature) == len(tx.Signature) && len(tx.RelayerSignature) > 0
-}
-
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
-	if !isRelayedTxV3(tx) {
+	if !common.IsRelayedTxV3(tx) {
 		return nil
 	}
 
