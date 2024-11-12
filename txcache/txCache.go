@@ -60,7 +60,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
-	logAdd.Trace("AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
+	logAdd.Trace("TxCache.AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
 
 	tx.precomputeFields(cache.txGasHandler)
 
@@ -78,11 +78,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		logAdd.Debug("AddTx: slight inconsistency detected:", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		logAdd.Debug("TxCache.AddTx: slight inconsistency detected:", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
-		logRemove.Trace("AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
+		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
@@ -104,7 +104,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*Wr
 	stopWatch.Start("selection")
 
 	logSelect.Debug(
-		"doSelectTransactions: begin",
+		"TxCache.SelectTransactions: begin",
 		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
@@ -115,7 +115,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*Wr
 	stopWatch.Stop("selection")
 
 	logSelect.Debug(
-		"doSelectTransactions: end",
+		"TxCache.SelectTransactions: end",
 		"duration", stopWatch.GetMeasurement("selection"),
 		"num txs selected", len(transactions),
 		"gas", accumulatedGas,
@@ -147,7 +147,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
-	logRemove.Trace("RemoveTxByHash", "tx", txHash, "len(evicted)", len(evicted))
+	logRemove.Trace("TxCache.RemoveTxByHash", "tx", txHash, "len(evicted)", len(evicted))
 	return true
 }
 
@@ -280,6 +280,14 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	log.Trace("TxCache.NotifyAccountNonce", "account", accountKey, "nonce", nonce)
 
 	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
+}
+
+// ForgetAllAccountNonces clears all known account nonces.
+// Generally speaking, should be called when a block is reverted.
+func (cache *TxCache) ForgetAllAccountNonces() {
+	log.Debug("TxCache.ForgetAllAccountNonces", "name", cache.name)
+
+	cache.txListBySender.forgetAllAccountNonces()
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache

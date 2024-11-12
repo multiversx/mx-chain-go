@@ -133,6 +133,13 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 	listForSender.notifyAccountNonce(nonce)
 }
 
+func (txMap *txListBySenderMap) forgetAllAccountNonces() {
+	txMap.backingMap.IterCb(func(key string, item interface{}) {
+		listForSender := item.(*txListForSender)
+		listForSender.forgetAccountNonce()
+	})
+}
+
 // removeTransactionsWithHigherOrEqualNonce removes transactions with nonces higher or equal to the given nonce.
 // Useful for the eviction flow.
 func (txMap *txListBySenderMap) removeTransactionsWithHigherOrEqualNonce(accountKey []byte, nonce uint64) {
