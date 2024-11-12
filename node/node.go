@@ -822,8 +822,6 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
-		n.coreComponents.EnableEpochsHandler(),
-		n.processComponents.RelayedTxV3Processor(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -917,33 +915,25 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:             txArgs.Nonce,
-		Value:             valAsBigInt,
-		RcvAddr:           receiverAddress,
-		RcvUserName:       txArgs.ReceiverUsername,
-		SndAddr:           senderAddress,
-		SndUserName:       txArgs.SenderUsername,
-		GasPrice:          txArgs.GasPrice,
-		GasLimit:          txArgs.GasLimit,
-		Data:              txArgs.DataField,
-		Signature:         signatureBytes,
-		ChainID:           []byte(txArgs.ChainID),
-		Version:           txArgs.Version,
-		Options:           txArgs.Options,
-		InnerTransactions: txArgs.InnerTransactions,
+		Nonce:       txArgs.Nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: txArgs.ReceiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: txArgs.SenderUsername,
+		GasPrice:    txArgs.GasPrice,
+		GasLimit:    txArgs.GasLimit,
+		Data:        txArgs.DataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(txArgs.ChainID),
+		Version:     txArgs.Version,
+		Options:     txArgs.Options,
 	}
 
 	if len(txArgs.Guardian) > 0 {
 		err = n.setTxGuardianData(txArgs.Guardian, txArgs.GuardianSigHex, tx)
 		if err != nil {
 			return nil, nil, err
-		}
-	}
-
-	if len(txArgs.Relayer) > 0 {
-		tx.RelayerAddr, err = addrPubKeyConverter.Decode(txArgs.Relayer)
-		if err != nil {
-			return nil, nil, errors.New("could not create relayer address from provided param")
 		}
 	}
 

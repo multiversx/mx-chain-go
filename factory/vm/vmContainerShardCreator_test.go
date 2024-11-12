@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"fmt"
+	"runtime"
 	"sync"
 	"testing"
 
@@ -60,6 +61,9 @@ func TestNewVmContainerShardCreatorFactory(t *testing.T) {
 
 func TestNewVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) {
 	t.Parallel()
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
 
 	vmContainerShardFactory := vm.NewVmContainerShardFactory()
 	require.False(t, vmContainerShardFactory.IsInterfaceNil())
