@@ -293,9 +293,7 @@ func IssueFungible(
 
 // GetIssuedEsdtIdentifier will return the token identifier for and issued token
 func GetIssuedEsdtIdentifier(t *testing.T, cs ChainSimulator, ticker string, tokenType string) string {
-	esdtScAddressBech32, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(vm.ESDTSCAddress)
-	esdtScAddressShardId := GetShardForAddress(cs, esdtScAddressBech32)
-
+	esdtScAddressShardId := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(vm.ESDTSCAddress)
 	issuedTokens, err := cs.GetNodeHandler(esdtScAddressShardId).GetFacadeHandler().GetAllIssuedESDTs(tokenType)
 	require.Nil(t, err)
 	require.GreaterOrEqual(t, len(issuedTokens), 1, "no issued tokens found of type %s", tokenType)
