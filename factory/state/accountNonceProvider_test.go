@@ -22,7 +22,7 @@ func TestAccountNonceProvider_SetAccountsAdapter(t *testing.T) {
 		require.NotNil(t, provider)
 
 		err = provider.SetAccountsAdapter(nil)
-		require.Error(t, errors.ErrNilAccountsAdapter)
+		require.ErrorIs(t, err, errors.ErrNilAccountsAdapter)
 	})
 
 	t.Run("with a non-nil accounts adapter", func(t *testing.T) {
@@ -48,7 +48,7 @@ func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
 		require.NotNil(t, provider)
 
 		nonce, err := provider.GetAccountNonce(nil)
-		require.Error(t, errors.ErrNilAccountsAdapter)
+		require.ErrorIs(t, err, errors.ErrNilAccountsAdapter)
 		require.Equal(t, uint64(0), nonce)
 	})
 
@@ -58,7 +58,7 @@ func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
 		userAddress := []byte("alice")
 		accounts := &state.AccountsStub{}
 		accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-			if bytes.Compare(address, userAddress) != 0 {
+			if bytes.Equal(address, userAddress) {
 				return nil, fmt.Errorf("account not found: %s", address)
 			}
 
@@ -86,7 +86,7 @@ func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
 		userAddress := []byte("alice")
 		accounts := &state.AccountsStub{}
 		accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-			if bytes.Compare(address, userAddress) != 0 {
+			if bytes.Equal(address, userAddress) {
 				return nil, fmt.Errorf("account not found: %s", address)
 			}
 
