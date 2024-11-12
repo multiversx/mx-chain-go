@@ -63,6 +63,11 @@ def update_transfer_and_execute_address(file_path, address):
         file.writelines(lines)
 
 
+def update_node_configs(config_path, esdt_prefix, sovereign_chain_address):
+    update_esdt_prefix(config_path + "/systemSmartContractsConfig.toml", esdt_prefix)
+    update_transfer_and_execute_address(config_path + "/config.toml", sovereign_chain_address)
+
+
 def main():
     # input arguments
     main_chain_address = sys.argv[1]
@@ -76,11 +81,8 @@ def main():
     toml_path = project_path + "/cmd/sovereignnode/config/sovereignConfig.toml"
     update_sovereign_config(toml_path, main_chain_address, sovereign_chain_address)
 
-    toml_path = project_path + "/cmd/node/config/systemSmartContractsConfig.toml"
-    update_esdt_prefix(toml_path, esdt_prefix)
-
-    toml_path = project_path + "/cmd/node/config/config.toml"
-    update_transfer_and_execute_address(toml_path, sovereign_chain_address)
+    config_path = project_path + "/cmd/node/config"
+    update_node_configs(config_path, esdt_prefix, sovereign_chain_address)
 
 
 if __name__ == "__main__":
