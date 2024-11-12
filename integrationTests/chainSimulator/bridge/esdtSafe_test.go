@@ -522,7 +522,7 @@ func generateAccountsAndTokens(
 	wallets[account] = token
 
 	account, accountAddrBytes = createNewAccount(cs, &accountShardId)
-	collectionId := chainSim.RegisterAndSetAllRoles(t, cs, accountAddrBytes, &account.nonce, issueCost, "NFTV2", "NFTV2", core.NonFungibleESDTv2, 0)
+	collectionId := chainSim.RegisterAndSetAllRoles(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "NFTV2", "NFTV2", core.NonFungibleESDTv2, 0)
 	supply = big.NewInt(1)
 	createArgs := createNftArgs(collectionId, supply, "NFTV2 #1")
 	chainSim.SendTransactionWithSuccess(t, cs, accountAddrBytes, &account.nonce, accountAddrBytes, chainSim.ZeroValue, createArgs, uint64(60000000))
@@ -535,7 +535,7 @@ func generateAccountsAndTokens(
 	wallets[account] = token
 
 	account, accountAddrBytes = createNewAccount(cs, &accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, accountAddrBytes, &account.nonce, issueCost, "DNFT", "DNFT", core.DynamicNFTESDT, 0)
+	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "DNFT", "DNFT", core.DynamicNFTESDT, 0)
 	supply = big.NewInt(1)
 	createArgs = createNftArgs(collectionId, supply, "DNFT #1")
 	chainSim.SendTransactionWithSuccess(t, cs, accountAddrBytes, &account.nonce, accountAddrBytes, chainSim.ZeroValue, createArgs, uint64(60000000))
@@ -548,7 +548,7 @@ func generateAccountsAndTokens(
 	wallets[account] = token
 
 	account, accountAddrBytes = createNewAccount(cs, &accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, accountAddrBytes, &account.nonce, issueCost, "SFT", "SFT", core.SemiFungibleESDT, 0)
+	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "SFT", "SFT", core.SemiFungibleESDT, 0)
 	supply = big.NewInt(125)
 	createArgs = createNftArgs(collectionId, supply, "SFT #1")
 	chainSim.SendTransactionWithSuccess(t, cs, accountAddrBytes, &account.nonce, accountAddrBytes, chainSim.ZeroValue, createArgs, uint64(60000000))
@@ -561,7 +561,7 @@ func generateAccountsAndTokens(
 	wallets[account] = token
 
 	account, accountAddrBytes = createNewAccount(cs, &accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, accountAddrBytes, &account.nonce, issueCost, "DSFT", "DSFT", core.DynamicSFTESDT, 0)
+	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "DSFT", "DSFT", core.DynamicSFTESDT, 0)
 	supply = big.NewInt(125)
 	createArgs = createNftArgs(collectionId, supply, "DSFT #1")
 	chainSim.SendTransactionWithSuccess(t, cs, accountAddrBytes, &account.nonce, accountAddrBytes, chainSim.ZeroValue, createArgs, uint64(60000000))
@@ -574,7 +574,7 @@ func generateAccountsAndTokens(
 	wallets[account] = token
 
 	account, accountAddrBytes = createNewAccount(cs, &accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, accountAddrBytes, &account.nonce, issueCost, "META", "META", core.MetaESDT, 15)
+	collectionId = chainSim.RegisterAndSetAllRoles(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "META", "META", core.MetaESDT, 15)
 	supply = big.NewInt(234673347)
 	createArgs = createNftArgs(collectionId, supply, "META #1")
 	chainSim.SendTransactionWithSuccess(t, cs, accountAddrBytes, &account.nonce, accountAddrBytes, chainSim.ZeroValue, createArgs, uint64(60000000))
@@ -587,7 +587,7 @@ func generateAccountsAndTokens(
 	wallets[account] = token
 
 	account, accountAddrBytes = createNewAccount(cs, &accountShardId)
-	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, accountAddrBytes, &account.nonce, issueCost, "DMETA", "DMETA", core.DynamicMetaESDT, 10)
+	collectionId = chainSim.RegisterAndSetAllRolesDynamic(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "DMETA", "DMETA", core.DynamicMetaESDT, 10)
 	supply = big.NewInt(64865382)
 	createArgs = createNftArgs(collectionId, supply, "DMETA #1")
 	chainSim.SendTransactionWithSuccess(t, cs, accountAddrBytes, &account.nonce, accountAddrBytes, chainSim.ZeroValue, createArgs, uint64(60000000))

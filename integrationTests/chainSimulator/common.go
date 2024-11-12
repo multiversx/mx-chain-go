@@ -366,6 +366,7 @@ func SetEsdtInWallet(
 func RegisterAndSetAllRoles(
 	t *testing.T,
 	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -382,13 +383,14 @@ func RegisterAndSetAllRoles(
 		"@" + fmt.Sprintf("%02X", numDecimals)
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), esdtTicker, tokenType)
+	return GetIssuedEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
 }
 
 // RegisterAndSetAllRolesDynamic will issue a dynamic esdt collection with all roles enabled
 func RegisterAndSetAllRolesDynamic(
 	t *testing.T,
 	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -407,7 +409,7 @@ func RegisterAndSetAllRolesDynamic(
 	}
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), esdtTicker, tokenType)
+	return GetIssuedEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
 }
 
 func getTokenRegisterType(tokenType string) string {
