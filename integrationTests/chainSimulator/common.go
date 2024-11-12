@@ -374,7 +374,6 @@ func SetEsdtInWallet(
 func IssueSemiFungible(
 	t *testing.T,
 	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -386,7 +385,7 @@ func IssueSemiFungible(
 		"@" + hex.EncodeToString([]byte(sftTicker))
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 
-	return GetIssuedEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
+	return GetIssuedEsdtIdentifier(t, cs, sftTicker, core.SemiFungibleESDT)
 }
 
 // RegisterAndSetAllRoles will issue an esdt collection with all roles enabled
