@@ -122,7 +122,7 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 	case reflect.Struct:
 		structVal := reflect.ValueOf(newValue)
 
-		return trySetStructValue(value, structVal)
+		return trySetItemValue(value, structVal)
 	case reflect.Map:
 		mapValue := reflect.ValueOf(newValue)
 
@@ -141,7 +141,7 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 		item := sliceVal.Index(i)
 		newItem := reflect.New(value.Type().Elem()).Elem()
 
-		err := trySetStructValue(&newItem, item)
+		err := trySetItemValue(&newItem, item)
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 	return nil
 }
 
-func trySetStructValue(value *reflect.Value, newValue reflect.Value) error {
+func trySetItemValue(value *reflect.Value, newValue reflect.Value) error {
 	switch newValue.Kind() {
 	case reflect.Invalid:
 		return fmt.Errorf("invalid new value kind")
@@ -162,6 +162,12 @@ func trySetStructValue(value *reflect.Value, newValue reflect.Value) error {
 		return updateStructFromMap(value, newValue)
 	case reflect.Struct: // overwrite with go struct
 		return updateStructFromStruct(value, newValue)
+	case reflect.Interface:
+		return trySetTheNewValue(value, newValue.Interface())
+	case reflect.String:
+		return trySetTheNewValue(value, newValue.Interface())
+	case reflect.Int:
+		return trySetTheNewValue(value, newValue.Interface())
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value of type <%s>", newValue.Kind(), value.Kind())
 	}

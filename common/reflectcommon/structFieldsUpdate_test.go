@@ -76,12 +76,12 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		t.Parallel()
 
 		path := "TrieSyncStorage.DB"
-		expectedNewValue := "provided value"
+		expectedNewValue := false
 		cfg := &config.Config{}
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, "unsupported type <string> when trying to set the value of type <struct>", err.Error())
+		require.Equal(t, "unsupported type <bool> when trying to set the value of type <struct>", err.Error())
 	})
 
 	t.Run("should error when setting invalid type on struct", func(t *testing.T) {
@@ -1064,10 +1064,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		expectedNewValue := []int{10, 20}
+		expectedNewValue := []float32{10.1, 20.2}
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
-		require.Equal(t, "unsupported type <int> when trying to set the value of type <struct>", err.Error())
+		require.Equal(t, "unsupported type <float32> when trying to set the value of type <struct>", err.Error())
 	})
 
 	t.Run("should error on slice when override different struct", func(t *testing.T) {
@@ -1202,6 +1202,79 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.Equal(t, "unsupported type <int> when trying to add value in type <map>", err.Error())
+	})
+
+	t.Run("should work and override string array from config", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedArray := []string{"x", "y", "z"}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, "TestArray.Strings", expectedArray)
+		require.NoError(t, err)
+		require.Equal(t, expectedArray, testConfig.TestArray.Strings)
+	})
+
+	t.Run("should work and override int array from config", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedArray := []int{10, 20, 30}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, "TestArray.Ints", expectedArray)
+		require.NoError(t, err)
+		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
+	})
+
+	t.Run("should work and override string array", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[38].Path, overrideConfig.OverridableConfigTomlValues[38].Value)
+		require.NoError(t, err)
+		expectedArray := []string{"x", "y", "z"}
+		require.Equal(t, expectedArray, testConfig.TestArray.Strings)
+	})
+
+	t.Run("should work and override int array", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[39].Path, overrideConfig.OverridableConfigTomlValues[39].Value)
+		require.NoError(t, err)
+		expectedArray := []int{10, 20, 30}
+		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
+	})
+
+	t.Run("should work and override struct of array", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+		expectedStringsArray := []string{"x", "y", "z"}
+		expectedIntsArray := []int{10, 20, 30}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[40].Path, overrideConfig.OverridableConfigTomlValues[40].Value)
+		require.NoError(t, err)
+		require.Equal(t, expectedStringsArray, testConfig.TestArray.Strings)
+		require.Equal(t, expectedIntsArray, testConfig.TestArray.Ints)
 	})
 
 }
