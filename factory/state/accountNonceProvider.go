@@ -35,16 +35,19 @@ func (provider *accountNonceProvider) SetAccountsAdapter(accountsAdapter state.A
 	return nil
 }
 
-// GetAccountNonce returns the nonce for an account
+// GetAccountNonce returns the nonce for an account.
+// Will be called by "shardedTxPool" on every transaction added to the pool.
 func (provider *accountNonceProvider) GetAccountNonce(address []byte) (uint64, error) {
 	provider.mutex.RLock()
-	defer provider.mutex.RUnlock()
+	accountsAdapter := provider.accountsAdapter
+	provider.mutex.RUnlock()
 
-	if check.IfNil(provider.accountsAdapter) {
+	// No need for double check locking here (we are just guarding against a programming mistake, not against a specific runtime condition).
+	if check.IfNil(accountsAdapter) {
 		return 0, errors.ErrNilAccountsAdapter
 	}
 
-	account, err := provider.accountsAdapter.GetExistingAccount(address)
+	account, err := accountsAdapter.GetExistingAccount(address)
 	if err != nil {
 		return 0, err
 	}
