@@ -1260,7 +1260,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
 	})
 
-	t.Run("should work and override struct of array", func(t *testing.T) {
+	t.Run("should work and override struct of arrays", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
