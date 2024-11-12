@@ -131,18 +131,18 @@ func (cache *TxCache) getSenders() []*txListForSender {
 	return cache.txListBySender.getSenders()
 }
 
-// RemoveTxByHash removes tx by hash
+// RemoveTxByHash removes transactions with nonces lower or equal to the given transaction's nonce
 func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
-		// Transaction might have been removed in the meantime (e.g. due to NotifyAccountNonce).
+		// Transaction might have been removed in the meantime.
 		return false
 	}
 
-	evicted := cache.txListBySender.removeTxReturnEvicted(tx)
+	evicted := cache.txListBySender.removeTransactionsWithLowerOrEqualNonceReturnHashes(tx)
 	if len(evicted) > 0 {
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
@@ -277,6 +277,8 @@ func (cache *TxCache) UnRegisterHandler(string) {
 // NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
 // in order to inform the cache about initial nonce gap phenomena
 func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+	log.Trace("TxCache.NotifyAccountNonce", "account", accountKey, "nonce", nonce)
+
 	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 

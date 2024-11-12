@@ -152,7 +152,12 @@ func Test_RemoveByTxHash(t *testing.T) {
 
 	removed := cache.RemoveTxByHash([]byte("hash-1"))
 	require.True(t, removed)
-	cache.Remove([]byte("hash-2"))
+
+	removed = cache.RemoveTxByHash([]byte("hash-2"))
+	require.True(t, removed)
+
+	removed = cache.RemoveTxByHash([]byte("hash-3"))
+	require.False(t, removed)
 
 	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
 	require.False(t, ok)
@@ -161,6 +166,8 @@ func Test_RemoveByTxHash(t *testing.T) {
 	foundTx, ok = cache.GetByTxHash([]byte("hash-2"))
 	require.False(t, ok)
 	require.Nil(t, foundTx)
+
+	require.Equal(t, uint64(0), cache.CountTx())
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
@@ -216,7 +223,7 @@ func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 	cache.AddTx(tx)
 
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
-	_ = cache.txListBySender.removeTxReturnEvicted(tx)
+	_ = cache.txListBySender.removeTransactionsWithLowerOrEqualNonceReturnHashes(tx)
 
 	_ = cache.RemoveTxByHash(txHash)
 	require.Equal(t, 0, cache.txByHash.backingMap.Count())
@@ -281,7 +288,7 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, wrappedTxs2, txs)
 
-	cache.RemoveTxByHash(txHashes2[0])
+	_ = cache.RemoveTxByHash(txHashes2[0])
 	expectedTxs := wrappedTxs2[1:]
 	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, expectedTxs, txs)

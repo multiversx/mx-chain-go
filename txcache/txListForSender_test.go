@@ -119,7 +119,7 @@ func TestListForSender_NotifyAccountNonce(t *testing.T) {
 	require.True(t, list.accountNonceKnown.IsSet())
 }
 
-func TestListForSender_evictTransactionsWithLowerOrEqualNonces(t *testing.T) {
+func TestListForSender_removeTransactionsWithLowerOrEqualNonceReturnHashes(t *testing.T) {
 	list := newUnconstrainedListToTest()
 
 	list.AddTx(createTx([]byte("tx-42"), ".", 42))
@@ -129,70 +129,96 @@ func TestListForSender_evictTransactionsWithLowerOrEqualNonces(t *testing.T) {
 
 	require.Equal(t, 4, list.items.Len())
 
-	_ = list.evictTransactionsWithLowerOrEqualNonces(43)
+	_ = list.removeTransactionsWithLowerOrEqualNonceReturnHashes(43)
 	require.Equal(t, 2, list.items.Len())
 
-	_ = list.evictTransactionsWithLowerOrEqualNonces(44)
+	_ = list.removeTransactionsWithLowerOrEqualNonceReturnHashes(44)
 	require.Equal(t, 1, list.items.Len())
 
-	_ = list.evictTransactionsWithLowerOrEqualNonces(99)
+	_ = list.removeTransactionsWithLowerOrEqualNonceReturnHashes(99)
 	require.Equal(t, 0, list.items.Len())
 }
 
 func TestListForSender_getTxs(t *testing.T) {
-	list := newUnconstrainedListToTest()
-	list.notifyAccountNonce(42)
+	t.Run("no transactions", func(t *testing.T) {
+		list := newUnconstrainedListToTest()
+		list.notifyAccountNonce(42)
 
-	// No transaction, no gap
-	require.Len(t, list.getTxs(), 0)
-	require.Len(t, list.getTxsReversed(), 0)
-	require.Len(t, list.getSequentialTxs(), 0)
+		require.Len(t, list.getTxs(), 0)
+		require.Len(t, list.getTxsReversed(), 0)
+		require.Len(t, list.getSequentialTxs(), 0)
+	})
 
-	// One gap
-	list.AddTx(createTx([]byte("tx-43"), ".", 43))
-	require.Len(t, list.getTxs(), 1)
-	require.Len(t, list.getTxsReversed(), 1)
-	require.Len(t, list.getSequentialTxs(), 0)
+	t.Run("one transaction, one gap", func(t *testing.T) {
+		list := newUnconstrainedListToTest()
+		list.notifyAccountNonce(42)
 
-	// Resolve gap
-	list.AddTx(createTx([]byte("tx-42"), ".", 42))
-	require.Len(t, list.getTxs(), 2)
-	require.Len(t, list.getTxsReversed(), 2)
-	require.Len(t, list.getSequentialTxs(), 2)
+		// Gap
+		list.AddTx(createTx([]byte("tx-43"), ".", 43))
+		require.Len(t, list.getTxs(), 1)
+		require.Len(t, list.getTxsReversed(), 1)
+		require.Len(t, list.getSequentialTxs(), 0)
 
-	require.Equal(t, []byte("tx-42"), list.getTxs()[0].TxHash)
-	require.Equal(t, []byte("tx-43"), list.getTxs()[1].TxHash)
-	require.Equal(t, list.getTxs(), list.getSequentialTxs())
+		// Resolve gap
+		list.AddTx(createTx([]byte("tx-42"), ".", 42))
+		require.Len(t, list.getTxs(), 2)
+		require.Len(t, list.getTxsReversed(), 2)
+		require.Len(t, list.getSequentialTxs(), 2)
 
-	require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
-	require.Equal(t, []byte("tx-42"), list.getTxsReversed()[1].TxHash)
+		require.Equal(t, []byte("tx-42"), list.getTxs()[0].TxHash)
+		require.Equal(t, []byte("tx-43"), list.getTxs()[1].TxHash)
+		require.Equal(t, list.getTxs(), list.getSequentialTxs())
 
-	// With nonce duplicates
-	list.AddTx(createTx([]byte("tx-42++"), ".", 42).withGasPrice(1.1 * oneBillion))
-	list.AddTx(createTx([]byte("tx-43++"), ".", 43).withGasPrice(1.1 * oneBillion))
-	require.Len(t, list.getTxs(), 4)
-	require.Len(t, list.getTxsReversed(), 4)
-	require.Len(t, list.getSequentialTxs(), 2)
+		require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
+		require.Equal(t, []byte("tx-42"), list.getTxsReversed()[1].TxHash)
+	})
 
-	require.Equal(t, []byte("tx-42++"), list.getSequentialTxs()[0].TxHash)
-	require.Equal(t, []byte("tx-43++"), list.getSequentialTxs()[1].TxHash)
+	t.Run("with nonce duplicates", func(t *testing.T) {
+		list := newUnconstrainedListToTest()
+		list.notifyAccountNonce(42)
 
-	require.Equal(t, []byte("tx-42++"), list.getTxs()[0].TxHash)
-	require.Equal(t, []byte("tx-42"), list.getTxs()[1].TxHash)
-	require.Equal(t, []byte("tx-43++"), list.getTxs()[2].TxHash)
-	require.Equal(t, []byte("tx-43"), list.getTxs()[3].TxHash)
+		list.AddTx(createTx([]byte("tx-42"), ".", 42))
+		list.AddTx(createTx([]byte("tx-43"), ".", 43))
 
-	require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
-	require.Equal(t, []byte("tx-43++"), list.getTxsReversed()[1].TxHash)
-	require.Equal(t, []byte("tx-42"), list.getTxsReversed()[2].TxHash)
-	require.Equal(t, []byte("tx-42++"), list.getTxsReversed()[3].TxHash)
+		list.AddTx(createTx([]byte("tx-42++"), ".", 42).withGasPrice(1.1 * oneBillion))
+		list.AddTx(createTx([]byte("tx-43++"), ".", 43).withGasPrice(1.1 * oneBillion))
 
-	// With lower nonces
-	list.notifyAccountNonce(43)
-	require.Len(t, list.getTxs(), 4)
-	require.Len(t, list.getTxsReversed(), 4)
-	require.Len(t, list.getSequentialTxs(), 1)
-	require.Equal(t, []byte("tx-43++"), list.getSequentialTxs()[0].TxHash)
+		require.Len(t, list.getTxs(), 4)
+		require.Len(t, list.getTxsReversed(), 4)
+		require.Len(t, list.getSequentialTxs(), 2)
+
+		require.Equal(t, []byte("tx-42++"), list.getSequentialTxs()[0].TxHash)
+		require.Equal(t, []byte("tx-43++"), list.getSequentialTxs()[1].TxHash)
+
+		require.Equal(t, []byte("tx-42++"), list.getTxs()[0].TxHash)
+		require.Equal(t, []byte("tx-42"), list.getTxs()[1].TxHash)
+		require.Equal(t, []byte("tx-43++"), list.getTxs()[2].TxHash)
+		require.Equal(t, []byte("tx-43"), list.getTxs()[3].TxHash)
+
+		require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
+		require.Equal(t, []byte("tx-43++"), list.getTxsReversed()[1].TxHash)
+		require.Equal(t, []byte("tx-42"), list.getTxsReversed()[2].TxHash)
+		require.Equal(t, []byte("tx-42++"), list.getTxsReversed()[3].TxHash)
+	})
+
+	t.Run("with lower nonces", func(t *testing.T) {
+		list := newUnconstrainedListToTest()
+		list.notifyAccountNonce(43)
+
+		list.AddTx(createTx([]byte("tx-42"), ".", 42))
+		list.AddTx(createTx([]byte("tx-43"), ".", 43))
+
+		require.Len(t, list.getTxs(), 2)
+		require.Len(t, list.getTxsReversed(), 2)
+		require.Len(t, list.getSequentialTxs(), 1)
+		require.Equal(t, []byte("tx-43"), list.getSequentialTxs()[0].TxHash)
+
+		list.forgetAccountNonce()
+
+		require.Len(t, list.getTxs(), 2)
+		require.Len(t, list.getTxsReversed(), 2)
+		require.Len(t, list.getSequentialTxs(), 2)
+	})
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {

@@ -19,7 +19,7 @@ func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 	require.Equal(t, int64(2), myMap.counter.Get())
 }
 
-func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
+func TestSendersMap_removeTransactionsWithLowerOrEqualNonceReturnHashes_alsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap := newSendersMapToTest()
 
 	txAlice1 := createTx([]byte("a1"), "alice", 1)
@@ -33,16 +33,16 @@ func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T
 	require.Equal(t, uint64(2), myMap.testGetListForSender("alice").countTx())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
 
-	_ = myMap.removeTxReturnEvicted(txAlice1)
+	_ = myMap.removeTransactionsWithLowerOrEqualNonceReturnHashes(txAlice1)
 	require.Equal(t, int64(2), myMap.counter.Get())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("alice").countTx())
 	require.Equal(t, uint64(1), myMap.testGetListForSender("bob").countTx())
 
-	_ = myMap.removeTxReturnEvicted(txAlice2)
+	_ = myMap.removeTransactionsWithLowerOrEqualNonceReturnHashes(txAlice2)
 	// All alice's transactions have been removed now
 	require.Equal(t, int64(1), myMap.counter.Get())
 
-	_ = myMap.removeTxReturnEvicted(txBob)
+	_ = myMap.removeTransactionsWithLowerOrEqualNonceReturnHashes(txBob)
 	// Also Bob has no more transactions
 	require.Equal(t, int64(0), myMap.counter.Get())
 }
