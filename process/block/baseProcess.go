@@ -1434,6 +1434,7 @@ func (bp *baseProcessor) updateStateStorage(
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
+	bp.txCoordinator.ForgetAllAccountNoncesInMempool()
 }
 
 func (bp *baseProcessor) revertAccountState() {

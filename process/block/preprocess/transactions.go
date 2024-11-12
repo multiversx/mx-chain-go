@@ -241,6 +241,11 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 }
 
+// ForgetAllAccountNoncesInMempool forgets all account nonces in mempool
+func (txs *transactions) ForgetAllAccountNoncesInMempool() {
+	txs.txPool.ForgetAllAccountNoncesInMempool()
+}
+
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
 func (txs *transactions) RestoreBlockDataIntoPools(
 	body *block.Body,

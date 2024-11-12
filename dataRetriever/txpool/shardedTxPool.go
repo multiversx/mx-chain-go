@@ -285,6 +285,13 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 	}
 }
 
+// ForgetAllAccountNoncesInMempool forgets all account nonces in the mempool
+func (txPool *shardedTxPool) ForgetAllAccountNoncesInMempool() {
+	selfShardID := strconv.Itoa(int(txPool.selfShardID))
+	cache := txPool.getOrCreateShard(selfShardID)
+	cache.Cache.ForgetAllAccountNonces()
+}
+
 // MergeShardStores merges two shards of the pool
 func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
 	sourceCacheID = txPool.routeToCacheUnions(sourceCacheID)

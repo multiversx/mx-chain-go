@@ -163,6 +163,10 @@ func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body) error {
 	return rtp.removeTxsFromPools(body, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 
+// ForgetAllAccountNoncesInMempool does nothing
+func (rtp *rewardTxPreprocessor) ForgetAllAccountNoncesInMempool() {
+}
+
 // RestoreBlockDataIntoPools restores the reward transactions and miniblocks to associated pools
 func (rtp *rewardTxPreprocessor) RestoreBlockDataIntoPools(
 	body *block.Body,
