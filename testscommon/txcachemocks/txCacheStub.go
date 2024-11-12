@@ -1,6 +1,6 @@
 package txcachemocks
 
-import "github.com/multiversx/mx-chain-go/storage/txcache"
+import "github.com/multiversx/mx-chain-storage-go/txcache"
 
 // TxCacheStub -
 type TxCacheStub struct {
