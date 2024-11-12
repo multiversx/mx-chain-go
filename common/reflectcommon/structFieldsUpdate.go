@@ -122,11 +122,11 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 	case reflect.Struct:
 		structVal := reflect.ValueOf(newValue)
 
-		return trySetItemValue(value, structVal)
+		return trySetStructValue(value, structVal)
 	case reflect.Map:
 		mapValue := reflect.ValueOf(newValue)
 
-		return tryUpdateMapValue(value, mapValue)
+		return trySetMapValue(value, mapValue)
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value '%v' of type <%s>", valueKind, newValue, reflect.TypeOf(newValue))
 	}
@@ -141,7 +141,7 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 		item := sliceVal.Index(i)
 		newItem := reflect.New(value.Type().Elem()).Elem()
 
-		err := trySetItemValue(&newItem, item)
+		err := trySetTheNewValue(&newItem, item.Interface())
 		if err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 	return nil
 }
 
-func trySetItemValue(value *reflect.Value, newValue reflect.Value) error {
+func trySetStructValue(value *reflect.Value, newValue reflect.Value) error {
 	switch newValue.Kind() {
 	case reflect.Invalid:
 		return fmt.Errorf("invalid new value kind")
@@ -162,18 +162,12 @@ func trySetItemValue(value *reflect.Value, newValue reflect.Value) error {
 		return updateStructFromMap(value, newValue)
 	case reflect.Struct: // overwrite with go struct
 		return updateStructFromStruct(value, newValue)
-	case reflect.Interface:
-		return trySetTheNewValue(value, newValue.Interface())
-	case reflect.String:
-		return trySetTheNewValue(value, newValue.Interface())
-	case reflect.Int:
-		return trySetTheNewValue(value, newValue.Interface())
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value of type <%s>", newValue.Kind(), value.Kind())
 	}
 }
 
-func tryUpdateMapValue(value *reflect.Value, newValue reflect.Value) error {
+func trySetMapValue(value *reflect.Value, newValue reflect.Value) error {
 	if value.IsNil() {
 		value.Set(reflect.MakeMap(value.Type()))
 	}
