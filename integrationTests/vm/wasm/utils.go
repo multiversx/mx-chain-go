@@ -396,8 +396,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		EnableRoundsHandler: context.EnableRoundsHandler,
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
-		// TODO: is this correct?
-		VMOutputCacher: txcache.NewDisabledCache(),
+		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
 	context.ScProcessor, err = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)

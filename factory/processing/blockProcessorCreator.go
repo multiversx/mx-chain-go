@@ -260,9 +260,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BadTxForwarder:      badTxInterim,
 		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		// TODO: is this correct?
-		VMOutputCacher:     txcache.NewDisabledCache(),
-		WasmVMChangeLocker: wasmVMChangeLocker,
+		VMOutputCacher:      txcache.NewDisabledCache(),
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
@@ -590,9 +589,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BadTxForwarder:      badTxForwarder,
 		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		// TODO: is this correct?
-		VMOutputCacher:     txcache.NewDisabledCache(),
-		WasmVMChangeLocker: wasmVMChangeLocker,
+		VMOutputCacher:      txcache.NewDisabledCache(),
+		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
