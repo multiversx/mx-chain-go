@@ -205,7 +205,7 @@ func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
 
 		if isFirstTx {
 			// Handle lower nonces.
-			if accountNonce > nonce {
+			if accountNonceKnown && accountNonce > nonce {
 				log.Trace("txListForSender.getSequentialTxs, lower nonce", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
 				continue
 			}
@@ -253,8 +253,14 @@ func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
 	_ = listForSender.accountNonceKnown.SetReturningPrevious()
 }
 
-// evictTransactionsWithLowerOrEqualNonces removes transactions with nonces lower or equal to the given nonce
-func (listForSender *txListForSender) evictTransactionsWithLowerOrEqualNonces(targetNonce uint64) [][]byte {
+// forgetAccountNonce resets the known account nonce
+func (listForSender *txListForSender) forgetAccountNonce() {
+	listForSender.accountNonce.Set(0)
+	listForSender.accountNonceKnown.Reset()
+}
+
+// removeTransactionsWithLowerOrEqualNonceReturnHashes removes transactions with nonces lower or equal to the given nonce
+func (listForSender *txListForSender) removeTransactionsWithLowerOrEqualNonceReturnHashes(targetNonce uint64) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
 
 	// We don't allow concurrent goroutines to mutate a given sender's list
@@ -281,7 +287,7 @@ func (listForSender *txListForSender) evictTransactionsWithLowerOrEqualNonces(ta
 	return evictedTxHashes
 }
 
-func (listForSender *txListForSender) evictTransactionsWithHigherOrEqualNonces(givenNonce uint64) {
+func (listForSender *txListForSender) removeTransactionsWithHigherOrEqualNonce(givenNonce uint64) {
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 

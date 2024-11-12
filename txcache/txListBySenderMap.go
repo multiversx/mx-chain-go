@@ -75,8 +75,8 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 	return listForSender
 }
 
-// removeTxReturnEvicted removes a transaction from the map
-func (txMap *txListBySenderMap) removeTxReturnEvicted(tx *WrappedTransaction) [][]byte {
+// removeTransactionsWithLowerOrEqualNonceReturnHashes removes transactions with nonces lower or equal to the given transaction's nonce.
+func (txMap *txListBySenderMap) removeTransactionsWithLowerOrEqualNonceReturnHashes(tx *WrappedTransaction) [][]byte {
 	sender := string(tx.Tx.GetSndAddr())
 
 	listForSender, ok := txMap.getListForSender(sender)
@@ -87,7 +87,7 @@ func (txMap *txListBySenderMap) removeTxReturnEvicted(tx *WrappedTransaction) []
 		return nil
 	}
 
-	evicted := listForSender.evictTransactionsWithLowerOrEqualNonces(tx.Tx.GetNonce())
+	evicted := listForSender.removeTransactionsWithLowerOrEqualNonceReturnHashes(tx.Tx.GetNonce())
 	txMap.removeSenderIfEmpty(listForSender)
 	return evicted
 }
@@ -133,16 +133,16 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 	listForSender.notifyAccountNonce(nonce)
 }
 
-// evictTransactionsWithHigherOrEqualNonces removes transactions with nonces higher or equal to the given nonce.
+// removeTransactionsWithHigherOrEqualNonce removes transactions with nonces higher or equal to the given nonce.
 // Useful for the eviction flow.
-func (txMap *txListBySenderMap) evictTransactionsWithHigherOrEqualNonces(accountKey []byte, nonce uint64) {
+func (txMap *txListBySenderMap) removeTransactionsWithHigherOrEqualNonce(accountKey []byte, nonce uint64) {
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
 		return
 	}
 
-	listForSender.evictTransactionsWithHigherOrEqualNonces(nonce)
+	listForSender.removeTransactionsWithHigherOrEqualNonce(nonce)
 	txMap.removeSenderIfEmpty(listForSender)
 }
 
