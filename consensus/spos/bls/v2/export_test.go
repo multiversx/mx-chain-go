@@ -271,11 +271,6 @@ func (sr *subroundEndRound) ReceivedProof(proof consensus.ProofHandler) {
 	sr.receivedProof(proof)
 }
 
-// IsConsensusHeaderReceived calls the unexported isConsensusHeaderReceived function
-func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
-	return sr.isConsensusHeaderReceived()
-}
-
 // IsOutOfTime calls the unexported isOutOfTime function
 func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()

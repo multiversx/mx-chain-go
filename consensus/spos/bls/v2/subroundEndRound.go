@@ -314,7 +314,7 @@ func (sr *subroundEndRound) sendProof() data.HeaderProofHandler {
 		return nil
 	}
 
-	// broadcast header and final info section
+	// broadcast header proof
 	return sr.createAndBroadcastProof(sig, bitmap)
 }
 
@@ -580,113 +580,11 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 	log.Debug("step 3: invalid signers info has been sent")
 }
 
-func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandler) {
-	if check.IfNil(sr.GetHeader()) {
-		return false, nil
-	}
-
-	consensusHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.GetHeader())
-	if err != nil {
-		log.Debug("isConsensusHeaderReceived: calculate consensus header hash", "error", err.Error())
-		return false, nil
-	}
-
-	receivedHeaders := sr.GetReceivedHeaders()
-
-	var receivedHeaderHash []byte
-	for index := range receivedHeaders {
-		// TODO[cleanup cns finality]: remove this
-		receivedHeader := receivedHeaders[index].ShallowClone()
-		if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, receivedHeader.GetEpoch()) {
-			err = receivedHeader.SetLeaderSignature(nil)
-			if err != nil {
-				log.Debug("isConsensusHeaderReceived - SetLeaderSignature", "error", err.Error())
-				return false, nil
-			}
-
-			err = receivedHeader.SetPubKeysBitmap(nil)
-			if err != nil {
-				log.Debug("isConsensusHeaderReceived - SetPubKeysBitmap", "error", err.Error())
-				return false, nil
-			}
-
-			err = receivedHeader.SetSignature(nil)
-			if err != nil {
-				log.Debug("isConsensusHeaderReceived - SetSignature", "error", err.Error())
-				return false, nil
-			}
-		}
-
-		receivedHeaderHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), receivedHeader)
-		if err != nil {
-			log.Debug("isConsensusHeaderReceived: calculate received header hash", "error", err.Error())
-			return false, nil
-		}
-
-		if bytes.Equal(receivedHeaderHash, consensusHeaderHash) {
-			return true, receivedHeaders[index]
-		}
-	}
-
-	return false, nil
-}
-
-func (sr *subroundEndRound) signBlockHeader(leader []byte) ([]byte, error) {
-	headerClone := sr.GetHeader().ShallowClone()
-	err := headerClone.SetLeaderSignature(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)
-	if err != nil {
-		return nil, err
-	}
-
-	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, leader)
-}
-
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	// TODO: decide if we keep these metrics the same way
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
-}
-
-func (sr *subroundEndRound) broadcastBlockDataLeader(sender []byte) error {
-	// TODO[cleanup cns finality]: remove this method, block data was already broadcast during subroundBlock
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return nil
-	}
-
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
-	if err != nil {
-		return err
-	}
-
-	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.GetHeader(), miniBlocks, transactions, sender)
-}
-
-func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
-	idx, pk, miniBlocks, transactions, err := sr.getIndexPkAndDataToBroadcast()
-	if err != nil {
-		return err
-	}
-
-	go sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx, pk)
-
-	return nil
-}
-
-func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
-	idx, pk, miniBlocks, transactions, err := sr.getIndexPkAndDataToBroadcast()
-	if err != nil {
-		return err
-	}
-
-	go sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.GetHeader(), miniBlocks, transactions, idx, pk)
-
-	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
