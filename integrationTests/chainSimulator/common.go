@@ -278,7 +278,6 @@ func TransferESDTNFT(
 func IssueFungible(
 	t *testing.T,
 	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
@@ -297,12 +296,13 @@ func IssueFungible(
 	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 	RequireSuccessfulTransaction(t, txResult)
 
-	return GetIssuedEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+	return GetIssuedEsdtIdentifier(t, cs, tokenTicker, core.FungibleESDT)
 }
 
 // GetIssuedEsdtIdentifier will return the token identifier for and issued token
-func GetIssuedEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
-	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
+func GetIssuedEsdtIdentifier(t *testing.T, cs ChainSimulator, ticker string, tokenType string) string {
+	esdtScAddressShardId := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(vm.ESDTSCAddress)
+	issuedTokens, err := cs.GetNodeHandler(esdtScAddressShardId).GetFacadeHandler().GetAllIssuedESDTs(tokenType)
 	require.Nil(t, err)
 	require.GreaterOrEqual(t, len(issuedTokens), 1, "no issued tokens found of type %s", tokenType)
 
@@ -409,7 +409,7 @@ func RegisterAndSetAllRoles(
 		"@" + fmt.Sprintf("%02X", numDecimals)
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), esdtTicker, tokenType)
+	return GetIssuedEsdtIdentifier(t, cs, esdtTicker, tokenType)
 }
 
 // RegisterAndSetAllRolesDynamic will issue a dynamic esdt collection with all roles enabled
@@ -434,7 +434,7 @@ func RegisterAndSetAllRolesDynamic(
 	}
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	return GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), esdtTicker, tokenType)
+	return GetIssuedEsdtIdentifier(t, cs, esdtTicker, tokenType)
 }
 
 func getTokenRegisterType(tokenType string) string {

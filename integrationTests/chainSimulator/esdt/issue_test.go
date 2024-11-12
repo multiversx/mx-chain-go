@@ -80,7 +80,7 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 	tokenName := "Token"
 	tokenTicker := "TKN"
 	numDecimals := 18
-	issuedToken := chainSim.IssueFungible(t, cs, cs.GetNodeHandler(core.MetachainShardId), initialAddrBytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, initialSupply)
+	issuedToken := chainSim.IssueFungible(t, cs, initialAddrBytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, initialSupply)
 	require.True(t, strings.HasPrefix(issuedToken, tokenPrefix+"-"+tokenTicker+"-"))
 
 	// Step 3 - send issued esdt
