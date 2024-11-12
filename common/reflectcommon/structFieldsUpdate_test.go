@@ -76,12 +76,12 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		t.Parallel()
 
 		path := "TrieSyncStorage.DB"
-		expectedNewValue := false
+		expectedNewValue := "provided value"
 		cfg := &config.Config{}
 
 		err := AdaptStructureValueBasedOnPath(cfg, path, expectedNewValue)
 
-		require.Equal(t, "unsupported type <bool> when trying to set the value of type <struct>", err.Error())
+		require.Equal(t, "unsupported type <string> when trying to set the value of type <struct>", err.Error())
 	})
 
 	t.Run("should error when setting invalid type on struct", func(t *testing.T) {
@@ -1064,10 +1064,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
 
-		expectedNewValue := []float32{10.1, 20.2}
+		expectedNewValue := []int{10, 20}
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
-		require.Equal(t, "unsupported type <float32> when trying to set the value of type <struct>", err.Error())
+		require.Equal(t, "unsupported type <int> when trying to set the value of type <struct>", err.Error())
 	})
 
 	t.Run("should error on slice when override different struct", func(t *testing.T) {
