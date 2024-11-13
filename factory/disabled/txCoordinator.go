@@ -61,10 +61,6 @@ func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
 	return nil
 }
 
-// ForgetAllAccountNoncesInMempool does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ForgetAllAccountNoncesInMempool() {
-}
-
 // ProcessBlockTransaction does nothing as it is disabled
 func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ func() time.Duration) error {
 	return nil

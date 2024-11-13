@@ -77,10 +77,6 @@ func (mock *ShardedDataCacheNotifierMock) RemoveSetOfDataFromPool(keys [][]byte,
 func (mock *ShardedDataCacheNotifierMock) ImmunizeSetOfDataAgainstEviction(_ [][]byte, _ string) {
 }
 
-// ForgetAllAccountNoncesInMempool -
-func (mock *ShardedDataCacheNotifierMock) ForgetAllAccountNoncesInMempool() {
-}
-
 // RemoveDataFromAllShards -
 func (mock *ShardedDataCacheNotifierMock) RemoveDataFromAllShards(key []byte) {
 	mock.mutCaches.RLock()

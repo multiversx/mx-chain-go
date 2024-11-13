@@ -178,10 +178,6 @@ func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID s
 	log.Trace("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
 }
 
-// ForgetAllAccountNoncesInMempool does nothing
-func (sd *shardedData) ForgetAllAccountNoncesInMempool() {
-}
-
 // RemoveData will remove data hash from the corresponding shard store
 func (sd *shardedData) RemoveData(key []byte, cacheID string) {
 	store := sd.shardStore(cacheID)

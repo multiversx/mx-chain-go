@@ -175,7 +175,6 @@ type ShardedDataCacherNotifier interface {
 	RemoveSetOfDataFromPool(keys [][]byte, cacheId string)
 	ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheId string)
 	RemoveDataFromAllShards(key []byte)
-	ForgetAllAccountNoncesInMempool()
 	MergeShardStores(sourceCacheID, destCacheID string)
 	Clear()
 	ClearShardStore(cacheId string)

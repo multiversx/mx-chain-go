@@ -423,16 +423,6 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 	return errFound
 }
 
-// ForgetAllAccountNoncesInMempool instructs the mempool to forget all account nonces
-func (tc *transactionCoordinator) ForgetAllAccountNoncesInMempool() {
-	preproc := tc.getPreProcessor(block.TxBlock)
-	if check.IfNil(preproc) {
-		return
-	}
-
-	preproc.ForgetAllAccountNoncesInMempool()
-}
-
 // ProcessBlockTransaction processes transactions and updates state tries
 func (tc *transactionCoordinator) ProcessBlockTransaction(
 	header data.HeaderHandler,

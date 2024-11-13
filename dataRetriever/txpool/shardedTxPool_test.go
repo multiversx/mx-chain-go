@@ -253,33 +253,6 @@ func TestShardedTxPool_AddData_CallsNotifyAccountNonce(t *testing.T) {
 	require.Equal(t, []string{"0::alice_30"}, breadcrumbs)
 }
 
-func TestShardedTxPool_AddData_ForgetAllAccountNoncesInMempool(t *testing.T) {
-	poolAsInterface, _ := newTxPoolToTest()
-	pool := poolAsInterface.(*shardedTxPool)
-
-	_ = pool.getOrCreateShard("0")
-	_ = pool.getOrCreateShard("1_0")
-
-	breadcrumbs := make([]string, 0)
-
-	pool.backingMap["0"].Cache = &txcachemocks.TxCacheMock{
-		ForgetAllAccountNoncesCalled: func() {
-			breadcrumbs = append(breadcrumbs, "0")
-		},
-	}
-
-	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheMock{
-		ForgetAllAccountNoncesCalled: func() {
-			breadcrumbs = append(breadcrumbs, "1_0")
-		},
-	}
-
-	pool.ForgetAllAccountNoncesInMempool()
-
-	// Only "source is me" cache is affected.
-	require.Equal(t, []string{"0"}, breadcrumbs)
-}
-
 func Test_SearchFirstData(t *testing.T) {
 	poolAsInterface, _ := newTxPoolToTest()
 	pool := poolAsInterface.(*shardedTxPool)
