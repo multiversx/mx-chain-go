@@ -21,8 +21,11 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
 	}
+
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	cache, err := NewTxCache(config, txGasHandler)
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+
+	cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -56,7 +59,9 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	cache, err := NewTxCache(config, txGasHandler)
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+
+	cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -91,7 +96,9 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	cache, err := NewTxCache(config, txGasHandler)
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+
+	cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -129,11 +136,12 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 35000, numTransactions = 10", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		cache.config.EvictionEnabled = false
@@ -151,7 +159,7 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 5", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		cache.config.EvictionEnabled = false
@@ -169,7 +177,7 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	})
 
 	t.Run("numSenders = 400000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		cache.config.EvictionEnabled = false
@@ -187,7 +195,7 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	})
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		cache.config.EvictionEnabled = false

@@ -243,11 +243,12 @@ func TestBenchmarktTxCache_doSelectTransactions(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 50_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
@@ -263,7 +264,7 @@ func TestBenchmarktTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 1, maxNum = 50_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
@@ -279,7 +280,7 @@ func TestBenchmarktTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1, maxNum = 50_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
+		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 300000, 1)
