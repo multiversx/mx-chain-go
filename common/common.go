@@ -2,8 +2,8 @@ package common
 
 import "github.com/multiversx/mx-chain-core-go/data"
 
-// IsRelayedTxV3 returns true if the provided transaction is of type relayed v3
-func IsRelayedTxV3(tx data.TransactionHandler) bool {
+// IsValidRelayedTxV3 returns true if the provided transaction a valid transaction of type relayed v3
+func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)
 	if !isRelayedV3 {
 		return false

@@ -212,7 +212,7 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 }
 
 func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTx *transaction.Transaction) error {
-	if common.IsRelayedTxV3(userTx) {
+	if common.IsValidRelayedTxV3(userTx) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
@@ -234,7 +234,7 @@ func isRelayedTx(funcName string) bool {
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
-	if !common.IsRelayedTxV3(tx) {
+	if !common.IsValidRelayedTxV3(tx) {
 		return nil
 	}
 

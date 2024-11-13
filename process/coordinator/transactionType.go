@@ -83,7 +83,7 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.InvalidTransaction
 	}
 
-	if common.IsRelayedTxV3(tx) {
+	if common.IsValidRelayedTxV3(tx) {
 		return process.RelayedTxV3, process.RelayedTxV3
 	}
 

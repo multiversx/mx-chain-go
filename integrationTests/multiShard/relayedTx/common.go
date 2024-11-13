@@ -2,7 +2,6 @@ package relayedTx
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -12,7 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("relayedtests")
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
 func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
@@ -94,7 +96,7 @@ func CreateAndSendRelayedAndUserTx(
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error("CreateAndSendRelayedAndUserTx.SendTransaction", "error", err)
 	}
 
 	return relayedTx, userTx
@@ -117,7 +119,7 @@ func CreateAndSendRelayedAndUserTxV2(
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error("CreateAndSendRelayedAndUserTxV2.SendTransaction", "error", err)
 	}
 
 	return relayedTx, userTx
@@ -139,7 +141,7 @@ func CreateAndSendRelayedAndUserTxV3(
 
 	_, err := txDispatcherNode.SendTransaction(relayedTx)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error("CreateAndSendRelayedAndUserTxV3.SendTransaction", "error", err)
 	}
 
 	return relayedTx, relayedTx
@@ -281,7 +283,7 @@ func createAndSendSimpleTransaction(
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
 	_, err := txDispatcherNode.SendTransaction(userTx)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Error("createAndSendSimpleTransaction.SendTransaction", "error", err)
 	}
 
 }

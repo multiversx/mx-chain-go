@@ -13,7 +13,7 @@ func TestIsRelayedTxV3(t *testing.T) {
 	t.Parallel()
 
 	scr := &smartContractResult.SmartContractResult{}
-	require.False(t, IsRelayedTxV3(scr))
+	require.False(t, IsValidRelayedTxV3(scr))
 
 	notRelayedTxV3 := &transaction.Transaction{
 		Nonce:     1,
@@ -24,7 +24,7 @@ func TestIsRelayedTxV3(t *testing.T) {
 		GasLimit:  10,
 		Signature: []byte("signature"),
 	}
-	require.False(t, IsRelayedTxV3(notRelayedTxV3))
+	require.False(t, IsValidRelayedTxV3(notRelayedTxV3))
 
 	relayedTxV3 := &transaction.Transaction{
 		Nonce:            1,
@@ -37,5 +37,5 @@ func TestIsRelayedTxV3(t *testing.T) {
 		RelayerAddr:      []byte("relayer"),
 		RelayerSignature: []byte("signature"),
 	}
-	require.True(t, IsRelayedTxV3(relayedTxV3))
+	require.True(t, IsValidRelayedTxV3(relayedTxV3))
 }
