@@ -114,7 +114,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 		return
 	}
 
-	// no need to re-verify the proof if as it was already verified when it was added to the proofs pool
+	// no need to re-verify the proof since it was already verified when it was added to the proofs pool
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", proof.GetPubKeysBitmap(),
 		"AggregateSignature", proof.GetAggregatedSignature(),
@@ -222,7 +222,7 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 	return sr.doEndRoundJobByNode()
 }
 
-func (sr *subroundEndRound) commitBlock(proof data.HeaderProofHandler) error {
+func (sr *subroundEndRound) commitBlock() error {
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(sr.GetHeader(), sr.GetBody())
 	elapsedTime := time.Since(startTime)
@@ -234,14 +234,6 @@ func (sr *subroundEndRound) commitBlock(proof data.HeaderProofHandler) error {
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.CommitBlock", "error", err)
 		return err
-	}
-
-	if proof != nil {
-		err = sr.EquivalentProofsPool().AddProof(proof)
-		if err != nil {
-			log.Debug("doEndRoundJobByNode.AddProof", "error", err)
-			return err
-		}
 	}
 
 	return nil
@@ -256,9 +248,19 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	defer sr.mutProcessingEndRound.Unlock()
 
 	proof := sr.sendProof()
-	err := sr.commitBlock(proof)
+
+	err := sr.commitBlock()
 	if err != nil {
 		return false
+	}
+
+	// if proof not nil, it was created and broadcasted so it has to be added to the pool
+	if proof != nil {
+		err = sr.EquivalentProofsPool().AddProof(proof)
+		if err != nil {
+			log.Debug("doEndRoundJobByNode.AddProof", "error", err)
+			return false
+		}
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
@@ -335,6 +337,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 		return nil, nil, err
 	}
 
+	// the header (hash) verified here is with leader signature on it
 	err = sr.SigningHandler().Verify(sr.GetData(), bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.Verify", "error", err.Error())
