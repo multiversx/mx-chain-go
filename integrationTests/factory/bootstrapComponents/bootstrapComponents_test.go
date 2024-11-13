@@ -25,7 +25,7 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
-	accountNonceProvider := testscommon.NewAccountNonceProviderStub()
+	accountNonceProvider := testscommon.NewAccountNonceProviderMock()
 
 	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)

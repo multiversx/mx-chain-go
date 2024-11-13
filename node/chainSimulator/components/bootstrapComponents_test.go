@@ -129,7 +129,7 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 			},
 		},
 		ShardIDStr:           "0",
-		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
 	}
 }
 

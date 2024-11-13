@@ -287,7 +287,7 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 
 // ForgetAllAccountNoncesInMempool forgets all account nonces in the mempool
 func (txPool *shardedTxPool) ForgetAllAccountNoncesInMempool() {
-	selfShardID := strconv.Itoa(int(txPool.selfShardID))
+	selfShardID := core.GetShardIDString(txPool.selfShardID)
 	cache := txPool.getOrCreateShard(selfShardID)
 	cache.Cache.ForgetAllAccountNonces()
 }

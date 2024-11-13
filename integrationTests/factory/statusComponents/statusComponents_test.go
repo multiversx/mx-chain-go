@@ -33,7 +33,7 @@ func TestStatusComponents_Create_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
-	accountNonceProvider := testscommon.NewAccountNonceProviderStub()
+	accountNonceProvider := testscommon.NewAccountNonceProviderMock()
 
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)

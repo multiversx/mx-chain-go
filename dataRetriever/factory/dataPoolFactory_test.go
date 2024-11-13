@@ -57,7 +57,7 @@ func TestNewDataPoolFromConfig_MissingDependencyShouldErr(t *testing.T) {
 	args.AccountNonceProvider = nil
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	require.Equal(t, dataRetriever.ErrNilAccountNonceProvider, err)
+	require.ErrorContains(t, err, "nil account nonce provider while creating the cache for the transactions")
 }
 
 func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
@@ -158,6 +158,6 @@ func getGoodArgs() ArgsDataPool {
 		ShardCoordinator:     mock.NewMultipleShardsCoordinatorMock(),
 		Marshalizer:          &mock.MarshalizerMock{},
 		PathManager:          &testscommon.PathManagerStub{},
-		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
 	}
 }

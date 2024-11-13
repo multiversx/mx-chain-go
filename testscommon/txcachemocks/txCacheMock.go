@@ -2,8 +2,8 @@ package txcachemocks
 
 import "github.com/multiversx/mx-chain-storage-go/txcache"
 
-// TxCacheStub -
-type TxCacheStub struct {
+// TxCacheMock -
+type TxCacheMock struct {
 	ClearCalled             func()
 	PutCalled               func(key []byte, value interface{}, sizeInBytes int) (evicted bool)
 	GetCalled               func(key []byte) (value interface{}, ok bool)
@@ -32,19 +32,19 @@ type TxCacheStub struct {
 }
 
 // NewTxCacheStub -
-func NewTxCacheStub() *TxCacheStub {
-	return &TxCacheStub{}
+func NewTxCacheStub() *TxCacheMock {
+	return &TxCacheMock{}
 }
 
 // Clear -
-func (cache *TxCacheStub) Clear() {
+func (cache *TxCacheMock) Clear() {
 	if cache.ClearCalled != nil {
 		cache.ClearCalled()
 	}
 }
 
 // Put -
-func (cache *TxCacheStub) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+func (cache *TxCacheMock) Put(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 	if cache.PutCalled != nil {
 		return cache.PutCalled(key, value, sizeInBytes)
 	}
@@ -53,7 +53,7 @@ func (cache *TxCacheStub) Put(key []byte, value interface{}, sizeInBytes int) (e
 }
 
 // Get -
-func (cache *TxCacheStub) Get(key []byte) (value interface{}, ok bool) {
+func (cache *TxCacheMock) Get(key []byte) (value interface{}, ok bool) {
 	if cache.GetCalled != nil {
 		return cache.GetCalled(key)
 	}
@@ -62,7 +62,7 @@ func (cache *TxCacheStub) Get(key []byte) (value interface{}, ok bool) {
 }
 
 // Has -
-func (cache *TxCacheStub) Has(key []byte) bool {
+func (cache *TxCacheMock) Has(key []byte) bool {
 	if cache.HasCalled != nil {
 		return cache.HasCalled(key)
 	}
@@ -71,7 +71,7 @@ func (cache *TxCacheStub) Has(key []byte) bool {
 }
 
 // Peek -
-func (cache *TxCacheStub) Peek(key []byte) (value interface{}, ok bool) {
+func (cache *TxCacheMock) Peek(key []byte) (value interface{}, ok bool) {
 	if cache.PeekCalled != nil {
 		return cache.PeekCalled(key)
 	}
@@ -80,7 +80,7 @@ func (cache *TxCacheStub) Peek(key []byte) (value interface{}, ok bool) {
 }
 
 // HasOrAdd -
-func (cache *TxCacheStub) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
+func (cache *TxCacheMock) HasOrAdd(key []byte, value interface{}, sizeInBytes int) (has, added bool) {
 	if cache.HasOrAddCalled != nil {
 		return cache.HasOrAddCalled(key, value, sizeInBytes)
 	}
@@ -89,14 +89,14 @@ func (cache *TxCacheStub) HasOrAdd(key []byte, value interface{}, sizeInBytes in
 }
 
 // Remove -
-func (cache *TxCacheStub) Remove(key []byte) {
+func (cache *TxCacheMock) Remove(key []byte) {
 	if cache.RemoveCalled != nil {
 		cache.RemoveCalled(key)
 	}
 }
 
 // Keys -
-func (cache *TxCacheStub) Keys() [][]byte {
+func (cache *TxCacheMock) Keys() [][]byte {
 	if cache.KeysCalled != nil {
 		return cache.KeysCalled()
 	}
@@ -105,7 +105,7 @@ func (cache *TxCacheStub) Keys() [][]byte {
 }
 
 // Len -
-func (cache *TxCacheStub) Len() int {
+func (cache *TxCacheMock) Len() int {
 	if cache.LenCalled != nil {
 		return cache.LenCalled()
 	}
@@ -114,12 +114,12 @@ func (cache *TxCacheStub) Len() int {
 }
 
 // SizeInBytesContained -
-func (cache *TxCacheStub) SizeInBytesContained() uint64 {
+func (cache *TxCacheMock) SizeInBytesContained() uint64 {
 	return 0
 }
 
 // MaxSize -
-func (cache *TxCacheStub) MaxSize() int {
+func (cache *TxCacheMock) MaxSize() int {
 	if cache.MaxSizeCalled != nil {
 		return cache.MaxSizeCalled()
 	}
@@ -128,21 +128,21 @@ func (cache *TxCacheStub) MaxSize() int {
 }
 
 // RegisterHandler -
-func (cache *TxCacheStub) RegisterHandler(handler func(key []byte, value interface{}), _ string) {
+func (cache *TxCacheMock) RegisterHandler(handler func(key []byte, value interface{}), _ string) {
 	if cache.RegisterHandlerCalled != nil {
 		cache.RegisterHandlerCalled(handler)
 	}
 }
 
 // UnRegisterHandler -
-func (cache *TxCacheStub) UnRegisterHandler(id string) {
+func (cache *TxCacheMock) UnRegisterHandler(id string) {
 	if cache.UnRegisterHandlerCalled != nil {
 		cache.UnRegisterHandlerCalled(id)
 	}
 }
 
 // Close -
-func (cache *TxCacheStub) Close() error {
+func (cache *TxCacheMock) Close() error {
 	if cache.CloseCalled != nil {
 		return cache.CloseCalled()
 	}
@@ -151,7 +151,7 @@ func (cache *TxCacheStub) Close() error {
 }
 
 // AddTx -
-func (cache *TxCacheStub) AddTx(tx *txcache.WrappedTransaction) (ok bool, added bool) {
+func (cache *TxCacheMock) AddTx(tx *txcache.WrappedTransaction) (ok bool, added bool) {
 	if cache.AddTxCalled != nil {
 		return cache.AddTxCalled(tx)
 	}
@@ -160,21 +160,21 @@ func (cache *TxCacheStub) AddTx(tx *txcache.WrappedTransaction) (ok bool, added 
 }
 
 // NotifyAccountNonce -
-func (cache *TxCacheStub) NotifyAccountNonce(accountKey []byte, nonce uint64) {
+func (cache *TxCacheMock) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	if cache.NotifyAccountNonceCalled != nil {
 		cache.NotifyAccountNonceCalled(accountKey, nonce)
 	}
 }
 
 // ForgetAllAccountNonces -
-func (cache *TxCacheStub) ForgetAllAccountNonces() {
+func (cache *TxCacheMock) ForgetAllAccountNonces() {
 	if cache.ForgetAllAccountNoncesCalled != nil {
 		cache.ForgetAllAccountNoncesCalled()
 	}
 }
 
 // GetByTxHash -
-func (cache *TxCacheStub) GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool) {
+func (cache *TxCacheMock) GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool) {
 	if cache.GetByTxHashCalled != nil {
 		return cache.GetByTxHashCalled(txHash)
 	}
@@ -183,7 +183,7 @@ func (cache *TxCacheStub) GetByTxHash(txHash []byte) (*txcache.WrappedTransactio
 }
 
 // RemoveTxByHash -
-func (cache *TxCacheStub) RemoveTxByHash(txHash []byte) bool {
+func (cache *TxCacheMock) RemoveTxByHash(txHash []byte) bool {
 	if cache.RemoveTxByHashCalled != nil {
 		return cache.RemoveTxByHashCalled(txHash)
 	}
@@ -192,21 +192,21 @@ func (cache *TxCacheStub) RemoveTxByHash(txHash []byte) bool {
 }
 
 // ImmunizeTxsAgainstEviction -
-func (cache *TxCacheStub) ImmunizeTxsAgainstEviction(keys [][]byte) {
+func (cache *TxCacheMock) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	if cache.ImmunizeTxsAgainstEvictionCalled != nil {
 		cache.ImmunizeTxsAgainstEvictionCalled(keys)
 	}
 }
 
 // ForEachTransaction -
-func (cache *TxCacheStub) ForEachTransaction(fn txcache.ForEachTransaction) {
+func (cache *TxCacheMock) ForEachTransaction(fn txcache.ForEachTransaction) {
 	if cache.ForEachTransactionCalled != nil {
 		cache.ForEachTransactionCalled(fn)
 	}
 }
 
 // NumBytes -
-func (cache *TxCacheStub) NumBytes() int {
+func (cache *TxCacheMock) NumBytes() int {
 	if cache.NumBytesCalled != nil {
 		return cache.NumBytesCalled()
 	}
@@ -215,14 +215,14 @@ func (cache *TxCacheStub) NumBytes() int {
 }
 
 // Diagnose -
-func (cache *TxCacheStub) Diagnose(deep bool) {
+func (cache *TxCacheMock) Diagnose(deep bool) {
 	if cache.DiagnoseCalled != nil {
 		cache.DiagnoseCalled(deep)
 	}
 }
 
 // GetTransactionsPoolForSender -
-func (cache *TxCacheStub) GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction {
+func (cache *TxCacheMock) GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction {
 	if cache.GetTransactionsPoolForSenderCalled != nil {
 		return cache.GetTransactionsPoolForSenderCalled(sender)
 	}
@@ -231,6 +231,6 @@ func (cache *TxCacheStub) GetTransactionsPoolForSender(sender string) []*txcache
 }
 
 // IsInterfaceNil -
-func (cache *TxCacheStub) IsInterfaceNil() bool {
+func (cache *TxCacheMock) IsInterfaceNil() bool {
 	return cache == nil
 }

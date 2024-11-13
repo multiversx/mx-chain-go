@@ -41,7 +41,7 @@ func (args *ArgShardedTxPool) verify() error {
 		return fmt.Errorf("%w: TxGasHandler is not valid", dataRetriever.ErrNilTxGasHandler)
 	}
 	if check.IfNil(args.AccountNonceProvider) {
-		return fmt.Errorf("%w: AccountNonceProvider is not valid", dataRetriever.ErrNilAccountNonceProvider)
+		return dataRetriever.ErrNilAccountNonceProvider
 	}
 	if args.NumberOfShards == 0 {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)

@@ -7,19 +7,19 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-type accountNonceProviderStub struct {
+type accountNonceProviderMock struct {
 	accountsAdapter state.AccountsAdapter
 
 	GetAccountNonceCalled func(address []byte) (uint64, error)
 }
 
-// NewAccountNonceProviderStub -
-func NewAccountNonceProviderStub() *accountNonceProviderStub {
-	return &accountNonceProviderStub{}
+// NewAccountNonceProviderMock -
+func NewAccountNonceProviderMock() *accountNonceProviderMock {
+	return &accountNonceProviderMock{}
 }
 
 // GetAccountNonce -
-func (stub *accountNonceProviderStub) GetAccountNonce(address []byte) (uint64, error) {
+func (stub *accountNonceProviderMock) GetAccountNonce(address []byte) (uint64, error) {
 	if stub.GetAccountNonceCalled != nil {
 		return stub.GetAccountNonceCalled(address)
 	}
@@ -37,12 +37,12 @@ func (stub *accountNonceProviderStub) GetAccountNonce(address []byte) (uint64, e
 }
 
 // SetAccountsAdapter -
-func (stub *accountNonceProviderStub) SetAccountsAdapter(accountsAdapter state.AccountsAdapter) error {
+func (stub *accountNonceProviderMock) SetAccountsAdapter(accountsAdapter state.AccountsAdapter) error {
 	stub.accountsAdapter = accountsAdapter
 	return nil
 }
 
 // IsInterfaceNil -
-func (stub *accountNonceProviderStub) IsInterfaceNil() bool {
+func (stub *accountNonceProviderMock) IsInterfaceNil() bool {
 	return stub == nil
 }

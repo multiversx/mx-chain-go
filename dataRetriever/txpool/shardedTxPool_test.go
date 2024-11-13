@@ -109,7 +109,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	args := ArgShardedTxPool{
 		Config:               config,
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
 		NumberOfShards:       2,
 	}
 
@@ -232,13 +232,13 @@ func TestShardedTxPool_AddData_CallsNotifyAccountNonce(t *testing.T) {
 	_ = pool.getOrCreateShard("0")
 	_ = pool.getOrCreateShard("1_0")
 
-	pool.backingMap["0"].Cache = &txcachemocks.TxCacheStub{
+	pool.backingMap["0"].Cache = &txcachemocks.TxCacheMock{
 		NotifyAccountNonceCalled: func(accountKey []byte, nonce uint64) {
 			breadcrumbs = append(breadcrumbs, fmt.Sprintf("0::%s_%d", string(accountKey), nonce))
 		},
 	}
 
-	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheStub{
+	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheMock{
 		NotifyAccountNonceCalled: func(accountKey []byte, nonce uint64) {
 			breadcrumbs = append(breadcrumbs, fmt.Sprintf("1_0::%s_%d", string(accountKey), nonce))
 		},
@@ -262,13 +262,13 @@ func TestShardedTxPool_AddData_ForgetAllAccountNoncesInMempool(t *testing.T) {
 
 	breadcrumbs := make([]string, 0)
 
-	pool.backingMap["0"].Cache = &txcachemocks.TxCacheStub{
+	pool.backingMap["0"].Cache = &txcachemocks.TxCacheMock{
 		ForgetAllAccountNoncesCalled: func() {
 			breadcrumbs = append(breadcrumbs, "0")
 		},
 	}
 
-	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheStub{
+	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheMock{
 		ForgetAllAccountNoncesCalled: func() {
 			breadcrumbs = append(breadcrumbs, "1_0")
 		},
@@ -460,7 +460,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 	args := ArgShardedTxPool{
 		Config:               config,
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
 		NumberOfShards:       4,
 		SelfShardID:          42,
 	}
@@ -501,7 +501,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	args := ArgShardedTxPool{
 		Config:               config,
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
 		NumberOfShards:       4,
 		SelfShardID:          0,
 	}

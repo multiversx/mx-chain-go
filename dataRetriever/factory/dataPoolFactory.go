@@ -60,9 +60,6 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	if check.IfNil(args.PathManager) {
 		return nil, dataRetriever.ErrNilPathManager
 	}
-	if check.IfNil(args.AccountNonceProvider) {
-		return nil, dataRetriever.ErrNilAccountNonceProvider
-	}
 
 	mainConfig := args.Config
 
