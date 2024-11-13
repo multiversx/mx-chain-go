@@ -106,7 +106,7 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	tokenName := "SovToken"
 	tokenTicker := "SVN"
 	numDecimals := 18
-	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
 
 	amountToDeposit, _ := big.NewInt(0).SetString("2000000000000000000", 10)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)

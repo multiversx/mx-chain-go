@@ -72,7 +72,7 @@ func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 	tokenName := "SovereignTkn"
 	tokenTicker := "SVN"
 	numDecimals := 18
-	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
 
 	issuedESDTs, err = nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("")
 	require.Nil(t, err)

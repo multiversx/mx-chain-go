@@ -136,7 +136,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		// register sovereign token identifier
 		// this will issue a new token on main chain and create a mapper between the identifiers
 		registerTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, token)
-		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), getTokenTicker(token.Identifier), token.Type.String())
+		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs, getTokenTicker(token.Identifier), token.Type.String())
 
 		// create random receiver addresses in a shard
 		receiver, _ := cs.GenerateAndMintWalletAddress(receiverShardId, chainSim.InitialAmount)
@@ -447,7 +447,7 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		// register sovereign token identifier
 		// this will issue a new token on main chain and create a mapper between the identifiers
 		registerTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, token)
-		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs.GetNodeHandler(core.MetachainShardId), getTokenTicker(token.Identifier), token.Type.String())
+		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs, getTokenTicker(token.Identifier), token.Type.String())
 
 		// get contract from next shard
 		receiver := receiverContracts[receiverShardId]
@@ -512,7 +512,7 @@ func generateAccountsAndTokens(
 
 	account, accountAddrBytes := createNewAccount(cs, &accountShardId)
 	supply := big.NewInt(14556666767)
-	tokenId := chainSim.IssueFungible(t, cs, cs.GetNodeHandler(core.MetachainShardId), accountAddrBytes, &account.nonce, issueCost, "TKN", "TKN", 18, supply)
+	tokenId := chainSim.IssueFungible(t, cs, accountAddrBytes, &account.nonce, issueCost, "TKN", "TKN", 18, supply)
 	token := chainSim.ArgsDepositToken{
 		Identifier: tokenId,
 		Nonce:      uint64(0),
