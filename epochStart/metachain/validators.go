@@ -117,7 +117,8 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo st
 		miniBlocks = append(miniBlocks, miniBlock)
 	}
 
-	validators := validatorsMap[core.MetachainShardId]
+	// cut here processing further
+	validators := validatorsMap[core.MainChainShardId] //SovereignChainShardId
 	if len(validators) == 0 {
 		return miniBlocks, nil
 	}

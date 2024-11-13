@@ -205,9 +205,9 @@ func (ts *transactionsSync) requestTransactionsForNonPeerMiniBlock(miniBlock *bl
 	case block.SmartContractResultBlock:
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.SenderShardID, missingTxs)
 		ts.requestHandler.RequestUnsignedTransactions(miniBlock.ReceiverShardID, missingTxs)
-	case block.RewardsBlock:
-		ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
-		ts.requestHandler.RequestRewardTransactions(miniBlock.ReceiverShardID, missingTxs)
+		//case block.RewardsBlock: // maybe disable this
+		//	ts.requestHandler.RequestRewardTransactions(miniBlock.SenderShardID, missingTxs)
+		//	ts.requestHandler.RequestRewardTransactions(miniBlock.ReceiverShardID, missingTxs)
 	}
 
 	return len(missingTxs)

@@ -1014,6 +1014,12 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 		return err
 	}
 
+	for idx, mbHeaderHandler := range miniBlockHeaderHandlers {
+		mb := body.MiniBlocks[idx]
+		hash := mbHeaderHandler.GetHash()
+		scbp.dataPool.MiniBlocks().Put(hash, mb, mb.Size())
+	}
+
 	err = header.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	if err != nil {
 		return err
@@ -1061,6 +1067,9 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 	}
 
 	scbp.blockSizeThrottler.Add(header.GetRound(), uint32(len(marshaledBody)))
+
+	scbp.createEpochStartData(body)
+
 	return nil
 }
 
@@ -1610,7 +1619,7 @@ func (scbp *sovereignChainBlockProcessor) indexValidatorsRatingIfNeeded(
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-		scbp.createEpochStartData(body)
+		//scbp.createEpochStartData(body)
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 
 		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
