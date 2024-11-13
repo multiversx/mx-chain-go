@@ -23,6 +23,7 @@ import (
 // delegate 500 EGLD from a new address
 // migrate 100 EGLD from sp1 to sp2 should work
 // migrate 100 EGLD from sp2 to sp1 should NOT WORK (is in cool down period)
+// delegate 100 EGLD from first address to sp2
 func TestMigrateStakingProviderHappyFlow(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -104,6 +105,21 @@ func TestMigrateStakingProviderHappyFlow(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, moveDelegationTx)
 
+	// move second time 100 egld from sp1 --> sp2 should work
+	moveValue = big.NewInt(0).Mul(big.NewInt(100), chainSimulatorIntegrationTests.OneEGLD)
+	dataField = fmt.Sprintf("changeStakingProvider@%s@%s@%s", hex.EncodeToString(moveValue.Bytes()), hex.EncodeToString(sp1AddressBytes), hex.EncodeToString(sp2AddressBytes))
+	tx = chainSimulatorIntegrationTests.GenerateTransaction(delegator.Bytes, staking.GetNonce(t, cs, delegator), vm.DelegationManagerSCAddress, big.NewInt(0), dataField, 80_000_000)
+	moveDelegationTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, moveDelegationTx)
+
+	// delegate 100 EGLD to sp2
+	delegateValue = big.NewInt(0).Mul(big.NewInt(100), chainSimulatorIntegrationTests.OneEGLD)
+	txDelegate1 = chainSimulatorIntegrationTests.GenerateTransaction(delegator.Bytes, staking.GetNonce(t, cs, delegator), sp2AddressBytes, delegateValue, "delegate", gasLimitForDelegate)
+	delegate1Tx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txDelegate1, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, delegate1Tx)
+
 	// move 100 egld from sp2 --> sp1 should NOT work (is in cool down period)
 	moveValue = big.NewInt(0).Mul(big.NewInt(100), chainSimulatorIntegrationTests.OneEGLD)
 	dataField = fmt.Sprintf("changeStakingProvider@%s@%s@%s", hex.EncodeToString(moveValue.Bytes()), hex.EncodeToString(sp2AddressBytes), hex.EncodeToString(sp1AddressBytes))
@@ -119,9 +135,9 @@ func TestMigrateStakingProviderHappyFlow(t *testing.T) {
 	// check delegation values for delegator in sp1 and sp2
 	output, err := executeQuery(cs, core.MetachainShardId, sp1AddressBytes, "getUserActiveStake", [][]byte{delegator.Bytes})
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(0).Mul(big.NewInt(400), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
+	require.Equal(t, big.NewInt(0).Mul(big.NewInt(300), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
 
 	output, err = executeQuery(cs, core.MetachainShardId, sp2AddressBytes, "getUserActiveStake", [][]byte{delegator.Bytes})
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(0).Mul(big.NewInt(100), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
+	require.Equal(t, big.NewInt(0).Mul(big.NewInt(300), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
 }
