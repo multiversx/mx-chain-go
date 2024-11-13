@@ -30,6 +30,7 @@ type SposWorkerMock struct {
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 	ResetConsensusMessagesCalled           func()
+	ReceivedProofCalled                    func(proofHandler consensus.ProofHandler)
 }
 
 // AddReceivedMessageCall -
@@ -134,6 +135,13 @@ func (sposWorkerMock *SposWorkerMock) StartWorking() {
 func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
 	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
 		sposWorkerMock.ResetConsensusMessagesCalled()
+	}
+}
+
+// ReceivedProof -
+func (sposWorkerMock *SposWorkerMock) ReceivedProof(proofHandler consensus.ProofHandler) {
+	if sposWorkerMock.ReceivedProofCalled != nil {
+		sposWorkerMock.ReceivedProofCalled(proofHandler)
 	}
 }
 

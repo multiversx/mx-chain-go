@@ -404,6 +404,8 @@ type ConsensusWorker interface {
 	ResetConsensusMessages()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	// ReceivedProof will handle a received proof in consensus worker
+	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

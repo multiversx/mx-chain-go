@@ -271,11 +271,6 @@ func (sr *subroundEndRound) ReceivedProof(proof consensus.ProofHandler) {
 	sr.receivedProof(proof)
 }
 
-// IsConsensusHeaderReceived calls the unexported isConsensusHeaderReceived function
-func (sr *subroundEndRound) IsConsensusHeaderReceived() (bool, data.HeaderHandler) {
-	return sr.isConsensusHeaderReceived()
-}
-
 // IsOutOfTime calls the unexported isOutOfTime function
 func (sr *subroundEndRound) IsOutOfTime() bool {
 	return sr.isOutOfTime()
@@ -339,4 +334,9 @@ func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool
 // DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
 func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
 	return sr.doSignatureJobForManagedKeys(ctx)
+}
+
+// ReceivedSignature method is called when a signature is received through the signature channel
+func (sr *subroundEndRound) ReceivedSignature(cnsDta *consensus.Message) bool {
+	return sr.receivedSignature(context.Background(), cnsDta)
 }

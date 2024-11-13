@@ -73,7 +73,7 @@ type Worker struct {
 	receivedHeadersHandlers   []func(headerHandler data.HeaderHandler)
 	mutReceivedHeadersHandler sync.RWMutex
 
-	receivedProofHandler    []func(proofHandler consensus.ProofHandler)
+	receivedProofHandlers   []func(proofHandler consensus.ProofHandler)
 	mutReceivedProofHandler sync.RWMutex
 
 	antifloodHandler consensus.P2PAntifloodHandler
@@ -310,10 +310,21 @@ func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 	wrk.mutReceivedHeadersHandler.Unlock()
 }
 
+// ReceivedProof process the received proof, calling each received proof handler registered in worker instance
+func (wrk *Worker) ReceivedProof(proofHandler consensus.ProofHandler) {
+	// TODO: add preliminary checks
+
+	wrk.mutReceivedProofHandler.RLock()
+	for _, handler := range wrk.receivedProofHandlers {
+		handler(proofHandler)
+	}
+	wrk.mutReceivedProofHandler.RUnlock()
+}
+
 // AddReceivedProofHandler adds a new handler function for a received proof
 func (wrk *Worker) AddReceivedProofHandler(handler func(proofHandler consensus.ProofHandler)) {
 	wrk.mutReceivedProofHandler.Lock()
-	wrk.receivedProofHandler = append(wrk.receivedProofHandler, handler)
+	wrk.receivedProofHandlers = append(wrk.receivedProofHandlers, handler)
 	wrk.mutReceivedProofHandler.Unlock()
 }
 
