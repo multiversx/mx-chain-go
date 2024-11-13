@@ -33,7 +33,6 @@ type subroundEndRound struct {
 	sentSignatureTracker          spos.SentSignaturesTracker
 	worker                        spos.WorkerHandler
 	signatureThrottler            core.Throttler
-	blockCommitted                bool
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -70,7 +69,6 @@ func NewSubroundEndRound(
 		sentSignatureTracker:          sentSignatureTracker,
 		worker:                        worker,
 		signatureThrottler:            signatureThrottler,
-		blockCommitted:                false,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -225,10 +223,6 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 }
 
 func (sr *subroundEndRound) commitBlock(proof data.HeaderProofHandler) error {
-	if sr.blockCommitted {
-		return nil
-	}
-
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(sr.GetHeader(), sr.GetBody())
 	elapsedTime := time.Since(startTime)
@@ -544,7 +538,7 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
-	if !sr.IsSelfLeader() {
+	if !sr.ShouldConsiderSelfKeyInConsensus() {
 		return
 	}
 
