@@ -50,21 +50,21 @@ gasPerDataByte = 1_500
 
 #### Examples
 
-(a) A simple native transfer with `gasLimit = 50_000` and `gasPrice = 1_000_000_000`:
+**(a)** A simple native transfer with `gasLimit = 50_000` and `gasPrice = 1_000_000_000`:
 
 ```
 initiallyPaidFee = 50_000_000_000 atoms
 ppu = 1_000_000_000 atoms
 ```
 
-(b) A simple native transfer with `gasLimit = 50_000` and `gasPrice = 1_500_000_000`:
+**(b)** A simple native transfer with `gasLimit = 50_000` and `gasPrice = 1_500_000_000`:
 
 ```
 initiallyPaidFee = gasLimit * gasPrice = 75_000_000_000 atoms
 ppu = 75_000_000_000 / 50_000 = 1_500_000_000 atoms
 ```
 
-(c) A simple native transfer with a data payload of 7 bytes, with `gasLimit = 50_000 + 7 * 1500` and `gasPrice = 1_000_000_000`:
+**(c)** A simple native transfer with a data payload of 7 bytes, with `gasLimit = 50_000 + 7 * 1500` and `gasPrice = 1_000_000_000`:
 
 ```
 initiallyPaidFee = 60_500_000_000_000 atoms
@@ -73,21 +73,21 @@ ppu = 60_500_000_000_000 / 60_500 = 1_000_000_000 atoms
 
 That is, for simple native transfers (whether they hold a data payload or not), the PPU is equal to the gas price.
 
-(d) A contract call with `gasLimit = 75_000_000` and `gasPrice = 1_000_000_000`, with a data payload of `42` bytes:
+**(d)** A contract call with `gasLimit = 75_000_000` and `gasPrice = 1_000_000_000`, with a data payload of `42` bytes:
 
 ```
 initiallyPaidFee = 861_870_000_000_000 atoms
 ppu = 11_491_600 atoms
 ```
 
-(e) Similar to (d), but with `gasPrice = 2_000_000_000`:
+**(e)** Similar to **(d)**, but with `gasPrice = 2_000_000_000`:
 
 ```
 initiallyPaidFee = 1_723_740_000_000_000 atoms
 ppu = 22_983_200 atoms
 ```
 
-That is, for contract calls, the PPU is not equal to the gas price, but much lower, due to the contract call _cost subsidy_. A higer gas price will result in a higher PPU.
+That is, for contract calls, the PPU is not equal to the gas price, but much lower, due to the contract call _cost subsidy_. **A higher gas price will result in a higher PPU.**
 
 ### Paragraph 3
 
@@ -180,3 +180,8 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
      - The selection loop can terminate early if either of the following conditions is satisfied before all transactions are processed:
        - The accumulated gas of selected transactions meets or exceeds `gasRequested`.
        - The number of selected transactions reaches `maxNum`.
+
+
+### Paragraph 5
+
+On the node's side, the selected transactions are shuffled using a deterministic algorithm. This shuffling ensures that the transaction order remains unpredictable to the proposer, effectively preventing _front-running attacks_. Therefore, being selected first by the mempool does not guarantee that a transaction will be included first in the block. Additionally, selection by the mempool does not ensure inclusion in the very next block, as the proposer has the final authority on which transactions to include, based on **the remaining space available** in the block.
