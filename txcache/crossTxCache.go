@@ -121,7 +121,6 @@ func (cache *CrossTxCache) NotifyAccountNonce(_ []byte, _ uint64) {
 
 // ForgetAllAccountNonces does nothing, only to respect the interface
 func (cache *CrossTxCache) ForgetAllAccountNonces() {
-	log.Error("CrossTxCache.ForgetAllAccountNonces is not implemented")
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

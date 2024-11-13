@@ -283,7 +283,7 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 }
 
 // ForgetAllAccountNonces clears all known account nonces.
-// Generally speaking, should be called when a block is reverted.
+// Should be called when a block is reverted.
 func (cache *TxCache) ForgetAllAccountNonces() {
 	log.Debug("TxCache.ForgetAllAccountNonces", "name", cache.name)
 
