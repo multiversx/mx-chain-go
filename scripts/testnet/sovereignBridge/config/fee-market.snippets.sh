@@ -15,9 +15,7 @@ deployFeeMarketContract() {
         --gas-limit=200000000 \
         --arguments \
             ${ESDT_SAFE_ADDRESS} \
-            ${PRICE_AGGREGATOR_ADDRESS} \
-            str:${USDC_TOKEN_ID} \
-            str:${WEGLD_TOKEN_ID} \
+            00 \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
@@ -77,19 +75,19 @@ upgradeFeeMarketContractCall() {
     printTxStatus ${OUTFILE}
 }
 
-enableFeeMarketContract() {
-    echo "Enabling Fee Market contract on main chain..."
+removeFeeInFeeMarketContract() {
+    echo "Removing fee in Fee Market contract on main chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/enable-feemarket-contract.interaction.json"
-    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
+    local OUTFILE="${OUTFILE_PATH}/remove-fee-fee-market-contract.interaction.json"
+    removeFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
-enableFeeMarketContractSovereign() {
-    echo "Enabling Fee Market contract on sovereign chain..."
+removeFeeInFeeMarketContractSovereign() {
+    echo "Removing fee in Fee Market contract on sovereign chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/enable-feemarket-contract-sovereign.interaction.json"
-    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
+    local OUTFILE="${OUTFILE_PATH}/remove-fee-fee-market-contract-sovereign.interaction.json"
+    removeFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
-enableFeeMarketContractCall() {
+removeFeeInFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
         echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
         exit 1
@@ -105,44 +103,7 @@ enableFeeMarketContractCall() {
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
-        --function="enableFee" \
-        --outfile=${OUTFILE} \
-        --recall-nonce \
-        --wait-result \
-        --send || return
-
-    printTxStatus ${OUTFILE}
-}
-
-disableFeeInFeeMarketContract() {
-    echo "Disabling Fee in Fee Market contract on main chain..."
-
-    local OUTFILE="${OUTFILE_PATH}/disable-feemarket-contract.interaction.json"
-    disableFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
-}
-disableFeeInFeeMarketContractSovereign() {
-    echo "Disabling Fee in Fee Market contract on sovereign chain..."
-
-    local OUTFILE="${OUTFILE_PATH}/disable-feemarket-contract-sovereign.interaction.json"
-    disableFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
-}
-disableFeeInFeeMarketContractCall() {
-    if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
-    fi
-
-    local ADDRESS=$1
-    local URL=$2
-    local CHAIN=$3
-    local OUTFILE=$4
-
-    mxpy contract call ${ADDRESS} \
-        --pem=${WALLET} \
-        --proxy=${URL} \
-        --chain=${CHAIN} \
-        --gas-limit=10000000 \
-        --function="disableFee" \
+        --function="removeFee" \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
@@ -152,15 +113,15 @@ disableFeeInFeeMarketContractCall() {
 }
 
 setFixedFeeMarketContract() {
-    echo "Setting fixed fee in market contract on main chain..."
+    echo "Setting fixed fee in Fee Market contract on main chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-fixed-feemarket-contract.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-fixed-fee-fee-market-contract.interaction.json"
     setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 setFixedFeeMarketContractSovereign() {
-    echo "Setting fixed fee in market contract on sovereign chain..."
+    echo "Setting fixed fee in Fee Market contract on sovereign chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-fixed-feemarket-contract-sovereign.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-fixed-fee-fee-market-contract-sovereign.interaction.json"
     setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 setFixedFeeMarketContractCall() {
@@ -179,7 +140,7 @@ setFixedFeeMarketContractCall() {
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
-        --function="addFee" \
+        --function="setFee" \
         --arguments \
             str:SVN-c53da0 \
             0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
@@ -192,15 +153,15 @@ setFixedFeeMarketContractCall() {
 }
 
 setAnyTokenFeeMarketContract() {
-    echo "Setting any token fee in market contract on main chain..."
+    echo "Setting any token fee in Fee Market contract on main chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-anytoken-feemarket-contract.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-anytoken-fee-fee-market-contract.interaction.json"
     setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 setAnyTokenFeeMarketContractSovereign() {
-    echo "Setting any token fee in market contract on sovereign chain..."
+    echo "Setting any token fee in Fee Market contract on sovereign chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/set-anytoken-feemarket-contract-sovereign.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-anytoken-fee-fee-market-contract-sovereign.interaction.json"
     setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 setAnyTokenFeeMarketContractCall() {
