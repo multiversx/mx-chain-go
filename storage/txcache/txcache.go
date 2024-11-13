@@ -10,6 +10,9 @@ type WrappedTransaction = txcache.WrappedTransaction
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler = txcache.TxGasHandler
 
+// AccountNonceProvider provides the nonce for an account
+type AccountNonceProvider = txcache.AccountNonceProvider
+
 // ForEachTransaction is an iterator callback
 type ForEachTransaction = txcache.ForEachTransaction
 
@@ -29,8 +32,8 @@ type DisabledCache = txcache.DisabledCache
 type CrossTxCache = txcache.CrossTxCache
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
-	return txcache.NewTxCache(config, txGasHandler)
+func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler, accountNonceProvider AccountNonceProvider) (*TxCache, error) {
+	return txcache.NewTxCache(config, txGasHandler, accountNonceProvider)
 }
 
 // NewDisabledCache creates a new disabled cache
