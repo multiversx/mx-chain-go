@@ -53,19 +53,8 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 		if len(selectedTransactions) >= maxNum {
 			break
 		}
-		if !item.senderNonceAsked {
-			item.senderNonceAsked = true
 
-			sender := item.transaction.Tx.GetSndAddr()
-			senderNonce, err := cache.accountNonceProvider.GetAccountNonce(sender)
-			if err != nil {
-				// Hazardous; should never happen.
-				logSelect.Debug("TxCache.selectTransactionsFromBunches: nonce not available", "sender", sender, "err", err)
-			} else {
-				item.senderNonceTold = true
-				item.senderNonce = senderNonce
-			}
-		}
+		cache.askAboutAccountNonceIfNecessary(item)
 
 		isInitialGap := item.transactionIndex == 0 && item.senderNonceTold && nonce > item.senderNonce
 		if isInitialGap {
@@ -81,6 +70,8 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 		if isLowerNonce {
 			sender := item.transaction.Tx.GetSndAddr()
 			log.Trace("TxCache.selectTransactionsFromBunches, lower nonce", "sender", sender, "nonce", nonce, "senderNonce", item.senderNonce)
+
+			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
 			accumulatedGas += gasLimit
 			selectedTransactions = append(selectedTransactions, item.transaction)
@@ -98,4 +89,23 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 	}
 
 	return selectedTransactions, accumulatedGas
+}
+
+func (cache *TxCache) askAboutAccountNonceIfNecessary(item *transactionsHeapItem) {
+	if item.senderNonceAsked {
+		return
+	}
+
+	item.senderNonceAsked = true
+
+	sender := item.transaction.Tx.GetSndAddr()
+	senderNonce, err := cache.accountNonceProvider.GetAccountNonce(sender)
+	if err != nil {
+		// Hazardous; should never happen.
+		logSelect.Debug("TxCache.selectTransactionsFromBunches: nonce not available", "sender", sender, "err", err)
+		return
+	}
+
+	item.senderNonceTold = true
+	item.senderNonce = senderNonce
 }
