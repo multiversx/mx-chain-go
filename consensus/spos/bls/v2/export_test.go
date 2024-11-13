@@ -335,3 +335,8 @@ func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool
 func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
 	return sr.doSignatureJobForManagedKeys(ctx)
 }
+
+// ReceivedSignature method is called when a signature is received through the signature channel
+func (sr *subroundEndRound) ReceivedSignature(cnsDta *consensus.Message) bool {
+	return sr.receivedSignature(context.Background(), cnsDta)
+}

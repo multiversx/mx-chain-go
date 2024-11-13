@@ -674,37 +674,6 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 	return false
 }
 
-func (sr *subroundEndRound) getIndexPk() (int, []byte, error) {
-	minIdx := sr.getMinConsensusGroupIndexOfManagedKeys()
-
-	idx, err := sr.SelfConsensusGroupIndex()
-	if err == nil {
-		if idx < minIdx {
-			minIdx = idx
-		}
-	}
-
-	if minIdx == sr.ConsensusGroupSize() {
-		return -1, nil, err
-	}
-
-	return minIdx, []byte(sr.ConsensusGroup()[minIdx]), nil
-}
-
-func (sr *subroundEndRound) getIndexPkAndDataToBroadcast() (int, []byte, map[uint32][]byte, map[string][][]byte, error) {
-	minIdx, pk, err := sr.getIndexPk()
-	if err != nil {
-		return -1, nil, nil, nil, err
-	}
-
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
-	if err != nil {
-		return -1, nil, nil, nil, err
-	}
-
-	return minIdx, pk, miniBlocks, transactions, nil
-}
-
 func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	minIdx := sr.ConsensusGroupSize()
 

@@ -1800,3 +1800,137 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		assert.Equal(t, 8, srEndRound.GetMinConsensusGroupIndexOfManagedKeys())
 	})
 }
+
+func TestSubroundSignature_ReceivedSignature(t *testing.T) {
+	t.Parallel()
+
+	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+	signature := []byte("signature")
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.GetData(),
+		signature,
+		nil,
+		nil,
+		[]byte(sr.ConsensusGroup()[1]),
+		[]byte("sig"),
+		int(bls.MtSignature),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+
+	sr.SetHeader(&block.Header{})
+	sr.SetData(nil)
+	r := sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.SetData([]byte("Y"))
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.SetData([]byte("X"))
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+
+	sr.SetSelfPubKey(leader)
+
+	cnsMsg.PubKey = []byte("X")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
+	maxCount := len(sr.ConsensusGroup()) * 2 / 3
+	count := 0
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
+			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+			count++
+			if count == maxCount {
+				break
+			}
+		}
+	}
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.True(t, r)
+}
+
+func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
+	t.Parallel()
+
+	errStore := errors.New("signature share store failed")
+	storeSigShareCalled := false
+	signingHandler := &consensusMocks.SigningHandlerStub{
+		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+			return nil
+		},
+		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
+			storeSigShareCalled = true
+			return errStore
+		},
+	}
+
+	container := consensusMocks.InitConsensusCore()
+	container.SetSigningHandler(signingHandler)
+	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+	sr.SetHeader(&block.Header{})
+
+	signature := []byte("signature")
+	cnsMsg := consensus.NewConsensusMessage(
+		sr.GetData(),
+		signature,
+		nil,
+		nil,
+		[]byte(sr.ConsensusGroup()[1]),
+		[]byte("sig"),
+		int(bls.MtSignature),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		nil,
+	)
+
+	sr.SetData(nil)
+	r := sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.SetData([]byte("Y"))
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	sr.SetData([]byte("X"))
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+	sr.SetSelfPubKey(leader)
+
+	cnsMsg.PubKey = []byte("X")
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+
+	cnsMsg.PubKey = []byte(sr.ConsensusGroup()[1])
+	maxCount := len(sr.ConsensusGroup()) * 2 / 3
+	count := 0
+	for i := 0; i < len(sr.ConsensusGroup()); i++ {
+		if sr.ConsensusGroup()[i] != string(cnsMsg.PubKey) {
+			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+			count++
+			if count == maxCount {
+				break
+			}
+		}
+	}
+	r = sr.ReceivedSignature(cnsMsg)
+	assert.False(t, r)
+	assert.True(t, storeSigShareCalled)
+}
