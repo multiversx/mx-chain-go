@@ -185,7 +185,7 @@ func (txs *transactions) processTransaction(
 		}
 
 		mbInfo.processingInfo.numBadTxs++
-		log.Debug("bad tx", "error", err.Error(), "hash", txHash)
+		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
 		if errRevert != nil && !core.IsClosingError(errRevert) {
@@ -391,7 +391,7 @@ func (txs *transactions) verifyTransaction(
 		}
 
 		mbInfo.schedulingInfo.numScheduledBadTxs++
-		log.Debug("bad tx", "error", err.Error(), "hash", txHash)
+		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
 

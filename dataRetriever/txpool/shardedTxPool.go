@@ -27,6 +27,7 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
+	selfShardIDAsString          string
 	txGasHandler                 txcache.TxGasHandler
 	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
@@ -78,6 +79,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
+		selfShardIDAsString:          core.GetShardIDString(args.SelfShardID),
 		txGasHandler:                 args.TxGasHandler,
 		accountNonceProvider:         args.AccountNonceProvider,
 	}
@@ -287,8 +289,7 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 
 // ForgetAllAccountNoncesInMempool forgets all account nonces in the mempool
 func (txPool *shardedTxPool) ForgetAllAccountNoncesInMempool() {
-	selfShardID := core.GetShardIDString(txPool.selfShardID)
-	cache := txPool.getOrCreateShard(selfShardID)
+	cache := txPool.getOrCreateShard(txPool.selfShardIDAsString)
 	cache.Cache.ForgetAllAccountNonces()
 }
 
