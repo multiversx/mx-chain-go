@@ -96,22 +96,6 @@ func TestSendersMap_RemoveSendersBulk_ConcurrentWithAddition(t *testing.T) {
 	wg.Wait()
 }
 
-func TestSendersMap_notifyAccountNonce(t *testing.T) {
-	myMap := newSendersMapToTest()
-
-	// Discarded notification, since sender not added yet
-	myMap.notifyAccountNonce([]byte("alice"), 42)
-
-	_, _ = myMap.addTxReturnEvicted(createTx([]byte("tx-42"), "alice", 42))
-	alice, _ := myMap.getListForSender("alice")
-	require.Equal(t, uint64(0), alice.accountNonce.Get())
-	require.False(t, alice.accountNonceKnown.IsSet())
-
-	myMap.notifyAccountNonce([]byte("alice"), 42)
-	require.Equal(t, uint64(42), alice.accountNonce.Get())
-	require.True(t, alice.accountNonceKnown.IsSet())
-}
-
 func newSendersMapToTest() *txListBySenderMap {
 	return newTxListBySenderMap(4, senderConstraints{
 		maxNumBytes: math.MaxUint32,

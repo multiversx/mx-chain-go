@@ -11,12 +11,10 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	sender            string
-	accountNonce      atomic.Uint64
-	accountNonceKnown atomic.Flag
-	items             *list.List
-	totalBytes        atomic.Counter
-	constraints       *senderConstraints
+	sender      string
+	items       *list.List
+	totalBytes  atomic.Counter
+	constraints *senderConstraints
 
 	mutex sync.RWMutex
 }
@@ -192,9 +190,6 @@ func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 
-	accountNonce := listForSender.accountNonce.Get()
-	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
-
 	result := make([]*WrappedTransaction, 0, listForSender.countTx())
 	previousNonce := uint64(0)
 
@@ -204,17 +199,6 @@ func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
 		isFirstTx := len(result) == 0
 
 		if isFirstTx {
-			// Handle lower nonces.
-			if accountNonceKnown && accountNonce > nonce {
-				log.Trace("txListForSender.getSequentialTxs, lower nonce", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
-				continue
-			}
-
-			// Handle initial gaps.
-			if accountNonceKnown && accountNonce < nonce {
-				log.Trace("txListForSender.getSequentialTxs, initial gap", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
-				break
-			}
 		} else {
 			// Handle duplicates (only transactions with the highest gas price are included; see "findInsertionPlace").
 			if nonce == previousNonce {
@@ -245,18 +229,6 @@ func (listForSender *txListForSender) countTxWithLock() uint64 {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 	return uint64(listForSender.items.Len())
-}
-
-// notifyAccountNonce sets the known account nonce, removes the transactions with lower nonces, and returns their hashes
-func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
-	listForSender.accountNonce.Set(nonce)
-	_ = listForSender.accountNonceKnown.SetReturningPrevious()
-}
-
-// forgetAccountNonce resets the known account nonce
-func (listForSender *txListForSender) forgetAccountNonce() {
-	listForSender.accountNonce.Set(0)
-	listForSender.accountNonceKnown.Reset()
 }
 
 // removeTransactionsWithLowerOrEqualNonceReturnHashes removes transactions with nonces lower or equal to the given nonce

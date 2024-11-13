@@ -107,18 +107,6 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 }
 
-func TestListForSender_NotifyAccountNonce(t *testing.T) {
-	list := newUnconstrainedListToTest()
-
-	require.Equal(t, uint64(0), list.accountNonce.Get())
-	require.False(t, list.accountNonceKnown.IsSet())
-
-	list.notifyAccountNonce(42)
-
-	require.Equal(t, uint64(42), list.accountNonce.Get())
-	require.True(t, list.accountNonceKnown.IsSet())
-}
-
 func TestListForSender_removeTransactionsWithLowerOrEqualNonceReturnHashes(t *testing.T) {
 	list := newUnconstrainedListToTest()
 
@@ -142,7 +130,6 @@ func TestListForSender_removeTransactionsWithLowerOrEqualNonceReturnHashes(t *te
 func TestListForSender_getTxs(t *testing.T) {
 	t.Run("no transactions", func(t *testing.T) {
 		list := newUnconstrainedListToTest()
-		list.notifyAccountNonce(42)
 
 		require.Len(t, list.getTxs(), 0)
 		require.Len(t, list.getTxsReversed(), 0)
@@ -151,7 +138,6 @@ func TestListForSender_getTxs(t *testing.T) {
 
 	t.Run("one transaction, one gap", func(t *testing.T) {
 		list := newUnconstrainedListToTest()
-		list.notifyAccountNonce(42)
 
 		// Gap
 		list.AddTx(createTx([]byte("tx-43"), ".", 43))
@@ -175,7 +161,6 @@ func TestListForSender_getTxs(t *testing.T) {
 
 	t.Run("with nonce duplicates", func(t *testing.T) {
 		list := newUnconstrainedListToTest()
-		list.notifyAccountNonce(42)
 
 		list.AddTx(createTx([]byte("tx-42"), ".", 42))
 		list.AddTx(createTx([]byte("tx-43"), ".", 43))
@@ -203,7 +188,6 @@ func TestListForSender_getTxs(t *testing.T) {
 
 	t.Run("with lower nonces", func(t *testing.T) {
 		list := newUnconstrainedListToTest()
-		list.notifyAccountNonce(43)
 
 		list.AddTx(createTx([]byte("tx-42"), ".", 42))
 		list.AddTx(createTx([]byte("tx-43"), ".", 43))
@@ -212,8 +196,6 @@ func TestListForSender_getTxs(t *testing.T) {
 		require.Len(t, list.getTxsReversed(), 2)
 		require.Len(t, list.getSequentialTxs(), 1)
 		require.Equal(t, []byte("tx-43"), list.getSequentialTxs()[0].TxHash)
-
-		list.forgetAccountNonce()
 
 		require.Len(t, list.getTxs(), 2)
 		require.Len(t, list.getTxsReversed(), 2)
@@ -233,7 +215,6 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 		_ = list.getTxsReversed()
 		_ = list.getSequentialTxs()
 		_ = list.countTxWithLock()
-		list.notifyAccountNonce(42)
 		_, _ = list.AddTx(createTx([]byte("test"), ".", 42))
 
 		wg.Done()
