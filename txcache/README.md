@@ -170,13 +170,13 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
        - **Select the most valuable transaction:**
          - Pop the transaction with the highest PPU from the heap.
          - Append this transaction to the list of `selectedTransactions`.
-       - **Update the Sender's Bunch:**
+       - **Update the sender's bunch:**
          - If the sender of the selected transaction has more transactions in their bunch:
            - Take the next transaction (next higher nonce) from the bunch.
            - Push this transaction onto the heap to compete in subsequent iterations.
      - This process ensures that at each step, the most valuable transaction across all senders is selected while maintaining proper nonce order for each sender.
 
-   - **Early Termination:**
+   - **Early termination:**
      - The selection loop can terminate early if either of the following conditions is satisfied before all transactions are processed:
        - The accumulated gas of selected transactions meets or exceeds `gasRequested`.
        - The number of selected transactions reaches `maxNum`.
