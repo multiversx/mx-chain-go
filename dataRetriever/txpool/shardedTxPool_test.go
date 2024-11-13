@@ -13,9 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,47 +208,6 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 
 	waitABit()
 	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
-}
-
-func TestShardedTxPool_AddData_CallsNotifyAccountNonce(t *testing.T) {
-	poolAsInterface, _ := newTxPoolToTest()
-	pool := poolAsInterface.(*shardedTxPool)
-
-	accounts := &state.AccountsStub{
-		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-			return &state.UserAccountStub{
-				Nonce: 30,
-			}, nil
-		},
-	}
-
-	err := pool.accountNonceProvider.SetAccountsAdapter(accounts)
-	require.NoError(t, err)
-
-	breadcrumbs := make([]string, 0)
-
-	_ = pool.getOrCreateShard("0")
-	_ = pool.getOrCreateShard("1_0")
-
-	pool.backingMap["0"].Cache = &txcachemocks.TxCacheMock{
-		NotifyAccountNonceCalled: func(accountKey []byte, nonce uint64) {
-			breadcrumbs = append(breadcrumbs, fmt.Sprintf("0::%s_%d", string(accountKey), nonce))
-		},
-	}
-
-	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheMock{
-		NotifyAccountNonceCalled: func(accountKey []byte, nonce uint64) {
-			breadcrumbs = append(breadcrumbs, fmt.Sprintf("1_0::%s_%d", string(accountKey), nonce))
-		},
-	}
-
-	// AddData to "source is me" cache.
-	pool.AddData([]byte("hash-42"), createTx("alice", 42), 0, "0")
-	require.Equal(t, []string{"0::alice_30"}, breadcrumbs)
-
-	// AddData to another cache (no notification).
-	pool.AddData([]byte("hash-43"), createTx("bob", 43), 0, "1_0")
-	require.Equal(t, []string{"0::alice_30"}, breadcrumbs)
 }
 
 func Test_SearchFirstData(t *testing.T) {

@@ -723,10 +723,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	scheduledTxsFromMe, err := txs.computeScheduledTxsFromMe(body)
 	if err != nil {
 		return nil, err
@@ -918,35 +914,6 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return err
-}
-
-func (txs *transactions) notifyTransactionProviderIfNeeded() {
-	txs.accountTxsShards.RLock()
-
-	log.Debug("notifyTransactionProviderIfNeeded", "len(txs.accountTxsShards.accountsInfo)", len(txs.accountTxsShards.accountsInfo))
-
-	for senderAddress, txShardInfoValue := range txs.accountTxsShards.accountsInfo {
-		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
-			continue
-		}
-
-		account, err := txs.getAccountForAddress([]byte(senderAddress))
-		if err != nil {
-			log.Debug("notifyTransactionProviderIfNeeded.getAccountForAddress", "error", err)
-			continue
-		}
-
-		strCache := process.ShardCacherIdentifier(txShardInfoValue.senderShardID, txShardInfoValue.receiverShardID)
-		txShardPool := txs.txPool.ShardDataStore(strCache)
-		if check.IfNil(txShardPool) {
-			log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
-			continue
-		}
-
-		sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-		sortedTransactionsProvider.NotifyAccountNonce([]byte(senderAddress), account.GetNonce())
-	}
-	txs.accountTxsShards.RUnlock()
 }
 
 func (txs *transactions) getAccountForAddress(address []byte) (vmcommon.AccountHandler, error) {
@@ -1152,10 +1119,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	startTime := time.Now()
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
@@ -1208,10 +1171,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	if err != nil {
 		return nil, nil, err
 	}
-
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {

@@ -9,7 +9,6 @@ type txCache interface {
 	storage.Cacher
 
 	AddTx(tx *txcache.WrappedTransaction) (ok bool, added bool)
-	NotifyAccountNonce(accountKey []byte, nonce uint64)
 	GetByTxHash(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHash(txHash []byte) bool
 	ImmunizeTxsAgainstEviction(keys [][]byte)

@@ -25,10 +25,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for index := range sortedTxs {
 		if !haveTime() {

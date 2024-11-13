@@ -27,7 +27,6 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
-	selfShardIDAsString          string
 	txGasHandler                 txcache.TxGasHandler
 	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
@@ -79,7 +78,6 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
-		selfShardIDAsString:          core.GetShardIDString(args.SelfShardID),
 		txGasHandler:                 args.TxGasHandler,
 		accountNonceProvider:         args.AccountNonceProvider,
 	}
@@ -185,12 +183,11 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 		Size:            int64(sizeInBytes),
 	}
 
-	sourceIsMe := sourceShardID == txPool.selfShardID
-	txPool.addTx(wrapper, cacheID, sourceIsMe)
+	txPool.addTx(wrapper, cacheID)
 }
 
 // addTx adds the transaction to the cache
-func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string, shouldNotifyCacheAboutSenderNonce bool) {
+func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
 
@@ -198,19 +195,6 @@ func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID strin
 	if added {
 		txPool.onAdded(tx.TxHash, tx)
 	}
-
-	if !shouldNotifyCacheAboutSenderNonce {
-		return
-	}
-
-	sender := tx.Tx.GetSndAddr()
-	senderNonce, err := txPool.accountNonceProvider.GetAccountNonce(sender)
-	if err != nil {
-		log.Debug("shardedTxPool.addTx(): cannot get sender nonce", "sender", sender, "err", err)
-		return
-	}
-
-	cache.NotifyAccountNonce(sender, senderNonce)
 }
 
 func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
@@ -296,7 +280,7 @@ func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string)
 	sourceCache := sourceShard.Cache
 
 	sourceCache.ForEachTransaction(func(txHash []byte, tx *txcache.WrappedTransaction) {
-		txPool.addTx(tx, destCacheID, false)
+		txPool.addTx(tx, destCacheID)
 	})
 
 	txPool.mutexBackingMap.Lock()

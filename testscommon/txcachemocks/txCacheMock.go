@@ -20,7 +20,6 @@ type TxCacheMock struct {
 	CloseCalled             func() error
 
 	AddTxCalled                        func(tx *txcache.WrappedTransaction) (ok bool, added bool)
-	NotifyAccountNonceCalled           func(accountKey []byte, nonce uint64)
 	GetByTxHashCalled                  func(txHash []byte) (*txcache.WrappedTransaction, bool)
 	RemoveTxByHashCalled               func(txHash []byte) bool
 	ImmunizeTxsAgainstEvictionCalled   func(keys [][]byte)
@@ -156,13 +155,6 @@ func (cache *TxCacheMock) AddTx(tx *txcache.WrappedTransaction) (ok bool, added 
 	}
 
 	return false, false
-}
-
-// NotifyAccountNonce -
-func (cache *TxCacheMock) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	if cache.NotifyAccountNonceCalled != nil {
-		cache.NotifyAccountNonceCalled(accountKey, nonce)
-	}
 }
 
 // GetByTxHash -
