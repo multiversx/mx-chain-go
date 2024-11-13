@@ -1204,7 +1204,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, "unsupported type <int> when trying to add value in type <map>", err.Error())
 	})
 
-	t.Run("should work and override string array from config", func(t *testing.T) {
+	t.Run("should work and override string array", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
@@ -1217,7 +1217,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedArray, testConfig.TestArray.Strings)
 	})
 
-	t.Run("should work and override int array from config", func(t *testing.T) {
+	t.Run("should work and override int array", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
@@ -1230,7 +1230,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
 	})
 
-	t.Run("should work and override string array", func(t *testing.T) {
+	t.Run("should work and override string array from toml", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
@@ -1245,7 +1245,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedArray, testConfig.TestArray.Strings)
 	})
 
-	t.Run("should work and override int array", func(t *testing.T) {
+	t.Run("should work and override int array from toml", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
@@ -1260,7 +1260,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedArray, testConfig.TestArray.Ints)
 	})
 
-	t.Run("should work and override struct of arrays", func(t *testing.T) {
+	t.Run("should work and override struct of arrays from toml", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
