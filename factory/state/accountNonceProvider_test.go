@@ -58,7 +58,7 @@ func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
 		userAddress := []byte("alice")
 		accounts := &state.AccountsStub{}
 		accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-			if bytes.Equal(address, userAddress) {
+			if !bytes.Equal(address, userAddress) {
 				return nil, fmt.Errorf("account not found: %s", address)
 			}
 
@@ -86,7 +86,7 @@ func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
 		userAddress := []byte("alice")
 		accounts := &state.AccountsStub{}
 		accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-			if bytes.Equal(address, userAddress) {
+			if !bytes.Equal(address, userAddress) {
 				return nil, fmt.Errorf("account not found: %s", address)
 			}
 
