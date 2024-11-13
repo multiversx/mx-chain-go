@@ -40,6 +40,14 @@ dataCost = network.minGasLimit + len(data) * network.gasPerDataByte
 executionCost = gasLimit - dataCost
 ```
 
+Network parameters (as of November of 2024):
+    
+```
+gasPriceModifier = 0.01
+minGasLimit = 50_000
+gasPerDataByte = 1_500
+```
+
 #### Examples
 
 (a) A simple native transfer with `gasLimit = 50_000` and `gasPrice = 1_000_000_000`:
@@ -65,13 +73,27 @@ ppu = 60_500_000_000_000 / 60_500 = 1_000_000_000 atoms
 
 That is, for simple native transfers (whether they hold a data payload or not), the PPU is equal to the gas price.
 
-(d) ...
+(d) A contract call with `gasLimit = 75_000_000` and `gasPrice = 1_000_000_000`, with a data payload of `42` bytes:
 
-### Paragraph 4
+```
+initiallyPaidFee = 861_870_000_000_000 atoms
+ppu = 11_491_600 atoms
+```
 
-Transaction **A** is considered more valuable (for the Network) than transaction **B** if **it has a higher PPU**.
+(e) Similar to (d), but with `gasPrice = 2_000_000_000`:
 
-If two transactions have the same PPU, they are ordered using an arbitrary, but deterministic rule: the transaction with the higher [fvn32(transactionHash)](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function) "wins" the comparison.
+```
+initiallyPaidFee = 1_723_740_000_000_000 atoms
+ppu = 22_983_200 atoms
+```
+
+That is, for contract calls, the PPU is not equal to the gas price, but much lower, due to the contract call _cost subsidy_. A higer gas price will result in a higher PPU.
+
+### Paragraph 3
+
+Transaction **A** is considered **more valuable (for the Network)** than transaction **B** if **it has a higher PPU**.
+
+If two transactions have the same PPU, they are ordered using an arbitrary, but deterministic rule: the transaction with the higher [fnv32(transactionHash)](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function) "wins" the comparison.
 
 Pseudo-code:
 
@@ -81,33 +103,80 @@ func isTransactionMoreValuableForNetwork(A, B):
         return true
     if A.ppu < B.ppu:
         return false
-    return fvn32(A.hash) > fvn32(B.hash)
+    return fnv32(A.hash) > fnv32(B.hash)
 ```
-
-### Paragraph 3
-
-The mempool selects transactions as follows:
- - before starting the selection loop, get a snapshot of the senders, in an arbitrary order.
- - in the selection loop, do as many _passes_ as needed to satisfy `gasRequested` (see **Paragraph 1**).
- - within a _pass_, ...
- - if `gasRequested` is satisfied, stop the _selection loop_ early.
- - if `maxNum` is satisfied, stop the _selection loop_ early.
 
 ### Paragraph 4
 
-Within a _selection pass_, a batch of transactions from a sender is selected as follows:
- - ..., attempt to **detect an initial nonces gap** (if enough information is available, that is, if the current account nonce is known - see section **Account nonce notifications**).
- - if a nonces gap is detected, ... Subsequent passes of the selection loop (within the same selection session) will skip this sender. The sender will be re-considered in a future selection session.
+The mempool selects transactions as follows (pseudo-code):
 
-#### Initial gaps and middle gaps
+```
+func selectTransactions(gasRequested, maxNum):
+    // Setup phase
+    senders := list of all current senders in the mempool, in an arbitrary order
+    bunchesOfTransactions := sourced from senders; nonces-gap-free, duplicates-free, nicely sorted by nonce
 
-### Account nonce notifications
+    // Holds selected transactions
+    selectedTransactions := empty
 
-### Transactions addition
+    // Holds not-yet-selected transactions, ordered by PPU
+    competitionHeap := empty
+    
+    for each bunch in bunchesOfTransactions:
+        competitionHeap.push(next available transaction from bunch)
+    
+    // Selection loop
+    while competitionHeap is not empty:
+        mostValuableTransaction := competitionHeap.pop()
 
-### Transactions removal
+        // Check if adding the next transaction exceeds limits
+        if selectedTransactions.totalGasLimit + mostValuableTransaction.gasLimit > gasRequested:
+            break
+        if selectedTransactions.length + 1 > maxNum:
+            break
+        
+        selectedTransactions.append(mostValuableTransaction)
+        
+        nextTransaction := next available transaction from the bunch of mostValuableTransaction
+        if nextTransaction exists:
+            competitionHeap.push(nextTransaction)
 
-### Transactions eviction
+    return selectedTransactions
+```
 
-### Monitoring and diagnostics
+Thus, the mempool selects transactions using an efficient and value-driven algorithm that ensures the most valuable transactions (in terms of PPU) are prioritized while maintaining correct nonce sequencing per sender. The selection process is as follows:
 
+**Setup phase:**
+
+   - **Snapshot of senders:**
+     - Before starting the selection loop, obtain a snapshot of all current senders in the mempool in an arbitrary order.
+
+   - **Organize transactions into bunches:**
+     - For each sender, collect all their pending transactions and organize them into a "bunch."
+     - Each bunch is:
+       - **Nonce-gap-free:** There are no missing nonces between transactions.
+       - **Duplicates-free:** No duplicate transactions are included.
+       - **Sorted by nonce:** Transactions are ordered in ascending order based on their nonce values.
+
+   - **Prepare the heap:**
+     - Extract the first transaction (lowest nonce) from each sender's bunch.
+     - Place these transactions onto a max heap, which is ordered based on the transaction's PPU.
+
+**Selection loop:**
+
+   - **Iterative selection:**
+     - Continue the loop until either the total gas of selected transactions meets or exceeds `gasRequested`, or the number of selected transactions reaches `maxNum`.
+     - In each iteration:
+       - **Select the most valuable transaction:**
+         - Pop the transaction with the highest PPU from the heap.
+         - Append this transaction to the list of `selectedTransactions`.
+       - **Update the Sender's Bunch:**
+         - If the sender of the selected transaction has more transactions in their bunch:
+           - Take the next transaction (next higher nonce) from the bunch.
+           - Push this transaction onto the heap to compete in subsequent iterations.
+     - This process ensures that at each step, the most valuable transaction across all senders is selected while maintaining proper nonce order for each sender.
+
+   - **Early Termination:**
+     - The selection loop can terminate early if either of the following conditions is satisfied before all transactions are processed:
+       - The accumulated gas of selected transactions meets or exceeds `gasRequested`.
+       - The number of selected transactions reaches `maxNum`.
