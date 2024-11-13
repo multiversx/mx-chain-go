@@ -158,7 +158,8 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		merged, accumulatedGas := selectTransactionsFromBunches([]bunchOfTransactions{}, 10_000_000_000, math.MaxInt)
+		cache := newUnconstrainedCacheToTest()
+		merged, accumulatedGas := cache.selectTransactionsFromBunches([]bunchOfTransactions{}, 10_000_000_000, math.MaxInt)
 
 		require.Equal(t, 0, len(merged))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -169,10 +170,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -180,10 +182,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -191,10 +194,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 3", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -202,10 +206,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))

@@ -47,11 +47,12 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler, accountNoncePr
 	senderConstraintsObj := config.getSenderConstraints()
 
 	txCache := &TxCache{
-		name:           config.Name,
-		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj),
-		txByHash:       newTxByHashMap(numChunks),
-		config:         config,
-		txGasHandler:   txGasHandler,
+		name:                 config.Name,
+		txListBySender:       newTxListBySenderMap(numChunks, senderConstraintsObj),
+		txByHash:             newTxByHashMap(numChunks),
+		config:               config,
+		txGasHandler:         txGasHandler,
+		accountNonceProvider: accountNonceProvider,
 	}
 
 	return txCache, nil

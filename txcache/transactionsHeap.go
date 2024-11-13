@@ -6,7 +6,12 @@ type transactionsHeap struct {
 }
 
 type transactionsHeapItem struct {
-	senderIndex      int
+	senderIndex int
+
+	senderNonceAsked bool
+	senderNonceTold  bool
+	senderNonce      uint64
+
 	transactionIndex int
 	transaction      *WrappedTransaction
 }

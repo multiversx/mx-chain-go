@@ -12,11 +12,11 @@ func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bun
 		bunches = append(bunches, sender.getSequentialTxs())
 	}
 
-	return selectTransactionsFromBunches(bunches, gasRequested, maxNum)
+	return cache.selectTransactionsFromBunches(bunches, gasRequested, maxNum)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(bunches []bunchOfTransactions, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransactions, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -45,6 +45,7 @@ func selectTransactionsFromBunches(bunches []bunchOfTransactions, gasRequested u
 		// Always pick the best transaction.
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.transaction.Tx.GetGasLimit()
+		nonce := item.transaction.Tx.GetNonce()
 
 		if accumulatedGas+gasLimit > gasRequested {
 			break
@@ -52,9 +53,38 @@ func selectTransactionsFromBunches(bunches []bunchOfTransactions, gasRequested u
 		if len(selectedTransactions) >= maxNum {
 			break
 		}
+		if !item.senderNonceAsked {
+			item.senderNonceAsked = true
 
-		accumulatedGas += gasLimit
-		selectedTransactions = append(selectedTransactions, item.transaction)
+			sender := item.transaction.Tx.GetSndAddr()
+			senderNonce, err := cache.accountNonceProvider.GetAccountNonce(sender)
+			if err != nil {
+				// Hazardous; should never happen.
+				logSelect.Debug("TxCache.selectTransactionsFromBunches: nonce not available", "sender", sender, "err", err)
+			} else {
+				item.senderNonceTold = true
+				item.senderNonce = senderNonce
+			}
+		}
+
+		isInitialGap := item.transactionIndex == 0 && item.senderNonceTold && nonce > item.senderNonce
+		if isInitialGap {
+			sender := item.transaction.Tx.GetSndAddr()
+			log.Trace("TxCache.selectTransactionsFromBunches, initial gap", "sender", sender, "nonce", nonce, "senderNonce", item.senderNonce)
+
+			// Item was popped from the heap, but not used downstream.
+			// Therefore, the sender is completely ignored in the current selection session.
+			continue
+		}
+
+		isLowerNonce := item.senderNonceTold && nonce < item.senderNonce
+		if isLowerNonce {
+			sender := item.transaction.Tx.GetSndAddr()
+			log.Trace("TxCache.selectTransactionsFromBunches, lower nonce", "sender", sender, "nonce", nonce, "senderNonce", item.senderNonce)
+		} else {
+			accumulatedGas += gasLimit
+			selectedTransactions = append(selectedTransactions, item.transaction)
+		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),
 		// add the next one to the heap (to compete with the others).
