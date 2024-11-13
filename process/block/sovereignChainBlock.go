@@ -963,10 +963,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	for _, valMB := range validatorMiniBlocks {
-		valMB.ReceiverShardID = core.SovereignChainShardId
-	}
-
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
@@ -1014,11 +1010,7 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 		return err
 	}
 
-	for idx, mbHeaderHandler := range miniBlockHeaderHandlers {
-		mb := body.MiniBlocks[idx]
-		hash := mbHeaderHandler.GetHash()
-		scbp.dataPool.MiniBlocks().Put(hash, mb, mb.Size())
-	}
+	scbp.saveMiniBlocksToPool(miniBlockHeaderHandlers, body.MiniBlocks)
 
 	err = header.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
 	if err != nil {
@@ -1071,6 +1063,17 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 	scbp.createEpochStartData(body)
 
 	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) saveMiniBlocksToPool(
+	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
+	miniBlocks []*block.MiniBlock,
+) {
+	for idx, mbHeaderHandler := range miniBlockHeaderHandlers {
+		mb := miniBlocks[idx]
+		hash := mbHeaderHandler.GetHash()
+		scbp.dataPool.MiniBlocks().Put(hash, mb, mb.Size())
+	}
 }
 
 func (scbp *sovereignChainBlockProcessor) checkAndRequestIfExtendedShardHeadersMissing() {
@@ -1619,9 +1622,7 @@ func (scbp *sovereignChainBlockProcessor) indexValidatorsRatingIfNeeded(
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-		//scbp.createEpochStartData(body)
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-
 		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
 		if !castOk {
 			log.Error("sovereignChainBlockProcessor.commitEpochStart", "error", process.ErrWrongTypeAssertion)
