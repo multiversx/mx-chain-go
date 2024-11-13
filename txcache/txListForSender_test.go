@@ -136,27 +136,35 @@ func TestListForSender_getTxs(t *testing.T) {
 		require.Len(t, list.getSequentialTxs(), 0)
 	})
 
-	t.Run("one transaction, one gap", func(t *testing.T) {
+	t.Run("with middle gaps", func(t *testing.T) {
 		list := newUnconstrainedListToTest()
 
-		// Gap
-		list.AddTx(createTx([]byte("tx-43"), ".", 43))
+		// One transaction (no information about gaps)
+		list.AddTx(createTx([]byte("tx-42"), ".", 42))
 		require.Len(t, list.getTxs(), 1)
 		require.Len(t, list.getTxsReversed(), 1)
-		require.Len(t, list.getSequentialTxs(), 0)
+		require.Len(t, list.getSequentialTxs(), 1)
 
-		// Resolve gap
-		list.AddTx(createTx([]byte("tx-42"), ".", 42))
+		// Middle gap
+		list.AddTx(createTx([]byte("tx-44"), ".", 44))
 		require.Len(t, list.getTxs(), 2)
 		require.Len(t, list.getTxsReversed(), 2)
-		require.Len(t, list.getSequentialTxs(), 2)
+		require.Len(t, list.getSequentialTxs(), 1)
+
+		// Resolve gap
+		list.AddTx(createTx([]byte("tx-43"), ".", 43))
+		require.Len(t, list.getTxs(), 3)
+		require.Len(t, list.getTxsReversed(), 3)
+		require.Len(t, list.getSequentialTxs(), 3)
 
 		require.Equal(t, []byte("tx-42"), list.getTxs()[0].TxHash)
 		require.Equal(t, []byte("tx-43"), list.getTxs()[1].TxHash)
+		require.Equal(t, []byte("tx-44"), list.getTxs()[2].TxHash)
 		require.Equal(t, list.getTxs(), list.getSequentialTxs())
 
-		require.Equal(t, []byte("tx-43"), list.getTxsReversed()[0].TxHash)
-		require.Equal(t, []byte("tx-42"), list.getTxsReversed()[1].TxHash)
+		require.Equal(t, []byte("tx-44"), list.getTxsReversed()[0].TxHash)
+		require.Equal(t, []byte("tx-43"), list.getTxsReversed()[1].TxHash)
+		require.Equal(t, []byte("tx-42"), list.getTxsReversed()[2].TxHash)
 	})
 
 	t.Run("with nonce duplicates", func(t *testing.T) {
@@ -184,22 +192,6 @@ func TestListForSender_getTxs(t *testing.T) {
 		require.Equal(t, []byte("tx-43++"), list.getTxsReversed()[1].TxHash)
 		require.Equal(t, []byte("tx-42"), list.getTxsReversed()[2].TxHash)
 		require.Equal(t, []byte("tx-42++"), list.getTxsReversed()[3].TxHash)
-	})
-
-	t.Run("with lower nonces", func(t *testing.T) {
-		list := newUnconstrainedListToTest()
-
-		list.AddTx(createTx([]byte("tx-42"), ".", 42))
-		list.AddTx(createTx([]byte("tx-43"), ".", 43))
-
-		require.Len(t, list.getTxs(), 2)
-		require.Len(t, list.getTxsReversed(), 2)
-		require.Len(t, list.getSequentialTxs(), 1)
-		require.Equal(t, []byte("tx-43"), list.getSequentialTxs()[0].TxHash)
-
-		require.Len(t, list.getTxs(), 2)
-		require.Len(t, list.getTxsReversed(), 2)
-		require.Len(t, list.getSequentialTxs(), 2)
 	})
 }
 
