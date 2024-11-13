@@ -24,6 +24,7 @@ import (
 // migrate 100 EGLD from sp1 to sp2 should work
 // migrate 100 EGLD from sp2 to sp1 should NOT WORK (is in cool down period)
 // delegate 100 EGLD from first address to sp2
+// migrate 100 egld from sp2 to sp1 after cool down period should work
 func TestMigrateStakingProviderHappyFlow(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -140,4 +141,22 @@ func TestMigrateStakingProviderHappyFlow(t *testing.T) {
 	output, err = executeQuery(cs, core.MetachainShardId, sp2AddressBytes, "getUserActiveStake", [][]byte{delegator.Bytes})
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0).Mul(big.NewInt(300), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
+
+	err = cs.ChangeEpochs(70)
+	require.Nil(t, err)
+
+	moveValue = big.NewInt(0).Mul(big.NewInt(100), chainSimulatorIntegrationTests.OneEGLD)
+	dataField = fmt.Sprintf("changeStakingProvider@%s@%s@%s", hex.EncodeToString(moveValue.Bytes()), hex.EncodeToString(sp2AddressBytes), hex.EncodeToString(sp1AddressBytes))
+	tx = chainSimulatorIntegrationTests.GenerateTransaction(delegator.Bytes, staking.GetNonce(t, cs, delegator), vm.DelegationManagerSCAddress, big.NewInt(0), dataField, 80_000_000)
+	moveDelegationTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, moveDelegationTx)
+
+	output, err = executeQuery(cs, core.MetachainShardId, sp1AddressBytes, "getUserActiveStake", [][]byte{delegator.Bytes})
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0).Mul(big.NewInt(400), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
+
+	output, err = executeQuery(cs, core.MetachainShardId, sp2AddressBytes, "getUserActiveStake", [][]byte{delegator.Bytes})
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(0).Mul(big.NewInt(200), chainSimulatorIntegrationTests.OneEGLD), big.NewInt(0).SetBytes(output.ReturnData[0]))
 }
