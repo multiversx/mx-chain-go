@@ -4,7 +4,7 @@ import (
 	"container/heap"
 )
 
-func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProvider, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
