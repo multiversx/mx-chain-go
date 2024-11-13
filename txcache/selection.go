@@ -2,6 +2,8 @@ package txcache
 
 import (
 	"container/heap"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
@@ -58,8 +60,14 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 
 		isInitialGap := item.transactionIndex == 0 && item.senderNonceTold && nonce > item.senderNonce
 		if isInitialGap {
-			sender := item.transaction.Tx.GetSndAddr()
-			log.Trace("TxCache.selectTransactionsFromBunches, initial gap", "sender", sender, "nonce", nonce, "senderNonce", item.senderNonce)
+			if logSelect.GetLevel() <= logger.LogTrace {
+				logSelect.Trace("TxCache.selectTransactionsFromBunches, initial gap",
+					"tx", item.transaction.TxHash,
+					"nonce", nonce,
+					"sender", item.transaction.Tx.GetSndAddr(),
+					"senderNonce", item.senderNonce,
+				)
+			}
 
 			// Item was popped from the heap, but not used downstream.
 			// Therefore, the sender is completely ignored in the current selection session.
@@ -68,8 +76,14 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 
 		isLowerNonce := item.senderNonceTold && nonce < item.senderNonce
 		if isLowerNonce {
-			sender := item.transaction.Tx.GetSndAddr()
-			log.Trace("TxCache.selectTransactionsFromBunches, lower nonce", "sender", sender, "nonce", nonce, "senderNonce", item.senderNonce)
+			if logSelect.GetLevel() <= logger.LogTrace {
+				logSelect.Trace("TxCache.selectTransactionsFromBunches, lower nonce",
+					"tx", item.transaction.TxHash,
+					"nonce", nonce,
+					"sender", item.transaction.Tx.GetSndAddr(),
+					"senderNonce", item.senderNonce,
+				)
+			}
 
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
@@ -102,7 +116,7 @@ func (cache *TxCache) askAboutAccountNonceIfNecessary(item *transactionsHeapItem
 	senderNonce, err := cache.accountNonceProvider.GetAccountNonce(sender)
 	if err != nil {
 		// Hazardous; should never happen.
-		logSelect.Debug("TxCache.selectTransactionsFromBunches: nonce not available", "sender", sender, "err", err)
+		logSelect.Debug("TxCache.askAboutAccountNonceIfNecessary: nonce not available", "sender", sender, "err", err)
 		return
 	}
 
