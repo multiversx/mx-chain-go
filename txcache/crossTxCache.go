@@ -115,14 +115,6 @@ func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTran
 	return make([]*WrappedTransaction, 0)
 }
 
-// NotifyAccountNonce does nothing, only to respect the interface
-func (cache *CrossTxCache) NotifyAccountNonce(_ []byte, _ uint64) {
-}
-
-// ForgetAllAccountNonces does nothing, only to respect the interface
-func (cache *CrossTxCache) ForgetAllAccountNonces() {
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *CrossTxCache) IsInterfaceNil() bool {
 	return cache == nil

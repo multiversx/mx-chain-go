@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
@@ -551,70 +550,6 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 		require.True(t, cache.Has([]byte("alice-x")))
 		require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
 	}
-}
-
-func TestTxCache_ForgetAllAccountNonces(t *testing.T) {
-	config := ConfigSourceMe{
-		Name:                        "untitled",
-		NumChunks:                   16,
-		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
-		CountThreshold:              300001,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-	}
-
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-
-	sw := core.NewStopWatch()
-
-	t.Run("numSenders = 100000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
-		require.Nil(t, err)
-
-		addManyTransactionsWithUniformDistribution(cache, 100_000, 1)
-		require.Equal(t, 100000, int(cache.CountTx()))
-
-		sw.Start(t.Name())
-		cache.ForgetAllAccountNonces()
-		sw.Stop(t.Name())
-
-		cache.txListBySender.backingMap.IterCb(func(key string, item interface{}) {
-			require.False(t, item.(*txListForSender).accountNonceKnown.IsSet())
-		})
-	})
-
-	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
-		require.Nil(t, err)
-
-		addManyTransactionsWithUniformDistribution(cache, 300_000, 1)
-		require.Equal(t, 300000, int(cache.CountTx()))
-
-		sw.Start(t.Name())
-		cache.ForgetAllAccountNonces()
-		sw.Stop(t.Name())
-
-		cache.txListBySender.backingMap.IterCb(func(key string, item interface{}) {
-			require.False(t, item.(*txListForSender).accountNonceKnown.IsSet())
-		})
-	})
-
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
-
-	// (1)
-	// Vendor ID:                GenuineIntel
-	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
-	//     CPU family:           6
-	//     Model:                140
-	//     Thread(s) per core:   2
-	//     Core(s) per socket:   4
-	//
-	// 0.004712s (TestTxCache_ForgetAllAccountNonces/numSenders_=_100000,_numTransactions_=_1)
-	// 0.015129s (TestTxCache_ForgetAllAccountNonces/numSenders_=_300000,_numTransactions_=_1)
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
