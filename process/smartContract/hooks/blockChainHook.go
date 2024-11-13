@@ -820,6 +820,11 @@ func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.H
 		return nil
 	}
 
+	if hdr.GetEpoch() == 0 {
+		bh.epochStartHdr = bh.blockChain.GetGenesisHeader()
+		return nil
+	}
+
 	epochStartHdr, err := bh.epochStartTrigger.LastCommitedEpochStartHdr()
 	if err != nil {
 		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.LastCommitedEpochStartHdr", "error", err)
