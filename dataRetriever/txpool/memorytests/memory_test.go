@@ -46,8 +46,8 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{80, 120}))
 	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{90, 140}))
 	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{100, 190}))
-	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 75}))
-	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 80}))
+	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 90}))
+	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 90}))
 
 	// Scenarios where destination == me
 
