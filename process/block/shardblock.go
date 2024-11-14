@@ -293,10 +293,12 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
-	// check proofs for shard data
-	for _, metaBlockHash := range header.GetMetaBlockHashes() {
-		if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		// check proofs for shard data
+		for _, metaBlockHash := range header.GetMetaBlockHashes() {
+			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
+				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+			}
 		}
 	}
 
