@@ -31,6 +31,7 @@ type EconomicsHandlerMock struct {
 	DeveloperPercentageCalled                           func() float64
 	MinGasPriceCalled                                   func() uint64
 	GasPerDataByteCalled                                func() uint64
+	MaxGasHigherFactorAcceptedCalled                    func() uint64
 	RewardsTopUpGradientPointCalled                     func() *big.Int
 	RewardsTopUpFactorCalled                            func() float64
 	ComputeFeeForProcessingCalled                       func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
@@ -341,6 +342,14 @@ func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.Trans
 		return ehm.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
 	}
 	return nil
+}
+
+// MaxGasHigherFactorAccepted -
+func (ehm *EconomicsHandlerMock) MaxGasHigherFactorAccepted() uint64 {
+	if ehm.MaxGasHigherFactorAcceptedCalled != nil {
+		return ehm.MaxGasHigherFactorAcceptedCalled()
+	}
+	return 10
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
