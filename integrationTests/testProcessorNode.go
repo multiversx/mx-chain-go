@@ -1152,6 +1152,7 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					MaxGasLimitPerTx:            maxGasLimitPerBlock,
 					MinGasLimit:                 minGasLimit,
 					ExtraGasLimitGuardedTx:      "50000",
+					MaxGasHigherFactorAccepted:  "10",
 				},
 			},
 			MinGasPrice:            minGasPrice,
