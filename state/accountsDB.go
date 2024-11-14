@@ -653,9 +653,9 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddress)
 	}
 
-	log.Trace("accountsDB.GetExistingAccount",
-		"address", hex.EncodeToString(address),
-	)
+	if log.GetLevel() == logger.LogTrace {
+		log.Trace("accountsDB.GetExistingAccount", "address", hex.EncodeToString(address))
+	}
 
 	mainTrie := adb.getMainTrie()
 	acnt, err := adb.getAccount(address, mainTrie)
