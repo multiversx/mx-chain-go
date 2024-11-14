@@ -80,6 +80,10 @@ func (en *extensionNode) setHash(goRoutinesManager common.TrieGoroutinesManager)
 
 	if en.shouldSetHashForChild() {
 		en.child.setHash(goRoutinesManager)
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return
+		}
+
 		encChild, err := encodeNodeAndGetHash(en.child)
 		if err != nil {
 			goRoutinesManager.SetError(err)

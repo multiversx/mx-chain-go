@@ -103,6 +103,10 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 
 		if !goRoutinesManager.CanStartGoRoutine() {
 			bn.children[i].setHash(goRoutinesManager)
+			if !goRoutinesManager.ShouldContinueProcessing() {
+				return
+			}
+
 			encChild, err := encodeNodeAndGetHash(bn.children[i])
 			if err != nil {
 				goRoutinesManager.SetError(err)
@@ -118,9 +122,14 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 		waitGroup.Add(1)
 		go func(childPos int) {
 			bn.children[childPos].setHash(goRoutinesManager)
+			if !goRoutinesManager.ShouldContinueProcessing() {
+				waitGroup.Done()
+				return
+			}
 			encChild, err := encodeNodeAndGetHash(bn.children[childPos])
 			if err != nil {
 				goRoutinesManager.SetError(err)
+				waitGroup.Done()
 				return
 			}
 			bn.childrenMutexes[childPos].Lock()
