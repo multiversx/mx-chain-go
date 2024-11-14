@@ -114,7 +114,7 @@ The mempool selects transactions as follows (pseudo-code):
 func selectTransactions(gasRequested, maxNum):
     // Setup phase
     senders := list of all current senders in the mempool, in an arbitrary order
-    bunchesOfTransactions := sourced from senders; nonces-gap-free, duplicates-free, nicely sorted by nonce
+    bunchesOfTransactions := sourced from senders; middle-nonces-gap-free, duplicates-free, nicely sorted by nonce
 
     // Holds selected transactions
     selectedTransactions := empty
@@ -154,7 +154,7 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
    - **Organize transactions into bunches:**
      - For each sender, collect all their pending transactions and organize them into a "bunch."
      - Each bunch is:
-       - **Nonce-gap-free:** There are no missing nonces between transactions.
+       - **Middle-nonces-gap-free:** There are no missing nonces between transactions.
        - **Duplicates-free:** No duplicate transactions are included.
        - **Sorted by nonce:** Transactions are ordered in ascending order based on their nonce values.
 
@@ -181,6 +181,10 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
        - The accumulated gas of selected transactions meets or exceeds `gasRequested`.
        - The number of selected transactions reaches `maxNum`.
 
+**Additional notes:**
+ - Within the selection loop, the current nonce of the sender is queryied from the blockchain, if necessary.
+ - If an initial nonce gap is detected, the sender is excluded from the selection process.
+ - Transactions with nonces lower than the current nonce of the sender are skipped (not included in the selection).
 
 ### Paragraph 5
 
