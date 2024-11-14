@@ -107,14 +107,14 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 				return
 			}
 
-			encChild, err := encodeNodeAndGetHash(bn.children[i])
+			childHash, err := encodeNodeAndGetHash(bn.children[i])
 			if err != nil {
 				goRoutinesManager.SetError(err)
 				return
 			}
 
 			bn.childrenMutexes[i].Lock()
-			bn.EncodedChildren[i] = encChild
+			bn.EncodedChildren[i] = childHash
 			bn.childrenMutexes[i].Unlock()
 			continue
 		}
@@ -126,14 +126,14 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 				waitGroup.Done()
 				return
 			}
-			encChild, err := encodeNodeAndGetHash(bn.children[childPos])
+			childHash, err := encodeNodeAndGetHash(bn.children[childPos])
 			if err != nil {
 				goRoutinesManager.SetError(err)
 				waitGroup.Done()
 				return
 			}
 			bn.childrenMutexes[childPos].Lock()
-			bn.EncodedChildren[childPos] = encChild
+			bn.EncodedChildren[childPos] = childHash
 			bn.childrenMutexes[childPos].Unlock()
 			waitGroup.Done()
 		}(i)
@@ -178,44 +178,90 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
+func (bn *branchNode) commitDirty(
+	level byte,
+	maxTrieLevelInMemory uint,
+	goRoutinesManager common.TrieGoroutinesManager,
+	originDb common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
+) {
 	level++
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit error %w", err)
-	}
 
 	if !bn.dirty {
-		return nil
+		return
 	}
 
-	for i := range bn.children {
-		if bn.children[i] == nil {
+	waitGroup := sync.WaitGroup{}
+
+	for i := 0; i < nrOfChildren; i++ {
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return
+		}
+
+		bn.childrenMutexes[i].RLock()
+		child := bn.children[i]
+		bn.childrenMutexes[i].RUnlock()
+
+		if child == nil {
 			continue
 		}
 
-		err = bn.children[i].commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
-		if err != nil {
-			return err
+		if !goRoutinesManager.CanStartGoRoutine() {
+			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, originDb, targetDb)
+			if !goRoutinesManager.ShouldContinueProcessing() {
+				return
+			}
+
+			bn.childrenMutexes[i].Lock()
+			bn.EncodedChildren[i] = child.getHash()
+			bn.childrenMutexes[i].Unlock()
+
+			continue
 		}
+
+		waitGroup.Add(1)
+		go func(childPos int) {
+			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, originDb, targetDb)
+			if !goRoutinesManager.ShouldContinueProcessing() {
+				waitGroup.Done()
+				return
+			}
+
+			bn.childrenMutexes[childPos].Lock()
+			bn.EncodedChildren[childPos] = child.getHash()
+			bn.childrenMutexes[childPos].Unlock()
+
+			waitGroup.Done()
+		}(i)
+
 	}
+
+	waitGroup.Wait()
+
 	bn.dirty = false
-	_, err = encodeNodeAndCommitToDB(bn, targetDb)
+	encNode, err := bn.getEncodedNode()
 	if err != nil {
-		return err
+		goRoutinesManager.SetError(err)
+		return
 	}
+	hash := bn.hasher.Compute(string(encNode))
+	bn.hash = hash
+
+	err = targetDb.Put(hash, encNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return
+	}
+
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
 
-		var collapsedBn *branchNode
-		collapsedBn, err = bn.getCollapsedBn()
-		if err != nil {
-			return err
+		for i := range bn.children {
+			bn.childrenMutexes[i].Lock()
+			bn.children[i] = nil
+			bn.childrenMutexes[i].Unlock()
 		}
-
-		*bn = *collapsedBn
 	}
-	return nil
 }
 
 func (bn *branchNode) commitSnapshot(

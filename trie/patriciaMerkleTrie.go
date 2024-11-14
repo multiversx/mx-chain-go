@@ -47,7 +47,7 @@ type patriciaMerkleTrie struct {
 	batchManager            common.TrieBatchManager
 	goroutinesThrottler     core.Throttler
 	trieOperationInProgress *atomic.Flag
-	updateTrieMutex         sync.RWMutex
+	trieMutex               sync.RWMutex
 
 	maxTrieLevelInMemory uint
 	chanClose            chan struct{}
@@ -177,8 +177,8 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) {
 }
 
 func (tr *patriciaMerkleTrie) updateTrie() error {
-	tr.updateTrieMutex.Lock()
-	defer tr.updateTrieMutex.Unlock()
+	tr.trieMutex.Lock()
+	defer tr.trieMutex.Unlock()
 
 	batch, err := tr.batchManager.MarkTrieUpdateInProgress()
 	if err != nil {
@@ -293,6 +293,9 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 		return common.EmptyTrieHash, nil
 	}
 
+	tr.trieMutex.Lock()
+	defer tr.trieMutex.Unlock()
+
 	hash := rootNode.getHash()
 	if hash != nil {
 		return hash, nil
@@ -322,8 +325,11 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
+	tr.trieMutex.Lock()
+	defer tr.trieMutex.Unlock()
+
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		log.Trace("trying to commit empty trie")
 		return nil
 	}
@@ -335,23 +341,17 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return nil
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
-	if err != nil {
-		return err
-	}
-
-	rootNode.setHash(manager)
-	err = manager.GetError()
-	if err != nil {
-		return err
-	}
-
 	tr.ResetCollectedHashes()
 	if log.GetLevel() == logger.LogTrace {
 		log.Trace("started committing trie", "trie", rootNode.getHash())
 	}
 
-	return rootNode.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
+	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	if err != nil {
+		return err
+	}
+	rootNode.commitDirty(0, tr.maxTrieLevelInMemory, manager, tr.trieStorage, tr.trieStorage)
+	return manager.GetError()
 }
 
 // Recreate returns a new trie that has the given root hash and database

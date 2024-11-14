@@ -131,32 +131,15 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	ln.setHash(getTestGoroutinesManager())
 
-	err := ln.commitDirty(0, 5, db, db)
-	assert.Nil(t, err)
+	manager := getTestGoroutinesManager()
+	ln.commitDirty(0, 5, manager, db, db)
+	assert.Nil(t, manager.GetError())
 
 	encNode, _ := db.Get(hash)
 	n, _ := decodeNode(encNode, ln.marsh, ln.hasher)
 	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
 	assert.Equal(t, ln, n)
-}
-
-func TestLeafNode_commitEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{}
-
-	err := ln.commitDirty(0, 5, nil, nil)
-	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
-}
-
-func TestLeafNode_commitNilNode(t *testing.T) {
-	t.Parallel()
-
-	var ln *leafNode
-
-	err := ln.commitDirty(0, 5, nil, nil)
-	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
 func TestLeafNode_getEncodedNode(t *testing.T) {
@@ -301,7 +284,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 	lnHash := ln.getHash()
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
@@ -321,7 +304,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
-	_ = ln.commitDirty(0, 5, db, db)
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 	lnHash := ln.getHash()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
@@ -389,7 +372,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 	lnHash := ln.getHash()
 	data := []core.TrieData{{Key: []byte("dog")}}
 
@@ -408,7 +391,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(0, 5, db, db)
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 	wrongKey := []byte{1, 2, 3}
 	data := []core.TrieData{{Key: wrongKey}}
 
@@ -748,7 +731,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
 
 		newData := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dogs")}
-		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		ln.commitDirty(0, 5, getTestGoroutinesManager(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
 		originalHash := ln.getHash()
 
@@ -769,7 +752,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
 
 		newData := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog")}
-		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		ln.commitDirty(0, 5, getTestGoroutinesManager(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
@@ -792,7 +775,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 			getTrieDataWithDefaultVersion(string([]byte{2, 3, 4, 5, 16}), "dog"),
 			getTrieDataWithDefaultVersion(string([]byte{3, 4, 5, 6, 16}), "dog"),
 		}
-		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		ln.commitDirty(0, 5, getTestGoroutinesManager(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
 		originalHash := ln.getHash()
 
@@ -822,7 +805,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 5, 16}), "dog"),
 			getTrieDataWithDefaultVersion(string([]byte{1, 2, 5, 6, 16}), "dog"),
 		}
-		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		ln.commitDirty(0, 5, getTestGoroutinesManager(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.False(t, ln.dirty)
 		originalHash := ln.getHash()
 
@@ -854,7 +837,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 			getTrieDataWithDefaultVersion(string([]byte{2, 2, 3, 4, 16}), ""),
 			getTrieDataWithDefaultVersion(string([]byte{3, 2, 3, 4, 16}), ""),
 		}
-		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		ln.commitDirty(0, 5, getTestGoroutinesManager(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
@@ -876,7 +859,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 			getTrieDataWithDefaultVersion(string([]byte{2, 2, 3, 4, 16}), ""),
 			getTrieDataWithDefaultVersion(string([]byte{3, 2, 3, 4, 16}), ""),
 		}
-		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		ln.commitDirty(0, 5, getTestGoroutinesManager(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))

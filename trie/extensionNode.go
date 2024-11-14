@@ -127,41 +127,58 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
+func (en *extensionNode) commitDirty(
+	level byte,
+	maxTrieLevelInMemory uint,
+	goRoutinesManager common.TrieGoroutinesManager,
+	originDb common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
+) {
 	level++
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit error %w", err)
-	}
 
 	if !en.dirty {
-		return nil
+		return
 	}
 
-	if en.child != nil {
-		err = en.child.commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
-		if err != nil {
-			return err
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return
+	}
+
+	en.childMutex.RLock()
+	child := en.child
+	en.childMutex.RUnlock()
+
+	if child != nil {
+		child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, originDb, targetDb)
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return
 		}
+
+		en.EncodedChild = child.getHash()
 	}
 
 	en.dirty = false
-	_, err = encodeNodeAndCommitToDB(en, targetDb)
+	encNode, err := en.getEncodedNode()
 	if err != nil {
-		return err
+		goRoutinesManager.SetError(err)
+		return
 	}
+	hash := en.hasher.Compute(string(encNode))
+	en.hash = hash
+
+	err = targetDb.Put(hash, encNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return
+	}
+
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse extension node on commit")
 
-		var collapsedEn *extensionNode
-		collapsedEn, err = en.getCollapsedEn()
-		if err != nil {
-			return err
-		}
-
-		*en = *collapsedEn
+		en.childMutex.Lock()
+		en.child = nil
+		en.childMutex.Unlock()
 	}
-	return nil
 }
 
 func (en *extensionNode) commitSnapshot(

@@ -136,7 +136,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	bn.setHash(getTestGoroutinesManager())
-	_ = bn.commitDirty(0, 5, db, db)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -156,7 +156,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
-	_ = en.commitDirty(0, 5, db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -176,7 +176,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	ln.setHash(getTestGoroutinesManager())
-	_ = ln.commitDirty(0, 5, db, db)
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
