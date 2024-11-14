@@ -56,9 +56,9 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 			break
 		}
 
-		cache.askAboutAccountNonceIfNecessary(item)
+		cache.requestAccountNonceIfNecessary(item)
 
-		isInitialGap := item.transactionIndex == 0 && item.senderNonceTold && nonce > item.senderNonce
+		isInitialGap := item.transactionIndex == 0 && item.senderNonceProvided && nonce > item.senderNonce
 		if isInitialGap {
 			if logSelect.GetLevel() <= logger.LogTrace {
 				logSelect.Trace("TxCache.selectTransactionsFromBunches, initial gap",
@@ -74,7 +74,7 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 			continue
 		}
 
-		isLowerNonce := item.senderNonceTold && nonce < item.senderNonce
+		isLowerNonce := item.senderNonceProvided && nonce < item.senderNonce
 		if isLowerNonce {
 			if logSelect.GetLevel() <= logger.LogTrace {
 				logSelect.Trace("TxCache.selectTransactionsFromBunches, lower nonce",
@@ -105,21 +105,21 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 	return selectedTransactions, accumulatedGas
 }
 
-func (cache *TxCache) askAboutAccountNonceIfNecessary(item *transactionsHeapItem) {
-	if item.senderNonceAsked {
+func (cache *TxCache) requestAccountNonceIfNecessary(item *transactionsHeapItem) {
+	if item.senderNonceRequested {
 		return
 	}
 
-	item.senderNonceAsked = true
+	item.senderNonceRequested = true
 
 	sender := item.transaction.Tx.GetSndAddr()
 	senderNonce, err := cache.accountNonceProvider.GetAccountNonce(sender)
 	if err != nil {
 		// Hazardous; should never happen.
-		logSelect.Debug("TxCache.askAboutAccountNonceIfNecessary: nonce not available", "sender", sender, "err", err)
+		logSelect.Debug("TxCache.requestAccountNonceIfNecessary: nonce not available", "sender", sender, "err", err)
 		return
 	}
 
-	item.senderNonceTold = true
+	item.senderNonceProvided = true
 	item.senderNonce = senderNonce
 }

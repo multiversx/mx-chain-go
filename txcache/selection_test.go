@@ -157,7 +157,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 	})
 }
 
-func TestTxCache_askAboutAccountNonceIfNecessary(t *testing.T) {
+func TestTxCache_requestAccountNonceIfNecessary(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 	noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
 	noncesByAddress["alice"] = 7
@@ -173,19 +173,19 @@ func TestTxCache_askAboutAccountNonceIfNecessary(t *testing.T) {
 
 	c := &transactionsHeapItem{}
 
-	cache.askAboutAccountNonceIfNecessary(a)
-	cache.askAboutAccountNonceIfNecessary(b)
+	cache.requestAccountNonceIfNecessary(a)
+	cache.requestAccountNonceIfNecessary(b)
 
-	require.True(t, a.senderNonceAsked)
-	require.True(t, a.senderNonceTold)
+	require.True(t, a.senderNonceRequested)
+	require.True(t, a.senderNonceProvided)
 	require.Equal(t, uint64(7), a.senderNonce)
 
-	require.True(t, b.senderNonceAsked)
-	require.True(t, b.senderNonceTold)
+	require.True(t, b.senderNonceRequested)
+	require.True(t, b.senderNonceProvided)
 	require.Equal(t, uint64(42), b.senderNonce)
 
-	require.False(t, c.senderNonceAsked)
-	require.False(t, c.senderNonceTold)
+	require.False(t, c.senderNonceRequested)
+	require.False(t, c.senderNonceProvided)
 	require.Equal(t, uint64(0), c.senderNonce)
 }
 
