@@ -34,7 +34,7 @@ import (
 var log = logger.GetOrCreate("stakingProvider")
 
 const gasLimitForConvertOperation = 510_000_000
-const gasLimitForDelegationContractCreationOperation = 500_000_000
+const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
 const gasLimitForMergeOperation = 600_000_000
