@@ -82,26 +82,111 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	})
 }
 
-func TestTxCache_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
+func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
+	t.Run("with middle gaps", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+		cache.AddTx(createTx([]byte("hash-alice-5"), "alice", 5)) // gap
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 44)) // gap
+		cache.AddTx(createTx([]byte("hash-bob-45"), "bob", 45))
+		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+		cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10)) // gap
+		cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
+
+		sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
+		require.Len(t, sorted, expectedNumSelected)
+		require.Equal(t, 300000, int(accumulatedGas))
+	})
+
+	t.Run("with initial gaps", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+		noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
+		noncesByAddress["alice"] = 1
+		noncesByAddress["bob"] = 42
+
+		// No gap
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+
+		// Initial gap
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 44))
+		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 45))
+		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 46))
+
+		// Unknown
+		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+
+		sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		expectedNumSelected := 3 + 0 + 2 // 3 alice + 0 bob + 2 carol
+		require.Len(t, sorted, expectedNumSelected)
+		require.Equal(t, 250000, int(accumulatedGas))
+	})
+
+	t.Run("with lower nonces", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+		noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
+		noncesByAddress["alice"] = 1
+		noncesByAddress["bob"] = 42
+
+		// Good sequence
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+
+		// A few with lower nonce
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 40))
+		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 41))
+		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 42))
+
+		// Unknown
+		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+
+		sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
+		require.Len(t, sorted, expectedNumSelected)
+		require.Equal(t, 300000, int(accumulatedGas))
+	})
+}
+
+func TestTxCache_askAboutAccountNonceIfNecessary(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
+	noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
+	noncesByAddress["alice"] = 7
+	noncesByAddress["bob"] = 42
 
-	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
-	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
-	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
-	cache.AddTx(createTx([]byte("hash-alice-5"), "alice", 5))
-	cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
-	cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 44))
-	cache.AddTx(createTx([]byte("hash-bob-45"), "bob", 45))
-	cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
-	cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
-	cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10))
-	cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
+	a := &transactionsHeapItem{
+		transaction: createTx([]byte("hash-alice-1"), "alice", 1),
+	}
 
-	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
+	b := &transactionsHeapItem{
+		transaction: createTx([]byte("hash-bob-1"), "bob", 1),
+	}
 
-	sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
-	require.Len(t, sorted, numSelected)
-	require.Equal(t, 300000, int(accumulatedGas))
+	c := &transactionsHeapItem{}
+
+	cache.askAboutAccountNonceIfNecessary(a)
+	cache.askAboutAccountNonceIfNecessary(b)
+
+	require.True(t, a.senderNonceAsked)
+	require.True(t, a.senderNonceTold)
+	require.Equal(t, uint64(7), a.senderNonce)
+
+	require.True(t, b.senderNonceAsked)
+	require.True(t, b.senderNonceTold)
+	require.Equal(t, uint64(42), b.senderNonce)
+
+	require.False(t, c.senderNonceAsked)
+	require.False(t, c.senderNonceTold)
+	require.Equal(t, uint64(0), c.senderNonce)
 }
 
 func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
@@ -220,7 +305,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	// 0.219072s (TestTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
 }
 
-func TestBenchmarktTxCache_doSelectTransactions(t *testing.T) {
+func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
@@ -297,7 +382,7 @@ func TestBenchmarktTxCache_doSelectTransactions(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.060508s (TestBenchmarktTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
-	// 0.103369s (TestBenchmarktTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
-	// 0.245621s (TestBenchmarktTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.060508s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
+	// 0.103369s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.245621s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
 }
