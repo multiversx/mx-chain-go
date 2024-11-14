@@ -92,9 +92,6 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 
 	waitGroup := sync.WaitGroup{}
 
-	encodedChildrenMutex := &sync.Mutex{}
-	encodedChildren := make([][]byte, nrOfChildren)
-
 	for i := 0; i < nrOfChildren; i++ {
 		if !goRoutinesManager.ShouldContinueProcessing() {
 			return
@@ -112,9 +109,9 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 				return
 			}
 
-			encodedChildrenMutex.Lock()
-			encodedChildren[i] = encChild
-			encodedChildrenMutex.Unlock()
+			bn.childrenMutexes[i].Lock()
+			bn.EncodedChildren[i] = encChild
+			bn.childrenMutexes[i].Unlock()
 			continue
 		}
 
@@ -126,22 +123,14 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 				goRoutinesManager.SetError(err)
 				return
 			}
-			encodedChildrenMutex.Lock()
-			encodedChildren[childPos] = encChild
-			encodedChildrenMutex.Unlock()
+			bn.childrenMutexes[childPos].Lock()
+			bn.EncodedChildren[childPos] = encChild
+			bn.childrenMutexes[childPos].Unlock()
 			waitGroup.Done()
 		}(i)
 	}
 
 	waitGroup.Wait()
-
-	for i := range encodedChildren {
-		if len(encodedChildren[i]) == 0 {
-			continue
-		}
-
-		bn.EncodedChildren[i] = encodedChildren[i]
-	}
 
 	hash, err := encodeNodeAndGetHash(bn)
 	if err != nil {
