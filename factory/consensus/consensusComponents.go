@@ -217,6 +217,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 
 	cc.worker.StartWorking()
 	ccf.dataComponents.Datapool().Headers().RegisterHandler(cc.worker.ReceivedHeader)
+	ccf.dataComponents.Datapool().Proofs().RegisterHandler(cc.worker.ReceivedProof)
 
 	ccf.networkComponents.InputAntiFloodHandler().SetConsensusSizeNotifier(
 		ccf.coreComponents.ChainParametersSubscriber(),

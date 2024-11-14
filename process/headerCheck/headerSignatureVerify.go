@@ -284,6 +284,12 @@ func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler
 	}
 
 	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+
+	if !isFlagEnabled && !hasProof {
+		log.Trace("HeaderSigVerifier: should not verify previous proof yet")
+		return nil
+	}
+
 	if isFlagEnabled && !hasProof {
 		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
 	}
