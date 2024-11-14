@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -18,7 +19,6 @@ type WrappedTransaction struct {
 	Size            int64
 
 	PricePerUnit atomic.Uint64
-	HashFnv32    atomic.Uint32
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
@@ -31,18 +31,6 @@ func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler)
 	}
 
 	wrappedTx.PricePerUnit.Store(fee / gasLimit)
-	wrappedTx.HashFnv32.Store(fnv32(string(wrappedTx.TxHash)))
-}
-
-// fnv32 implements https://en.wikipedia.org/wiki/Fowler–Noll–Vo_hash_function for 32 bits
-func fnv32(key string) uint32 {
-	hash := uint32(2166136261)
-	const prime32 = uint32(16777619)
-	for i := 0; i < len(key); i++ {
-		hash *= prime32
-		hash ^= uint32(key[i])
-	}
-	return hash
 }
 
 // Equality is out of scope (not possible in our case).
@@ -54,6 +42,6 @@ func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTr
 		return ppu > ppuOther
 	}
 
-	// In the end, compare by hash number of transaction hash
-	return wrappedTx.HashFnv32.Load() > otherTransaction.HashFnv32.Load()
+	// In the end, compare by transaction hash
+	return bytes.Compare(wrappedTx.TxHash, otherTransaction.TxHash) < 0
 }
