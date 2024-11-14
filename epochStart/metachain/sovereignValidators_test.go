@@ -7,6 +7,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -15,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	vics "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignValidatorInfoCreator(t *testing.T) {
@@ -208,6 +209,7 @@ func TestSovereignValidatorInfoCreator_CreateValidatorInfoMiniBlocks(t *testing.
 
 	v1ShardData := createShardValidatorInfo(v1)
 	v2ShardData := createShardValidatorInfo(v2)
+
 	txHash1, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, v1ShardData)
 	txHash2, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, v2ShardData)
 
