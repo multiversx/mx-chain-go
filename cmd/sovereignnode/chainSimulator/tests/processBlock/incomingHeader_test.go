@@ -13,24 +13,24 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-	proc "github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
-	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/stretchr/testify/require"
-
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	proc "github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
+	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
+	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 )
 
 const (
@@ -322,7 +322,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 			require.Fail(t, "should not request any extended header")
 		},
 	}
-	sovRequestHandlerFactory := &factory2.RequestHandlerFactoryMock{
+	sovRequestHandlerFactory := &testFactory.RequestHandlerFactoryMock{
 		CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (proc.RequestHandler, error) {
 			return sovRequestHandler, nil
 		},

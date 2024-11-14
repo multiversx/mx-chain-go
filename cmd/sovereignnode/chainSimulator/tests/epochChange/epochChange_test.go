@@ -20,7 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
-	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
+	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -65,7 +65,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 			},
 		},
 	}
-	sovRequestHandlerFactory := &factory2.RequestHandlerFactoryMock{
+	sovRequestHandlerFactory := &testsFactory.RequestHandlerFactoryMock{
 		CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (proc.RequestHandler, error) {
 			return sovRequestHandler, nil
 		},
