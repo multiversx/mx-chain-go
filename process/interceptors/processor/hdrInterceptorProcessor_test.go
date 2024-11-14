@@ -10,12 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 	arg := &processor.ArgHdrInterceptorProcessor{
 		Headers:        &mock.HeadersCacherStub{},
+		Proofs:         &dataRetriever.ProofsPoolMock{},
 		BlockBlackList: &testscommon.TimeCacheStub{},
 	}
 
@@ -53,6 +55,17 @@ func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, hip)
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
+}
+
+func TestNewHdrInterceptorProcessor_NilProofsPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.Proofs = nil
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+
+	assert.Nil(t, hip)
+	assert.Equal(t, process.ErrNilEquivalentProofsPool, err)
 }
 
 func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
@@ -166,6 +179,14 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		},
 	}
 
+	wasAddedProofs := false
+	arg.Proofs = &dataRetriever.ProofsPoolMock{
+		AddProofCalled: func(headerProof data.HeaderProofHandler) error {
+			wasAddedProofs = true
+			return nil
+		},
+	}
+
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 	chanCalled := make(chan struct{}, 1)
 	hip.RegisterHandler(func(topic string, hash []byte, data interface{}) {
@@ -176,6 +197,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)
+	assert.True(t, wasAddedProofs)
 
 	timeout := time.Second * 2
 	select {

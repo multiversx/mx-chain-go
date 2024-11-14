@@ -33,7 +33,9 @@ type interceptedEquivalentProof interface {
 
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
-	AddNotarizedProof(headerProof data.HeaderProofHandler)
-	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	AddProof(headerProof data.HeaderProofHandler) error
+	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
+	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

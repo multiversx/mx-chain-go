@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -64,6 +65,9 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		}
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 
 	return pools
@@ -221,6 +225,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -270,6 +275,22 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+}
+
+func TestNewShardBootstrap_NilProofsPool(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return nil
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilProofsPool, err)
 }
 
 func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
@@ -500,6 +521,10 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+
 	args.PoolsHolder = pools
 	args.IsInImportMode = true
 	bs, err := sync.NewShardBootstrap(args)
@@ -723,6 +748,10 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+
 	args.PoolsHolder = pools
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -818,6 +847,9 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
 	args.PoolsHolder = pools
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -899,6 +931,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		}
 
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 	args.PoolsHolder = pools
 
@@ -1882,6 +1917,9 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
 	args.PoolsHolder = pools
 
 	blkc := initBlockchain()
@@ -2108,6 +2146,9 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
 	args.PoolsHolder = pools
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -2146,9 +2187,10 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		return []byte("roothash"), nil
 	}}
 
-	bs, _ := sync.NewShardBootstrap(args)
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
 
-	err := bs.SyncBlock(context.Background())
+	err = bs.SyncBlock(context.Background())
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, syncCalled)
 }
