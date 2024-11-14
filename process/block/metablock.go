@@ -341,13 +341,15 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}
 
-	// check proofs for shard data
-	for _, shardData := range header.ShardInfo {
-		// TODO: consider the validation of the proof:
-		//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
-		//	if they are different, verify the proof received on header
-		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
+	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		// check proofs for shard data
+		for _, shardData := range header.ShardInfo {
+			// TODO: consider the validation of the proof:
+			//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
+			//	if they are different, verify the proof received on header
+			if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
+				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
+			}
 		}
 	}
 
@@ -1954,24 +1956,26 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 			hdrInfoForHash.hdr = shardHeader
 			mp.hdrsForCurrBlock.missingHdrs--
 
-			// if there is an entry for the missing proof, it means that proofsPool did not have it while scanning shardData
-			// thus header epoch was not available at that time
-			incompleteProof, hasMissingProof := mp.hdrsForCurrBlock.missingProofs[string(shardHeaderHash)]
-			if hasMissingProof {
-				constructedProof := &block.HeaderProof{
-					PubKeysBitmap:       incompleteProof.PubKeysBitmap,
-					AggregatedSignature: incompleteProof.AggregatedSignature,
-					HeaderHash:          incompleteProof.HeaderHash,
-					HeaderEpoch:         shardHeader.GetEpoch(),
-					HeaderNonce:         incompleteProof.HeaderNonce,
-					HeaderShardId:       incompleteProof.HeaderShardId,
-				}
-				errAddProof := mp.proofsPool.AddProof(constructedProof)
-				if errAddProof != nil {
-					log.Trace("could not add the constructed proof after header received", "hash", hex.EncodeToString(incompleteProof.HeaderHash))
-				}
+			if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHeader.GetEpoch()) {
+				// if there is an entry for the missing proof, it means that proofsPool did not have it while scanning shardData
+				// thus header epoch was not available at that time
+				incompleteProof, hasMissingProof := mp.hdrsForCurrBlock.missingProofs[string(shardHeaderHash)]
+				if hasMissingProof {
+					constructedProof := &block.HeaderProof{
+						PubKeysBitmap:       incompleteProof.PubKeysBitmap,
+						AggregatedSignature: incompleteProof.AggregatedSignature,
+						HeaderHash:          incompleteProof.HeaderHash,
+						HeaderEpoch:         shardHeader.GetEpoch(),
+						HeaderNonce:         incompleteProof.HeaderNonce,
+						HeaderShardId:       incompleteProof.HeaderShardId,
+					}
+					errAddProof := mp.proofsPool.AddProof(constructedProof)
+					if errAddProof != nil {
+						log.Trace("could not add the constructed proof after header received", "hash", hex.EncodeToString(incompleteProof.HeaderHash))
+					}
 
-				delete(mp.hdrsForCurrBlock.missingProofs, string(shardHeaderHash))
+					delete(mp.hdrsForCurrBlock.missingProofs, string(shardHeaderHash))
+				}
 			}
 
 			if shardHeader.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.GetShardID()] {
@@ -2108,7 +2112,11 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 		}
 	}
 
-	shouldRequestMissingFinalityAttestingShardHeaders := notarizedShardHdrsBasedOnProofs != len(metaBlock.ShardInfo)
+	shouldRequestMissingFinalityAttestingShardHeaders := true
+	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+		shouldRequestMissingFinalityAttestingShardHeaders = notarizedShardHdrsBasedOnProofs != len(metaBlock.ShardInfo)
+	}
+
 	if mp.hdrsForCurrBlock.missingHdrs == 0 && shouldRequestMissingFinalityAttestingShardHeaders {
 		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}
