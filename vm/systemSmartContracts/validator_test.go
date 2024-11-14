@@ -5588,27 +5588,27 @@ func TestStakingValidatorSC_MoveStakeFromValidatorToValidator(t *testing.T) {
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "invalid argument, wanted an address for the first and second argument")
 
-	vmInput.Arguments[0] = bytes.Repeat([]byte{1}, 32)
 	vmInput.Arguments[1] = bytes.Repeat([]byte{1}, 32)
+	vmInput.Arguments[2] = bytes.Repeat([]byte{1}, 32)
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "sender address must be a delegation smart contract")
 
-	vmInput.Arguments[0] = vm.FirstDelegationSCAddress
 	vmInput.Arguments[1] = vm.FirstDelegationSCAddress
+	vmInput.Arguments[2] = vm.FirstDelegationSCAddress
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "sender and destination addresses are equal")
 
-	vmInput.Arguments[1] = bytes.Repeat([]byte{1}, 32)
+	vmInput.Arguments[2] = bytes.Repeat([]byte{1}, 32)
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "destination address must be a delegation smart contract")
 
-	vmInput.Arguments[1] = createNewAddress(vm.FirstDelegationSCAddress)
+	vmInput.Arguments[2] = createNewAddress(vm.FirstDelegationSCAddress)
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.UserError)
@@ -5620,26 +5620,26 @@ func TestStakingValidatorSC_MoveStakeFromValidatorToValidator(t *testing.T) {
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "can not unstake the provided value either because is under the minimum threshold or is not the value left to be unStaked")
 
-	vmInput.Arguments[2] = big.NewInt(20).Bytes()
+	vmInput.Arguments[0] = big.NewInt(20).Bytes()
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "cannot move tokens, not enough active stake")
 
 	v.minDeposit = big.NewInt(10000)
-	_ = v.saveRegistrationData(vmInput.Arguments[0], &ValidatorDataV2{TotalStakeValue: big.NewInt(10000), NumRegistered: 10})
+	_ = v.saveRegistrationData(vmInput.Arguments[1], &ValidatorDataV2{TotalStakeValue: big.NewInt(10000), NumRegistered: 10})
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.UserError)
 	require.Equal(t, eei.returnMessage, "cannot move tokens, the validator would remain without min deposit, nodes are still active")
 
-	_ = v.saveRegistrationData(vmInput.Arguments[0], &ValidatorDataV2{TotalStakeValue: big.NewInt(100000), NumRegistered: 10})
+	_ = v.saveRegistrationData(vmInput.Arguments[1], &ValidatorDataV2{TotalStakeValue: big.NewInt(100000), NumRegistered: 10})
 	eei.returnMessage = ""
 	output = v.Execute(vmInput)
 	require.Equal(t, output, vmcommon.Ok)
 
-	validatorA, _ := v.getOrCreateRegistrationData(vmInput.Arguments[0])
-	validatorB, _ := v.getOrCreateRegistrationData(vmInput.Arguments[1])
+	validatorA, _ := v.getOrCreateRegistrationData(vmInput.Arguments[1])
+	validatorB, _ := v.getOrCreateRegistrationData(vmInput.Arguments[2])
 
 	require.Equal(t, validatorA.TotalStakeValue, big.NewInt(100000-20))
 	require.Equal(t, validatorB.TotalStakeValue, big.NewInt(20))

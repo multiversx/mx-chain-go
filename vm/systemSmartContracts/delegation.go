@@ -2612,7 +2612,7 @@ func (d *delegation) checkCoolDownPeriodForMigration(delegatorAddress []byte) vm
 	lastMoveEpoch := big.NewInt(0).SetBytes(lastMoveEpochData).Uint64()
 
 	epochDifference := uint64(d.eei.BlockChainHook().CurrentEpoch()) - lastMoveEpoch
-	if lastMoveEpoch == 0 || epochDifference < d.migrateCoolDownPeriodInEpoch {
+	if lastMoveEpoch != 0 && epochDifference < d.migrateCoolDownPeriodInEpoch {
 		waitTime := big.NewInt(int64(d.migrateCoolDownPeriodInEpoch - epochDifference)).String()
 		d.eei.AddReturnMessage("cannot migrate to another service provider during cooldown period, wait " + waitTime + " more epochs")
 		return vmcommon.UserError
@@ -2675,6 +2675,15 @@ func (d *delegation) removeDelegationFromSource(args *vmcommon.ContractCallInput
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	numUsersBig := big.NewInt(int64(d.numUsers()))
+	entry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    delegatorAddress,
+		Topics:     [][]byte{valueToMove.Bytes(), activeFund.Value.Bytes(), numUsersBig.Bytes(), globalFund.TotalActive.Bytes()},
+	}
+
+	d.eei.AddLogEntry(entry)
 
 	return vmcommon.Ok
 }
@@ -2776,6 +2785,20 @@ func (d *delegation) moveDelegationToDestination(args *vmcommon.ContractCallInpu
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
 	}
+
+	fund, err := d.getFund(delegator.ActiveFund)
+	if err != nil {
+		log.Warn("moveDelegationToDestination cannot get active fund", "error", err)
+	}
+
+	numUsersBig := big.NewInt(int64(d.numUsers()))
+	entry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    delegatorAddress,
+		Topics:     [][]byte{valueToMove.Bytes(), fund.Value.Bytes(), numUsersBig.Bytes(), globalFund.TotalActive.Bytes()},
+	}
+
+	d.eei.AddLogEntry(entry)
 
 	return vmcommon.Ok
 }
