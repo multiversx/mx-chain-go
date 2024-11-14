@@ -8,9 +8,12 @@ type transactionsHeap struct {
 type transactionsHeapItem struct {
 	senderIndex int
 
+	// Whether the sender's nonce has been asked within a selection session.
 	senderNonceAsked bool
-	senderNonceTold  bool
-	senderNonce      uint64
+	// Whether the sender's nonce has been asked and told (with success) within a selection session.
+	senderNonceTold bool
+	// The sender's nonce (if asked and told).
+	senderNonce uint64
 
 	transactionIndex int
 	transaction      *WrappedTransaction
