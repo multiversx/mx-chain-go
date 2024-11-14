@@ -93,7 +93,7 @@ That is, for contract calls, the PPU is not equal to the gas price, but much low
 
 Transaction **A** is considered **more valuable (for the Network)** than transaction **B** if **it has a higher PPU**.
 
-If two transactions have the same PPU, they are ordered using an arbitrary, but deterministic rule: the transaction with the higher [fnv32(transactionHash)](https://en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function) "wins" the comparison.
+If two transactions have the same PPU, they are ordered using an arbitrary, but deterministic rule: the transaction with the "lower" transaction hash "wins" the comparison.
 
 Pseudo-code:
 
@@ -103,7 +103,7 @@ func isTransactionMoreValuableForNetwork(A, B):
         return true
     if A.ppu < B.ppu:
         return false
-    return fnv32(A.hash) > fnv32(B.hash)
+    return A.hash < B.hash
 ```
 
 ### Paragraph 4
