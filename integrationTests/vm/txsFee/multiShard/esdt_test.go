@@ -20,7 +20,7 @@ func TestESDTTransferShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -33,7 +33,7 @@ func TestESDTTransferShouldWork(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	gasPrice := uint64(10)
 	gasLimit := uint64(40)
@@ -61,11 +61,11 @@ func TestMultiESDTNFTTransferViaRelayedV2(t *testing.T) {
 
 	relayerSh0 := []byte("12345678901234567890123456789110")
 	relayerSh1 := []byte("12345678901234567890123456789111")
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh1Context.Close()
 	_, _ = vm.CreateAccount(sh1Context.Accounts, sh1Addr, 0, big.NewInt(10000000000))
@@ -73,8 +73,8 @@ func TestMultiESDTNFTTransferViaRelayedV2(t *testing.T) {
 	_, _ = vm.CreateAccount(sh1Context.Accounts, relayerSh1, 0, big.NewInt(1000000000))
 
 	// create the nfts, add the liquidity to the system accounts and check for balances
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID1, 1, big.NewInt(1))
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID2, 1, big.NewInt(1))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID1, 1, big.NewInt(1), uint32(core.NonFungible))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID2, 1, big.NewInt(1), uint32(core.NonFungible))
 
 	sh0Accnt, _ := sh0Context.Accounts.LoadAccount(sh0Addr)
 	sh1Accnt, _ := sh1Context.Accounts.LoadAccount(sh1Addr)

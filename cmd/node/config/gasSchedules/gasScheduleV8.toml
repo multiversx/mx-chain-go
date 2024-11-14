@@ -16,6 +16,11 @@
     ESDTNFTUpdateAttributes  = 50000
     ESDTNFTMultiTransfer     = 200000
     MultiESDTNFTTransfer     = 200000 # should be the same value with the ESDTNFTMultiTransfer
+    ESDTModifyRoyalties      = 500000
+    ESDTModifyCreator        = 500000
+    ESDTNFTRecreate          = 1000000
+    ESDTNFTUpdate            = 1000000
+    ESDTNFTSetNewURIs        = 500000
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000
@@ -108,6 +113,7 @@
     GetCallbackClosure   = 10000
     GetCodeMetadata      = 10000
     IsBuiltinFunction    = 10000
+    IsReservedFunctionName = 10000
 
 [EthAPICost]
     UseGas              = 100
@@ -190,23 +196,26 @@
     CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
-    SHA256                 = 1000000
-    Keccak256              = 1000000
-    Ripemd160              = 1000000
-    VerifyBLS              = 5000000
-    VerifyEd25519          = 2000000
-    VerifySecp256k1        = 2000000
-    EllipticCurveNew       = 10000
-    AddECC                 = 75000
-    DoubleECC              = 65000
-    IsOnCurveECC           = 10000
-    ScalarMultECC          = 400000
-    MarshalECC             = 13000
-    MarshalCompressedECC   = 15000
-    UnmarshalECC           = 20000
-    UnmarshalCompressedECC = 270000
-    GenerateKeyECC         = 7000000
-    EncodeDERSig           = 10000000
+    SHA256                  = 1000000
+    Keccak256               = 1000000
+    Ripemd160               = 1000000
+    VerifyBLS               = 5000000
+    VerifyEd25519           = 2000000
+    VerifySecp256k1         = 2000000
+    EllipticCurveNew        = 10000
+    AddECC                  = 75000
+    DoubleECC               = 65000
+    IsOnCurveECC            = 10000
+    ScalarMultECC           = 400000
+    MarshalECC              = 13000
+    MarshalCompressedECC    = 15000
+    UnmarshalECC            = 20000
+    UnmarshalCompressedECC  = 270000
+    GenerateKeyECC          = 7000000
+    EncodeDERSig            = 10000000
+    VerifySecp256r1         = 2000000
+    VerifyBLSSignatureShare = 2000000
+    VerifyBLSMultiSig       = 2000000
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000
