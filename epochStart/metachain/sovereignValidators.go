@@ -85,7 +85,6 @@ func (svic *sovereignValidatorInfoCreator) CreateValidatorInfoMiniBlocks(validat
 	svic.clean()
 
 	miniBlocks := make([]*block.MiniBlock, 0)
-
 	validators := validatorsInfo.GetShardValidatorsInfoMap()[core.SovereignChainShardId]
 	if len(validators) == 0 {
 		return miniBlocks, nil
