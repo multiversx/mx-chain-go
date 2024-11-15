@@ -148,7 +148,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	selfShardID := instance.GetShardCoordinator().SelfId()
-	instance.StatusComponentsHolder, err = CreateStatusComponents(
+
+	statusComponentsH, err := CreateStatusComponents(
 		selfShardID,
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
@@ -158,6 +159,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
+
+	instance.StatusComponentsHolder = statusComponentsH
 
 	err = instance.createBlockChain(selfShardID)
 	if err != nil {
@@ -183,6 +186,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
+
+	statusComponentsH.SetNodesCoordinator(instance.NodesCoordinator)
 
 	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
 		Chain:              instance.ChainHandler,
