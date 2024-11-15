@@ -28,7 +28,6 @@ type shardedTxPool struct {
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
 	txGasHandler                 txcache.TxGasHandler
-	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
 
 type txPoolShard struct {
@@ -79,7 +78,6 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
 		txGasHandler:                 args.TxGasHandler,
-		accountNonceProvider:         args.AccountNonceProvider,
 	}
 
 	return shardedTxPoolObject, nil
@@ -136,7 +134,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.txGasHandler, txPool.accountNonceProvider)
+		cache, err := txcache.NewTxCache(config, txPool.txGasHandler)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()

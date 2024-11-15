@@ -32,8 +32,8 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCa
 }
 
 // GetSortedTransactions gets the transactions from the cache
-func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
-	txs, _ := adapter.txCache.SelectTransactions(process.TxCacheSelectionGasRequested, process.TxCacheSelectionMaxNumTxs)
+func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions(accountNonceProvider txcache.AccountNonceProvider) []*txcache.WrappedTransaction {
+	txs, _ := adapter.txCache.SelectTransactions(accountNonceProvider, process.TxCacheSelectionGasRequested, process.TxCacheSelectionMaxNumTxs, process.TxCacheSelectionLoopMaximumDuration)
 	return txs
 }
 
@@ -47,7 +47,7 @@ type disabledSortedTransactionsProvider struct {
 }
 
 // GetSortedTransactions returns an empty slice
-func (adapter *disabledSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
+func (adapter *disabledSortedTransactionsProvider) GetSortedTransactions(_ txcache.AccountNonceProvider) []*txcache.WrappedTransaction {
 	return make([]*txcache.WrappedTransaction, 0)
 }
 

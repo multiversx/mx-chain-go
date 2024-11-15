@@ -2,19 +2,20 @@ package preprocess
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
 // SortedTransactionsProvider defines the public API of the transactions cache
 type SortedTransactionsProvider interface {
-	GetSortedTransactions() []*txcache.WrappedTransaction
+	GetSortedTransactions(accountNonceProvider txcache.AccountNonceProvider) []*txcache.WrappedTransaction
 	IsInterfaceNil() bool
 }
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactions(gasRequested uint64, maxNum int) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(accountNonceProvider txcache.AccountNonceProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64)
 	IsInterfaceNil() bool
 }
 

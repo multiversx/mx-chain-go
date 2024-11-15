@@ -32,8 +32,8 @@ type DisabledCache = txcache.DisabledCache
 type CrossTxCache = txcache.CrossTxCache
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler, accountNonceProvider AccountNonceProvider) (*TxCache, error) {
-	return txcache.NewTxCache(config, txGasHandler, accountNonceProvider)
+func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
+	return txcache.NewTxCache(config, txGasHandler)
 }
 
 // NewDisabledCache creates a new disabled cache

@@ -31,7 +31,6 @@ type DataComponentsFactoryArgs struct {
 	CurrentEpoch                  uint32
 	CreateTrieEpochRootHashStorer bool
 	NodeProcessingMode            common.NodeProcessingMode
-	AccountNonceProvider          dataRetriever.AccountNonceProvider
 }
 
 type dataComponentsFactory struct {
@@ -45,7 +44,6 @@ type dataComponentsFactory struct {
 	currentEpoch                  uint32
 	createTrieEpochRootHashStorer bool
 	nodeProcessingMode            common.NodeProcessingMode
-	accountNonceProvider          dataRetriever.AccountNonceProvider
 }
 
 // dataComponents struct holds the data components
@@ -72,9 +70,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Crypto) {
 		return nil, errors.ErrNilCryptoComponents
 	}
-	if check.IfNil(args.AccountNonceProvider) {
-		return nil, dataRetriever.ErrNilAccountNonceProvider
-	}
 
 	return &dataComponentsFactory{
 		config:                        args.Config,
@@ -87,7 +82,6 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 		flagsConfig:                   args.FlagsConfigs,
 		nodeProcessingMode:            args.NodeProcessingMode,
 		crypto:                        args.Crypto,
-		accountNonceProvider:          args.AccountNonceProvider,
 	}, nil
 }
 
@@ -105,12 +99,11 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 	}
 
 	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
-		Config:               &dcf.config,
-		EconomicsData:        dcf.core.EconomicsData(),
-		ShardCoordinator:     dcf.shardCoordinator,
-		Marshalizer:          dcf.core.InternalMarshalizer(),
-		PathManager:          dcf.core.PathHandler(),
-		AccountNonceProvider: dcf.accountNonceProvider,
+		Config:           &dcf.config,
+		EconomicsData:    dcf.core.EconomicsData(),
+		ShardCoordinator: dcf.shardCoordinator,
+		Marshalizer:      dcf.core.InternalMarshalizer(),
+		PathManager:      dcf.core.PathHandler(),
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {

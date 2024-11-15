@@ -1433,7 +1433,13 @@ func (txs *transactions) computeSortedTxs(
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+
+	accountNonceProvider, err := newAccountNonceProvider(txs.accounts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(accountNonceProvider)
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)

@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
-	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
@@ -132,12 +131,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	// The accounts adapter isn't yet available, it will be set a bit later (see below).
-	accountNonceProvider, err := factoryState.NewAccountNonceProvider(nil)
-	if err != nil {
-		return nil, err
-	}
-
 	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
 		CryptoComponents:     instance.CryptoComponentsHolder,
@@ -149,7 +142,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		PrefsConfig:          *args.Configs.PreferencesConfig,
 		Config:               *args.Configs.GeneralConfig,
 		ShardIDStr:           args.ShardIDStr,
-		AccountNonceProvider: accountNonceProvider,
 	})
 	if err != nil {
 		return nil, err
@@ -183,18 +175,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = accountNonceProvider.SetAccountsAdapter(instance.StateComponentsHolder.AccountsAdapterAPI())
-	if err != nil {
-		return nil, err
-	}
-
 	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
-		Config:               args.Configs.GeneralConfig,
-		EconomicsData:        instance.CoreComponentsHolder.EconomicsData(),
-		ShardCoordinator:     instance.BootstrapComponentsHolder.ShardCoordinator(),
-		Marshalizer:          instance.CoreComponentsHolder.InternalMarshalizer(),
-		PathManager:          instance.CoreComponentsHolder.PathHandler(),
-		AccountNonceProvider: accountNonceProvider,
+		Config:           args.Configs.GeneralConfig,
+		EconomicsData:    instance.CoreComponentsHolder.EconomicsData(),
+		ShardCoordinator: instance.BootstrapComponentsHolder.ShardCoordinator(),
+		Marshalizer:      instance.CoreComponentsHolder.InternalMarshalizer(),
+		PathManager:      instance.CoreComponentsHolder.PathHandler(),
 	})
 	if err != nil {
 		return nil, err

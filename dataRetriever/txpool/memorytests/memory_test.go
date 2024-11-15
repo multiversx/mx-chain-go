@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -111,11 +110,10 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:               config,
-		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
-		NumberOfShards:       2,
-		SelfShardID:          0,
+		Config:         config,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+		NumberOfShards: 2,
+		SelfShardID:    0,
 	}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {

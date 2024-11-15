@@ -11,11 +11,10 @@ import (
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
-	Config               storageunit.CacheConfig
-	TxGasHandler         txcache.TxGasHandler
-	AccountNonceProvider dataRetriever.AccountNonceProvider
-	NumberOfShards       uint32
-	SelfShardID          uint32
+	Config         storageunit.CacheConfig
+	TxGasHandler   txcache.TxGasHandler
+	NumberOfShards uint32
+	SelfShardID    uint32
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
@@ -39,9 +38,6 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 	if check.IfNil(args.TxGasHandler) {
 		return fmt.Errorf("%w: TxGasHandler is not valid", dataRetriever.ErrNilTxGasHandler)
-	}
-	if check.IfNil(args.AccountNonceProvider) {
-		return dataRetriever.ErrNilAccountNonceProvider
 	}
 	if args.NumberOfShards == 0 {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)

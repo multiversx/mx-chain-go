@@ -11,7 +11,6 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
@@ -27,8 +26,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
-
-	accountNonceProvider := testscommon.NewAccountNonceProviderMock()
 
 	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
@@ -47,7 +44,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
-		accountNonceProvider,
 	)
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(
@@ -55,7 +51,6 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedBootstrapComponents,
 		managedCryptoComponents,
-		accountNonceProvider,
 	)
 	require.Nil(t, err)
 	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
