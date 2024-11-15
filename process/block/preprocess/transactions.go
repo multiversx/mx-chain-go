@@ -39,11 +39,6 @@ const selectionGasBandwidthIncreasePercent = 200
 // 130% to allow 30% overshooting estimations for scheduled SC calls
 const selectionGasBandwidthIncreaseScheduledPercent = 130
 
-type accountTxsShards struct {
-	accountsInfo map[string]*txShardInfo
-	sync.RWMutex
-}
-
 // TODO: increase code coverage with unit test
 
 type transactions struct {
@@ -59,7 +54,6 @@ type transactions struct {
 	mutOrderedTxs                sync.RWMutex
 	blockTracker                 BlockTracker
 	blockType                    block.Type
-	accountTxsShards             accountTxsShards
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
@@ -196,7 +190,6 @@ func NewTransactionPreprocessor(
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
-	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
@@ -797,10 +790,6 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.mutOrderedTxs.Unlock()
 
-	txs.accountTxsShards.Lock()
-	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
-	txs.accountTxsShards.Unlock()
-
 	txs.scheduledTxsExecutionHandler.Init()
 }
 
@@ -1156,7 +1145,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	args := miniBlocksBuilderArgs{
 		gasTracker:                txs.gasTracker,
 		accounts:                  txs.accounts,
-		accountTxsShards:          &txs.accountTxsShards,
 		balanceComputationHandler: txs.balanceComputation,
 		blockSizeComputation:      txs.blockSizeComputation,
 		haveTime:                  haveTime,
@@ -1255,7 +1243,6 @@ func (txs *transactions) processMiniBlockBuilderTx(
 	)
 	elapsedTime := time.Since(startTime)
 	mb.stats.totalProcessingTime += elapsedTime
-	mb.updateAccountShardsInfo(tx, wtx)
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		txs.handleBadTransaction(err, wtx, tx, mb, snapshot)
