@@ -87,6 +87,9 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		ProcessComponents:    node.ProcessComponentsHolder,
 		StatusCoreComponents: node.StatusCoreComponents,
 	})
+	if err != nil {
+		return err
+	}
 
 	managedHeartbeatV2Components, err := heartbeat.NewManagedHeartbeatV2Components(heartBeatComponentsFactory)
 	if err != nil {
