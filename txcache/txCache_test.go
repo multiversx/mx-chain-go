@@ -463,7 +463,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			_, _ = cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
+			_, _ = cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt, oneSecond)
 		}
 
 		wg.Done()
