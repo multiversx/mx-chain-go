@@ -3,7 +3,6 @@ package components
 import (
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"strconv"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
 	apiComp "github.com/multiversx/mx-chain-go/factory/api"
+	"github.com/multiversx/mx-chain-go/factory/heartbeat"
 	nodePack "github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process/mock"
