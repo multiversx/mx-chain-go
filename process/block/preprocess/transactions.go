@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -903,15 +902,6 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return err
-}
-
-func (txs *transactions) getAccountForAddress(address []byte) (vmcommon.AccountHandler, error) {
-	account, err := txs.accounts.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return account, nil
 }
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
