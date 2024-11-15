@@ -887,6 +887,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
     FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 102
 
+	# DelegationImprovementsV3EnableEpoch represents the epoch when the new delegation features are enabled
+	DelegationImprovementsV3EnableEpoch = 103
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1007,6 +1010,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixRelayedBaseCostEnableEpoch:                            100,
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
+			DelegationImprovementsV3EnableEpoch:                      103,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

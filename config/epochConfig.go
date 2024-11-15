@@ -120,6 +120,7 @@ type EnableEpochs struct {
 	CryptoOpcodesV2EnableEpoch                               uint32
 	UnJailCleanupEnableEpoch                                 uint32
 	FixRelayedBaseCostEnableEpoch                            uint32
+	DelegationImprovementsV3EnableEpoch                      uint32
 	MultiESDTNFTTransferAndExecuteByUserEnableEpoch          uint32
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
