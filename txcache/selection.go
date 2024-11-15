@@ -6,7 +6,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProvider, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
@@ -14,11 +14,11 @@ func (cache *TxCache) doSelectTransactions(gasRequested uint64, maxNum int) (bun
 		bunches = append(bunches, sender.getSequentialTxs())
 	}
 
-	return cache.selectTransactionsFromBunches(bunches, gasRequested, maxNum)
+	return selectTransactionsFromBunches(accountNonceProvider, bunches, gasRequested, maxNum)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransactions, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -56,7 +56,7 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 			break
 		}
 
-		cache.requestAccountNonceIfNecessary(item)
+		requestAccountNonceIfNecessary(accountNonceProvider, item)
 
 		isInitialGap := item.transactionIndex == 0 && item.senderNonceProvided && nonce > item.senderNonce
 		if isInitialGap {
@@ -105,7 +105,7 @@ func (cache *TxCache) selectTransactionsFromBunches(bunches []bunchOfTransaction
 	return selectedTransactions, accumulatedGas
 }
 
-func (cache *TxCache) requestAccountNonceIfNecessary(item *transactionsHeapItem) {
+func requestAccountNonceIfNecessary(accountNonceProvider AccountNonceProvider, item *transactionsHeapItem) {
 	if item.senderNonceRequested {
 		return
 	}
@@ -113,7 +113,7 @@ func (cache *TxCache) requestAccountNonceIfNecessary(item *transactionsHeapItem)
 	item.senderNonceRequested = true
 
 	sender := item.transaction.Tx.GetSndAddr()
-	senderNonce, err := cache.accountNonceProvider.GetAccountNonce(sender)
+	senderNonce, err := accountNonceProvider.GetAccountNonce(sender)
 	if err != nil {
 		// Hazardous; should never happen.
 		logSelect.Debug("TxCache.requestAccountNonceIfNecessary: nonce not available", "sender", sender, "err", err)

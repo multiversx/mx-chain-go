@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -26,7 +25,6 @@ type printedTransaction struct {
 func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseCounters()
 	cache.diagnoseTransactions()
-	cache.diagnoseSelection()
 }
 
 func (cache *TxCache) diagnoseCounters() {
@@ -106,15 +104,6 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		DataLength: len(transaction.GetData()),
 		PPU:        wrappedTx.PricePerUnit.Load(),
 	}
-}
-
-func (cache *TxCache) diagnoseSelection() {
-	if logDiagnoseSelection.GetLevel() > logger.LogDebug {
-		return
-	}
-
-	transactions, _ := cache.doSelectTransactions(diagnosisSelectionGasRequested, math.MaxInt)
-	displaySelectionOutcome(logDiagnoseSelection, "diagnoseSelection", transactions)
 }
 
 func displaySelectionOutcome(contextualLogger logger.Logger, linePrefix string, transactions []*WrappedTransaction) {

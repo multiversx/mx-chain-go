@@ -13,6 +13,7 @@ import (
 func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	t.Run("all having same PPU", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
@@ -23,7 +24,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-		selected, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		selected, accumulatedGas := cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 		require.Len(t, selected, 8)
 		require.Equal(t, 400000, int(accumulatedGas))
 
@@ -40,12 +41,13 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 
 	t.Run("alice > carol > bob", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withGasPrice(100))
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
 		cache.AddTx(createTx([]byte("hash-carol-3"), "carol", 3).withGasPrice(75))
 
-		selected, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		selected, accumulatedGas := cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 		require.Len(t, selected, 3)
 		require.Equal(t, 150000, int(accumulatedGas))
 
@@ -59,6 +61,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	t.Run("transactions with no data field", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4).withGasLimit(100000))
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3).withGasLimit(100000))
@@ -69,7 +72,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-		selected, accumulatedGas := cache.SelectTransactions(760000, math.MaxInt)
+		selected, accumulatedGas := cache.SelectTransactions(accountNonceProvider, 760000, math.MaxInt)
 		require.Len(t, selected, 5)
 		require.Equal(t, 750000, int(accumulatedGas))
 
@@ -85,6 +88,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 	t.Run("with middle gaps", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
@@ -98,7 +102,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10)) // gap
 		cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
 
-		sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		sorted, accumulatedGas := cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
@@ -106,7 +110,9 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 
 	t.Run("with initial gaps", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
-		noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+
+		noncesByAddress := accountNonceProvider.NoncesByAddress
 		noncesByAddress["alice"] = 1
 		noncesByAddress["bob"] = 42
 
@@ -124,7 +130,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		sorted, accumulatedGas := cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 		expectedNumSelected := 3 + 0 + 2 // 3 alice + 0 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 250000, int(accumulatedGas))
@@ -132,7 +138,9 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 
 	t.Run("with lower nonces", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
-		noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+
+		noncesByAddress := accountNonceProvider.NoncesByAddress
 		noncesByAddress["alice"] = 1
 		noncesByAddress["bob"] = 42
 
@@ -150,7 +158,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+		sorted, accumulatedGas := cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
@@ -158,8 +166,9 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 }
 
 func TestTxCache_requestAccountNonceIfNecessary(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-	noncesByAddress := cache.accountNonceProvider.(*txcachemocks.AccountNonceProviderMock).NoncesByAddress
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+
+	noncesByAddress := accountNonceProvider.NoncesByAddress
 	noncesByAddress["alice"] = 7
 	noncesByAddress["bob"] = 42
 
@@ -173,8 +182,8 @@ func TestTxCache_requestAccountNonceIfNecessary(t *testing.T) {
 
 	c := &transactionsHeapItem{}
 
-	cache.requestAccountNonceIfNecessary(a)
-	cache.requestAccountNonceIfNecessary(b)
+	requestAccountNonceIfNecessary(accountNonceProvider, a)
+	requestAccountNonceIfNecessary(accountNonceProvider, b)
 
 	require.True(t, a.senderNonceRequested)
 	require.True(t, a.senderNonceProvided)
@@ -191,6 +200,7 @@ func TestTxCache_requestAccountNonceIfNecessary(t *testing.T) {
 
 func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
 	nSenders := 1000
@@ -209,7 +219,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted, accumulatedGas := cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+	sorted, accumulatedGas := cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 	require.Len(t, sorted, nTotalTransactions)
 	require.Equal(t, 5_000_000_000, int(accumulatedGas))
 
@@ -228,8 +238,8 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
-		merged, accumulatedGas := cache.selectTransactionsFromBunches([]bunchOfTransactions{}, 10_000_000_000, math.MaxInt)
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+		merged, accumulatedGas := selectTransactionsFromBunches(accountNonceProvider, []bunchOfTransactions{}, 10_000_000_000, math.MaxInt)
 
 		require.Equal(t, 0, len(merged))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -240,11 +250,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := selectTransactionsFromBunches(accountNonceProvider, bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -252,11 +262,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := selectTransactionsFromBunches(accountNonceProvider, bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -264,11 +274,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 3", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := selectTransactionsFromBunches(accountNonceProvider, bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -276,11 +286,11 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.selectTransactionsFromBunches(bunches, 10_000_000_000, math.MaxInt)
+		merged, accumulatedGas := selectTransactionsFromBunches(accountNonceProvider, bunches, 10_000_000_000, math.MaxInt)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(merged))
@@ -323,7 +333,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 50_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
@@ -331,7 +341,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.SelectTransactions(10_000_000_000, 50_000)
+		merged, accumulatedGas := cache.SelectTransactions(accountNonceProvider, 10_000_000_000, 50_000)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(merged))
@@ -339,7 +349,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 1, maxNum = 50_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
@@ -347,7 +357,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.SelectTransactions(10_000_000_000, 50_000)
+		merged, accumulatedGas := cache.SelectTransactions(accountNonceProvider, 10_000_000_000, 50_000)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(merged))
@@ -355,7 +365,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1, maxNum = 50_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 300000, 1)
@@ -363,7 +373,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 300000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		merged, accumulatedGas := cache.SelectTransactions(10_000_000_000, 50_000)
+		merged, accumulatedGas := cache.SelectTransactions(accountNonceProvider, 10_000_000_000, 50_000)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(merged))

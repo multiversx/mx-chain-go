@@ -29,49 +29,43 @@ func Test_NewTxCache(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
-	cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
 	badConfig := config
 	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.Name", txGasHandler, accountNonceProvider)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.Name", txGasHandler)
 
 	badConfig = config
 	badConfig.NumChunks = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumChunks", txGasHandler, accountNonceProvider)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumChunks", txGasHandler)
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesPerSenderThreshold", txGasHandler, accountNonceProvider)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesPerSenderThreshold", txGasHandler)
 
 	badConfig = config
 	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountPerSenderThreshold", txGasHandler, accountNonceProvider)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountPerSenderThreshold", txGasHandler)
 
 	badConfig = config
-	cache, err = NewTxCache(config, nil, accountNonceProvider)
+	cache, err = NewTxCache(config, nil)
 	require.Nil(t, cache)
 	require.Equal(t, common.ErrNilTxGasHandler, err)
 
 	badConfig = config
-	cache, err = NewTxCache(config, txGasHandler, nil)
-	require.Nil(t, cache)
-	require.Equal(t, common.ErrNilAccountNonceProvider, err)
-
-	badConfig = config
 	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesThreshold", txGasHandler, accountNonceProvider)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesThreshold", txGasHandler)
 
 	badConfig = config
 	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", txGasHandler, accountNonceProvider)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", txGasHandler)
 }
 
-func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, txGasHandler TxGasHandler, accountNonceProvider AccountNonceProvider) {
-	cache, errReceived := NewTxCache(config, txGasHandler, accountNonceProvider)
+func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, txGasHandler TxGasHandler) {
+	cache, errReceived := NewTxCache(config, txGasHandler)
 	require.Nil(t, cache)
 	require.True(t, errors.Is(errReceived, errExpected))
 	require.Contains(t, errReceived.Error(), errPartialMessage)
@@ -318,7 +312,6 @@ func Test_Keys(t *testing.T) {
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	t.Run("numSenders = 11, numTransactions = 10, countThreshold = 100, numItemsToPreemptivelyEvict = 1", func(t *testing.T) {
 		config := ConfigSourceMe{
@@ -332,7 +325,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumItemsToPreemptivelyEvict: 1,
 		}
 
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -356,7 +349,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumItemsToPreemptivelyEvict: 3,
 		}
 
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -376,7 +369,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumItemsToPreemptivelyEvict: 2,
 		}
 
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -396,7 +389,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumItemsToPreemptivelyEvict: 1,
 		}
 
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -416,7 +409,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumItemsToPreemptivelyEvict: 10000,
 		}
 
-		cache, err := NewTxCache(config, txGasHandler, accountNonceProvider)
+		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -455,6 +448,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
+	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	// Alice will quickly move between two score buckets (chunks)
 	cheapTransaction := createTx([]byte("alice-x-o"), "alice", 0).withDataLength(1).withGasLimit(300000000).withGasPrice(oneBillion)
@@ -469,7 +463,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			_, _ = cache.SelectTransactions(math.MaxUint64, math.MaxInt)
+			_, _ = cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt)
 		}
 
 		wg.Done()
@@ -561,7 +555,6 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 
 func newUnconstrainedCacheToTest() *TxCache {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",
@@ -572,7 +565,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txGasHandler, accountNonceProvider)
+	}, txGasHandler)
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
 	}
@@ -582,7 +575,6 @@ func newUnconstrainedCacheToTest() *TxCache {
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",
@@ -593,7 +585,7 @@ func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold u
 		CountPerSenderThreshold:     countPerSenderThreshold,
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txGasHandler, accountNonceProvider)
+	}, txGasHandler)
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))
 	}

@@ -20,14 +20,13 @@ type TxCache struct {
 	txByHash             *txByHashMap
 	config               ConfigSourceMe
 	txGasHandler         TxGasHandler
-	accountNonceProvider AccountNonceProvider
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler, accountNonceProvider AccountNonceProvider) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
 	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -38,21 +37,17 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler, accountNoncePr
 	if check.IfNil(txGasHandler) {
 		return nil, common.ErrNilTxGasHandler
 	}
-	if check.IfNil(accountNonceProvider) {
-		return nil, common.ErrNilAccountNonceProvider
-	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
 	senderConstraintsObj := config.getSenderConstraints()
 
 	txCache := &TxCache{
-		name:                 config.Name,
-		txListBySender:       newTxListBySenderMap(numChunks, senderConstraintsObj),
-		txByHash:             newTxByHashMap(numChunks),
-		config:               config,
-		txGasHandler:         txGasHandler,
-		accountNonceProvider: accountNonceProvider,
+		name:           config.Name,
+		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj),
+		txByHash:       newTxByHashMap(numChunks),
+		config:         config,
+		txGasHandler:   txGasHandler,
 	}
 
 	return txCache, nil
@@ -104,7 +99,12 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "maxNum" transactions, with total gas <= "gasRequested".
-func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*WrappedTransaction, uint64) {
+func (cache *TxCache) SelectTransactions(accountNonceProvider AccountNonceProvider, gasRequested uint64, maxNum int) ([]*WrappedTransaction, uint64) {
+	if check.IfNil(accountNonceProvider) {
+		log.Error("TxCache.SelectTransactions", "err", common.ErrNilAccountNonceProvider)
+		return nil, 0
+	}
+
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
@@ -115,7 +115,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*Wr
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(gasRequested, maxNum)
+	transactions, accumulatedGas := cache.doSelectTransactions(accountNonceProvider, gasRequested, maxNum)
 
 	stopWatch.Stop("selection")
 
