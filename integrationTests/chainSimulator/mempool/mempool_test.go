@@ -28,32 +28,31 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cs := startChainSimulator(t, func(cfg *config.Configs) {})
-	node := cs.GetNodeHandler(0)
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	node := simulator.GetNodeHandler(0)
 	mempool := node.GetDataComponents().Datapool().Transactions()
 
-	defer cs.Close()
-
-	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	defer simulator.Close()
 
 	numSenders := 10000
+	numTransactionsPerSender := 30
+
 	senders := make([]dtos.WalletAddress, numSenders)
 	sendersNonces := make([]uint64, numSenders)
 
 	for i := 0; i < numSenders; i++ {
-		sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		sender, err := simulator.GenerateAndMintWalletAddress(0, oneEGLD)
 		require.NoError(t, err)
 
 		senders[i] = sender
 	}
 
-	receiver, err := cs.GenerateAndMintWalletAddress(0, big.NewInt(0))
+	receiver, err := simulator.GenerateAndMintWalletAddress(0, big.NewInt(0))
 	require.NoError(t, err)
 
-	err = cs.GenerateBlocks(1)
+	err = simulator.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	numTransactionsPerSender := 30
 	transactions := make([]*transaction.Transaction, 0, numSenders*numTransactionsPerSender)
 
 	for i := 0; i < numSenders; i++ {
@@ -81,6 +80,78 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	require.Equal(t, 300000, int(numSent))
 
 	time.Sleep(500 * time.Millisecond)
+	require.Equal(t, 300000, int(mempool.GetCounts().GetTotal()))
+
+	err = simulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	currentBlock := node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, 27755, int(currentBlock.GetTxCount()))
+
+	miniblockHeader := currentBlock.GetMiniBlockHeaderHandlers()[0]
+	miniblockHash := miniblockHeader.GetHash()
+
+	miniblocks, _ := node.GetDataComponents().MiniBlocksProvider().GetMiniBlocks([][]byte{miniblockHash})
+	require.Equal(t, 1, len(miniblocks))
+}
+
+func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	node := simulator.GetNodeHandler(0)
+	mempool := node.GetDataComponents().Datapool().Transactions()
+
+	defer simulator.Close()
+
+	numSenders := 10000
+	numTransactionsPerSender := 30
+
+	senders := make([]dtos.WalletAddress, numSenders)
+	sendersNonces := make([]uint64, numSenders)
+
+	for i := 0; i < numSenders; i++ {
+		sender, err := simulator.GenerateAndMintWalletAddress(0, oneEGLD)
+		require.NoError(t, err)
+
+		senders[i] = sender
+	}
+
+	receiver, err := simulator.GenerateAndMintWalletAddress(0, big.NewInt(0))
+	require.NoError(t, err)
+
+	err = simulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	transactions := make([]*transaction.Transaction, 0, numSenders*numTransactionsPerSender)
+
+	for i := 0; i < numSenders; i++ {
+		for j := 0; j < numTransactionsPerSender; j++ {
+			tx := &transaction.Transaction{
+				Nonce:     sendersNonces[i],
+				Value:     oneEGLD,
+				SndAddr:   senders[i].Bytes,
+				RcvAddr:   receiver.Bytes,
+				Data:      []byte{},
+				GasLimit:  50000,
+				GasPrice:  1_000_000_000,
+				ChainID:   []byte(configs.ChainID),
+				Version:   2,
+				Signature: []byte("signature"),
+			}
+
+			sendersNonces[i]++
+			transactions = append(transactions, tx)
+		}
+	}
+
+	numSent, err := node.GetFacadeHandler().SendBulkTransactions(transactions)
+	require.NoError(t, err)
+	require.Equal(t, 300000, int(numSent))
+
+	time.Sleep(1 * time.Second)
 	require.Equal(t, 300000, int(mempool.GetCounts().GetTotal()))
 
 	// Send one more transaction (fill up the mempool)
@@ -118,7 +189,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 		},
 	})
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(1 * time.Second)
 	require.Equal(t, 300000+1+1-int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict), int(mempool.GetCounts().GetTotal()))
 }
 
