@@ -3,6 +3,7 @@ package components
 import (
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"strconv"
 	"time"
 
@@ -73,6 +74,30 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	flagsConfig := configs.FlagsConfig
 
+	heartBeatComponentsFactory, err := heartbeat.NewHeartbeatV2ComponentsFactory(heartbeat.ArgHeartbeatV2ComponentsFactory{
+		Config:               *configs.GeneralConfig,
+		Prefs:                *configs.PreferencesConfig,
+		BaseVersion:          "1",
+		AppVersion:           "1",
+		BootstrapComponents:  node.BootstrapComponentsHolder,
+		CoreComponents:       node.CoreComponentsHolder,
+		DataComponents:       node.DataComponentsHolder,
+		NetworkComponents:    node.NetworkComponentsHolder,
+		CryptoComponents:     node.CryptoComponentsHolder,
+		ProcessComponents:    node.ProcessComponentsHolder,
+		StatusCoreComponents: node.StatusCoreComponents,
+	})
+
+	managedHeartbeatV2Components, err := heartbeat.NewManagedHeartbeatV2Components(heartBeatComponentsFactory)
+	if err != nil {
+		return err
+	}
+
+	err = managedHeartbeatV2Components.Create()
+	if err != nil {
+		return err
+	}
+
 	nd, err := nodePack.NewNode(
 		nodePack.WithStatusCoreComponents(node.StatusCoreComponents),
 		nodePack.WithCoreComponents(node.CoreComponentsHolder),
@@ -95,6 +120,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		nodePack.WithNodeStopChannel(node.CoreComponentsHolder.ChanStopNodeProcess()),
 		nodePack.WithImportMode(configs.ImportDbConfig.IsImportDBMode),
 		nodePack.WithESDTNFTStorageHandler(node.ProcessComponentsHolder.ESDTDataStorageHandlerForAPI()),
+		nodePack.WithHeartbeatV2Components(managedHeartbeatV2Components),
 	)
 	if err != nil {
 		return errors.New("error creating node: " + err.Error())
