@@ -2,11 +2,12 @@ package txcache
 
 import (
 	"container/heap"
+	"time"
 
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProvider, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
@@ -14,11 +15,11 @@ func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProv
 		bunches = append(bunches, sender.getSequentialTxs())
 	}
 
-	return selectTransactionsFromBunches(accountNonceProvider, bunches, gasRequested, maxNum)
+	return selectTransactionsFromBunches(accountNonceProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int) (bunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -41,6 +42,7 @@ func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bu
 	}
 
 	accumulatedGas := uint64(0)
+	selectionLoopStartTime := time.Now()
 
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
@@ -54,6 +56,12 @@ func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bu
 		}
 		if len(selectedTransactions) >= maxNum {
 			break
+		}
+		if len(selectedTransactions)%selectionLoopDurationCheckInterval == 0 {
+			if time.Since(selectionLoopStartTime) > selectionLoopMaximumDuration {
+				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
+				break
+			}
 		}
 
 		requestAccountNonceIfNecessary(accountNonceProvider, item)

@@ -13,6 +13,7 @@ import (
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
 const estimatedSizeOfBoundedTxFields = uint64(128)
+const oneSecond = time.Second
 
 func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapByHash := cache.txByHash
