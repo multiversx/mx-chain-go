@@ -1,5 +1,11 @@
 package txcache
 
+import (
+	"math/big"
+
+	"github.com/multiversx/mx-chain-storage-go/types"
+)
+
 type transactionsHeap struct {
 	items []*transactionsHeapItem
 	less  func(i, j int) bool
@@ -8,12 +14,12 @@ type transactionsHeap struct {
 type transactionsHeapItem struct {
 	senderIndex int
 
-	// Whether the sender's nonce has been requested within a selection session.
-	senderNonceRequested bool
-	// Whether the sender's nonce has been requested and provided (with success) within a selection session.
-	senderNonceProvided bool
-	// The sender's nonce (if requested and provided).
-	senderNonce uint64
+	// Whether the sender's state has been requested within a selection session.
+	senderStateRequested bool
+	// Whether the sender's state has been requested and provided (with success) within a selection session.
+	senderStateProvided bool
+	// The sender's state (if requested and provided).
+	senderState *types.AccountState
 
 	transactionIndex int
 	transaction      *WrappedTransaction
