@@ -302,7 +302,6 @@ type ArgTestProcessorNode struct {
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
-	AccountNonceProvider    dataRetriever.AccountNonceProvider
 }
 
 // TestProcessorNode represents a container type of class used in integration tests

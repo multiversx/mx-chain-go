@@ -9,13 +9,13 @@ import (
 
 // SortedTransactionsProvider defines the public API of the transactions cache
 type SortedTransactionsProvider interface {
-	GetSortedTransactions(accountNonceProvider txcache.AccountNonceProvider) []*txcache.WrappedTransaction
+	GetSortedTransactions(accountStateProvider txcache.AccountStateProvider) []*txcache.WrappedTransaction
 	IsInterfaceNil() bool
 }
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactions(accountNonceProvider txcache.AccountNonceProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64)
+	SelectTransactions(accountStateProvider txcache.AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64)
 	IsInterfaceNil() bool
 }
 

@@ -120,7 +120,7 @@ type basePreProcess struct {
 	blockSizeComputation       BlockSizeComputationHandler
 	balanceComputation         BalanceComputationHandler
 	accounts                   state.AccountsAdapter
-	accountNonceProvider       *accountNonceProvider
+	accountStateProvider       *accountStateProvider
 	pubkeyConverter            core.PubkeyConverter
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
 	enableEpochsHandler        common.EnableEpochsHandler

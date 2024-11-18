@@ -154,7 +154,7 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
-	accountNonceProvider, err := newAccountNonceProvider(args.Accounts)
+	accountStateProvider, err := newAccountStateProvider(args.Accounts)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func NewTransactionPreprocessor(
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
-		accountNonceProvider:       accountNonceProvider,
+		accountStateProvider:       accountStateProvider,
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
@@ -1417,7 +1417,7 @@ func (txs *transactions) computeSortedTxs(
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(txs.accountNonceProvider)
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(txs.accountStateProvider)
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)

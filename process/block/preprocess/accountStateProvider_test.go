@@ -11,19 +11,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewAccountNonceProvider(t *testing.T) {
+func TestNewAccountStateProvider(t *testing.T) {
 	t.Parallel()
 
-	provider, err := newAccountNonceProvider(nil)
+	provider, err := newAccountStateProvider(nil)
 	require.Nil(t, provider)
 	require.ErrorIs(t, err, errors.ErrNilAccountsAdapter)
 
-	provider, err = newAccountNonceProvider(&state.AccountsStub{})
+	provider, err = newAccountStateProvider(&state.AccountsStub{})
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 }
 
-func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
+func TestAccountStateProvider_GetAccountState(t *testing.T) {
 	t.Parallel()
 
 	userAddress := []byte("alice")
@@ -38,15 +38,15 @@ func TestAccountNonceProvider_GetAccountNonce(t *testing.T) {
 		}, nil
 	}
 
-	provider, err := newAccountNonceProvider(accounts)
+	provider, err := newAccountStateProvider(accounts)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 
-	nonce, err := provider.GetAccountNonce(userAddress)
+	state, err := provider.GetAccountState(userAddress)
 	require.NoError(t, err)
-	require.Equal(t, uint64(42), nonce)
+	require.Equal(t, uint64(42), state.Nonce)
 
-	nonce, err = provider.GetAccountNonce([]byte("bob"))
+	state, err = provider.GetAccountState([]byte("bob"))
 	require.ErrorContains(t, err, "account not found: bob")
-	require.Equal(t, uint64(0), nonce)
+	require.Nil(t, state)
 }
