@@ -93,7 +93,6 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
-	relayedTxV3Processor             process.RelayedTxV3Processor
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -257,7 +256,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
-		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -496,11 +494,6 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 // EpochSystemSCProcessor returns the epoch start system SC processor
 func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return p.epochStartSystemSCProcessor
-}
-
-// RelayedTxV3Processor returns the relayed tx v3 processor
-func (p *processComponentsHolder) RelayedTxV3Processor() process.RelayedTxV3Processor {
-	return p.relayedTxV3Processor
 }
 
 // Close will call the Close methods on all inner components

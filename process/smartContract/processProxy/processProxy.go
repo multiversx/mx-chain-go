@@ -69,7 +69,6 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			VMOutputCacher:          args.VMOutputCacher,
 			WasmVMChangeLocker:      args.WasmVMChangeLocker,
 			IsGenesisProcessing:     args.IsGenesisProcessing,
-			FailedTxLogsAccumulator: args.FailedTxLogsAccumulator,
 			EpochNotifier:           args.EpochNotifier,
 		},
 	}

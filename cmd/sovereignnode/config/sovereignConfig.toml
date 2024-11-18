@@ -56,7 +56,7 @@
         { Identifier = "execute", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
     ]
     [NotifierConfig.WebSocket]
-        Url = "localhost:22111"
+        Url = "ws://localhost:22111"
         # Possible values: json, gogo protobuf. Should be compatible with mx-chain-node outport driver config
         MarshallerType = "gogo protobuf"
         # Retry duration (receive/send ack signal) in seconds

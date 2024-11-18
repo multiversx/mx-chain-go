@@ -63,7 +63,7 @@ func TestSovereignChainSimulator_RegisterTwoSfts(t *testing.T) {
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	sftName := "SFTNAME"
 	sftTicker := "SFTTICKER"
-	sftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, core.SemiFungibleESDT, 0)
+	sftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, core.SemiFungibleESDT, 0)
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
@@ -79,7 +79,7 @@ func TestSovereignChainSimulator_RegisterTwoSfts(t *testing.T) {
 
 	sftName = "SFTNAME2"
 	sftTicker = "SFTTICKER2"
-	sftIdentifier = chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, core.SemiFungibleESDT, 0)
+	sftIdentifier = chainSim.RegisterAndSetAllRoles(t, cs, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, core.SemiFungibleESDT, 0)
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
@@ -132,7 +132,7 @@ func TestSovereignChainSimulator_IssueTwoSfts(t *testing.T) {
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	sftName := "SFTNAME"
 	sftTicker := "SFTTICKER"
-	sftIdentifier := chainSim.IssueSemiFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker)
+	sftIdentifier := chainSim.IssueSemiFungible(t, cs, wallet.Bytes, &nonce, issueCost, sftName, sftTicker)
 
 	setRolesArgs := setSpecialRole(sftIdentifier, wallet.Bytes, sftRoles)
 	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
@@ -151,7 +151,7 @@ func TestSovereignChainSimulator_IssueTwoSfts(t *testing.T) {
 
 	sftName = "SFTNAME2"
 	sftTicker = "SFTTICKER2"
-	sftIdentifier = chainSim.IssueSemiFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker)
+	sftIdentifier = chainSim.IssueSemiFungible(t, cs, wallet.Bytes, &nonce, issueCost, sftName, sftTicker)
 
 	setRolesArgs = setSpecialRole(sftIdentifier, wallet.Bytes, sftRoles)
 	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
