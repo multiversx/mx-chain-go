@@ -1013,20 +1013,25 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(37)
-	round := uint64(5)
-	timestamp := uint64(1234)
-	randSeed := []byte("a")
 	epoch := uint32(7)
+	randSeed := []byte("a")
+
+	epochStartNonce := uint64(30)
+	epochStartRound := uint64(3)
+	epochStartTimestamp := uint64(1000)
 
 	epochStartHdr := &block.Header{
-		Nonce:              nonce,
-		Round:              round,
-		TimeStamp:          timestamp,
+		Nonce:              epochStartNonce,
+		Round:              epochStartRound,
+		TimeStamp:          epochStartTimestamp,
 		RandSeed:           randSeed,
 		Epoch:              epoch,
 		EpochStartMetaHash: []byte("meta"),
 	}
+
+	nonce := uint64(37)
+	round := uint64(5)
+	timestamp := uint64(1234)
 
 	hdr := &block.Header{
 		Nonce:     nonce,
@@ -1049,6 +1054,10 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
 	assert.Equal(t, epoch, bh.CurrentEpoch())
 	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
+
+	assert.Equal(t, epochStartNonce, bh.EpochStartBlockNonce())
+	assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
+	assert.Equal(t, epochStartTimestamp, bh.EpochStartBlockTimeStamp())
 
 	err = bh.SetCurrentHeader(nil)
 	require.Equal(t, hooks.ErrNilCurrentHeader, err)

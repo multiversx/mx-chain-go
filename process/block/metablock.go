@@ -273,11 +273,6 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	err = mp.blockChainHook.SetCurrentHeader(header)
-	if err != nil {
-		return err
-	}
-
 	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 
 	err = mp.checkEpochCorrectness(header)
@@ -288,6 +283,11 @@ func (mp *metaProcessor) ProcessBlock(
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("metaProcessor.ProcessBlock first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
+	}
+
+	err = mp.blockChainHook.SetCurrentHeader(header)
+	if err != nil {
+		return err
 	}
 
 	err = mp.processIfFirstBlockAfterEpochStart()

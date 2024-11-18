@@ -233,11 +233,6 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	err = sp.blockChainHook.SetCurrentHeader(header)
-	if err != nil {
-		return err
-	}
-
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
 
@@ -312,6 +307,11 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	err = sp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return err
 	}
