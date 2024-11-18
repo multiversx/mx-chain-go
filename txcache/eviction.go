@@ -109,11 +109,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, &transactionsHeapItem{
-			senderIndex:      i,
-			transactionIndex: 0,
-			transaction:      bunch[0],
-		})
+		heap.Push(transactionsHeap, newTransactionsHeapItem(i, bunch[0]))
 	}
 
 	for pass := 0; cache.isCapacityExceeded(); pass++ {

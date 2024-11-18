@@ -23,6 +23,42 @@ type transactionsHeapItem struct {
 
 	transactionIndex int
 	transaction      *WrappedTransaction
+
+	accumulatedFee *big.Int
+}
+
+func newTransactionsHeapItem(senderIndex int, firstTransaction *WrappedTransaction) *transactionsHeapItem {
+	return &transactionsHeapItem{
+		senderIndex:          senderIndex,
+		senderStateRequested: false,
+		senderStateProvided:  false,
+		senderState:          nil,
+		transactionIndex:     0,
+		transaction:          firstTransaction,
+		accumulatedFee:       big.NewInt(0),
+	}
+}
+
+func (item *transactionsHeapItem) hasInitialGap() bool {
+	return item.transactionIndex == 0 && item.senderStateProvided && item.transaction.Tx.GetNonce() > item.senderState.Nonce
+}
+
+func (item *transactionsHeapItem) isLowerNonce() bool {
+	return item.senderStateProvided && item.transaction.Tx.GetNonce() < item.senderState.Nonce
+}
+
+func (item *transactionsHeapItem) hasFeeExceededBalance() bool {
+	return item.senderStateProvided && item.accumulatedFee.Cmp(item.senderState.Balance) > 0
+}
+
+func (item *transactionsHeapItem) accumulateFee() {
+	fee := item.transaction.Fee.Load()
+	if fee == nil {
+		// This should never happen.
+		return
+	}
+
+	item.accumulatedFee.Add(item.accumulatedFee, fee)
 }
 
 func newMinTransactionsHeap(capacity int) *transactionsHeap {

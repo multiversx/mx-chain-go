@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"bytes"
+	"math/big"
 	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -18,19 +19,21 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 
+	Fee          atomic.Pointer[big.Int]
 	PricePerUnit atomic.Uint64
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
 func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
-	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx).Uint64()
+	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx)
 
 	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit == 0 {
 		return
 	}
 
-	wrappedTx.PricePerUnit.Store(fee / gasLimit)
+	wrappedTx.Fee.Store(fee)
+	wrappedTx.PricePerUnit.Store(fee.Uint64() / gasLimit)
 }
 
 // Equality is out of scope (not possible in our case).

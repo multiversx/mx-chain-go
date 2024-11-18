@@ -34,11 +34,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, &transactionsHeapItem{
-			senderIndex:      i,
-			transactionIndex: 0,
-			transaction:      bunch[0],
-		})
+		heap.Push(transactionsHeap, newTransactionsHeapItem(i, bunch[0]))
 	}
 
 	accumulatedGas := uint64(0)
@@ -66,7 +62,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 
 		requestAccountStateIfNecessary(accountStateProvider, item)
 
-		isInitialGap := item.transactionIndex == 0 && item.senderStateProvided && nonce > item.senderState.Nonce
+		isInitialGap := item.hasInitialGap()
 		if isInitialGap {
 			if logSelect.GetLevel() <= logger.LogTrace {
 				logSelect.Trace("TxCache.selectTransactionsFromBunches, initial gap",
@@ -82,7 +78,23 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			continue
 		}
 
-		isLowerNonce := item.senderStateProvided && nonce < item.senderState.Nonce
+		hasFeeExceededBalance := item.hasFeeExceededBalance()
+		if hasFeeExceededBalance {
+			if logSelect.GetLevel() <= logger.LogTrace {
+				logSelect.Trace("TxCache.selectTransactionsFromBunches, fee exceeded balance",
+					"tx", item.transaction.TxHash,
+					"sender", item.transaction.Tx.GetSndAddr(),
+					"balance", item.senderState.Balance,
+					"accumulatedFee", item.accumulatedFee,
+				)
+			}
+
+			// Item was popped from the heap, but not used downstream.
+			// Therefore, the sender is ignored (from now on) in the current selection session.
+			continue
+		}
+
+		isLowerNonce := item.isLowerNonce()
 		if isLowerNonce {
 			if logSelect.GetLevel() <= logger.LogTrace {
 				logSelect.Trace("TxCache.selectTransactionsFromBunches, lower nonce",
@@ -95,6 +107,8 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
+			item.accumulateFee()
+
 			accumulatedGas += gasLimit
 			selectedTransactions = append(selectedTransactions, item.transaction)
 		}
