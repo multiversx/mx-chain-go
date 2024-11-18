@@ -23,7 +23,7 @@ var (
 	log     = logger.GetOrCreate("testing")
 )
 
-func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
+func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

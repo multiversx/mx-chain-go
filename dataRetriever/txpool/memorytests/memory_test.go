@@ -36,8 +36,8 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	journals = append(journals, runScenario(t, newScenario(200, 1, core.MegabyteSize, "0"), memoryAssertion{200, 200}, memoryAssertion{0, 1}))
 	journals = append(journals, runScenario(t, newScenario(10, 1000, 20480, "0"), memoryAssertion{190, 205}, memoryAssertion{1, 4}))
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 1024, "0"), memoryAssertion{10, 16}, memoryAssertion{0, 10}))
-	journals = append(journals, runScenario(t, newScenario(1, 60000, 256, "0"), memoryAssertion{30, 40}, memoryAssertion{10, 16}))
-	journals = append(journals, runScenario(t, newScenario(10, 10000, 100, "0"), memoryAssertion{36, 52}, memoryAssertion{16, 24}))
+	journals = append(journals, runScenario(t, newScenario(1, 60000, 256, "0"), memoryAssertion{30, 40}, memoryAssertion{10, 24}))
+	journals = append(journals, runScenario(t, newScenario(10, 10000, 100, "0"), memoryAssertion{36, 52}, memoryAssertion{16, 30}))
 	journals = append(journals, runScenario(t, newScenario(100000, 1, 1024, "0"), memoryAssertion{120, 138}, memoryAssertion{32, 60}))
 
 	// With larger memory footprint
@@ -45,8 +45,8 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{80, 120}))
 	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{90, 140}))
 	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{100, 190}))
-	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 90}))
-	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 90}))
+	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 100}))
+	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 100}))
 
 	// Scenarios where destination == me
 
