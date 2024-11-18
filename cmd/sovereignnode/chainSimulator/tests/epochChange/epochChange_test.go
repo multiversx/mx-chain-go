@@ -10,19 +10,26 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	proc "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
+	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
+	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 )
 
 const (
@@ -40,6 +47,27 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    50, // do not lower this value so that each validator can participate in consensus as leader to get rewards
+	}
+
+	sovConfig := config.SovereignConfig{}
+
+	sovRequestHandler := &testscommon.ExtendedShardHeaderRequestHandlerStub{
+		RequestHandlerStub: testscommon.RequestHandlerStub{
+			RequestMiniBlockHandlerCalled: func(destShardID uint32, miniblockHash []byte) {
+				require.Fail(t, "should not request miniBlock")
+			},
+			RequestMiniBlocksHandlerCalled: func(destShardID uint32, miniblocksHashes [][]byte) {
+				require.Fail(t, "should not request miniBlocks")
+			},
+			RequestRewardTxHandlerCalled: func(destShardID uint32, txHashes [][]byte) {
+				require.Fail(t, "should not request reward txs")
+			},
+		},
+	}
+	sovRequestHandlerFactory := &testsFactory.RequestHandlerFactoryMock{
+		CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (proc.RequestHandler, error) {
+			return sovRequestHandler, nil
+		},
 	}
 
 	var protocolSustainabilityAddress string
@@ -69,6 +97,16 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 				protocolSustainabilityAddress = cfg.EconomicsConfig.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress
 				cfg.EpochConfig.EnableEpochs = newCfg
+				sovConfig = cfg.GeneralConfig.SovereignConfig
+			},
+			CreateRunTypeComponents: func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+				runTypeComps, err := common.CreateSovereignRunTypeComponents(args, sovConfig)
+				require.Nil(t, err)
+
+				runTypeCompsHolder := components.GetRunTypeComponentsStub(runTypeComps)
+				runTypeCompsHolder.RequestHandlerFactory = sovRequestHandlerFactory
+
+				return runTypeCompsHolder, nil
 			},
 		},
 	})

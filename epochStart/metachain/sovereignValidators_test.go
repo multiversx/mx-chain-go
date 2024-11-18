@@ -7,14 +7,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	vics "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignValidatorInfoCreator(t *testing.T) {
@@ -188,4 +190,68 @@ func TestSovereignValidatorInfoCreator_CreateMarshalledDataErrorCases(t *testing
 		require.Empty(t, marshalledData)
 		require.Empty(t, shardDataCacher.Keys())
 	})
+}
+
+func TestSovereignValidatorInfoCreator_CreateValidatorInfoMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochValidatorInfoCreatorsArguments()
+	arguments.ShardCoordinator = sharding.NewSovereignShardCoordinator()
+
+	v1 := &state.ValidatorInfo{
+		ShardId:   core.SovereignChainShardId,
+		PublicKey: []byte("pubKey1"),
+	}
+	v2 := &state.ValidatorInfo{
+		ShardId:   core.SovereignChainShardId,
+		PublicKey: []byte("pubKey2"),
+	}
+
+	v1ShardData := createShardValidatorInfo(v1)
+	v2ShardData := createShardValidatorInfo(v2)
+
+	txHash1, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, v1ShardData)
+	txHash2, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, v2ShardData)
+
+	addDataCt := 0
+	valInfoCache := &vics.ValidatorInfoCacherStub{
+		AddValidatorInfoCalled: func(validatorInfoHash []byte, validatorInfo *state.ShardValidatorInfo) {
+			switch addDataCt {
+			case 0:
+				require.Equal(t, txHash1, validatorInfoHash)
+				require.Equal(t, v1ShardData, validatorInfo)
+			case 1:
+				require.Equal(t, txHash2, validatorInfoHash)
+				require.Equal(t, v2ShardData, validatorInfo)
+			}
+
+			addDataCt++
+		},
+	}
+
+	arguments.DataPool = &dataRetrieverMock.PoolsHolderStub{
+		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
+			return valInfoCache
+		},
+	}
+
+	vic, _ := NewValidatorInfoCreator(arguments)
+	svic, _ := NewSovereignValidatorInfoCreator(vic)
+
+	valMap := state.NewShardValidatorsInfoMap()
+	_ = valMap.Add(v1)
+	_ = valMap.Add(v2)
+
+	mb, err := svic.CreateValidatorInfoMiniBlocks(valMap)
+	require.Nil(t, err)
+	require.NotNil(t, mb)
+	require.Equal(t, block.MiniBlockSlice{
+		{
+			TxHashes:        [][]byte{txHash1, txHash2},
+			ReceiverShardID: core.SovereignChainShardId,
+			SenderShardID:   core.SovereignChainShardId,
+			Type:            block.PeerBlock,
+		},
+	}, mb)
+	require.Equal(t, 2, addDataCt)
 }
