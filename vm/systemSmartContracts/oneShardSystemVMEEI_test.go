@@ -29,12 +29,12 @@ func TestNewSovereignVMContext(t *testing.T) {
 	})
 }
 
-func TestSovereignVMContext_SendGlobalSettingToAll(t *testing.T) {
+func TestSovereignVMContext_SendGlobalSettingToAll_ProcessBuiltInFunction(t *testing.T) {
 	t.Parallel()
 
 	expectedSender := []byte("sender")
 	expectedInput := []byte("input")
-	wasProcessBuiltInCalled := false
+	processBuiltInCt := 0
 
 	args := createDefaultEeiArgs()
 	args.BlockChainHook = &mock.BlockChainHookStub{
@@ -45,17 +45,22 @@ func TestSovereignVMContext_SendGlobalSettingToAll(t *testing.T) {
 			require.Equal(t, big.NewInt(0), input.VMInput.CallValue)
 			require.Zero(t, input.GasProvided)
 
-			wasProcessBuiltInCalled = true
+			processBuiltInCt++
 			return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 		},
 		IsBuiltinFunctionNameCalled: func(functionName string) bool {
 			return true
 		},
 	}
-	vmCtx, err := NewVMContext(args)
 
+	vmCtx, err := NewVMContext(args)
 	sovVM, _ := NewOneShardSystemVMEEI(vmCtx)
+
 	err = sovVM.SendGlobalSettingToAll(expectedSender, expectedInput)
 	require.Nil(t, err)
-	require.True(t, wasProcessBuiltInCalled)
+	require.Equal(t, 1, processBuiltInCt)
+
+	err = sovVM.ProcessBuiltInFunction(core.SystemAccountAddress, expectedSender, big.NewInt(0), expectedInput, 0)
+	require.Nil(t, err)
+	require.Equal(t, 2, processBuiltInCt)
 }
