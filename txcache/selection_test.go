@@ -3,6 +3,7 @@ package txcache
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"testing"
 	"time"
 
@@ -116,10 +117,12 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 
 		noncesByAddress := accountStateProvider.AccountStateByAddress
 		noncesByAddress["alice"] = &types.AccountState{
-			Nonce: 1,
+			Nonce:   1,
+			Balance: big.NewInt(1000000000000000000),
 		}
 		noncesByAddress["bob"] = &types.AccountState{
-			Nonce: 42,
+			Nonce:   42,
+			Balance: big.NewInt(1000000000000000000),
 		}
 
 		// No gap
@@ -148,10 +151,12 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 
 		noncesByAddress := accountStateProvider.AccountStateByAddress
 		noncesByAddress["alice"] = &types.AccountState{
-			Nonce: 1,
+			Nonce:   1,
+			Balance: big.NewInt(1000000000000000000),
 		}
 		noncesByAddress["bob"] = &types.AccountState{
-			Nonce: 42,
+			Nonce:   42,
+			Balance: big.NewInt(1000000000000000000),
 		}
 
 		// Good sequence
@@ -180,10 +185,12 @@ func TestTxCache_requestAccountStateIfNecessary(t *testing.T) {
 
 	noncesByAddress := accountStateProvider.AccountStateByAddress
 	noncesByAddress["alice"] = &types.AccountState{
-		Nonce: 7,
+		Nonce:   7,
+		Balance: big.NewInt(1000000000000000000),
 	}
 	noncesByAddress["bob"] = &types.AccountState{
-		Nonce: 42,
+		Nonce:   42,
+		Balance: big.NewInt(1000000000000000000),
 	}
 
 	a := &transactionsHeapItem{
