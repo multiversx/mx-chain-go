@@ -200,8 +200,9 @@ func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
 
 		isFirstTx := len(result) == 0
 		if !isFirstTx {
-			// Handle duplicates (only transactions with the highest gas price are included; see "findInsertionPlace").
 			if nonce == previousNonce {
+				// Handle duplicates.
+				// Only transactions with the highest gas price are included (with an exception around guarded transactions), see "findInsertionPlace".
 				if value.IsGuarded {
 					log.Trace("txListForSender.getSequentialTxs, duplicate, but guarded, will not skip", "sender", listForSender.sender, "nonce", nonce)
 				} else {

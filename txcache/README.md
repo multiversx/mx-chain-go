@@ -114,7 +114,7 @@ The mempool selects transactions as follows (pseudo-code):
 func selectTransactions(gasRequested, maxNum):
     // Setup phase
     senders := list of all current senders in the mempool, in an arbitrary order
-    bunchesOfTransactions := sourced from senders; middle-nonces-gap-free, duplicates-free, nicely sorted by nonce
+    bunchesOfTransactions := sourced from senders; middle-nonces-gap-free, (almost) nonce-duplicates-free, nicely sorted by nonce
 
     // Holds selected transactions
     selectedTransactions := empty
@@ -189,3 +189,13 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
 ### Paragraph 5
 
 On the node's side, the selected transactions are shuffled using a deterministic algorithm. This shuffling ensures that the transaction order remains unpredictable to the proposer, effectively preventing _front-running attacks_. Therefore, being selected first by the mempool does not guarantee that a transaction will be included first in the block. Additionally, selection by the mempool does not ensure inclusion in the very next block, as the proposer has the final authority on which transactions to include, based on **the remaining space available** in the block.
+
+### Order of transactions of the same sender
+
+Transactions from the same sender are organized based on specific rules to ensure proper sequencing for the selection flow:
+
+1. **Nonce ascending**: transactions are primarily sorted by their nonce values in ascending order. This sequence ensures that the transactions are processed in the order intended by the sender, as the nonce represents the transaction number in the sender's sequence.
+
+2. **Gas price descending (same nonce)**: if multiple transactions share the same nonce, they are sorted by their gas prices in descending order - transactions offering higher gas prices are prioritized. This mechanism allows one to easily override a pending transaction with a higher gas price.
+
+3. **Hash ascending (same nonce and gas price)**: for transactions that have identical nonce and gas price, the tie is broken by sorting them based on their transaction hash in ascending order. This provides a consistent and deterministic ordering when other factors are equal. While this ordering isn't a critical aspect of the mempool's operation, it ensures logical consistency.
