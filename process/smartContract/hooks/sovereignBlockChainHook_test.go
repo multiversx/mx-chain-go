@@ -161,10 +161,8 @@ func TestSovereignBlockChainHook_GetStorageData(t *testing.T) {
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 	sbh, _ := hooks.NewSovereignBlockChainHook(bh)
 
-	address := []byte("addr")
-
 	for i := 1; i <= 10; i++ {
-		_, _, err := sbh.GetStorageData(address, []byte{0x1})
+		_, _, err := sbh.GetStorageData([]byte("addr"), []byte{0x1})
 		require.Nil(t, err)
 		require.Equal(t, i, getAccCt)
 		require.Equal(t, i, ctProcessTrieReads)
