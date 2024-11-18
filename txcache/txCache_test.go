@@ -448,7 +448,7 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
-	accountNonceProvider := txcachemocks.NewAccountNonceProviderMock()
+	accountStateProvider := txcachemocks.NewAccountStateProviderMock()
 
 	// Alice will quickly move between two score buckets (chunks)
 	cheapTransaction := createTx([]byte("alice-x-o"), "alice", 0).withDataLength(1).withGasLimit(300000000).withGasPrice(oneBillion)
@@ -463,7 +463,7 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	go func() {
 		for i := 0; i < 100; i++ {
 			fmt.Println("Selection", i)
-			_, _ = cache.SelectTransactions(accountNonceProvider, math.MaxUint64, math.MaxInt, oneSecond)
+			_, _ = cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
 		}
 
 		wg.Done()

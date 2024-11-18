@@ -7,7 +7,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
@@ -15,11 +15,11 @@ func (cache *TxCache) doSelectTransactions(accountNonceProvider AccountNonceProv
 		bunches = append(bunches, sender.getSequentialTxs())
 	}
 
-	return selectTransactionsFromBunches(accountNonceProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
+	return selectTransactionsFromBunches(accountStateProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -64,16 +64,16 @@ func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bu
 			}
 		}
 
-		requestAccountNonceIfNecessary(accountNonceProvider, item)
+		requestAccountStateIfNecessary(accountStateProvider, item)
 
-		isInitialGap := item.transactionIndex == 0 && item.senderNonceProvided && nonce > item.senderNonce
+		isInitialGap := item.transactionIndex == 0 && item.senderStateProvided && nonce > item.senderState.Nonce
 		if isInitialGap {
 			if logSelect.GetLevel() <= logger.LogTrace {
 				logSelect.Trace("TxCache.selectTransactionsFromBunches, initial gap",
 					"tx", item.transaction.TxHash,
 					"nonce", nonce,
 					"sender", item.transaction.Tx.GetSndAddr(),
-					"senderNonce", item.senderNonce,
+					"senderState.Nonce", item.senderState.Nonce,
 				)
 			}
 
@@ -82,14 +82,14 @@ func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bu
 			continue
 		}
 
-		isLowerNonce := item.senderNonceProvided && nonce < item.senderNonce
+		isLowerNonce := item.senderStateProvided && nonce < item.senderState.Nonce
 		if isLowerNonce {
 			if logSelect.GetLevel() <= logger.LogTrace {
 				logSelect.Trace("TxCache.selectTransactionsFromBunches, lower nonce",
 					"tx", item.transaction.TxHash,
 					"nonce", nonce,
 					"sender", item.transaction.Tx.GetSndAddr(),
-					"senderNonce", item.senderNonce,
+					"senderState.Nonce", item.senderState.Nonce,
 				)
 			}
 
@@ -113,21 +113,21 @@ func selectTransactionsFromBunches(accountNonceProvider AccountNonceProvider, bu
 	return selectedTransactions, accumulatedGas
 }
 
-func requestAccountNonceIfNecessary(accountNonceProvider AccountNonceProvider, item *transactionsHeapItem) {
-	if item.senderNonceRequested {
+func requestAccountStateIfNecessary(accountStateProvider AccountStateProvider, item *transactionsHeapItem) {
+	if item.senderStateRequested {
 		return
 	}
 
-	item.senderNonceRequested = true
+	item.senderStateRequested = true
 
 	sender := item.transaction.Tx.GetSndAddr()
-	senderNonce, err := accountNonceProvider.GetAccountNonce(sender)
+	senderState, err := accountStateProvider.GetAccountState(sender)
 	if err != nil {
 		// Hazardous; should never happen.
-		logSelect.Debug("TxCache.requestAccountNonceIfNecessary: nonce not available", "sender", sender, "err", err)
+		logSelect.Debug("TxCache.requestAccountStateIfNecessary: nonce not available", "sender", sender, "err", err)
 		return
 	}
 
-	item.senderNonceProvided = true
-	item.senderNonce = senderNonce
+	item.senderStateProvided = true
+	item.senderState = senderState
 }
