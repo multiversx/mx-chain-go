@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -696,8 +697,9 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		return
 	}
 
-	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
+	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, 0)
 	if isHeaderReceivedTooLate {
+		//log.Error("TOOO LATE")
 		state = process.BHReceivedTooLate
 	}
 
