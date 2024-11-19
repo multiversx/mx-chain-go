@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"path"
 	"reflect"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -841,7 +842,7 @@ func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.H
 
 		epochStartHdr, err = bh.epochStartTrigger.GetEpochStartHdrFromStorage(hdr.GetEpoch())
 		if err != nil {
-			log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.GetEpochStartHdrFromStorage", "error", err)
+			log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.GetEpochStartHdrFromStorage", "error", err, "stack trace", string(debug.Stack()))
 			return ErrLastCommitedEpochStartHdrMismatch
 		}
 

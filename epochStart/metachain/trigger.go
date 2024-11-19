@@ -425,6 +425,7 @@ func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler,
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
 	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(epochStartIdentifier))
 	if err != nil {
+		log.Warn("GetEpochStartHdrFromStorage search first", "epoch", epoch, "identifier", epochStartIdentifier, "error", err)
 		return nil, err
 	}
 
