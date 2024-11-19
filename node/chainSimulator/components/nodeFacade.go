@@ -3,6 +3,8 @@ package components
 import (
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/factory"
+	heartbeat2 "github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"strconv"
 	"time"
 
@@ -13,13 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
 	apiComp "github.com/multiversx/mx-chain-go/factory/api"
-	"github.com/multiversx/mx-chain-go/factory/heartbeat"
 	nodePack "github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process/mock"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64, monitor factory.HeartbeatV2Monitor) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -74,32 +75,12 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	flagsConfig := configs.FlagsConfig
 
-	heartBeatComponentsFactory, err := heartbeat.NewHeartbeatV2ComponentsFactory(heartbeat.ArgHeartbeatV2ComponentsFactory{
-		Config:               *configs.GeneralConfig,
-		Prefs:                *configs.PreferencesConfig,
-		BaseVersion:          "1",
-		AppVersion:           "1",
-		BootstrapComponents:  node.BootstrapComponentsHolder,
-		CoreComponents:       node.CoreComponentsHolder,
-		DataComponents:       node.DataComponentsHolder,
-		NetworkComponents:    node.NetworkComponentsHolder,
-		CryptoComponents:     node.CryptoComponentsHolder,
-		ProcessComponents:    node.ProcessComponentsHolder,
-		StatusCoreComponents: node.StatusCoreComponents,
-	})
+	heartbeatComponents, err := heartbeat2.NewSyncedHeartbeatComponents(monitor)
 	if err != nil {
 		return err
 	}
 
-	managedHeartbeatV2Components, err := heartbeat.NewManagedHeartbeatV2Components(heartBeatComponentsFactory)
-	if err != nil {
-		return err
-	}
-
-	err = managedHeartbeatV2Components.Create()
-	if err != nil {
-		return err
-	}
+	node.closeHandler.AddComponent(heartbeatComponents)
 
 	nd, err := nodePack.NewNode(
 		nodePack.WithStatusCoreComponents(node.StatusCoreComponents),
@@ -123,7 +104,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		nodePack.WithNodeStopChannel(node.CoreComponentsHolder.ChanStopNodeProcess()),
 		nodePack.WithImportMode(configs.ImportDbConfig.IsImportDBMode),
 		nodePack.WithESDTNFTStorageHandler(node.ProcessComponentsHolder.ESDTDataStorageHandlerForAPI()),
-		nodePack.WithHeartbeatV2Components(managedHeartbeatV2Components),
+		nodePack.WithHeartbeatV2Components(heartbeatComponents),
 	)
 	if err != nil {
 		return errors.New("error creating node: " + err.Error())

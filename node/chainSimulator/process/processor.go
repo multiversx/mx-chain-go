@@ -1,10 +1,13 @@
 package process
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -17,16 +20,18 @@ type manualRoundHandler interface {
 
 type blocksCreator struct {
 	nodeHandler NodeHandler
+	monitor     HeartbeatMonitorWithSet
 }
 
 // NewBlocksCreator will create a new instance of blocksCreator
-func NewBlocksCreator(nodeHandler NodeHandler) (*blocksCreator, error) {
+func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet) (*blocksCreator, error) {
 	if check.IfNil(nodeHandler) {
 		return nil, ErrNilNodeHandler
 	}
 
 	return &blocksCreator{
 		nodeHandler: nodeHandler,
+		monitor:     monitor,
 	}, nil
 }
 
@@ -123,6 +128,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
+	err = creator.setHeartBeat(header)
+	if err != nil {
+		return err
+	}
+
 	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(header, block)
 	if err != nil {
 		return err
@@ -139,6 +149,32 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	return creator.nodeHandler.GetBroadcastMessenger().BroadcastTransactions(transactions, blsKey.PubKey())
+}
+
+func (creator *blocksCreator) setHeartBeat(header data.HeaderHandler) error {
+	if !header.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	validators := creator.nodeHandler.GetProcessComponents().ValidatorsProvider().GetLatestValidators()
+
+	var heartbeats []heartbeatData.PubKeyHeartbeat
+	for key, validator := range validators {
+		heartbeats = append(heartbeats, heartbeatData.PubKeyHeartbeat{
+			PublicKey:       key,
+			TimeStamp:       time.Now(),
+			IsActive:        true,
+			NumInstances:    1,
+			ComputedShardID: creator.nodeHandler.GetShardCoordinator().SelfId(),
+			ReceivedShardID: validator.ShardId,
+		})
+	}
+
+	if len(heartbeats) > 0 {
+		creator.monitor.SetHeartbeats(heartbeats)
+	}
+
+	return nil
 }
 
 func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prevHash, prevRandSeed []byte, epoch uint32) {

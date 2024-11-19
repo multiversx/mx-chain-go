@@ -82,19 +82,17 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
-
-	time.Sleep(time.Second)
-
-	heartBeats, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetHeartbeats()
-	require.Nil(t, err)
-	require.Equal(t, 1, len(heartBeats))
-
 	defer chainSimulator.Close()
 
 	time.Sleep(time.Second)
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
+
+	heartBeats, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetHeartbeats()
+	require.Nil(t, err)
+	require.Equal(t, 4, len(heartBeats))
+
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
