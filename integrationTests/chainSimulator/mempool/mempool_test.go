@@ -14,13 +14,11 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
 var (
 	oneEGLD = big.NewInt(1000000000000000000)
-	log     = logger.GetOrCreate("testing")
 )
 
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
@@ -155,7 +153,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 	require.Equal(t, 300000, int(mempool.GetCounts().GetTotal()))
 
 	// Send one more transaction (fill up the mempool)
-	node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{
+	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{
 		{
 			Nonce:     42,
 			Value:     oneEGLD,
@@ -169,12 +167,13 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 			Signature: []byte("signature"),
 		},
 	})
+	require.NoError(t, err)
 
 	time.Sleep(42 * time.Millisecond)
 	require.Equal(t, 300001, int(mempool.GetCounts().GetTotal()))
 
 	// Send one more transaction to trigger eviction
-	node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{
+	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{
 		{
 			Nonce:     42,
 			Value:     oneEGLD,
@@ -188,6 +187,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 			Signature: []byte("signature"),
 		},
 	})
+	require.NoError(t, err)
 
 	time.Sleep(1 * time.Second)
 	require.Equal(t, 300000+1+1-int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict), int(mempool.GetCounts().GetTotal()))
