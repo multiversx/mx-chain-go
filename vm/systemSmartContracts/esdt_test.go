@@ -503,7 +503,7 @@ func TestEsdt_ExecuteBurnOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteBurnAndMintDisabled(t *testing.T) {
@@ -658,7 +658,7 @@ func TestEsdt_ExecuteMintOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteMintNotByOwnerShouldFail(t *testing.T) {
@@ -1008,13 +1008,13 @@ func TestEsdt_ExecuteToggleFreezeOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 
 	vmInput.Function = "freezeSingleNFT"
 	vmInput.Arguments = append(vmInput.Arguments, []byte("owner"))
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteToggleFreezeNotByOwnerShouldFail(t *testing.T) {
@@ -1457,13 +1457,13 @@ func TestEsdt_ExecuteWipeOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 
 	vmInput.Function = "wipeSingleNFT"
 	vmInput.Arguments = append(vmInput.Arguments, []byte("one"))
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteWipeNotByOwnerShouldFail(t *testing.T) {
@@ -1750,7 +1750,7 @@ func TestEsdt_ExecutePauseOnNonExistentTokenShouldFail(t *testing.T) {
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecutePauseNotByOwnerShouldFail(t *testing.T) {
@@ -2067,7 +2067,7 @@ func TestEsdt_ExecuteTransferOwnershipOnNonExistentTokenShouldFail(t *testing.T)
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteTransferOwnershipNotByOwnerShouldFail(t *testing.T) {
@@ -2234,7 +2234,7 @@ func TestEsdt_ExecuteEsdtControlChangesOnNonExistentTokenShouldFail(t *testing.T
 
 	output := e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTickerWithGivenName.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrNoTokenIdWithGivenName.Error()))
 }
 
 func TestEsdt_ExecuteEsdtControlChangesNotByOwnerShouldFail(t *testing.T) {
