@@ -119,12 +119,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	if log.GetLevel() == logger.LogTrace {
-		log.Trace("update trie",
-			"key", hex.EncodeToString(key),
-			"val", hex.EncodeToString(value),
-		)
-	}
+	log.Trace("update trie", "key", key, "val", value)
 
 	return tr.update(key, value, core.NotSpecified)
 }
@@ -134,13 +129,7 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	if log.GetLevel() == logger.LogTrace {
-		log.Trace("update trie with version",
-			"key", hex.EncodeToString(key),
-			"val", hex.EncodeToString(value),
-			"version", version,
-		)
-	}
+	log.Trace("update trie with version", "key", key, "val", value, "version", version)
 
 	return tr.update(key, value, version)
 }
