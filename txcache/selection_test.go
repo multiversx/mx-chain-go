@@ -27,7 +27,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		require.Len(t, selected, 8)
 		require.Equal(t, 400000, int(accumulatedGas))
 
@@ -50,7 +50,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
 		cache.AddTx(createTx([]byte("hash-carol-3"), "carol", 3).withGasPrice(75))
 
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		require.Len(t, selected, 3)
 		require.Equal(t, 150000, int(accumulatedGas))
 
@@ -75,7 +75,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 760000, math.MaxInt, oneSecond)
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 760000, math.MaxInt, selectionLoopMaximumDuration)
 		require.Len(t, selected, 5)
 		require.Equal(t, 750000, int(accumulatedGas))
 
@@ -105,7 +105,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10)) // gap
 		cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
 
-		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
+		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
@@ -139,7 +139,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
+		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		expectedNumSelected := 3 + 0 + 2 // 3 alice + 0 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 250000, int(accumulatedGas))
@@ -173,7 +173,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
+		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
@@ -240,7 +240,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, oneSecond)
+	sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
 	require.Len(t, sorted, nTotalTransactions)
 	require.Equal(t, 5_000_000_000, int(accumulatedGas))
 
@@ -260,7 +260,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
-		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, []bunchOfTransactions{}, 10_000_000_000, math.MaxInt, oneSecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, []bunchOfTransactions{}, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 
 		require.Equal(t, 0, len(selected))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -275,7 +275,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, oneSecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -287,7 +287,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, oneSecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -299,7 +299,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, oneSecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -311,7 +311,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, oneSecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(accountStateProvider, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -373,7 +373,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, oneSecond)
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(selected))
@@ -389,7 +389,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, oneSecond)
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(selected))
@@ -405,7 +405,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 300000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, oneSecond)
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(selected))
