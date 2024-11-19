@@ -62,8 +62,7 @@ func (txProc *txProcessor) ProcessUserTx(
 		userTx,
 		relayedTxValue,
 		relayedNonce,
-		originalTxHash,
-		nonRelayedV3UserTxIdx)
+		originalTxHash)
 }
 
 // ProcessMoveBalanceCostRelayedUserTx calls the un-exported method processMoveBalanceCostRelayedUserTx
@@ -93,8 +92,7 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 		relayedNonce,
 		originalTx,
 		originalTxHash,
-		errorMsg,
-		nonRelayedV3UserTxIdx)
+		errorMsg)
 }
 
 // CheckMaxGasPrice calls the un-exported method checkMaxGasPrice

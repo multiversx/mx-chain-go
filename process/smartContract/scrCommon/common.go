@@ -15,30 +15,29 @@ import (
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
-	VmContainer             process.VirtualMachinesContainer
-	ArgsParser              process.ArgumentsParser
-	Hasher                  hashing.Hasher
-	Marshalizer             marshal.Marshalizer
-	AccountsDB              state.AccountsAdapter
-	BlockChainHook          process.BlockChainHookHandler
-	BuiltInFunctions        vmcommon.BuiltInFunctionContainer
-	PubkeyConv              core.PubkeyConverter
-	ShardCoordinator        sharding.Coordinator
-	ScrForwarder            process.IntermediateTransactionHandler
-	TxFeeHandler            process.TransactionFeeHandler
-	EconomicsFee            process.FeeHandler
-	TxTypeHandler           process.TxTypeHandler
-	GasHandler              process.GasHandler
-	GasSchedule             core.GasScheduleNotifier
-	TxLogsProcessor         process.TransactionLogProcessor
-	FailedTxLogsAccumulator process.FailedTxLogsAccumulator
-	BadTxForwarder          process.IntermediateTransactionHandler
-	EnableRoundsHandler     process.EnableRoundsHandler
-	EnableEpochsHandler     common.EnableEpochsHandler
-	EnableEpochs            config.EnableEpochs
-	VMOutputCacher          storage.Cacher
-	WasmVMChangeLocker      common.Locker
-	IsGenesisProcessing     bool
+	VmContainer         process.VirtualMachinesContainer
+	ArgsParser          process.ArgumentsParser
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	AccountsDB          state.AccountsAdapter
+	BlockChainHook      process.BlockChainHookHandler
+	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
+	PubkeyConv          core.PubkeyConverter
+	ShardCoordinator    sharding.Coordinator
+	ScrForwarder        process.IntermediateTransactionHandler
+	TxFeeHandler        process.TransactionFeeHandler
+	EconomicsFee        process.FeeHandler
+	TxTypeHandler       process.TxTypeHandler
+	GasHandler          process.GasHandler
+	GasSchedule         core.GasScheduleNotifier
+	TxLogsProcessor     process.TransactionLogProcessor
+	BadTxForwarder      process.IntermediateTransactionHandler
+	EnableRoundsHandler process.EnableRoundsHandler
+	EnableEpochsHandler common.EnableEpochsHandler
+	EnableEpochs        config.EnableEpochs
+	VMOutputCacher      storage.Cacher
+	WasmVMChangeLocker  common.Locker
+	IsGenesisProcessing bool
 	EpochNotifier           vmcommon.EpochNotifier
 }
 

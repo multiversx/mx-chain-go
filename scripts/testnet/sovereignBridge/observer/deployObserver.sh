@@ -4,8 +4,9 @@ CONTAINER_NAME="sov-observer"
 prepareObserver() {
     manualUpdateConfigFile #update config file
 
-    local DOCKER_IMAGE=""
+    docker rmi $IMAGE_NAME # remove old docker image
 
+    local DOCKER_IMAGE=""
     if [ -n "$1" ]; then
         DOCKER_IMAGE=$1
     else
