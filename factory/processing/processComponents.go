@@ -97,6 +97,7 @@ type processComponents struct {
 	epochStartNotifier               factory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
+	blockProcessorWithRevert         process.BlockProcessor
 	blackListHandler                 process.TimeCacher
 	bootStorer                       process.BootStorer
 	headerSigVerifier                process.InterceptedHeaderSigVerifier
@@ -124,6 +125,7 @@ type processComponents struct {
 	currentEpochProvider             dataRetriever.CurrentNetworkEpochProviderHandler
 	vmFactoryForTxSimulator          process.VirtualMachinesContainerFactory
 	vmFactoryForProcessing           process.VirtualMachinesContainerFactory
+	vmFactoryForProcessingWithRevert process.VirtualMachinesContainerFactory
 	scheduledTxsExecutionHandler     process.ScheduledTxsExecutionHandler
 	txsSender                        process.TxsSenderHandler
 	hardforkTrigger                  factory.HardforkTrigger
@@ -620,6 +622,29 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
+		false,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	blockProcessorComponentsWithRevert, err := pcf.newBlockProcessor(
+		requestHandler,
+		forkDetector,
+		epochStartTrigger,
+		bootStorer,
+		validatorStatisticsProcessor,
+		headerValidator,
+		blockTracker,
+		pendingMiniBlocksHandler,
+		pcf.coreData.WasmVMChangeLocker(),
+		scheduledTxsExecutionHandler,
+		processedMiniBlocksTracker,
+		receiptsRepository,
+		blockCutoffProcessingHandler,
+		pcf.state.MissingTrieNodesNotifier(),
+		sentSignaturesTracker,
+		true,
 	)
 	if err != nil {
 		return nil, err
@@ -724,6 +749,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		roundHandler:                     pcf.coreData.RoundHandler(),
 		forkDetector:                     forkDetector,
 		blockProcessor:                   blockProcessorComponents.blockProcessor,
+		blockProcessorWithRevert:         blockProcessorComponentsWithRevert.blockProcessor,
 		epochStartTrigger:                epochStartTrigger,
 		epochStartNotifier:               pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:                 blackListHandler,
@@ -754,6 +780,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		vmFactoryForTxSimulator:          vmFactoryForTxSimulate,
 		vmFactoryForProcessing:           blockProcessorComponents.vmFactoryForProcessing,
 		epochSystemSCProcessor:           blockProcessorComponents.epochSystemSCProcessor,
+		vmFactoryForProcessingWithRevert: blockProcessorComponentsWithRevert.vmFactoryForProcessing,
 		scheduledTxsExecutionHandler:     scheduledTxsExecutionHandler,
 		txsSender:                        txsSenderWithAccumulator,
 		hardforkTrigger:                  hardforkTrigger,
@@ -2041,6 +2068,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.vmFactoryForProcessing) {
 		log.LogIfError(pc.vmFactoryForProcessing.Close())
+	}
+	if !check.IfNil(pc.vmFactoryForProcessingWithRevert) {
+		log.LogIfError(pc.vmFactoryForProcessingWithRevert.Close())
 	}
 	if !check.IfNil(pc.txsSender) {
 		log.LogIfError(pc.txsSender.Close())

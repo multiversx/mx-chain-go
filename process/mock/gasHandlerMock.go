@@ -200,3 +200,7 @@ func (ghm *GasHandlerMock) ComputeGasProvidedByTx(txSenderShardId uint32, txRece
 func (ghm *GasHandlerMock) IsInterfaceNil() bool {
 	return ghm == nil
 }
+
+func (ghm *GasHandlerMock) GetMaps() (map[string]uint64, map[string]uint64) {
+	return nil, nil
+}

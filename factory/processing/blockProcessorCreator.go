@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/radu"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -69,6 +70,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	hardCodedToGasScheduleV8 bool,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -87,6 +89,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
+			hardCodedToGasScheduleV8,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -128,6 +131,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	hardCodedToGasV8 bool,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -150,13 +154,25 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	log.Debug("blockProcessorCreator: enable epoch for ahead of time gas usage", "epoch", pcf.epochConfig.EnableEpochs.AheadOfTimeGasUsageEnableEpoch)
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
+	scStorage := pcf.config.SmartContractsStorage
+	if hardCodedToGasV8 {
+		scStorage.DB.FilePath = scStorage.DB.FilePath + "_v8"
+		oldGasSchedule := pcf.gasSchedule
+
+		pcf.gasSchedule = common.LatestGasSchedule
+
+		defer func() {
+			pcf.gasSchedule = oldGasSchedule
+		}()
+	}
+
 	vmFactory, err := pcf.createVMFactoryShard(
 		pcf.state.AccountsAdapter(),
 		missingTrieNodesNotifier,
 		builtInFuncFactory.BuiltInFunctionContainer(),
 		esdtTransferParser,
 		wasmVMChangeLocker,
-		pcf.config.SmartContractsStorage,
+		scStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
 	)
@@ -464,6 +480,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
 	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
+
+	if hardCodedToGasV8 {
+		radu.GasHandlerV8 = gasHandler
+	} else {
+		radu.GasHandler = gasHandler
+	}
 
 	return blockProcessorComponents, nil
 }

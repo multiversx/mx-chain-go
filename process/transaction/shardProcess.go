@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -222,6 +223,18 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 		return vmcommon.UserError, err
 	}
+	retCode := vmcommon.Ok
+
+	defer func() {
+		if err != nil || retCode != vmcommon.Ok {
+			txHashString := hex.EncodeToString(txHash)
+			errString := ""
+			if err != nil {
+				errString = err.Error()
+			}
+			log.Info("failedProcessTransaction", "tx", fmt.Sprintf("%s, %s, %s", txHashString, retCode, errString))
+		}
+	}()
 
 	switch txType {
 	case process.MoveBalance:
@@ -231,18 +244,26 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 		return vmcommon.Ok, err
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, acntSnd)
+		retCode, err = txProc.processSCDeployment(tx, acntSnd)
+		return retCode, err
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, acntSnd, acntDst)
+		retCode, err = txProc.processSCInvoking(tx, acntSnd, acntDst)
+		return retCode, err
 	case process.BuiltInFunctionCall:
-		return txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
+		retCode, err = txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
+		return retCode, err
 	case process.RelayedTx:
-		return txProc.processRelayedTx(tx, acntSnd, acntDst)
+		retCode, err = txProc.processRelayedTx(tx, acntSnd, acntDst)
+		return retCode, err
 	case process.RelayedTxV2:
-		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+		retCode, err = txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+		return retCode, err
 	}
 
-	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
+	retCode = vmcommon.UserError
+	err = txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
+
+	return retCode, err
 }
 
 func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(

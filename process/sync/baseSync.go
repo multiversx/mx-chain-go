@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/radu"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/multiversx/mx-chain-go/process/sync/trieIterators"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -58,9 +59,10 @@ type baseBootstrap struct {
 	historyRepo dblookupext.HistoryRepository
 	headers     dataRetriever.HeadersPool
 
-	chainHandler   data.ChainHandler
-	blockProcessor process.BlockProcessor
-	store          dataRetriever.StorageService
+	chainHandler             data.ChainHandler
+	blockProcessor           process.BlockProcessor
+	blockProcessorWithRevert process.BlockProcessor
+	store                    dataRetriever.StorageService
 
 	roundHandler      consensus.RoundHandler
 	hasher            hashing.Hasher
@@ -646,6 +648,66 @@ func (boot *baseBootstrap) syncBlock() error {
 	waitTime := boot.processWaitTime
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
+	}
+
+	v8Refunded := make(map[string]uint64)
+	v8Penalized := make(map[string]uint64)
+
+	defer func() {
+
+		refunded, penalized := radu.GasHandler.GetMaps()
+		log.Debug("ProcessBlockWithRevert gas computation", "refunded", refunded, "penalized", penalized, "v8Refunded", v8Refunded, "v8Penalized", v8Penalized)
+
+		for k, v := range v8Refunded {
+			if v == 0 && refunded[k] != 0 {
+				log.Info("ProcessBlockWithRevert gas computation", "NO REFUND", k)
+			}
+
+			diff := refunded[k] - v
+			log.Info("ProcessBlockWithRevert gas computation", "tx", k, "old", refunded[k], "new", v, "diff", diff)
+		}
+
+		//log.Info("========================================ProcessBlockNormal - END ========================================")
+	}()
+
+	withRevertErr := func() error {
+		//if true {
+		//	return nil
+		//}
+		defer func() {
+			boot.blockProcessorWithRevert.RevertCurrentBlock()
+			v8Refunded, v8Penalized = radu.GasHandlerV8.GetMaps()
+			//log.Debug("ProcessBlockWithRevert gas computation", "refunded", v8Refunded, "penalized", v8Penalized)
+
+			//log.Info("========================================ProcessBlockWithRevert - END ========================================")
+		}()
+
+		//log.Info("\n========================================ProcessBlockWithRevert - START ========================================")
+		startProcessBlockTime := time.Now()
+		err = boot.blockProcessorWithRevert.ProcessBlock(header, body, haveTime)
+		elapsedTime := time.Since(startProcessBlockTime)
+		log.Debug("ProcessBlockWithRevert elapsed time to process block",
+			"time [s]", elapsedTime,
+		)
+		if err != nil {
+			return err
+		}
+
+		startProcessScheduledBlockTime := time.Now()
+		err = boot.blockProcessorWithRevert.ProcessScheduledBlock(header, body, haveTime)
+		elapsedTime = time.Since(startProcessScheduledBlockTime)
+		log.Debug("ProcessBlockWithRevert elapsed time to process scheduled block",
+			"time [s]", elapsedTime,
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}()
+
+	if withRevertErr != nil {
+		log.Debug("ProcessBlockWithRevert syncBlock.ProcessBlock", "error", withRevertErr.Error())
 	}
 
 	startProcessBlockTime := time.Now()
