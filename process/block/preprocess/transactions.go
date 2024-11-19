@@ -159,7 +159,7 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilGuardianChecker
 	}
 
-	accountStateProvider, err := newAccountStateProvider(args.Accounts)
+	accountStateProvider, err := newAccountStateProvider(args.Accounts, args.GuardianChecker)
 	if err != nil {
 		return nil, err
 	}
