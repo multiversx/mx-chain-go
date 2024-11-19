@@ -12,10 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -284,6 +285,8 @@ func (bbt *baseBlockTrack) CleanupHeadersBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
+
+	//maybe copy this from hardBlockTrack) CleanupHeadersB
 	bbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
 	nonce := selfNotarizedNonce
 
@@ -302,6 +305,10 @@ func (bbt *baseBlockTrack) cleanupTrackedHeadersBehindNonce(shardID uint32, nonc
 
 	bbt.mutHeaders.Lock()
 	defer bbt.mutHeaders.Unlock()
+
+	if shardID == core.MainChainShardId {
+		log.Error("cleanupTrackedHeadersBehindNonce", "nonce", nonce)
+	}
 
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
@@ -559,13 +566,28 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 		return nil, nil
 	}
 
+	if shardID == core.MainChainShardId {
+		log.Error("SortHeadersFromNonce", "nonce", nonce)
+	}
+
 	sortedHeadersInfo := make([]*HeaderInfo, 0)
 	for headersNonce, headersInfo := range headersForShard {
+		if shardID == core.MainChainShardId {
+			log.Error("HEADER FOR SHARD", "nonce", nonce)
+		}
+
 		if headersNonce < nonce {
+			log.Error("headersNonce < nonce")
 			continue
 		}
 
 		sortedHeadersInfo = append(sortedHeadersInfo, headersInfo...)
+	}
+
+	if shardID == core.MainChainShardId {
+		for _, srtHdr := range sortedHeadersInfo {
+			log.Error("SORTED JDRS", "nonce", srtHdr.Header.GetNonce())
+		}
 	}
 
 	if len(sortedHeadersInfo) > 1 {

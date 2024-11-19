@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -113,12 +114,12 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	}
 
 	if !scsbt.shouldAddExtendedShardHeader(extendedShardHeaderHandler) {
-		log.Trace("received extended shard header is out of range", "nonce", extendedShardHeaderHandler.GetNonce())
+		log.Error("received extended shard header is out of range", "nonce", extendedShardHeaderHandler.GetNonce())
 		return
 	}
 
 	if !scsbt.addHeader(extendedShardHeaderHandler, extendedShardHeaderHash, core.MainChainShardId) {
-		log.Trace("received extended shard header was not added", "nonce", extendedShardHeaderHandler.GetNonce())
+		log.Error("received extended shard header was not added", "nonce", extendedShardHeaderHandler.GetNonce())
 		return
 	}
 
@@ -213,8 +214,8 @@ func (scsbt *sovereignChainShardBlockTrack) CleanupHeadersBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
-	scsbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
-	scsbt.cleanupTrackedHeadersBehindNonce(shardID, selfNotarizedNonce)
+	scsbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(0, selfNotarizedNonce)
+	scsbt.cleanupTrackedHeadersBehindNonce(0, selfNotarizedNonce)
 
 	scsbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)
 	scsbt.cleanupTrackedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)

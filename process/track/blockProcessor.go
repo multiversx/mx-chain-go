@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -75,6 +76,7 @@ func (bp *blockProcessor) ProcessReceivedHeader(headerHandler data.HeaderHandler
 	}
 
 	if !bp.shouldProcessReceivedHeaderFunc(headerHandler) {
+		log.Error("shouldProcessReceivedHeaderFunc")
 		return
 	}
 
@@ -294,11 +296,13 @@ func (bp *blockProcessor) getNextHeader(
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
+			log.Error("headerValidator.IsHeaderConstructionValid", "error", err)
 			continue
 		}
 
 		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
 		if err != nil {
+			log.Error("bp.checkHeaderFinality", "error", err)
 			continue
 		}
 

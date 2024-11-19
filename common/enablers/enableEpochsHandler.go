@@ -819,11 +819,13 @@ func (handler *enableEpochsHandler) IsFlagEnabled(flag core.EnableEpochFlag) boo
 	currentEpoch := handler.currentEpoch
 	handler.epochMut.RUnlock()
 
+	return true
 	return handler.IsFlagEnabledInEpoch(flag, currentEpoch)
 }
 
 // IsFlagEnabledInEpoch returns true if the provided flag is enabled in the provided epoch
 func (handler *enableEpochsHandler) IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool {
+	return true
 	fh, found := handler.allFlagsDefined[flag]
 	if !found {
 		log.Warn("IsFlagEnabledInEpoch: programming error, got unknown flag",
@@ -846,6 +848,7 @@ func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag
 		return 0
 	}
 
+	return 0
 	return fh.activationEpoch
 }
 
@@ -860,12 +863,12 @@ func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
 
 // StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
 func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
+	return 0 //handler.enableEpochsConfig.StakingV4Step2EnableEpoch
 }
 
 // StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
 func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+	return 0 //handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

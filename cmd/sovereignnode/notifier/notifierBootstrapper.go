@@ -8,10 +8,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
+
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var log = logger.GetOrCreate("notifier-bootstrap")
@@ -35,6 +36,8 @@ type notifierBootstrapper struct {
 	nodeSyncedChan chan bool
 	cancelFunc     func()
 	roundDuration  uint64
+
+	confidenceFactor uint32
 }
 
 // NewNotifierBootstrapper creates a ws receiver connection registration bootstrapper
@@ -84,6 +87,9 @@ func (nb *notifierBootstrapper) receivedSyncState(isNodeSynchronized bool) {
 		case nb.nodeSyncedChan <- true:
 		default:
 		}
+	} else if !isNodeSynchronized {
+		nb.confidenceFactor--
+		nb.confidenceFactor = core.MaxUint32(nb.confidenceFactor, 0)
 	}
 }
 
@@ -107,6 +113,12 @@ func (nb *notifierBootstrapper) checkNodeState(ctx context.Context) {
 			log.Debug("notifierBootstrapper.checkNodeState: worker's go routine is stopping...")
 			return
 		case <-nb.nodeSyncedChan:
+			nb.confidenceFactor++
+			if nb.confidenceFactor < process.MaxRoundsWithoutNewBlockReceived+1 {
+				log.Error("NOT YET", "confidence factory", nb.confidenceFactor)
+				continue
+			}
+
 			err := nb.sovereignNotifier.RegisterHandler(nb.incomingHeaderHandler)
 			if err != nil {
 				log.Error("notifierBootstrapper: sovereignNotifier.RegisterHandler", "err", err)
