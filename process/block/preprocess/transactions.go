@@ -31,6 +31,7 @@ var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
+var logSelectionSimulator = logger.GetOrCreate("process/block/preprocess/selectionSimulator")
 
 // 200% bandwidth to allow 100% overshooting estimations
 const selectionGasBandwidthIncreasePercent = 200
@@ -796,6 +797,26 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.mutOrderedTxs.Unlock()
 
 	txs.scheduledTxsExecutionHandler.Init()
+
+	txs.simulateTransactionsSelectionIfAppropriate()
+}
+
+func (txs *transactions) simulateTransactionsSelectionIfAppropriate() {
+	if logSelectionSimulator.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	shardID := txs.shardCoordinator.SelfId()
+	cacheID := process.ShardCacherIdentifier(shardID, shardID)
+	mempool := txs.txPool.ShardDataStore(cacheID)
+	if check.IfNil(mempool) {
+		return
+	}
+
+	sortedTransactionsProvider := createSortedTransactionsProvider(mempool)
+	transactions := sortedTransactionsProvider.GetSortedTransactions(txs.accountStateProvider)
+
+	logSelectionSimulator.Trace("simulateTransactionsSelectionIfAppropriate", "num txs", len(transactions))
 }
 
 // AddTxsFromMiniBlocks will add the transactions from the provided miniblocks into the internal cache
