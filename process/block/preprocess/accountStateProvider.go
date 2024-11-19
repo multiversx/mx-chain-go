@@ -1,8 +1,6 @@
 package preprocess
 
 import (
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
@@ -11,7 +9,6 @@ import (
 
 type accountStateProvider struct {
 	accountsAdapter state.AccountsAdapter
-	mutex           sync.RWMutex
 }
 
 func newAccountStateProvider(accountsAdapter state.AccountsAdapter) (*accountStateProvider, error) {
