@@ -40,6 +40,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -559,6 +560,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -658,6 +660,7 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -928,6 +931,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1115,6 +1119,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1224,6 +1229,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1762,6 +1768,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -1889,6 +1896,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2030,6 +2038,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
@@ -2172,6 +2181,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		&guardianMocks.GuardedAccountHandlerStub{},
 	)
 	container, _ := preFactory.Create()
 
