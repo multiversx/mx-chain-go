@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"math/big"
 
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 type transactionsHeapItem struct {
+	sender []byte
+	bunch  bunchOfTransactions
+
 	// Whether the sender's state has been requested within a selection session.
 	senderStateRequested bool
 	// Whether the sender's state has been requested and provided (with success) within a selection session.
@@ -16,30 +18,42 @@ type transactionsHeapItem struct {
 	// The sender's state (if requested and provided).
 	senderState *types.AccountState
 
-	bunch                     bunchOfTransactions
-	currentTransactionIndex   int
-	currentTransaction        *WrappedTransaction
-	latestSelectedTransaction *WrappedTransaction
+	currentTransactionIndex        int
+	currentTransaction             *WrappedTransaction
+	currentTransactionNonce        uint64
+	latestSelectedTransaction      *WrappedTransaction
+	latestSelectedTransactionNonce uint64
 
 	accumulatedFee *big.Int
 }
 
 func newTransactionsHeapItem(bunch bunchOfTransactions) *transactionsHeapItem {
+	firstTransaction := bunch[0]
+	sender := firstTransaction.Tx.GetSndAddr()
+
 	return &transactionsHeapItem{
+		sender: sender,
+		bunch:  bunch,
+
 		senderStateRequested: false,
 		senderStateProvided:  false,
 		senderState:          nil,
 
-		bunch:                   bunch,
-		currentTransactionIndex: 0,
-		currentTransaction:      bunch[0],
-		accumulatedFee:          big.NewInt(0),
+		currentTransactionIndex:   0,
+		currentTransaction:        firstTransaction,
+		currentTransactionNonce:   firstTransaction.Tx.GetNonce(),
+		latestSelectedTransaction: nil,
+
+		accumulatedFee: big.NewInt(0),
 	}
 }
 
 func (item *transactionsHeapItem) selectTransaction() *WrappedTransaction {
 	item.accumulateFee()
+
 	item.latestSelectedTransaction = item.currentTransaction
+	item.latestSelectedTransactionNonce = item.currentTransactionNonce
+
 	return item.currentTransaction
 }
 
@@ -54,13 +68,13 @@ func (item *transactionsHeapItem) accumulateFee() {
 }
 
 func (item *transactionsHeapItem) gotoNextTransaction() bool {
-	item.currentTransactionIndex++
-
-	if item.currentTransactionIndex >= len(item.bunch) {
+	if item.currentTransactionIndex+1 >= len(item.bunch) {
 		return false
 	}
 
+	item.currentTransactionIndex++
 	item.currentTransaction = item.bunch[item.currentTransactionIndex]
+	item.currentTransactionNonce = item.currentTransaction.Tx.GetNonce()
 	return true
 }
 
@@ -73,12 +87,12 @@ func (item *transactionsHeapItem) detectInitialGap() bool {
 		return false
 	}
 
-	hasInitialGap := item.currentTransaction.Tx.GetNonce() > item.senderState.Nonce
-	if hasInitialGap && logSelect.GetLevel() <= logger.LogTrace {
+	hasInitialGap := item.currentTransactionNonce > item.senderState.Nonce
+	if hasInitialGap {
 		logSelect.Trace("transactionsHeapItem.detectGap, initial gap",
 			"tx", item.currentTransaction.TxHash,
-			"nonce", item.currentTransaction.Tx.GetNonce(),
-			"sender", item.currentTransaction.Tx.GetSndAddr(),
+			"nonce", item.currentTransactionNonce,
+			"sender", item.sender,
 			"senderState.Nonce", item.senderState.Nonce,
 		)
 	}
@@ -92,15 +106,13 @@ func (item *transactionsHeapItem) detectMiddleGap() bool {
 	}
 
 	// Detect middle gap.
-	previouslySelectedTransactionNonce := item.latestSelectedTransaction.Tx.GetNonce()
-
-	hasMiddleGap := item.currentTransaction.Tx.GetNonce() > previouslySelectedTransactionNonce+1
-	if hasMiddleGap && logSelect.GetLevel() <= logger.LogTrace {
+	hasMiddleGap := item.currentTransactionNonce > item.latestSelectedTransactionNonce+1
+	if hasMiddleGap {
 		logSelect.Trace("transactionsHeapItem.detectGap, middle gap",
 			"tx", item.currentTransaction.TxHash,
-			"nonce", item.currentTransaction.Tx.GetNonce(),
-			"sender", item.currentTransaction.Tx.GetSndAddr(),
-			"previousSelectedNonce", previouslySelectedTransactionNonce,
+			"nonce", item.currentTransactionNonce,
+			"sender", item.sender,
+			"previousSelectedNonce", item.latestSelectedTransactionNonce,
 		)
 	}
 
@@ -114,10 +126,10 @@ func (item *transactionsHeapItem) detectFeeExceededBalance() bool {
 	}
 
 	hasFeeExceededBalance := item.accumulatedFee.Cmp(item.senderState.Balance) > 0
-	if hasFeeExceededBalance && logSelect.GetLevel() <= logger.LogTrace {
+	if hasFeeExceededBalance {
 		logSelect.Trace("transactionsHeapItem.detectFeeExceededBalance",
 			"tx", item.currentTransaction.TxHash,
-			"sender", item.currentTransaction.Tx.GetSndAddr(),
+			"sender", item.sender,
 			"balance", item.senderState.Balance,
 			"accumulatedFee", item.accumulatedFee,
 		)
@@ -132,12 +144,12 @@ func (item *transactionsHeapItem) detectLowerNonce() bool {
 		return false
 	}
 
-	isLowerNonce := item.currentTransaction.Tx.GetNonce() < item.senderState.Nonce
-	if isLowerNonce && logSelect.GetLevel() <= logger.LogTrace {
+	isLowerNonce := item.currentTransactionNonce < item.senderState.Nonce
+	if isLowerNonce {
 		logSelect.Trace("transactionsHeapItem.detectLowerNonce",
 			"tx", item.currentTransaction.TxHash,
-			"nonce", item.currentTransaction.Tx.GetNonce(),
-			"sender", item.currentTransaction.Tx.GetSndAddr(),
+			"nonce", item.currentTransactionNonce,
+			"sender", item.sender,
 			"senderState.Nonce", item.senderState.Nonce,
 		)
 	}
@@ -154,10 +166,10 @@ func (item *transactionsHeapItem) detectBadlyGuarded() bool {
 	transactionGuardian := *item.currentTransaction.Guardian.Load()
 	accountGuardian := item.senderState.Guardian
 	isBadlyGuarded := bytes.Compare(transactionGuardian, accountGuardian) != 0
-	if isBadlyGuarded && logSelect.GetLevel() <= logger.LogTrace {
+	if isBadlyGuarded {
 		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
 			"tx", item.currentTransaction.TxHash,
-			"sender", item.currentTransaction.Tx.GetSndAddr(),
+			"sender", item.sender,
 			"transactionGuardian", transactionGuardian,
 			"accountGuardian", accountGuardian,
 		)
@@ -175,12 +187,12 @@ func (item *transactionsHeapItem) detectNonceDuplicate() bool {
 		return false
 	}
 
-	isDuplicate := item.currentTransaction.Tx.GetNonce() == item.latestSelectedTransaction.Tx.GetNonce()
-	if isDuplicate && logSelect.GetLevel() <= logger.LogTrace {
+	isDuplicate := item.currentTransactionNonce == item.latestSelectedTransactionNonce
+	if isDuplicate {
 		logSelect.Trace("transactionsHeapItem.detectNonceDuplicate",
 			"tx", item.currentTransaction.TxHash,
-			"sender", item.currentTransaction.Tx.GetSndAddr(),
-			"nonce", item.currentTransaction.Tx.GetNonce(),
+			"sender", item.sender,
+			"nonce", item.currentTransactionNonce,
 		)
 	}
 

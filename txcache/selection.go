@@ -91,12 +91,10 @@ func requestAccountStateIfNecessary(accountStateProvider AccountStateProvider, i
 	}
 
 	item.senderStateRequested = true
-
-	sender := item.currentTransaction.Tx.GetSndAddr()
-	senderState, err := accountStateProvider.GetAccountState(sender)
+	senderState, err := accountStateProvider.GetAccountState(item.sender)
 	if err != nil {
 		// Hazardous; should never happen.
-		logSelect.Debug("TxCache.requestAccountStateIfNecessary: nonce not available", "sender", sender, "err", err)
+		logSelect.Debug("TxCache.requestAccountStateIfNecessary: nonce not available", "sender", item.sender, "err", err)
 		return
 	}
 
