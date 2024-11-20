@@ -52,7 +52,7 @@ func NewShardedData(name string, config storageunit.CacheConfig) (*shardedData, 
 		NumChunks:                   config.Shards,
 		MaxNumItems:                 config.Capacity,
 		MaxNumBytes:                 uint32(config.SizeInBytes),
-		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.ShardedDataNumItemsToPreemptivelyEvict,
 	}
 
 	err := configPrototype.Verify()
@@ -176,6 +176,10 @@ func (sd *shardedData) ImmunizeSetOfDataAgainstEviction(keys [][]byte, cacheID s
 	store := sd.getOrCreateShardStoreWithLock(cacheID)
 	numNow, numFuture := store.cache.ImmunizeKeys(keys)
 	log.Trace("shardedData.ImmunizeSetOfDataAgainstEviction()", "name", sd.name, "cacheID", cacheID, "len(keys)", len(keys), "numNow", numNow, "numFuture", numFuture)
+}
+
+// ForgetAllAccountNoncesInMempool does nothing
+func (sd *shardedData) ForgetAllAccountNoncesInMempool() {
 }
 
 // RemoveData will remove data hash from the corresponding shard store

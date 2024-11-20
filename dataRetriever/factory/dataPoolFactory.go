@@ -33,11 +33,12 @@ var log = logger.GetOrCreate("dataRetriever/factory")
 
 // ArgsDataPool holds the arguments needed for NewDataPoolFromConfig function
 type ArgsDataPool struct {
-	Config           *config.Config
-	EconomicsData    process.EconomicsDataHandler
-	ShardCoordinator sharding.Coordinator
-	Marshalizer      marshal.Marshalizer
-	PathManager      storage.PathManagerHandler
+	Config               *config.Config
+	EconomicsData        process.EconomicsDataHandler
+	ShardCoordinator     sharding.Coordinator
+	Marshalizer          marshal.Marshalizer
+	PathManager          storage.PathManagerHandler
+	AccountNonceProvider dataRetriever.AccountNonceProvider
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -53,6 +54,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, dataRetriever.ErrNilMarshalizer
+	}
 	if check.IfNil(args.PathManager) {
 		return nil, dataRetriever.ErrNilPathManager
 	}
@@ -60,10 +64,11 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	mainConfig := args.Config
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
-		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
-		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
-		SelfShardID:    args.ShardCoordinator.SelfId(),
-		TxGasHandler:   args.EconomicsData,
+		Config:               factory.GetCacherFromConfig(mainConfig.TxDataPool),
+		NumberOfShards:       args.ShardCoordinator.NumberOfShards(),
+		SelfShardID:          args.ShardCoordinator.SelfId(),
+		TxGasHandler:         args.EconomicsData,
+		AccountNonceProvider: args.AccountNonceProvider,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)

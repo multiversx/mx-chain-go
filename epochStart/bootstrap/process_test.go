@@ -241,6 +241,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
+		AccountNonceProvider:       testscommon.NewAccountNonceProviderMock(),
 	}
 }
 
@@ -818,16 +819,18 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-	err := errors.New("localErr")
+	localErr := errors.New("localErr")
 	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
 		GetCalled: func() (storage.LatestDataFromStorage, error) {
-			return storage.LatestDataFromStorage{}, err
+			return storage.LatestDataFromStorage{}, localErr
 		},
 	}
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.NoError(t, err)
 
 	params, err := epochStartProvider.Bootstrap()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, params)
 }
 
@@ -868,7 +871,8 @@ func TestPrepareForEpochZero(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.Nil(t, err)
 
 	params, err := epochStartProvider.prepareEpochZero()
 	assert.Nil(t, err)
@@ -904,7 +908,8 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 		},
 	}
 
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.NoError(t, err)
 
 	params, err := epochStartProvider.prepareEpochZero()
 	assert.NoError(t, err)
@@ -939,7 +944,8 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 		},
 	}
 
-	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider, err := NewEpochStartBootstrap(args)
+	assert.NoError(t, err)
 
 	params, err := epochStartProvider.prepareEpochZero()
 	assert.NoError(t, err)

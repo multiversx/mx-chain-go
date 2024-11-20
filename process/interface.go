@@ -156,6 +156,7 @@ type TransactionCoordinator interface {
 	RestoreBlockDataFromStorage(body *block.Body) (int, error)
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
+	ForgetAllAccountNoncesInMempool()
 
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 
@@ -232,6 +233,7 @@ type PreProcessor interface {
 
 	RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error
 	RemoveTxsFromPools(body *block.Body) error
+	ForgetAllAccountNoncesInMempool()
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 

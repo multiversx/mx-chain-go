@@ -241,6 +241,11 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
 }
 
+// ForgetAllAccountNoncesInMempool forgets all account nonces in mempool
+func (txs *transactions) ForgetAllAccountNoncesInMempool() {
+	txs.txPool.ForgetAllAccountNoncesInMempool()
+}
+
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
 func (txs *transactions) RestoreBlockDataIntoPools(
 	body *block.Body,
@@ -719,10 +724,13 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 	mapSCTxs map[string]struct{},
 	randomness []byte,
 ) (block.MiniBlockSlice, error) {
-
 	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
+
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
 
 	scheduledTxsFromMe, err := txs.computeScheduledTxsFromMe(body)
 	if err != nil {
@@ -919,6 +927,9 @@ func (txs *transactions) processAndRemoveBadTransaction(
 
 func (txs *transactions) notifyTransactionProviderIfNeeded() {
 	txs.accountTxsShards.RLock()
+
+	log.Debug("notifyTransactionProviderIfNeeded", "len(txs.accountTxsShards.accountsInfo)", len(txs.accountTxsShards.accountsInfo))
+
 	for senderAddress, txShardInfoValue := range txs.accountTxsShards.accountsInfo {
 		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
 			continue
@@ -1145,6 +1156,10 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 	if !txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return make(block.MiniBlockSlice, 0), nil
 	}
+
+	defer func() {
+		go txs.notifyTransactionProviderIfNeeded()
+	}()
 
 	startTime := time.Now()
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(

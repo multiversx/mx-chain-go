@@ -12,7 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,11 +36,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      1000000000,
-			GasProcessingDivisor: 100,
-		},
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 1,
 	}
 
@@ -84,11 +83,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrNilTxGasHandler.Error())
 
 	args = goodArgs
-	args.TxGasHandler = &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       50000,
-		MinimumGasPrice:      0,
-		GasProcessingDivisor: 1,
-	}
+	args.TxGasHandler = txcachemocks.NewTxGasHandlerMock().WithMinGasPrice(0)
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
@@ -100,18 +95,22 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Nil(t, pool)
 	require.NotNil(t, err)
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidSharding.Error())
+
+	args = goodArgs
+	args.AccountNonceProvider = nil
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrNilAccountNonceProvider.Error())
 }
 
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      1000000000,
-			GasProcessingDivisor: 1,
-		},
-		NumberOfShards: 2,
+		Config:               config,
+		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
+		NumberOfShards:       2,
 	}
 
 	pool, err := NewShardedTxPool(args)
@@ -121,7 +120,6 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	require.Equal(t, 209715200, int(pool.configPrototypeSourceMe.NumBytesThreshold))
 	require.Equal(t, 614400, int(pool.configPrototypeSourceMe.NumBytesPerSenderThreshold))
 	require.Equal(t, 1000, int(pool.configPrototypeSourceMe.CountPerSenderThreshold))
-	require.Equal(t, 100, int(pool.configPrototypeSourceMe.NumSendersToPreemptivelyEvict))
 	require.Equal(t, 300000, int(pool.configPrototypeSourceMe.CountThreshold))
 
 	require.Equal(t, 300000, int(pool.configPrototypeDestinationMe.MaxNumItems))
@@ -212,6 +210,74 @@ func Test_AddData_CallsOnAddedHandlers(t *testing.T) {
 
 	waitABit()
 	require.Equal(t, uint32(1), atomic.LoadUint32(&numAdded))
+}
+
+func TestShardedTxPool_AddData_CallsNotifyAccountNonce(t *testing.T) {
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	accounts := &state.AccountsStub{
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &state.UserAccountStub{
+				Nonce: 30,
+			}, nil
+		},
+	}
+
+	err := pool.accountNonceProvider.SetAccountsAdapter(accounts)
+	require.NoError(t, err)
+
+	breadcrumbs := make([]string, 0)
+
+	_ = pool.getOrCreateShard("0")
+	_ = pool.getOrCreateShard("1_0")
+
+	pool.backingMap["0"].Cache = &txcachemocks.TxCacheMock{
+		NotifyAccountNonceCalled: func(accountKey []byte, nonce uint64) {
+			breadcrumbs = append(breadcrumbs, fmt.Sprintf("0::%s_%d", string(accountKey), nonce))
+		},
+	}
+
+	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheMock{
+		NotifyAccountNonceCalled: func(accountKey []byte, nonce uint64) {
+			breadcrumbs = append(breadcrumbs, fmt.Sprintf("1_0::%s_%d", string(accountKey), nonce))
+		},
+	}
+
+	// AddData to "source is me" cache.
+	pool.AddData([]byte("hash-42"), createTx("alice", 42), 0, "0")
+	require.Equal(t, []string{"0::alice_30"}, breadcrumbs)
+
+	// AddData to another cache (no notification).
+	pool.AddData([]byte("hash-43"), createTx("bob", 43), 0, "1_0")
+	require.Equal(t, []string{"0::alice_30"}, breadcrumbs)
+}
+
+func TestShardedTxPool_AddData_ForgetAllAccountNoncesInMempool(t *testing.T) {
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	_ = pool.getOrCreateShard("0")
+	_ = pool.getOrCreateShard("1_0")
+
+	breadcrumbs := make([]string, 0)
+
+	pool.backingMap["0"].Cache = &txcachemocks.TxCacheMock{
+		ForgetAllAccountNoncesCalled: func() {
+			breadcrumbs = append(breadcrumbs, "0")
+		},
+	}
+
+	pool.backingMap["1_0"].Cache = &txcachemocks.TxCacheMock{
+		ForgetAllAccountNoncesCalled: func() {
+			breadcrumbs = append(breadcrumbs, "1_0")
+		},
+	}
+
+	pool.ForgetAllAccountNoncesInMempool()
+
+	// Only "source is me" cache is affected.
+	require.Equal(t, []string{"0"}, breadcrumbs)
 }
 
 func Test_SearchFirstData(t *testing.T) {
@@ -392,14 +458,11 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
-			GasProcessingDivisor: 100,
-		},
-		NumberOfShards: 4,
-		SelfShardID:    42,
+		Config:               config,
+		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
+		NumberOfShards:       4,
+		SelfShardID:          42,
 	}
 	pool, _ := NewShardedTxPool(args)
 
@@ -414,8 +477,9 @@ func Test_routeToCacheUnions(t *testing.T) {
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {
 	return &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
+		SndAddr:  []byte(sender),
+		Nonce:    nonce,
+		GasLimit: 50000,
 	}
 }
 
@@ -435,14 +499,11 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
-			GasProcessingDivisor: 100,
-		},
-		NumberOfShards: 4,
-		SelfShardID:    0,
+		Config:               config,
+		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
+		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
+		NumberOfShards:       4,
+		SelfShardID:          0,
 	}
 	return NewShardedTxPool(args)
 }

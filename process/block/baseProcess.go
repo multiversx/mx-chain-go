@@ -1434,6 +1434,11 @@ func (bp *baseProcessor) updateStateStorage(
 func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
+
+	// In case of a reverted block, we ask the mempool to forget all the nonces of the accounts,
+	// so that it doesn't make badly informed decisions (transactions skipping) in the upcoming selections.
+	// Called synchronously (not in a goroutine): ~5 milliseconds for 100k accounts in the mempool.
+	bp.txCoordinator.ForgetAllAccountNoncesInMempool()
 }
 
 func (bp *baseProcessor) revertAccountState() {

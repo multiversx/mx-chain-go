@@ -15,6 +15,7 @@ type PreProcessorMock struct {
 	IsDataPreparedCalled                  func(requestedTxs int, haveTime func() time.Duration) error
 	RemoveBlockDataFromPoolsCalled        func(body *block.Body, miniBlockPool storage.Cacher) error
 	RemoveTxsFromPoolsCalled              func(body *block.Body) error
+	ForgetAllAccountNoncesInMempoolCalled func()
 	RestoreBlockDataIntoPoolsCalled       func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                func(body *block.Body) error
 	ProcessBlockTransactionsCalled        func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
@@ -58,6 +59,14 @@ func (ppm *PreProcessorMock) RemoveTxsFromPools(body *block.Body) error {
 		return nil
 	}
 	return ppm.RemoveTxsFromPoolsCalled(body)
+}
+
+// ForgetAllAccountNoncesInMempool -
+func (ppm *PreProcessorMock) ForgetAllAccountNoncesInMempool() {
+	if ppm.ForgetAllAccountNoncesInMempoolCalled == nil {
+		return
+	}
+	ppm.ForgetAllAccountNoncesInMempoolCalled()
 }
 
 // RestoreBlockDataIntoPools -
