@@ -697,9 +697,8 @@ func (bfd *baseForkDetector) processReceivedBlock(
 		return
 	}
 
-	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, 1) // check here, though
+	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
-		//log.Error("TOOO LATE")
 		state = process.BHReceivedTooLate
 	}
 

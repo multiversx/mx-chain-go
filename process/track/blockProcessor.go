@@ -76,7 +76,6 @@ func (bp *blockProcessor) ProcessReceivedHeader(headerHandler data.HeaderHandler
 	}
 
 	if !bp.shouldProcessReceivedHeaderFunc(headerHandler) {
-		log.Error("shouldProcessReceivedHeaderFunc")
 		return
 	}
 
@@ -296,13 +295,11 @@ func (bp *blockProcessor) getNextHeader(
 
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
-			log.Error("headerValidator.IsHeaderConstructionValid", "error", err)
 			continue
 		}
 
 		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
 		if err != nil {
-			log.Error("bp.checkHeaderFinality", "error", err)
 			continue
 		}
 

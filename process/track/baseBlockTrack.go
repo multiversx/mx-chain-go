@@ -313,10 +313,6 @@ func (bbt *baseBlockTrack) cleanupTrackedHeadersBehindNonce(shardID uint32, nonc
 	bbt.mutHeaders.Lock()
 	defer bbt.mutHeaders.Unlock()
 
-	if shardID == core.MainChainShardId {
-		log.Error("cleanupTrackedHeadersBehindNonce", "nonce", nonce)
-	}
-
 	headersForShard, ok := bbt.headers[shardID]
 	if !ok {
 		return
@@ -573,28 +569,13 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 		return nil, nil
 	}
 
-	if shardID == core.MainChainShardId {
-		log.Error("SortHeadersFromNonce", "nonce", nonce)
-	}
-
 	sortedHeadersInfo := make([]*HeaderInfo, 0)
 	for headersNonce, headersInfo := range headersForShard {
-		if shardID == core.MainChainShardId {
-			log.Error("HEADER FOR SHARD", "nonce", nonce)
-		}
-
 		if headersNonce < nonce {
-			log.Error("headersNonce < nonce")
 			continue
 		}
 
 		sortedHeadersInfo = append(sortedHeadersInfo, headersInfo...)
-	}
-
-	if shardID == core.MainChainShardId {
-		for _, srtHdr := range sortedHeadersInfo {
-			log.Error("SORTED JDRS", "nonce", srtHdr.Header.GetNonce())
-		}
 	}
 
 	if len(sortedHeadersInfo) > 1 {
