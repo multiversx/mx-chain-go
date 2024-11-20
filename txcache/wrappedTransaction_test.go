@@ -14,18 +14,18 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
 		tx.precomputeFields(txGasHandler)
 
-		require.Equal(t, "51500000000000", tx.Fee.Load().String())
-		require.Equal(t, oneBillion, int(tx.PricePerUnit.Load()))
-		require.Empty(t, tx.Guardian.Load())
+		require.Equal(t, "51500000000000", tx.Fee.String())
+		require.Equal(t, oneBillion, int(tx.PricePerUnit))
+		require.Empty(t, tx.Guardian)
 	})
 
 	t.Run("move balance gas limit and execution gas limit (1)", func(t *testing.T) {
 		tx := createTx([]byte("b"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
 		tx.precomputeFields(txGasHandler)
 
-		require.Equal(t, "51500010000000", tx.Fee.Load().String())
-		require.Equal(t, 999_980_777, int(tx.PricePerUnit.Load()))
-		require.Empty(t, tx.Guardian.Load())
+		require.Equal(t, "51500010000000", tx.Fee.String())
+		require.Equal(t, 999_980_777, int(tx.PricePerUnit))
+		require.Empty(t, tx.Guardian)
 	})
 
 	t.Run("move balance gas limit and execution gas limit (2)", func(t *testing.T) {
@@ -33,19 +33,19 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		tx.precomputeFields(txGasHandler)
 
 		actualFee := 51500*oneBillion + (oneMilion-51500)*oneBillion/100
-		require.Equal(t, "60985000000000", tx.Fee.Load().String())
+		require.Equal(t, "60985000000000", tx.Fee.String())
 		require.Equal(t, 60_985_000_000_000, actualFee)
-		require.Equal(t, actualFee/oneMilion, int(tx.PricePerUnit.Load()))
-		require.Empty(t, tx.Guardian.Load())
+		require.Equal(t, actualFee/oneMilion, int(tx.PricePerUnit))
+		require.Empty(t, tx.Guardian)
 	})
 
 	t.Run("with guardian", func(t *testing.T) {
 		tx := createTx([]byte("a"), "a", 1).withGuardian([]byte("heidi"))
 		tx.precomputeFields(txGasHandler)
 
-		require.Equal(t, "50000000000000", tx.Fee.Load().String())
-		require.Equal(t, oneBillion, int(tx.PricePerUnit.Load()))
-		require.Equal(t, []byte("heidi"), *tx.Guardian.Load())
+		require.Equal(t, "50000000000000", tx.Fee.String())
+		require.Equal(t, oneBillion, int(tx.PricePerUnit))
+		require.Equal(t, []byte("heidi"), tx.Guardian)
 	})
 }
 

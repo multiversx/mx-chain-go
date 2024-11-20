@@ -102,7 +102,7 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		GasPrice:   transaction.GetGasPrice(),
 		GasLimit:   transaction.GetGasLimit(),
 		DataLength: len(transaction.GetData()),
-		PPU:        wrappedTx.PricePerUnit.Load(),
+		PPU:        wrappedTx.PricePerUnit,
 	}
 }
 

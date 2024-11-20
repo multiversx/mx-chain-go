@@ -3,13 +3,11 @@ package txcache
 import (
 	"fmt"
 	"math"
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
-	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -17,6 +15,9 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	t.Run("all having same PPU", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 5)
+		accountStateProvider.SetNonce([]byte("carol"), 1)
 
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
@@ -45,6 +46,9 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	t.Run("alice > carol > bob", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 5)
+		accountStateProvider.SetNonce([]byte("carol"), 3)
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withGasPrice(100))
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
@@ -65,6 +69,9 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	t.Run("transactions with no data field", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 5)
+		accountStateProvider.SetNonce([]byte("carol"), 1)
 
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4).withGasLimit(100000))
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3).withGasLimit(100000))
@@ -92,6 +99,9 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 	t.Run("with middle gaps", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 42)
+		accountStateProvider.SetNonce([]byte("carol"), 7)
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
@@ -114,16 +124,9 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 	t.Run("with initial gaps", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
-
-		noncesByAddress := accountStateProvider.AccountStateByAddress
-		noncesByAddress["alice"] = &types.AccountState{
-			Nonce:   1,
-			Balance: big.NewInt(1000000000000000000),
-		}
-		noncesByAddress["bob"] = &types.AccountState{
-			Nonce:   42,
-			Balance: big.NewInt(1000000000000000000),
-		}
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 42)
+		accountStateProvider.SetNonce([]byte("carol"), 7)
 
 		// No gap
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
@@ -135,7 +138,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 45))
 		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 46))
 
-		// Unknown
+		// Fine
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
@@ -148,16 +151,9 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
-
-		noncesByAddress := accountStateProvider.AccountStateByAddress
-		noncesByAddress["alice"] = &types.AccountState{
-			Nonce:   1,
-			Balance: big.NewInt(1000000000000000000),
-		}
-		noncesByAddress["bob"] = &types.AccountState{
-			Nonce:   42,
-			Balance: big.NewInt(1000000000000000000),
-		}
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 42)
+		accountStateProvider.SetNonce([]byte("carol"), 7)
 
 		// Good sequence
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
@@ -169,7 +165,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 41))
 		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 42))
 
-		// Unknown
+		// Fine
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
@@ -192,7 +188,7 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := fmt.Sprintf("sender:%d", senderTag)
 
-		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
+		for txNonce := nTransactionsPerSender - 1; txNonce >= 0; txNonce-- {
 			txHash := fmt.Sprintf("hash:%d:%d", senderTag, txNonce)
 			tx := createTx([]byte(txHash), sender, uint64(txNonce))
 			cache.AddTx(tx)
@@ -297,7 +293,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	// 0.496604s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
 }
 
-func TestTxCache_selectTransactionsFromBunches_lookBreaks_whenTakesTooLong(t *testing.T) {
+func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *testing.T) {
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)

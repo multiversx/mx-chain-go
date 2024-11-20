@@ -114,7 +114,7 @@ The mempool selects transactions as follows (pseudo-code):
 func selectTransactions(gasRequested, maxNum):
     // Setup phase
     senders := list of all current senders in the mempool, in an arbitrary order
-    bunchesOfTransactions := sourced from senders; middle-nonces-gap-free, (almost) nonce-duplicates-free, nicely sorted by nonce
+    bunchesOfTransactions := sourced from senders, nicely sorted by nonce
 
     // Holds selected transactions
     selectedTransactions := empty

@@ -99,7 +99,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := createFakeSenderAddress(senderTag)
 
-		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {
+		for nonce := nTransactionsPerSender - 1; nonce >= 0; nonce-- {
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
 			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
@@ -117,7 +117,7 @@ func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransacti
 		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)
 		sender := createFakeSenderAddress(senderTag)
 
-		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {
+		for nonce := 0; nonce < nTransactionsPerSender; nonce++ {
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
 			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))

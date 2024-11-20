@@ -11,11 +11,7 @@ type transactionsHeapItem struct {
 	sender []byte
 	bunch  bunchOfTransactions
 
-	// Whether the sender's state has been requested within a selection session.
-	senderStateRequested bool
-	// Whether the sender's state has been requested and provided (with success) within a selection session.
-	senderStateProvided bool
-	// The sender's state (if requested and provided).
+	// The sender's state, as fetched in "requestAccountStateIfNecessary".
 	senderState *types.AccountState
 
 	currentTransactionIndex        int
@@ -38,9 +34,7 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, 
 		sender: firstTransaction.Tx.GetSndAddr(),
 		bunch:  bunch,
 
-		senderStateRequested: false,
-		senderStateProvided:  false,
-		senderState:          nil,
+		senderState: nil,
 
 		currentTransactionIndex:   0,
 		currentTransaction:        firstTransaction,
@@ -51,7 +45,7 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, 
 	}, nil
 }
 
-func (item *transactionsHeapItem) selectTransaction() *WrappedTransaction {
+func (item *transactionsHeapItem) selectCurrentTransaction() *WrappedTransaction {
 	item.accumulateFee()
 
 	item.latestSelectedTransaction = item.currentTransaction
@@ -61,9 +55,8 @@ func (item *transactionsHeapItem) selectTransaction() *WrappedTransaction {
 }
 
 func (item *transactionsHeapItem) accumulateFee() {
-	fee := item.currentTransaction.Fee.Load()
+	fee := item.currentTransaction.Fee
 	if fee == nil {
-		// This should never happen during selection.
 		return
 	}
 
@@ -85,14 +78,13 @@ func (item *transactionsHeapItem) detectInitialGap() bool {
 	if item.latestSelectedTransaction != nil {
 		return false
 	}
-	if !item.senderStateProvided {
-		// This should never happen during selection.
+	if item.senderState == nil {
 		return false
 	}
 
 	hasInitialGap := item.currentTransactionNonce > item.senderState.Nonce
 	if hasInitialGap {
-		logSelect.Trace("transactionsHeapItem.detectGap, initial gap",
+		logSelect.Trace("transactionsHeapItem.detectInitialGap, initial gap",
 			"tx", item.currentTransaction.TxHash,
 			"nonce", item.currentTransactionNonce,
 			"sender", item.sender,
@@ -111,7 +103,7 @@ func (item *transactionsHeapItem) detectMiddleGap() bool {
 	// Detect middle gap.
 	hasMiddleGap := item.currentTransactionNonce > item.latestSelectedTransactionNonce+1
 	if hasMiddleGap {
-		logSelect.Trace("transactionsHeapItem.detectGap, middle gap",
+		logSelect.Trace("transactionsHeapItem.detectMiddleGap, middle gap",
 			"tx", item.currentTransaction.TxHash,
 			"nonce", item.currentTransactionNonce,
 			"sender", item.sender,
@@ -123,14 +115,17 @@ func (item *transactionsHeapItem) detectMiddleGap() bool {
 }
 
 func (item *transactionsHeapItem) detectWillFeeExceedBalance() bool {
-	if !item.senderStateProvided {
-		// This should never happen during selection.
+	if item.senderState == nil {
 		return false
 	}
 
+	fee := item.currentTransaction.Fee
+	if fee == nil {
+		return false
+	}
+
+	futureAccumulatedFee := new(big.Int).Add(item.accumulatedFee, fee)
 	senderBalance := item.senderState.Balance
-	currentTransactionFee := item.currentTransaction.Fee.Load()
-	futureAccumulatedFee := new(big.Int).Add(item.accumulatedFee, currentTransactionFee)
 
 	willFeeExceedBalance := futureAccumulatedFee.Cmp(senderBalance) > 0
 	if willFeeExceedBalance {
@@ -146,8 +141,7 @@ func (item *transactionsHeapItem) detectWillFeeExceedBalance() bool {
 }
 
 func (item *transactionsHeapItem) detectLowerNonce() bool {
-	if !item.senderStateProvided {
-		// This should never happen during selection.
+	if item.senderState == nil {
 		return false
 	}
 
@@ -165,13 +159,13 @@ func (item *transactionsHeapItem) detectLowerNonce() bool {
 }
 
 func (item *transactionsHeapItem) detectBadlyGuarded() bool {
-	if !item.senderStateProvided {
-		// This should never happen during selection.
+	if item.senderState == nil {
 		return false
 	}
 
-	transactionGuardian := *item.currentTransaction.Guardian.Load()
+	transactionGuardian := item.currentTransaction.Guardian
 	accountGuardian := item.senderState.Guardian
+
 	isBadlyGuarded := bytes.Compare(transactionGuardian, accountGuardian) != 0
 	if isBadlyGuarded {
 		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
@@ -202,19 +196,16 @@ func (item *transactionsHeapItem) detectNonceDuplicate() bool {
 	return isDuplicate
 }
 
-func (item *transactionsHeapItem) requestAccountStateIfNecessary(accountStateProvider AccountStateProvider) {
-	if item.senderStateRequested {
-		return
+func (item *transactionsHeapItem) requestAccountStateIfNecessary(accountStateProvider AccountStateProvider) error {
+	if item.senderState != nil {
+		return nil
 	}
 
-	item.senderStateRequested = true
 	senderState, err := accountStateProvider.GetAccountState(item.sender)
 	if err != nil {
-		// Hazardous; should never happen.
-		logSelect.Debug("transactionsHeapItem.requestAccountStateIfNecessary: nonce not available", "sender", item.sender, "err", err)
-		return
+		return err
 	}
 
-	item.senderStateProvided = true
 	item.senderState = senderState
+	return nil
 }
