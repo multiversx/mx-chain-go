@@ -66,7 +66,7 @@ func TestSovereignAccountCreator_CreateAccount(t *testing.T) {
 	t.Parallel()
 
 	testCreateAccount(t, "WEGLD-bd4d79")
-	testCreateAccount(t, "sov-WEGLD-bd4d79")
+	testCreateAccount(t, "sov-ESDT-a1b2c3")
 }
 
 func testCreateAccount(t *testing.T, baseTokenID string) {

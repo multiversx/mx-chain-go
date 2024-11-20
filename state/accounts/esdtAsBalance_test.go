@@ -15,7 +15,7 @@ import (
 )
 
 const baseTokenID = "WEGLD-bd4d79"
-const prefixedBaseTokenID = "sov-WEGLD-bd4d79"
+const prefixedBaseTokenID = "sov-ESDT-a1b2c3"
 
 func TestNewESDTAsBalance(t *testing.T) {
 	t.Parallel()
@@ -26,12 +26,12 @@ func TestNewESDTAsBalance(t *testing.T) {
 		require.Nil(t, esdtBalance)
 	})
 	t.Run("invalid prefixed base token, should return error", func(t *testing.T) {
-		esdtBalance, err := NewESDTAsBalance("svn12-ABC-1q2w3e", &marshallerMock.MarshalizerMock{})
+		esdtBalance, err := NewESDTAsBalance("svn12-ABC-1a2f3f", &marshallerMock.MarshalizerMock{})
 		require.Equal(t, errorsMx.ErrInvalidBaseToken, err)
 		require.Nil(t, esdtBalance)
 	})
 	t.Run("invalid base token, should return error", func(t *testing.T) {
-		esdtBalance, err := NewESDTAsBalance("MvX-1g4h2s", &marshallerMock.MarshalizerMock{})
+		esdtBalance, err := NewESDTAsBalance("MvX-1c4f2a", &marshallerMock.MarshalizerMock{})
 		require.Equal(t, errorsMx.ErrInvalidBaseToken, err)
 		require.Nil(t, esdtBalance)
 	})
