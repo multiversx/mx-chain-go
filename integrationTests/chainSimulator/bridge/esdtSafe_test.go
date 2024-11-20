@@ -86,43 +86,43 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 	// TODO MX-15942 uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
 	tokens := make([]chainSim.ArgsDepositToken, 0)
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab1-TKN-fasd35",
+		Identifier: "ab1-TKN-123456",
 		Nonce:      uint64(0),
 		Amount:     big.NewInt(14556666767),
 		Type:       core.Fungible,
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab1-NFTV2-1ds234",
+		Identifier: "ab1-NFTV2-1a2b3c",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungibleV2,
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab2-DNFT-fdfe3r",
+	//	Identifier: "ab2-DNFT-ead43f",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1),
 	//	Type:       core.DynamicNFT,
 	//})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab2-SFT-gw4fw2",
+		Identifier: "ab2-SFT-cedd55",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1421),
 		Type:       core.SemiFungible,
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab4-DSFT-g43g2s",
+	//	Identifier: "ab4-DSFT-f6b4c2",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1534),
 	//	Type:       core.DynamicSFT,
 	//})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab5-META-1ds234",
+		Identifier: "ab5-META-4b543b",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(6231),
 		Type:       core.MetaFungible,
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab5-DMETA-f23g2f",
+	//	Identifier: "ab5-DMETA-4b543b",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(162367),
 	//	Type:       core.DynamicMeta,
@@ -392,43 +392,43 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 	// TODO MX-15942 uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
 	tokens := make([]chainSim.ArgsDepositToken, 0)
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab1-TKN-fasd35",
+		Identifier: "ab1-TKN-123456",
 		Nonce:      uint64(0),
 		Amount:     big.NewInt(14556666767),
 		Type:       core.Fungible,
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab1-NFTV2-1ds234",
+		Identifier: "ab1-NFTV2-1a2b3c",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungibleV2,
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab2-DNFT-fdfe3r",
+	//	Identifier: "ab2-DNFT-ead43f",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1),
 	//	Type:       core.DynamicNFT,
 	//})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab2-SFT-gw4fw2",
+		Identifier: "ab2-SFT-cedd55",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1421),
 		Type:       core.SemiFungible,
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab4-DSFT-g43g2s",
+	//	Identifier: "ab4-DSFT-f6b4c2",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1534),
 	//	Type:       core.DynamicSFT,
 	//})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab5-META-1ds234",
+		Identifier: "ab5-META-4b543b",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(6231),
 		Type:       core.MetaFungible,
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab5-DMETA-f23g2f",
+	//	Identifier: "ab5-DMETA-4b543b",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(162367),
 	//	Type:       core.DynamicMeta,
