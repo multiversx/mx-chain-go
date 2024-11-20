@@ -189,10 +189,6 @@ func (item *transactionsHeapItem) detectNonceDuplicate() bool {
 	if item.latestSelectedTransaction == nil {
 		return false
 	}
-	if !item.senderStateProvided {
-		// This should never happen during selection.
-		return false
-	}
 
 	isDuplicate := item.currentTransactionNonce == item.latestSelectedTransactionNonce
 	if isDuplicate {

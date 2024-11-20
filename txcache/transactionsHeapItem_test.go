@@ -170,6 +170,151 @@ func TestTransactionsHeapItem_detectFeeExceededBalance(t *testing.T) {
 	})
 }
 
+func TestTransactionsHeapItem_detectLowerNonce(t *testing.T) {
+	a := createTx([]byte("tx-1"), "alice", 42)
+	b := createTx([]byte("tx-2"), "alice", 43)
+
+	t.Run("unknown", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		require.NoError(t, err)
+
+		require.False(t, item.detectInitialGap())
+	})
+
+	t.Run("known, good", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Nonce: 42,
+		}
+
+		require.False(t, item.detectLowerNonce())
+	})
+
+	t.Run("known, lower", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Nonce: 44,
+		}
+
+		require.True(t, item.detectLowerNonce())
+	})
+}
+
+func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
+	a := createTx([]byte("tx-1"), "alice", 42)
+	b := createTx([]byte("tx-7"), "bob", 43).withGuardian([]byte("heidi"))
+
+	a.precomputeFields(txGasHandler)
+	b.precomputeFields(txGasHandler)
+
+	t.Run("unknown", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
+		require.NoError(t, err)
+
+		require.False(t, item.detectBadlyGuarded())
+	})
+
+	t.Run("transaction has no guardian, account has no guardian", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Guardian: nil,
+		}
+
+		require.False(t, item.detectBadlyGuarded())
+	})
+
+	t.Run("transaction has guardian, account has guardian, they match", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{b})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Guardian: []byte("heidi"),
+		}
+
+		require.False(t, item.detectBadlyGuarded())
+	})
+
+	t.Run("transaction has guardian, account has guardian, they don't match", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{b})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Guardian: []byte("grace"),
+		}
+
+		require.True(t, item.detectBadlyGuarded())
+	})
+
+	t.Run("transaction has guardian, account does not", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{b})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Guardian: nil,
+		}
+
+		require.True(t, item.detectBadlyGuarded())
+	})
+
+	t.Run("transaction has no guardian, account has guardian", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
+		require.NoError(t, err)
+
+		item.senderStateProvided = true
+		item.senderState = &types.AccountState{
+			Guardian: []byte("heidi"),
+		}
+
+		require.True(t, item.detectBadlyGuarded())
+	})
+}
+
+func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
+	a := createTx([]byte("tx-1"), "alice", 42)
+	b := createTx([]byte("tx-2"), "alice", 43)
+	c := createTx([]byte("tx-3"), "alice", 42)
+
+	t.Run("unknown", func(t *testing.T) {
+		item := &transactionsHeapItem{}
+		item.latestSelectedTransaction = nil
+		require.False(t, item.detectNonceDuplicate())
+	})
+
+	t.Run("no duplicates", func(t *testing.T) {
+		item := &transactionsHeapItem{}
+		item.latestSelectedTransaction = a
+		item.latestSelectedTransactionNonce = 42
+		item.currentTransaction = b
+		item.currentTransactionNonce = 43
+
+		require.False(t, item.detectNonceDuplicate())
+	})
+
+	t.Run("duplicates", func(t *testing.T) {
+		item := &transactionsHeapItem{}
+		item.latestSelectedTransaction = a
+		item.latestSelectedTransactionNonce = 42
+		item.currentTransaction = c
+		item.currentTransactionNonce = 42
+
+		require.True(t, item.detectNonceDuplicate())
+	})
+}
+
 func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
 	accountStateProvider := txcachemocks.NewAccountStateProviderMock()
 
