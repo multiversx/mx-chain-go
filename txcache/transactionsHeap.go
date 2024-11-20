@@ -1,64 +1,8 @@
 package txcache
 
-import (
-	"math/big"
-
-	"github.com/multiversx/mx-chain-storage-go/types"
-)
-
 type transactionsHeap struct {
 	items []*transactionsHeapItem
 	less  func(i, j int) bool
-}
-
-type transactionsHeapItem struct {
-	senderIndex int
-
-	// Whether the sender's state has been requested within a selection session.
-	senderStateRequested bool
-	// Whether the sender's state has been requested and provided (with success) within a selection session.
-	senderStateProvided bool
-	// The sender's state (if requested and provided).
-	senderState *types.AccountState
-
-	transactionIndex int
-	transaction      *WrappedTransaction
-
-	accumulatedFee *big.Int
-}
-
-func newTransactionsHeapItem(senderIndex int, firstTransaction *WrappedTransaction) *transactionsHeapItem {
-	return &transactionsHeapItem{
-		senderIndex:          senderIndex,
-		senderStateRequested: false,
-		senderStateProvided:  false,
-		senderState:          nil,
-		transactionIndex:     0,
-		transaction:          firstTransaction,
-		accumulatedFee:       big.NewInt(0),
-	}
-}
-
-func (item *transactionsHeapItem) hasInitialGap() bool {
-	return item.transactionIndex == 0 && item.senderStateProvided && item.transaction.Tx.GetNonce() > item.senderState.Nonce
-}
-
-func (item *transactionsHeapItem) isLowerNonce() bool {
-	return item.senderStateProvided && item.transaction.Tx.GetNonce() < item.senderState.Nonce
-}
-
-func (item *transactionsHeapItem) hasFeeExceededBalance() bool {
-	return item.senderStateProvided && item.accumulatedFee.Cmp(item.senderState.Balance) > 0
-}
-
-func (item *transactionsHeapItem) accumulateFee() {
-	fee := item.transaction.Fee.Load()
-	if fee == nil {
-		// This should never happen.
-		return
-	}
-
-	item.accumulatedFee.Add(item.accumulatedFee, fee)
 }
 
 func newMinTransactionsHeap(capacity int) *transactionsHeap {
@@ -67,7 +11,7 @@ func newMinTransactionsHeap(capacity int) *transactionsHeap {
 	}
 
 	h.less = func(i, j int) bool {
-		return h.items[j].transaction.isTransactionMoreValuableForNetwork(h.items[i].transaction)
+		return h.items[j].currentTransaction.isTransactionMoreValuableForNetwork(h.items[i].currentTransaction)
 	}
 
 	return &h
@@ -79,7 +23,7 @@ func newMaxTransactionsHeap(capacity int) *transactionsHeap {
 	}
 
 	h.less = func(i, j int) bool {
-		return h.items[i].transaction.isTransactionMoreValuableForNetwork(h.items[j].transaction)
+		return h.items[i].currentTransaction.isTransactionMoreValuableForNetwork(h.items[j].currentTransaction)
 	}
 
 	return &h

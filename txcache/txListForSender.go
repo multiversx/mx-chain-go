@@ -184,45 +184,6 @@ func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
 	return result
 }
 
-// getSequentialTxs returns the transactions of the sender, in the context of transactions selection.
-// Middle gaps and duplicates are handled (affected transactions are excluded).
-// Initial gaps and lower nonces are not handled (not enough information); they are detected a bit later, within the selection loop.
-func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
-	listForSender.mutex.RLock()
-	defer listForSender.mutex.RUnlock()
-
-	result := make([]*WrappedTransaction, 0, listForSender.countTx())
-	previousNonce := uint64(0)
-
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		nonce := value.Tx.GetNonce()
-
-		isFirstTx := len(result) == 0
-		if !isFirstTx {
-			if nonce == previousNonce {
-				// Handle duplicates.
-				// Only transactions with the highest gas price are included (with an exception around guarded transactions), see "findInsertionPlace".
-				if value.IsGuarded {
-					log.Trace("txListForSender.getSequentialTxs, duplicate, but guarded, will not skip", "sender", listForSender.sender, "nonce", nonce)
-				} else {
-					log.Trace("txListForSender.getSequentialTxs, duplicate, will skip", "sender", listForSender.sender, "nonce", nonce)
-					continue
-				}
-			} else if nonce > previousNonce+1 {
-				// Handle middle gaps.
-				log.Trace("txListForSender.getSequentialTxs, middle gap", "sender", listForSender.sender, "nonce", nonce, "previousNonce", previousNonce)
-				break
-			}
-		}
-
-		result = append(result, value)
-		previousNonce = nonce
-	}
-
-	return result
-}
-
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) countTx() uint64 {
 	return uint64(listForSender.items.Len())

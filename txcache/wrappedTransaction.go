@@ -21,7 +21,7 @@ type WrappedTransaction struct {
 
 	Fee          atomic.Pointer[big.Int]
 	PricePerUnit atomic.Uint64
-	IsGuarded    bool
+	Guardian     atomic.Pointer[[]byte]
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
@@ -41,7 +41,8 @@ func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler)
 		return
 	}
 
-	wrappedTx.IsGuarded = len(txAsGuardedTransaction.GetGuardianAddr()) > 0
+	guardian := txAsGuardedTransaction.GetGuardianAddr()
+	wrappedTx.Guardian.Store(&guardian)
 }
 
 // Equality is out of scope (not possible in our case).
