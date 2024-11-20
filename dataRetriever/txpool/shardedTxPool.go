@@ -242,6 +242,9 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("removal")
+
 	numRemoved := 0
 	for _, key := range txHashes {
 		if shard.Cache.RemoveTxByHash(key) {
@@ -249,8 +252,15 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 		}
 	}
 
+	stopWatch.Stop("removal")
+
 	// Transactions with lower / equal nonce are also removed, but the counter does not reflect that.
-	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk",
+		"cacheID", cacheID,
+		"numToRemove", len(txHashes),
+		"numRemoved", numRemoved,
+		"duration", stopWatch.GetMeasurement("removal"),
+	)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
