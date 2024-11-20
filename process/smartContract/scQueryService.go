@@ -344,7 +344,7 @@ func (service *SCQueryService) getEpochStartBlockHdr(epoch uint32) (data.HeaderH
 		return header, nil
 	}
 
-	storer, err := service.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	storer, err := service.storageService.GetStorer(dataRetriever.GetHeadersDataUnit(shardId))
 	if err != nil {
 		return nil, err
 	}

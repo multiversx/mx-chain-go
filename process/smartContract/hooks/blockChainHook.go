@@ -804,8 +804,13 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) error {
 	bh.mutCurrentHdr.Lock()
 	defer bh.mutCurrentHdr.Unlock()
 
+	err := bh.updateEpochStartHeaderFromCurrentHeader(hdr)
+	if err != nil {
+		return err
+	}
+
 	bh.currentHdr = hdr
-	return bh.updateEpochStartHeaderFromCurrentHeader(hdr)
+	return nil
 }
 
 func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.HeaderHandler) error {
@@ -817,12 +822,12 @@ func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.H
 		return nil
 	}
 
-	if bh.epochStartHdr.GetEpoch() == hdr.GetEpoch() {
+	if hdr.GetEpoch() == 0 {
+		bh.epochStartHdr = bh.blockChain.GetGenesisHeader()
 		return nil
 	}
 
-	if hdr.GetEpoch() == 0 {
-		bh.epochStartHdr = bh.blockChain.GetGenesisHeader()
+	if bh.epochStartHdr.GetEpoch() == hdr.GetEpoch() {
 		return nil
 	}
 
