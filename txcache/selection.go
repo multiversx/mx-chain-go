@@ -92,7 +92,7 @@ func detectSkippableSender(item *transactionsHeapItem) bool {
 	if item.detectMiddleGap() {
 		return true
 	}
-	if item.detectFeeExceededBalance() {
+	if item.detectWillFeeExceedBalance() {
 		return true
 	}
 
