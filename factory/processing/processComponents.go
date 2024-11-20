@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
@@ -571,12 +572,23 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	mapWhiteListedCrossChainAddresses, err := builtInFunctions.AddressListToMap(pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses, pcf.coreData.AddressPubKeyConverter())
+	if err != nil {
+		return nil, err
+	}
+
+	crossChainTokenChecker, err := vmcommonBuiltInFunctions.NewCrossChainTokenChecker([]byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix), mapWhiteListedCrossChainAddresses)
+	if err != nil {
+		return nil, err
+	}
+
 	esdtDataStorageArgs := vmcommonBuiltInFunctions.ArgsNewESDTDataStorage{
-		Accounts:              pcf.state.AccountsAdapterAPI(),
-		GlobalSettingsHandler: disabled.NewDisabledGlobalSettingHandler(),
-		Marshalizer:           pcf.coreData.InternalMarshalizer(),
-		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
-		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		Accounts:                      pcf.state.AccountsAdapterAPI(),
+		GlobalSettingsHandler:         disabled.NewDisabledGlobalSettingHandler(),
+		Marshalizer:                   pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
+		EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+		CrossChainTokenCheckerHandler: crossChainTokenChecker,
 	}
 	pcf.esdtNftStorage, err = vmcommonBuiltInFunctions.NewESDTDataStorage(esdtDataStorageArgs)
 	if err != nil {
