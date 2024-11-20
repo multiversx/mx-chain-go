@@ -57,7 +57,12 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			}
 		}
 
-		item.requestAccountStateIfNecessary(accountStateProvider)
+		err := item.requestAccountStateIfNecessary(accountStateProvider)
+		if err != nil {
+			// Skip this sender.
+			logSelect.Debug("TxCache.selectTransactionsFromBunches, could not retrieve account state", "sender", item.sender, "err", err)
+			continue
+		}
 
 		shouldSkipSender := detectSkippableSender(item)
 		if shouldSkipSender {
@@ -71,7 +76,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
 			accumulatedGas += gasLimit
-			selectedTransactions = append(selectedTransactions, item.selectTransaction())
+			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction())
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),

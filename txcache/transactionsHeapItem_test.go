@@ -27,8 +27,6 @@ func TestNewTransactionsHeapItem(t *testing.T) {
 
 		require.Equal(t, []byte("alice"), item.sender)
 		require.Equal(t, bunch, item.bunch)
-		require.False(t, item.senderStateRequested)
-		require.False(t, item.senderStateProvided)
 		require.Nil(t, item.senderState)
 		require.Equal(t, 0, item.currentTransactionIndex)
 		require.Equal(t, bunch[0], item.currentTransaction)
@@ -49,7 +47,7 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 	require.NoError(t, err)
 
-	selected := item.selectTransaction()
+	selected := item.selectCurrentTransaction()
 	require.Equal(t, a, selected)
 	require.Equal(t, a, item.latestSelectedTransaction)
 	require.Equal(t, 42, int(item.latestSelectedTransactionNonce))
@@ -58,7 +56,7 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	ok := item.gotoNextTransaction()
 	require.True(t, ok)
 
-	selected = item.selectTransaction()
+	selected = item.selectCurrentTransaction()
 	require.Equal(t, b, selected)
 	require.Equal(t, b, item.latestSelectedTransaction)
 	require.Equal(t, 43, int(item.latestSelectedTransactionNonce))
@@ -83,7 +81,6 @@ func TestTransactionsHeapItem_detectInitialGap(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Nonce: 42,
 		}
@@ -95,7 +92,6 @@ func TestTransactionsHeapItem_detectInitialGap(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Nonce: 41,
 		}
@@ -155,14 +151,13 @@ func TestTransactionsHeapItem_detectFeeExceededBalance(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Balance: big.NewInt(50000000000001),
 		}
 
 		require.False(t, item.detectWillFeeExceedBalance())
 
-		_ = item.selectTransaction()
+		_ = item.selectCurrentTransaction()
 		_ = item.gotoNextTransaction()
 		require.Equal(t, "50000000000000", item.accumulatedFee.String())
 
@@ -185,7 +180,6 @@ func TestTransactionsHeapItem_detectLowerNonce(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Nonce: 42,
 		}
@@ -197,7 +191,6 @@ func TestTransactionsHeapItem_detectLowerNonce(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Nonce: 44,
 		}
@@ -226,7 +219,6 @@ func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Guardian: nil,
 		}
@@ -238,7 +230,6 @@ func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Guardian: []byte("heidi"),
 		}
@@ -250,7 +241,6 @@ func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Guardian: []byte("grace"),
 		}
@@ -262,7 +252,6 @@ func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{b})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Guardian: nil,
 		}
@@ -274,7 +263,6 @@ func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
 		require.NoError(t, err)
 
-		item.senderStateProvided = true
 		item.senderState = &types.AccountState{
 			Guardian: []byte("heidi"),
 		}
@@ -341,15 +329,7 @@ func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
 	a.requestAccountStateIfNecessary(accountStateProvider)
 	b.requestAccountStateIfNecessary(accountStateProvider)
 
-	require.True(t, a.senderStateRequested)
-	require.True(t, a.senderStateProvided)
 	require.Equal(t, uint64(7), a.senderState.Nonce)
-
-	require.True(t, b.senderStateRequested)
-	require.True(t, b.senderStateProvided)
 	require.Equal(t, uint64(42), b.senderState.Nonce)
-
-	require.False(t, c.senderStateRequested)
-	require.False(t, c.senderStateProvided)
 	require.Nil(t, c.senderState)
 }

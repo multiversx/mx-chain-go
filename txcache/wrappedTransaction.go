@@ -3,7 +3,6 @@ package txcache
 import (
 	"bytes"
 	"math/big"
-	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 )
@@ -19,37 +18,34 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 
-	Fee          atomic.Pointer[big.Int]
-	PricePerUnit atomic.Uint64
-	Guardian     atomic.Pointer[[]byte]
+	// These fields are only set within "precomputeFields".
+	// We don't need to protect them with a mutex, since "precomputeFields" is called only once for each transaction.
+	// Additional note: "WrappedTransaction" objects are created by the Node, in dataRetriever/txpool/shardedTxPool.go.
+	Fee          *big.Int
+	PricePerUnit uint64
+	Guardian     []byte
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
 func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
-	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx)
+	wrappedTx.Fee = txGasHandler.ComputeTxFee(wrappedTx.Tx)
 
 	gasLimit := wrappedTx.Tx.GetGasLimit()
-	if gasLimit == 0 {
-		return
+	if gasLimit != 0 {
+		wrappedTx.PricePerUnit = wrappedTx.Fee.Uint64() / gasLimit
 	}
-
-	wrappedTx.Fee.Store(fee)
-	wrappedTx.PricePerUnit.Store(fee.Uint64() / gasLimit)
 
 	txAsGuardedTransaction, ok := wrappedTx.Tx.(data.GuardedTransactionHandler)
-	if !ok {
-		return
+	if ok {
+		wrappedTx.Guardian = txAsGuardedTransaction.GetGuardianAddr()
 	}
-
-	guardian := txAsGuardedTransaction.GetGuardianAddr()
-	wrappedTx.Guardian.Store(&guardian)
 }
 
 // Equality is out of scope (not possible in our case).
 func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTransaction *WrappedTransaction) bool {
 	// First, compare by price per unit
-	ppu := wrappedTx.PricePerUnit.Load()
-	ppuOther := otherTransaction.PricePerUnit.Load()
+	ppu := wrappedTx.PricePerUnit
+	ppuOther := otherTransaction.PricePerUnit
 	if ppu != ppuOther {
 		return ppu > ppuOther
 	}
