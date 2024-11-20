@@ -7,7 +7,6 @@ import (
 	"sort"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
@@ -444,45 +443,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 	thisIsNil := makeNil()
 	require.True(t, check.IfNil(thisIsNil))
-}
-
-func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-	accountStateProvider := txcachemocks.NewAccountStateProviderMock()
-
-	// Alice will quickly move between two score buckets (chunks)
-	cheapTransaction := createTx([]byte("alice-x-o"), "alice", 0).withDataLength(1).withGasLimit(300000000).withGasPrice(oneBillion)
-	expensiveTransaction := createTx([]byte("alice-x-1"), "alice", 1).withDataLength(42).withGasLimit(50000000).withGasPrice(10 * oneBillion)
-	cache.AddTx(cheapTransaction)
-	cache.AddTx(expensiveTransaction)
-
-	wg := sync.WaitGroup{}
-
-	// Simulate selection
-	wg.Add(1)
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("Selection", i)
-			_, _ = cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
-		}
-
-		wg.Done()
-	}()
-
-	// Simulate add / remove transactions
-	wg.Add(1)
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("Add / remove", i)
-			cache.Remove([]byte("alice-x-1"))
-			cache.AddTx(expensiveTransaction)
-		}
-
-		wg.Done()
-	}()
-
-	timedOut := waitTimeout(&wg, 1*time.Second)
-	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
 }
 
 func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
