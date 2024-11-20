@@ -240,8 +240,3 @@ func (listForSender *txListForSender) removeTransactionsWithHigherOrEqualNonce(g
 		element = prevElement
 	}
 }
-
-// GetKey returns the key
-func (listForSender *txListForSender) GetKey() string {
-	return listForSender.sender
-}
