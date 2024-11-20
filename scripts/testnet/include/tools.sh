@@ -5,7 +5,10 @@ startProxy() {
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
-  runCommandInTerminal "./proxy" $1
+  if [ "$SOVEREIGN_DEPLOY" == "1" ]; then
+      ARGS="--sovereign-config"
+  fi
+  runCommandInTerminal "./proxy $ARGS" $1
 }
 
 pauseProxy() {
