@@ -3,6 +3,7 @@ package txcache
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"testing"
 	"time"
 
@@ -95,7 +96,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	})
 }
 
-func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
+func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.T) {
 	t.Run("with middle gaps", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
@@ -128,7 +129,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		accountStateProvider.SetNonce([]byte("bob"), 42)
 		accountStateProvider.SetNonce([]byte("carol"), 7)
 
-		// No gap
+		// Good
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
@@ -138,7 +139,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 45))
 		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 46))
 
-		// Fine
+		// Good
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
@@ -155,7 +156,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		accountStateProvider.SetNonce([]byte("bob"), 42)
 		accountStateProvider.SetNonce([]byte("carol"), 7)
 
-		// Good sequence
+		// Good
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
 		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
@@ -165,7 +166,7 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 41))
 		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 42))
 
-		// Fine
+		// Good
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
@@ -173,6 +174,72 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
+	})
+
+	t.Run("with duplicated nonces", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3a"), "alice", 3))
+		cache.AddTx(createTx([]byte("hash-alice-3b"), "alice", 3).withGasPrice(oneBillion * 2))
+		cache.AddTx(createTx([]byte("hash-alice-3c"), "alice", 3))
+		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
+
+		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		require.Len(t, sorted, 4)
+		require.Equal(t, 200000, int(accumulatedGas))
+
+		require.Equal(t, "hash-alice-1", string(sorted[0].TxHash))
+		require.Equal(t, "hash-alice-2", string(sorted[1].TxHash))
+		require.Equal(t, "hash-alice-3b", string(sorted[2].TxHash))
+		require.Equal(t, "hash-alice-4", string(sorted[3].TxHash))
+	})
+
+	t.Run("with fee exceeding balance", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetBalance([]byte("alice"), big.NewInt(150000000000000))
+		accountStateProvider.SetNonce([]byte("bob"), 42)
+		accountStateProvider.SetBalance([]byte("bob"), big.NewInt(70000000000000))
+
+		// Enough balance
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+
+		// Not enough balance
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 40))
+		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 41))
+		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 42))
+
+		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		expectedNumSelected := 3 + 1 // 3 alice + 1 bob
+		require.Len(t, sorted, expectedNumSelected)
+		require.Equal(t, 200000, int(accumulatedGas))
+	})
+
+	t.Run("with guardians", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+		accountStateProvider.SetNonce([]byte("alice"), 1)
+		accountStateProvider.SetNonce([]byte("bob"), 42)
+		accountStateProvider.SetGuardian([]byte("bob"), []byte("heidi"))
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("hash-bob-42a"), "bob", 42))
+		cache.AddTx(createTx([]byte("hash-bob-42b"), "bob", 42).withGuardian([]byte("heidi")).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 43).withGuardian([]byte("grace")).withGasLimit(100000))
+
+		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		require.Len(t, sorted, 2)
+		require.Equal(t, 150000, int(accumulatedGas))
+
+		require.Equal(t, "hash-alice-1", string(sorted[0].TxHash))
+		require.Equal(t, "hash-bob-42b", string(sorted[1].TxHash))
 	})
 }
 
@@ -287,10 +354,10 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.053758s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_1000,_numTransactions_=_1000)
-	// 0.050731s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_10000,_numTransactions_=_100)
-	// 0.302232s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
-	// 0.496604s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
+	// 0.057519s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_1000,_numTransactions_=_1000)
+	// 0.048023s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_10000,_numTransactions_=_100)
+	// 0.289515s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
+	// 0.460242s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
 }
 
 func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *testing.T) {
@@ -381,7 +448,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.112178s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
-	// 0.160638s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
-	// 0.371011s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.107361s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
+	// 0.168364s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.305363s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
 }

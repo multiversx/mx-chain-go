@@ -209,3 +209,7 @@ func (item *transactionsHeapItem) requestAccountStateIfNecessary(accountStatePro
 	item.senderState = senderState
 	return nil
 }
+
+func (item *transactionsHeapItem) holdsTransactionMoreValuableForNetwork(other *transactionsHeapItem) bool {
+	return item.currentTransaction.isTransactionMoreValuableForNetwork(other.currentTransaction)
+}

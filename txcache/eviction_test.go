@@ -220,8 +220,8 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.160000s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_35000,_numTransactions_=_10)
-	// 0.506890s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_100000,_numTransactions_=_5)
-	// 0.602928s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_10000,_numTransactions_=_100)
-	// 0.654148s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_400000,_numTransactions_=_1)
+	// 0.119274s (TestBenchmarkTxCache_DoEviction/numSenders_=_35000,_numTransactions_=_10)
+	// 0.484147s (TestBenchmarkTxCache_DoEviction/numSenders_=_100000,_numTransactions_=_5)
+	// 0.504588s (TestBenchmarkTxCache_DoEviction/numSenders_=_10000,_numTransactions_=_100)
+	// 0.571885s (TestBenchmarkTxCache_DoEviction/numSenders_=_400000,_numTransactions_=_1)
 }

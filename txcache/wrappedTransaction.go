@@ -43,11 +43,8 @@ func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler)
 
 // Equality is out of scope (not possible in our case).
 func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTransaction *WrappedTransaction) bool {
-	// First, compare by price per unit
-	ppu := wrappedTx.PricePerUnit
-	ppuOther := otherTransaction.PricePerUnit
-	if ppu != ppuOther {
-		return ppu > ppuOther
+	if wrappedTx.PricePerUnit != otherTransaction.PricePerUnit {
+		return wrappedTx.PricePerUnit > otherTransaction.PricePerUnit
 	}
 
 	// In the end, compare by transaction hash
