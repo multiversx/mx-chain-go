@@ -3,8 +3,6 @@ package components
 import (
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/factory"
-	heartbeat2 "github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"strconv"
 	"time"
 
@@ -14,8 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/factory"
 	apiComp "github.com/multiversx/mx-chain-go/factory/api"
 	nodePack "github.com/multiversx/mx-chain-go/node"
+	simulatorHeartbeat "github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process/mock"
 )
@@ -75,7 +75,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	flagsConfig := configs.FlagsConfig
 
-	heartbeatComponents, err := heartbeat2.NewSyncedHeartbeatComponents(monitor)
+	heartbeatComponents, err := simulatorHeartbeat.NewSyncedHeartbeatComponents(monitor)
 	if err != nil {
 		return err
 	}
