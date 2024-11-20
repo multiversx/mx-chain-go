@@ -174,7 +174,7 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 
 	stopWatch.Stop("removal")
 
-	log.Trace("shardedData.removeTxBulk",
+	log.Debug("shardedData.removeTxBulk",
 		"name", sd.name,
 		"cacheID", cacheID,
 		"numToRemove", len(keys),
