@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -777,22 +778,26 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	oldHashes := make(common.ModifiedHashes)
-	newHashes := make(common.ModifiedHashes)
+	hc := hashesCollector.NewDisabledHashesCollector()
+	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		hc = hashesCollector.NewDataTrieHashesCollector()
+	}
+
 	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
-		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
+		err := dataTries[i].Commit(hc)
 		if err != nil {
 			return nil, err
 		}
 	}
 	adb.dataTries.Reset()
 
-	oldRoot := adb.mainTrie.GetOldRoot()
-
 	// Step 2. commit main trie
-	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
+		hc = hashesCollector.NewHashesCollector(hc)
+	}
+	err := adb.mainTrie.Commit(hc)
 	if err != nil {
 		return nil, err
 	}
@@ -803,7 +808,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 		return nil, err
 	}
 
-	err = adb.markForEviction(oldRoot, newRoot, oldHashes, newHashes)
+	err = adb.markForEviction(newRoot, hc)
 	if err != nil {
 		return nil, err
 	}
@@ -818,36 +823,14 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 }
 
 func (adb *AccountsDB) markForEviction(
-	oldRoot []byte,
 	newRoot []byte,
-	oldHashes common.ModifiedHashes,
-	newHashes common.ModifiedHashes,
+	collector common.TrieHashesCollector,
 ) error {
 	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
 		return nil
 	}
 
-	return adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
-}
-
-func (adb *AccountsDB) commitTrie(tr common.Trie, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
-		oldTrieHashes := tr.GetObsoleteHashes()
-		newTrieHashes, err := tr.GetDirtyHashes()
-		if err != nil {
-			return err
-		}
-
-		for _, hash := range oldTrieHashes {
-			oldHashes[string(hash)] = struct{}{}
-		}
-
-		for hash := range newTrieHashes {
-			newHashes[hash] = struct{}{}
-		}
-	}
-
-	return tr.Commit()
+	return adb.storagePruningManager.MarkForEviction(newRoot, collector)
 }
 
 // RootHash returns the main trie's root hash

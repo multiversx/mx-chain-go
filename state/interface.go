@@ -147,7 +147,7 @@ type AtomicBuffer interface {
 
 // StoragePruningManager is used to manage all state pruning operations
 type StoragePruningManager interface {
-	MarkForEviction([]byte, []byte, common.ModifiedHashes, common.ModifiedHashes) error
+	MarkForEviction([]byte, common.TrieHashesCollector) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier, tsm common.StorageManager)
 	Close() error

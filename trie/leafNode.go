@@ -72,6 +72,7 @@ func (ln *leafNode) commitDirty(
 	_ byte,
 	_ uint,
 	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
 	_ common.TrieStorageInteractor,
 	targetDb common.BaseStorer,
 ) {
@@ -87,6 +88,7 @@ func (ln *leafNode) commitDirty(
 	}
 	hash := ln.hasher.Compute(string(encNode))
 	ln.hash = hash
+	hashesCollector.AddDirtyHash(hash)
 
 	err = targetDb.Put(hash, encNode)
 	if err != nil {
@@ -344,20 +346,6 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteracto
 	}
 
 	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
-}
-
-func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getDirtyHashes error %w", err)
-	}
-
-	if !ln.isDirty() {
-		return nil
-	}
-
-	hashes[string(ln.getHash())] = struct{}{}
-	return nil
 }
 
 func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]node, error) {

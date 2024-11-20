@@ -9,8 +9,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -184,7 +184,7 @@ func TestExtensionNode_commit(t *testing.T) {
 	en.setHash(getTestGoroutinesManager())
 
 	manager := getTestGoroutinesManager()
-	en.commitDirty(0, 5, manager, db, db)
+	en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), db, db)
 	assert.Nil(t, manager.GetError())
 
 	encNode, _ := db.Get(hash)
@@ -205,7 +205,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 
 	collapsedEn.dirty = true
 	manager := getTestGoroutinesManager()
-	collapsedEn.commitDirty(0, 5, manager, db, db)
+	collapsedEn.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), db, db)
 	assert.Nil(t, manager.GetError())
 
 	encNode, _ := db.Get(hash)
@@ -255,7 +255,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 
 	child, err := collapsedEn.resolveIfCollapsed(db)
@@ -329,7 +329,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -402,7 +402,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	key := []byte{100, 15, 5, 6}
 
 	en.setHash(getTestGoroutinesManager())
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	th, _ := throttler.NewNumGoRoutinesThrottler(5)
 	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
@@ -426,7 +426,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	key := append(enKey, []byte{11, 12}...)
 	en.setHash(getTestGoroutinesManager())
 
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	enHash := en.getHash()
 	bn, _, _ := en.getNext(enKey, db)
 	bnHash := bn.getHash()
@@ -453,7 +453,7 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	nodeKey := []byte{11, 12}
 	en.setHash(getTestGoroutinesManager())
 
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	expectedHashes := [][]byte{en.getHash()}
 
 	th, _ := throttler.NewNumGoRoutinesThrottler(5)
@@ -543,7 +543,7 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	lnPathKey := key
 	en.setHash(getTestGoroutinesManager())
 
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	bn, key, _ := en.getNext(key, db)
 	ln, _, _ := bn.getNext(key, db)
 	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
@@ -582,7 +582,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -627,13 +627,13 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	collapsedTrie, _ := tr.Recreate(rootHash)
 
 	collapsedTrie.Delete([]byte("doe"))
 
-	err := collapsedTrie.Commit()
+	err := collapsedTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -672,7 +672,7 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	children, err := collapsedEn.getChildren(db)
 	assert.Nil(t, err)
@@ -695,7 +695,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	tr.GetRootNode().setHash(getTestGoroutinesManager())
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
@@ -779,7 +779,7 @@ func TestExtensionNode_commitCollapsesTrieIfMaxTrieLevelInMemoryIsReached(t *tes
 	en.setHash(getTestGoroutinesManager())
 
 	manager := getTestGoroutinesManager()
-	en.commitDirty(0, 1, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+	en.commitDirty(0, 1, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 	assert.Nil(t, manager.GetError())
 
 	assert.Equal(t, collapsedEn.EncodedChild, en.EncodedChild)
@@ -797,27 +797,13 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
 	collapsedEn.setHash(getTestGoroutinesManager())
-	en.commitDirty(0, 5, getTestGoroutinesManager(), db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	_ = collapsedEn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
 
 	assert.Equal(t, enWriter.Bytes(), collapsedEnWriter.Bytes())
-}
-
-func TestExtensionNode_getDirtyHashesFromCleanNode(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	en, _ := getEnAndCollapsedEn()
-	en.setHash(getTestGoroutinesManager())
-	_ = en.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	dirtyHashes := make(common.ModifiedHashes)
-
-	err := en.getDirtyHashes(dirtyHashes)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(dirtyHashes))
 }
 
 func TestExtensionNode_getNextHashAndKey(t *testing.T) {
@@ -1087,7 +1073,7 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 		en := getEn()
 		en.setHash(getTestGoroutinesManager())
 		manager := getTestGoroutinesManager()
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{
@@ -1111,7 +1097,7 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 		en := getEn()
 		en.setHash(getTestGoroutinesManager())
 		manager := getTestGoroutinesManager()
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{
@@ -1147,7 +1133,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		en := getEn()
 		en.setHash(getTestGoroutinesManager())
 		manager := getTestGoroutinesManager()
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{
@@ -1181,7 +1167,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		en := getEn()
 		en.setHash(getTestGoroutinesManager())
 		manager := getTestGoroutinesManager()
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{
@@ -1214,7 +1200,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		en := getEn()
 		en.setHash(getTestGoroutinesManager())
 		manager := getTestGoroutinesManager()
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{
@@ -1238,7 +1224,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		en := getEn()
 		en.setHash(getTestGoroutinesManager())
 		manager := getTestGoroutinesManager()
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{
@@ -1276,7 +1262,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		newEn, _ := en.insert(data, goRoutinesManager, nil)
 		newEn.setHash(manager)
 		assert.Nil(t, manager.GetError())
-		newEn.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		newEn.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		dataForRemoval := []core.TrieData{
@@ -1299,7 +1285,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		manager := getTestGoroutinesManager()
 		en.setHash(manager)
 		assert.Nil(t, manager.GetError())
-		en.commitDirty(0, 5, manager, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		en.commitDirty(0, 5, manager, hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, manager.GetError())
 
 		data := []core.TrieData{

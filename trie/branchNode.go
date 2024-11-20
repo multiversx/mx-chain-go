@@ -182,6 +182,7 @@ func (bn *branchNode) commitDirty(
 	level byte,
 	maxTrieLevelInMemory uint,
 	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
 	originDb common.TrieStorageInteractor,
 	targetDb common.BaseStorer,
 ) {
@@ -207,7 +208,7 @@ func (bn *branchNode) commitDirty(
 		}
 
 		if !goRoutinesManager.CanStartGoRoutine() {
-			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, originDb, targetDb)
+			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
 			if !goRoutinesManager.ShouldContinueProcessing() {
 				return
 			}
@@ -221,7 +222,7 @@ func (bn *branchNode) commitDirty(
 
 		waitGroup.Add(1)
 		go func(childPos int) {
-			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, originDb, targetDb)
+			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
 			if !goRoutinesManager.ShouldContinueProcessing() {
 				waitGroup.Done()
 				return
@@ -246,6 +247,7 @@ func (bn *branchNode) commitDirty(
 	}
 	hash := bn.hasher.Compute(string(encNode))
 	bn.hash = hash
+	hashesCollector.AddDirtyHash(hash)
 
 	err = targetDb.Put(hash, encNode)
 	if err != nil {
@@ -847,31 +849,6 @@ func (bn *branchNode) print(writer io.Writer, index int, db common.TrieStorageIn
 		childIndex := index + len(str) - 1 + len(str2)
 		child.print(writer, childIndex, db)
 	}
-}
-
-func (bn *branchNode) getDirtyHashes(hashes common.ModifiedHashes) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getDirtyHashes error %w", err)
-	}
-
-	if !bn.isDirty() {
-		return nil
-	}
-
-	for i := range bn.children {
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].getDirtyHashes(hashes)
-		if err != nil {
-			return err
-		}
-	}
-
-	hashes[string(bn.getHash())] = struct{}{}
-	return nil
 }
 
 func (bn *branchNode) getChildren(db common.TrieStorageInteractor) ([]node, error) {

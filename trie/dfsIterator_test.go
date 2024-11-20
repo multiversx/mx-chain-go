@@ -2,7 +2,8 @@ package trie_test
 
 import (
 	"testing"
-
+	
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +22,7 @@ func TestNewDFSIterator(t *testing.T) {
 		t.Parallel()
 
 		tr := initTrie()
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
 
 		it, err := trie.NewDFSIterator(tr, rootHash)
@@ -34,7 +35,7 @@ func TestDFSIterator_Next(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	it, _ := trie.NewDFSIterator(tr, rootHash)

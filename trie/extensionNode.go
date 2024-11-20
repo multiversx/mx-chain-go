@@ -131,6 +131,7 @@ func (en *extensionNode) commitDirty(
 	level byte,
 	maxTrieLevelInMemory uint,
 	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
 	originDb common.TrieStorageInteractor,
 	targetDb common.BaseStorer,
 ) {
@@ -149,7 +150,7 @@ func (en *extensionNode) commitDirty(
 	en.childMutex.RUnlock()
 
 	if child != nil {
-		child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, originDb, targetDb)
+		child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
 		if !goRoutinesManager.ShouldContinueProcessing() {
 			return
 		}
@@ -165,6 +166,7 @@ func (en *extensionNode) commitDirty(
 	}
 	hash := en.hasher.Compute(string(encNode))
 	en.hash = hash
+	hashesCollector.AddDirtyHash(hash)
 
 	err = targetDb.Put(hash, encNode)
 	if err != nil {
@@ -637,29 +639,6 @@ func (en *extensionNode) print(writer io.Writer, index int, db common.TrieStorag
 		return
 	}
 	en.child.print(writer, index+len(str), db)
-}
-
-func (en *extensionNode) getDirtyHashes(hashes common.ModifiedHashes) error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getDirtyHashes error %w", err)
-	}
-
-	if !en.isDirty() {
-		return nil
-	}
-
-	if en.child == nil {
-		return nil
-	}
-
-	err = en.child.getDirtyHashes(hashes)
-	if err != nil {
-		return err
-	}
-	hashes[string(en.getHash())] = struct{}{}
-
-	return nil
 }
 
 func (en *extensionNode) getChildren(db common.TrieStorageInteractor) ([]node, error) {

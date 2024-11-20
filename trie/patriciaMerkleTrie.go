@@ -101,6 +101,7 @@ func NewTrie(
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
 		goroutinesThrottler:     trieThrottler,
 		trieOperationInProgress: &atomic.Flag{},
+		trieMutex:               sync.RWMutex{},
 	}, nil
 }
 
@@ -316,7 +317,7 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 }
 
 // Commit adds all the dirty nodes to the database
-func (tr *patriciaMerkleTrie) Commit() error {
+func (tr *patriciaMerkleTrie) Commit(hashesCollector common.TrieHashesCollector) error {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
@@ -341,7 +342,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return nil
 	}
 
-	tr.ResetCollectedHashes()
+	oldRootHash := tr.GetOldRootHash()
 	if log.GetLevel() == logger.LogTrace {
 		log.Trace("started committing trie", "trie", rootNode.getHash())
 	}
@@ -350,8 +351,20 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
-	rootNode.commitDirty(0, tr.maxTrieLevelInMemory, manager, tr.trieStorage, tr.trieStorage)
-	return manager.GetError()
+	rootNode.commitDirty(0, tr.maxTrieLevelInMemory, manager, hashesCollector, tr.trieStorage, tr.trieStorage)
+	err = manager.GetError()
+	if err != nil {
+		return err
+	}
+
+	oldHashes := tr.GetOldHashes()
+	hashesCollector.AddObsoleteHashes(oldRootHash, oldHashes)
+
+	logArrayWithTrace("old trie hash", "hash", oldHashes)
+	logMapWithTrace("new trie hash", "hash", hashesCollector.GetDirtyHashes())
+
+	tr.ResetCollectedHashes()
+	return nil
 }
 
 // Recreate returns a new trie that has the given root hash and database
@@ -403,7 +416,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 }
 
 // String outputs a graphical view of the trie. Mainly used in tests/debugging
-func (tr *patriciaMerkleTrie) String() string {
+func (tr *patriciaMerkleTrie) ToString() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
@@ -428,59 +441,6 @@ func (tr *patriciaMerkleTrie) String() string {
 // IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	return tr == nil
-}
-
-// GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
-func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
-	tr.trieOperationInProgress.SetValue(true)
-	defer tr.trieOperationInProgress.Reset()
-
-	err := tr.updateTrie()
-	if err != nil {
-		log.Warn("get obsolete hashes - could not save batched changes", "error", err)
-	}
-
-	oldHashes := tr.GetOldHashes()
-	logArrayWithTrace("old trie hash", "hash", oldHashes)
-
-	return oldHashes
-}
-
-// GetDirtyHashes returns all the dirty hashes from the trie
-func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
-	tr.trieOperationInProgress.SetValue(true)
-	defer tr.trieOperationInProgress.Reset()
-
-	err := tr.updateTrie()
-	if err != nil {
-		return nil, err
-	}
-
-	rootNode := tr.GetRootNode()
-	if rootNode == nil {
-		return nil, nil
-	}
-
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
-	if err != nil {
-		return nil, err
-	}
-
-	rootNode.setHash(manager)
-	err = manager.GetError()
-	if err != nil {
-		return nil, err
-	}
-
-	dirtyHashes := make(common.ModifiedHashes)
-	err = rootNode.getDirtyHashes(dirtyHashes)
-	if err != nil {
-		return nil, err
-	}
-
-	logMapWithTrace("new trie hash", "hash", dirtyHashes)
-
-	return dirtyHashes, nil
 }
 
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
@@ -744,11 +704,6 @@ func (tr *patriciaMerkleTrie) verifyProof(rootHash []byte, key []byte, proof [][
 // GetStorageManager returns the storage manager for the trie
 func (tr *patriciaMerkleTrie) GetStorageManager() common.StorageManager {
 	return tr.trieStorage
-}
-
-// GetOldRoot returns the rootHash of the trie before the latest changes
-func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
-	return tr.GetOldRootHash()
 }
 
 // GetTrieStats will collect and return the statistics for the given rootHash

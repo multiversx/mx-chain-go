@@ -41,13 +41,10 @@ type Trie interface {
 	Update(key, value []byte) error
 	Delete(key []byte)
 	RootHash() ([]byte, error)
-	Commit() error
+	Commit(collector TrieHashesCollector) error
 	Recreate(root []byte) (Trie, error)
 	RecreateFromEpoch(options RootHashHolder) (Trie, error)
-	String() string
-	GetObsoleteHashes() [][]byte
-	GetDirtyHashes() (ModifiedHashes, error)
-	GetOldRoot() []byte
+	ToString() string
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error
@@ -402,4 +399,12 @@ type TrieGoroutinesManager interface {
 	SetError(err error)
 	GetError() error
 	IsInterfaceNil() bool
+}
+
+// TrieHashesCollector defines the methods needed for collecting trie hashes
+type TrieHashesCollector interface {
+	AddDirtyHash(hash []byte)
+	GetDirtyHashes() ModifiedHashes
+	AddObsoleteHashes(oldRootHash []byte, oldHashes [][]byte)
+	GetCollectedData() ([]byte, ModifiedHashes, ModifiedHashes)
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -73,7 +74,7 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 func initTrie() common.Trie {
 	tr := emptyTrie()
 	addDefaultDataToTrie(tr)
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	return tr
 }
@@ -208,7 +209,7 @@ func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
 	tr := emptyTrie()
 
 	tr.Delete([]byte("dog"))
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -291,7 +292,7 @@ func TestPatriciaMerkleTree_Commit(t *testing.T) {
 
 	tr := initTrie()
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -304,7 +305,7 @@ func TestPatriciaMerkleTree_CommitCollapsesTrieOk(t *testing.T) {
 	_ = tr.Update([]byte("doggo"), []byte("doggo"))
 	_ = tr.Update([]byte("doggless"), []byte("doggless"))
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -313,8 +314,8 @@ func TestPatriciaMerkleTree_CommitAfterCommit(t *testing.T) {
 
 	tr := initTrie()
 
-	_ = tr.Commit()
-	err := tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -323,7 +324,7 @@ func TestPatriciaMerkleTree_CommitEmptyRoot(t *testing.T) {
 
 	tr := emptyTrie()
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -332,7 +333,7 @@ func TestPatriciaMerkleTree_GetAfterCommit(t *testing.T) {
 
 	tr := initTrie()
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 
 	val, _, err := tr.Get([]byte("dog"))
@@ -346,7 +347,7 @@ func TestPatriciaMerkleTree_InsertAfterCommit(t *testing.T) {
 	tr1 := initTrie()
 	tr2 := initTrie()
 
-	err := tr1.Commit()
+	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 
 	_ = tr1.Update([]byte("doge"), []byte("coin"))
@@ -364,7 +365,7 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 	tr1 := initTrie()
 	tr2 := initTrie()
 
-	err := tr1.Commit()
+	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 
 	tr1.Delete([]byte("dogglesworth"))
@@ -381,11 +382,11 @@ func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
 
 	tr := initTrie()
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 
 	tr.Delete([]byte("adog"))
-	err = tr.Commit()
+	err = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 }
 
@@ -394,7 +395,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 
 	tr := initTrie()
 	rootHash, _ := tr.RootHash()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	newTr, err := tr.Recreate(rootHash)
 	assert.Nil(t, err)
@@ -422,7 +423,7 @@ func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
 
 		tr := initTrie()
 		rootHash, _ := tr.RootHash()
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		rootHashHolder := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
 		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
@@ -436,7 +437,7 @@ func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
 
 		tr := initTrie()
 		rootHash, _ := tr.RootHash()
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		optionalUint32 := core.OptionalUint32{
 			Value:    5,
@@ -465,7 +466,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodes(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	maxBuffToSend := uint64(500)
@@ -479,7 +480,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	maxBuffToSend := uint64(150)
@@ -493,11 +494,11 @@ func TestPatriciaMerkleTrie_String(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	str := tr.String()
+	str := tr.ToString()
 	assert.NotEqual(t, 0, len(str))
 
 	tr = emptyTrie()
-	str = tr.String()
+	str = tr.ToString()
 	assert.Equal(t, "*** EMPTY TRIE ***\n", str)
 }
 
@@ -512,14 +513,14 @@ func TestPatriciaMerkleTree_reduceBranchNodeReturnsOldHashesCorrectly(t *testing
 	tr := emptyTrie()
 	_ = tr.Update(key1, val1)
 	_ = tr.Update(key2, val2)
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	_ = tr.Update(key1, nil)
 	_ = tr.Update(key1, val1)
+	hc := hashesCollector.NewDataTrieHashesCollector()
+	_ = tr.Commit(hc)
 
-	oldHashes := tr.GetObsoleteHashes()
-	newHashes, _ := tr.GetDirtyHashes()
-
+	_, oldHashes, newHashes := hc.GetCollectedData()
 	assert.Equal(t, len(oldHashes), len(newHashes))
 }
 
@@ -610,7 +611,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		t.Parallel()
 
 		tr := initTrie()
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
 
 		leavesChannel := &common.TrieIteratorChannels{
@@ -646,7 +647,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 		tr := emptyTrie()
 		_ = tr.Update([]byte("doe"), []byte("reindeer"))
 		_ = tr.Update([]byte("dog"), []byte("puppy"))
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
 
 		leavesChannel := &common.TrieIteratorChannels{
@@ -695,7 +696,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			"dog":  []byte("puppy"),
 			"ddog": []byte("cat"),
 		}
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
 
 		leavesChannel := &common.TrieIteratorChannels{
@@ -720,7 +721,7 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	proof, value, err := tr.GetProof([]byte("dog"), rootHash)
@@ -734,7 +735,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	proof, _, err := tr.GetProof([]byte("dog"), rootHash)
@@ -757,7 +758,7 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	t.Parallel()
 
 	tr, val := initTrieMultipleValues(50)
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	for i := range val {
@@ -780,7 +781,7 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("zebra"), []byte("horse"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	proof, _, _ := tr.GetProof([]byte("dog"), rootHash)
@@ -796,7 +797,7 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 
 	proof, _, _ := tr.GetProof([]byte("dog"), rootHash)
@@ -840,7 +841,7 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr2.Update([]byte("dog"), []byte("puppy"))
 	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
-	_ = tr2.Commit()
+	_ = tr2.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash2, _ := tr2.RootHash()
 	rootHash, _ := tr1.RootHash()
 
@@ -866,7 +867,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		_ = tr.Update(values[i], values[i])
 	}
 
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	for i := 0; i < numRuns; i++ {
 		randNum := rand.Intn(nrLeaves)
@@ -889,7 +890,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 }
 
 func dumpTrieContents(tr common.Trie, values [][]byte) {
-	fmt.Println(tr.String())
+	fmt.Println(tr.ToString())
 	for _, val := range values {
 		fmt.Println(val)
 	}
@@ -903,7 +904,7 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("reindeer"))
 	_ = tr.Update([]byte("fog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ := tr.RootHash()
 	address := "address"
@@ -919,20 +920,6 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	assert.Equal(t, uint64(3), stats.GetNumLeafNodes())
 	assert.Equal(t, uint64(6), stats.GetTotalNumNodes())
 	assert.Equal(t, uint32(3), stats.GetMaxTrieDepth())
-}
-
-func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
-	t.Parallel()
-
-	tr := emptyTrie()
-	_ = tr.Update([]byte("eod"), []byte("reindeer"))
-	_ = tr.Update([]byte("god"), []byte("puppy"))
-	_ = tr.Commit()
-	expecterOldRoot, _ := tr.RootHash()
-
-	_ = tr.Update([]byte("eggod"), []byte("cat"))
-	trie.ExecuteUpdatesFromBatch(tr)
-	assert.Equal(t, expecterOldRoot, tr.GetOldRoot())
 }
 
 func TestPatriciaMerkleTree_GetValueReturnsTrieDepth(t *testing.T) {
@@ -954,7 +941,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	numOperations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
@@ -980,7 +967,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				_, err := tr.RootHash()
 				assert.Nil(t, err)
 			case 4:
-				err := tr.Commit()
+				err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 				assert.Nil(t, err)
 			case 5:
 				_, err := tr.Recreate(initialRootHash)
@@ -994,7 +981,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				_, err := tr.RecreateFromEpoch(rootHashHolder)
 				assert.Nil(t, err)
 			//case 7:
-			//	_ = tr.String()
+			//	_ = tr.ToString()
 			//case 8:
 			//	_ = tr.GetObsoleteHashes()
 			//case 9:
@@ -1374,7 +1361,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 			},
 		)
 		addDefaultDataToTrie(tr)
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
 		collapsedTrie, _ := tr.Recreate(rootHash)
 		dtr := collapsedTrie.(dataTrie)
@@ -1566,7 +1553,7 @@ func BenchmarkPatriciaMerkleTree_InsertCollapsedTrie(b *testing.B) {
 	for i := 0; i < nrValuesNotInTrie; i++ {
 		values[i] = hsh.Compute(strconv.Itoa(i + nrValuesInTrie))
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1604,7 +1591,7 @@ func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 		_ = tr.Update(values[i], values[i])
 	}
 
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1641,7 +1628,7 @@ func BenchmarkPatriciaMerkleTree_GetCollapsedTrie(b *testing.B) {
 		values[i] = hsh.Compute(strconv.Itoa(i))
 		_ = tr.Update(values[i], values[i])
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1661,7 +1648,7 @@ func BenchmarkPatriciaMerkleTree_Commit(b *testing.B) {
 		}
 		b.StartTimer()
 
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	}
 }
 
@@ -1680,7 +1667,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000Nodes(b *testing.B) {
 		_ = tr.Update(key, value)
 		values[i] = key
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -1709,7 +1696,7 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b
 		_ = tr.Update(key, value)
 		values[i] = key
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

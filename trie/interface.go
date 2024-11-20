@@ -34,7 +34,6 @@ type node interface {
 	reduceNode(pos int, db common.TrieStorageInteractor) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db common.TrieStorageInteractor)
-	getDirtyHashes(common.ModifiedHashes) error
 	getChildren(db common.TrieStorageInteractor) ([]node, error)
 
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
@@ -44,7 +43,7 @@ type node interface {
 	getVersion() (core.TrieNodeVersion, error)
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
-	commitDirty(level byte, maxTrieLevelInMemory uint, goRoutinesManager common.TrieGoroutinesManager, originDb common.TrieStorageInteractor, targetDb common.BaseStorer)
+	commitDirty(level byte, maxTrieLevelInMemory uint, goRoutinesManager common.TrieGoroutinesManager, hashesCollector common.TrieHashesCollector, originDb common.TrieStorageInteractor, targetDb common.BaseStorer)
 	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 
 	sizeInBytes() int

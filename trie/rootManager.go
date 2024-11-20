@@ -1,8 +1,9 @@
 package trie
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"sync"
+	
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 type rootManager struct {
@@ -58,9 +59,7 @@ func (rm *rootManager) GetOldHashes() [][]byte {
 	rm.mutOperation.RLock()
 	defer rm.mutOperation.RUnlock()
 
-	oldHashes := make([][]byte, len(rm.oldHashes))
-	copy(oldHashes, rm.oldHashes)
-	return oldHashes
+	return rm.oldHashes
 }
 
 func (rm *rootManager) GetOldRootHash() []byte {
