@@ -291,10 +291,10 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.029651s (TestTxCache_selectTransactionsFromBunches/numSenders_=_1000,_numTransactions_=_1000)
-	// 0.026440s (TestTxCache_selectTransactionsFromBunches/numSenders_=_10000,_numTransactions_=_100)
-	// 0.122592s (TestTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
-	// 0.219072s (TestTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
+	// 0.053758s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_1000,_numTransactions_=_1000)
+	// 0.050731s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_10000,_numTransactions_=_100)
+	// 0.302232s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
+	// 0.496604s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
 }
 
 func TestTxCache_selectTransactionsFromBunches_lookBreaks_whenTakesTooLong(t *testing.T) {
@@ -385,7 +385,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.060508s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
-	// 0.103369s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
-	// 0.245621s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.112178s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
+	// 0.160638s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.371011s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
 }
