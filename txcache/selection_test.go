@@ -194,11 +194,11 @@ func TestTxCache_requestAccountStateIfNecessary(t *testing.T) {
 	}
 
 	a := &transactionsHeapItem{
-		currentTransaction: createTx([]byte("hash-alice-1"), "alice", 1),
+		sender: []byte("alice"),
 	}
 
 	b := &transactionsHeapItem{
-		currentTransaction: createTx([]byte("hash-bob-1"), "bob", 1),
+		sender: []byte("bob"),
 	}
 
 	c := &transactionsHeapItem{}
