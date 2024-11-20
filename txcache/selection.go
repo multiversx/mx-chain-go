@@ -26,13 +26,13 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 
 	// Initialize the heap with the first transaction of each bunch
 	for _, bunch := range bunches {
-		if len(bunch) == 0 {
-			// Some senders may have no transactions (hazardous).
+		item, err := newTransactionsHeapItem(bunch)
+		if err != nil {
 			continue
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, newTransactionsHeapItem(bunch))
+		heap.Push(transactionsHeap, item)
 	}
 
 	accumulatedGas := uint64(0)
@@ -57,7 +57,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			}
 		}
 
-		requestAccountStateIfNecessary(accountStateProvider, item)
+		item.requestAccountStateIfNecessary(accountStateProvider)
 
 		shouldSkipSender := detectSkippableSender(item)
 		if shouldSkipSender {
@@ -83,23 +83,6 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 	}
 
 	return selectedTransactions, accumulatedGas
-}
-
-func requestAccountStateIfNecessary(accountStateProvider AccountStateProvider, item *transactionsHeapItem) {
-	if item.senderStateRequested {
-		return
-	}
-
-	item.senderStateRequested = true
-	senderState, err := accountStateProvider.GetAccountState(item.sender)
-	if err != nil {
-		// Hazardous; should never happen.
-		logSelect.Debug("TxCache.requestAccountStateIfNecessary: nonce not available", "sender", item.sender, "err", err)
-		return
-	}
-
-	item.senderStateProvided = true
-	item.senderState = senderState
 }
 
 func detectSkippableSender(item *transactionsHeapItem) bool {

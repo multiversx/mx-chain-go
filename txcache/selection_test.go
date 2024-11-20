@@ -180,45 +180,6 @@ func TestTxCache_SelectTransactions_HandlesGapsAndLowerNonces(t *testing.T) {
 	})
 }
 
-func TestTxCache_requestAccountStateIfNecessary(t *testing.T) {
-	accountStateProvider := txcachemocks.NewAccountStateProviderMock()
-
-	noncesByAddress := accountStateProvider.AccountStateByAddress
-	noncesByAddress["alice"] = &types.AccountState{
-		Nonce:   7,
-		Balance: big.NewInt(1000000000000000000),
-	}
-	noncesByAddress["bob"] = &types.AccountState{
-		Nonce:   42,
-		Balance: big.NewInt(1000000000000000000),
-	}
-
-	a := &transactionsHeapItem{
-		sender: []byte("alice"),
-	}
-
-	b := &transactionsHeapItem{
-		sender: []byte("bob"),
-	}
-
-	c := &transactionsHeapItem{}
-
-	requestAccountStateIfNecessary(accountStateProvider, a)
-	requestAccountStateIfNecessary(accountStateProvider, b)
-
-	require.True(t, a.senderStateRequested)
-	require.True(t, a.senderStateProvided)
-	require.Equal(t, uint64(7), a.senderState.Nonce)
-
-	require.True(t, b.senderStateRequested)
-	require.True(t, b.senderStateProvided)
-	require.Equal(t, uint64(42), b.senderState.Nonce)
-
-	require.False(t, c.senderStateRequested)
-	require.False(t, c.senderStateProvided)
-	require.Nil(t, c.senderState)
-}
-
 func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 	accountStateProvider := txcachemocks.NewAccountStateProviderMock()

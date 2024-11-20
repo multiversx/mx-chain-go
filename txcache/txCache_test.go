@@ -53,7 +53,7 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig = config
 	cache, err = NewTxCache(config, nil)
 	require.Nil(t, cache)
-	require.Equal(t, common.ErrNilTxGasHandler, err)
+	require.Equal(t, errNilTxGasHandler, err)
 
 	badConfig = config
 	badConfig.NumBytesThreshold = 0
