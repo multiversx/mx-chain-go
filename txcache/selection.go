@@ -3,8 +3,6 @@ package txcache
 import (
 	"container/heap"
 	"time"
-
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
@@ -12,7 +10,7 @@ func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProv
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
-		bunches = append(bunches, sender.getSequentialTxs())
+		bunches = append(bunches, sender.getTxs())
 	}
 
 	return selectTransactionsFromBunches(accountStateProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
@@ -27,14 +25,14 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 	heap.Init(transactionsHeap)
 
 	// Initialize the heap with the first transaction of each bunch
-	for i, bunch := range bunches {
+	for _, bunch := range bunches {
 		if len(bunch) == 0 {
-			// Some senders may have no eligible transactions (initial gaps).
+			// Some senders may have no transactions (hazardous).
 			continue
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, newTransactionsHeapItem(i, bunch[0]))
+		heap.Push(transactionsHeap, newTransactionsHeapItem(bunch))
 	}
 
 	accumulatedGas := uint64(0)
@@ -44,8 +42,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 	for transactionsHeap.Len() > 0 {
 		// Always pick the best transaction.
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
-		gasLimit := item.transaction.Tx.GetGasLimit()
-		nonce := item.transaction.Tx.GetNonce()
+		gasLimit := item.currentTransaction.Tx.GetGasLimit()
 
 		if accumulatedGas+gasLimit > gasRequested {
 			break
@@ -62,64 +59,25 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 
 		requestAccountStateIfNecessary(accountStateProvider, item)
 
-		isInitialGap := item.hasInitialGap()
-		if isInitialGap {
-			if logSelect.GetLevel() <= logger.LogTrace {
-				logSelect.Trace("TxCache.selectTransactionsFromBunches, initial gap",
-					"tx", item.transaction.TxHash,
-					"nonce", nonce,
-					"sender", item.transaction.Tx.GetSndAddr(),
-					"senderState.Nonce", item.senderState.Nonce,
-				)
-			}
-
+		shouldSkipSender := detectSkippableSender(item)
+		if shouldSkipSender {
 			// Item was popped from the heap, but not used downstream.
-			// Therefore, the sender is completely ignored in the current selection session.
+			// Therefore, the sender is completely ignored (from now on) in the current selection session.
 			continue
 		}
 
-		hasFeeExceededBalance := item.hasFeeExceededBalance()
-		if hasFeeExceededBalance {
-			if logSelect.GetLevel() <= logger.LogTrace {
-				logSelect.Trace("TxCache.selectTransactionsFromBunches, fee exceeded balance",
-					"tx", item.transaction.TxHash,
-					"sender", item.transaction.Tx.GetSndAddr(),
-					"balance", item.senderState.Balance,
-					"accumulatedFee", item.accumulatedFee,
-				)
-			}
-
-			// Item was popped from the heap, but not used downstream.
-			// Therefore, the sender is ignored (from now on) in the current selection session.
-			continue
-		}
-
-		isLowerNonce := item.isLowerNonce()
-		if isLowerNonce {
-			if logSelect.GetLevel() <= logger.LogTrace {
-				logSelect.Trace("TxCache.selectTransactionsFromBunches, lower nonce",
-					"tx", item.transaction.TxHash,
-					"nonce", nonce,
-					"sender", item.transaction.Tx.GetSndAddr(),
-					"senderState.Nonce", item.senderState.Nonce,
-				)
-			}
-
+		shouldSkipTransaction := detectSkippableTransaction(item)
+		if shouldSkipTransaction {
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
-			item.accumulateFee()
-
 			accumulatedGas += gasLimit
-			selectedTransactions = append(selectedTransactions, item.transaction)
+			selectedTransactions = append(selectedTransactions, item.selectTransaction())
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),
 		// add the next one to the heap (to compete with the others).
-		item.transactionIndex++
-
-		if item.transactionIndex < len(bunches[item.senderIndex]) {
-			// Item is reused (same originating sender), pushed back on the heap.
-			item.transaction = bunches[item.senderIndex][item.transactionIndex]
+		// Heap item is reused (same originating sender), pushed back on the heap.
+		if item.gotoNextTransaction() {
 			heap.Push(transactionsHeap, item)
 		}
 	}
@@ -134,7 +92,7 @@ func requestAccountStateIfNecessary(accountStateProvider AccountStateProvider, i
 
 	item.senderStateRequested = true
 
-	sender := item.transaction.Tx.GetSndAddr()
+	sender := item.currentTransaction.Tx.GetSndAddr()
 	senderState, err := accountStateProvider.GetAccountState(sender)
 	if err != nil {
 		// Hazardous; should never happen.
@@ -144,4 +102,32 @@ func requestAccountStateIfNecessary(accountStateProvider AccountStateProvider, i
 
 	item.senderStateProvided = true
 	item.senderState = senderState
+}
+
+func detectSkippableSender(item *transactionsHeapItem) bool {
+	if item.detectInitialGap() {
+		return true
+	}
+	if item.detectMiddleGap() {
+		return true
+	}
+	if item.detectFeeExceededBalance() {
+		return true
+	}
+
+	return false
+}
+
+func detectSkippableTransaction(item *transactionsHeapItem) bool {
+	if item.detectLowerNonce() {
+		return true
+	}
+	if item.detectBadlyGuarded() {
+		return true
+	}
+	if item.detectNonceDuplicate() {
+		return true
+	}
+
+	return false
 }
