@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
-	"github.com/multiversx/mx-chain-storage-go/common"
 )
 
 // txListForSender represents a sorted list of transactions of a particular sender
@@ -117,7 +116,7 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 				comparison := bytes.Compare(currentTx.TxHash, incomingTx.TxHash)
 				if comparison == 0 {
 					// The incoming transaction will be discarded, since it's already in the cache.
-					return nil, common.ErrItemAlreadyInCache
+					return nil, errItemAlreadyInCache
 				}
 				if comparison < 0 {
 					// We've found an insertion place: right after "element".

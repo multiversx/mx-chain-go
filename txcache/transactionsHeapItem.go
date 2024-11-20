@@ -27,12 +27,15 @@ type transactionsHeapItem struct {
 	accumulatedFee *big.Int
 }
 
-func newTransactionsHeapItem(bunch bunchOfTransactions) *transactionsHeapItem {
+func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, error) {
+	if len(bunch) == 0 {
+		return nil, errEmptyBunchOfTransactions
+	}
+
 	firstTransaction := bunch[0]
-	sender := firstTransaction.Tx.GetSndAddr()
 
 	return &transactionsHeapItem{
-		sender: sender,
+		sender: firstTransaction.Tx.GetSndAddr(),
 		bunch:  bunch,
 
 		senderStateRequested: false,
@@ -45,7 +48,7 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) *transactionsHeapItem {
 		latestSelectedTransaction: nil,
 
 		accumulatedFee: big.NewInt(0),
-	}
+	}, nil
 }
 
 func (item *transactionsHeapItem) selectTransaction() *WrappedTransaction {
@@ -119,15 +122,19 @@ func (item *transactionsHeapItem) detectMiddleGap() bool {
 	return hasMiddleGap
 }
 
-func (item *transactionsHeapItem) detectFeeExceededBalance() bool {
+func (item *transactionsHeapItem) detectWillFeeExceedBalance() bool {
 	if !item.senderStateProvided {
 		// This should never happen during selection.
 		return false
 	}
 
-	hasFeeExceededBalance := item.accumulatedFee.Cmp(item.senderState.Balance) > 0
-	if hasFeeExceededBalance {
-		logSelect.Trace("transactionsHeapItem.detectFeeExceededBalance",
+	senderBalance := item.senderState.Balance
+	currentTransactionFee := item.currentTransaction.Fee.Load()
+	futureAccumulatedFee := new(big.Int).Add(item.accumulatedFee, currentTransactionFee)
+
+	willFeeExceedBalance := futureAccumulatedFee.Cmp(senderBalance) > 0
+	if willFeeExceedBalance {
+		logSelect.Trace("transactionsHeapItem.detectWillFeeExceedBalance",
 			"tx", item.currentTransaction.TxHash,
 			"sender", item.sender,
 			"balance", item.senderState.Balance,
@@ -135,7 +142,7 @@ func (item *transactionsHeapItem) detectFeeExceededBalance() bool {
 		)
 	}
 
-	return hasFeeExceededBalance
+	return willFeeExceedBalance
 }
 
 func (item *transactionsHeapItem) detectLowerNonce() bool {
@@ -197,4 +204,21 @@ func (item *transactionsHeapItem) detectNonceDuplicate() bool {
 	}
 
 	return isDuplicate
+}
+
+func (item *transactionsHeapItem) requestAccountStateIfNecessary(accountStateProvider AccountStateProvider) {
+	if item.senderStateRequested {
+		return
+	}
+
+	item.senderStateRequested = true
+	senderState, err := accountStateProvider.GetAccountState(item.sender)
+	if err != nil {
+		// Hazardous; should never happen.
+		logSelect.Debug("transactionsHeapItem.requestAccountStateIfNecessary: nonce not available", "sender", item.sender, "err", err)
+		return
+	}
+
+	item.senderStateProvided = true
+	item.senderState = senderState
 }

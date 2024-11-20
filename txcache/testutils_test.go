@@ -14,8 +14,8 @@ const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
-// The GitHub Actions runners aren't fast.
-const selectionLoopMaximumDuration = 3 * time.Second
+// The GitHub Actions runners are slow.
+const selectionLoopMaximumDuration = 15 * time.Second
 
 func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapByHash := cache.txByHash

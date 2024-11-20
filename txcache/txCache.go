@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -36,7 +35,7 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 		return nil, err
 	}
 	if check.IfNil(txGasHandler) {
-		return nil, common.ErrNilTxGasHandler
+		return nil, errNilTxGasHandler
 	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
@@ -102,7 +101,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // It returns up to "maxNum" transactions, with total gas <= "gasRequested".
 func (cache *TxCache) SelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*WrappedTransaction, uint64) {
 	if check.IfNil(accountStateProvider) {
-		log.Error("TxCache.SelectTransactions", "err", common.ErrNilAccountStateProvider)
+		log.Error("TxCache.SelectTransactions", "err", errNilAccountStateProvider)
 		return nil, 0
 	}
 

@@ -103,13 +103,13 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 
 	// Initialize the heap with the first transaction of each bunch
 	for _, bunch := range bunches {
-		if len(bunch) == 0 {
-			// Some senders may have no transaction anymore (hazardous concurrent removals).
+		item, err := newTransactionsHeapItem(bunch)
+		if err != nil {
 			continue
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, newTransactionsHeapItem(bunch))
+		heap.Push(transactionsHeap, item)
 	}
 
 	for pass := 0; cache.isCapacityExceeded(); pass++ {
