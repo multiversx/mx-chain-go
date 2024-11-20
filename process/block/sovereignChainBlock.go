@@ -2104,7 +2104,6 @@ func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shard
 	actualShardID := shardID
 	if shardID == core.MetachainShardId {
 		actualShardID = core.MainChainShardId
-
 	}
 	scbp.baseCleanupBlockTrackerPoolsForShard(actualShardID, noncesToPrevFinal)
 }

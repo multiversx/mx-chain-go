@@ -285,13 +285,20 @@ func (bbt *baseBlockTrack) CleanupHeadersBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
+	bbt.cleanupHeadersBehindNonce(shardID, shardID, selfNotarizedNonce, crossNotarizedNonce)
+}
 
-	//maybe copy this from hardBlockTrack) CleanupHeadersB
+func (bbt *baseBlockTrack) cleanupHeadersBehindNonce(
+	shardID uint32,
+	crossShardID uint32,
+	selfNotarizedNonce uint64,
+	crossNotarizedNonce uint64,
+) {
 	bbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
 	nonce := selfNotarizedNonce
 
 	if shardID != bbt.shardCoordinator.SelfId() {
-		bbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, crossNotarizedNonce)
+		bbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(crossShardID, crossNotarizedNonce)
 		nonce = crossNotarizedNonce
 	}
 

@@ -221,7 +221,7 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase1(t *testing.T) {
 		previousExtendedHeader = getExtendedHeader(t, nodeHandler, incomingHdr)
 	}
 
-	require.Equal(t, uint32(2), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
+	require.Equal(t, uint32(9), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
 }
 
 // In this test we simulate:
