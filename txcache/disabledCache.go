@@ -25,9 +25,9 @@ func (cache *DisabledCache) GetByTxHash(_ []byte) (*WrappedTransaction, bool) {
 	return nil, false
 }
 
-// SelectTransactionsWithBandwidth returns an empty slice
-func (cache *DisabledCache) SelectTransactionsWithBandwidth(_ int, _ int, _ uint64) []*WrappedTransaction {
-	return make([]*WrappedTransaction, 0)
+// SelectTransactions returns an empty slice
+func (cache *DisabledCache) SelectTransactions(uint64, int) ([]*WrappedTransaction, uint64) {
+	return make([]*WrappedTransaction, 0), 0
 }
 
 // RemoveTxByHash does nothing
@@ -107,6 +107,10 @@ func (cache *DisabledCache) UnRegisterHandler(string) {
 
 // NotifyAccountNonce does nothing
 func (cache *DisabledCache) NotifyAccountNonce(_ []byte, _ uint64) {
+}
+
+// ForgetAllAccountNonces does nothing
+func (cache *DisabledCache) ForgetAllAccountNonces() {
 }
 
 // ImmunizeTxsAgainstEviction does nothing

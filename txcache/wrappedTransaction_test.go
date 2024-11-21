@@ -7,69 +7,53 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_estimateTxFeeScore(t *testing.T) {
-	txGasHandler, txFeeHelper := dummyParamsWithGasPrice(100 * oneBillion)
-	A := createTxWithParams([]byte("a"), "a", 1, 200, 50000, 100*oneBillion)
-	B := createTxWithParams([]byte("b"), "b", 1, 200, 50000000, 100*oneBillion)
-	C := createTxWithParams([]byte("C"), "c", 1, 200, 1500000000, 100*oneBillion)
+func TestWrappedTransaction_precomputeFields(t *testing.T) {
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
-	scoreA := estimateTxFeeScore(A, txGasHandler, txFeeHelper)
-	scoreB := estimateTxFeeScore(B, txGasHandler, txFeeHelper)
-	scoreC := estimateTxFeeScore(C, txGasHandler, txFeeHelper)
-	require.Equal(t, uint64(8940), scoreA)
-	require.Equal(t, uint64(8940), A.TxFeeScoreNormalized)
-	require.Equal(t, uint64(6837580), scoreB)
-	require.Equal(t, uint64(6837580), B.TxFeeScoreNormalized)
-	require.Equal(t, uint64(205079820), scoreC)
-	require.Equal(t, uint64(205079820), C.TxFeeScoreNormalized)
+	t.Run("only move balance gas limit", func(t *testing.T) {
+		tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
+		tx.precomputeFields(txGasHandler)
+
+		require.Equal(t, oneBillion, int(tx.PricePerUnit.Load()))
+	})
+
+	t.Run("move balance gas limit and execution gas limit (1)", func(t *testing.T) {
+		tx := createTx([]byte("b"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
+		tx.precomputeFields(txGasHandler)
+
+		require.Equal(t, 999_980_777, int(tx.PricePerUnit.Load()))
+	})
+
+	t.Run("move balance gas limit and execution gas limit (2)", func(t *testing.T) {
+		tx := createTx([]byte("c"), "c", 1).withDataLength(1).withGasLimit(oneMilion).withGasPrice(oneBillion)
+		tx.precomputeFields(txGasHandler)
+
+		actualFee := 51500*oneBillion + (oneMilion-51500)*oneBillion/100
+		require.Equal(t, 60_985_000_000_000, actualFee)
+		require.Equal(t, actualFee/oneMilion, int(tx.PricePerUnit.Load()))
+	})
 }
 
-func Test_normalizeGasPriceProcessing(t *testing.T) {
-	txGasHandler, txFeeHelper := dummyParamsWithGasPriceAndDivisor(100*oneBillion, 100)
-	A := createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 100*oneBillion)
-	normalizedGasPriceProcess := normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
-	require.Equal(t, uint64(7), normalizedGasPriceProcess)
+func TestWrappedTransaction_isTransactionMoreValuableForNetwork(t *testing.T) {
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
-	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndDivisor(100*oneBillion, 50)
-	normalizedGasPriceProcess = normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
-	require.Equal(t, uint64(14), normalizedGasPriceProcess)
+	t.Run("decide by price per unit", func(t *testing.T) {
+		a := createTx([]byte("a-1"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
+		a.precomputeFields(txGasHandler)
 
-	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndDivisor(100*oneBillion, 1)
-	normalizedGasPriceProcess = normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
-	require.Equal(t, uint64(745), normalizedGasPriceProcess)
+		b := createTx([]byte("b-1"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
+		b.precomputeFields(txGasHandler)
 
-	txGasHandler, txFeeHelper = dummyParamsWithGasPriceAndDivisor(100000, 100)
-	A = createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 100000)
-	normalizedGasPriceProcess = normalizeGasPriceProcessing(A, txGasHandler, txFeeHelper)
-	require.Equal(t, uint64(7), normalizedGasPriceProcess)
-}
+		require.True(t, a.isTransactionMoreValuableForNetwork(b))
+	})
 
-func Test_computeProcessingGasPriceAdjustment(t *testing.T) {
-	txGasHandler, txFeeHelper := dummyParamsWithGasPriceAndDivisor(100*oneBillion, 100)
-	A := createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 100*oneBillion)
-	adjustment := computeProcessingGasPriceAdjustment(A, txGasHandler, txFeeHelper)
-	require.Equal(t, uint64(80), adjustment)
+	t.Run("decide by transaction hash (set them up to have the same PPU)", func(t *testing.T) {
+		a := createTx([]byte("a-7"), "a", 7)
+		a.precomputeFields(txGasHandler)
 
-	A = createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 150*oneBillion)
-	adjustment = computeProcessingGasPriceAdjustment(A, txGasHandler, txFeeHelper)
-	expectedAdjustment := float64(100) * processFeeFactor / float64(1.5)
-	require.Equal(t, uint64(expectedAdjustment), adjustment)
+		b := createTx([]byte("b-7"), "b", 7)
+		b.precomputeFields(txGasHandler)
 
-	A = createTxWithParams([]byte("A"), "a", 1, 200, 1500000000, 110*oneBillion)
-	adjustment = computeProcessingGasPriceAdjustment(A, txGasHandler, txFeeHelper)
-	expectedAdjustment = float64(100) * processFeeFactor / float64(1.1)
-	require.Equal(t, uint64(expectedAdjustment), adjustment)
-}
-
-func dummyParamsWithGasPriceAndDivisor(minGasPrice, processingPriceDivisor uint64) (TxGasHandler, feeHelper) {
-	minPrice := minGasPrice
-	minPriceProcessing := minGasPrice / processingPriceDivisor
-	minGasLimit := uint64(50000)
-	txFeeHelper := newFeeComputationHelper(minPrice, minGasLimit, minPriceProcessing)
-	txGasHandler := &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       minGasLimit,
-		MinimumGasPrice:      minPrice,
-		GasProcessingDivisor: processingPriceDivisor,
-	}
-	return txGasHandler, txFeeHelper
+		require.True(t, a.isTransactionMoreValuableForNetwork(b))
+	})
 }
