@@ -166,7 +166,7 @@ func (item *transactionsHeapItem) detectBadlyGuarded() bool {
 	transactionGuardian := item.currentTransaction.Guardian
 	accountGuardian := item.senderState.Guardian
 
-	isBadlyGuarded := bytes.Compare(transactionGuardian, accountGuardian) != 0
+	isBadlyGuarded := !bytes.Equal(transactionGuardian, accountGuardian)
 	if isBadlyGuarded {
 		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
 			"tx", item.currentTransaction.TxHash,
