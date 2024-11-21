@@ -8,13 +8,13 @@ import (
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction = txcache.WrappedTransaction
 
-// AccountState represents the account state (as seen by the mempool)
+// AccountState represents the state of an account (as seen by the mempool)
 type AccountState = types.AccountState
 
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler = txcache.TxGasHandler
 
-// AccountStateProvider provides the nonce for an account
+// AccountStateProvider provides the state of an account (as seen by the mempool)
 type AccountStateProvider = txcache.AccountStateProvider
 
 // ForEachTransaction is an iterator callback

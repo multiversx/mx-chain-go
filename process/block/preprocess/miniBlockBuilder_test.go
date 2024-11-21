@@ -880,6 +880,6 @@ func createWrappedTransaction(
 		Size:            int64(len(txMarshalled)),
 	}
 
-	wrappedTx.PricePerUnit.Store(1_000_000_000)
+	wrappedTx.PricePerUnit = 1_000_000_000
 	return wrappedTx
 }

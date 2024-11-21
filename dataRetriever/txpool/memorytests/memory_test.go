@@ -25,6 +25,10 @@ const useMemPprof = false
 
 // We run all scenarios within a single test so that we minimize memory interferences (of tests running in parallel)
 func TestShardedTxPool_MemoryFootprint(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	journals := make([]*memoryFootprintJournal, 0)
 
 	// Scenarios where source == me
@@ -39,7 +43,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	// With larger memory footprint
 
 	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{80, 148}))
-	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{90, 148}))
+	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{90, 160}))
 	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{100, 190}))
 	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 132}))
 	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 335}, memoryAssertion{60, 148}))

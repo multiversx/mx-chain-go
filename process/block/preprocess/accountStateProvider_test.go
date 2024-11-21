@@ -41,7 +41,7 @@ func TestAccountStateProvider_GetAccountState(t *testing.T) {
 			}, nil
 		}
 
-		// Bob has a Heidi as guardian
+		// Bob has Heidi as guardian
 		if bytes.Equal(address, []byte("bob")) {
 			return &state.UserAccountStub{
 				Address: []byte("bob"),
