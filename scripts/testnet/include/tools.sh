@@ -6,7 +6,9 @@ startProxy() {
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
   if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
-      ARGS="--sovereign-config"
+      ARGS="--sovereign"
+  else
+      ARGS=""
   fi
   runCommandInTerminal "./proxy $ARGS" $1
 }
