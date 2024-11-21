@@ -154,8 +154,6 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
    - **Organize transactions into bunches:**
      - For each sender, collect all their pending transactions and organize them into a "bunch."
      - Each bunch is:
-       - **Middle-nonces-gap-free:** There are no missing nonces between transactions.
-       - **Duplicates-free:** No duplicate transactions are included.
        - **Sorted by nonce:** Transactions are ordered in ascending order based on their nonce values.
 
    - **Prepare the heap:**
@@ -182,9 +180,14 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
        - The number of selected transactions reaches `maxNum`.
 
 **Additional notes:**
- - Within the selection loop, the current nonce of the sender is queryied from the blockchain, if necessary.
- - If an initial nonce gap is detected, the sender is excluded from the selection process.
- - Transactions with nonces lower than the current nonce of the sender are skipped (not included in the selection).
+ - Within the selection loop, the current nonce of the sender is queryied from the blockchain, lazily (when needed).
+ - If an initial nonce gap is detected, the sender is (completely) skipped in the current selection session.
+ - If a middle nonce gap is detected, the sender is skipped (from now on) in the current selection session.
+ - Transactions with nonces lower than the current nonce of the sender are skipped.
+ - Transactions with duplicate nonces are skipped. See paragraph 5 for more details.
+ - Badly guarded transactions are skipped.
+ - Once the accumulated fees of selected transactions of a given sender exceed the sender's balance, the sender is skipped (from now one).
+
 
 ### Paragraph 5
 
