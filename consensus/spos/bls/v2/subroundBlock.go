@@ -359,20 +359,12 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	return hdr, nil
 }
 
-func (sr *subroundBlock) isEpochChangeBlockForEquivalentMessagesActivation(header data.HeaderHandler) bool {
-	isEquivalentMessagesFlagEnabledForHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
-	isStartOfEpochBlock := header.IsStartOfEpochBlock()
-	isBlockInActivationEpoch := header.GetEpoch() == sr.EnableEpochsHandler().GetActivationEpoch(common.EquivalentMessagesFlag)
-
-	return isEquivalentMessagesFlagEnabledForHeader && isStartOfEpochBlock && isBlockInActivationEpoch
-}
-
 func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
 	if err != nil {
 		// for the first block after activation we won't add the proof
 		// TODO: fix this on verifications as well
-		return sr.isEpochChangeBlockForEquivalentMessagesActivation(header)
+		return common.IsEpochChangeBlockForFlagActivation(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag)
 	}
 
 	if !isProofEmpty(prevBlockProof) {

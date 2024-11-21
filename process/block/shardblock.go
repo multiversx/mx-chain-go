@@ -294,7 +294,7 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		// check proofs for shard data
+		// check proofs for cross notarized metablocks
 		for _, metaBlockHash := range header.GetMetaBlockHashes() {
 			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
@@ -566,7 +566,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		marshalledHeader, err := sp.marshalizer.Marshal(header)
 		if err != nil {
 			return err
@@ -1738,16 +1738,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		hasProofForMetablock := false
 		// attesting something
 		if sp.hdrsForCurrBlock.missingHdrs == 0 {
-			shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.Epoch)
-			if !shouldConsiderProofsForNotarization {
-				sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
-					core.MetachainShardId,
-					sp.metaBlockFinality,
-				)
-				hasProofForMetablock = true // no proof needed
-			} else {
-				hasProofForMetablock = sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash)
-			}
+			hasProofForMetablock = sp.hasProofForMetablock(metaBlockHash, metaBlock)
 
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
@@ -1767,6 +1758,20 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	}
 
 	go sp.requestMiniBlocksIfNeeded(headerHandler)
+}
+
+func (sp *shardProcessor) hasProofForMetablock(metaBlockHash []byte, metaBlock *block.MetaBlock) bool {
+	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.Epoch)
+	if !shouldConsiderProofsForNotarization {
+		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
+			core.MetachainShardId,
+			sp.metaBlockFinality,
+		)
+
+		return true // no proof needed
+	}
+
+	return sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader data.ShardHeaderHandler) (uint32, uint32) {
@@ -1950,7 +1955,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			log.Trace("no proof for meta header",
 				"hash", logger.DisplayByteSlice(orderedMetaBlocksHashes[i]),
 			)
-			continue
+			break
 		}
 
 		createAndProcessInfo.currMetaHdrHash = orderedMetaBlocksHashes[i]
