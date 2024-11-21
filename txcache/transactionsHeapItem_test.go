@@ -326,8 +326,8 @@ func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
 
 	c := &transactionsHeapItem{}
 
-	a.requestAccountStateIfNecessary(accountStateProvider)
-	b.requestAccountStateIfNecessary(accountStateProvider)
+	_ = a.requestAccountStateIfNecessary(accountStateProvider)
+	_ = b.requestAccountStateIfNecessary(accountStateProvider)
 
 	require.Equal(t, uint64(7), a.senderState.Nonce)
 	require.Equal(t, uint64(42), b.senderState.Nonce)
