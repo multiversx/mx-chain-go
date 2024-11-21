@@ -2,71 +2,46 @@ package txcache
 
 import (
 	"bytes"
+	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-const processFeeFactor = float64(0.8) // 80%
+// bunchOfTransactions is a slice of WrappedTransaction pointers
+type bunchOfTransactions []*WrappedTransaction
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction struct {
-	Tx                   data.TransactionHandler
-	TxHash               []byte
-	SenderShardID        uint32
-	ReceiverShardID      uint32
-	Size                 int64
-	TxFeeScoreNormalized uint64
+	Tx              data.TransactionHandler
+	TxHash          []byte
+	SenderShardID   uint32
+	ReceiverShardID uint32
+	Size            int64
+
+	PricePerUnit atomic.Uint64
 }
 
-func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
-	return bytes.Equal(wrappedTx.TxHash, another.TxHash)
-}
+// precomputeFields computes (and caches) the (average) price per gas unit.
+func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
+	fee := txGasHandler.ComputeTxFee(wrappedTx.Tx).Uint64()
 
-// estimateTxGas returns an approximation for the necessary computation units (gas units)
-func estimateTxGas(tx *WrappedTransaction) uint64 {
-	gasLimit := tx.Tx.GetGasLimit()
-	return gasLimit
-}
-
-// estimateTxFeeScore returns a normalized approximation for the cost of a transaction
-func estimateTxFeeScore(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
-	moveGas, processGas := txGasHandler.SplitTxGasInCategories(tx.Tx)
-
-	normalizedMoveGas := moveGas >> txFeeHelper.gasLimitShift()
-	normalizedProcessGas := processGas >> txFeeHelper.gasLimitShift()
-
-	normalizedGasPriceMove := txGasHandler.GasPriceForMove(tx.Tx) >> txFeeHelper.gasPriceShift()
-	normalizedGasPriceProcess := normalizeGasPriceProcessing(tx, txGasHandler, txFeeHelper)
-
-	normalizedFeeMove := normalizedMoveGas * normalizedGasPriceMove
-	normalizedFeeProcess := normalizedProcessGas * normalizedGasPriceProcess
-
-	adjustmentFactor := computeProcessingGasPriceAdjustment(tx, txGasHandler, txFeeHelper)
-
-	tx.TxFeeScoreNormalized = normalizedFeeMove + normalizedFeeProcess*adjustmentFactor
-
-	return tx.TxFeeScoreNormalized
-}
-
-func normalizeGasPriceProcessing(tx *WrappedTransaction, txGasHandler TxGasHandler, txFeeHelper feeHelper) uint64 {
-	return txGasHandler.GasPriceForProcessing(tx.Tx) >> txFeeHelper.gasPriceShift()
-}
-
-func computeProcessingGasPriceAdjustment(
-	tx *WrappedTransaction,
-	txGasHandler TxGasHandler,
-	txFeeHelper feeHelper,
-) uint64 {
-	minPriceFactor := txFeeHelper.minGasPriceFactor()
-
-	if minPriceFactor <= 2 {
-		return 1
+	gasLimit := wrappedTx.Tx.GetGasLimit()
+	if gasLimit == 0 {
+		return
 	}
 
-	actualPriceFactor := float64(1)
-	if txGasHandler.MinGasPriceForProcessing() != 0 {
-		actualPriceFactor = float64(txGasHandler.GasPriceForProcessing(tx.Tx)) / float64(txGasHandler.MinGasPriceForProcessing())
+	wrappedTx.PricePerUnit.Store(fee / gasLimit)
+}
+
+// Equality is out of scope (not possible in our case).
+func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTransaction *WrappedTransaction) bool {
+	// First, compare by price per unit
+	ppu := wrappedTx.PricePerUnit.Load()
+	ppuOther := otherTransaction.PricePerUnit.Load()
+	if ppu != ppuOther {
+		return ppu > ppuOther
 	}
 
-	return uint64(float64(txFeeHelper.minGasPriceFactor()) * processFeeFactor / actualPriceFactor)
+	// In the end, compare by transaction hash
+	return bytes.Compare(wrappedTx.TxHash, otherTransaction.TxHash) < 0
 }

@@ -46,7 +46,7 @@ func NewCrossTxCache(config ConfigDestinationMe) (*CrossTxCache, error) {
 // ImmunizeTxsAgainstEviction marks items as non-evictable
 func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 	numNow, numFuture := cache.ImmunityCache.ImmunizeKeys(keys)
-	log.Trace("CrossTxCache.ImmunizeTxsAgainstEviction()",
+	log.Trace("CrossTxCache.ImmunizeTxsAgainstEviction",
 		"name", cache.config.Name,
 		"len(keys)", len(keys),
 		"numNow", numNow,
@@ -113,6 +113,14 @@ func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 // thus does not handle nonces, nonce gaps etc.
 func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
 	return make([]*WrappedTransaction, 0)
+}
+
+// NotifyAccountNonce does nothing, only to respect the interface
+func (cache *CrossTxCache) NotifyAccountNonce(_ []byte, _ uint64) {
+}
+
+// ForgetAllAccountNonces does nothing, only to respect the interface
+func (cache *CrossTxCache) ForgetAllAccountNonces() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
