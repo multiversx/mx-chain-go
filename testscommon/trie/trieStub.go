@@ -148,11 +148,6 @@ func (ts *TrieStub) RecreateFromEpoch(options common.RootHashHolder) (common.Tri
 	return nil, errNotImplemented
 }
 
-// String -
-func (ts *TrieStub) ToString() string {
-	return "stub trie"
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (ts *TrieStub) IsInterfaceNil() bool {
 	return ts == nil

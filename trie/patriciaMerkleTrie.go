@@ -415,16 +415,10 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 	return newTr, nil
 }
 
-// String outputs a graphical view of the trie. Mainly used in tests/debugging
+// ToString outputs a graphical view of the trie. Mainly used in tests/debugging
 func (tr *patriciaMerkleTrie) ToString() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
-
-	err := tr.updateTrie()
-	if err != nil {
-		log.Warn("print trie - could not save batched changes", "error", err)
-		return ""
-	}
 
 	writer := bytes.NewBuffer(make([]byte, 0))
 

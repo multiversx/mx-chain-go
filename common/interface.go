@@ -44,7 +44,6 @@ type Trie interface {
 	Commit(collector TrieHashesCollector) error
 	Recreate(root []byte) (Trie, error)
 	RecreateFromEpoch(options RootHashHolder) (Trie, error)
-	ToString() string
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error

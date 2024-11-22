@@ -490,15 +490,20 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 	assert.Equal(t, expectedNodes, len(serializedNodes))
 }
 
+type trieWithToString interface {
+	common.Trie
+	ToString() string
+}
+
 func TestPatriciaMerkleTrie_String(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	str := tr.ToString()
+	str := tr.(trieWithToString).ToString()
 	assert.NotEqual(t, 0, len(str))
 
 	tr = emptyTrie()
-	str = tr.ToString()
+	str = tr.(trieWithToString).ToString()
 	assert.Equal(t, "*** EMPTY TRIE ***\n", str)
 }
 
@@ -890,7 +895,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 }
 
 func dumpTrieContents(tr common.Trie, values [][]byte) {
-	fmt.Println(tr.ToString())
+	fmt.Println(tr.(trieWithToString).ToString())
 	for _, val := range values {
 		fmt.Println(val)
 	}

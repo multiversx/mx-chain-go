@@ -962,6 +962,11 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	integrationTests.PrintShardAccount(acntDest.(state.UserAccountHandler), "Destination")
 }
 
+type trieWithToString interface {
+	common.Trie
+	ToString() string
+}
+
 func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 	nrOfAccounts := 1000000
 	balance := 1500000
@@ -995,7 +1000,7 @@ func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 		core.ConvertBytes(rtm.Sys),
 	)
 
-	_ = tr.ToString()
+	_ = tr.(trieWithToString).ToString()
 }
 
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {
