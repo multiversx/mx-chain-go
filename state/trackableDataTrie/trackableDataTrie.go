@@ -86,6 +86,11 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 		return nil, depth, err
 	}
 
+	// GET FROM NETWORK
+	//var value []byte
+
+	///
+
 	val, err := tdt.getValueWithoutMetadata(key, trieValue)
 	if err != nil {
 		return nil, depth, err

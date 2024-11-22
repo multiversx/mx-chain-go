@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/errors"
 	"math/big"
 	"strings"
@@ -79,6 +80,9 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
 			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 		},
+		TrieStoragePaths: map[string]string{
+			"1": "",
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -87,8 +91,12 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	err = chainSimulator.GenerateBlocks(50)
+	err = chainSimulator.GenerateBlocks(1)
 	require.Nil(t, err)
+
+	res, _, err := chainSimulator.GetNodeHandler(1).GetFacadeHandler().GetAccount("erd1ss6u80ruas2phpmr82r42xnkd6rxy40g9jl69frppl4qez9w2jpsqj8x97", coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, res)
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {

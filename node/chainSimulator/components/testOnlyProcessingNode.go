@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -50,6 +51,7 @@ type ArgsTestOnlyProcessingNode struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
 	VmQueryDelayAfterStartInMs  uint64
+	TrieStoragePath             string
 }
 
 type testOnlyProcessingNode struct {
@@ -78,13 +80,17 @@ type testOnlyProcessingNode struct {
 
 // NewTestOnlyProcessingNode creates a new instance of a node that is able to only process transactions
 func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProcessingNode, error) {
+	storageService, err := CreateStorageService(args.NumShards, args.TrieStoragePath, args.Configs.GeneralConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	instance := &testOnlyProcessingNode{
 		ArgumentsParser: smartContract.NewArgumentParser(),
-		StoreService:    CreateStore(args.NumShards),
+		StoreService:    storageService,
 		closeHandler:    NewCloseHandler(),
 	}
 
-	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
@@ -173,6 +179,19 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if args.ShardIDStr == "1" {
+		rootHash := "0565601c40d4285d470a1f03d79475b83bee4beab9c1dbaccb20cfcd6ba21899"
+		rootHashBytes, err := hex.DecodeString(rootHash)
+		if err != nil {
+			return nil, err
+		}
+
+		err = instance.StateComponentsHolder.AccountsAdapter().RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashBytes))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = instance.createDataPool(args)
