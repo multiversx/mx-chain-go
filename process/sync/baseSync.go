@@ -3,6 +3,7 @@ package sync
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"sync"
@@ -635,19 +636,16 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 	}()
 
-	header, err = boot.getNextHeaderRequestingIfMissing()
+	header, headerHash, err := boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
 		return err
 	}
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
-	if boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		// process block only if there is a proof for it
-		hasProof := boot.proofs.HasProof(header.GetShardID(), header.GetPrevHash())
-		if !hasProof {
-			return fmt.Errorf("process sync: did not have proof for header")
-		}
+	err = boot.handleEquivalentProof(header, headerHash)
+	if err != nil {
+		return err
 	}
 
 	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
@@ -701,6 +699,51 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.cleanProofsBehindFinal(header)
+
+	return nil
+}
+
+func (boot *baseBootstrap) handleEquivalentProof(
+	header data.HeaderHandler,
+	headerHash []byte,
+) error {
+	if header.GetNonce() == 1 {
+		return nil
+	}
+
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return nil
+	}
+
+	prevHeader, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(header.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevHeader.GetEpoch()) {
+		// no need to check proof for first block
+		log.Info("no need to check first activation blockk")
+		return nil
+	}
+	// process block only if there is a proof for it
+	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
+	if hasProof {
+		log.Error("F HAS proof for header", "headerHash", headerHash)
+		return nil
+	}
+
+	log.Error("process sync: did not have proof for header, will try again", "headerHash", headerHash)
+
+	// wait also for next header
+	_, _, err = boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	hasProof = boot.proofs.HasProof(header.GetShardID(), headerHash)
+	if !hasProof {
+		return fmt.Errorf("process sync: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
+	}
 
 	return nil
 }
@@ -965,7 +1008,7 @@ func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash 
 	return hdrRootHash
 }
 
-func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
+func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
 	nonce := boot.getNonceForNextBlock()
 
 	boot.setRequestedHeaderHash(nil)
@@ -977,7 +1020,8 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	}
 
 	if hash != nil {
-		return boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
+		header, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(hash)
+		return header, hash, err
 	}
 
 	return boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(nonce)

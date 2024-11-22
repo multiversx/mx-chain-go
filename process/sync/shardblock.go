@@ -201,8 +201,8 @@ func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
-func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
-	hdr, _, err := process.GetShardHeaderFromPoolWithNonce(
+func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
+	hdr, hash, err := process.GetShardHeaderFromPoolWithNonce(
 		nonce,
 		boot.shardCoordinator.SelfId(),
 		boot.headers)
@@ -211,19 +211,19 @@ func (boot *ShardBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) 
 		boot.requestHeaderWithNonce(nonce)
 		err = boot.waitForHeaderNonce()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		hdr, _, err = process.GetShardHeaderFromPoolWithNonce(
+		hdr, hash, err = process.GetShardHeaderFromPoolWithNonce(
 			nonce,
 			boot.shardCoordinator.SelfId(),
 			boot.headers)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return hdr, nil
+	return hdr, hash, nil
 }
 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,

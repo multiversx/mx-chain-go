@@ -1,6 +1,7 @@
 package proofscache
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 
@@ -39,7 +40,7 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
-		return fmt.Errorf("there was already a valid proof for header, headerHash: %s", headerHash)
+		return fmt.Errorf("there was already a valid proof for header, headerHash: %s", hex.EncodeToString(headerHash))
 	}
 
 	pp.mutCache.Lock()
