@@ -699,6 +699,7 @@ type feeHandler interface {
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	MaxGasHigherFactorAccepted() uint64
 }
 
 // TxGasHandler handles a transaction gas and gas cost
