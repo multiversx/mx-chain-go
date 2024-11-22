@@ -5,14 +5,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
 )
 
 func createCoreComponents() (factory.RunTypeCoreComponentsHandler, error) {
-	rccf := runType.NewRunTypeCoreComponentsFactory(config.EpochConfig{})
+	rccf := runType.NewRunTypeCoreComponentsFactory()
 	return runType.NewManagedRunTypeCoreComponents(rccf)
 }
 
@@ -25,7 +24,7 @@ func TestNewManagedRunTypeCoreComponents(t *testing.T) {
 		require.True(t, managedRunTypeCoreComponents.IsInterfaceNil())
 	})
 	t.Run("should work", func(t *testing.T) {
-		rccf := runType.NewRunTypeCoreComponentsFactory(config.EpochConfig{})
+		rccf := runType.NewRunTypeCoreComponentsFactory()
 		managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(rccf)
 		require.NoError(t, err)
 		require.False(t, managedRunTypeCoreComponents.IsInterfaceNil())
@@ -43,14 +42,12 @@ func TestManagedRunTypeCoreComponents_Create(t *testing.T) {
 
 		require.Nil(t, managedRunTypeCoreComponents.GenesisNodesSetupFactoryCreator())
 		require.Nil(t, managedRunTypeCoreComponents.RatingsDataFactoryCreator())
-		require.Nil(t, managedRunTypeCoreComponents.EnableEpochsHandler())
 
 		err = managedRunTypeCoreComponents.Create()
 		require.NoError(t, err)
 
 		require.NotNil(t, managedRunTypeCoreComponents.GenesisNodesSetupFactoryCreator())
 		require.NotNil(t, managedRunTypeCoreComponents.RatingsDataFactoryCreator())
-		require.NotNil(t, managedRunTypeCoreComponents.EnableEpochsHandler())
 
 		require.Equal(t, factory.RunTypeCoreComponentsName, managedRunTypeCoreComponents.String())
 		require.NoError(t, managedRunTypeCoreComponents.Close())

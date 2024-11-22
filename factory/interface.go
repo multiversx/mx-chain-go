@@ -14,8 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -68,6 +66,7 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -659,7 +658,6 @@ type RunTypeCoreComponentsHandler interface {
 type RunTypeCoreComponentsHolder interface {
 	GenesisNodesSetupFactoryCreator() sharding.GenesisNodesSetupFactory
 	RatingsDataFactoryCreator() rating.RatingsDataFactory
-	EnableEpochsHandler() common.EnableEpochsHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

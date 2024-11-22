@@ -37,7 +37,7 @@ import (
 type ArgsTestOnlyProcessingNode struct {
 	Configs                        config.Configs
 	APIInterface                   APIConfigurator
-	CreateRunTypeCoreComponents    func(epochConfig config.EpochConfig) (factory.RunTypeCoreComponentsHolder, error)
+	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
@@ -96,7 +96,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
-	runTypeCoreComponents, err := args.CreateRunTypeCoreComponents(*args.Configs.EpochConfig)
+	runTypeCoreComponents, err := args.CreateRunTypeCoreComponents()
 	if err != nil {
 		return nil, err
 	}
