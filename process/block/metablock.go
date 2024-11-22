@@ -1888,17 +1888,8 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
 		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
-				marshalledHeader, err := mp.marshalizer.Marshal(shardHdr)
-				if err != nil {
-					return err
-				}
-
-				headerHash := mp.hasher.Compute(string(marshalledHeader))
-				if !mp.proofsPool.HasProof(shardId, headerHash) {
-					return process.ErrHeaderNotFinal
-				}
-
+			err := mp.checkShardHeaderFinalityBasedOnProofs(shardHdr, shardId)
+			if err != nil {
 				break
 			}
 
@@ -1930,6 +1921,24 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 	return errFinal
 }
 
+func (mp *metaProcessor) checkShardHeaderFinalityBasedOnProofs(shardHdr data.HeaderHandler, shardId uint32) error {
+	if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
+		return nil
+	}
+
+	marshalledHeader, err := mp.marshalizer.Marshal(shardHdr)
+	if err != nil {
+		return err
+	}
+
+	headerHash := mp.hasher.Compute(string(marshalledHeader))
+	if !mp.proofsPool.HasProof(shardId, headerHash) {
+		return process.ErrHeaderNotFinal
+	}
+
+	return nil
+}
+
 // receivedShardHeader is a call back function which is called when a new header
 // is added in the headers pool
 func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, shardHeaderHash []byte) {
@@ -1956,7 +1965,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 			hdrInfoForHash.hdr = shardHeader
 			mp.hdrsForCurrBlock.missingHdrs--
 
-			if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHeader.GetEpoch()) {
+			if common.IsFlagEnabledAfterEpochsStartBlock(shardHeader, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 				// if there is an entry for the missing proof, it means that proofsPool did not have it while scanning shardData
 				// thus header epoch was not available at that time
 				incompleteProof, hasMissingProof := mp.hdrsForCurrBlock.missingProofs[string(shardHeaderHash)]
@@ -2068,14 +2077,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 				usedInBlock: true,
 			}
 
-			mp.hdrsForCurrBlock.missingProofs[string(shardData.HeaderHash)] = &block.HeaderProof{
-				PubKeysBitmap:       shardData.PubKeysBitmap,
-				AggregatedSignature: shardData.Signature,
-				HeaderHash:          shardData.HeaderHash,
-				HeaderEpoch:         0, // will come later with the header
-				HeaderNonce:         shardData.Nonce,
-				HeaderShardId:       shardData.ShardID,
-			}
+			mp.hdrsForCurrBlock.missingProofs[string(shardData.HeaderHash)] = shardData.CurrentShardHeaderProof
 
 			go mp.requestHandler.RequestShardHeader(shardData.ShardID, shardData.HeaderHash)
 			continue
@@ -2097,14 +2099,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			hasProofForShardHdr := mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash)
 			if !hasProofForShardHdr {
 				// TODO: consider verifying the proof before adding it into the proofsPool
-				errAddProof := mp.proofsPool.AddProof(&block.HeaderProof{
-					PubKeysBitmap:       shardData.CurrentPubKeysBitmap,
-					AggregatedSignature: shardData.CurrentSignature,
-					HeaderHash:          shardData.HeaderHash,
-					HeaderEpoch:         hdr.GetEpoch(),
-					HeaderNonce:         shardData.Nonce,
-					HeaderShardId:       shardData.ShardID,
-				})
+				errAddProof := mp.proofsPool.AddProof(shardData.CurrentShardHeaderProof)
 				if errAddProof != nil {
 					log.Trace("could not add proof from shard data for header", "hash", hex.EncodeToString(shardData.HeaderHash))
 				}
@@ -2163,13 +2158,21 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			prevProof := shardHdr.GetPreviousProof()
 			if prevProof != nil {
 				shardData.PubKeysBitmap = prevProof.GetPubKeysBitmap()
+				shardData.Signature = prevProof.GetAggregatedSignature()
+				err := shardData.SetPreviousProof(prevProof)
+				if err != nil {
+					return nil, err
+				}
 			}
 			currentProof, err := mp.proofsPool.GetProof(shardHdr.GetShardID(), []byte(hdrHash))
 			if err != nil {
 				return nil, err
 			}
-			shardData.CurrentPubKeysBitmap = currentProof.GetPubKeysBitmap()
-			shardData.CurrentSignature = currentProof.GetAggregatedSignature()
+			err = shardData.SetCurrentProof(currentProof)
+			if err != nil {
+				return nil, err
+			}
+
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())

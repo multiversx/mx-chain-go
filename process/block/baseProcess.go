@@ -620,9 +620,7 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-		hasMissingProof := isFlagEnabledForHeader && !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
-		if headerInfo.usedInBlock != usedInBlock || hasMissingProof {
+		if bp.shouldSkipHeader(headerInfo, usedInBlock, hdrHash) {
 			continue
 		}
 
@@ -643,9 +641,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-		hasMissingProof := isFlagEnabledForHeader && !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(metaBlockHash))
-		if headerInfo.usedInBlock != usedInBlock || hasMissingProof {
+		if bp.shouldSkipHeader(headerInfo, usedInBlock, metaBlockHash) {
 			continue
 		}
 
@@ -670,6 +666,12 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	}
 
 	return hdrsHashesForCurrentBlock
+}
+
+func (bp *baseProcessor) shouldSkipHeader(headerInfo *hdrInfo, usedInBlock bool, hdrHash string) bool {
+	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
+	hasMissingProof := isFlagEnabledForHeader && !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
+	return headerInfo.usedInBlock != usedInBlock || hasMissingProof
 }
 
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(

@@ -27,7 +27,7 @@ type blockProcessor struct {
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
 
-	enableEpochsHandler core.EnableEpochsHandler
+	enableEpochsHandler common.EnableEpochsHandler
 	proofsPool          process.ProofsPool
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -165,7 +165,7 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 		}
 	}
 
-	sortedHeaders, _ := bp.blockTracker.SortHeadersFromNonce(core.MetachainShardId, header.GetNonce()+1)
+	sortedHeaders, sortedHeadersHashes := bp.blockTracker.SortHeadersFromNonce(core.MetachainShardId, header.GetNonce()+1)
 	if len(sortedHeaders) == 0 {
 		return
 	}
@@ -173,7 +173,7 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 	finalMetachainHeaders := make([]data.HeaderHandler, 0)
 	finalMetachainHeadersHashes := make([][]byte, 0)
 
-	err = bp.checkHeaderFinality(header, sortedHeaders, 0)
+	err = bp.checkHeaderFinality(header, sortedHeaders, sortedHeadersHashes, 0)
 	if err == nil {
 		finalMetachainHeaders = append(finalMetachainHeaders, header)
 		finalMetachainHeadersHashes = append(finalMetachainHeadersHashes, headerHash)
@@ -246,9 +246,6 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 	}()
 
 	startingNonce := header.GetNonce() + 1
-	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		startingNonce = header.GetNonce()
-	}
 	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, startingNonce)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
@@ -256,7 +253,7 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 
 	longestChainHeadersIndexes := make([]int, 0)
 	headersIndexes := make([]int, 0)
-	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0)
+	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, sortedHeadersHashes, 0)
 
 	for _, index := range longestChainHeadersIndexes {
 		headers = append(headers, sortedHeaders[index])
@@ -271,6 +268,7 @@ func (bp *blockProcessor) getNextHeader(
 	headersIndexes []int,
 	prevHeader data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
+	sortedHeadersHashes [][]byte,
 	index int,
 ) {
 	defer func() {
@@ -294,13 +292,13 @@ func (bp *blockProcessor) getNextHeader(
 			continue
 		}
 
-		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
+		err = bp.checkHeaderFinality(currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		if err != nil {
 			continue
 		}
 
 		headersIndexes = append(headersIndexes, i)
-		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
+		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
 }
@@ -308,6 +306,7 @@ func (bp *blockProcessor) getNextHeader(
 func (bp *blockProcessor) checkHeaderFinality(
 	header data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
+	sortedHeadersHashes [][]byte,
 	index int,
 ) error {
 
@@ -315,13 +314,8 @@ func (bp *blockProcessor) checkHeaderFinality(
 		return process.ErrNilBlockHeader
 	}
 
-	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		headerHash, err := core.CalculateHash(bp.marshaller, bp.hasher, header)
-		if err != nil {
-			return err
-		}
-
-		if bp.proofsPool.HasProof(header.GetShardID(), headerHash) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		if bp.proofsPool.HasProof(header.GetShardID(), sortedHeadersHashes[index]) {
 			return nil
 		}
 
