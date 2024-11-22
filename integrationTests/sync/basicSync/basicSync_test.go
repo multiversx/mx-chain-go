@@ -198,3 +198,80 @@ func testAllNodesHaveSameLastBlock(t *testing.T, nodes []*integrationTests.TestP
 
 	assert.Equal(t, 1, len(mapBlocksByHash))
 }
+
+func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	logger.SetLogLevel("*:DEBUG")
+
+	maxShards := uint32(1)
+	shardId := uint32(0)
+	numNodesPerShard := 3
+
+	enableEpochs := integrationTests.CreateEnableEpochsConfig()
+	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
+
+	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
+	connectableNodes := make([]integrationTests.Connectable, 0)
+	for i := 0; i < numNodesPerShard; i++ {
+		nodes[i] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          shardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+			EpochsConfig:         &enableEpochs,
+		})
+		connectableNodes = append(connectableNodes, nodes[i])
+	}
+
+	metachainNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: shardId,
+		WithSync:             true,
+	})
+	idxProposerMeta := numNodesPerShard
+	nodes[idxProposerMeta] = metachainNode
+	connectableNodes = append(connectableNodes, metachainNode)
+
+	idxProposerShard0 := 0
+	leaders := []*integrationTests.TestProcessorNode{nodes[idxProposerShard0], nodes[idxProposerMeta]}
+
+	integrationTests.ConnectNodes(connectableNodes)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.StartSync()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(nodes, round)
+	nonce++
+
+	numRoundsToTest := 5
+	for i := 0; i < numRoundsToTest; i++ {
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+
+		time.Sleep(integrationTests.SyncDelay)
+
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(nodes, round)
+		nonce++
+	}
+
+	time.Sleep(integrationTests.SyncDelay)
+
+	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
+}

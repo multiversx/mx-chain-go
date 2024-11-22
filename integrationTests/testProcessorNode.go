@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -308,6 +309,7 @@ type ArgTestProcessorNode struct {
 	StatusMetrics           external.StatusMetricsHandler
 	WithPeersRatingHandler  bool
 	NodeOperationMode       common.NodeOperation
+	Proofs                  dataRetriever.ProofsPool
 }
 
 // TestProcessorNode represents a container type of class used in integration tests
@@ -334,6 +336,7 @@ type TestProcessorNode struct {
 	TrieContainer       common.TriesHolder
 	BlockChain          data.ChainHandler
 	GenesisBlocks       map[uint32]data.HeaderHandler
+	ProofsPool          dataRetriever.ProofsPool
 
 	EconomicsData *economics.TestEconomicsData
 	RatingsData   *rating.RatingsData
@@ -1087,7 +1090,8 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.DataPool = dataRetrieverMock.CreatePoolsHolder(1, tpn.ShardCoordinator.SelfId())
+	tpn.ProofsPool = proofscache.NewProofsPool()
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
@@ -2756,6 +2760,20 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		log.Warn("blockHeader.SetSoftwareVersion", "error", err.Error())
 		return nil, nil, nil
 	}
+
+	previousProof := &dataBlock.HeaderProof{
+		PubKeysBitmap:       []byte{1},
+		AggregatedSignature: sig,
+		HeaderHash:          currHdrHash,
+		HeaderEpoch:         currHdr.GetEpoch(),
+		HeaderNonce:         currHdr.GetNonce(),
+		HeaderShardId:       currHdr.GetShardID(),
+	}
+	blockHeader.SetPreviousProof(previousProof)
+
+	tpn.ProofsPool.AddProof(previousProof)
+
+	log.Error("added proof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
 	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
