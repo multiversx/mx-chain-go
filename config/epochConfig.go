@@ -2,8 +2,10 @@ package config
 
 // EpochConfig will hold epoch configurations
 type EpochConfig struct {
-	EnableEpochs EnableEpochs
-	GasSchedule  GasScheduleConfig
+	EnableEpochs                       EnableEpochs
+	SovereignEnableEpochs              SovereignEnableEpochs
+	SovereignChainSpecificEnableEpochs SovereignChainSpecificEnableEpochs
+	GasSchedule                        GasScheduleConfig
 }
 
 // GasScheduleConfig represents the versioning config area for the gas schedule toml
@@ -125,6 +127,12 @@ type EnableEpochs struct {
 	ConsensusModelV2EnableEpoch                              uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
+
+// SovereignEnableEpochs will hold the configuration for sovereign activation epochs
+type SovereignEnableEpochs struct{}
+
+// SovereignChainSpecificEnableEpochs will hold the configuration for sovereign chain specific activation epochs
+type SovereignChainSpecificEnableEpochs struct{}
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
 type GasScheduleByEpochs struct {
