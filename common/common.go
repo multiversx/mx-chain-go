@@ -17,5 +17,5 @@ func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochs
 func IsFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
 	isFlagEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(flag, header.GetEpoch())
 	isEpochStartBlock := IsEpochChangeBlockForFlagActivation(header, enableEpochsHandler, flag)
-	return isFlagEnabled && isEpochStartBlock
+	return isFlagEnabled && !isEpochStartBlock
 }
