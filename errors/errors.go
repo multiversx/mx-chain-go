@@ -451,6 +451,9 @@ var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create 
 // ErrRunTypeComponentsFactoryCreate signals that an error occured on runTypeComponentsFactory create
 var ErrRunTypeComponentsFactoryCreate = errors.New("runTypeComponentsFactory create failed")
 
+// ErrRunTypeCoreComponentsFactoryCreate signals that an error occured on runTypeCoreComponentsFactory create
+var ErrRunTypeCoreComponentsFactoryCreate = errors.New("runTypeCoreComponentsFactory create failed")
+
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 

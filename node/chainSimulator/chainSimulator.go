@@ -65,7 +65,7 @@ type ArgsChainSimulator struct {
 	ApiInterface                   components.APIConfigurator
 	AlterConfigsFunction           func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs     uint64
-	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
+	CreateRunTypeCoreComponents    func(epochConfig config.EpochConfig) (factory.RunTypeCoreComponentsHolder, error)
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
@@ -124,8 +124,8 @@ func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 
 func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	if args.CreateRunTypeCoreComponents == nil {
-		args.CreateRunTypeCoreComponents = func() (factory.RunTypeCoreComponentsHolder, error) {
-			return createRunTypeCoreComponents()
+		args.CreateRunTypeCoreComponents = func(epochConfig config.EpochConfig) (factory.RunTypeCoreComponentsHolder, error) {
+			return createRunTypeCoreComponents(epochConfig)
 		}
 	}
 	if args.CreateIncomingHeaderSubscriber == nil {
@@ -146,8 +146,8 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	}
 }
 
-func createRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+func createRunTypeCoreComponents(epochConfig config.EpochConfig) (factory.RunTypeCoreComponentsHolder, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory(epochConfig)
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
 	if err != nil {
 		return nil, err
@@ -269,22 +269,22 @@ func (s *simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                     outputConfigs.Configs,
-		ChanStopNodeProcess:         s.chanStopNodeProcess,
-		SyncedBroadcastNetwork:      s.syncedBroadcastNetwork,
-		NumShards:                   s.numOfShards,
-		GasScheduleFilename:         outputConfigs.GasScheduleFilename,
-		ShardIDStr:                  shardIDStr,
-		APIInterface:                args.ApiInterface,
-		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
-		InitialRound:                args.InitialRound,
-		InitialNonce:                args.InitialNonce,
-		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MinNodesMeta:                args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		RoundDurationInMillis:       args.RoundDurationInMillis,
-		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		Configs:                        outputConfigs.Configs,
+		ChanStopNodeProcess:            s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:         s.syncedBroadcastNetwork,
+		NumShards:                      s.numOfShards,
+		GasScheduleFilename:            outputConfigs.GasScheduleFilename,
+		ShardIDStr:                     shardIDStr,
+		APIInterface:                   args.ApiInterface,
+		BypassTxSignatureCheck:         args.BypassTxSignatureCheck,
+		InitialRound:                   args.InitialRound,
+		InitialNonce:                   args.InitialNonce,
+		MinNodesPerShard:               args.MinNodesPerShard,
+		ConsensusGroupSize:             args.ConsensusGroupSize,
+		MinNodesMeta:                   args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
+		RoundDurationInMillis:          args.RoundDurationInMillis,
+		VmQueryDelayAfterStartInMs:     args.VmQueryDelayAfterStartInMs,
 		CreateRunTypeCoreComponents:    args.CreateRunTypeCoreComponents,
 		CreateIncomingHeaderSubscriber: args.CreateIncomingHeaderSubscriber,
 		CreateRunTypeComponents:        args.CreateRunTypeComponents,

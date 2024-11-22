@@ -7,6 +7,6 @@ type runTypeComponentsCreator interface {
 }
 
 type runTypeCoreComponentsCreator interface {
-	Create() *runTypeCoreComponents
+	Create() (*runTypeCoreComponents, error)
 	IsInterfaceNil() bool
 }

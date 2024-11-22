@@ -1570,7 +1570,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeCoreComponents creates the managed run type core components
 func (nr *nodeRunner) CreateManagedRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHandler, error) {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory(*nr.configs.EpochConfig)
 
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
 	if err != nil {

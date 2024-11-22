@@ -83,7 +83,7 @@ type LoadKeysFunc func(string, int) ([]byte, string, error)
 
 // GetRunTypeCoreComponents -
 func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory(config.EpochConfig{})
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeCoreComponents NewManagedRunTypeCoreComponents", "error", err.Error())
@@ -99,7 +99,12 @@ func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
 
 // GetSovereignRunTypeCoreComponents -
 func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
-	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory(config.EpochConfig{})
+	sovRunTypeCoreComponentsFactory, err := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
+	if err != nil {
+		log.Error("GetSovereignRunTypeCoreComponents.NewSovereignRunTypeCoreComponentsFactory", "error", err.Error())
+		return nil
+	}
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovRunTypeCoreComponentsFactory)
 	if err != nil {
 		log.Error("GetSovereignRunTypeCoreComponents.NewManagedRunTypeCoreComponents", "error", err.Error())

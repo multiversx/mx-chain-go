@@ -1,10 +1,12 @@
 package runType
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -35,7 +37,10 @@ func NewManagedRunTypeCoreComponents(rcf runTypeCoreComponentsCreator) (*managed
 
 // Create will create the managed components
 func (mrcc *managedRunTypeCoreComponents) Create() error {
-	rtc := mrcc.factory.Create()
+	rtc, err := mrcc.factory.Create()
+	if err != nil {
+		return fmt.Errorf("%w: %v", errors.ErrRunTypeCoreComponentsFactoryCreate, err)
+	}
 
 	mrcc.mutRunTypeCoreComponents.Lock()
 	mrcc.runTypeCoreComponents = rtc
@@ -51,6 +56,9 @@ func (mrcc *managedRunTypeCoreComponents) Close() error {
 
 	if check.IfNil(mrcc.runTypeCoreComponents) {
 		return nil
+	}
+	if check.IfNil(mrcc.enableEpochsHandler) {
+		return errors.ErrNilEnableEpochsHandler
 	}
 
 	err := mrcc.runTypeCoreComponents.Close()
@@ -101,6 +109,18 @@ func (mrcc *managedRunTypeCoreComponents) RatingsDataFactoryCreator() rating.Rat
 	}
 
 	return mrcc.runTypeCoreComponents.ratingsDataFactory
+}
+
+// EnableEpochsHandler returns enable epochs handler
+func (mrcc *managedRunTypeCoreComponents) EnableEpochsHandler() common.EnableEpochsHandler {
+	mrcc.mutRunTypeCoreComponents.RLock()
+	defer mrcc.mutRunTypeCoreComponents.RUnlock()
+
+	if check.IfNil(mrcc.runTypeCoreComponents) {
+		return nil
+	}
+
+	return mrcc.runTypeCoreComponents.enableEpochsHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil
