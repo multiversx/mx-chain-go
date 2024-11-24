@@ -81,7 +81,6 @@ type ArgsTransactionPreProcessor struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	GuardianChecker              process.GuardianChecker
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -155,11 +154,8 @@ func NewTransactionPreprocessor(
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
-	if check.IfNil(args.GuardianChecker) {
-		return nil, process.ErrNilGuardianChecker
-	}
 
-	accountStateProvider, err := newAccountStateProvider(args.Accounts, args.GuardianChecker)
+	accountStateProvider, err := newAccountStateProvider(args.Accounts)
 	if err != nil {
 		return nil, err
 	}

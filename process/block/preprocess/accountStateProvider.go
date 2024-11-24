@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountStateProvider struct {
@@ -14,17 +13,13 @@ type accountStateProvider struct {
 	guardianChecker process.GuardianChecker
 }
 
-func newAccountStateProvider(accountsAdapter state.AccountsAdapter, guardianChecker process.GuardianChecker) (*accountStateProvider, error) {
+func newAccountStateProvider(accountsAdapter state.AccountsAdapter) (*accountStateProvider, error) {
 	if check.IfNil(accountsAdapter) {
 		return nil, process.ErrNilAccountsAdapter
-	}
-	if check.IfNil(guardianChecker) {
-		return nil, process.ErrNilGuardianChecker
 	}
 
 	return &accountStateProvider{
 		accountsAdapter: accountsAdapter,
-		guardianChecker: guardianChecker,
 	}, nil
 }
 
@@ -41,29 +36,10 @@ func (provider *accountStateProvider) GetAccountState(address []byte) (*txcache.
 		return nil, errors.ErrWrongTypeAssertion
 	}
 
-	guardian, err := provider.getGuardian(userAccount)
-	if err != nil {
-		return nil, err
-	}
-
 	return &txcache.AccountState{
-		Nonce:    userAccount.GetNonce(),
-		Balance:  userAccount.GetBalance(),
-		Guardian: guardian,
+		Nonce:   userAccount.GetNonce(),
+		Balance: userAccount.GetBalance(),
 	}, nil
-}
-
-func (provider *accountStateProvider) getGuardian(userAccount state.UserAccountHandler) ([]byte, error) {
-	if !userAccount.IsGuarded() {
-		return nil, nil
-	}
-
-	vmUserAccount, ok := userAccount.(vmcommon.UserAccountHandler)
-	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
-	}
-
-	return provider.guardianChecker.GetActiveGuardian(vmUserAccount)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
