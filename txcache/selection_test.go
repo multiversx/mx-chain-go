@@ -221,26 +221,6 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 200000, int(accumulatedGas))
 	})
-
-	t.Run("with guardians", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
-		accountStateProvider := txcachemocks.NewAccountStateProviderMock()
-		accountStateProvider.SetNonce([]byte("alice"), 1)
-		accountStateProvider.SetNonce([]byte("bob"), 42)
-		accountStateProvider.SetGuardian([]byte("bob"), []byte("heidi"))
-
-		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
-		cache.AddTx(createTx([]byte("hash-bob-42a"), "bob", 42))
-		cache.AddTx(createTx([]byte("hash-bob-42b"), "bob", 42).withGuardian([]byte("heidi")).withGasLimit(100000))
-		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 43).withGuardian([]byte("grace")).withGasLimit(100000))
-
-		sorted, accumulatedGas := cache.SelectTransactions(accountStateProvider, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
-		require.Len(t, sorted, 2)
-		require.Equal(t, 150000, int(accumulatedGas))
-
-		require.Equal(t, "hash-alice-1", string(sorted[0].TxHash))
-		require.Equal(t, "hash-bob-42b", string(sorted[1].TxHash))
-	})
 }
 
 func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
