@@ -71,7 +71,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			continue
 		}
 
-		shouldSkipTransaction := detectSkippableTransaction(item)
+		shouldSkipTransaction := detectSkippableTransaction(accountStateProvider, item)
 		if shouldSkipTransaction {
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
@@ -104,11 +104,11 @@ func detectSkippableSender(item *transactionsHeapItem) bool {
 	return false
 }
 
-func detectSkippableTransaction(item *transactionsHeapItem) bool {
+func detectSkippableTransaction(accountStateProvider AccountStateProvider, item *transactionsHeapItem) bool {
 	if item.detectLowerNonce() {
 		return true
 	}
-	if item.detectBadlyGuarded() {
+	if item.detectBadlyGuarded(accountStateProvider) {
 		return true
 	}
 	if item.detectNonceDuplicate() {

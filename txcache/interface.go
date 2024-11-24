@@ -16,6 +16,7 @@ type TxGasHandler interface {
 // AccountStateProvider defines the behavior of a component able to provide the state of an account
 type AccountStateProvider interface {
 	GetAccountState(accountKey []byte) (*types.AccountState, error)
+	IsBadlyGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool
 }
 

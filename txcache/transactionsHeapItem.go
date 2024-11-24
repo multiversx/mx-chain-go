@@ -157,9 +157,16 @@ func (item *transactionsHeapItem) detectLowerNonce() bool {
 	return isLowerNonce
 }
 
-func (item *transactionsHeapItem) detectBadlyGuarded() bool {
-	// See MX-16179.
-	return false
+func (item *transactionsHeapItem) detectBadlyGuarded(accountStateProvider AccountStateProvider) bool {
+	isBadlyGuarded := accountStateProvider.IsBadlyGuarded(item.currentTransaction.Tx)
+	if isBadlyGuarded {
+		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
+			"tx", item.currentTransaction.TxHash,
+			"sender", item.sender,
+		)
+	}
+
+	return isBadlyGuarded
 }
 
 func (item *transactionsHeapItem) detectNonceDuplicate() bool {
