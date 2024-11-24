@@ -1,30 +1,32 @@
 package preprocess
 
 import (
+	"errors"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountStateProvider struct {
-	accountsAdapter state.AccountsAdapter
-	guardianChecker process.GuardianChecker
+	accountsAdapter       state.AccountsAdapter
+	transactionsProcessor process.TransactionProcessor
 }
 
-func newAccountStateProvider(accountsAdapter state.AccountsAdapter, guardianChecker process.GuardianChecker) (*accountStateProvider, error) {
+func newAccountStateProvider(accountsAdapter state.AccountsAdapter, transactionsProcessor process.TransactionProcessor) (*accountStateProvider, error) {
 	if check.IfNil(accountsAdapter) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(guardianChecker) {
-		return nil, process.ErrNilGuardianChecker
+	if check.IfNil(transactionsProcessor) {
+		return nil, process.ErrNilTxProcessor
 	}
 
 	return &accountStateProvider{
-		accountsAdapter: accountsAdapter,
-		guardianChecker: guardianChecker,
+		accountsAdapter:       accountsAdapter,
+		transactionsProcessor: transactionsProcessor,
 	}, nil
 }
 
@@ -38,32 +40,34 @@ func (provider *accountStateProvider) GetAccountState(address []byte) (*txcache.
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
-	}
-
-	guardian, err := provider.getGuardian(userAccount)
-	if err != nil {
-		return nil, err
+		return nil, process.ErrWrongTypeAssertion
 	}
 
 	return &txcache.AccountState{
-		Nonce:    userAccount.GetNonce(),
-		Balance:  userAccount.GetBalance(),
-		Guardian: guardian,
+		Nonce:   userAccount.GetNonce(),
+		Balance: userAccount.GetBalance(),
 	}, nil
 }
 
-func (provider *accountStateProvider) getGuardian(userAccount state.UserAccountHandler) ([]byte, error) {
-	if !userAccount.IsGuarded() {
-		return nil, nil
+func (provider *accountStateProvider) IsBadlyGuarded(tx data.TransactionHandler) bool {
+	address := tx.GetSndAddr()
+	account, err := provider.accountsAdapter.GetExistingAccount(address)
+	if err != nil {
+		return false
 	}
 
-	vmUserAccount, ok := userAccount.(vmcommon.UserAccountHandler)
+	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		return nil, errors.ErrWrongTypeAssertion
+		return false
 	}
 
-	return provider.guardianChecker.GetActiveGuardian(vmUserAccount)
+	txTyped, ok := tx.(*transaction.Transaction)
+	if !ok {
+		return false
+	}
+
+	err = provider.transactionsProcessor.VerifyGuardian(txTyped, userAccount)
+	return errors.Is(err, process.ErrTransactionNotExecutable)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
