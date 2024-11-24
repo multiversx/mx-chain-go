@@ -23,7 +23,6 @@ type WrappedTransaction struct {
 	// Additional note: "WrappedTransaction" objects are created by the Node, in dataRetriever/txpool/shardedTxPool.go.
 	Fee          *big.Int
 	PricePerUnit uint64
-	Guardian     []byte
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
@@ -33,11 +32,6 @@ func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler)
 	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit != 0 {
 		wrappedTx.PricePerUnit = wrappedTx.Fee.Uint64() / gasLimit
-	}
-
-	txAsGuardedTransaction, ok := wrappedTx.Tx.(data.GuardedTransactionHandler)
-	if ok {
-		wrappedTx.Guardian = txAsGuardedTransaction.GetGuardianAddr()
 	}
 }
 

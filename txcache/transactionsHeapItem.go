@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -159,24 +158,8 @@ func (item *transactionsHeapItem) detectLowerNonce() bool {
 }
 
 func (item *transactionsHeapItem) detectBadlyGuarded() bool {
-	if item.senderState == nil {
-		return false
-	}
-
-	transactionGuardian := item.currentTransaction.Guardian
-	accountGuardian := item.senderState.Guardian
-
-	isBadlyGuarded := !bytes.Equal(transactionGuardian, accountGuardian)
-	if isBadlyGuarded {
-		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
-			"tx", item.currentTransaction.TxHash,
-			"sender", item.sender,
-			"transactionGuardian", transactionGuardian,
-			"accountGuardian", accountGuardian,
-		)
-	}
-
-	return isBadlyGuarded
+	// See MX-16179.
+	return false
 }
 
 func (item *transactionsHeapItem) detectNonceDuplicate() bool {
