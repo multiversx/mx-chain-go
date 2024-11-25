@@ -7,13 +7,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/stretchr/testify/require"
+
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
-	"github.com/stretchr/testify/require"
 )
 
-const baseTokenID = "WEGLD"
+const baseTokenID = "WEGLD-bd4d79"
+const prefixedBaseTokenID = "sov-ESDT-a1b2c3"
 
 func TestNewESDTAsBalance(t *testing.T) {
 	t.Parallel()
@@ -21,6 +23,16 @@ func TestNewESDTAsBalance(t *testing.T) {
 	t.Run("empty base token, should return error", func(t *testing.T) {
 		esdtBalance, err := NewESDTAsBalance("", &marshallerMock.MarshalizerMock{})
 		require.Equal(t, errorsMx.ErrEmptyBaseToken, err)
+		require.Nil(t, esdtBalance)
+	})
+	t.Run("invalid prefixed base token, should return error", func(t *testing.T) {
+		esdtBalance, err := NewESDTAsBalance("svn12-ABC-1a2f3f", &marshallerMock.MarshalizerMock{})
+		require.Equal(t, errorsMx.ErrInvalidBaseToken, err)
+		require.Nil(t, esdtBalance)
+	})
+	t.Run("invalid base token, should return error", func(t *testing.T) {
+		esdtBalance, err := NewESDTAsBalance("MvX-1c4f2a", &marshallerMock.MarshalizerMock{})
+		require.Equal(t, errorsMx.ErrInvalidBaseToken, err)
 		require.Nil(t, esdtBalance)
 	})
 	t.Run("nil marshaller, should return error", func(t *testing.T) {
@@ -33,11 +45,21 @@ func TestNewESDTAsBalance(t *testing.T) {
 		require.Nil(t, err)
 		require.False(t, esdtBalance.IsInterfaceNil())
 	})
+	t.Run("prefixed base token, should work", func(t *testing.T) {
+		esdtBalance, err := NewESDTAsBalance(prefixedBaseTokenID, &marshallerMock.MarshalizerMock{})
+		require.Nil(t, err)
+		require.False(t, esdtBalance.IsInterfaceNil())
+	})
 }
 
 func TestEsdtAsBalance_getESDTData(t *testing.T) {
 	t.Parallel()
 
+	testGetEsdtData(t, baseTokenID)
+	testGetEsdtData(t, prefixedBaseTokenID)
+}
+
+func testGetEsdtData(t *testing.T, baseTokenID string) {
 	t.Run("no value stored in account for esdt, should return empty token", func(t *testing.T) {
 		esdtBalance, _ := NewESDTAsBalance(baseTokenID, &marshallerMock.MarshalizerMock{})
 		accHandler := &trie.DataTrieTrackerStub{
@@ -103,6 +125,11 @@ func TestEsdtAsBalance_getESDTData(t *testing.T) {
 func TestEsdtAsBalance_GetBalance(t *testing.T) {
 	t.Parallel()
 
+	testGetBalance(t, baseTokenID)
+	testGetBalance(t, prefixedBaseTokenID)
+}
+
+func testGetBalance(t *testing.T, baseTokenID string) {
 	t.Run("could not load balance, should return 0 value", func(t *testing.T) {
 		marshaller := &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
@@ -133,6 +160,11 @@ func TestEsdtAsBalance_GetBalance(t *testing.T) {
 func TestEsdtAsBalance_AddToBalance(t *testing.T) {
 	t.Parallel()
 
+	testAddToBalance(t, baseTokenID)
+	testAddToBalance(t, prefixedBaseTokenID)
+}
+
+func testAddToBalance(t *testing.T, baseTokenID string) {
 	currentBalance := &esdt.ESDigitalToken{
 		Value: big.NewInt(123),
 	}
@@ -176,6 +208,11 @@ func TestEsdtAsBalance_AddToBalance(t *testing.T) {
 func TestEsdtAsBalance_SubFromBalance(t *testing.T) {
 	t.Parallel()
 
+	testSubFromBalance(t, baseTokenID)
+	testSubFromBalance(t, prefixedBaseTokenID)
+}
+
+func testSubFromBalance(t *testing.T, baseTokenID string) {
 	currentBalance := &esdt.ESDigitalToken{
 		Value: big.NewInt(121),
 	}

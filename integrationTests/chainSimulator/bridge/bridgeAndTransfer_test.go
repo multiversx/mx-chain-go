@@ -90,37 +90,37 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 		Type:       core.Fungible,
 	})
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-		Identifier: argsEsdtSafe.ChainPrefix + "-NFTV2-1q2w3e",
+		Identifier: argsEsdtSafe.ChainPrefix + "-NFTV2-1a2b3c",
 		Nonce:      uint64(3),
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungibleV2,
 	})
 	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-	//	Identifier: argsEsdtSafe.ChainPrefix + "-DNFT-ewg43h",
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-DNFT-ead43f",
 	//	Nonce:      uint64(6),
 	//	Amount:     big.NewInt(1),
 	//	Type:       core.DynamicNFT,
 	//})
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-		Identifier: argsEsdtSafe.ChainPrefix + "-SFT-gthy55",
+		Identifier: argsEsdtSafe.ChainPrefix + "-SFT-cedd55",
 		Nonce:      uint64(52),
 		Amount:     big.NewInt(2156),
 		Type:       core.SemiFungible,
 	})
 	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-	//	Identifier: argsEsdtSafe.ChainPrefix + "-DSFT-h6g4g2",
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-DSFT-f6b4c2",
 	//	Nonce:      uint64(33),
 	//	Amount:     big.NewInt(11),
 	//	Type:       core.DynamicSFT,
 	//})
 	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-	//	Identifier: argsEsdtSafe.ChainPrefix + "-META-4g543g",
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-META-4b543b",
 	//	Nonce:      uint64(57),
 	//	Amount:     big.NewInt(124000),
 	//	Type:       core.MetaFungible,
 	//})
 	//bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
-	//	Identifier: argsEsdtSafe.ChainPrefix + "-DMETA-gtr4g2",
+	//	Identifier: argsEsdtSafe.ChainPrefix + "-DMETA-4b543b",
 	//	Nonce:      uint64(31),
 	//	Amount:     big.NewInt(14326743),
 	//	Type:       core.DynamicMeta,
