@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	addressLen = 32
-	hashSize   = 32
+	addressLen  = 32
+	hashSize    = 32
+	lenItemSize = 4
+	u64Size     = 8
 )
 
 var (
@@ -18,7 +20,7 @@ var (
 	marshaller, _      = factory.NewMarshalizer("gogo protobuf")
 	pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(addressLen, "erd")
 
-	wsURL             = "ws://localhost:22111"
+	wsURL             = "localhost:22111"
 	grpcAddress       = ":8085"
 	subscribedAddress = "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
 )

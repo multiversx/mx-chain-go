@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -15,10 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	bootStrapFactory "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 )
 
 type sovereignBootStrapShardProcessor struct {
@@ -158,8 +161,14 @@ func (sbp *sovereignBootStrapShardProcessor) baseSyncHeaders(
 	meta data.MetaHeaderHandler,
 	timeToWaitForRequestedData time.Duration,
 ) (map[string]data.HeaderHandler, error) {
-	hashesToRequest := make([][]byte, 0, 1)
-	shardIds := make([]uint32, 0, 1)
+	hashesToRequest := make([][]byte, 0, 2)
+	shardIds := make([]uint32, 0, 2)
+
+	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
+		shardIds = append(shardIds, epochStartData.GetShardID())
+	}
+
 	if meta.GetEpoch() > sbp.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.SovereignChainShardId)
@@ -259,13 +268,32 @@ func (sbp *sovereignBootStrapShardProcessor) createEpochStartInterceptorsContain
 		return nil, nil, err
 	}
 
+	incomingHeaderProcessor, err := incomingHeader.CreateIncomingHeaderProcessor(
+		sbp.generalConfig.SovereignConfig.NotifierConfig.WebSocketConfig,
+		sbp.dataPool,
+		sbp.generalConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
+		sbp.runTypeComponents,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	interceptorsContainerFactory, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory{
 		ShardContainer:           sp,
-		IncomingHeaderSubscriber: disabled.NewIncomingHeaderSubscriber(),
+		IncomingHeaderSubscriber: incomingHeaderProcessor,
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	return interceptorsContainerFactory.Create()
+}
+
+func (bp *sovereignBootStrapShardProcessor) createCrossHeaderRequester() (updateSync.CrossHeaderRequester, error) {
+	extendedHeaderRequester, castOk := bp.requestHandler.(updateSync.ExtendedShardHeaderRequestHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in sovereignBootStrapShardProcessor.createCrossHeaderRequester for extendedHeaderRequester", process.ErrWrongTypeAssertion)
+	}
+
+	return updateSync.NewExtendedHeaderRequester(extendedHeaderRequester)
 }

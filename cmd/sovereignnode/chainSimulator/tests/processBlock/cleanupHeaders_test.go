@@ -144,9 +144,7 @@ func checkCrossNotarizedHeader(t *testing.T, round int, crossNotarizedHeader dat
 
 	if round == 1 { // first cross header is dummy with nonce 0
 		require.Equal(t, uint64(0), crossNotarizedHeader.GetNonce())
-	} else if round == 2 { // first cross notarized header is 10000000
+	} else { // cross header with nonce is notarized
 		require.Equal(t, headerNonce, crossNotarizedHeader.GetNonce())
-	} else { // cross header with nonce-1 is notarized
-		require.Equal(t, headerNonce-1, crossNotarizedHeader.GetNonce())
 	}
 }

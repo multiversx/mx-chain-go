@@ -66,7 +66,7 @@ type ArgsChainSimulator struct {
 	AlterConfigsFunction           func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs     uint64
 	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
-	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
+	CreateIncomingHeaderSubscriber func(config config.WebSocketConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
 	ChainProcessorFactory          ChainHandlerFactory
@@ -129,7 +129,7 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 		}
 	}
 	if args.CreateIncomingHeaderSubscriber == nil {
-		args.CreateIncomingHeaderSubscriber = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
+		args.CreateIncomingHeaderSubscriber = func(_ config.WebSocketConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
 			return &sovereign.IncomingHeaderSubscriberStub{}, nil
 		}
 	}
@@ -269,22 +269,22 @@ func (s *simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                     outputConfigs.Configs,
-		ChanStopNodeProcess:         s.chanStopNodeProcess,
-		SyncedBroadcastNetwork:      s.syncedBroadcastNetwork,
-		NumShards:                   s.numOfShards,
-		GasScheduleFilename:         outputConfigs.GasScheduleFilename,
-		ShardIDStr:                  shardIDStr,
-		APIInterface:                args.ApiInterface,
-		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
-		InitialRound:                args.InitialRound,
-		InitialNonce:                args.InitialNonce,
-		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MinNodesMeta:                args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		RoundDurationInMillis:       args.RoundDurationInMillis,
-		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		Configs:                        outputConfigs.Configs,
+		ChanStopNodeProcess:            s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:         s.syncedBroadcastNetwork,
+		NumShards:                      s.numOfShards,
+		GasScheduleFilename:            outputConfigs.GasScheduleFilename,
+		ShardIDStr:                     shardIDStr,
+		APIInterface:                   args.ApiInterface,
+		BypassTxSignatureCheck:         args.BypassTxSignatureCheck,
+		InitialRound:                   args.InitialRound,
+		InitialNonce:                   args.InitialNonce,
+		MinNodesPerShard:               args.MinNodesPerShard,
+		ConsensusGroupSize:             args.ConsensusGroupSize,
+		MinNodesMeta:                   args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
+		RoundDurationInMillis:          args.RoundDurationInMillis,
+		VmQueryDelayAfterStartInMs:     args.VmQueryDelayAfterStartInMs,
 		CreateRunTypeCoreComponents:    args.CreateRunTypeCoreComponents,
 		CreateIncomingHeaderSubscriber: args.CreateIncomingHeaderSubscriber,
 		CreateRunTypeComponents:        args.CreateRunTypeComponents,

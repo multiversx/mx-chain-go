@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/factory/vm"
-	factory2 "github.com/multiversx/mx-chain-go/process/factory"
+	testFactory "github.com/multiversx/mx-chain-go/process/factory"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 )
 
@@ -86,12 +86,12 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 	require.Equal(t, "*shard.vmContainerFactory", fmt.Sprintf("%T", vmFactory))
 
 	require.Equal(t, 2, vmContainer.Len())
-	svm, err := vmContainer.Get(factory2.SystemVirtualMachine)
+	svm, err := vmContainer.Get(testFactory.SystemVirtualMachine)
 	require.Nil(t, err)
 	require.NotNil(t, svm)
 	require.Equal(t, "*process.systemVM", fmt.Sprintf("%T", svm))
 
-	wasmvm, err := vmContainer.Get(factory2.WasmVirtualMachine)
+	wasmvm, err := vmContainer.Get(testFactory.WasmVirtualMachine)
 	require.Nil(t, err)
 	require.NotNil(t, wasmvm)
 	require.Equal(t, "*hostCore.vmHost", fmt.Sprintf("%T", wasmvm))

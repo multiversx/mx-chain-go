@@ -34,6 +34,7 @@ func NewSovereignChainBlockProcessor(blockProcessor *blockProcessor) (*sovereign
 	scbp.doJobOnReceivedCrossNotarizedHeaderFunc = scbp.doJobOnReceivedCrossNotarizedHeader
 	scbp.requestHeaderWithShardAndNonceFunc = scbp.requestHeaderWithShardAndNonce
 	scbp.requestHeadersIfNothingNewIsReceivedFunc = scbp.requestHeadersIfNothingNewIsReceived
+	scbp.blockFinality = 0
 
 	extendedShardHeaderRequester, ok := scbp.requestHandler.(extendedShardHeaderRequestHandler)
 	if !ok {
@@ -81,6 +82,10 @@ func (scbp *sovereignChainBlockProcessor) processReceivedHeader(headerHandler da
 }
 
 func (scbp *sovereignChainBlockProcessor) doJobOnReceivedCrossNotarizedHeader(shardID uint32) {
+	if scbp.crossNotarizedHeadersNotifier.GetNumRegisteredHandlers() == 0 {
+		return
+	}
+
 	_, _, crossNotarizedHeaders, crossNotarizedHeadersHashes := scbp.computeLongestChainFromLastCrossNotarized(shardID)
 	if len(crossNotarizedHeaders) > 0 {
 		scbp.crossNotarizedHeadersNotifier.CallHandlers(shardID, crossNotarizedHeaders, crossNotarizedHeadersHashes)

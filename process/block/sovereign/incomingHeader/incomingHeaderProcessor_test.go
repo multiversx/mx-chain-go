@@ -12,7 +12,6 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	sovereignTests "github.com/multiversx/mx-chain-go/sovereignnode/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -161,7 +160,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), nil)
 		require.Equal(t, data.ErrNilHeader, err)
 
-		incomingHeader := &sovereignTests.IncomingHeaderStub{
+		incomingHeader := &sovTests.IncomingHeaderStub{
 			GetHeaderHandlerCalled: func() data.HeaderHandler {
 				return nil
 			},
@@ -177,25 +176,37 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 
 		args := createArgs()
 		args.MainChainNotarizationStartRound = startRound
-		wasHeaderAdded := false
+		wasHeaderAddedCt := 0
 		args.HeadersPool = &mock.HeadersCacherStub{
 			AddHeaderInShardCalled: func(headerHash []byte, header data.HeaderHandler, shardID uint32) {
-				wasHeaderAdded = true
-				require.Equal(t, header.GetRound(), startRound)
+				wasHeaderAddedCt++
+				switch wasHeaderAddedCt {
+				case 1:
+					// pre-genesis header, just track internal header
+					require.Empty(t, header.(data.ShardHeaderExtendedHandler).GetIncomingEventHandlers())
+					require.Equal(t, header.GetRound(), startRound-1)
+				case 2:
+					require.NotEmpty(t, header.(data.ShardHeaderExtendedHandler).GetIncomingEventHandlers())
+					require.Equal(t, header.GetRound(), startRound)
+				}
 			},
 		}
 		handler, _ := NewIncomingHeaderProcessor(args)
-		headers := createIncomingHeadersWithIncrementalRound(startRound)
+		headers := createIncomingHeadersWithIncrementalRound(startRound + 1)
 
-		for i := 0; i < len(headers)-1; i++ {
+		for i := 0; i <= int(startRound-2); i++ {
 			err := handler.AddHeader([]byte("hash"), headers[i])
 			require.Nil(t, err)
-			require.False(t, wasHeaderAdded)
+			require.Zero(t, wasHeaderAddedCt)
 		}
 
-		err := handler.AddHeader([]byte("hash"), headers[startRound])
+		err := handler.AddHeader([]byte("hash"), headers[startRound-1])
 		require.Nil(t, err)
-		require.True(t, wasHeaderAdded)
+		require.Equal(t, 1, wasHeaderAddedCt)
+
+		err = handler.AddHeader([]byte("hash"), headers[startRound])
+		require.Nil(t, err)
+		require.Equal(t, 2, wasHeaderAddedCt)
 	})
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
@@ -204,7 +215,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		args := createArgs()
 		handler, _ := NewIncomingHeaderProcessor(args)
 
-		incomingHeader := &sovereignTests.IncomingHeaderStub{
+		incomingHeader := &sovTests.IncomingHeaderStub{
 			GetHeaderHandlerCalled: func() data.HeaderHandler {
 				return &block.MetaBlock{}
 			},

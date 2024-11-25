@@ -117,6 +117,12 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
+// InterceptedMiniBlockHandler defines the needed functionality for an intercepted mini block
+type InterceptedMiniBlockHandler interface {
+	Hash() []byte
+	Miniblock() *block.MiniBlock
+}
+
 // ExtendedHeaderValidatorHandler defines extended header validator functionality
 type ExtendedHeaderValidatorHandler interface {
 	Hash() []byte

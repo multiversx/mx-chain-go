@@ -82,7 +82,7 @@ func (inMb *InterceptedMiniblock) Miniblock() *block.MiniBlock {
 
 // CheckValidity checks if the received tx block body is valid (not nil fields)
 func (inMb *InterceptedMiniblock) CheckValidity() error {
-	return inMb.integrity()
+	return inMb.integrity(core.MetachainShardId)
 }
 
 // IsForCurrentShard returns true if at least one contained miniblock is for current shard
@@ -91,17 +91,17 @@ func (inMb *InterceptedMiniblock) IsForCurrentShard() bool {
 }
 
 // integrity checks the integrity of the tx block body
-func (inMb *InterceptedMiniblock) integrity() error {
+func (inMb *InterceptedMiniblock) integrity(acceptedCrossShardId uint32) error {
 	miniblock := inMb.miniblock
 
 	receiverNotCurrentShard := miniblock.ReceiverShardID >= inMb.shardCoordinator.NumberOfShards() &&
-		(miniblock.ReceiverShardID != core.MetachainShardId && miniblock.ReceiverShardID != core.AllShardId)
+		(miniblock.ReceiverShardID != acceptedCrossShardId && miniblock.ReceiverShardID != core.AllShardId)
 	if receiverNotCurrentShard {
 		return process.ErrInvalidShardId
 	}
 
 	senderNotCurrentShard := miniblock.SenderShardID >= inMb.shardCoordinator.NumberOfShards() &&
-		miniblock.SenderShardID != core.MetachainShardId
+		miniblock.SenderShardID != acceptedCrossShardId
 	if senderNotCurrentShard {
 		return process.ErrInvalidShardId
 	}
