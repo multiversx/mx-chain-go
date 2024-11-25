@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -21,7 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -152,12 +153,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
 	if err != nil {
 		return nil, err
 	}
@@ -195,8 +206,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,
@@ -265,7 +276,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
 		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
 		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
-		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(),
+		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
 		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
@@ -273,6 +284,30 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
+	}
+
+	return replaceWithCustomProcessSubComponents(instance, processArgs)
+}
+
+func replaceWithCustomProcessSubComponents(
+	instance *processComponentsHolder,
+	processArgs processComp.ProcessComponentsFactoryArgs,
+) (*processComponentsHolder, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(processArgs.CoreData.InternalMarshalizer())
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
+	}
+
+	argsSyncedTxsSender := ArgsSyncedTxsSender{
+		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
+		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
+		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		DataPacker:       dataPacker,
+	}
+
+	instance.txsSenderHandler, err = NewSyncedTxsSender(argsSyncedTxsSender)
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
 	}
 
 	return instance, nil
