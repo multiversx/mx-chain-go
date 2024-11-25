@@ -600,7 +600,6 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
-		disabledGuardian.NewDisabledGuardedAccountHandler(),
 	)
 	if err != nil {
 		return nil, err

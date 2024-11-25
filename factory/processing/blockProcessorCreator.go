@@ -351,7 +351,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
-		pcf.bootstrapComponents.GuardedAccountHandler(),
 	)
 	if err != nil {
 		return nil, err
