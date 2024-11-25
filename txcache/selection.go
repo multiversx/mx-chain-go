@@ -76,7 +76,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
 			accumulatedGas += gasLimit
-			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction())
+			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction(session))
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),

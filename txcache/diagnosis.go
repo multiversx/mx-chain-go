@@ -73,7 +73,7 @@ func (cache *TxCache) diagnoseTransactions() {
 }
 
 // marshalTransactionsToNewlineDelimitedJSON converts a list of transactions to a newline-delimited JSON string.
-// Note: each line is indexed, to improve readability. The index is easily removable for if separate analysis is needed.
+// Note: each line is indexed, to improve readability. The index is easily removable for separate analysis is needed.
 func marshalTransactionsToNewlineDelimitedJSON(transactions []*WrappedTransaction, linePrefix string) string {
 	builder := strings.Builder{}
 	builder.WriteString("\n")

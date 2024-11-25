@@ -17,6 +17,7 @@ type TxGasHandler interface {
 type SelectionSession interface {
 	GetAccountState(accountKey []byte) (*types.AccountState, error)
 	IsBadlyGuarded(tx data.TransactionHandler) bool
+	GetTransferredValue(tx data.TransactionHandler) *big.Int
 	IsInterfaceNil() bool
 }
 
