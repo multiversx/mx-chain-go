@@ -13,8 +13,8 @@ type TxGasHandler interface {
 	IsInterfaceNil() bool
 }
 
-// AccountStateProvider defines the behavior of a component able to provide the state of an account
-type AccountStateProvider interface {
+// SelectionSession provides blockchain information for transaction selection
+type SelectionSession interface {
 	GetAccountState(accountKey []byte) (*types.AccountState, error)
 	IsBadlyGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool

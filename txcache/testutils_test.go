@@ -174,12 +174,6 @@ func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTrans
 	return wrappedTx
 }
 
-func (wrappedTx *WrappedTransaction) withGuardian(guardian []byte) *WrappedTransaction {
-	tx := wrappedTx.Tx.(*transaction.Transaction)
-	tx.GuardianAddr = guardian
-	return wrappedTx
-}
-
 func createFakeSenderAddress(senderTag int) []byte {
 	bytes := make([]byte, 32)
 	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))
