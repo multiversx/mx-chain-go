@@ -31,7 +31,6 @@ var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
 var log = logger.GetOrCreate("process/block/preprocess")
-var logSelectionSimulator = logger.GetOrCreate("process/block/preprocess/selectionSimulator")
 
 // 200% bandwidth to allow 100% overshooting estimations
 const selectionGasBandwidthIncreasePercent = 200
@@ -155,11 +154,6 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
-	accountStateProvider, err := newAccountStateProvider(args.Accounts, args.TxProcessor)
-	if err != nil {
-		return nil, err
-	}
-
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -171,7 +165,6 @@ func NewTransactionPreprocessor(
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
-		accountStateProvider:       accountStateProvider,
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
@@ -797,26 +790,6 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.mutOrderedTxs.Unlock()
 
 	txs.scheduledTxsExecutionHandler.Init()
-
-	txs.simulateTransactionsSelectionIfAppropriate()
-}
-
-func (txs *transactions) simulateTransactionsSelectionIfAppropriate() {
-	if logSelectionSimulator.GetLevel() > logger.LogTrace {
-		return
-	}
-
-	shardID := txs.shardCoordinator.SelfId()
-	cacheID := process.ShardCacherIdentifier(shardID, shardID)
-	mempool := txs.txPool.ShardDataStore(cacheID)
-	if check.IfNil(mempool) {
-		return
-	}
-
-	sortedTransactionsProvider := createSortedTransactionsProvider(mempool)
-	transactions := sortedTransactionsProvider.GetSortedTransactions(txs.accountStateProvider)
-
-	logSelectionSimulator.Trace("simulateTransactionsSelectionIfAppropriate", "num txs", len(transactions))
 }
 
 // AddTxsFromMiniBlocks will add the transactions from the provided miniblocks into the internal cache
@@ -1438,7 +1411,12 @@ func (txs *transactions) computeSortedTxs(
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(txs.accountStateProvider)
+	session, err := newSelectionSession(txs.basePreProcess.accounts, txs.txProcessor)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(session)
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)

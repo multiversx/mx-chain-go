@@ -14,23 +14,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewAccountStateProvider(t *testing.T) {
+func TestNewSelectionSession(t *testing.T) {
 	t.Parallel()
 
-	provider, err := newAccountStateProvider(nil, &testscommon.TxProcessorStub{})
-	require.Nil(t, provider)
+	session, err := newSelectionSession(nil, &testscommon.TxProcessorStub{})
+	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
 
-	provider, err = newAccountStateProvider(&stateMock.AccountsStub{}, nil)
-	require.Nil(t, provider)
+	session, err = newSelectionSession(&stateMock.AccountsStub{}, nil)
+	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilTxProcessor)
 
-	provider, err = newAccountStateProvider(&stateMock.AccountsStub{}, &testscommon.TxProcessorStub{})
+	session, err = newSelectionSession(&stateMock.AccountsStub{}, &testscommon.TxProcessorStub{})
 	require.NoError(t, err)
-	require.NotNil(t, provider)
+	require.NotNil(t, session)
 }
 
-func TestAccountStateProvider_GetAccountState(t *testing.T) {
+func TestSelectionSession_GetAccountState(t *testing.T) {
 	t.Parallel()
 
 	accounts := &stateMock.AccountsStub{}
@@ -57,24 +57,24 @@ func TestAccountStateProvider_GetAccountState(t *testing.T) {
 		return nil, fmt.Errorf("account not found: %s", address)
 	}
 
-	provider, err := newAccountStateProvider(accounts, processor)
+	session, err := newSelectionSession(accounts, processor)
 	require.NoError(t, err)
-	require.NotNil(t, provider)
+	require.NotNil(t, session)
 
-	state, err := provider.GetAccountState([]byte("alice"))
+	state, err := session.GetAccountState([]byte("alice"))
 	require.NoError(t, err)
 	require.Equal(t, uint64(42), state.Nonce)
 
-	state, err = provider.GetAccountState([]byte("bob"))
+	state, err = session.GetAccountState([]byte("bob"))
 	require.NoError(t, err)
 	require.Equal(t, uint64(7), state.Nonce)
 
-	state, err = provider.GetAccountState([]byte("carol"))
+	state, err = session.GetAccountState([]byte("carol"))
 	require.ErrorContains(t, err, "account not found: carol")
 	require.Nil(t, state)
 }
 
-func TestAccountStateProvider_IsBadlyGuarded(t *testing.T) {
+func TestSelectionSession_IsBadlyGuarded(t *testing.T) {
 	t.Parallel()
 
 	accounts := &stateMock.AccountsStub{}
@@ -95,16 +95,16 @@ func TestAccountStateProvider_IsBadlyGuarded(t *testing.T) {
 		return nil
 	}
 
-	provider, err := newAccountStateProvider(accounts, processor)
+	session, err := newSelectionSession(accounts, processor)
 	require.NoError(t, err)
-	require.NotNil(t, provider)
+	require.NotNil(t, session)
 
-	isBadlyGuarded := provider.IsBadlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
+	isBadlyGuarded := session.IsBadlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
 	require.False(t, isBadlyGuarded)
 
-	isBadlyGuarded = provider.IsBadlyGuarded(&transaction.Transaction{Nonce: 43, SndAddr: []byte("alice")})
+	isBadlyGuarded = session.IsBadlyGuarded(&transaction.Transaction{Nonce: 43, SndAddr: []byte("alice")})
 	require.True(t, isBadlyGuarded)
 
-	isBadlyGuarded = provider.IsBadlyGuarded(&transaction.Transaction{Nonce: 44, SndAddr: []byte("alice")})
+	isBadlyGuarded = session.IsBadlyGuarded(&transaction.Transaction{Nonce: 44, SndAddr: []byte("alice")})
 	require.False(t, isBadlyGuarded)
 }

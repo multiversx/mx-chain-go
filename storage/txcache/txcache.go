@@ -14,8 +14,8 @@ type AccountState = types.AccountState
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler = txcache.TxGasHandler
 
-// AccountStateProvider provides the state of an account (as seen by the mempool)
-type AccountStateProvider = txcache.AccountStateProvider
+// SelectionSession provides provides blockchain information for transaction selection
+type SelectionSession = txcache.SelectionSession
 
 // ForEachTransaction is an iterator callback
 type ForEachTransaction = txcache.ForEachTransaction
