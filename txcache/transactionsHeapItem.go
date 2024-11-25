@@ -19,7 +19,7 @@ type transactionsHeapItem struct {
 	latestSelectedTransaction      *WrappedTransaction
 	latestSelectedTransactionNonce uint64
 
-	accumulatedFee *big.Int
+	consumedBalance *big.Int
 }
 
 func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, error) {
@@ -40,12 +40,12 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, 
 		currentTransactionNonce:   firstTransaction.Tx.GetNonce(),
 		latestSelectedTransaction: nil,
 
-		accumulatedFee: big.NewInt(0),
+		consumedBalance: big.NewInt(0),
 	}, nil
 }
 
-func (item *transactionsHeapItem) selectCurrentTransaction() *WrappedTransaction {
-	item.accumulateFee()
+func (item *transactionsHeapItem) selectCurrentTransaction(session SelectionSession) *WrappedTransaction {
+	item.accumulateConsumedBalance(session)
 
 	item.latestSelectedTransaction = item.currentTransaction
 	item.latestSelectedTransactionNonce = item.currentTransactionNonce
@@ -53,13 +53,16 @@ func (item *transactionsHeapItem) selectCurrentTransaction() *WrappedTransaction
 	return item.currentTransaction
 }
 
-func (item *transactionsHeapItem) accumulateFee() {
+func (item *transactionsHeapItem) accumulateConsumedBalance(session SelectionSession) {
 	fee := item.currentTransaction.Fee
-	if fee == nil {
-		return
+	if fee != nil {
+		item.consumedBalance.Add(item.consumedBalance, fee)
 	}
 
-	item.accumulatedFee.Add(item.accumulatedFee, fee)
+	transferredValue := session.GetTransferredValue(item.currentTransaction.Tx)
+	if transferredValue != nil {
+		item.consumedBalance.Add(item.consumedBalance, transferredValue)
+	}
 }
 
 func (item *transactionsHeapItem) gotoNextTransaction() bool {
@@ -123,16 +126,17 @@ func (item *transactionsHeapItem) detectWillFeeExceedBalance() bool {
 		return false
 	}
 
-	futureAccumulatedFee := new(big.Int).Add(item.accumulatedFee, fee)
+	// Here, we are not interested into an eventual transfer of value (we only check if there's enough balance to pay the transaction fee).
+	futureConsumedBalance := new(big.Int).Add(item.consumedBalance, fee)
 	senderBalance := item.senderState.Balance
 
-	willFeeExceedBalance := futureAccumulatedFee.Cmp(senderBalance) > 0
+	willFeeExceedBalance := futureConsumedBalance.Cmp(senderBalance) > 0
 	if willFeeExceedBalance {
 		logSelect.Trace("transactionsHeapItem.detectWillFeeExceedBalance",
 			"tx", item.currentTransaction.TxHash,
 			"sender", item.sender,
 			"balance", item.senderState.Balance,
-			"accumulatedFee", item.accumulatedFee,
+			"consumedBalance", item.consumedBalance,
 		)
 	}
 
