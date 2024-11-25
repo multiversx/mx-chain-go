@@ -495,8 +495,8 @@ func (bn *branchNode) insert(newData []core.TrieData, db common.TrieStorageInter
 }
 
 // the prerequisite for this to work is that the data is already sorted
-func splitDataForChildren(newData []core.TrieData) ([][]core.TrieData, error) {
-	if len(newData) == 0 {
+func splitDataForChildren(newSortedData []core.TrieData) ([][]core.TrieData, error) {
+	if len(newSortedData) == 0 {
 		return nil, ErrValueTooShort
 	}
 	childrenData := make([][]core.TrieData, nrOfChildren)
@@ -504,15 +504,15 @@ func splitDataForChildren(newData []core.TrieData) ([][]core.TrieData, error) {
 	startIndex := 0
 	childPos := byte(0)
 	prevChildPos := byte(0)
-	for i := range newData {
-		if len(newData[i].Key) == 0 {
+	for i := range newSortedData {
+		if len(newSortedData[i].Key) == 0 {
 			return nil, ErrValueTooShort
 		}
-		childPos = newData[i].Key[firstByte]
+		childPos = newSortedData[i].Key[firstByte]
 		if childPosOutOfRange(childPos) {
 			return nil, ErrChildPosOutOfRange
 		}
-		newData[i].Key = newData[i].Key[1:]
+		newSortedData[i].Key = newSortedData[i].Key[1:]
 
 		if i == 0 {
 			prevChildPos = childPos
@@ -523,12 +523,12 @@ func splitDataForChildren(newData []core.TrieData) ([][]core.TrieData, error) {
 			continue
 		}
 
-		childrenData[prevChildPos] = newData[startIndex:i]
+		childrenData[prevChildPos] = newSortedData[startIndex:i]
 		startIndex = i
 		prevChildPos = childPos
 	}
 
-	childrenData[childPos] = newData[startIndex:]
+	childrenData[childPos] = newSortedData[startIndex:]
 	return childrenData, nil
 }
 

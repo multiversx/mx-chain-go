@@ -1678,7 +1678,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 		var data []core.TrieData
 		modifiedHashes, err := bn.insertOnNilChild(data, 0, nil)
-		assert.Equal(t, 0, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.Equal(t, ErrValueTooShort, err)
 	})
 	t.Run("insert one child in !dirty node", func(t *testing.T) {
@@ -1701,7 +1702,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 		childPos := byte(0)
 		modifiedHashes, err := bn.insertOnNilChild(newData, childPos, db)
 		assert.Nil(t, err)
-		assert.Equal(t, 1, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.Equal(t, originalHash, modifiedHashes[0])
 		assert.True(t, bn.dirty)
 		assert.NotNil(t, bn.children[childPos])
@@ -1723,7 +1725,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 		childPos := byte(0)
 		modifiedHashes, err := bn.insertOnNilChild(newData, childPos, db)
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.True(t, bn.dirty)
 		assert.NotNil(t, bn.children[childPos])
 		assert.Equal(t, byte(core.AutoBalanceEnabled), bn.ChildrenVersion[childPos])
@@ -1749,7 +1752,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 		childPos := byte(0)
 		modifiedHashes, err := bn.insertOnNilChild(newData, childPos, db)
 		assert.Nil(t, err)
-		assert.Equal(t, 0, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.True(t, bn.dirty)
 		assert.NotNil(t, bn.children[childPos])
 		assert.Equal(t, byte(core.AutoBalanceEnabled), bn.ChildrenVersion[childPos])
@@ -1796,7 +1800,8 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, dirty)
 		assert.True(t, bn.dirty)
-		assert.Equal(t, 2, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 2
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.Equal(t, originalChildHash, modifiedHashes[0])
 		assert.Equal(t, originalHash, modifiedHashes[1])
 		_, ok := bn.children[childPos].(*extensionNode)
@@ -1830,7 +1835,8 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, dirty)
 		assert.False(t, bn.dirty)
-		assert.Equal(t, 0, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		_, ok := bn.children[childPos].(*leafNode)
 		assert.True(t, ok)
 	})
@@ -1871,7 +1877,8 @@ func TestBranchNode_insertBatch(t *testing.T) {
 
 	newNode, modifiedHashes, err := bn.insert(newData, db)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, len(modifiedHashes))
+	expectedNumTrieNodesChanged := 2
+	assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 	assert.True(t, newNode.isDirty())
 
 	bn, ok := newNode.(*branchNode)
@@ -1926,7 +1933,8 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, dirty)
 		assert.True(t, newNode.isDirty())
-		assert.Equal(t, 5, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 5
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		bn, ok := newNode.(*branchNode)
 		assert.True(t, ok)
 
@@ -1958,7 +1966,8 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, dirty)
 		assert.True(t, newNode.isDirty())
-		assert.Equal(t, 6, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 6
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		ln, ok := newNode.(*leafNode)
 		assert.True(t, ok)
 		assert.Equal(t, []byte{9, 3, 7, 8, 9}, ln.Key)
@@ -1988,6 +1997,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, dirty)
 		assert.Nil(t, newNode)
-		assert.Equal(t, 6, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 6
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 	})
 }
