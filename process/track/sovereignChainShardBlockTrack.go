@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -213,11 +214,7 @@ func (scsbt *sovereignChainShardBlockTrack) CleanupHeadersBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
-	scsbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
-	scsbt.cleanupTrackedHeadersBehindNonce(shardID, selfNotarizedNonce)
-
-	scsbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)
-	scsbt.cleanupTrackedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)
+	scsbt.cleanupHeadersBehindNonce(shardID, core.MainChainShardId, selfNotarizedNonce, crossNotarizedNonce)
 }
 
 // DisplayTrackedHeaders displays tracked headers

@@ -56,6 +56,8 @@ func NewMetaChainMessenger(
 		keysHandler:             args.KeysHandler,
 	}
 
+	cm.broadcasterFilterHandler = cm
+
 	mcm := &metaChainMessenger{
 		commonMessenger: cm,
 	}

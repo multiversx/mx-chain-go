@@ -66,7 +66,7 @@ func TestSovereignChainSimulator_RegisterNftWithPrefix(t *testing.T) {
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	nftName := "NFTNAME"
 	nftTicker := "NFTTICKER"
-	nftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, nftName, nftTicker, core.NonFungibleESDTv2, 0)
+	nftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, wallet.Bytes, &nonce, issueCost, nftName, nftTicker, core.NonFungibleESDTv2, 0)
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, nftIdentifier, nftV2Roles)
 

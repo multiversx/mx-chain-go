@@ -14,15 +14,15 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.1.0
-	github.com/multiversx/mx-chain-core-go v1.2.23-0.20241018121422-f6bd53cf9777
+	github.com/multiversx/mx-chain-communication-go v1.1.1
+	github.com/multiversx/mx-chain-core-go v1.2.24-0.20241111110328-b8a9c02d5583
 	github.com/multiversx/mx-chain-crypto-go v1.2.12
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.10-0.20241009093024-7b5c180a61ea
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.11-0.20241111112929-8f3ff2303ebe
 	github.com/multiversx/mx-chain-logger-go v1.0.15
 	github.com/multiversx/mx-chain-scenario-go v1.4.4
 	github.com/multiversx/mx-chain-storage-go v1.0.16
 	github.com/multiversx/mx-chain-vm-common-go v1.5.17-0.20241008143259-334f3a5bafe0
-	github.com/multiversx/mx-chain-vm-go v1.5.36-0.20240923134141-bdba60bb6bcd
+	github.com/multiversx/mx-chain-vm-go v1.5.37
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.98

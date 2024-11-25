@@ -13,24 +13,23 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-	proc "github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
-	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
-
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	proc "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
+	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
+	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 )
 
 const (
