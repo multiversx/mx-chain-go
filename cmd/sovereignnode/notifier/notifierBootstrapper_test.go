@@ -3,21 +3,25 @@ package notifier
 import (
 	"context"
 	"errors"
+	"math/rand"
 	"os"
 	"reflect"
 	"runtime"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
+
+	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
+	"github.com/multiversx/mx-chain-sovereign-notifier-go/testscommon"
+	"github.com/stretchr/testify/require"
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
-	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
-	"github.com/multiversx/mx-chain-sovereign-notifier-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgs() ArgsNotifierBootstrapper {
@@ -93,23 +97,23 @@ func TestNotifierBootstrapper_Start(t *testing.T) {
 		},
 	}
 
-	registerCalledCt := 0
+	registerCalledCt := atomic.Int64{}
 	args.SovereignNotifier = &testscommon.SovereignNotifierStub{
 		RegisterHandlerCalled: func(handler notifierProcess.IncomingHeaderSubscriber) error {
 			require.Equal(t, args.IncomingHeaderHandler, handler)
-			registerCalledCt++
+			registerCalledCt.Add(1)
 			return nil
 		},
 	}
 
-	getHighestNonceCalledCt := 0
+	getHighestNonceCalledCt := atomic.Int64{}
 	args.ForkDetector = &mock.ForkDetectorStub{
 		GetHighestFinalBlockNonceCalled: func() uint64 {
 			defer func() {
-				getHighestNonceCalledCt++
+				getHighestNonceCalledCt.Add(1)
 			}()
 
-			return uint64(getHighestNonceCalledCt)
+			return uint64(getHighestNonceCalledCt.Load())
 		},
 	}
 
@@ -124,30 +128,88 @@ func TestNotifierBootstrapper_Start(t *testing.T) {
 	}()
 
 	time.Sleep(time.Millisecond * 50)
-	require.Zero(t, registerCalledCt)
-	require.Zero(t, getHighestNonceCalledCt)
+	require.Zero(t, registerCalledCt.Load())
+	require.Zero(t, getHighestNonceCalledCt.Load())
 
 	nb.receivedSyncState(false)
 	time.Sleep(time.Millisecond * 50)
-	require.Zero(t, registerCalledCt)
-	require.Zero(t, registerCalledCt)
+	require.Zero(t, registerCalledCt.Load())
+	require.Zero(t, getHighestNonceCalledCt.Load())
 
 	nb.receivedSyncState(true)
 	time.Sleep(time.Millisecond * 50)
-	require.Zero(t, registerCalledCt)
-	require.Equal(t, 1, getHighestNonceCalledCt)
+	require.Zero(t, registerCalledCt.Load())
+	require.Equal(t, int64(1), getHighestNonceCalledCt.Load())
 
 	nb.receivedSyncState(true)
 	time.Sleep(time.Millisecond * 50)
-	require.Equal(t, 1, registerCalledCt)
-	require.Equal(t, 2, getHighestNonceCalledCt)
+	require.Zero(t, registerCalledCt.Load())
+	require.Equal(t, int64(2), getHighestNonceCalledCt.Load())
 
-	for i := 3; i < 10; i++ {
+	for i := int64(0); i < 10; i++ {
+		nb.receivedSyncState(false)
+		time.Sleep(time.Millisecond * 50)
+		require.Zero(t, registerCalledCt.Load())
+		require.Equal(t, int64(2), getHighestNonceCalledCt.Load())
+	}
+	for i := int64(1); i < roundsThreshold; i++ {
 		nb.receivedSyncState(true)
 		time.Sleep(time.Millisecond * 50)
-		require.Equal(t, 1, registerCalledCt)
-		require.Equal(t, i, getHighestNonceCalledCt)
+		require.Zero(t, registerCalledCt.Load())
+		require.Equal(t, i+2, getHighestNonceCalledCt.Load())
 	}
+
+	for i := roundsThreshold; i < roundsThreshold+10; i++ {
+		nb.receivedSyncState(true)
+		time.Sleep(time.Millisecond * 50)
+		require.Equal(t, int64(1), registerCalledCt.Load())
+		require.Equal(t, int64(i+2), getHighestNonceCalledCt.Load())
+	}
+}
+
+func TestNotifierBootstrapper_Start_ConcurrencyTest(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+
+	getHighestNonceCalledCt := atomic.Int64{}
+	args.ForkDetector = &mock.ForkDetectorStub{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			defer func() {
+				getHighestNonceCalledCt.Add(1)
+			}()
+
+			return uint64(getHighestNonceCalledCt.Load())
+		},
+	}
+
+	nb, _ := NewNotifierBootstrapper(args)
+	nb.Start()
+
+	defer func() {
+		err := nb.Close()
+		require.Nil(t, err)
+	}()
+
+	numGoRoutines := 1000
+	wg := sync.WaitGroup{}
+	wg.Add(numGoRoutines)
+
+	for i := 0; i < numGoRoutines; i++ {
+		go func(idx int) {
+			isSynced := false
+			if rand.Int31n(100) < 51 {
+				isSynced = true
+			}
+
+			nb.receivedSyncState(isSynced)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+	require.NotZero(t, getHighestNonceCalledCt.Load())
+	require.True(t, getHighestNonceCalledCt.Load() < int64(numGoRoutines))
 }
 
 func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
@@ -159,13 +221,13 @@ func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 	args.SigStopNode = sigStopNodeMock
 	args.RoundDuration = 10
 
-	registerCalledCt := 0
+	registerCalledCt := atomic.Int64{}
 	args.SovereignNotifier = &testscommon.SovereignNotifierStub{
 		RegisterHandlerCalled: func(handler notifierProcess.IncomingHeaderSubscriber) error {
 			require.Equal(t, args.IncomingHeaderHandler, handler)
 
 			defer func() {
-				registerCalledCt++
+				registerCalledCt.Add(1)
 			}()
 
 			return errors.New("local error")
@@ -179,6 +241,7 @@ func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 	}
 
 	nb, _ := NewNotifierBootstrapper(args)
+	nb.syncedRoundsChan <- roundsThreshold - 1
 
 	nb.Start()
 
@@ -188,11 +251,11 @@ func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 	}()
 
 	time.Sleep(time.Millisecond * 200)
-	require.Zero(t, registerCalledCt)
+	require.Zero(t, registerCalledCt.Load())
 
 	nb.receivedSyncState(true)
 	time.Sleep(time.Millisecond * 50)
-	require.Equal(t, 1, registerCalledCt)
+	require.Equal(t, int64(1), registerCalledCt.Load())
 
 	select {
 	case sig := <-sigStopNodeMock:
@@ -205,7 +268,7 @@ func TestNotifierBootstrapper_StartWithRegisterFailing(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		nb.receivedSyncState(true)
 		time.Sleep(time.Millisecond * 50)
-		require.Equal(t, 1, registerCalledCt)
+		require.Equal(t, int64(1), registerCalledCt.Load())
 	}
 }
 
