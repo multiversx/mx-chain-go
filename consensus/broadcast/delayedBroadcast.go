@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -657,7 +658,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	)
 
 	alarmsToCancel := make([]string, 0)
-	dbb.mutDataForBroadcast.RLock()
+	dbb.mutDataForBroadcast.Lock()
 	for i, broadcastData := range dbb.valHeaderBroadcastData {
 		samePrevRandSeed := bytes.Equal(broadcastData.header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
 		sameRound := broadcastData.header.GetRound() == headerHandler.GetRound()
@@ -676,7 +677,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 		}
 	}
 
-	dbb.mutDataForBroadcast.RUnlock()
+	dbb.mutDataForBroadcast.Unlock()
 
 	for _, alarmID := range alarmsToCancel {
 		dbb.alarm.Cancel(alarmID)
