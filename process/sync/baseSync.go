@@ -707,10 +707,6 @@ func (boot *baseBootstrap) handleEquivalentProof(
 	header data.HeaderHandler,
 	headerHash []byte,
 ) error {
-	if header.GetNonce() == 1 {
-		return nil
-	}
-
 	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil
 	}
@@ -721,20 +717,20 @@ func (boot *baseBootstrap) handleEquivalentProof(
 	}
 
 	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevHeader.GetEpoch()) {
-		// no need to check proof for first block
-		log.Info("no need to check first activation blockk")
+		// no need to check proof for first block after activation
+		log.Info("handleEquivalentProof: no need to check equivalent proof for first activation block")
 		return nil
 	}
+
 	// process block only if there is a proof for it
 	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
 	if hasProof {
-		log.Error("F HAS proof for header", "headerHash", headerHash)
 		return nil
 	}
 
-	log.Error("process sync: did not have proof for header, will try again", "headerHash", headerHash)
+	log.Trace("baseBootstrap.handleEquivalentProof: did not have proof for header, will try again", "headerHash", headerHash)
 
-	// wait also for next header
+	// TODO: evaluate adding a wait here, or request for next header if missing
 	_, _, err = boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
 	if err != nil {
 		return err
@@ -742,7 +738,7 @@ func (boot *baseBootstrap) handleEquivalentProof(
 
 	hasProof = boot.proofs.HasProof(header.GetShardID(), headerHash)
 	if !hasProof {
-		return fmt.Errorf("process sync: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
+		return fmt.Errorf("baseBootstrap.handleEquivalentProof: did not have proof for header, headerHash %s", hex.EncodeToString(headerHash))
 	}
 
 	return nil
@@ -786,6 +782,8 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 			"shardID", header.GetShardID(),
 			"error", err)
 	}
+
+	log.Trace("baseBootstrap.cleanProofsBehindFinal clenaup successfully", "finalNonce", finalNonce)
 }
 
 // rollBack decides if rollBackOneBlock must be called

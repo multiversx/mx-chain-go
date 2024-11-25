@@ -20,7 +20,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
 	maxShards := uint32(1)
 	shardId := uint32(0)
 	numNodesPerShard := 6
@@ -204,8 +203,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	logger.SetLogLevel("*:DEBUG")
-
 	maxShards := uint32(1)
 	shardId := uint32(0)
 	numNodesPerShard := 3
@@ -273,5 +270,16 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 
 	time.Sleep(integrationTests.SyncDelay)
 
-	testAllNodesHaveTheSameBlockHeightInBlockchain(t, nodes)
+	expectedNonce := nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce()
+	for i := 1; i < len(nodes); i++ {
+		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
+			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
+		} else {
+			if i == idxProposerMeta { // metachain node has highest nonce since it's single node and it did not synced the header
+				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
+			} else { // shard nodes have not managed to sync last header since there is no proof for it; in the complete flow, when nodes will be fully sinced they will get current header directly from consensus, so they will receive the proof for header
+				assert.Equal(t, expectedNonce-1, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
+			}
+		}
+	}
 }

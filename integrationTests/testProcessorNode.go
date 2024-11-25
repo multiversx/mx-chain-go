@@ -3447,7 +3447,11 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainFactoryMocks.BootstrapComponentsStub {
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
-	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{}
+	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
+		GetVersionCalled: func(epoch uint32) string {
+			return "2"
+		},
+	}
 	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		versionedHeaderFactory, _ = hdrFactory.NewMetaHeaderFactory(headerVersionHandler)
