@@ -11,8 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/factory/vm"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
+	"github.com/multiversx/mx-chain-go/factory/vm"
 
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -234,6 +235,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.RunTypeComponents.PreProcessorsContainerFactoryCreator()) {
 		return errors.ErrNilPreProcessorsContainerFactoryCreator
 	}
+	if check.IfNil(arg.EnableEpochsFactory) {
+		return enablers.ErrNilEnableEpochsFactory
+	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
 	}
@@ -261,7 +265,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeInitialDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
+	err := gbc.computeInitialDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +309,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+		err = gbc.computeInitialDNSAddresses(gbc.arg.EpochConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -446,19 +450,19 @@ func (gbc *genesisBlockCreator) createHeaders(args *headerCreatorArgs) (map[uint
 	return genesisBlocks, nil
 }
 
-func (gbc *genesisBlockCreator) computeInitialDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+func (gbc *genesisBlockCreator) computeInitialDNSAddresses(epochsConfig config.EpochConfig) error {
 	isForCurrentShard := func([]byte) bool {
 		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
 		return true
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 
-	return gbc.computeDNSAddresses(enableEpochsConfig, initialAddresses)
+	return gbc.computeDNSAddresses(epochsConfig, initialAddresses)
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
 func (gbc *genesisBlockCreator) computeDNSAddresses(
-	enableEpochsConfig config.EnableEpochs,
+	epochsConfig config.EpochConfig,
 	initialAddresses [][]byte,
 ) error {
 	var dnsSC genesis.InitialSmartContractHandler
@@ -477,7 +481,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(
 		Epoch:     gbc.arg.StartEpochNum,
 		TimeStamp: gbc.arg.GenesisTime,
 	}
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	enableEpochsHandler, err := gbc.arg.EnableEpochsFactory.CreateEnableEpochsHandler(epochsConfig, epochNotifier)
 	if err != nil {
 		return err
 	}

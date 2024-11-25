@@ -85,14 +85,14 @@ var (
 )
 
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-	return createProcessComponentsFactoryArgs(getRunTypeComponentsMock())
+	return createProcessComponentsFactoryArgs(components.GetRunTypeCoreComponents(), getRunTypeComponentsMock())
 }
 
 func createMockSovereignProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-	return createProcessComponentsFactoryArgs(getSovereignRunTypeComponentsMock())
+	return createProcessComponentsFactoryArgs(components.GetSovereignRunTypeCoreComponents(), getSovereignRunTypeComponentsMock())
 }
 
-func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunTypeComponentsStub) processComp.ProcessComponentsFactoryArgs {
+func createProcessComponentsFactoryArgs(runTypeCoreComponents runType.RunTypeCoreComponentsHolder, runTypeComponents *mainFactoryMocks.RunTypeComponentsStub) processComp.ProcessComponentsFactoryArgs {
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		EpochConfig: config.EpochConfig{
@@ -282,6 +282,7 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 		},
 	}
 	args.RunTypeComponents = runTypeComponents
+	args.RunTypeCoreComponents = runTypeCoreComponents
 	return args
 }
 

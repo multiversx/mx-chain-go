@@ -79,7 +79,7 @@ type coreComponentsHolder struct {
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
 type ArgsCoreComponentsHolder struct {
 	Config              config.Config
-	EnableEpochsConfig  config.EnableEpochs
+	EpochsConfig        config.EpochConfig
 	RoundsConfig        config.RoundConfig
 	EconomicsConfig     config.EconomicsConfig
 	RatingConfig        config.RatingsConfig
@@ -165,11 +165,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 	instance.epochNotifier = forking.NewGenericEpochNotifier()
-	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
-	if err != nil {
-		return nil, err
-	}
-
+	instance.enableEpochsHandler, err = args.RunTypeCoreComponents.EnableEpochsFactoryCreator().CreateEnableEpochsHandler(args.EpochsConfig, instance.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -210,9 +206,9 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		Hysteresis:           0,
 		Adaptivity:           false,
 		ShuffleBetweenShards: true,
-		MaxNodesEnableConfig: args.EnableEpochsConfig.MaxNodesChangeEnableEpoch,
+		MaxNodesEnableConfig: args.EpochsConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  instance.enableEpochsHandler,
-		EnableEpochs:         args.EnableEpochsConfig,
+		EnableEpochs:         args.EpochsConfig.EnableEpochs,
 	})
 	if err != nil {
 		return nil, err

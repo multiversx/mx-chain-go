@@ -19,6 +19,8 @@ import (
 	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
@@ -38,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
@@ -57,6 +58,7 @@ type CoreComponentsFactoryArgs struct {
 	ChanStopNodeProcess      chan endProcess.ArgEndProcess
 	GenesisNodesSetupFactory sharding.GenesisNodesSetupFactory
 	RatingsDataFactory       rating.RatingsDataFactory
+	EnableEpochsFactory      enablers.EnableEpochsFactory
 }
 
 // coreComponentsFactory is responsible for creating the core components
@@ -73,6 +75,7 @@ type coreComponentsFactory struct {
 	chanStopNodeProcess      chan endProcess.ArgEndProcess
 	genesisNodesSetupFactory sharding.GenesisNodesSetupFactory
 	ratingsDataFactory       rating.RatingsDataFactory
+	enableEpochsFactory      enablers.EnableEpochsFactory
 }
 
 // coreComponents is the DTO used for core components
@@ -121,6 +124,9 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 	if check.IfNil(args.RatingsDataFactory) {
 		return nil, errors.ErrNilRatingsDataFactory
 	}
+	if check.IfNil(args.EnableEpochsFactory) {
+		return nil, enablers.ErrNilEnableEpochsFactory
+	}
 
 	return &coreComponentsFactory{
 		config:                   args.Config,
@@ -135,6 +141,7 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 		nodesFilename:            args.NodesFilename,
 		genesisNodesSetupFactory: args.GenesisNodesSetupFactory,
 		ratingsDataFactory:       args.RatingsDataFactory,
+		enableEpochsFactory:      args.EnableEpochsFactory,
 	}, nil
 }
 
@@ -252,7 +259,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
+	enableEpochsHandler, err := ccf.enableEpochsFactory.CreateEnableEpochsHandler(ccf.epochConfig, epochNotifier)
 	if err != nil {
 		return nil, err
 	}

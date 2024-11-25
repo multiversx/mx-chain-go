@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -43,6 +44,7 @@ type ArgsProcessComponentsHolder struct {
 	StatusCoreComponents     factory.StatusCoreComponentsHolder
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	RunTypeComponents        factory.RunTypeComponentsHolder
+	RunTypeCoreComponents    factory.RunTypeCoreComponentsHolder
 	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 	Configs                  config.Configs
 
@@ -196,6 +198,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GenesisNonce:             args.GenesisNonce,
 		GenesisRound:             args.GenesisRound,
 		RunTypeComponents:        args.RunTypeComponents,
+		RunTypeCoreComponents:    args.RunTypeCoreComponents,
 		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)

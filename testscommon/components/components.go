@@ -145,6 +145,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
 		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 }
 
@@ -689,8 +690,8 @@ func GetProcessArgs(
 			}, nil
 		},
 	}
-
 	args.RunTypeComponents = runTypeComponents
+	args.RunTypeCoreComponents = GetRunTypeCoreComponents()
 	return args
 }
 
@@ -745,6 +746,7 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = runTypeComponents
+	processArgs.RunTypeCoreComponents = GetSovereignRunTypeCoreComponents()
 
 	return processArgs
 }

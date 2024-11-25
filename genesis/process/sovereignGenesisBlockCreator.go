@@ -11,10 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
@@ -51,7 +52,7 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +88,7 @@ func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
+	err := gbc.computeSovereignDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -108,21 +109,13 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	return mapEmptyGenesisBlocks, nil
 }
 
-func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
-	cfg := createGenesisConfig(providedEnableEpochs)
-	cfg.ESDTMultiTransferEnableEpoch = 0
-	cfg.StakeEnableEpoch = 0
-	cfg.PenalizedTooMuchGasEnableEpoch = 0
-	return cfg
-}
-
-func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
+func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(epochsConfig config.EpochConfig) error {
 	initialAddresses, err := addressDecoder.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.DNSV2Addresses)
 	if err != nil {
 		return err
 	}
 
-	return gbc.computeDNSAddresses(enableEpochsConfig, initialAddresses)
+	return gbc.computeDNSAddresses(epochsConfig, initialAddresses)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
@@ -235,7 +228,7 @@ func createSovereignShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
 	nodesListSplitter genesis.NodesListSplitter,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	sovereignGenesisConfig := createSovereignGenesisConfig(arg.EpochConfig.EnableEpochs)
+	sovereignGenesisConfig := createGenesisConfig(arg.EpochConfig)
 	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err

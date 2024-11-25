@@ -31,8 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -49,19 +47,20 @@ import (
 
 // ProcessorRunner is a test emulation to the nodeRunner component
 type ProcessorRunner struct {
-	closers              []io.Closer
-	Config               config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHandler
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	NodesCoordinator     nodesCoord.NodesCoordinator
-	StatusComponents     factory.StatusComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	RunTypeComponents    factory.RunTypeComponentsHolder
+	closers               []io.Closer
+	Config                config.Configs
+	CoreComponents        factory.CoreComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHandler
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	NetworkComponents     factory.NetworkComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	NodesCoordinator      nodesCoord.NodesCoordinator
+	StatusComponents      factory.StatusComponentsHolder
+	ProcessComponents     factory.ProcessComponentsHolder
+	RunTypeComponents     factory.RunTypeComponentsHolder
+	RunTypeCoreComponents factory.RunTypeCoreComponentsHolder
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
@@ -80,6 +79,7 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createRunTypeComponents(tb)
+	pr.createRunTypeCoreComponents(tb)
 	pr.createStatusCoreComponents(tb)
 	pr.createNetworkComponents(tb)
 	pr.createBootstrapComponents(tb)
@@ -87,6 +87,21 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createStateComponents(tb)
 	pr.createStatusComponents(tb)
 	pr.createProcessComponents(tb)
+}
+
+func (pr *ProcessorRunner) createRunTypeCoreComponents(tb testing.TB) {
+	rtcFactory := runType.NewRunTypeCoreComponentsFactory()
+
+	rtcComp, err := runType.NewManagedRunTypeCoreComponents(rtcFactory)
+	require.Nil(tb, err)
+
+	err = rtcComp.Create()
+	require.Nil(tb, err)
+	require.Nil(tb, rtcComp.CheckSubcomponents())
+
+	pr.closers = append(pr.closers, rtcComp)
+	pr.RunTypeCoreComponents = rtcComp
+
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
@@ -124,8 +139,9 @@ func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 		NodesFilename:            pr.Config.ConfigurationPathsHolder.Nodes,
 		WorkingDirectory:         pr.Config.FlagsConfig.WorkingDir,
 		ChanStopNodeProcess:      make(chan endProcess.ArgEndProcess),
-		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
-		RatingsDataFactory:       rating.NewRatingsDataFactory(),
+		GenesisNodesSetupFactory: pr.RunTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
+		RatingsDataFactory:       pr.RunTypeCoreComponents.RatingsDataFactoryCreator(),
+		EnableEpochsFactory:      pr.RunTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 	coreFactory, err := factoryCore.NewCoreComponentsFactory(argsCore)
 	require.Nil(tb, err)
@@ -453,6 +469,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusCoreComponents:    pr.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
 		RunTypeComponents:       pr.RunTypeComponents,
+		RunTypeCoreComponents:   pr.RunTypeCoreComponents,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

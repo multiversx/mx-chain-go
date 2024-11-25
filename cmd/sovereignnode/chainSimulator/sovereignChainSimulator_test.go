@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/require"
+
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -57,9 +58,12 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         core.OptionalUint64{},
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       2,
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    20,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 2,
 		},
 	})
 	require.Nil(t, err)
@@ -68,6 +72,8 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	defer chainSimulator.Close()
 
 	time.Sleep(time.Second)
+
+	logger.SetLogLevel("*:TRACE")
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)

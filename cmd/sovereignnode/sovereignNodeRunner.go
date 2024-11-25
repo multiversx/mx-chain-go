@@ -442,6 +442,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedRunTypeComponents,
+		managedRunTypeCoreComponents,
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
@@ -1289,6 +1290,7 @@ func (snr *sovereignNodeRunner) logSessionInformation(
 // CreateManagedProcessComponents is the managed process components factory
 func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
+	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
@@ -1381,6 +1383,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:              *configs.FlagsConfig,
 		TxExecutionOrderHandler:  ordering.NewOrderedCollection(),
 		RunTypeComponents:        runTypeComponents,
+		RunTypeCoreComponents:    runTypeCoreComponents,
 		IncomingHeaderSubscriber: incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
@@ -1594,6 +1597,7 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 		ChanStopNodeProcess:      chanStopNodeProcess,
 		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
 		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

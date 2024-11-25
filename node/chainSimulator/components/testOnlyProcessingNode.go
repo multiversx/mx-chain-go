@@ -103,7 +103,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
-		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+		EpochsConfig:                *args.Configs.EpochConfig,
 		RoundsConfig:                *args.Configs.RoundConfig,
 		EconomicsConfig:             *args.Configs.EconomicsConfig,
 		ChanStopNodeProcess:         args.ChanStopNodeProcess,
@@ -244,6 +244,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
 		RunTypeComponents:        instance.RunTypeComponents,
+		RunTypeCoreComponents:    runTypeCoreComponents,
 		IncomingHeaderSubscriber: instance.IncomingHeaderSubscriber,
 	})
 	if err != nil {
