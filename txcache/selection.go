@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
@@ -13,11 +13,11 @@ func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProv
 		bunches = append(bunches, sender.getTxs())
 	}
 
-	return selectTransactionsFromBunches(accountStateProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
+	return selectTransactionsFromBunches(session, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -57,7 +57,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			}
 		}
 
-		err := item.requestAccountStateIfNecessary(accountStateProvider)
+		err := item.requestAccountStateIfNecessary(session)
 		if err != nil {
 			// Skip this sender.
 			logSelect.Debug("TxCache.selectTransactionsFromBunches, could not retrieve account state", "sender", item.sender, "err", err)
@@ -71,7 +71,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			continue
 		}
 
-		shouldSkipTransaction := detectSkippableTransaction(accountStateProvider, item)
+		shouldSkipTransaction := detectSkippableTransaction(session, item)
 		if shouldSkipTransaction {
 			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
 		} else {
@@ -104,11 +104,11 @@ func detectSkippableSender(item *transactionsHeapItem) bool {
 	return false
 }
 
-func detectSkippableTransaction(accountStateProvider AccountStateProvider, item *transactionsHeapItem) bool {
+func detectSkippableTransaction(session SelectionSession, item *transactionsHeapItem) bool {
 	if item.detectLowerNonce() {
 		return true
 	}
-	if item.detectBadlyGuarded(accountStateProvider) {
+	if item.detectBadlyGuarded(session) {
 		return true
 	}
 	if item.detectNonceDuplicate() {

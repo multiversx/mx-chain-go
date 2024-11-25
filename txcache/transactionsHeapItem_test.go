@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/stretchr/testify/require"
@@ -231,10 +232,36 @@ func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
 	})
 }
 
-func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
-	accountStateProvider := txcachemocks.NewAccountStateProviderMock()
+func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
+	t.Run("is not badly guarded", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		session.IsBadlyGuardedCalled = func(tx data.TransactionHandler) bool {
+			return false
+		}
 
-	noncesByAddress := accountStateProvider.AccountStateByAddress
+		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
+		require.NoError(t, err)
+
+		require.False(t, item.detectBadlyGuarded(session))
+	})
+
+	t.Run("is badly guarded", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		session.IsBadlyGuardedCalled = func(tx data.TransactionHandler) bool {
+			return true
+		}
+
+		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
+		require.NoError(t, err)
+
+		require.True(t, item.detectBadlyGuarded(session))
+	})
+}
+
+func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
+	session := txcachemocks.NewSelectionSessionMock()
+
+	noncesByAddress := session.AccountStateByAddress
 	noncesByAddress["alice"] = &types.AccountState{
 		Nonce:   7,
 		Balance: big.NewInt(1000000000000000000),
@@ -254,8 +281,8 @@ func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
 
 	c := &transactionsHeapItem{}
 
-	_ = a.requestAccountStateIfNecessary(accountStateProvider)
-	_ = b.requestAccountStateIfNecessary(accountStateProvider)
+	_ = a.requestAccountStateIfNecessary(session)
+	_ = b.requestAccountStateIfNecessary(session)
 
 	require.Equal(t, uint64(7), a.senderState.Nonce)
 	require.Equal(t, uint64(42), b.senderState.Nonce)

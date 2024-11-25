@@ -157,8 +157,8 @@ func (item *transactionsHeapItem) detectLowerNonce() bool {
 	return isLowerNonce
 }
 
-func (item *transactionsHeapItem) detectBadlyGuarded(accountStateProvider AccountStateProvider) bool {
-	isBadlyGuarded := accountStateProvider.IsBadlyGuarded(item.currentTransaction.Tx)
+func (item *transactionsHeapItem) detectBadlyGuarded(session SelectionSession) bool {
+	isBadlyGuarded := session.IsBadlyGuarded(item.currentTransaction.Tx)
 	if isBadlyGuarded {
 		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
 			"tx", item.currentTransaction.TxHash,
@@ -186,12 +186,12 @@ func (item *transactionsHeapItem) detectNonceDuplicate() bool {
 	return isDuplicate
 }
 
-func (item *transactionsHeapItem) requestAccountStateIfNecessary(accountStateProvider AccountStateProvider) error {
+func (item *transactionsHeapItem) requestAccountStateIfNecessary(session SelectionSession) error {
 	if item.senderState != nil {
 		return nil
 	}
 
-	senderState, err := accountStateProvider.GetAccountState(item.sender)
+	senderState, err := session.GetAccountState(item.sender)
 	if err != nil {
 		return err
 	}
