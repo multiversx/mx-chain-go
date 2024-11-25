@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -189,6 +190,11 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		err = inTx.verifyIfRelayedTxV3(inTx.tx)
+		if err != nil {
+			return err
+		}
+
 		err = inTx.verifyIfRelayedTx(inTx.tx)
 		if err != nil {
 			return err
@@ -205,8 +211,12 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 	return nil
 }
 
-func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTxData []byte) error {
-	funcName, _, err := inTx.argsParser.ParseCallData(string(userTxData))
+func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTx *transaction.Transaction) error {
+	if common.IsValidRelayedTxV3(userTx) {
+		return process.ErrRecursiveRelayedTxIsNotAllowed
+	}
+
+	funcName, _, err := inTx.argsParser.ParseCallData(string(userTx.Data))
 	if err != nil {
 		return nil
 	}
@@ -221,6 +231,31 @@ func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTxData []byte) err
 func isRelayedTx(funcName string) bool {
 	return core.RelayedTransaction == funcName ||
 		core.RelayedTransactionV2 == funcName
+}
+
+func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
+	if !common.IsValidRelayedTxV3(tx) {
+		return nil
+	}
+
+	err := inTx.integrity(tx)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
+
+	userTx := *tx
+	userTx.RelayerSignature = make([]byte, 0) // temporary removed signature for recursive relayed checks
+	err = inTx.verifyUserTx(&userTx)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
+
+	err = inTx.verifyRelayerSig(tx)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
+
+	return nil
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transaction) error {
@@ -272,7 +307,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 
 func (inTx *InterceptedTransaction) verifyUserTx(userTx *transaction.Transaction) error {
 	// recursive relayed transactions are not allowed
-	err := inTx.checkRecursiveRelayed(userTx.Data)
+	err := inTx.checkRecursiveRelayed(userTx)
 	if err != nil {
 		return fmt.Errorf("inner transaction: %w", err)
 	}
@@ -368,6 +403,21 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 	}
 
 	return inTx.singleSigner.Verify(senderPubKey, txMessageForSigVerification, tx.Signature)
+}
+
+// verifyRelayerSig checks if the tx is correctly signed by relayer
+func (inTx *InterceptedTransaction) verifyRelayerSig(tx *transaction.Transaction) error {
+	txMessageForSigVerification, err := inTx.getTxMessageForGivenTx(tx)
+	if err != nil {
+		return err
+	}
+
+	relayerPubKey, err := inTx.keyGen.PublicKeyFromByteArray(tx.RelayerAddr)
+	if err != nil {
+		return err
+	}
+
+	return inTx.singleSigner.Verify(relayerPubKey, txMessageForSigVerification, tx.RelayerSignature)
 }
 
 // VerifyGuardianSig verifies if the guardian signature is valid

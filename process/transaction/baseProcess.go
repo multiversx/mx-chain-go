@@ -152,6 +152,73 @@ func (txProc *baseTxProcessor) checkTxValues(
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
 
+	feePayer, isRelayedV3, err := txProc.getFeePayer(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+
+	if feePayer.GetBalance().Cmp(txFee) < 0 {
+		return fmt.Errorf("%w, has: %s, wanted: %s",
+			process.ErrInsufficientFee,
+			feePayer.GetBalance().String(),
+			txFee.String(),
+		)
+	}
+
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
+		// backwards compatibility issue when provided gas limit and gas price exceeds the available balance before the
+		// activation of the "penalize too much gas" flag
+		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)
+	}
+
+	// early exit for relayed v3. This check is done on the relayed transaction, thus
+	// the fee payer at this point should be the relayer.
+	// The check for the cost (fee + value), will be done later on, as part of checkUserTxOfRelayedV3Values
+	// on the sender account, after relayed moved the fee.
+	if isRelayedV3 {
+		return nil
+	}
+
+	cost := big.NewInt(0).Add(txFee, tx.Value)
+	if feePayer.GetBalance().Cmp(cost) < 0 {
+		return process.ErrInsufficientFunds
+	}
+
+	return nil
+}
+
+func (txProc *baseTxProcessor) checkUserTxOfRelayedV3Values(
+	tx *transaction.Transaction,
+	acntSnd, acntDst state.UserAccountHandler,
+) error {
+	err := txProc.verifyGuardian(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+	err = txProc.checkUserNames(tx, acntSnd, acntDst)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+	if acntSnd.GetNonce() < tx.Nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if acntSnd.GetNonce() > tx.Nonce {
+		return process.ErrLowerNonceInTransaction
+	}
+	err = txProc.economicsFee.CheckValidityTxValues(tx)
+	if err != nil {
+		return err
+	}
+
+	if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
+		return process.ErrNotEnoughGasInUserTx
+	}
+
+	txFee := txProc.computeInnerTxFee(tx)
+
 	if acntSnd.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
 			process.ErrInsufficientFee,
@@ -172,6 +239,22 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) getFeePayer(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+) (state.UserAccountHandler, bool, error) {
+	if !common.IsValidRelayedTxV3(tx) {
+		return acntSnd, false, nil
+	}
+
+	acntRelayer, _, err := txProc.getAccounts(tx.RelayerAddr, tx.RelayerAddr)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return acntRelayer, true, nil
 }
 
 func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *big.Int {

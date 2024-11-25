@@ -83,6 +83,10 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		return process.InvalidTransaction, process.InvalidTransaction
 	}
 
+	if common.IsValidRelayedTxV3(tx) {
+		return process.RelayedTxV3, process.RelayedTxV3
+	}
+
 	isEmptyAddress := tth.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.GetData()) > 0 {

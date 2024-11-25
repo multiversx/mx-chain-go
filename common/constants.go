@@ -737,6 +737,9 @@ const (
 	// MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non-payable sc is enabled
 	MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch = "erd_fix_relayed_move_balance_to_non_payable_sc_enable_epoch"
 
+	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 are enabled
+	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -1234,5 +1237,6 @@ const (
 	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
+	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

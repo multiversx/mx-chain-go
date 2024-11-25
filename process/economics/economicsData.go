@@ -488,15 +488,19 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 	return ed.ComputeGasLimitInEpoch(tx, currentEpoch)
 }
 
-// ComputeGasLimitInEpoch returns the gas limit need by the provided transaction in order to be executed in a specific epoch
+// ComputeGasLimitInEpoch returns the gas limit needed by the provided transaction in order to be executed in a specific epoch
 func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
 	gasLimit := ed.getMinGasLimit(epoch)
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
 	txInstance, ok := tx.(*transaction.Transaction)
-	if ok && ed.txVersionHandler.IsGuardedTransaction(txInstance) {
-		gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
+	if ok {
+		if ed.txVersionHandler.IsGuardedTransaction(txInstance) {
+			gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
+		}
+
+		gasLimit += ed.getExtraGasLimitRelayedTx(txInstance, epoch)
 	}
 
 	return gasLimit
@@ -603,6 +607,15 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
 
 	return totalGasLimit, nil
+}
+
+// getExtraGasLimitRelayedTx returns extra gas limit for relayed tx in a specific epoch
+func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Transaction, epoch uint32) uint64 {
+	if common.IsValidRelayedTxV3(txInstance) {
+		return ed.MinGasLimitInEpoch(epoch)
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
