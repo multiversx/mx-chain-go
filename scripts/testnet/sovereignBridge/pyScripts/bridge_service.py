@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 
 def update_env(lines, identifier, value) -> []:
@@ -21,7 +22,8 @@ def build_and_run_bridge_server(server_path):
 
     build_command = "go build"
     kill_screen_service = "screen -ls | grep 'sovereignBridgeService' | awk -F. '{print $1}' | xargs -I{} screen -X -S {} quit"
-    run_service = "screen -dmS sovereignBridgeService -L -Logfile sovereignBridgeService.log ./server"
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_service = f"screen -dmS sovereignBridgeService -L -Logfile sovereignBridgeService_{current_time}.log ./server"
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
@@ -61,7 +63,7 @@ def main():
 
     updated_lines = update_env(lines, "WALLET_PATH", os.path.expanduser(wallet))
     updated_lines = update_env(updated_lines, "MULTIVERSX_PROXY", os.path.expanduser(proxy))
-    updated_lines = update_env(updated_lines, "MULTI_SIG_SC_ADDRESS", header_verifier_address)
+    updated_lines = update_env(updated_lines, "HEADER_VERIFIER_SC_ADDRESS", header_verifier_address)
     updated_lines = update_env(updated_lines, "ESDT_SAFE_SC_ADDRESS", esdt_safe_address)
     updated_lines = update_env(updated_lines, "CERT_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/certificate.crt"))
     updated_lines = update_env(updated_lines, "CERT_PK_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/private_key.pem"))

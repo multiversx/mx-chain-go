@@ -48,8 +48,7 @@
     # This flag indicates whether the node will establish a WebSocket receiver connection from a light node or observer.
     # Running an additional main chain light node as a notifier requires extra hardware resources.
     # When disabled, the node will rely on and trust incoming headers from the main chain proposed by other leaders.
-    # Disabling this flag can be useful in scenarios where additional validation infrastructure isn't necessary,
-    # such as for a CEX observer setup that only requires balance checks on various addresses.
+    # Disabling this flag can be useful in scenarios where additional validation infrastructure isn't necessary.
     Enabled = true
 
     SubscribedEvents = [
@@ -57,7 +56,7 @@
         { Identifier = "execute", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
     ]
     [NotifierConfig.WebSocket]
-        Url = "localhost:22111"
+        Url = "ws://localhost:22111"
         # Possible values: json, gogo protobuf. Should be compatible with mx-chain-node outport driver config
         MarshallerType = "gogo protobuf"
         # Retry duration (receive/send ack signal) in seconds

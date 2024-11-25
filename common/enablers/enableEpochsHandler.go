@@ -766,12 +766,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
 		},
-		common.RelayedTransactionsV3Flag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
-		},
 		common.FixRelayedBaseCostFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
@@ -862,16 +856,6 @@ func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
 	handler.epochMut.RUnlock()
 
 	return currentEpoch
-}
-
-// StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
-func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
-}
-
-// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
-func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

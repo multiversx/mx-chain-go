@@ -14,6 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -24,11 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/stretchr/testify/assert"
 )
 
 func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractProcessor {
@@ -78,11 +78,10 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 				return flag == common.SCDeployFlag
 			},
 		},
-		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
-		WasmVMChangeLocker:      &sync.RWMutex{},
-		VMOutputCacher:          txcache.NewDisabledCache(),
-		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
-		EpochNotifier:           &epochNotifierMock.EpochNotifierStub{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		WasmVMChangeLocker:  &sync.RWMutex{},
+		VMOutputCacher:      txcache.NewDisabledCache(),
+		EpochNotifier:       &epochNotifierMock.EpochNotifierStub{},
 	}
 }
 

@@ -48,22 +48,16 @@ func deploySovereignBridgeSetup(
 	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
 	nonce := GetNonce(t, nodeHandler, wallet.Bech32)
 
-	esdtSafeArgs := "@01" + // is_sovereign_chain
-		"@" + // min_valid_signers
-		"@" + hex.EncodeToString(wallet.Bytes) // initiator_address
+	esdtSafeArgs := "@01" // is_sovereign_chain
 	esdtSafeAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
-		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
-		"@" + hex.EncodeToString([]byte("USDC-350c4e")) + // usdc_token_id
-		"@" + hex.EncodeToString([]byte("WEGLD-a28c59")) // wegld_token_id
+		"@00" // no fee
 	feeMarketAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
 	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
-
-	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
 
 	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
 

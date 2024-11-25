@@ -50,6 +50,8 @@ func NewShardChainMessenger(
 		keysHandler:          args.KeysHandler,
 	}
 
+	cm.broadcasterFilterHandler = cm
+
 	dbbArgs := &ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
 		HeadersSubscriber:     args.HeadersSubscriber,

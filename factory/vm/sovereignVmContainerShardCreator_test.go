@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"fmt"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,6 +44,9 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 
 func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) {
 	t.Parallel()
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
 
 	runTypeComponents := componentsMock.GetRunTypeComponents()
 	sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())

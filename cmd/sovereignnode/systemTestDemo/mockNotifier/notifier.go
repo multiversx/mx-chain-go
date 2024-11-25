@@ -93,7 +93,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	nonce := uint64(5)
+	nonce := uint64(3)
 	prevHash := generateRandomHash()
 	prevRandSeed := generateRandomHash()
 	for {
