@@ -8,10 +8,12 @@ import (
 
 type enableEpochsFactory struct{}
 
+// NewEnableEpochsFactory creates an enable epochs factory for regular chain
 func NewEnableEpochsFactory() EnableEpochsFactory {
 	return &enableEpochsFactory{}
 }
 
+// CreateEnableEpochsHandler creates an enable epochs handler for regular chain
 func (eef *enableEpochsFactory) CreateEnableEpochsHandler(epochConfig config.EpochConfig, epochNotifier process.EpochNotifier) (common.EnableEpochsHandler, error) {
 	return NewEnableEpochsHandler(epochConfig.EnableEpochs, epochNotifier)
 }

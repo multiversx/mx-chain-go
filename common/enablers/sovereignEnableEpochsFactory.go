@@ -8,10 +8,12 @@ import (
 
 type sovereignEnableEpochsFactory struct{}
 
+// NewSovereignEnableEpochsFactory creates an enable epochs factory for sovereign chain
 func NewSovereignEnableEpochsFactory() EnableEpochsFactory {
 	return &sovereignEnableEpochsFactory{}
 }
 
+// CreateEnableEpochsHandler creates an enable epochs handler for sovereign chain
 func (seef *sovereignEnableEpochsFactory) CreateEnableEpochsHandler(epochConfig config.EpochConfig, epochNotifier process.EpochNotifier) (common.EnableEpochsHandler, error) {
 	return NewSovereignEnableEpochsHandler(epochConfig.EnableEpochs, epochConfig.SovereignEnableEpochs, epochConfig.SovereignChainSpecificEnableEpochs,
 		epochNotifier)
