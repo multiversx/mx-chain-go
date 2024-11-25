@@ -40,7 +40,6 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	guardianChecker              process.GuardianChecker
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object

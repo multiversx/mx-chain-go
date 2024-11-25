@@ -10,7 +10,6 @@ import (
 
 type accountStateProvider struct {
 	accountsAdapter state.AccountsAdapter
-	guardianChecker process.GuardianChecker
 }
 
 func newAccountStateProvider(accountsAdapter state.AccountsAdapter) (*accountStateProvider, error) {
