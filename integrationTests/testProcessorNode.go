@@ -2771,7 +2771,7 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 	blockHeader.SetPreviousProof(previousProof)
 
-	tpn.ProofsPool.AddProof(previousProof)
+	_ = tpn.ProofsPool.AddProof(previousProof)
 
 	log.Error("added proof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 

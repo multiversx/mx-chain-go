@@ -78,8 +78,6 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 	err := hip.proofs.AddProof(interceptedHdr.HeaderHandler().GetPreviousProof())
 	if err != nil {
 		log.Error("failed to add proof", "error", err, "intercepted header hash", interceptedHdr.Hash(), "header type", reflect.TypeOf(interceptedHdr.HeaderHandler()))
-	} else {
-		log.Debug("HdrInterceptorProcessor: added proof", "headerHash", interceptedHdr.HeaderHandler().GetPreviousProof().GetHeaderHash())
 	}
 
 	return nil
