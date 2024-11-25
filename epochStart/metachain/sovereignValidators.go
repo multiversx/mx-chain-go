@@ -4,8 +4,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type sovereignValidatorInfoCreator struct {
@@ -72,6 +75,29 @@ func (svic *sovereignValidatorInfoCreator) getMarshalledValidatorInfoTxs(miniBlo
 	}
 
 	return marshalledValidatorInfoTxs
+}
+
+// CreateValidatorInfoMiniBlocks creates the validatorInfo mini blocks according to the provided validatorInfo map
+func (svic *sovereignValidatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
+	if validatorsInfo == nil {
+		return nil, epochStart.ErrNilValidatorInfo
+	}
+
+	svic.clean()
+
+	miniBlocks := make([]*block.MiniBlock, 0)
+	validators := validatorsInfo.GetShardValidatorsInfoMap()[core.SovereignChainShardId]
+	if len(validators) == 0 {
+		return miniBlocks, nil
+	}
+
+	miniBlock, err := svic.createMiniBlock(validators, core.SovereignChainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	miniBlocks = append(miniBlocks, miniBlock)
+	return miniBlocks, nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

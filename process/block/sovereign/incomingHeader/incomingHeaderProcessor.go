@@ -3,11 +3,6 @@ package incomingHeader
 import (
 	"encoding/hex"
 
-	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -15,6 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var log = logger.GetOrCreate("headerSubscriber")
@@ -27,7 +25,7 @@ type ArgsIncomingHeaderProcessor struct {
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	MainChainNotarizationStartRound uint64
-	DataCodec                       dataCodec.SovereignDataCodec
+	DataCodec                       SovereignDataCodec
 	TopicsChecker                   TopicsChecker
 }
 
@@ -35,7 +33,6 @@ type incomingHeaderProcessor struct {
 	eventsProc         *incomingEventsProcessor
 	extendedHeaderProc *extendedHeaderProcessor
 
-	txPool                          TransactionPool
 	outGoingPool                    sovereignBlock.OutGoingOperationsPool
 	mainChainNotarizationStartRound uint64
 }
@@ -75,6 +72,7 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 
 	extendedHearProc := &extendedHeaderProcessor{
 		headersPool: args.HeadersPool,
+		txPool:      args.TxPool,
 		marshaller:  args.Marshaller,
 		hasher:      args.Hasher,
 	}
@@ -84,7 +82,6 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	return &incomingHeaderProcessor{
 		eventsProc:                      eventsProc,
 		extendedHeaderProc:              extendedHearProc,
-		txPool:                          args.TxPool,
 		outGoingPool:                    args.OutGoingOperationsPool,
 		mainChainNotarizationStartRound: args.MainChainNotarizationStartRound,
 	}, nil
@@ -96,9 +93,21 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return data.ErrNilHeader
 	}
 
-	log.Info("received incoming header", "hash", hex.EncodeToString(headerHash), "nonce", header.GetHeaderHandler().GetNonce())
-
+	log.Info("received incoming header",
+		"hash", hex.EncodeToString(headerHash),
+		"nonce", header.GetHeaderHandler().GetNonce(),
+		"round", header.GetHeaderHandler().GetRound(),
+	)
 	round := header.GetHeaderHandler().GetRound()
+
+	// pre-genesis header, needed to track/link genesis header on top of this one. Every node with an enabled notifier
+	// will validate that the next genesis header with round == mainChainNotarizationStartRound is on top of pre-genesis header.
+	// just save internal header to tracker, no need to process anything from it
+	if round == ihp.mainChainNotarizationStartRound-1 {
+		log.Debug("received pre-genesis header", "round", header.GetHeaderHandler().GetRound())
+		return ihp.extendedHeaderProc.addPreGenesisExtendedHeaderToPool(header)
+	}
+
 	if round < ihp.mainChainNotarizationStartRound {
 		log.Debug("do not notarize incoming header, round lower than main chain notarization start round",
 			"round", round,
@@ -116,22 +125,13 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return err
 	}
 
-	err = ihp.extendedHeaderProc.addExtendedHeaderToPool(extendedHeader)
+	err = ihp.extendedHeaderProc.addExtendedHeaderAndSCRsToPool(extendedHeader, res.scrs)
 	if err != nil {
 		return err
 	}
 
 	ihp.addConfirmedBridgeOpsToPool(res.confirmedBridgeOps)
-	ihp.addSCRsToPool(res.scrs)
 	return nil
-}
-
-func (ihp *incomingHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
-	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
-
-	for _, scrData := range scrs {
-		ihp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
-	}
 }
 
 func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) {

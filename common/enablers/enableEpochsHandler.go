@@ -858,16 +858,6 @@ func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
 	return currentEpoch
 }
 
-// StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
-func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
-}
-
-// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
-func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableEpochsHandler) IsInterfaceNil() bool {
 	return handler == nil

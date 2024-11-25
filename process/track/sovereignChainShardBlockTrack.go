@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -108,7 +109,7 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 
 	// TODO: This condition will permit to the sovereign chain to follow the main chain headers starting with a header
 	// having a nonce higher than nonce 1 (the first block after genesis)
-	if scsbt.isGenesisLastCrossNotarizedHeader() {
+	if scsbt.IsGenesisLastCrossNotarizedHeader() {
 		scsbt.crossNotarizer.AddNotarizedHeader(core.MainChainShardId, extendedShardHeaderHandler, extendedShardHeaderHash)
 	}
 
@@ -126,7 +127,8 @@ func (scsbt *sovereignChainShardBlockTrack) receivedExtendedShardHeader(
 	scsbt.blockProcessor.ProcessReceivedHeader(extendedShardHeaderHandler)
 }
 
-func (scsbt *sovereignChainShardBlockTrack) isGenesisLastCrossNotarizedHeader() bool {
+// IsGenesisLastCrossNotarizedHeader returns true if the last cross chain notarized header is the dummy genesis header
+func (scsbt *sovereignChainShardBlockTrack) IsGenesisLastCrossNotarizedHeader() bool {
 	lastNotarizedHeader, _, err := scsbt.crossNotarizer.GetLastNotarizedHeader(core.MainChainShardId)
 
 	isGenesisLastCrossNotarizedHeader := err != nil && errors.Is(err, process.ErrNotarizedHeadersSliceForShardIsNil) ||
@@ -212,11 +214,7 @@ func (scsbt *sovereignChainShardBlockTrack) CleanupHeadersBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
-	scsbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
-	scsbt.cleanupTrackedHeadersBehindNonce(shardID, selfNotarizedNonce)
-
-	scsbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)
-	scsbt.cleanupTrackedHeadersBehindNonce(core.MainChainShardId, crossNotarizedNonce)
+	scsbt.cleanupHeadersBehindNonce(shardID, core.MainChainShardId, selfNotarizedNonce, crossNotarizedNonce)
 }
 
 // DisplayTrackedHeaders displays tracked headers

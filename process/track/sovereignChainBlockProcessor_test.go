@@ -65,8 +65,9 @@ func TestNewSovereignChainBlockProcessor_ShouldWork(t *testing.T) {
 	bp, _ := track.NewBlockProcessor(blockProcessorArguments)
 
 	scpb, err := track.NewSovereignChainBlockProcessor(bp)
-	assert.NotNil(t, scpb)
-	assert.Nil(t, err)
+	require.NotNil(t, scpb)
+	require.Zero(t, scpb.GetBlockFinality())
+	require.Nil(t, err)
 }
 
 func TestSovereignChainBlockProcessor_ShouldProcessReceivedHeaderShouldReturnFalseWhenGetLastNotarizedHeaderFails(t *testing.T) {
@@ -263,9 +264,17 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 	}
 
 	wasCalled := false
+	getNumRegisteredHandlersCalledCt := 0
 	blockProcessorArguments.CrossNotarizedHeadersNotifier = &mock.BlockNotifierHandlerStub{
 		CallHandlersCalled: func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte) {
 			wasCalled = true
+		},
+		GetNumRegisteredHandlersCalled: func() int {
+			defer func() {
+				getNumRegisteredHandlersCalledCt++
+			}()
+
+			return getNumRegisteredHandlersCalledCt
 		},
 	}
 
@@ -273,8 +282,12 @@ func TestSovereignChainBlockProcessor_DoJobOnReceivedCrossNotarizedHeaderShouldW
 	scbp, _ := track.NewSovereignChainBlockProcessor(bp)
 
 	scbp.DoJobOnReceivedCrossNotarizedHeader(core.SovereignChainShardId)
+	require.False(t, wasCalled)
+	require.Equal(t, 1, getNumRegisteredHandlersCalledCt)
 
-	assert.True(t, wasCalled)
+	scbp.DoJobOnReceivedCrossNotarizedHeader(core.SovereignChainShardId)
+	require.True(t, wasCalled)
+	require.Equal(t, 2, getNumRegisteredHandlersCalledCt)
 }
 
 func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardHeaders(t *testing.T) {
@@ -323,15 +336,15 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForShardH
 	})
 	mutRequest.Unlock()
 
-	require.Equal(t, 2, len(shardIDAddCalled))
-	require.Equal(t, 2, len(nonceAddCalled))
-	require.Equal(t, 2, len(shardIDRequestCalled))
-	require.Equal(t, 2, len(nonceRequestCalled))
+	require.Equal(t, 1, len(shardIDAddCalled))
+	require.Equal(t, 1, len(nonceAddCalled))
+	require.Equal(t, 1, len(shardIDRequestCalled))
+	require.Equal(t, 1, len(nonceRequestCalled))
 
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
+	assert.Equal(t, []uint32{shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce}, nonceAddCalled)
+	assert.Equal(t, []uint32{shardID}, shardIDRequestCalled)
+	assert.Equal(t, []uint64{fromNonce}, nonceRequestCalled)
 }
 
 func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtendedShardHeaders(t *testing.T) {
@@ -378,13 +391,13 @@ func TestSovereignChainBlockProcessor_RequestHeadersShouldAddAndRequestForExtend
 	})
 	mutRequest.Unlock()
 
-	require.Equal(t, 2, len(shardIDAddCalled))
-	require.Equal(t, 2, len(nonceAddCalled))
-	require.Equal(t, 2, len(shardIDRequestCalled))
-	require.Equal(t, 2, len(nonceRequestCalled))
+	require.Equal(t, 1, len(shardIDAddCalled))
+	require.Equal(t, 1, len(nonceAddCalled))
+	require.Equal(t, 1, len(shardIDRequestCalled))
+	require.Equal(t, 1, len(nonceRequestCalled))
 
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDAddCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceAddCalled)
-	assert.Equal(t, []uint32{shardID, shardID}, shardIDRequestCalled)
-	assert.Equal(t, []uint64{fromNonce, fromNonce + 1}, nonceRequestCalled)
+	assert.Equal(t, []uint32{shardID}, shardIDAddCalled)
+	assert.Equal(t, []uint64{fromNonce}, nonceAddCalled)
+	assert.Equal(t, []uint32{shardID}, shardIDRequestCalled)
+	assert.Equal(t, []uint64{fromNonce}, nonceRequestCalled)
 }

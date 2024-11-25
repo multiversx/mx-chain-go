@@ -53,7 +53,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 		return nil, nil, err
 	}
 
-	err = sicf.generateHeaderInterceptors(core.SovereignChainShardId)
+	err = sicf.generateSovereignHeaderInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,6 +97,14 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
 }
 
+func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderInterceptors() error {
+	hdrFactory, err := interceptorFactory.NewInterceptedSovereignShardHeaderDataFactory(sicf.argInterceptorFactory)
+	if err != nil {
+		return err
+	}
+	return sicf.generateHeaderInterceptors(hdrFactory, core.SovereignChainShardId)
+}
+
 func (sicf *sovereignShardInterceptorsContainerFactory) generateTxInterceptors() error {
 	keys := make([]string, 0, 1)
 	interceptorSlice := make([]process.Interceptor, 0, 1)
@@ -133,7 +141,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterc
 	interceptorsSlice := make([]process.Interceptor, 0, 1)
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
-	interceptor, err := sicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+	interceptor, err := sicf.createOneSovereignMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
 		return err
 	}
@@ -142,6 +150,15 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterc
 	interceptorsSlice = append(interceptorsSlice, interceptor)
 
 	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
+}
+
+func (bicf *baseInterceptorsContainerFactory) createOneSovereignMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+	miniBlockFactory, err := interceptorFactory.NewInterceptedSovereignMiniBlockDataFactory(bicf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return bicf.baseCreateOneMiniBlocksInterceptor(miniBlockFactory, topic)
 }
 
 func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignExtendedHeaderInterceptors() error {
