@@ -364,20 +364,20 @@ func (en *extensionNode) insert(
 }
 
 func getMinKeyMatchLen(newData []core.TrieData, enKey []byte) (int, int) {
-	keyMatchLen := len(enKey)
+	minKeyMatchLen := len(enKey)
 	index := 0
 	for i, data := range newData {
-		if keyMatchLen == 0 {
+		if minKeyMatchLen == 0 {
 			return 0, index
 		}
 		matchLen := prefixLen(data.Key, enKey)
-		if matchLen < keyMatchLen {
-			keyMatchLen = matchLen
+		if matchLen < minKeyMatchLen {
+			minKeyMatchLen = matchLen
 			index = i
 		}
 	}
 
-	return keyMatchLen, index
+	return minKeyMatchLen, index
 }
 
 func removeCommonPrefix(newData []core.TrieData, prefixLen int) error {

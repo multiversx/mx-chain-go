@@ -1286,7 +1286,8 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 
 		newNode, modifiedHashes := en.insert(data, goRoutinesManager, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 0, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.Nil(t, newNode)
 		assert.False(t, en.dirty)
 	})
@@ -1308,7 +1309,8 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 
 		newNode, modifiedHashes := en.insert(data, goRoutinesManager, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 2, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 2
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)
 		assert.True(t, en.dirty)
@@ -1342,7 +1344,8 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 
 		newNode, modifiedHashes := en.insert(data, goRoutinesManager, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 1, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)
 		assert.True(t, en.dirty)
@@ -1374,7 +1377,8 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 
 		newNode, modifiedHashes := en.insert(data, goRoutinesManager, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 1, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 1
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		bn, ok := newNode.(*branchNode)
 		assert.True(t, ok)
 		assert.True(t, bn.dirty)
@@ -1406,7 +1410,8 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		dirty, newNode, modifiedHashes := en.delete(data, goRoutinesManager, nil)
 		assert.False(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 0, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 0
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.Equal(t, en, newNode)
 	})
 	t.Run("reduce to leaf after delete", func(t *testing.T) {
@@ -1427,7 +1432,8 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		dirty, newNode, modifiedHashes := en.delete(data, goRoutinesManager, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 4, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 4
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		ln, ok := newNode.(*leafNode)
 		assert.True(t, ok)
 		assert.Equal(t, []byte{1, 2, 7, 7, 8, 9}, ln.Key)
@@ -1456,7 +1462,8 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		dirty, newNode, modifiedHashes := en.delete(dataForRemoval, goRoutinesManager, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 3, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 3
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		en, ok := newNode.(*extensionNode)
 		assert.True(t, ok)
 		assert.Equal(t, []byte{1, 2, 4}, en.Key)
@@ -1481,7 +1488,8 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		dirty, newNode, modifiedHashes := en.delete(data, goRoutinesManager, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
-		assert.Equal(t, 4, len(modifiedHashes))
+		expectedNumTrieNodesChanged := 4
+		assert.Equal(t, expectedNumTrieNodesChanged, len(modifiedHashes))
 		assert.Nil(t, newNode)
 	})
 }
