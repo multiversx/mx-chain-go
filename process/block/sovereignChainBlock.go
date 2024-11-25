@@ -1596,7 +1596,6 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	// TODO: MX-15748 Analyse if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() from metablock.go
 	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
 		return err
@@ -1617,6 +1616,7 @@ func (scbp *sovereignChainBlockProcessor) indexValidatorsRatingIfNeeded(
 	indexValidatorsRating(scbp.outportHandler, scbp.validatorStatisticsProcessor, header)
 }
 
+// Put this in a common place with the one from meta
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
