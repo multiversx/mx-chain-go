@@ -28,7 +28,6 @@ func TestAccountStateProvider_GetAccountState(t *testing.T) {
 
 	accounts := &state.AccountsStub{}
 	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		// Alice has no guardian
 		if bytes.Equal(address, []byte("alice")) {
 			return &state.UserAccountStub{
 				Address: []byte("alice"),
@@ -36,7 +35,6 @@ func TestAccountStateProvider_GetAccountState(t *testing.T) {
 			}, nil
 		}
 
-		// Bob has Heidi as guardian
 		if bytes.Equal(address, []byte("bob")) {
 			return &state.UserAccountStub{
 				Address: []byte("bob"),
