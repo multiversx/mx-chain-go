@@ -290,10 +290,64 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 
 func (txProc *txProcessor) executingFailedTransaction(
 	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+	txError error,
+) error {
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
+	err := acntSnd.SubFromBalance(txFee)
+	if err != nil {
+		return err
+	}
+
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
+	acntSnd.IncreaseNonce(1)
+	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
+	if err != nil {
+		return err
+	}
+
+	log.Trace("executingFailedTransaction", "fail reason(error)", txError, "tx hash", txHash)
+
+	rpt := &receipt.Receipt{
+		Value:   big.NewInt(0).Set(txFee),
+		SndAddr: tx.SndAddr,
+		Data:    []byte(txError.Error()),
+		TxHash:  txHash,
+	}
+
+	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt}, txHash)
+	if err != nil {
+		return err
+	}
+
+	txProc.txFeeHandler.ProcessTransactionFee(txFee, big.NewInt(0), txHash)
+
+	err = txProc.accounts.SaveAccount(acntSnd)
+	if err != nil {
+		return err
+	}
+
+	return process.ErrFailedTransaction
+}
+
+func (txProc *txProcessor) executingFailedTransactionRelayedV3(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
 	relayerAccount state.UserAccountHandler,
 	txError error,
 ) error {
 	if check.IfNil(relayerAccount) {
+		return nil
+	}
+	if check.IfNil(acntSnd) {
 		return nil
 	}
 
@@ -308,13 +362,13 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	relayerAccount.IncreaseNonce(1)
+	acntSnd.IncreaseNonce(1)
 	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
 	if err != nil {
 		return err
 	}
 
-	log.Trace("executingFailedTransaction", "fail reason(error)", txError, "tx hash", txHash)
+	log.Trace("executingFailedTransactionRelayedV3", "fail reason(error)", txError, "tx hash", txHash)
 
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(txFee),
@@ -331,6 +385,11 @@ func (txProc *txProcessor) executingFailedTransaction(
 	txProc.txFeeHandler.ProcessTransactionFee(txFee, big.NewInt(0), txHash)
 
 	err = txProc.accounts.SaveAccount(relayerAccount)
+	if err != nil {
+		return err
+	}
+
+	err = txProc.accounts.SaveAccount(acntSnd)
 	if err != nil {
 		return err
 	}
@@ -610,7 +669,7 @@ func (txProc *txProcessor) finishExecutionOfRelayedTxV3(
 	userTx *transaction.Transaction,
 ) (vmcommon.ReturnCode, error) {
 	computedFees := txProc.computeRelayedTxV3Fees(tx, userTx)
-	txHash, err := txProc.processTxV3AtRelayer(
+	txHash, err := txProc.consumeFeeFromRelayer(
 		relayerAcnt,
 		computedFees.totalFee,
 		computedFees.relayerFee,
@@ -698,7 +757,7 @@ func (txProc *txProcessor) processTxAtRelayer(
 	return txHash, nil
 }
 
-func (txProc *txProcessor) processTxV3AtRelayer(
+func (txProc *txProcessor) consumeFeeFromRelayer(
 	relayerAcnt state.UserAccountHandler,
 	totalFee *big.Int,
 	relayerFee *big.Int,
@@ -753,15 +812,15 @@ func (txProc *txProcessor) processRelayedTxV3(tx *transaction.Transaction) (vmco
 	}
 
 	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAccount, process.ErrRelayedTxV3Disabled)
+		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrRelayedTxV3Disabled)
 	}
 
 	if !txProc.shardCoordinator.SameShard(tx.RelayerAddr, tx.SndAddr) {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAccount, process.ErrShardIdMissmatch)
+		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrShardIdMissmatch)
 	}
 
 	if !check.IfNil(relayerAccount) && relayerAccount.IsGuarded() {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAccount, process.ErrGuardedRelayerNotAllowed)
+		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrGuardedRelayerNotAllowed)
 	}
 
 	userTx := *tx
