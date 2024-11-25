@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"math/big"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -220,6 +222,34 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		expectedNumSelected := 3 + 1 // 3 alice + 1 bob
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 200000, int(accumulatedGas))
+	})
+
+	t.Run("with badly guarded", func(t *testing.T) {
+		cache := newUnconstrainedCacheToTest()
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+		session.SetNonce([]byte("bob"), 42)
+
+		session.IsBadlyGuardedCalled = func(tx data.TransactionHandler) bool {
+			if bytes.Equal(tx.GetData(), []byte("t")) {
+				return true
+			}
+
+			return false
+		}
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withData([]byte("x")).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-bob-42a"), "bob", 42).withData([]byte("y")).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-bob-43a"), "bob", 43).withData([]byte("z")).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-bob-43b"), "bob", 43).withData([]byte("t")).withGasLimit(100000))
+
+		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		require.Len(t, sorted, 3)
+		require.Equal(t, 300000, int(accumulatedGas))
+
+		require.Equal(t, "hash-alice-1", string(sorted[0].TxHash))
+		require.Equal(t, "hash-bob-42a", string(sorted[1].TxHash))
+		require.Equal(t, "hash-bob-43a", string(sorted[2].TxHash))
 	})
 }
 
