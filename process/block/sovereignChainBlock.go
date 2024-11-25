@@ -1517,10 +1517,13 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	err = scbp.commitEpochStart(headerHandler, body)
-	if err != nil {
-		return err
+	sovMetaHdr, castOk := headerHandler.(data.MetaHeaderHandler)
+	if !castOk {
+		log.Error("sovereignChainBlockProcessor.CommitBlock: before commitEpochStart", "error", process.ErrWrongTypeAssertion)
+		return process.ErrWrongTypeAssertion
 	}
+
+	scbp.commitEpochStart(sovMetaHdr, body, scbp.epochRewardsCreator, scbp.validatorInfoCreator)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
 	scbp.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
@@ -1614,29 +1617,6 @@ func (scbp *sovereignChainBlockProcessor) indexValidatorsRatingIfNeeded(
 	}
 
 	indexValidatorsRating(scbp.outportHandler, scbp.validatorStatisticsProcessor, header)
-}
-
-// Put this in a common place with the one from meta
-func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
-	if header.IsStartOfEpochBlock() {
-		scbp.epochStartTrigger.SetProcessed(header, body)
-		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
-		if !castOk {
-			log.Error("sovereignChainBlockProcessor.commitEpochStart", "error", process.ErrWrongTypeAssertion)
-			return process.ErrWrongTypeAssertion
-		}
-
-		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
-	} else {
-		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
-		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
-			scbp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
-			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
-		}
-	}
-
-	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {

@@ -2342,3 +2342,22 @@ func (bp *baseProcessor) isPreviousBlockEpochStart() (uint32, bool) {
 
 	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
 }
+
+func (bp *baseProcessor) commitEpochStart(
+	header data.MetaHeaderHandler,
+	body *block.Body,
+	epochRewardsCreator process.RewardsCreator,
+	validatorInfoCreator process.EpochStartValidatorInfoCreator,
+) {
+	if header.IsStartOfEpochBlock() {
+		bp.epochStartTrigger.SetProcessed(header, body)
+		go epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		go validatorInfoCreator.SaveBlockDataToStorage(header, body)
+	} else {
+		currentHeader := bp.blockChain.GetCurrentBlockHeader()
+		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
+			bp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
+			bp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
+	}
+}
