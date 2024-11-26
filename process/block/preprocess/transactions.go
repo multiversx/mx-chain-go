@@ -33,10 +33,10 @@ var _ process.PreProcessor = (*transactions)(nil)
 var log = logger.GetOrCreate("process/block/preprocess")
 
 // 200% bandwidth to allow 100% overshooting estimations
-const selectionGasBandwidthIncreasePercent = 200
+const selectionGasBandwidthIncreasePercent = 400
 
 // 130% to allow 30% overshooting estimations for scheduled SC calls
-const selectionGasBandwidthIncreaseScheduledPercent = 130
+const selectionGasBandwidthIncreaseScheduledPercent = 260
 
 // TODO: increase code coverage with unit test
 
@@ -154,7 +154,7 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
-	accountStateProvider, err := newAccountStateProvider(args.Accounts)
+	stateProvider, err := newAccountStateProvider(args.Accounts)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func NewTransactionPreprocessor(
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
-		accountStateProvider:       accountStateProvider,
+		accountStateProvider:       stateProvider,
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
