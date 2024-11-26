@@ -20,7 +20,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
 	maxShards := uint32(1)
 	shardId := uint32(0)
 	numNodesPerShard := 6
@@ -197,4 +196,90 @@ func testAllNodesHaveSameLastBlock(t *testing.T, nodes []*integrationTests.TestP
 	}
 
 	assert.Equal(t, 1, len(mapBlocksByHash))
+}
+
+func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	maxShards := uint32(1)
+	shardId := uint32(0)
+	numNodesPerShard := 3
+
+	enableEpochs := integrationTests.CreateEnableEpochsConfig()
+	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
+
+	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
+	connectableNodes := make([]integrationTests.Connectable, 0)
+	for i := 0; i < numNodesPerShard; i++ {
+		nodes[i] = integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+			MaxShards:            maxShards,
+			NodeShardId:          shardId,
+			TxSignPrivKeyShardId: shardId,
+			WithSync:             true,
+			EpochsConfig:         &enableEpochs,
+		})
+		connectableNodes = append(connectableNodes, nodes[i])
+	}
+
+	metachainNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
+		MaxShards:            maxShards,
+		NodeShardId:          core.MetachainShardId,
+		TxSignPrivKeyShardId: shardId,
+		WithSync:             true,
+	})
+	idxProposerMeta := numNodesPerShard
+	nodes[idxProposerMeta] = metachainNode
+	connectableNodes = append(connectableNodes, metachainNode)
+
+	idxProposerShard0 := 0
+	leaders := []*integrationTests.TestProcessorNode{nodes[idxProposerShard0], nodes[idxProposerMeta]}
+
+	integrationTests.ConnectNodes(connectableNodes)
+
+	defer func() {
+		for _, n := range nodes {
+			n.Close()
+		}
+	}()
+
+	for _, n := range nodes {
+		_ = n.StartSync()
+	}
+
+	fmt.Println("Delaying for nodes p2p bootstrap...")
+	time.Sleep(integrationTests.P2pBootstrapDelay)
+
+	round := uint64(0)
+	nonce := uint64(0)
+	round = integrationTests.IncrementAndPrintRound(round)
+	integrationTests.UpdateRound(nodes, round)
+	nonce++
+
+	numRoundsToTest := 5
+	for i := 0; i < numRoundsToTest; i++ {
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+
+		time.Sleep(integrationTests.SyncDelay)
+
+		round = integrationTests.IncrementAndPrintRound(round)
+		integrationTests.UpdateRound(nodes, round)
+		nonce++
+	}
+
+	time.Sleep(integrationTests.SyncDelay)
+
+	expectedNonce := nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce()
+	for i := 1; i < len(nodes); i++ {
+		if check.IfNil(nodes[i].BlockChain.GetCurrentBlockHeader()) {
+			assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
+		} else {
+			if i == idxProposerMeta { // metachain node has highest nonce since it's single node and it did not synced the header
+				assert.Equal(t, expectedNonce, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
+			} else { // shard nodes have not managed to sync last header since there is no proof for it; in the complete flow, when nodes will be fully sinced they will get current header directly from consensus, so they will receive the proof for header
+				assert.Equal(t, expectedNonce-1, nodes[i].BlockChain.GetCurrentBlockHeader().GetNonce())
+			}
+		}
+	}
 }
