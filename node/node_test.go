@@ -3016,7 +3016,7 @@ func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
 		err := n.ValidateTransaction(tx)
 		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
 	})
-	t.Run("relayed tx v3", func(t *testing.T) {
+	t.Run("relayed tx v3, no funds for sender", func(t *testing.T) {
 		tx := &transaction.Transaction{
 			SndAddr:          bytes.Repeat([]byte("1"), 32),
 			RcvAddr:          bytes.Repeat([]byte("1"), 32),
@@ -3027,6 +3027,38 @@ func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
 			ChainID:          []byte("chainID"),
 		}
 		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	})
+	t.Run("relayed tx v3, no funds for relayer", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:          bytes.Repeat([]byte("1"), 32),
+			RcvAddr:          bytes.Repeat([]byte("1"), 32),
+			Value:            big.NewInt(37),
+			Signature:        []byte("sSignature"),
+			RelayerAddr:      bytes.Repeat([]byte("2"), 32),
+			RelayerSignature: []byte("rSignature"),
+			ChainID:          []byte("chainID"),
+		}
+
+		stateComp := getDefaultStateComponents()
+		stateComp.AccountsAPI = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, tx.SndAddr) {
+					return &stateMock.UserAccountStub{}, nil
+				}
+
+				return nil, errors.New("account not found")
+			},
+		}
+		nLocal, _ := node.NewNode(
+			node.WithCoreComponents(getDefaultCoreComponents()),
+			node.WithBootstrapComponents(getDefaultBootstrapComponents()),
+			node.WithProcessComponents(getDefaultProcessComponents()),
+			node.WithStateComponents(stateComp),
+			node.WithCryptoComponents(getDefaultCryptoComponents()),
+		)
+
+		err := nLocal.ValidateTransaction(tx)
 		require.Equal(t, "insufficient funds for address erd1xgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeqvw86cj", err.Error())
 	})
 }
