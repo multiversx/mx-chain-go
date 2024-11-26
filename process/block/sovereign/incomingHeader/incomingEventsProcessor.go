@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -58,7 +57,7 @@ type eventsResult struct {
 type incomingEventsProcessor struct {
 	marshaller    marshal.Marshalizer
 	hasher        hashing.Hasher
-	dataCodec     dataCodec.SovereignDataCodec
+	dataCodec     SovereignDataCodec
 	topicsChecker TopicsChecker
 }
 

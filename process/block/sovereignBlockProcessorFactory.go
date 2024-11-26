@@ -63,17 +63,18 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 	}
 
 	args := ArgsSovereignChainBlockProcessor{
-		ShardProcessor:               shardProc,
-		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
-		OutgoingOperationsFormatter:  outgoingOpFormatter,
-		OutGoingOperationsPool:       argumentsBaseProcessor.RunTypeComponents.OutGoingOperationsPoolHandler(),
-		OperationsHasher:             operationsHasher,
-		ValidatorInfoCreator:         argsMetaProcessor.EpochValidatorInfoCreator,
-		EpochRewardsCreator:          argsMetaProcessor.EpochRewardsCreator,
-		EpochStartDataCreator:        argsMetaProcessor.EpochStartDataCreator,
-		EpochSystemSCProcessor:       argsMetaProcessor.EpochSystemSCProcessor,
-		SCToProtocol:                 argsMetaProcessor.SCToProtocol,
-		EpochEconomics:               argsMetaProcessor.EpochEconomics,
+		ShardProcessor:                  shardProc,
+		ValidatorStatisticsProcessor:    argumentsBaseProcessor.ValidatorStatisticsProcessor,
+		OutgoingOperationsFormatter:     outgoingOpFormatter,
+		OutGoingOperationsPool:          argumentsBaseProcessor.RunTypeComponents.OutGoingOperationsPoolHandler(),
+		OperationsHasher:                operationsHasher,
+		ValidatorInfoCreator:            argsMetaProcessor.EpochValidatorInfoCreator,
+		EpochRewardsCreator:             argsMetaProcessor.EpochRewardsCreator,
+		EpochStartDataCreator:           argsMetaProcessor.EpochStartDataCreator,
+		EpochSystemSCProcessor:          argsMetaProcessor.EpochSystemSCProcessor,
+		SCToProtocol:                    argsMetaProcessor.SCToProtocol,
+		EpochEconomics:                  argsMetaProcessor.EpochEconomics,
+		MainChainNotarizationStartRound: argumentsBaseProcessor.Config.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
 	}
 
 	return NewSovereignChainBlockProcessor(args)

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,20 +84,20 @@ func TestSovereignShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	bootStrapData := getStoredBootstrapData(t, sovShardStorage.marshalizer, bootStorer, hdr1.GetRound())
 	require.Equal(t, &bootstrapStorage.BootstrapData{
 		LastHeader: bootstrapStorage.BootstrapHeaderInfo{
-			Nonce: 1,
-			Epoch: 1,
+			Nonce: hdr1.GetNonce(),
+			Epoch: hdr1.GetEpoch(),
 			Hash:  hdrHash,
 		},
 		LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{},
 		LastSelfNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{{
-			Nonce: 1,
-			Epoch: 1,
+			Nonce: hdr1.GetNonce(),
+			Epoch: hdr1.GetEpoch(),
 			Hash:  hdrHash,
 		}},
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
 		NodesCoordinatorConfigKey:  nil,
-		EpochStartTriggerConfigKey: []byte(fmt.Sprint(1)),
+		EpochStartTriggerConfigKey: []byte(fmt.Sprint(hdr1.GetEpoch())),
 		HighestFinalBlockNonce:     hdr1.GetNonce(),
 		LastRound:                  0,
 	}, bootStrapData)
@@ -124,4 +125,111 @@ func TestSovereignShardStorageHandler_SaveDataToStorage(t *testing.T) {
 	require.NotNil(t, err)
 	_, err = metaStorer.Get([]byte("epochStartBlock_2"))
 	require.NotNil(t, err)
+}
+
+func TestSovereignShardStorageHandler_SaveDataToStorageCheckLastCrossChainNotarizedDataIsSaved(t *testing.T) {
+	t.Parallel()
+
+	args := createStorageHandlerArgs()
+	args.AdditionalStorageServiceCreator = factory.NewSovereignAdditionalStorageServiceFactory()
+	shardStorage, _ := NewShardStorageHandler(args)
+	sovShardStorage := newSovereignShardStorageHandler(shardStorage)
+
+	hash1 := []byte("hash1")
+	lastFinalizedCrossChainHeaderHash := []byte("lastFinalizedCrossChainHeaderHash")
+	lastFinalizedCrossChainHeader := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Epoch: 1,
+				Round: 4,
+				Nonce: 4,
+			},
+		},
+	}
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Nonce: 2,
+			Round: 2,
+			Epoch: 2,
+		},
+		EpochStart: block.EpochStartSovereign{
+			LastFinalizedCrossChainHeader: block.EpochStartCrossChainData{
+				ShardID:    core.MainChainShardId,
+				Epoch:      1,
+				Round:      4,
+				Nonce:      4,
+				HeaderHash: lastFinalizedCrossChainHeaderHash,
+			},
+		},
+	}
+	headers := map[string]data.HeaderHandler{
+		string(hash1): sovHdr,
+		string(lastFinalizedCrossChainHeaderHash): lastFinalizedCrossChainHeader,
+	}
+
+	components := &ComponentsNeededForBootstrap{
+		EpochStartMetaBlock: sovHdr,
+		PreviousEpochStart:  sovHdr,
+		ShardHeader:         sovHdr,
+		Headers:             headers,
+		NodesConfig:         &nodesCoordinator.NodesCoordinatorRegistry{},
+	}
+
+	err := sovShardStorage.SaveDataToStorage(components, components.ShardHeader, false, nil)
+	require.Nil(t, err)
+
+	bootStorer, err := sovShardStorage.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	require.Nil(t, err)
+
+	hdrHash, err := core.CalculateHash(sovShardStorage.marshalizer, sovShardStorage.hasher, sovHdr)
+	require.Nil(t, err)
+
+	bootStrapData := getStoredBootstrapData(t, sovShardStorage.marshalizer, bootStorer, sovHdr.GetRound())
+	require.Equal(t, &bootstrapStorage.BootstrapData{
+		LastHeader: bootstrapStorage.BootstrapHeaderInfo{
+			Nonce: sovHdr.GetNonce(),
+			Epoch: sovHdr.GetEpoch(),
+			Hash:  hdrHash,
+		},
+		LastCrossNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{
+			{
+				ShardId: core.MainChainShardId,
+				Epoch:   lastFinalizedCrossChainHeader.GetEpoch(),
+				Nonce:   lastFinalizedCrossChainHeader.GetNonce(),
+				Hash:    lastFinalizedCrossChainHeaderHash,
+			},
+		},
+		LastSelfNotarizedHeaders: []bootstrapStorage.BootstrapHeaderInfo{
+			{
+				Nonce: sovHdr.GetNonce(),
+				Epoch: sovHdr.GetEpoch(),
+				Hash:  hdrHash,
+			},
+		},
+		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
+		PendingMiniBlocks:          []bootstrapStorage.PendingMiniBlocksInfo{},
+		NodesCoordinatorConfigKey:  nil,
+		EpochStartTriggerConfigKey: []byte(fmt.Sprint(sovHdr.GetEpoch())),
+		HighestFinalBlockNonce:     sovHdr.GetNonce(),
+		LastRound:                  0,
+	}, bootStrapData)
+
+	extendedHdrStorer, err := sovShardStorage.storageService.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
+	require.Nil(t, err)
+
+	extendedHdrBytes, err := extendedHdrStorer.Get(lastFinalizedCrossChainHeaderHash)
+	require.Nil(t, err)
+
+	extendedHdrStored := &block.ShardHeaderExtended{}
+	err = sovShardStorage.marshalizer.Unmarshal(extendedHdrStored, extendedHdrBytes)
+	require.Nil(t, err)
+	require.Equal(t, lastFinalizedCrossChainHeader, extendedHdrStored)
+
+	extendedHdrNonceStorer, err := sovShardStorage.storageService.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+	require.Nil(t, err)
+
+	nonceToBytesKey := sovShardStorage.uint64Converter.ToByteSlice(lastFinalizedCrossChainHeader.GetNonce())
+	extendedHdrNonceBytesHash, err := extendedHdrNonceStorer.Get(nonceToBytesKey)
+	require.Nil(t, err)
+	require.Equal(t, lastFinalizedCrossChainHeaderHash, extendedHdrNonceBytesHash)
 }

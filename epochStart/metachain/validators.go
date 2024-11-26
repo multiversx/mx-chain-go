@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/compatibility"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -109,7 +110,7 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo st
 			continue
 		}
 
-		miniBlock, err := vic.createMiniBlock(validators)
+		miniBlock, err := vic.createMiniBlock(validators, core.AllShardId)
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +123,7 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo st
 		return miniBlocks, nil
 	}
 
-	miniBlock, err := vic.createMiniBlock(validators)
+	miniBlock, err := vic.createMiniBlock(validators, core.AllShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +133,10 @@ func (vic *validatorInfoCreator) CreateValidatorInfoMiniBlocks(validatorsInfo st
 	return miniBlocks, nil
 }
 
-func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.ValidatorInfoHandler) (*block.MiniBlock, error) {
+func (vic *validatorInfoCreator) createMiniBlock(validatorsInfo []state.ValidatorInfoHandler, receiverShardID uint32) (*block.MiniBlock, error) {
 	miniBlock := &block.MiniBlock{}
 	miniBlock.SenderShardID = vic.shardCoordinator.SelfId()
-	miniBlock.ReceiverShardID = core.AllShardId
+	miniBlock.ReceiverShardID = receiverShardID
 	miniBlock.TxHashes = make([][]byte, len(validatorsInfo))
 	miniBlock.Type = block.PeerBlock
 

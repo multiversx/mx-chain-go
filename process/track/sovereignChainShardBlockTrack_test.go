@@ -9,15 +9,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // CreateSovereignChainShardTrackerMockArguments -
@@ -563,9 +564,10 @@ func TestSovereignChainShardBlockTrack_ComputeLongestExtendedShardChainFromLastN
 
 		headers, _, _ := scsbt.ComputeLongestExtendedShardChainFromLastNotarized()
 
-		require.Equal(t, 2, len(headers))
+		require.Equal(t, 3, len(headers))
 		assert.Equal(t, shardHeaderExtended1, headers[0])
 		assert.Equal(t, shardHeaderExtended2, headers[1])
+		assert.Equal(t, shardHeaderExtended3, headers[2])
 	})
 }
 
@@ -609,6 +611,48 @@ func TestSovereignChainShardBlockTrack_CleanupHeadersBehindNonceShouldWork(t *te
 	assert.Equal(t, shardHeaderExtended, lastCrossNotarizedHeader)
 	assert.Zero(t, len(trackedHeadersForSelfShard))
 	assert.Zero(t, len(trackedHeadersForCrossShard))
+}
+
+func TestSovereignChainShardBlockTrack_CleanupHeadersBehindNonceForMainChainHeaders(t *testing.T) {
+	t.Parallel()
+
+	shardArguments := CreateSovereignChainShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+
+	scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
+
+	header := &block.Header{
+		ShardID: core.SovereignChainShardId,
+		Nonce:   1,
+	}
+
+	headerHash := []byte("hash")
+	scsbt.AddSelfNotarizedHeader(header.GetShardID(), header, headerHash)
+	scsbt.AddTrackedHeader(header, headerHash)
+
+	shardHeaderExtended := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+		},
+	}
+	shardHeaderExtendedHash := []byte("extended_hash")
+
+	scsbt.AddCrossNotarizedHeader(core.SovereignChainShardId, shardHeaderExtended, shardHeaderExtendedHash)
+	scsbt.AddTrackedHeader(shardHeaderExtended, shardHeaderExtendedHash)
+
+	scsbt.CleanupHeadersBehindNonce(core.MainChainShardId, 2, 2)
+
+	lastSelfNotarizedHeader, _, _ := scsbt.GetLastSelfNotarizedHeader(header.GetShardID())
+	lastCrossNotarizedHeader, _, _ := scsbt.GetLastCrossNotarizedHeader(core.MainChainShardId)
+	trackedHeadersForSelfShard, _ := scsbt.GetTrackedHeaders(header.GetShardID())
+	trackedHeadersForCrossShard, _ := scsbt.GetTrackedHeaders(core.MainChainShardId)
+
+	require.Equal(t, header, lastSelfNotarizedHeader)
+	require.Equal(t, shardHeaderExtended, lastCrossNotarizedHeader)
+	require.Len(t, trackedHeadersForSelfShard, 1)
+	require.Len(t, trackedHeadersForCrossShard, 0)
 }
 
 func TestSovereignChainShardBlockTrack_DisplayTrackedHeadersShouldNotPanic(t *testing.T) {

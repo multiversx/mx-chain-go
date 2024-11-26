@@ -8,10 +8,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type extendedHeaderProcessor struct {
 	headersPool HeadersPool
+	txPool      TransactionPool
 	marshaller  marshal.Marshalizer
 	hasher      hashing.Hasher
 }
@@ -68,12 +71,36 @@ func createIncomingMb(scrs []*scrInfo) []*block.MiniBlock {
 	}
 }
 
-func (ehp *extendedHeaderProcessor) addExtendedHeaderToPool(extendedHeader data.ShardHeaderExtendedHandler) error {
+func (ehp *extendedHeaderProcessor) addPreGenesisExtendedHeaderToPool(incomingHeader sovereign.IncomingHeaderHandler) error {
+	headerV2, castOk := incomingHeader.GetHeaderHandler().(*block.HeaderV2)
+	if !castOk {
+		return errInvalidHeaderType
+	}
+
+	extendedHeader := &block.ShardHeaderExtended{
+		Header:             headerV2,
+		IncomingMiniBlocks: []*block.MiniBlock{},
+		IncomingEvents:     []*transaction.Event{},
+	}
+
+	return ehp.addExtendedHeaderAndSCRsToPool(extendedHeader, make([]*scrInfo, 0))
+}
+
+func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeader data.ShardHeaderExtendedHandler, scrs []*scrInfo) error {
 	extendedHeaderHash, err := core.CalculateHash(ehp.marshaller, ehp.hasher, extendedHeader)
 	if err != nil {
 		return err
 	}
 
+	ehp.addSCRsToPool(scrs)
 	ehp.headersPool.AddHeaderInShard(extendedHeaderHash, extendedHeader, core.MainChainShardId)
 	return nil
+}
+
+func (ehp *extendedHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
+	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
+
+	for _, scrData := range scrs {
+		ehp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
+	}
 }

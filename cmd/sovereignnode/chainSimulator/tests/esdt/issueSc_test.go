@@ -46,9 +46,12 @@ func TestSovereignChainSimulator_SmartContract_IssueToken(t *testing.T) {
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         core.OptionalUint64{},
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       2,
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    25,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
 			},
@@ -59,10 +62,10 @@ func TestSovereignChainSimulator_SmartContract_IssueToken(t *testing.T) {
 
 	defer cs.Close()
 
-	time.Sleep(time.Second) // wait for VM to be ready for processing queries
+	err = cs.GenerateBlocksUntilEpochIsReached(6)
+	require.Nil(t, err)
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-
 	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
 
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(100)))
