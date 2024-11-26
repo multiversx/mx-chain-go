@@ -22,7 +22,7 @@ func NewGoroutinesManager(
 	throttler core.Throttler,
 	errorChannel common.BufferedErrChan,
 	chanClose chan struct{},
-) (common.TrieGoroutinesManager, error) {
+) (*goroutinesManager, error) {
 	if check.IfNil(throttler) {
 		return nil, ErrNilThrottler
 	}

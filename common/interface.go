@@ -404,3 +404,10 @@ type TrieGoroutinesManager interface {
 	GetError() error
 	IsInterfaceNil() bool
 }
+
+// AtomicBytesSlice defines the methods needed for an atomic bytes slice
+type AtomicBytesSlice interface {
+	Append(data [][]byte)
+	Get() [][]byte
+	Reset()
+}

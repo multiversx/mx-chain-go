@@ -1,7 +1,9 @@
 package common
 
 import (
+	"bytes"
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,4 +25,59 @@ func TestModifiedHashes_Clone(t *testing.T) {
 		assert.True(t, found)
 	}
 
+}
+
+func TestModifiedHashesSlice_Append(t *testing.T) {
+	t.Parallel()
+
+	mhs := NewModifiedHashesSlice()
+	numHashes := 100
+	hashes := make([][]byte, numHashes)
+	for i := 0; i < numHashes; i++ {
+		hashes[i] = []byte{byte(i)}
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(numHashes)
+	for i := 0; i < numHashes; i++ {
+		go func(index int) {
+			mhs.Append([][]byte{hashes[index]})
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	for i := 0; i < numHashes; i++ {
+		hashFound := false
+		for _, hash := range mhs.hashes {
+			if bytes.Equal(hashes[i], hash) {
+				hashFound = true
+			}
+		}
+		assert.True(t, hashFound)
+	}
+}
+
+func TestModifiedHashesSlice_Get(t *testing.T) {
+	t.Parallel()
+
+	mhs := NewModifiedHashesSlice()
+	hashes := [][]byte{{1}, {2}, {3}}
+	mhs.Append(hashes)
+	retrievedHashes := mhs.Get()
+	assert.Equal(t, hashes, retrievedHashes)
+	retrievedHashes[0] = []byte{4}
+	newRetrievedHashes := mhs.Get()
+	assert.NotEqual(t, retrievedHashes, newRetrievedHashes)
+}
+
+func TestModifiedHashesSlice_Reset(t *testing.T) {
+	t.Parallel()
+
+	mhs := NewModifiedHashesSlice()
+	hashes := [][]byte{{1}, {2}, {3}}
+	mhs.Append(hashes)
+	assert.Equal(t, len(hashes), len(mhs.hashes))
+	mhs.Reset()
+	assert.Equal(t, 0, len(mhs.hashes))
 }

@@ -218,7 +218,8 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		return err
 	}
 
-	newRoot, oldHashes := tr.root.insert(sortedDataForInsertion, manager, tr.trieStorage)
+	oldHashes := common.NewModifiedHashesSlice()
+	newRoot := tr.root.insert(sortedDataForInsertion, manager, oldHashes, tr.trieStorage)
 	err = manager.GetError()
 	if err != nil {
 		return err
@@ -229,9 +230,10 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 	}
 
 	tr.root = newRoot
-	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+	hashes := oldHashes.Get()
+	tr.oldHashes = append(tr.oldHashes, hashes...)
 
-	logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
+	logArrayWithTrace("oldHashes after insert", "hash", hashes)
 	return nil
 }
 
@@ -253,13 +255,15 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		return err
 	}
 
-	_, newRoot, oldHashes := tr.root.delete(data, manager, tr.trieStorage)
+	modifiedHashes := common.NewModifiedHashesSlice()
+	_, newRoot := tr.root.delete(data, manager, modifiedHashes, tr.trieStorage)
 	err = manager.GetError()
 	if err != nil {
 		return err
 	}
 
 	tr.root = newRoot
+	oldHashes := modifiedHashes.Get()
 	tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 

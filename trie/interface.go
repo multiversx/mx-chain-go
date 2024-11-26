@@ -29,8 +29,8 @@ type node interface {
 	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
-	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, db common.TrieStorageInteractor) (node, [][]byte)
-	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, db common.TrieStorageInteractor) (bool, node, [][]byte)
+	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) node
+	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) (bool, node)
 	reduceNode(pos int) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db common.TrieStorageInteractor)
