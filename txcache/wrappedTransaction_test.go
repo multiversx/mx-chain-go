@@ -58,13 +58,25 @@ func TestWrappedTransaction_isTransactionMoreValuableForNetwork(t *testing.T) {
 		require.True(t, a.isTransactionMoreValuableForNetwork(b))
 	})
 
-	t.Run("decide by transaction hash (set them up to have the same PPU)", func(t *testing.T) {
+	t.Run("decide by gas limit (set them up to have the same PPU)", func(t *testing.T) {
+		a := createTx([]byte("a-7"), "a", 7).withDataLength(30).withGasLimit(95_000).withGasPrice(oneBillion)
+		a.precomputeFields(txGasHandler)
+
+		b := createTx([]byte("b-7"), "b", 7).withDataLength(60).withGasLimit(140_000).withGasPrice(oneBillion)
+		b.precomputeFields(txGasHandler)
+
+		require.Equal(t, a.PricePerUnit, b.PricePerUnit)
+		require.True(t, b.isTransactionMoreValuableForNetwork(a))
+	})
+
+	t.Run("decide by transaction hash (set them up to have the same PPU and gas limit)", func(t *testing.T) {
 		a := createTx([]byte("a-7"), "a", 7)
 		a.precomputeFields(txGasHandler)
 
 		b := createTx([]byte("b-7"), "b", 7)
 		b.precomputeFields(txGasHandler)
 
+		require.Equal(t, a.PricePerUnit, b.PricePerUnit)
 		require.True(t, a.isTransactionMoreValuableForNetwork(b))
 	})
 }

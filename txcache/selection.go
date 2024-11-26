@@ -6,6 +6,12 @@ import (
 )
 
 func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+	bunches := cache.acquireBunchesOfTransactions()
+
+	return selectTransactionsFromBunches(accountStateProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
+}
+
+func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
@@ -13,7 +19,7 @@ func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProv
 		bunches = append(bunches, sender.getTxs())
 	}
 
-	return selectTransactionsFromBunches(accountStateProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
+	return bunches
 }
 
 // Selection tolerates concurrent transaction additions / removals.
@@ -72,9 +78,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 		}
 
 		shouldSkipTransaction := detectSkippableTransaction(item)
-		if shouldSkipTransaction {
-			// Transaction isn't selected, but the sender is still in the game (will contribute with other transactions).
-		} else {
+		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
 			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction())
 		}

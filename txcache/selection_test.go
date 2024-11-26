@@ -271,6 +271,108 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 }
 
+func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
+	config := ConfigSourceMe{
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           1000000000,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              300001,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+	}
+
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
+	sw := core.NewStopWatch()
+
+	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
+
+		require.Equal(t, 1000000, int(cache.CountTx()))
+
+		sw.Start(t.Name())
+		bunches := cache.acquireBunchesOfTransactions()
+		sw.Stop(t.Name())
+
+		require.Len(t, bunches, 10000)
+		require.Len(t, bunches[0], 100)
+		require.Len(t, bunches[len(bunches)-1], 100)
+	})
+
+	t.Run("numSenders = 50000, numTransactions = 2", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
+
+		require.Equal(t, 100000, int(cache.CountTx()))
+
+		sw.Start(t.Name())
+		bunches := cache.acquireBunchesOfTransactions()
+		sw.Stop(t.Name())
+
+		require.Len(t, bunches, 50000)
+		require.Len(t, bunches[0], 2)
+		require.Len(t, bunches[len(bunches)-1], 2)
+	})
+
+	t.Run("numSenders = 100000, numTransactions = 1", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
+
+		require.Equal(t, 100000, int(cache.CountTx()))
+
+		sw.Start(t.Name())
+		bunches := cache.acquireBunchesOfTransactions()
+		sw.Stop(t.Name())
+
+		require.Len(t, bunches, 100000)
+		require.Len(t, bunches[0], 1)
+		require.Len(t, bunches[len(bunches)-1], 1)
+	})
+
+	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		addManyTransactionsWithUniformDistribution(cache, 300000, 1)
+
+		require.Equal(t, 300000, int(cache.CountTx()))
+
+		sw.Start(t.Name())
+		bunches := cache.acquireBunchesOfTransactions()
+		sw.Stop(t.Name())
+
+		require.Len(t, bunches, 300000)
+		require.Len(t, bunches[0], 1)
+		require.Len(t, bunches[len(bunches)-1], 1)
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+
+	// (1)
+	// Vendor ID:                GenuineIntel
+	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//     CPU family:           6
+	//     Model:                140
+	//     Thread(s) per core:   2
+	//     Core(s) per socket:   4
+	//
+	// 0.014468s (TestBenchmarkTxCache_acquireBunchesOfTransactions/numSenders_=_10000,_numTransactions_=_100)
+	// 0.019183s (TestBenchmarkTxCache_acquireBunchesOfTransactions/numSenders_=_50000,_numTransactions_=_2)
+	// 0.013876s (TestBenchmarkTxCache_acquireBunchesOfTransactions/numSenders_=_100000,_numTransactions_=_1)
+	// 0.056631s (TestBenchmarkTxCache_acquireBunchesOfTransactions/numSenders_=_300000,_numTransactions_=_1)
+}
+
 func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	sw := core.NewStopWatch()
 
@@ -368,6 +470,22 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 
 	sw := core.NewStopWatch()
 
+	t.Run("numSenders = 10000, numTransactions = 100, maxNum = 50_000", func(t *testing.T) {
+		cache, err := NewTxCache(config, txGasHandler)
+		require.Nil(t, err)
+
+		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
+
+		require.Equal(t, 1000000, int(cache.CountTx()))
+
+		sw.Start(t.Name())
+		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
+		sw.Stop(t.Name())
+
+		require.Equal(t, 50000, len(selected))
+		require.Equal(t, uint64(2_500_000_000), accumulatedGas)
+	})
+
 	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 50_000", func(t *testing.T) {
 		cache, err := NewTxCache(config, txGasHandler)
 		require.Nil(t, err)
@@ -428,6 +546,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
+	// 0.126612s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_10000,_numTransactions_=_100,_maxNum_=_50_000)
 	// 0.107361s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
 	// 0.168364s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
 	// 0.305363s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
