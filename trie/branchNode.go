@@ -631,6 +631,9 @@ func (bn *branchNode) insertOnExistingChild(
 }
 
 func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes common.AtomicBytesSlice, childPos byte, newNode node) error {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	if !bn.dirty {
 		modifiedHashes.Append([][]byte{bn.hash})
 	}
@@ -751,6 +754,9 @@ func (bn *branchNode) deleteChild(
 }
 
 func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	bn.hash = nil
 	bn.children[childPos] = newNode
 	if check.IfNil(newNode) {
