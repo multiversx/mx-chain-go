@@ -150,6 +150,46 @@ func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodes() uint32 {
 	return 1
 }
 
+func (g *GenesisNodesSetupHandlerStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) InitialNodesPubKeys() map[uint32][]string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) GetShardIDForPubKey(pubkey []byte) (uint32, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) SetStartTime(startTime int64) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodesWithHysteresis() uint32 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) MinShardHysteresisNodes() uint32 {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (g *GenesisNodesSetupHandlerStub) MinMetaHysteresisNodes() uint32 {
+	//TODO implement me
+	panic("implement me")
+}
+
 // IsInterfaceNil -
 func (g *GenesisNodesSetupHandlerStub) IsInterfaceNil() bool {
 	return g == nil

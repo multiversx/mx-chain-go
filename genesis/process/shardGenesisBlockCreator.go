@@ -14,8 +14,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
-	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
-
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -31,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"

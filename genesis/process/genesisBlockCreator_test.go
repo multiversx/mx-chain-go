@@ -58,7 +58,7 @@ func createMockArgument(
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
-	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewRunTypeComponentsStub())
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewRunTypeCoreComponentsStub(), genesisMocks.NewRunTypeComponentsStub())
 }
 
 func createSovereignMockArgument(
@@ -67,7 +67,7 @@ func createSovereignMockArgument(
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
-	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewSovereignRunTypeComponentsStub())
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewRunTypeCoreComponentsStub(), genesisMocks.NewSovereignRunTypeComponentsStub())
 }
 
 // TODO improve code coverage of this package
@@ -76,6 +76,7 @@ func createArgument(
 	genesisFilename string,
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
+	runTypeCoreComponents *genesisMocks.RunTypeCoreComponentsStub,
 	runTypeComponents *genesisMocks.RunTypeComponentsStub,
 ) ArgsGenesisBlockCreator {
 	trieStorageManagers := createTrieStorageManagers()
@@ -280,6 +281,7 @@ func createArgument(
 	require.Nil(t, err)
 
 	arg.InitialNodesSetup = initialNodes
+	arg.EnableEpochsFactory = runTypeCoreComponents.EnableEpochsFactoryCreator()
 	arg.RunTypeComponents = runTypeComponents
 
 	return arg
@@ -701,7 +703,7 @@ func TestGenesisBlockCreator_CreateGenesisBlockAfterHardForkShouldCreateSCResult
 	)
 	hardForkGbc, err := NewGenesisBlockCreator(newArgs)
 	assert.Nil(t, err)
-	err = hardForkGbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
+	err = hardForkGbc.computeInitialDNSAddresses(gbc.arg.EpochConfig)
 	assert.Nil(t, err)
 
 	mapAfterHardForkAddresses, err := newArgs.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
