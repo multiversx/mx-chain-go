@@ -76,10 +76,10 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
+	pr.createRunTypeCoreComponents(tb)
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createRunTypeComponents(tb)
-	pr.createRunTypeCoreComponents(tb)
 	pr.createStatusCoreComponents(tb)
 	pr.createNetworkComponents(tb)
 	pr.createBootstrapComponents(tb)
