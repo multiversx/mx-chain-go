@@ -1523,6 +1523,9 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return process.ErrWrongTypeAssertion
 	}
 
+	// must be called before commitEpochStart
+	rewardsTxs := scbp.getRewardsTxs(scbp.epochRewardsCreator, sovMetaHdr, body)
+
 	scbp.commitEpochStart(sovMetaHdr, body, scbp.epochRewardsCreator, scbp.validatorInfoCreator)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
@@ -1599,7 +1602,14 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
+	err = scbp.commonHeaderAndBodyCommit(
+		headerHandler,
+		body,
+		headerHash,
+		[]data.HeaderHandler{lastSelfNotarizedHeader},
+		[][]byte{lastSelfNotarizedHeaderHash},
+		rewardsTxs,
+	)
 	if err != nil {
 		return err
 	}
@@ -2045,7 +2055,8 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
-		scbp.markSnapshotDoneInPeerAccounts()
+		// TODO: MX-15748 Analyse this
+		//scbp.markSnapshotDoneInPeerAccounts()
 
 		go func() {
 			sovHdr, ok := header.(data.MetaHeaderHandler)
