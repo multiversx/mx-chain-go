@@ -2183,17 +2183,3 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 
 	return nil
 }
-
-func (bp *baseProcessor) isFirstBlock(header data.HeaderHandler) bool {
-	isStartOfEpochBlock := header.IsStartOfEpochBlock()
-	isBlockInActivationEpoch := header.GetEpoch() == bp.enableEpochsHandler.GetCurrentEpoch()
-
-	return isBlockInActivationEpoch && isStartOfEpochBlock
-}
-
-func (bp *baseProcessor) isEpochChangeBlockForEquivalentMessagesActivation(header data.HeaderHandler) bool {
-	isEquivalentMessagesFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
-	isFirstBlockAfterEquivalentMessagesFlag := bp.isFirstBlock(header)
-
-	return isEquivalentMessagesFlagEnabledForHeader && isFirstBlockAfterEquivalentMessagesFlag
-}

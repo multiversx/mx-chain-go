@@ -3,6 +3,7 @@ package v2
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -372,7 +373,12 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	log.Debug("addProofOnHeader: no proof found")
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		hash = []byte("")
+	}
+
+	log.Debug("addProofOnHeader: no proof found", "header hash", hex.EncodeToString(hash))
 
 	return false
 }
