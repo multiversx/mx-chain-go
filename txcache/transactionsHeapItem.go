@@ -193,6 +193,6 @@ func (item *transactionsHeapItem) requestAccountStateIfNecessary(accountStatePro
 	return nil
 }
 
-func (item *transactionsHeapItem) holdsTransactionMoreValuableForNetwork(other *transactionsHeapItem) bool {
+func (item *transactionsHeapItem) isCurrentTransactionMoreValuableForNetwork(other *transactionsHeapItem) bool {
 	return item.currentTransaction.isTransactionMoreValuableForNetwork(other.currentTransaction)
 }
