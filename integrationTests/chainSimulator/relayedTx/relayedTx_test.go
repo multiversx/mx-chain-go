@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,6 +61,8 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	t.Run("cross shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 1))
 	t.Run("intra shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 0))
 	t.Run("cross shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 1))
+
+	t.Run("create new delegation contract", testRelayedV3MetaInteraction())
 }
 
 func testRelayedV3MoveBalance(
@@ -510,6 +513,71 @@ func testRelayedV3ScCallInvalidMethod(
 		// check sender balance
 		senderBalanceAfter := getBalance(t, cs, sender)
 		require.Equal(t, initialBalance.String(), senderBalanceAfter.String())
+	}
+}
+
+func testRelayedV3MetaInteraction() func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("this is not a short test")
+		}
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		relayerShard := uint32(0)
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000))
+		relayer, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
+		require.NoError(t, err)
+
+		sender, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
+		require.NoError(t, err)
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		// send relayed tx with invalid value
+		txDataAdd := "createNewDelegationContract@00@00"
+		gasLimit := uint64(60000000)
+		value := big.NewInt(0).Mul(oneEGLD, big.NewInt(1250))
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, vm.DelegationManagerSCAddress, relayer.Bytes, value, txDataAdd, gasLimit)
+
+		relayerBefore := getBalance(t, cs, relayer)
+		senderBefore := getBalance(t, cs, sender)
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
+
+		relayerAfter := getBalance(t, cs, relayer)
+		senderAfter := getBalance(t, cs, sender)
+
+		// check consumed fees
+		refund := getRefundValue(result.SmartContractResults)
+		consumedFee := big.NewInt(0).Sub(relayerBefore, relayerAfter)
+
+		gasForFullPrice := uint64(len(txDataAdd)*gasPerDataByte + minGasLimit + minGasLimit)
+		gasForDeductedPrice := gasLimit - gasForFullPrice
+		deductedGasPrice := uint64(minGasPrice / deductionFactor)
+		initialFee := gasForFullPrice*minGasPrice + gasForDeductedPrice*deductedGasPrice
+		initialFeeInt := big.NewInt(0).SetUint64(initialFee)
+		expectedConsumedFee := big.NewInt(0).Sub(initialFeeInt, refund)
+
+		gasUsed := gasForFullPrice + gasForDeductedPrice - refund.Uint64()/deductedGasPrice
+		require.Equal(t, expectedConsumedFee.String(), consumedFee.String())
+		require.Equal(t, value.String(), big.NewInt(0).Sub(senderBefore, senderAfter).String(), "sender should have consumed the value only")
+		require.Equal(t, initialFeeInt.String(), result.InitiallyPaidFee)
+		require.Equal(t, expectedConsumedFee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
 	}
 }
 

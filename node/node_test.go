@@ -3004,15 +3004,31 @@ func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
 		node.WithCryptoComponents(getDefaultCryptoComponents()),
 	)
 
-	tx := &transaction.Transaction{
-		SndAddr:   bytes.Repeat([]byte("1"), 32),
-		RcvAddr:   bytes.Repeat([]byte("1"), 32),
-		Value:     big.NewInt(37),
-		Signature: []byte("signature"),
-		ChainID:   []byte("chainID"),
-	}
-	err := n.ValidateTransaction(tx)
-	require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	t.Run("normal tx", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:   bytes.Repeat([]byte("1"), 32),
+			RcvAddr:   bytes.Repeat([]byte("1"), 32),
+			Value:     big.NewInt(37),
+			Signature: []byte("signature"),
+			ChainID:   []byte("chainID"),
+		}
+
+		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	})
+	t.Run("relayed tx v3", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:          bytes.Repeat([]byte("1"), 32),
+			RcvAddr:          bytes.Repeat([]byte("1"), 32),
+			Value:            big.NewInt(37),
+			Signature:        []byte("sSignature"),
+			RelayerAddr:      bytes.Repeat([]byte("2"), 32),
+			RelayerSignature: []byte("rSignature"),
+			ChainID:          []byte("chainID"),
+		}
+		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeqvw86cj", err.Error())
+	})
 }
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {

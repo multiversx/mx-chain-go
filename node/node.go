@@ -723,7 +723,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	if errors.Is(err, process.ErrAccountNotFound) {
 		return fmt.Errorf("%w for address %s",
 			process.ErrInsufficientFunds,
-			n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.SndAddr, log),
+			n.getFeePayer(tx),
 		)
 	}
 
@@ -1543,6 +1543,14 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+func (n *Node) getFeePayer(tx *transaction.Transaction) string {
+	if common.IsValidRelayedTxV3(tx) {
+		return n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.GetRelayerAddr(), log)
+	}
+
+	return n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.GetSndAddr(), log)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

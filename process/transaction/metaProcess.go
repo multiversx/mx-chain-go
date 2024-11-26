@@ -145,6 +145,8 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		if txProc.enableEpochsHandler.IsFlagEnabled(common.ESDTFlag) {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}
+	case process.RelayedTxV3:
+		return vmcommon.Ok, nil // it will be processed through the scr created on source
 	}
 
 	snapshot := txProc.accounts.JournalLen()
