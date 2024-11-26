@@ -783,7 +783,7 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 			"error", err)
 	}
 
-	log.Trace("baseBootstrap.cleanProofsBehindFinal clenaup successfully", "finalNonce", finalNonce)
+	log.Trace("baseBootstrap.cleanProofsBehindFinal cleanup successfully", "finalNonce", finalNonce)
 }
 
 // rollBack decides if rollBackOneBlock must be called

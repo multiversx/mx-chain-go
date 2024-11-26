@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -1828,5 +1829,199 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 		err := bs.SyncAccountsDBs([]byte("key"), dbIdentifier)
 		require.Nil(t, err)
 		require.True(t, accountsSyncCalled)
+	})
+}
+
+func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
+	t.Parallel()
+
+	prevHeaderHash1 := []byte("prevHeaderHash")
+	headerHash1 := []byte("headerHash")
+
+	t.Run("flag no activated, should return direclty", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlock{
+			Nonce: 11,
+		}
+
+		args := CreateMetaBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+
+		bs, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Nil(t, err)
+	})
+
+	t.Run("should return nil if first block after activation", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := &block.MetaBlock{
+			Epoch: 3,
+			Nonce: 10,
+		}
+
+		header := &block.MetaBlock{
+			Epoch:    4,
+			Nonce:    11,
+			PrevHash: prevHeaderHash1,
+		}
+
+		args := CreateMetaBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if epoch == 4 {
+					return flag == common.EquivalentMessagesFlag
+				}
+
+				return false
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, prevHeaderHash1) {
+					return prevHeader, nil
+				}
+
+				return prevHeader, nil
+			}
+
+			return sds
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Nil(t, err)
+	})
+
+	t.Run("should work, proof already in pool", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := &block.MetaBlock{
+			Nonce: 10,
+		}
+
+		header := &block.MetaBlock{
+			Nonce:    11,
+			PrevHash: prevHeaderHash1,
+		}
+
+		args := CreateMetaBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, prevHeaderHash1) {
+					return prevHeader, nil
+				}
+
+				return prevHeader, nil
+			}
+
+			return sds
+		}
+
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return true
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Nil(t, err)
+	})
+
+	t.Run("should work, by checking for next header", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := &block.MetaBlock{
+			Nonce: 10,
+		}
+
+		header := &block.MetaBlock{
+			Nonce:    11,
+			PrevHash: prevHeaderHash1,
+		}
+
+		nextHeader := &block.MetaBlock{
+			Nonce:    12,
+			PrevHash: prevHeaderHash1,
+		}
+
+		args := CreateMetaBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, prevHeaderHash1) {
+					return prevHeader, nil
+				}
+
+				return prevHeader, nil
+			}
+			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if hdrNonce == header.GetNonce()+1 {
+					return []data.HeaderHandler{nextHeader}, [][]byte{prevHeaderHash1}, nil
+				}
+
+				return nil, nil, process.ErrMissingHeader
+			}
+
+			return sds
+		}
+
+		hasProofCalled := 0
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					if hasProofCalled == 0 {
+						hasProofCalled++
+						return false
+					}
+
+					return true
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewMetaBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Nil(t, err)
 	})
 }
