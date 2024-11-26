@@ -12,11 +12,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
 
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -506,6 +508,7 @@ func hardForkImport(
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
+			EnableEpochsFactory:     enablers.NewEnableEpochsFactory(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
