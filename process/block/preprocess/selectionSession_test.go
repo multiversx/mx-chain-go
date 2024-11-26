@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -17,15 +18,27 @@ import (
 func TestNewSelectionSession(t *testing.T) {
 	t.Parallel()
 
-	session, err := newSelectionSession(nil, &testscommon.TxProcessorStub{})
+	session, err := newSelectionSession(argsSelectionSession{
+		accountsAdapter:       nil,
+		transactionsProcessor: &testscommon.TxProcessorStub{},
+		marshalizer:           &marshal.GogoProtoMarshalizer{},
+	})
 	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
 
-	session, err = newSelectionSession(&stateMock.AccountsStub{}, nil)
+	session, err = newSelectionSession(argsSelectionSession{
+		accountsAdapter:       &stateMock.AccountsStub{},
+		transactionsProcessor: nil,
+		marshalizer:           &marshal.GogoProtoMarshalizer{},
+	})
 	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilTxProcessor)
 
-	session, err = newSelectionSession(&stateMock.AccountsStub{}, &testscommon.TxProcessorStub{})
+	session, err = newSelectionSession(argsSelectionSession{
+		accountsAdapter:       &stateMock.AccountsStub{},
+		transactionsProcessor: &testscommon.TxProcessorStub{},
+		marshalizer:           &marshal.GogoProtoMarshalizer{},
+	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
 }
@@ -57,7 +70,11 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 		return nil, fmt.Errorf("account not found: %s", address)
 	}
 
-	session, err := newSelectionSession(accounts, processor)
+	session, err := newSelectionSession(argsSelectionSession{
+		accountsAdapter:       accounts,
+		transactionsProcessor: processor,
+		marshalizer:           &marshal.GogoProtoMarshalizer{},
+	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
 
@@ -95,7 +112,11 @@ func TestSelectionSession_IsBadlyGuarded(t *testing.T) {
 		return nil
 	}
 
-	session, err := newSelectionSession(accounts, processor)
+	session, err := newSelectionSession(argsSelectionSession{
+		accountsAdapter:       accounts,
+		transactionsProcessor: processor,
+		marshalizer:           &marshal.GogoProtoMarshalizer{},
+	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
 
