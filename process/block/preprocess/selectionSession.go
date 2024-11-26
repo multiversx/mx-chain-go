@@ -140,6 +140,7 @@ func (session *selectionSession) GetTransferredValue(tx data.TransactionHandler)
 			continue
 		}
 		if string(transfer.ESDTTokenName) != vmcommon.EGLDIdentifier {
+			// We only care about native transfers.
 			continue
 		}
 
