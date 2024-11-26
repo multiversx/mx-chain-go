@@ -476,13 +476,13 @@ func (bn *branchNode) insertOnChild(
 	bnHasBeenModified *atomic.Flag,
 	db common.TrieStorageInteractor,
 ) {
-	err := resolveIfCollapsed(bn, byte(childPos), db)
+	child, err := bn.resolveIfCollapsed(byte(childPos), db)
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
 	}
 
-	if bn.children[childPos] == nil {
+	if child == nil {
 		bn.insertOnNilChild(dataForInsertion, byte(childPos), goRoutinesManager, modifiedHashes, bnHasBeenModified, db)
 		return
 	}
@@ -530,6 +530,7 @@ func splitDataForChildren(newSortedData []core.TrieData) ([][]core.TrieData, err
 
 func (bn *branchNode) insertOnNilChild(
 	newData []core.TrieData,
+	childPos byte,
 	goRoutinesManager common.TrieGoroutinesManager,
 	modifiedHashes common.AtomicBytesSlice,
 	bnHasBeenModified *atomic.Flag,
@@ -599,10 +600,8 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes common.AtomicBytesSli
 		return err
 	}
 
-		bn.children[i] = newBnChildren[i]
-		bn.setVersionForChild(childVersion, byte(i))
-	}
-
+	bn.children[childPos] = newNode
+	bn.setVersionForChild(childVersion, childPos)
 	bn.dirty = true
 	bn.hash = nil
 
@@ -686,7 +685,7 @@ func (bn *branchNode) deleteChild(
 		return
 	}
 
-	if bn.children[childPos] == nil {
+	if check.IfNil(child) {
 		return
 	}
 
@@ -710,27 +709,18 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node) error {
 
 	bn.hash = nil
 	bn.dirty = true
-
-	var rangeError error
-
-	newChildrenMap.Range(func(childPos int, newChild node) {
-		bn.children[childPos] = newChild
-		if check.IfNil(newChild) {
-			bn.setVersionForChild(core.NotSpecified, byte(childPos))
-			bn.EncodedChildren[childPos] = nil
-
-			return
-		}
-
-		childVersion, err := newChild.getVersion()
-		if err != nil {
-			rangeError = err
-			return
-		}
-		bn.setVersionForChild(childVersion, byte(childPos))
-	})
-
-	return modifiedHashes, rangeError
+	bn.children[childPos] = newNode
+	bn.EncodedChildren[childPos] = nil
+	if check.IfNil(newNode) {
+		bn.setVersionForChild(core.NotSpecified, childPos)
+		return nil
+	}
+	childVersion, err := newNode.getVersion()
+	if err != nil {
+		return err
+	}
+	bn.setVersionForChild(childVersion, childPos)
+	return nil
 }
 
 func (bn *branchNode) revertChildrenVersionSliceIfNeeded() {

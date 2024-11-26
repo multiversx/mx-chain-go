@@ -323,7 +323,6 @@ func (en *extensionNode) insert(
 	modifiedHashes common.AtomicBytesSlice,
 	db common.TrieStorageInteractor,
 ) node {
-	emptyHashes := make([][]byte, 0)
 	childNode, err := en.resolveIfCollapsed(db)
 	if err != nil {
 		goRoutinesManager.SetError(err)
@@ -335,11 +334,11 @@ func (en *extensionNode) insert(
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
 	if keyMatchLen == len(en.Key) {
-		return en.insertInSameEn(newData,childNode, keyMatchLen, goRoutinesManager, modifiedHashes, db)
+		return en.insertAtSameKey(newData, childNode, keyMatchLen, goRoutinesManager, modifiedHashes, db)
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(newData,childNode, goRoutinesManager, modifiedHashes, db, keyMatchLen, index)
+	return en.insertInNewBn(newData, childNode, goRoutinesManager, modifiedHashes, db, keyMatchLen, index)
 }
 
 func getMinKeyMatchLen(newData []core.TrieData, enKey []byte) (int, int) {

@@ -237,7 +237,7 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 	}
 
 	hashes := oldHashes.Get()
-	tr.SetDataForRootChange(newRoot, oldRootHash, oldHashes)
+	tr.SetDataForRootChange(newRoot, oldRootHash, hashes)
 
 	logArrayWithTrace("oldHashes after insert", "hash", hashes)
 	return nil
@@ -395,12 +395,6 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 func (tr *patriciaMerkleTrie) String() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
-
-	err := tr.updateTrie()
-	if err != nil {
-		log.Warn("print trie - could not save batched changes", "error", err)
-		return ""
-	}
 
 	writer := bytes.NewBuffer(make([]byte, 0))
 

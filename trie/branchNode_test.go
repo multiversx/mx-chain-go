@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -1417,10 +1416,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 		bn.ChildrenVersion = make([]byte, nrOfChildren)
 		bn.ChildrenVersion[2] = byte(core.AutoBalanceEnabled)
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		childKey := []byte{2, 'd', 'o', 'g'}
 		data := core.TrieData{
 			Key:     childKey,
@@ -1442,10 +1438,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 		childKey := []byte{2, 'd', 'o', 'g'}
 		data := []core.TrieData{{Key: childKey}}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		_, newBn := bn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), &testscommon.MemDbMock{})
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Nil(t, newBn.(*branchNode).ChildrenVersion)
@@ -1639,10 +1632,7 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 		var data []core.TrieData
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(data, 0, goRoutinesManager, modifiedHashes, bnModified, nil)
@@ -1668,11 +1658,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 				Version: core.AutoBalanceEnabled,
 			},
 		}
-
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		childPos := byte(0)
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1698,11 +1685,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 				Version: core.AutoBalanceEnabled,
 			},
 		}
-
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		childPos := byte(0)
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1731,11 +1715,8 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 				Version: core.AutoBalanceEnabled,
 			},
 		}
-
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		childPos := byte(0)
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1785,10 +1766,7 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		originalChildHash := bn.children[childPos].getHash()
 		assert.True(t, len(originalChildHash) > 0)
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, _ := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
 		bn.insertOnExistingChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1838,10 +1816,7 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, bn.dirty)
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
 		bn.insertOnExistingChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1888,10 +1863,7 @@ func TestBranchNode_insertBatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, bn.dirty)
 
-	th, _ := throttler.NewNumGoRoutinesThrottler(5)
-	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-	assert.Nil(t, err)
-
+	goRoutinesManager := getTestGoroutinesManager()
 	modifiedHashes := common.NewModifiedHashesSlice()
 	newNode := bn.insert(newData, goRoutinesManager, modifiedHashes, db)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -1947,10 +1919,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 			},
 		}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		dirty, newNode := bn.delete(data, goRoutinesManager, modifiedHashes, testscommon.NewMemDbMock())
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -1985,10 +1954,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 			},
 		}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		dirty, newNode := bn.delete(data, goRoutinesManager, modifiedHashes, testscommon.NewMemDbMock())
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -2021,10 +1987,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 			},
 		}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		dirty, newNode := bn.delete(data, goRoutinesManager, modifiedHashes, testscommon.NewMemDbMock())
 		assert.Nil(t, goRoutinesManager.GetError())
