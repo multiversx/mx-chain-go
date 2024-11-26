@@ -1321,7 +1321,7 @@ func (mp *metaProcessor) CommitBlock(
 		mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, finalMetaBlock.GetEpoch())
 	if isBlockAfterEquivalentMessagesFlag {
 		// for the first block we need to update both the state of the previous one and for current
-		if mp.isEpochChangeBlockForEquivalentMessagesActivation(header) {
+		if common.IsEpochChangeBlockForFlagActivation(header, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 			mp.updateState(lastMetaBlock, lastMetaBlockHash)
 		}
 
