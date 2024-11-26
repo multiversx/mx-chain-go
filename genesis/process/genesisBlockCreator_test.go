@@ -67,7 +67,7 @@ func createSovereignMockArgument(
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
-	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewRunTypeCoreComponentsStub(), genesisMocks.NewSovereignRunTypeComponentsStub())
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewSovereignRunTypeCoreComponentsStub(), genesisMocks.NewSovereignRunTypeComponentsStub())
 }
 
 // TODO improve code coverage of this package

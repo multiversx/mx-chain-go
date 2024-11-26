@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 )
 
 // RunTypeCoreComponentsStub -
@@ -21,7 +20,16 @@ func NewRunTypeCoreComponentsStub() *RunTypeCoreComponentsStub {
 	return &RunTypeCoreComponentsStub{
 		GenesisNodesSetupFactory: &genesisMocks.GenesisNodesSetupFactoryMock{},
 		RatingsDataFactory:       &testscommon.RatingsDataFactoryMock{},
-		EnableEpochsFactory:      &commonMocks.EnableEpochsFactoryMock{},
+		EnableEpochsFactory:      enablers.NewEnableEpochsFactory(),
+	}
+}
+
+// NewSovereignRunTypeCoreComponentsStub -
+func NewSovereignRunTypeCoreComponentsStub() *RunTypeCoreComponentsStub {
+	return &RunTypeCoreComponentsStub{
+		GenesisNodesSetupFactory: &genesisMocks.GenesisNodesSetupFactoryMock{},
+		RatingsDataFactory:       &testscommon.RatingsDataFactoryMock{},
+		EnableEpochsFactory:      enablers.NewSovereignEnableEpochsFactory(),
 	}
 }
 
