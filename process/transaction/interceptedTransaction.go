@@ -240,7 +240,15 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 
 	err := inTx.integrity(tx)
 	if err != nil {
-		return fmt.Errorf("inner transaction: %w", err)
+		return err
+	}
+
+	if !inTx.coordinator.SameShard(tx.RelayerAddr, tx.SndAddr) {
+		return process.ErrShardIdMissmatch
+	}
+
+	if bytes.Equal(tx.RelayerAddr, tx.GuardianAddr) {
+		return process.ErrRelayedByGuardianNotAllowed
 	}
 
 	userTx := *tx
@@ -252,7 +260,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 
 	err = inTx.verifyRelayerSig(tx)
 	if err != nil {
-		return fmt.Errorf("inner transaction: %w", err)
+		return err
 	}
 
 	return nil

@@ -823,6 +823,10 @@ func (txProc *txProcessor) processRelayedTxV3(tx *transaction.Transaction) (vmco
 		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrGuardedRelayerNotAllowed)
 	}
 
+	if bytes.Equal(tx.RelayerAddr, tx.GuardianAddr) {
+		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrRelayedByGuardianNotAllowed)
+	}
+
 	userTx := *tx
 	// remove relayer signature for tx type handler
 	// hash of this user tx won't be computed/used, but the originalTxHash

@@ -1235,3 +1235,6 @@ var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 are disabled")
 
 // ErrGuardedRelayerNotAllowed signals that the provided relayer is guarded
 var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")
+
+// ErrRelayedByGuardianNotAllowed signals that the provided guardian is also the relayer
+var ErrRelayedByGuardianNotAllowed = errors.New("relayed by guardian not allowed")

@@ -171,7 +171,8 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 	shardCoordinator := mock.NewMultipleShardsCoordinatorMock()
 	shardCoordinator.CurrentShard = 0
 	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		if bytes.Equal(address, senderAddress) {
+		if bytes.Equal(address, senderAddress) ||
+			bytes.Equal(address, relayerAddress) {
 			return senderShard
 		}
 		if bytes.Equal(address, recvAddress) {
@@ -179,6 +180,10 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		}
 
 		return shardCoordinator.CurrentShard
+	}
+	shardCoordinator.SameShardCalled = func(firstAddress, secondAddress []byte) bool {
+		return string(firstAddress) == string(relayerAddress) &&
+			string(secondAddress) == string(senderAddress)
 	}
 
 	return transaction.NewInterceptedTransaction(
@@ -1524,17 +1529,40 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	tx.Signature = sigOk
 	tx.RelayerSignature = sigOk
 
+	// sender in different shard than relayer should fail
+	tx.RelayerAddr = bytes.Repeat([]byte("a"), len(relayerAddress))
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrShardIdMissmatch, err)
+
+	// relayer == guardian should fail
+	tx.Version = 2
+	tx.Options = 2
+	tx.RelayerAddr = relayerAddress
+	tx.GuardianAddr = tx.RelayerAddr
+	tx.GuardianSignature = sigOk
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrRelayedByGuardianNotAllowed, err)
+
+	// recursive relayed txs
+	tx.Version = minTxVersion
+	tx.Options = 0
+	tx.GuardianAddr = nil
+	tx.GuardianSignature = nil
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(recvAddress) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(0).Bytes()) + "@" + hex.EncodeToString([]byte("some method")) + "@" + hex.EncodeToString(sigOk))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.True(t, errors.Is(err, process.ErrRecursiveRelayedTxIsNotAllowed))
 
+	// invalid relayer signature
 	tx.Data = nil
 	tx.RelayerSignature = bytes.Repeat([]byte("a"), len(sigOk)) // same length but invalid relayer sig
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
 	assert.NotNil(t, err)
 
+	// should work
 	tx.RelayerSignature = sigOk
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()

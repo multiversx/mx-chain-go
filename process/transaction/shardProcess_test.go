@@ -2784,6 +2784,14 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		assert.Equal(t, process.ErrFailedTransaction, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
+	t.Run("same guardian and relayer should error", func(t *testing.T) {
+		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
+		txCopy.GuardianAddr = txCopy.RelayerAddr
+		returnCode, err := txProc.ProcessTransaction(&txCopy)
+		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.Equal(t, vmcommon.UserError, returnCode)
+	})
 	t.Run("insufficient gas limit should error", func(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
