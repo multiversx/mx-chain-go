@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	factoryInterceptors "github.com/multiversx/mx-chain-go/epochStart/bootstrap/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -20,7 +22,6 @@ import (
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func createSovBootStrapProc() *sovereignBootStrapShardProcessor {
@@ -264,6 +265,7 @@ func TestBootStrapSovereignShardProcessor_createEpochStartInterceptorsContainers
 		RequestHandler:          sovProc.requestHandler,
 		SignaturesHandler:       sovProc.mainMessenger,
 		NodeOperationMode:       sovProc.nodeOperationMode,
+		AccountFactory:          sovProc.runTypeComponents.AccountsCreator(),
 	}
 	mainContainer, fullContainer, err := sovProc.createEpochStartInterceptorsContainers(args)
 	require.Nil(t, err)

@@ -72,7 +72,7 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 
 	nftV2 := sovChainPrefix + "-NFTV2-a1b2c3"
 	nftV2Nonce := uint64(10)
-	token := sovChainPrefix + "-TKN-1q2w3e"
+	token := sovChainPrefix + "-TKN-1d2e3a"
 
 	// TODO MX-15942 add dynamic NFT type for bridge transfer
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 
@@ -98,6 +99,7 @@ type RunTypeComponentsHolder interface {
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataCodecHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
+	AccountsCreator() state.AccountFactory
 	IsInterfaceNil() bool
 }
 
