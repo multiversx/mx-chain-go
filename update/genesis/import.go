@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -352,7 +353,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	}
 
 	if common.IsEmptyTrie(originalRootHash) {
-		err = dataTrie.Commit()
+		err = dataTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 		if err != nil {
 			return err
 		}
@@ -386,7 +387,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w identifier: %s", err, identifier)
 	}
 
-	err = dataTrie.Commit()
+	err = dataTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	if err != nil {
 		return err
 	}

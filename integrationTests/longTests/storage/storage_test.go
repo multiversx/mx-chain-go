@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -130,7 +131,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 		if i%written == 0 {
 			endTime := time.Now()
 			diff := endTime.Sub(startTime)
-			_ = tr.Commit()
+			_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 			fmt.Printf("Written %d, total %d in %f s\n", written, i, diff.Seconds())
 			startTime = time.Now()
 		}

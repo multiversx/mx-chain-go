@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"sync"
 	"testing"
 	"time"
@@ -69,7 +70,7 @@ func TestDepthFirstTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	numKeysValues := 10
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -87,7 +88,7 @@ func TestDepthFirstTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	numKeysValues := 10
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -103,7 +104,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -165,7 +166,7 @@ func TestDepthFirstTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	numKeysValues := 100
 	trSource, memUnitSource := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 

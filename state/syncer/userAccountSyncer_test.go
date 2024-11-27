@@ -1,6 +1,7 @@
 package syncer
 
 import (
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"testing"
 	"time"
 
@@ -93,7 +94,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	value := []byte("value")
 	_ = tr.Update(key, value)
 	rootHash, _ := tr.RootHash()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	args.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {

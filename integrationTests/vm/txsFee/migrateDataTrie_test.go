@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -110,7 +111,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 		migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 		testGasConsumed(t, testContext, gasLimit, 20000)
 
-		err = dtr.Commit()
+		err = dtr.Commit(hashesCollector.NewDisabledHashesCollector())
 		require.Nil(t, err)
 
 		rootHash, err = dtr.RootHash()
@@ -162,7 +163,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 			migrateDataTrie(t, testContext, sndAddr, gasPrice, gasLimit, vmcommon.Ok)
 			numMigrateDataTrieCalls++
 
-			err = dtr.Commit()
+			err = dtr.Commit(hashesCollector.NewDisabledHashesCollector())
 			require.Nil(t, err)
 
 			rootHash, err = dtr.RootHash()

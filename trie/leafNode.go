@@ -68,20 +68,32 @@ func (ln *leafNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(ln)
 }
 
-func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, targetDb common.BaseStorer) error {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit error %w", err)
-	}
-
+func (ln *leafNode) commitDirty(
+	_ byte,
+	_ uint,
+	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
+	_ common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
+) {
 	if !ln.dirty {
-		return nil
+		return
 	}
 
 	ln.dirty = false
-	_, err = encodeNodeAndCommitToDB(ln, targetDb)
+	encNode, err := ln.getEncodedNode()
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return
+	}
+	hash := ln.hasher.Compute(string(encNode))
+	ln.hash = hash
+	hashesCollector.AddDirtyHash(hash)
 
-	return err
+	err = targetDb.Put(hash, encNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+	}
 }
 
 func (ln *leafNode) commitSnapshot(
@@ -346,20 +358,6 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteracto
 	}
 
 	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
-}
-
-func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getDirtyHashes error %w", err)
-	}
-
-	if !ln.isDirty() {
-		return nil
-	}
-
-	hashes[string(ln.getHash())] = struct{}{}
-	return nil
 }
 
 func (ln *leafNode) getChildren(_ common.TrieStorageInteractor) ([]node, error) {

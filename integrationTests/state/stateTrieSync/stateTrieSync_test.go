@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -103,7 +104,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
-	_ = resolverTrie.Commit()
+	_ = resolverTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := resolverTrie.RootHash()
 
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
@@ -224,7 +225,7 @@ func testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testin
 		_ = resolverTrie.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
 
-	_ = resolverTrie.Commit()
+	_ = resolverTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := resolverTrie.RootHash()
 
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)

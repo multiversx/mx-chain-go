@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	dataMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -136,7 +137,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	bn.setHash(getTestGoroutinesManager())
-	_ = bn.commitDirty(0, 5, db, db)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -156,7 +157,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	en.setHash(getTestGoroutinesManager())
-	_ = en.commitDirty(0, 5, db, db)
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -176,7 +177,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	ln.setHash(getTestGoroutinesManager())
-	_ = ln.commitDirty(0, 5, db, db)
+	ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -365,7 +366,7 @@ func TestGetOldHashesIfNodeIsCollapsed(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	root, _ := tr.GetRootNode().(*branchNode)
 	for i := 0; i < nrOfChildren; i++ {
@@ -383,61 +384,26 @@ func TestClearOldHashesAndOldRootOnCommit(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	root, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dog"), []byte("value of dog"))
 	ExecuteUpdatesFromBatch(tr)
 
 	assert.Equal(t, 4, len(tr.GetOldHashes()))
-	assert.Equal(t, root, tr.GetOldRoot())
+	assert.Equal(t, root, tr.GetOldRootHash())
 
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	assert.Equal(t, 0, len(tr.GetOldHashes()))
 	assert.Equal(t, 0, len(tr.RootManager.(*rootManager).oldRootHash))
-}
-
-func TestTrieGetObsoleteHashes(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-
-	_ = tr.Update([]byte("doeee"), []byte("value of doeee"))
-	ExecuteUpdatesFromBatch(tr)
-
-	assert.NotEqual(t, 0, len(tr.GetOldHashes()))
-	assert.NotEqual(t, 0, len(tr.GetOldRoot()))
-
-	expectedHashes := tr.GetOldHashes()
-	hashes := tr.GetObsoleteHashes()
-	assert.Equal(t, expectedHashes, hashes)
-}
-
-func TestNode_getDirtyHashes(t *testing.T) {
-	t.Parallel()
-
-	tr, _ := newEmptyTrie()
-	_ = tr.Update([]byte("doe"), []byte("reindeer"))
-	_ = tr.Update([]byte("dog"), []byte("puppy"))
-	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	ExecuteUpdatesFromBatch(tr)
-
-	tr.GetRootNode().setHash(getTestGoroutinesManager())
-	hashes := make(map[string]struct{})
-	err := tr.GetRootNode().getDirtyHashes(hashes)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, hashes)
-	assert.Equal(t, 6, len(hashes))
 }
 
 func TestPatriciaMerkleTrie_GetAllLeavesCollapsedTrie(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	root, _ := tr.GetRootNode().(*branchNode)
 	for i := 0; i < nrOfChildren; i++ {
@@ -470,12 +436,12 @@ func TestPatriciaMerkleTrie_oldRootAndOldHashesAreResetAfterEveryCommit(t *testi
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	_ = tr.Update([]byte("doe"), []byte("deer"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 
-	err := tr.Commit()
+	err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(tr.GetOldHashes()))
 	assert.Equal(t, 0, len(tr.RootManager.(*rootManager).oldRootHash))
