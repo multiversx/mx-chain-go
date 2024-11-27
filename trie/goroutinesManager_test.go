@@ -39,7 +39,7 @@ func TestNewGoroutinesManager(t *testing.T) {
 		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.NotNil(t, manager)
 		assert.Nil(t, err)
-		assert.True(t, manager.(*goroutinesManager).canProcess)
+		assert.True(t, manager.canProcess)
 	})
 }
 
@@ -138,7 +138,7 @@ func TestGoroutinesManager_SetError(t *testing.T) {
 
 		err = errCh.ReadFromChanNonBlocking()
 		assert.Equal(t, expectedErr, err)
-		assert.False(t, manager.(*goroutinesManager).canProcess)
+		assert.False(t, manager.canProcess)
 	})
 	t.Run("set multiple errors should not block", func(t *testing.T) {
 		t.Parallel()
@@ -156,7 +156,7 @@ func TestGoroutinesManager_SetError(t *testing.T) {
 
 		err = errCh.ReadFromChanNonBlocking()
 		assert.Equal(t, expectedErr, err)
-		assert.False(t, manager.(*goroutinesManager).canProcess)
+		assert.False(t, manager.canProcess)
 	})
 }
 

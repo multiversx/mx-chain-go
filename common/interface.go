@@ -400,6 +400,13 @@ type TrieGoroutinesManager interface {
 	IsInterfaceNil() bool
 }
 
+// AtomicBytesSlice defines the methods needed for an atomic bytes slice
+type AtomicBytesSlice interface {
+	Append(data [][]byte)
+	Get() [][]byte
+	Reset()
+}
+
 // TrieHashesCollector defines the methods needed for collecting trie hashes
 type TrieHashesCollector interface {
 	AddDirtyHash(hash []byte)
