@@ -47,7 +47,7 @@ type patriciaMerkleTrie struct {
 	batchManager            common.TrieBatchManager
 	goroutinesThrottler     core.Throttler
 	trieOperationInProgress *atomic.Flag
-	trieMutex               sync.RWMutex
+	updateTrieMutex         sync.RWMutex
 
 	maxTrieLevelInMemory uint
 	chanClose            chan struct{}
@@ -101,7 +101,7 @@ func NewTrie(
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
 		goroutinesThrottler:     trieThrottler,
 		trieOperationInProgress: &atomic.Flag{},
-		trieMutex:               sync.RWMutex{},
+		updateTrieMutex:         sync.RWMutex{},
 	}, nil
 }
 
@@ -178,8 +178,8 @@ func (tr *patriciaMerkleTrie) Delete(key []byte) {
 }
 
 func (tr *patriciaMerkleTrie) updateTrie() error {
-	tr.trieMutex.Lock()
-	defer tr.trieMutex.Unlock()
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	batch, err := tr.batchManager.MarkTrieUpdateInProgress()
 	if err != nil {
@@ -300,9 +300,6 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if rootNode == nil {
 		return common.EmptyTrieHash, nil
 	}
-
-	tr.trieMutex.Lock()
-	defer tr.trieMutex.Unlock()
 
 	hash := rootNode.getHash()
 	if hash != nil {
