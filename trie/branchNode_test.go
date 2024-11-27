@@ -1769,7 +1769,7 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
-		bn.insertOnExistingChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
+		bn.insertOnChild(newData, int(childPos), goRoutinesManager, modifiedHashes, bnModified, db)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.True(t, bnModified.IsSet())
 		assert.True(t, bn.dirty)
@@ -1819,7 +1819,7 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice()
 		bnModified := &atomic.Flag{}
-		bn.insertOnExistingChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
+		bn.insertOnChild(newData, int(childPos), goRoutinesManager, modifiedHashes, bnModified, db)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.False(t, bnModified.IsSet())
 		assert.False(t, bn.dirty)

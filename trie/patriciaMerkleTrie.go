@@ -287,6 +287,9 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 		return nil, err
 	}
 
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
+
 	return tr.getRootHash()
 }
 
@@ -317,6 +320,9 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
 	if rootNode == nil {
@@ -396,6 +402,9 @@ func (tr *patriciaMerkleTrie) String() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
+
 	writer := bytes.NewBuffer(make([]byte, 0))
 
 	rootNode := tr.GetRootNode()
@@ -423,6 +432,9 @@ func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
 		log.Warn("get obsolete hashes - could not save batched changes", "error", err)
 	}
 
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
+
 	oldHashes := tr.GetOldHashes()
 	logArrayWithTrace("old trie hash", "hash", oldHashes)
 
@@ -438,6 +450,9 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
 	if rootNode == nil {
@@ -648,6 +663,9 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
+
 	rootNode := tr.GetRootNode()
 	if rootNode == nil {
 		return nil, nil, ErrNilNode
@@ -754,6 +772,9 @@ func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (com
 func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
 	if check.IfNil(rootNode) {

@@ -380,7 +380,7 @@ func (en *extensionNode) insertAtSameKey(
 	for i := range newData {
 		newData[i].Key = newData[i].Key[keyMatchLen:]
 	}
-	newNode := en.child.insert(newData, goRoutinesManager, modifiedHashes, db)
+	newNode := child.insert(newData, goRoutinesManager, modifiedHashes, db)
 	if !goRoutinesManager.ShouldContinueProcessing() {
 		return newNode
 	}
@@ -389,8 +389,6 @@ func (en *extensionNode) insertAtSameKey(
 		return nil
 	}
 
-	en.mutex.RLock()
-	defer en.mutex.RUnlock()
 	if !en.dirty {
 		modifiedHashes.Append([][]byte{en.hash})
 	}
@@ -589,12 +587,12 @@ func (en *extensionNode) delete(
 func (en *extensionNode) reduceNode(pos int, db common.TrieStorageInteractor) (node, bool, error) {
 	k := append([]byte{byte(pos)}, en.Key...)
 
-	_, err := en.resolveIfCollapsed(db)
+	child, err := en.resolveIfCollapsed(db)
 	if err != nil {
 		return nil, false, err
 	}
 
-	newEn, err := newExtensionNode(k, en.child, en.marsh, en.hasher)
+	newEn, err := newExtensionNode(k, child, en.marsh, en.hasher)
 	if err != nil {
 		return nil, false, err
 	}

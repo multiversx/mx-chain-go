@@ -306,6 +306,9 @@ func (ln *leafNode) delete(
 	modifiedHashes common.AtomicBytesSlice,
 	_ common.TrieStorageInteractor,
 ) (bool, node) {
+	ln.mutex.RLock()
+	defer ln.mutex.RUnlock()
+
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {
 			if !ln.dirty {
