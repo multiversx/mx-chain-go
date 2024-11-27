@@ -247,10 +247,11 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 		InitialAccounts:  initialAccounts,
 	}
 	runTypeComponents, _ := createRunTypeComponents(argsRunType)
+	runTypeCoreComponents, _ := createRunTypeCoreComponents()
 
 	args.StateComponents = components.GetStateComponents(args.CoreComponents, args.StatusCoreComponents)
 	args.RunTypeComponents = runTypeComponents
-	args.RunTypeCoreComponents, _ = createRunTypeCoreComponents()
+	args.EnableEpochsFactory = runTypeCoreComponents.EnableEpochsFactoryCreator()
 	return args
 }
 
