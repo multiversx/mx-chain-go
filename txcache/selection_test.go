@@ -509,7 +509,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 1000000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(accountStateProvider, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 50000, len(selected))
