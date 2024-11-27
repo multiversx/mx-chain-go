@@ -570,14 +570,26 @@ func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBloc
 			return 0, nil, err
 		}
 
-		miniBlockHeaders = append(miniBlockHeaders, &block.MiniBlockHeader{
+		mbHeader := &block.MiniBlockHeader{
 			Hash:            hash,
 			SenderShardID:   mb.SenderShardID,
 			ReceiverShardID: mb.ReceiverShardID,
 			TxCount:         uint32(txCount),
 			Type:            mb.Type,
 			Reserved:        mb.Reserved,
-		})
+		}
+
+		indexOfLastProcessed := int32(txCount)
+		if indexOfLastProcessed > 1 {
+			indexOfLastProcessed--
+		}
+
+		err = mbHeader.SetIndexOfLastTxProcessed(indexOfLastProcessed - 1)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		miniBlockHeaders = append(miniBlockHeaders, mbHeader)
 	}
 
 	return totalTxCount, miniBlockHeaders, nil
