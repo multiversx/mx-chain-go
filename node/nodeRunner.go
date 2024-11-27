@@ -1268,7 +1268,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:             *configs.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
 		RunTypeComponents:       runTypeComponents,
-		RunTypeCoreComponents:   runTypeCoreComponents,
+		EnableEpochsFactory:     runTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

@@ -21,6 +21,7 @@ import (
 
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -161,8 +162,8 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents        factory.StatusComponentsHolder
 	StatusCoreComponents    factory.StatusCoreComponentsHolder
 	RunTypeComponents       factory.RunTypeComponentsHolder
-	RunTypeCoreComponents   factory.RunTypeCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+	EnableEpochsFactory     enablers.EnableEpochsFactory
 
 	GenesisNonce uint64
 	GenesisRound uint64
@@ -205,7 +206,7 @@ type processComponentsFactory struct {
 	statusCoreComponents    factory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
 	runTypeComponents       factory.RunTypeComponentsHolder
-	runTypeCoreComponents   factory.RunTypeCoreComponentsHolder
+	enableEpochsFactory     enablers.EnableEpochsFactory
 
 	genesisNonce uint64
 	genesisRound uint64
@@ -251,7 +252,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisRound:             args.GenesisRound,
 		roundConfig:              args.RoundConfig,
 		runTypeComponents:        args.RunTypeComponents,
-		runTypeCoreComponents:    args.RunTypeCoreComponents,
+		enableEpochsFactory:      args.EnableEpochsFactory,
 		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 		auctionListSelectorAPI:   disabled.NewDisabledAuctionListSelector(),
 		stakingDataProviderAPI:   disabled.NewDisabledStakingDataProvider(),
@@ -881,7 +882,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
 		RunTypeComponents:       pcf.runTypeComponents,
-		EnableEpochsFactory:     pcf.runTypeCoreComponents.EnableEpochsFactoryCreator(),
+		EnableEpochsFactory:     pcf.enableEpochsFactory,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 		// TODO: We should only pass the whole config instead of passing sub-configs as above
 		Config: pcf.config,
@@ -2120,8 +2121,8 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ExportHandlerFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExportHandlerFactoryCreator)
 	}
-	if check.IfNil(args.RunTypeCoreComponents.EnableEpochsFactoryCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeCoreComponents)
+	if check.IfNil(args.EnableEpochsFactory) {
+		return fmt.Errorf("%s: %w", baseErrMessage, enablers.ErrNilEnableEpochsFactory)
 	}
 
 	return nil

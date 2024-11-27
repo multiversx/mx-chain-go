@@ -469,7 +469,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusCoreComponents:    pr.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
 		RunTypeComponents:       pr.RunTypeComponents,
-		RunTypeCoreComponents:   pr.RunTypeCoreComponents,
+		EnableEpochsFactory:     pr.RunTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

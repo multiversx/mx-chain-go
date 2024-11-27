@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -282,7 +283,7 @@ func createProcessComponentsFactoryArgs(runTypeCoreComponents runType.RunTypeCor
 		},
 	}
 	args.RunTypeComponents = runTypeComponents
-	args.RunTypeCoreComponents = runTypeCoreComponents
+	args.EnableEpochsFactory = runTypeCoreComponents.EnableEpochsFactoryCreator()
 	return args
 }
 
@@ -1059,6 +1060,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilExportHandlerFactoryCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil EnableEpochsFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.EnableEpochsFactory = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, enablers.ErrNilEnableEpochsFactory))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

@@ -691,7 +691,7 @@ func GetProcessArgs(
 		},
 	}
 	args.RunTypeComponents = runTypeComponents
-	args.RunTypeCoreComponents = GetRunTypeCoreComponents()
+	args.EnableEpochsFactory = GetRunTypeCoreComponents().EnableEpochsFactoryCreator()
 	return args
 }
 
@@ -746,7 +746,7 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = runTypeComponents
-	processArgs.RunTypeCoreComponents = GetSovereignRunTypeCoreComponents()
+	processArgs.EnableEpochsFactory = GetSovereignRunTypeCoreComponents().EnableEpochsFactoryCreator()
 
 	return processArgs
 }

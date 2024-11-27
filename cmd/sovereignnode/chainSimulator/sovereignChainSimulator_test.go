@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -72,8 +71,6 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	defer chainSimulator.Close()
 
 	time.Sleep(time.Second)
-
-	logger.SetLogLevel("*:TRACE")
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)

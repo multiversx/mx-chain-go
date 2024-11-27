@@ -23,8 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
-	"github.com/multiversx/mx-chain-go/sovereignnode/notifier"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -70,9 +68,11 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
+	"github.com/multiversx/mx-chain-go/sovereignnode/notifier"
 	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -1383,7 +1383,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:              *configs.FlagsConfig,
 		TxExecutionOrderHandler:  ordering.NewOrderedCollection(),
 		RunTypeComponents:        runTypeComponents,
-		RunTypeCoreComponents:    runTypeCoreComponents,
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 		IncomingHeaderSubscriber: incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
