@@ -11,7 +11,7 @@ func newMinTransactionsHeap(capacity int) *transactionsHeap {
 	}
 
 	h.less = func(i, j int) bool {
-		return h.items[j].holdsTransactionMoreValuableForNetwork(h.items[i])
+		return h.items[j].isCurrentTransactionMoreValuableForNetwork(h.items[i])
 	}
 
 	return &h
@@ -23,7 +23,7 @@ func newMaxTransactionsHeap(capacity int) *transactionsHeap {
 	}
 
 	h.less = func(i, j int) bool {
-		return h.items[i].holdsTransactionMoreValuableForNetwork(h.items[j])
+		return h.items[i].isCurrentTransactionMoreValuableForNetwork(h.items[j])
 	}
 
 	return &h
