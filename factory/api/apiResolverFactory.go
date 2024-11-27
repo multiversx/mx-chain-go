@@ -74,6 +74,7 @@ type ApiResolverArgs struct {
 	DelegatedListFactoryHandler    trieIteratorsFactory.DelegatedListProcessorFactoryHandler
 	DirectStakedListFactoryHandler trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 	TotalStakedValueFactoryHandler trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
+	ApiRewardTxHandler             transactionAPI.APIRewardTxHandler
 }
 
 type scQueryServiceArgs struct {
@@ -262,6 +263,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
+		ApiRewardTxHandler:       args.ApiRewardTxHandler,
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {
