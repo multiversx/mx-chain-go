@@ -225,7 +225,8 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		return err
 	}
 
-	newRoot, oldHashes := rootNode.insert(sortedDataForInsertion, manager, tr.trieStorage)
+	oldHashes := common.NewModifiedHashesSlice()
+	newRoot := rootNode.insert(sortedDataForInsertion, manager, oldHashes, tr.trieStorage)
 	err = manager.GetError()
 	if err != nil {
 		return err
@@ -235,9 +236,10 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		return nil
 	}
 
-	tr.SetDataForRootChange(newRoot, oldRootHash, oldHashes)
+	hashes := oldHashes.Get()
+	tr.SetDataForRootChange(newRoot, oldRootHash, hashes)
 
-	logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
+	logArrayWithTrace("oldHashes after insert", "hash", hashes)
 	return nil
 }
 
@@ -261,12 +263,14 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		return err
 	}
 
-	_, newRoot, oldHashes := rootNode.delete(data, manager, tr.trieStorage)
+	modifiedHashes := common.NewModifiedHashesSlice()
+	_, newRoot := rootNode.delete(data, manager, modifiedHashes, tr.trieStorage)
 	err = manager.GetError()
 	if err != nil {
 		return err
 	}
 
+	oldHashes := modifiedHashes.Get()
 	tr.SetDataForRootChange(newRoot, oldRootHash, oldHashes)
 	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 
@@ -282,6 +286,9 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	return tr.getRootHash()
 }
@@ -321,6 +328,9 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
 	if rootNode == nil {
@@ -407,11 +417,8 @@ func (tr *patriciaMerkleTrie) String() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
-	err := tr.updateTrie()
-	if err != nil {
-		log.Warn("print trie - could not save batched changes", "error", err)
-		return ""
-	}
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	writer := bytes.NewBuffer(make([]byte, 0))
 
@@ -440,6 +447,9 @@ func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
 		log.Warn("get obsolete hashes - could not save batched changes", "error", err)
 	}
 
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
+
 	oldHashes := tr.GetOldHashes()
 	logArrayWithTrace("old trie hash", "hash", oldHashes)
 
@@ -455,6 +465,9 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
 	if rootNode == nil {
@@ -773,6 +786,9 @@ func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (com
 func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieLeaves) error {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
+
+	tr.updateTrieMutex.Lock()
+	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
 	if check.IfNil(rootNode) {

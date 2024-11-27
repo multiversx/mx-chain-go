@@ -174,39 +174,48 @@ func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, [
 func (ln *leafNode) insert(
 	newData []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
+	modifiedHashes common.AtomicBytesSlice,
 	db common.TrieStorageInteractor,
-) (node, [][]byte) {
+) node {
 	oldHash := make([][]byte, 0)
 	if !ln.dirty {
 		oldHash = append(oldHash, ln.hash)
 	}
 
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
-		return ln.insertInSameLn(newData[0], oldHash)
+		return ln.insertInSameLn(newData[0], modifiedHashes)
 	}
 
 	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
-	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, db)
+	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, modifiedHashes, db)
 	if !goRoutinesManager.ShouldContinueProcessing() {
-		return nil, [][]byte{}
+		return nil
+	}
+
+	if !ln.dirty {
+		modifiedHashes.Append([][]byte{ln.hash})
 	}
 
 	if keyMatchLen == 0 {
-		return bn, oldHash
+		return bn
 	}
 
 	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn, ln.marsh, ln.hasher)
 	if err != nil {
 		goRoutinesManager.SetError(err)
-		return nil, [][]byte{}
+		return nil
 	}
 
-	return newEn, oldHash
+	return newEn
 }
 
-func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (node, [][]byte) {
+func (ln *leafNode) insertInSameLn(newData core.TrieData, modifiedHashes common.AtomicBytesSlice) node {
 	if bytes.Equal(ln.Value, newData.Value) {
-		return nil, [][]byte{}
+		return nil
+	}
+
+	if !ln.dirty {
+		modifiedHashes.Append([][]byte{ln.hash})
 	}
 	ln.mutex.Lock()
 	defer ln.mutex.Unlock()
@@ -215,7 +224,7 @@ func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (n
 	ln.Version = uint32(newData.Version)
 	ln.dirty = true
 	ln.hash = nil
-	return ln, oldHashes
+	return ln
 }
 
 func trimKeys(data []core.TrieData, keyMatchLen int) {
@@ -228,6 +237,7 @@ func (ln *leafNode) insertInNewBn(
 	newData []core.TrieData,
 	keyMatchLen int,
 	goRoutinesManager common.TrieGoroutinesManager,
+	modifiedHashes common.AtomicBytesSlice,
 	db common.TrieStorageInteractor,
 ) node {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
@@ -264,26 +274,28 @@ func (ln *leafNode) insertInNewBn(
 	bn.setVersionForChild(lnVersion, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
-	newNode, _ := bn.insert(newData, goRoutinesManager, db)
-	return newNode
+	return bn.insert(newData, goRoutinesManager, modifiedHashes, db)
 }
 
 func (ln *leafNode) delete(
 	data []core.TrieData,
 	_ common.TrieGoroutinesManager,
+	modifiedHashes common.AtomicBytesSlice,
 	_ common.TrieStorageInteractor,
-) (bool, node, [][]byte) {
+) (bool, node) {
+	ln.mutex.RLock()
+	defer ln.mutex.RUnlock()
+
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {
-			oldHash := make([][]byte, 0)
 			if !ln.dirty {
-				oldHash = append(oldHash, ln.hash)
+				modifiedHashes.Append([][]byte{ln.hash})
 			}
 
-			return true, nil, oldHash
+			return true, nil
 		}
 	}
-	return false, ln, [][]byte{}
+	return false, ln
 }
 
 func (ln *leafNode) reduceNode(pos int, _ common.TrieStorageInteractor) (node, bool, error) {
