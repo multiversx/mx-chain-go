@@ -244,7 +244,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
 		RunTypeComponents:        instance.RunTypeComponents,
-		RunTypeCoreComponents:    runTypeCoreComponents,
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 		IncomingHeaderSubscriber: instance.IncomingHeaderSubscriber,
 	})
 	if err != nil {
