@@ -21,7 +21,9 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
 	}
+
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -56,6 +58,7 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -91,6 +94,7 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	}
 
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -216,8 +220,8 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.093771s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_35000,_numTransactions_=_10)
-	// 0.424683s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_100000,_numTransactions_=_5)
-	// 0.448017s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_10000,_numTransactions_=_100)
-	// 0.476738s (TestBenchmarkTxCache_DoEviction_Benchmark/numSenders_=_400000,_numTransactions_=_1)
+	// 0.119274s (TestBenchmarkTxCache_DoEviction/numSenders_=_35000,_numTransactions_=_10)
+	// 0.484147s (TestBenchmarkTxCache_DoEviction/numSenders_=_100000,_numTransactions_=_5)
+	// 0.504588s (TestBenchmarkTxCache_DoEviction/numSenders_=_10000,_numTransactions_=_100)
+	// 0.571885s (TestBenchmarkTxCache_DoEviction/numSenders_=_400000,_numTransactions_=_1)
 }

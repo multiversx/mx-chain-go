@@ -6,17 +6,14 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
-	"github.com/multiversx/mx-chain-storage-go/common"
 )
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	sender            string
-	accountNonce      atomic.Uint64
-	accountNonceKnown atomic.Flag
-	items             *list.List
-	totalBytes        atomic.Counter
-	constraints       *senderConstraints
+	sender      string
+	items       *list.List
+	totalBytes  atomic.Counter
+	constraints *senderConstraints
 
 	mutex sync.RWMutex
 }
@@ -119,7 +116,7 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 				comparison := bytes.Compare(currentTx.TxHash, incomingTx.TxHash)
 				if comparison == 0 {
 					// The incoming transaction will be discarded, since it's already in the cache.
-					return nil, common.ErrItemAlreadyInCache
+					return nil, errItemAlreadyInCache
 				}
 				if comparison < 0 {
 					// We've found an insertion place: right after "element".
@@ -186,56 +183,6 @@ func (listForSender *txListForSender) getTxsReversed() []*WrappedTransaction {
 	return result
 }
 
-// getSequentialTxs returns the transactions of the sender, in the context of transactions selection.
-// Thus, gaps and duplicates are handled (affected transactions are excluded).
-func (listForSender *txListForSender) getSequentialTxs() []*WrappedTransaction {
-	listForSender.mutex.RLock()
-	defer listForSender.mutex.RUnlock()
-
-	accountNonce := listForSender.accountNonce.Get()
-	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
-
-	result := make([]*WrappedTransaction, 0, listForSender.countTx())
-	previousNonce := uint64(0)
-
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		nonce := value.Tx.GetNonce()
-		isFirstTx := len(result) == 0
-
-		if isFirstTx {
-			// Handle lower nonces.
-			if accountNonceKnown && accountNonce > nonce {
-				log.Trace("txListForSender.getSequentialTxs, lower nonce", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
-				continue
-			}
-
-			// Handle initial gaps.
-			if accountNonceKnown && accountNonce < nonce {
-				log.Trace("txListForSender.getSequentialTxs, initial gap", "sender", listForSender.sender, "nonce", nonce, "accountNonce", accountNonce)
-				break
-			}
-		} else {
-			// Handle duplicates (only transactions with the highest gas price are included; see "findInsertionPlace").
-			if nonce == previousNonce {
-				log.Trace("txListForSender.getSequentialTxs, duplicate", "sender", listForSender.sender, "nonce", nonce)
-				continue
-			}
-
-			// Handle middle gaps.
-			if nonce != previousNonce+1 {
-				log.Trace("txListForSender.getSequentialTxs, middle gap", "sender", listForSender.sender, "nonce", nonce, "previousNonce", previousNonce)
-				break
-			}
-		}
-
-		result = append(result, value)
-		previousNonce = nonce
-	}
-
-	return result
-}
-
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) countTx() uint64 {
 	return uint64(listForSender.items.Len())
@@ -245,18 +192,6 @@ func (listForSender *txListForSender) countTxWithLock() uint64 {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 	return uint64(listForSender.items.Len())
-}
-
-// notifyAccountNonce sets the known account nonce, removes the transactions with lower nonces, and returns their hashes
-func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
-	listForSender.accountNonce.Set(nonce)
-	_ = listForSender.accountNonceKnown.SetReturningPrevious()
-}
-
-// forgetAccountNonce resets the known account nonce
-func (listForSender *txListForSender) forgetAccountNonce() {
-	listForSender.accountNonce.Set(0)
-	listForSender.accountNonceKnown.Reset()
 }
 
 // removeTransactionsWithLowerOrEqualNonceReturnHashes removes transactions with nonces lower or equal to the given nonce
@@ -304,9 +239,4 @@ func (listForSender *txListForSender) removeTransactionsWithHigherOrEqualNonce(g
 		listForSender.onRemovedListElement(element)
 		element = prevElement
 	}
-}
-
-// GetKey returns the key
-func (listForSender *txListForSender) GetKey() string {
-	return listForSender.sender
 }

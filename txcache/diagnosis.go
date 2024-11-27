@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"math"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -26,7 +25,6 @@ type printedTransaction struct {
 func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseCounters()
 	cache.diagnoseTransactions()
-	cache.diagnoseSelection()
 }
 
 func (cache *TxCache) diagnoseCounters() {
@@ -75,7 +73,7 @@ func (cache *TxCache) diagnoseTransactions() {
 }
 
 // marshalTransactionsToNewlineDelimitedJSON converts a list of transactions to a newline-delimited JSON string.
-// Note: each line is indexed, to improve readability. The index is easily removable for if separate analysis is needed.
+// Note: each line is indexed, to improve readability. The index is easily removable if separate analysis is needed.
 func marshalTransactionsToNewlineDelimitedJSON(transactions []*WrappedTransaction, linePrefix string) string {
 	builder := strings.Builder{}
 	builder.WriteString("\n")
@@ -104,17 +102,8 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 		GasPrice:   transaction.GetGasPrice(),
 		GasLimit:   transaction.GetGasLimit(),
 		DataLength: len(transaction.GetData()),
-		PPU:        wrappedTx.PricePerUnit.Load(),
+		PPU:        wrappedTx.PricePerUnit,
 	}
-}
-
-func (cache *TxCache) diagnoseSelection() {
-	if logDiagnoseSelection.GetLevel() > logger.LogDebug {
-		return
-	}
-
-	transactions, _ := cache.doSelectTransactions(diagnosisSelectionGasRequested, math.MaxInt)
-	displaySelectionOutcome(logDiagnoseSelection, "diagnoseSelection", transactions)
 }
 
 func displaySelectionOutcome(contextualLogger logger.Logger, linePrefix string, transactions []*WrappedTransaction) {

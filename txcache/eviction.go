@@ -102,18 +102,14 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 	heap.Init(transactionsHeap)
 
 	// Initialize the heap with the first transaction of each bunch
-	for i, bunch := range bunches {
-		if len(bunch) == 0 {
-			// Some senders may have no transaction anymore (hazardous concurrent removals).
+	for _, bunch := range bunches {
+		item, err := newTransactionsHeapItem(bunch)
+		if err != nil {
 			continue
 		}
 
 		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
-		heap.Push(transactionsHeap, &transactionsHeapItem{
-			senderIndex:      i,
-			transactionIndex: 0,
-			transaction:      bunch[0],
-		})
+		heap.Push(transactionsHeap, item)
 	}
 
 	for pass := 0; cache.isCapacityExceeded(); pass++ {
@@ -130,16 +126,13 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 				break
 			}
 
-			transactionsToEvict = append(transactionsToEvict, item.transaction)
-			transactionsToEvictHashes = append(transactionsToEvictHashes, item.transaction.TxHash)
+			transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
+			transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
 
 			// If there are more transactions in the same bunch (same sender as the popped item),
 			// add the next one to the heap (to compete with the others in being "the worst").
-			item.transactionIndex++
-
-			if item.transactionIndex < len(bunches[item.senderIndex]) {
-				// Item is reused (same originating sender), pushed back on the heap.
-				item.transaction = bunches[item.senderIndex][item.transactionIndex]
+			// Item is reused (same originating sender), pushed back on the heap.
+			if item.gotoNextTransaction() {
 				heap.Push(transactionsHeap, item)
 			}
 		}

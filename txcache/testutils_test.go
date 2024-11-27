@@ -14,6 +14,9 @@ const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
+// The GitHub Actions runners are (extremely) slow.
+const selectionLoopMaximumDuration = 30 * time.Second
+
 func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapByHash := cache.txByHash
 	internalMapBySender := cache.txListBySender
@@ -96,7 +99,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		sender := createFakeSenderAddress(senderTag)
 
-		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {
+		for nonce := nTransactionsPerSender - 1; nonce >= 0; nonce-- {
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
 			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
@@ -114,7 +117,7 @@ func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransacti
 		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)
 		sender := createFakeSenderAddress(senderTag)
 
-		for nonce := nTransactionsPerSender; nonce > 0; nonce-- {
+		for nonce := 0; nonce < nTransactionsPerSender; nonce++ {
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
 			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
@@ -168,6 +171,12 @@ func (wrappedTx *WrappedTransaction) withGasPrice(gasPrice uint64) *WrappedTrans
 func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.GasLimit = gasLimit
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withGuardian(guardian []byte) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.GuardianAddr = guardian
 	return wrappedTx
 }
 

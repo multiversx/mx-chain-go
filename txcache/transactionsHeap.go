@@ -5,19 +5,13 @@ type transactionsHeap struct {
 	less  func(i, j int) bool
 }
 
-type transactionsHeapItem struct {
-	senderIndex      int
-	transactionIndex int
-	transaction      *WrappedTransaction
-}
-
 func newMinTransactionsHeap(capacity int) *transactionsHeap {
 	h := transactionsHeap{
 		items: make([]*transactionsHeapItem, 0, capacity),
 	}
 
 	h.less = func(i, j int) bool {
-		return h.items[j].transaction.isTransactionMoreValuableForNetwork(h.items[i].transaction)
+		return h.items[j].isCurrentTransactionMoreValuableForNetwork(h.items[i])
 	}
 
 	return &h
@@ -29,7 +23,7 @@ func newMaxTransactionsHeap(capacity int) *transactionsHeap {
 	}
 
 	h.less = func(i, j int) bool {
-		return h.items[i].transaction.isTransactionMoreValuableForNetwork(h.items[j].transaction)
+		return h.items[i].isCurrentTransactionMoreValuableForNetwork(h.items[j])
 	}
 
 	return &h

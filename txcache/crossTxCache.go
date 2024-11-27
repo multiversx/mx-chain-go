@@ -57,6 +57,7 @@ func (cache *CrossTxCache) ImmunizeTxsAgainstEviction(keys [][]byte) {
 
 // AddTx adds a transaction in the cache
 func (cache *CrossTxCache) AddTx(tx *WrappedTransaction) (has, added bool) {
+	log.Trace("CrossTxCache.AddTx", "name", cache.config.Name, "txHash", tx.TxHash)
 	return cache.HasOrAdd(tx.TxHash, tx, int(tx.Size))
 }
 
@@ -93,6 +94,7 @@ func (cache *CrossTxCache) Peek(key []byte) (value interface{}, ok bool) {
 
 // RemoveTxByHash removes tx by hash
 func (cache *CrossTxCache) RemoveTxByHash(txHash []byte) bool {
+	log.Trace("CrossTxCache.RemoveTxByHash", "name", cache.config.Name, "txHash", txHash)
 	return cache.RemoveWithResult(txHash)
 }
 
@@ -113,14 +115,6 @@ func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 // thus does not handle nonces, nonce gaps etc.
 func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
 	return make([]*WrappedTransaction, 0)
-}
-
-// NotifyAccountNonce does nothing, only to respect the interface
-func (cache *CrossTxCache) NotifyAccountNonce(_ []byte, _ uint64) {
-}
-
-// ForgetAllAccountNonces does nothing, only to respect the interface
-func (cache *CrossTxCache) ForgetAllAccountNonces() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
