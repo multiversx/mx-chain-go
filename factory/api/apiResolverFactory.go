@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/builtInFunctions"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -368,10 +369,15 @@ func createScQueryElement(
 		return nil, nil, err
 	}
 
+	simulationAccountsDB, err := transactionEvaluator.NewSimulationAccountsDB(accountsAdapterApi)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.gasScheduleNotifier,
 		args.coreComponents.InternalMarshalizer(),
-		accountsAdapterApi,
+		simulationAccountsDB,
 		args.processComponents.ShardCoordinator(),
 		args.coreComponents.EpochNotifier(),
 		args.coreComponents.EnableEpochsHandler(),
@@ -411,7 +417,7 @@ func createScQueryElement(
 		GasSchedule:              args.gasScheduleNotifier,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
-		Accounts:                 accountsAdapterApi,
+		Accounts:                 simulationAccountsDB,
 		BlockChain:               apiBlockchain,
 	}
 
@@ -461,6 +467,7 @@ func createScQueryElement(
 		Hasher:                     args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter:   args.coreComponents.Uint64ByteSliceConverter(),
 		IsInHistoricalBalancesMode: args.isInHistoricalBalancesMode,
+		AccountsDB:                 simulationAccountsDB,
 	}
 
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)

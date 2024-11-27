@@ -62,6 +62,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		Hasher:                     &testscommon.HasherStub{},
 		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
 		IsInHistoricalBalancesMode: false,
+		AccountsDB:                 &stateMocks.AccountsStub{},
 	}
 }
 
@@ -1166,6 +1167,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 		Marshaller:               &marshallerMock.MarshalizerStub{},
 		Hasher:                   &testscommon.HasherStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
+		AccountsDB:               &stateMocks.AccountsStub{},
 	}
 
 	target, _ := NewSCQueryService(argsNewSCQueryService)

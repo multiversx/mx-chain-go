@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -53,6 +54,7 @@ type SCQueryService struct {
 	hasher                     hashing.Hasher
 	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	isInHistoricalBalancesMode bool
+	accountsDB                 state.AccountsAdapterWithClean
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -73,6 +75,7 @@ type ArgsNewSCQueryService struct {
 	Hasher                     hashing.Hasher
 	Uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	IsInHistoricalBalancesMode bool
+	AccountsDB                 state.AccountsAdapterWithClean
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -105,6 +108,7 @@ func NewSCQueryService(
 		hasher:                     args.Hasher,
 		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
 		isInHistoricalBalancesMode: args.IsInHistoricalBalancesMode,
+		accountsDB:                 args.AccountsDB,
 	}, nil
 }
 
@@ -170,6 +174,10 @@ func (service *SCQueryService) ExecuteQuery(query *process.SCQuery) (*vmcommon.V
 
 	service.mutRunSc.Lock()
 	defer service.mutRunSc.Unlock()
+
+	if !check.IfNil(service.accountsDB) {
+		service.accountsDB.CleanCache()
+	}
 
 	return service.executeScCall(query, 0)
 }
