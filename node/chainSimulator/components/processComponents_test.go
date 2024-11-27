@@ -250,6 +250,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 
 	args.StateComponents = components.GetStateComponents(args.CoreComponents, args.StatusCoreComponents)
 	args.RunTypeComponents = runTypeComponents
+	args.RunTypeCoreComponents, _ = createRunTypeCoreComponents()
 	return args
 }
 
