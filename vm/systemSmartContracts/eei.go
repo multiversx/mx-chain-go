@@ -306,6 +306,16 @@ func (host *vmContext) ProcessBuiltInFunction(
 		return nil
 	}
 
+	return host.processBuiltInFunction(destination, sender, value, input, gasLimit)
+}
+
+func (host *vmContext) processBuiltInFunction(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
 	vmInput, err := host.createVMInputForBuiltInFunctionCall(destination, sender, value, input, gasLimit)
 	if err != nil {
 		return err
