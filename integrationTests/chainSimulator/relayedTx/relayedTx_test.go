@@ -544,11 +544,11 @@ func testRelayedV3MetaInteraction() func(t *testing.T) {
 		err = cs.GenerateBlocks(1)
 		require.NoError(t, err)
 
-		// send relayed tx with invalid value
-		txDataAdd := "createNewDelegationContract@00@00"
+		// send createNewDelegationContract transaction
+		txData := "createNewDelegationContract@00@00"
 		gasLimit := uint64(60000000)
 		value := big.NewInt(0).Mul(oneEGLD, big.NewInt(1250))
-		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, vm.DelegationManagerSCAddress, relayer.Bytes, value, txDataAdd, gasLimit)
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, vm.DelegationManagerSCAddress, relayer.Bytes, value, txData, gasLimit)
 
 		relayerBefore := getBalance(t, cs, relayer)
 		senderBefore := getBalance(t, cs, sender)
@@ -565,7 +565,7 @@ func testRelayedV3MetaInteraction() func(t *testing.T) {
 		refund := getRefundValue(result.SmartContractResults)
 		consumedFee := big.NewInt(0).Sub(relayerBefore, relayerAfter)
 
-		gasForFullPrice := uint64(len(txDataAdd)*gasPerDataByte + minGasLimit + minGasLimit)
+		gasForFullPrice := uint64(len(txData)*gasPerDataByte + minGasLimit + minGasLimit)
 		gasForDeductedPrice := gasLimit - gasForFullPrice
 		deductedGasPrice := uint64(minGasPrice / deductionFactor)
 		initialFee := gasForFullPrice*minGasPrice + gasForDeductedPrice*deductedGasPrice
