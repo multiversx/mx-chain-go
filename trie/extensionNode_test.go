@@ -1274,7 +1274,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		newEn, _ := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+		newEn := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
 		newEn.setHash(getTestGoroutinesManager())
 		err = newEn.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, err)
