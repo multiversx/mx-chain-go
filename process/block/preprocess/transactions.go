@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -34,15 +33,10 @@ var _ process.PreProcessor = (*transactions)(nil)
 var log = logger.GetOrCreate("process/block/preprocess")
 
 // 200% bandwidth to allow 100% overshooting estimations
-const selectionGasBandwidthIncreasePercent = 200
+const selectionGasBandwidthIncreasePercent = 400
 
 // 130% to allow 30% overshooting estimations for scheduled SC calls
-const selectionGasBandwidthIncreaseScheduledPercent = 130
-
-type accountTxsShards struct {
-	accountsInfo map[string]*txShardInfo
-	sync.RWMutex
-}
+const selectionGasBandwidthIncreaseScheduledPercent = 260
 
 // TODO: increase code coverage with unit test
 
@@ -59,7 +53,6 @@ type transactions struct {
 	mutOrderedTxs                sync.RWMutex
 	blockTracker                 BlockTracker
 	blockType                    block.Type
-	accountTxsShards             accountTxsShards
 	emptyAddress                 []byte
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
@@ -161,6 +154,11 @@ func NewTransactionPreprocessor(
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
+	stateProvider, err := newAccountStateProvider(args.Accounts)
+	if err != nil {
+		return nil, err
+	}
+
 	bpp := basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -172,6 +170,7 @@ func NewTransactionPreprocessor(
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
+		accountStateProvider:       stateProvider,
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
@@ -196,7 +195,6 @@ func NewTransactionPreprocessor(
 	txs.txsForCurrBlock.txHashAndInfo = make(map[string]*txInfo)
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
-	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 
@@ -239,11 +237,6 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 // RemoveTxsFromPools removes transactions from associated pools
 func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
 	return txs.removeTxsFromPools(body, txs.txPool, txs.isMiniBlockCorrect)
-}
-
-// ForgetAllAccountNoncesInMempool forgets all account nonces in mempool
-func (txs *transactions) ForgetAllAccountNoncesInMempool() {
-	txs.txPool.ForgetAllAccountNoncesInMempool()
 }
 
 // RestoreBlockDataIntoPools restores the transactions and miniblocks to associated pools
@@ -728,10 +721,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsValidator(
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	scheduledTxsFromMe, err := txs.computeScheduledTxsFromMe(body)
 	if err != nil {
 		return nil, err
@@ -805,10 +794,6 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.orderedTxs = make(map[string][]data.TransactionHandler)
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.mutOrderedTxs.Unlock()
-
-	txs.accountTxsShards.Lock()
-	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
-	txs.accountTxsShards.Unlock()
 
 	txs.scheduledTxsExecutionHandler.Init()
 }
@@ -923,44 +908,6 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return err
-}
-
-func (txs *transactions) notifyTransactionProviderIfNeeded() {
-	txs.accountTxsShards.RLock()
-
-	log.Debug("notifyTransactionProviderIfNeeded", "len(txs.accountTxsShards.accountsInfo)", len(txs.accountTxsShards.accountsInfo))
-
-	for senderAddress, txShardInfoValue := range txs.accountTxsShards.accountsInfo {
-		if txShardInfoValue.senderShardID != txs.shardCoordinator.SelfId() {
-			continue
-		}
-
-		account, err := txs.getAccountForAddress([]byte(senderAddress))
-		if err != nil {
-			log.Debug("notifyTransactionProviderIfNeeded.getAccountForAddress", "error", err)
-			continue
-		}
-
-		strCache := process.ShardCacherIdentifier(txShardInfoValue.senderShardID, txShardInfoValue.receiverShardID)
-		txShardPool := txs.txPool.ShardDataStore(strCache)
-		if check.IfNil(txShardPool) {
-			log.Trace("notifyTransactionProviderIfNeeded", "error", process.ErrNilTxDataPool)
-			continue
-		}
-
-		sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-		sortedTransactionsProvider.NotifyAccountNonce([]byte(senderAddress), account.GetNonce())
-	}
-	txs.accountTxsShards.RUnlock()
-}
-
-func (txs *transactions) getAccountForAddress(address []byte) (vmcommon.AccountHandler, error) {
-	account, err := txs.accounts.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	return account, nil
 }
 
 // RequestTransactionsForMiniBlock requests missing transactions for a certain miniblock
@@ -1157,10 +1104,6 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	startTime := time.Now()
 	scheduledMiniBlocks, err := txs.createScheduledMiniBlocks(
 		haveTime,
@@ -1198,7 +1141,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	args := miniBlocksBuilderArgs{
 		gasTracker:                txs.gasTracker,
 		accounts:                  txs.accounts,
-		accountTxsShards:          &txs.accountTxsShards,
 		balanceComputationHandler: txs.balanceComputation,
 		blockSizeComputation:      txs.blockSizeComputation,
 		haveTime:                  haveTime,
@@ -1213,10 +1155,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 	if err != nil {
 		return nil, nil, err
 	}
-
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for idx, wtx := range sortedTxs {
@@ -1301,7 +1239,6 @@ func (txs *transactions) processMiniBlockBuilderTx(
 	)
 	elapsedTime := time.Since(startTime)
 	mb.stats.totalProcessingTime += elapsedTime
-	mb.updateAccountShardsInfo(tx, wtx)
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		txs.handleBadTransaction(err, wtx, tx, mb, snapshot)
@@ -1479,7 +1416,8 @@ func (txs *transactions) computeSortedTxs(
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(txs.accountStateProvider)
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)

@@ -128,8 +128,7 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 				Capacity: 123,
 			},
 		},
-		ShardIDStr:           "0",
-		AccountNonceProvider: testscommon.NewAccountNonceProviderMock(),
+		ShardIDStr: "0",
 	}
 }
 

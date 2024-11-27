@@ -27,9 +27,7 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
-	selfShardIDAsString          string
 	txGasHandler                 txcache.TxGasHandler
-	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
 
 type txPoolShard struct {
@@ -79,9 +77,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
-		selfShardIDAsString:          core.GetShardIDString(args.SelfShardID),
 		txGasHandler:                 args.TxGasHandler,
-		accountNonceProvider:         args.AccountNonceProvider,
 	}
 
 	return shardedTxPoolObject, nil
@@ -185,12 +181,11 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 		Size:            int64(sizeInBytes),
 	}
 
-	sourceIsMe := sourceShardID == txPool.selfShardID
-	txPool.addTx(wrapper, cacheID, sourceIsMe)
+	txPool.addTx(wrapper, cacheID)
 }
 
 // addTx adds the transaction to the cache
-func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string, shouldNotifyCacheAboutSenderNonce bool) {
+func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
 
@@ -198,19 +193,6 @@ func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID strin
 	if added {
 		txPool.onAdded(tx.TxHash, tx)
 	}
-
-	if !shouldNotifyCacheAboutSenderNonce {
-		return
-	}
-
-	sender := tx.Tx.GetSndAddr()
-	senderNonce, err := txPool.accountNonceProvider.GetAccountNonce(sender)
-	if err != nil {
-		log.Debug("shardedTxPool.addTx(): cannot get sender nonce", "sender", sender, "err", err)
-		return
-	}
-
-	cache.NotifyAccountNonce(sender, senderNonce)
 }
 
 func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
@@ -260,6 +242,9 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("removal")
+
 	numRemoved := 0
 	for _, key := range txHashes {
 		if shard.Cache.RemoveTxByHash(key) {
@@ -267,8 +252,15 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 		}
 	}
 
+	stopWatch.Stop("removal")
+
 	// Transactions with lower / equal nonce are also removed, but the counter does not reflect that.
-	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk",
+		"cacheID", cacheID,
+		"numToRemove", len(txHashes),
+		"numRemoved", numRemoved,
+		"duration", stopWatch.GetMeasurement("removal"),
+	)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
@@ -287,12 +279,6 @@ func (txPool *shardedTxPool) removeTxFromAllShards(txHash []byte) {
 	}
 }
 
-// ForgetAllAccountNoncesInMempool forgets all account nonces in the mempool
-func (txPool *shardedTxPool) ForgetAllAccountNoncesInMempool() {
-	cache := txPool.getOrCreateShard(txPool.selfShardIDAsString)
-	cache.Cache.ForgetAllAccountNonces()
-}
-
 // MergeShardStores merges two shards of the pool
 func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string) {
 	sourceCacheID = txPool.routeToCacheUnions(sourceCacheID)
@@ -302,7 +288,7 @@ func (txPool *shardedTxPool) MergeShardStores(sourceCacheID, destCacheID string)
 	sourceCache := sourceShard.Cache
 
 	sourceCache.ForEachTransaction(func(txHash []byte, tx *txcache.WrappedTransaction) {
-		txPool.addTx(tx, destCacheID, false)
+		txPool.addTx(tx, destCacheID)
 	})
 
 	txPool.mutexBackingMap.Lock()

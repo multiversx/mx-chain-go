@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"math/big"
-	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -82,16 +81,6 @@ func Test_checkMiniBlocksBuilderArgsNilBlockSizeComputationHandlerShouldErr(t *t
 	require.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 }
 
-func Test_checkMiniBlocksBuilderArgsNilAccountsTxsPerShardsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultMiniBlockBuilderArgs()
-	args.accountTxsShards = nil
-
-	err := checkMiniBlocksBuilderArgs(args)
-	require.Equal(t, process.ErrNilAccountTxsPerShard, err)
-}
-
 func Test_checkMiniBlocksBuilderArgsNilBalanceComputationHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -149,29 +138,6 @@ func Test_checkMiniBlocksBuilderArgsOK(t *testing.T) {
 
 	err := checkMiniBlocksBuilderArgs(args)
 	require.Nil(t, err)
-}
-
-func Test_MiniBlocksBuilderUpdateAccountShardsInfo(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultMiniBlockBuilderArgs()
-
-	mbb, _ := newMiniBlockBuilder(args)
-	senderAddr := []byte("senderAddr")
-	receiverAddr := []byte("receiverAddr")
-	tx := createDefaultTx(senderAddr, receiverAddr, 50000)
-
-	senderShardID := uint32(0)
-	receiverShardID := uint32(0)
-	wtx := createWrappedTransaction(tx, senderShardID, receiverShardID)
-
-	mbb.updateAccountShardsInfo(tx, wtx)
-
-	addrShardInfo, ok := mbb.accountTxsShards.accountsInfo[string(tx.SndAddr)]
-	require.True(t, ok)
-
-	require.Equal(t, senderShardID, addrShardInfo.senderShardID)
-	require.Equal(t, receiverShardID, addrShardInfo.receiverShardID)
 }
 
 func Test_MiniBlocksBuilderHandleGasRefundIntraShard(t *testing.T) {
@@ -881,11 +847,7 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 			},
 		},
-		accounts: &stateMock.AccountsStub{},
-		accountTxsShards: &accountTxsShards{
-			accountsInfo: make(map[string]*txShardInfo),
-			RWMutex:      sync.RWMutex{},
-		},
+		accounts:                  &stateMock.AccountsStub{},
 		blockSizeComputation:      &testscommon.BlockSizeComputationStub{},
 		balanceComputationHandler: &testscommon.BalanceComputationStub{},
 		haveTime:                  haveTimeTrue,
@@ -918,6 +880,6 @@ func createWrappedTransaction(
 		Size:            int64(len(txMarshalled)),
 	}
 
-	wrappedTx.PricePerUnit.Store(1_000_000_000)
+	wrappedTx.PricePerUnit = 1_000_000_000
 	return wrappedTx
 }

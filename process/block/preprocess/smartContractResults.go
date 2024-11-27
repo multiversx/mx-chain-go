@@ -181,10 +181,6 @@ func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body) error {
 	return scr.removeTxsFromPools(body, scr.scrPool, scr.isMiniBlockCorrect)
 }
 
-// ForgetAllAccountNoncesInMempool does nothing
-func (scr *smartContractResults) ForgetAllAccountNoncesInMempool() {
-}
-
 // RestoreBlockDataIntoPools restores the smart contract results and miniblocks to associated pools
 func (scr *smartContractResults) RestoreBlockDataIntoPools(
 	body *block.Body,

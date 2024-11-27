@@ -97,10 +97,6 @@ func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(body *block.Body) error
 	return vip.removeTxsFromPools(body, vip.validatorsInfoPool, vip.isMiniBlockCorrect)
 }
 
-// ForgetAllAccountNoncesInMempool does nothing
-func (vip *validatorInfoPreprocessor) ForgetAllAccountNoncesInMempool() {
-}
-
 // RestoreBlockDataIntoPools restores the peer miniblocks to the pool
 func (vip *validatorInfoPreprocessor) RestoreBlockDataIntoPools(
 	body *block.Body,

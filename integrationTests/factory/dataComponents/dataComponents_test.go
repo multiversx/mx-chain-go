@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
@@ -23,8 +22,6 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
-
-	accountNonceProvider := testscommon.NewAccountNonceProviderMock()
 
 	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
@@ -44,7 +41,6 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
-		accountNonceProvider,
 	)
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(
@@ -52,7 +48,6 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedBootstrapComponents,
 		managedCryptoComponents,
-		accountNonceProvider,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedDataComponents)

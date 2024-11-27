@@ -73,10 +73,6 @@ func (sd *ShardedDataStub) RemoveDataFromAllShards(key []byte) {
 	}
 }
 
-// ForgetAllAccountNoncesInMempool -
-func (sd *ShardedDataStub) ForgetAllAccountNoncesInMempool() {
-}
-
 // MergeShardStores -
 func (sd *ShardedDataStub) MergeShardStores(sourceCacheID, destCacheID string) {
 	if sd.MergeShardStoresCalled != nil {

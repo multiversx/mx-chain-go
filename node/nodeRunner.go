@@ -320,19 +320,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	// The accounts adapter isn't yet available, it will be set a bit later (see below).
-	accountNonceProvider, err := stateComp.NewAccountNonceProvider(nil)
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating bootstrap components")
 	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
 		managedStatusCoreComponents,
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
-		accountNonceProvider,
 	)
 	if err != nil {
 		return true, err
@@ -346,7 +339,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedBootstrapComponents,
 		managedCryptoComponents,
-		accountNonceProvider,
 	)
 	if err != nil {
 		return true, err
@@ -358,11 +350,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusCoreComponents,
 	)
-	if err != nil {
-		return true, err
-	}
-
-	err = accountNonceProvider.SetAccountsAdapter(managedStateComponents.AccountsAdapterAPI())
 	if err != nil {
 		return true, err
 	}
@@ -1311,7 +1298,6 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
-	accountNonceProvider dataRetriever.AccountNonceProvider,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := nr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1332,7 +1318,6 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 		FlagsConfigs:                  *configs.FlagsConfig,
 		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		AccountNonceProvider:          accountNonceProvider,
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1401,7 +1386,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
-	accountNonceProvider dataRetriever.AccountNonceProvider,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1414,7 +1398,6 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:     cryptoComponents,
 		NetworkComponents:    networkComponents,
 		StatusCoreComponents: statusCoreComponents,
-		AccountNonceProvider: accountNonceProvider,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

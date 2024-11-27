@@ -27,7 +27,7 @@ func TestNewTxCache(t *testing.T) {
 
 		cache, err := NewTxCache(cfg, nil)
 		assert.Nil(t, cache)
-		assert.Equal(t, common.ErrNilTxGasHandler, err)
+		assert.ErrorContains(t, err, "nil tx gas handler")
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

@@ -2,13 +2,20 @@ package txcache
 
 import (
 	"github.com/multiversx/mx-chain-storage-go/txcache"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction = txcache.WrappedTransaction
 
+// AccountState represents the state of an account (as seen by the mempool)
+type AccountState = types.AccountState
+
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler = txcache.TxGasHandler
+
+// AccountStateProvider provides the state of an account (as seen by the mempool)
+type AccountStateProvider = txcache.AccountStateProvider
 
 // ForEachTransaction is an iterator callback
 type ForEachTransaction = txcache.ForEachTransaction
