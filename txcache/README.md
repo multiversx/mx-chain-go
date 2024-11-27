@@ -180,11 +180,11 @@ Thus, the mempool selects transactions using an efficient and value-driven algor
        - The number of selected transactions reaches `maxNum`.
 
 **Additional notes:**
- - Within the selection loop, the current nonce of the sender is queryied from the blockchain, lazily (when needed).
+ - Within the selection loop, the current nonce of the sender is queried from the blockchain, lazily (when needed).
  - If an initial nonce gap is detected, the sender is (completely) skipped in the current selection session.
  - If a middle nonce gap is detected, the sender is skipped (from now on) in the current selection session.
  - Transactions with nonces lower than the current nonce of the sender are skipped.
- - Transactions with duplicate nonces are skipped. See paragraph 5 for more details.
+ - Transactions having the same nonce as a previously selected one (in the scope of a sender) are skipped. Also see paragraph 5.
  - Badly guarded transactions are skipped.
  - Once the accumulated fees of selected transactions of a given sender exceed the sender's balance, the sender is skipped (from now one).
 
