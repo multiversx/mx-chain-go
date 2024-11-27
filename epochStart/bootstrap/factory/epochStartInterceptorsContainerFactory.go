@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 )
@@ -42,6 +44,7 @@ type ArgsEpochStartInterceptorContainer struct {
 	RequestHandler          process.RequestHandler
 	SignaturesHandler       process.SignaturesHandler
 	NodeOperationMode       common.NodeOperation
+	AccountFactory          state.AccountFactory
 }
 
 // NewEpochStartInterceptorsContainer will return a real interceptors container factory, but with many disabled components
@@ -86,6 +89,9 @@ func CreateEpochStartContainerFactoryArgs(args ArgsEpochStartInterceptorContaine
 	if check.IfNil(args.CoreComponents.AddressPubKeyConverter()) {
 		return nil, epochStart.ErrNilPubkeyConverter
 	}
+	if check.IfNil(args.AccountFactory) {
+		return nil, state.ErrNilAccountFactory
+	}
 
 	cryptoComponents := args.CryptoComponents.Clone().(process.CryptoComponentsHolder)
 	err := cryptoComponents.SetMultiSignerContainer(disabled.NewMultiSignerContainer())
@@ -93,10 +99,14 @@ func CreateEpochStartContainerFactoryArgs(args ArgsEpochStartInterceptorContaine
 		return nil, err
 	}
 
+	accountsAdapter, err := disabled.NewAccountsAdapter(args.AccountFactory)
+	if err != nil {
+		return nil, err
+	}
+
 	nodesCoordinator := disabled.NewNodesCoordinator()
 	storer := disabled.NewChainStorer()
 	antiFloodHandler := disabled.NewAntiFloodHandler()
-	accountsAdapter := disabled.NewAccountsAdapter()
 	blackListHandler := cache.NewTimeCache(timeSpanForBadHeaders)
 	feeHandler := &disabledGenesis.FeeHandler{}
 	headerSigVerifier := disabled.NewHeaderSigVerifier()
