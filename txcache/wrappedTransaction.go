@@ -37,8 +37,17 @@ func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler)
 
 // Equality is out of scope (not possible in our case).
 func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTransaction *WrappedTransaction) bool {
+	// First, compare by PPU (higher PPU is better).
 	if wrappedTx.PricePerUnit != otherTransaction.PricePerUnit {
 		return wrappedTx.PricePerUnit > otherTransaction.PricePerUnit
+	}
+
+	// If PPU is the same, compare by gas limit (higher gas limit is better, promoting less "execution fragmentation").
+	gasLimit := wrappedTx.Tx.GetGasLimit()
+	gasLimitOther := otherTransaction.Tx.GetGasLimit()
+
+	if gasLimit != gasLimitOther {
+		return gasLimit > gasLimitOther
 	}
 
 	// In the end, compare by transaction hash
