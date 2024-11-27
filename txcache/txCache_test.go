@@ -7,9 +7,7 @@ import (
 	"sort"
 	"sync"
 	"testing"
-	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
@@ -54,7 +52,7 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig = config
 	cache, err = NewTxCache(config, nil)
 	require.Nil(t, cache)
-	require.Equal(t, common.ErrNilTxGasHandler, err)
+	require.Equal(t, errNilTxGasHandler, err)
 
 	badConfig = config
 	badConfig.NumBytesThreshold = 0
@@ -447,44 +445,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 	require.True(t, check.IfNil(thisIsNil))
 }
 
-func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-
-	// Alice will quickly move between two score buckets (chunks)
-	cheapTransaction := createTx([]byte("alice-x-o"), "alice", 0).withDataLength(1).withGasLimit(300000000).withGasPrice(oneBillion)
-	expensiveTransaction := createTx([]byte("alice-x-1"), "alice", 1).withDataLength(42).withGasLimit(50000000).withGasPrice(10 * oneBillion)
-	cache.AddTx(cheapTransaction)
-	cache.AddTx(expensiveTransaction)
-
-	wg := sync.WaitGroup{}
-
-	// Simulate selection
-	wg.Add(1)
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("Selection", i)
-			_, _ = cache.SelectTransactions(math.MaxUint64, math.MaxInt)
-		}
-
-		wg.Done()
-	}()
-
-	// Simulate add / remove transactions
-	wg.Add(1)
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("Add / remove", i)
-			cache.Remove([]byte("alice-x-1"))
-			cache.AddTx(expensiveTransaction)
-		}
-
-		wg.Done()
-	}()
-
-	timedOut := waitTimeout(&wg, 1*time.Second)
-	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
-}
-
 func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
@@ -553,72 +513,9 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 	}
 }
 
-func TestTxCache_ForgetAllAccountNonces(t *testing.T) {
-	config := ConfigSourceMe{
-		Name:                        "untitled",
-		NumChunks:                   16,
-		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
-		CountThreshold:              300001,
-		CountPerSenderThreshold:     math.MaxUint32,
-		EvictionEnabled:             false,
-		NumItemsToPreemptivelyEvict: 1,
-	}
-
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-
-	sw := core.NewStopWatch()
-
-	t.Run("numSenders = 100000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
-		require.Nil(t, err)
-
-		addManyTransactionsWithUniformDistribution(cache, 100_000, 1)
-		require.Equal(t, 100000, int(cache.CountTx()))
-
-		sw.Start(t.Name())
-		cache.ForgetAllAccountNonces()
-		sw.Stop(t.Name())
-
-		cache.txListBySender.backingMap.IterCb(func(key string, item interface{}) {
-			require.False(t, item.(*txListForSender).accountNonceKnown.IsSet())
-		})
-	})
-
-	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, txGasHandler)
-		require.Nil(t, err)
-
-		addManyTransactionsWithUniformDistribution(cache, 300_000, 1)
-		require.Equal(t, 300000, int(cache.CountTx()))
-
-		sw.Start(t.Name())
-		cache.ForgetAllAccountNonces()
-		sw.Stop(t.Name())
-
-		cache.txListBySender.backingMap.IterCb(func(key string, item interface{}) {
-			require.False(t, item.(*txListForSender).accountNonceKnown.IsSet())
-		})
-	})
-
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
-
-	// (1)
-	// Vendor ID:                GenuineIntel
-	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
-	//     CPU family:           6
-	//     Model:                140
-	//     Thread(s) per core:   2
-	//     Core(s) per socket:   4
-	//
-	// 0.004712s (TestTxCache_ForgetAllAccountNonces/numSenders_=_100000,_numTransactions_=_1)
-	// 0.015129s (TestTxCache_ForgetAllAccountNonces/numSenders_=_300000,_numTransactions_=_1)
-}
-
 func newUnconstrainedCacheToTest() *TxCache {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
@@ -638,6 +535,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,

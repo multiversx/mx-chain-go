@@ -105,14 +105,6 @@ func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{}),
 func (cache *DisabledCache) UnRegisterHandler(string) {
 }
 
-// NotifyAccountNonce does nothing
-func (cache *DisabledCache) NotifyAccountNonce(_ []byte, _ uint64) {
-}
-
-// ForgetAllAccountNonces does nothing
-func (cache *DisabledCache) ForgetAllAccountNonces() {
-}
-
 // ImmunizeTxsAgainstEviction does nothing
 func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 }

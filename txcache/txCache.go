@@ -2,11 +2,11 @@ package txcache
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -35,7 +35,7 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 		return nil, err
 	}
 	if check.IfNil(txGasHandler) {
-		return nil, common.ErrNilTxGasHandler
+		return nil, errNilTxGasHandler
 	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
@@ -99,7 +99,12 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "maxNum" transactions, with total gas <= "gasRequested".
-func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*WrappedTransaction, uint64) {
+func (cache *TxCache) SelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*WrappedTransaction, uint64) {
+	if check.IfNil(accountStateProvider) {
+		log.Error("TxCache.SelectTransactions", "err", errNilAccountStateProvider)
+		return nil, 0
+	}
+
 	stopWatch := core.NewStopWatch()
 	stopWatch.Start("selection")
 
@@ -110,7 +115,7 @@ func (cache *TxCache) SelectTransactions(gasRequested uint64, maxNum int) ([]*Wr
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(gasRequested, maxNum)
+	transactions, accumulatedGas := cache.doSelectTransactions(accountStateProvider, gasRequested, maxNum, selectionLoopMaximumDuration)
 
 	stopWatch.Stop("selection")
 
@@ -272,22 +277,6 @@ func (cache *TxCache) RegisterHandler(func(key []byte, value interface{}), strin
 // UnRegisterHandler is not implemented
 func (cache *TxCache) UnRegisterHandler(string) {
 	log.Error("TxCache.UnRegisterHandler is not implemented")
-}
-
-// NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
-// in order to inform the cache about initial nonce gap phenomena
-func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	log.Trace("TxCache.NotifyAccountNonce", "account", accountKey, "nonce", nonce)
-
-	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
-}
-
-// ForgetAllAccountNonces clears all known account nonces.
-// Should be called when a block is reverted.
-func (cache *TxCache) ForgetAllAccountNonces() {
-	log.Debug("TxCache.ForgetAllAccountNonces", "name", cache.name)
-
-	cache.txListBySender.forgetAllAccountNonces()
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache
