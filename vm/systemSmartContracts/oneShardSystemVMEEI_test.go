@@ -18,6 +18,7 @@ func TestNewSovereignVMContext(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		args := createDefaultEeiArgs()
 		vmCtx, err := NewVMContext(args)
+		require.Nil(t, err)
 		sovVM, err := NewOneShardSystemVMEEI(vmCtx)
 		require.Nil(t, err)
 		require.False(t, sovVM.IsInterfaceNil())
@@ -53,10 +54,10 @@ func TestSovereignVMContext_SendGlobalSettingToAll_ProcessBuiltInFunction(t *tes
 		},
 	}
 
-	vmCtx, err := NewVMContext(args)
+	vmCtx, _ := NewVMContext(args)
 	sovVM, _ := NewOneShardSystemVMEEI(vmCtx)
 
-	err = sovVM.SendGlobalSettingToAll(expectedSender, expectedInput)
+	err := sovVM.SendGlobalSettingToAll(expectedSender, expectedInput)
 	require.Nil(t, err)
 	require.Equal(t, 1, processBuiltInCt)
 
