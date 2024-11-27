@@ -567,6 +567,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		RequestHandler:          e.requestHandler,
 		SignaturesHandler:       e.mainMessenger,
 		NodeOperationMode:       e.nodeOperationMode,
+		AccountFactory:          e.runTypeComponents.AccountsCreator(),
 	}
 
 	e.mainInterceptorContainer, e.fullArchiveInterceptorContainer, err = e.bootStrapShardProcessor.createEpochStartInterceptorsContainers(args)

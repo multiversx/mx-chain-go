@@ -7,12 +7,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/trie"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 func TestNewSovereignBlockChainHook(t *testing.T) {
@@ -127,4 +131,48 @@ func TestSovereignBlockChainHook_ProcessBuiltInFunction(t *testing.T) {
 		require.True(t, getReceiverAccountCalled.IsSet())
 		require.Equal(t, int64(1), ctSaveAccount.Get())
 	})
+}
+
+func TestSovereignBlockChainHook_GetStorageData(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+
+	ctProcessTrieReads := 0
+	args.Counter = &testscommon.BlockChainHookCounterStub{
+		ProcessCrtNumberOfTrieReadsCounterCalled: func() error {
+			ctProcessTrieReads++
+			return nil
+		},
+	}
+
+	getAccCt := 0
+	args.Accounts = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			getAccCt++
+			return &stateMock.UserAccountStub{
+				AccountDataHandlerCalled: func() vmcommon.AccountDataHandler {
+					return &trie.DataTrieTrackerStub{}
+				},
+			}, nil
+		},
+	}
+
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	sbh, _ := hooks.NewSovereignBlockChainHook(bh)
+
+	for i := 1; i <= 10; i++ {
+		_, _, err := sbh.GetStorageData([]byte("addr"), []byte{0x1})
+		require.Nil(t, err)
+		require.Equal(t, i, getAccCt)
+		require.Equal(t, i, ctProcessTrieReads)
+	}
+
+	_, _, err := sbh.GetStorageData(vm.StakingSCAddress, []byte{0x1})
+	require.Nil(t, err)
+	_, _, err = sbh.GetStorageData(vm.ValidatorSCAddress, []byte{0x1})
+	require.Nil(t, err)
+
+	require.Equal(t, 12, getAccCt)
+	require.Equal(t, 10, ctProcessTrieReads)
 }
