@@ -467,7 +467,6 @@ func createScQueryElement(
 		Hasher:                     args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter:   args.coreComponents.Uint64ByteSliceConverter(),
 		IsInHistoricalBalancesMode: args.isInHistoricalBalancesMode,
-		AccountsDB:                 simulationAccountsDB,
 	}
 
 	scQueryService, err := smartContract.NewSCQueryService(argsNewSCQueryService)
@@ -501,7 +500,7 @@ func createMetaVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBlo
 		Marshalizer:         args.coreComponents.InternalMarshalizer(),
 		SystemSCConfig:      args.systemSCConfig,
 		ValidatorAccountsDB: args.stateComponents.PeerAccounts(),
-		UserAccountsDB:      args.stateComponents.AccountsAdapterAPI(),
+		UserAccountsDB:      argsHook.Accounts,
 		ChanceComputer:      args.coreComponents.Rater(),
 		ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
