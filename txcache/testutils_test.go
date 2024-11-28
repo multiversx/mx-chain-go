@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"encoding/binary"
+	"math/big"
 	"math/rand"
 	"sync"
 	"time"
@@ -178,6 +179,12 @@ func (wrappedTx *WrappedTransaction) withGasPrice(gasPrice uint64) *WrappedTrans
 func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.GasLimit = gasLimit
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withValue(value *big.Int) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.Value = value
 	return wrappedTx
 }
 
