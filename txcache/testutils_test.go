@@ -13,7 +13,10 @@ import (
 
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
+const oneQuintillion = 1_000_000_000_000_000_000
 const estimatedSizeOfBoundedTxFields = uint64(128)
+
+var oneQuintillionBig = big.NewInt(oneQuintillion)
 
 // The GitHub Actions runners are (extremely) slow.
 const selectionLoopMaximumDuration = 30 * time.Second

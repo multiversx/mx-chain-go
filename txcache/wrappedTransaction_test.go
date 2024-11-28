@@ -1,24 +1,29 @@
 package txcache
 
 import (
+	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWrappedTransaction_precomputeFields(t *testing.T) {
-	host := txcachemocks.NewMempoolHostMock()
-
 	t.Run("only move balance gas limit", func(t *testing.T) {
-		tx := createTx([]byte("a"), "a", 1).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
+		host := txcachemocks.NewMempoolHostMock()
+
+		tx := createTx([]byte("a"), "a", 1).withValue(oneQuintillionBig).withDataLength(1).withGasLimit(51500).withGasPrice(oneBillion)
 		tx.precomputeFields(host)
 
 		require.Equal(t, "51500000000000", tx.Fee.String())
 		require.Equal(t, oneBillion, int(tx.PricePerUnit))
+		require.Equal(t, "1000000000000000000", tx.TransferredValue.String())
 	})
 
 	t.Run("move balance gas limit and execution gas limit (a)", func(t *testing.T) {
+		host := txcachemocks.NewMempoolHostMock()
+
 		tx := createTx([]byte("b"), "b", 1).withDataLength(1).withGasLimit(51501).withGasPrice(oneBillion)
 		tx.precomputeFields(host)
 
@@ -27,6 +32,8 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 	})
 
 	t.Run("move balance gas limit and execution gas limit (b)", func(t *testing.T) {
+		host := txcachemocks.NewMempoolHostMock()
+
 		tx := createTx([]byte("c"), "c", 1).withDataLength(1).withGasLimit(oneMilion).withGasPrice(oneBillion)
 		tx.precomputeFields(host)
 
@@ -37,11 +44,39 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 	})
 
 	t.Run("with guardian", func(t *testing.T) {
-		tx := createTx([]byte("a"), "a", 1)
+		host := txcachemocks.NewMempoolHostMock()
+
+		tx := createTx([]byte("a"), "a", 1).withValue(oneQuintillionBig)
 		tx.precomputeFields(host)
 
 		require.Equal(t, "50000000000000", tx.Fee.String())
 		require.Equal(t, oneBillion, int(tx.PricePerUnit))
+		require.Equal(t, "1000000000000000000", tx.TransferredValue.String())
+	})
+
+	t.Run("with nil transferred value", func(t *testing.T) {
+		host := txcachemocks.NewMempoolHostMock()
+
+		tx := createTx([]byte("a"), "a", 1)
+		tx.precomputeFields(host)
+
+		require.Nil(t, tx.TransferredValue)
+	})
+
+	t.Run("queries host", func(t *testing.T) {
+		host := txcachemocks.NewMempoolHostMock()
+		host.ComputeTxFeeCalled = func(_ data.TransactionWithFeeHandler) *big.Int {
+			return big.NewInt(42)
+		}
+		host.GetTransferredValueCalled = func(_ data.TransactionHandler) *big.Int {
+			return big.NewInt(43)
+		}
+
+		tx := createTx([]byte("a"), "a", 1).withGasLimit(50_000)
+		tx.precomputeFields(host)
+
+		require.Equal(t, "42", tx.Fee.String())
+		require.Equal(t, "43", tx.TransferredValue.String())
 	})
 }
 

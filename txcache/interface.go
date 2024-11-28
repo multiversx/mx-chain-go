@@ -10,6 +10,7 @@ import (
 // MempoolHost provides blockchain information for mempool operations
 type MempoolHost interface {
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
+	GetTransferredValue(tx data.TransactionHandler) *big.Int
 	IsInterfaceNil() bool
 }
 
@@ -17,7 +18,6 @@ type MempoolHost interface {
 type SelectionSession interface {
 	GetAccountState(accountKey []byte) (*types.AccountState, error)
 	IsIncorrectlyGuarded(tx data.TransactionHandler) bool
-	GetTransferredValue(tx data.TransactionHandler) *big.Int
 	IsInterfaceNil() bool
 }
 
