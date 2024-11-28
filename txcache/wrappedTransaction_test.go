@@ -37,7 +37,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 	})
 
 	t.Run("with guardian", func(t *testing.T) {
-		tx := createTx([]byte("a"), "a", 1).withGuardian([]byte("heidi"))
+		tx := createTx([]byte("a"), "a", 1)
 		tx.precomputeFields(txGasHandler)
 
 		require.Equal(t, "50000000000000", tx.Fee.String())

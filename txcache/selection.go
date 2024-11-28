@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-func (cache *TxCache) doSelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func (cache *TxCache) doSelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	bunches := cache.acquireBunchesOfTransactions()
 
-	return selectTransactionsFromBunches(accountStateProvider, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
+	return selectTransactionsFromBunches(session, bunches, gasRequested, maxNum, selectionLoopMaximumDuration)
 }
 
 func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
@@ -23,7 +23,7 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 }
 
 // Selection tolerates concurrent transaction additions / removals.
-func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
+func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
 
 	// Items popped from the heap are added to "selectedTransactions".
@@ -63,7 +63,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			}
 		}
 
-		err := item.requestAccountStateIfNecessary(accountStateProvider)
+		err := item.requestAccountStateIfNecessary(session)
 		if err != nil {
 			// Skip this sender.
 			logSelect.Debug("TxCache.selectTransactionsFromBunches, could not retrieve account state", "sender", item.sender, "err", err)
@@ -77,7 +77,7 @@ func selectTransactionsFromBunches(accountStateProvider AccountStateProvider, bu
 			continue
 		}
 
-		shouldSkipTransaction := detectSkippableTransaction(item)
+		shouldSkipTransaction := detectSkippableTransaction(session, item)
 		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
 			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction())
@@ -108,11 +108,11 @@ func detectSkippableSender(item *transactionsHeapItem) bool {
 	return false
 }
 
-func detectSkippableTransaction(item *transactionsHeapItem) bool {
+func detectSkippableTransaction(session SelectionSession, item *transactionsHeapItem) bool {
 	if item.detectLowerNonce() {
 		return true
 	}
-	if item.detectBadlyGuarded() {
+	if item.detectIncorrectlyGuarded(session) {
 		return true
 	}
 	if item.detectNonceDuplicate() {
