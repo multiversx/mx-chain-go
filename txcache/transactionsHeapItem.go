@@ -44,8 +44,8 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, 
 	}, nil
 }
 
-func (item *transactionsHeapItem) selectCurrentTransaction(session SelectionSession) *WrappedTransaction {
-	item.accumulateConsumedBalance(session)
+func (item *transactionsHeapItem) selectCurrentTransaction() *WrappedTransaction {
+	item.accumulateConsumedBalance()
 
 	item.latestSelectedTransaction = item.currentTransaction
 	item.latestSelectedTransactionNonce = item.currentTransactionNonce
@@ -53,13 +53,13 @@ func (item *transactionsHeapItem) selectCurrentTransaction(session SelectionSess
 	return item.currentTransaction
 }
 
-func (item *transactionsHeapItem) accumulateConsumedBalance(session SelectionSession) {
+func (item *transactionsHeapItem) accumulateConsumedBalance() {
 	fee := item.currentTransaction.Fee
 	if fee != nil {
 		item.consumedBalance.Add(item.consumedBalance, fee)
 	}
 
-	transferredValue := session.GetTransferredValue(item.currentTransaction.Tx)
+	transferredValue := item.currentTransaction.TransferredValue
 	if transferredValue != nil {
 		item.consumedBalance.Add(item.consumedBalance, transferredValue)
 	}
