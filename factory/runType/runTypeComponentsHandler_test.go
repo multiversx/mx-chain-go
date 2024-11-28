@@ -102,6 +102,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.ExportHandlerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.ValidatorAccountsSyncerFactoryHandler())
 		require.Nil(t, managedRunTypeComponents.ShardRequestersContainerCreatorHandler())
+		require.Nil(t, managedRunTypeComponents.APIRewardsTxHandler())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -153,6 +154,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ExportHandlerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.ValidatorAccountsSyncerFactoryHandler())
 		require.NotNil(t, managedRunTypeComponents.ShardRequestersContainerCreatorHandler())
+		require.NotNil(t, managedRunTypeComponents.APIRewardsTxHandler())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

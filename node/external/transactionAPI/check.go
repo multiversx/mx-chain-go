@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -52,7 +53,7 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 		return process.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(arg.ApiRewardTxHandler) {
-		return errNilAPIRewardsHandler
+		return errors.ErrNilAPIRewardsHandler
 	}
 
 	return nil

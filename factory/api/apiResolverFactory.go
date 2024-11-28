@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
@@ -74,7 +75,6 @@ type ApiResolverArgs struct {
 	DelegatedListFactoryHandler    trieIteratorsFactory.DelegatedListProcessorFactoryHandler
 	DirectStakedListFactoryHandler trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 	TotalStakedValueFactoryHandler trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
-	ApiRewardTxHandler             transactionAPI.APIRewardTxHandler
 }
 
 type scQueryServiceArgs struct {
@@ -131,6 +131,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 	if check.IfNilReflect(args.TotalStakedValueFactoryHandler) {
 		return nil, factory.ErrNilTotalStakedValueFactory
+	}
+	if check.IfNilReflect(args.RunTypeComponents.APIRewardsTxHandler()) {
+		return nil, errErd.ErrNilAPIRewardsHandler
 	}
 
 	argsSCQuery := &scQueryServiceArgs{
@@ -263,7 +266,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
-		ApiRewardTxHandler:       args.ApiRewardTxHandler,
+		ApiRewardTxHandler:       args.RunTypeComponents.APIRewardsTxHandler(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
@@ -212,7 +213,7 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		arguments.ApiRewardTxHandler = nil
 
 		_, err := NewAPITransactionProcessor(arguments)
-		require.Equal(t, errNilAPIRewardsHandler, err)
+		require.Equal(t, errorsMx.ErrNilAPIRewardsHandler, err)
 	})
 }
 

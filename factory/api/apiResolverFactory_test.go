@@ -14,6 +14,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -25,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	apiTests "github.com/multiversx/mx-chain-go/testscommon/api"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -127,7 +127,6 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
-		ApiRewardTxHandler:             &apiTests.APIRewardsHandlerStub{},
 	}
 }
 
@@ -343,6 +342,18 @@ func TestCreateApiResolver(t *testing.T) {
 		args.TotalStakedValueFactoryHandler = nil
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilTotalStakedValueFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("APIRewardsTxHandlerField nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.APIRewardsTxHandlerField = nil
+		args.RunTypeComponents = runTypeCompsStub
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, errErd.ErrNilAPIRewardsHandler, err)
 		require.True(t, check.IfNil(apiResolver))
 	})
 }

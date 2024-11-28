@@ -1126,6 +1126,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ExportHandlerFactoryCreatorField:            rt.ExportHandlerFactoryCreator(),
 		ValidatorAccountsSyncerFactoryHandlerField:  rt.ValidatorAccountsSyncerFactoryHandler(),
 		ShardRequestersContainerCreatorHandlerField: rt.ShardRequestersContainerCreatorHandler(),
+		APIRewardsTxHandlerField:                    rt.APIRewardsTxHandler(),
 	}
 }
 

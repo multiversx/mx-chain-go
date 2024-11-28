@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -37,6 +39,7 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -66,7 +69,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -641,6 +643,7 @@ type RunTypeComponentsHolder interface {
 	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
+	APIRewardsTxHandler() transactionAPI.APIRewardTxHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

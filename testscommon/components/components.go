@@ -1199,6 +1199,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ExportHandlerFactoryCreatorField:            rt.ExportHandlerFactoryCreator(),
 		ValidatorAccountsSyncerFactoryHandlerField:  rt.ValidatorAccountsSyncerFactoryHandler(),
 		ShardRequestersContainerCreatorHandlerField: rt.ShardRequestersContainerCreatorHandler(),
+		APIRewardsTxHandlerField:                    rt.APIRewardsTxHandler(),
 	}
 }
 
