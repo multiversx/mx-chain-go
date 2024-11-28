@@ -112,7 +112,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 
 func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, nSenders)
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	host := txcachemocks.NewMempoolHostMock()
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)
@@ -122,7 +122,7 @@ func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransacti
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
 			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
-			transaction.precomputeFields(txGasHandler)
+			transaction.precomputeFields(host)
 
 			bunch = append(bunch, transaction)
 		}

@@ -26,8 +26,8 @@ type WrappedTransaction struct {
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
-func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
-	wrappedTx.Fee = txGasHandler.ComputeTxFee(wrappedTx.Tx)
+func (wrappedTx *WrappedTransaction) precomputeFields(host MempoolHost) {
+	wrappedTx.Fee = host.ComputeTxFee(wrappedTx.Tx)
 
 	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit != 0 {
