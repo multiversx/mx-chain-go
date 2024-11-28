@@ -232,29 +232,29 @@ func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
 	})
 }
 
-func TestTransactionsHeapItem_detectBadlyGuarded(t *testing.T) {
-	t.Run("is not badly guarded", func(t *testing.T) {
+func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
+	t.Run("is correctly guarded", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		session.IsBadlyGuardedCalled = func(tx data.TransactionHandler) bool {
+		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return false
 		}
 
 		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
 		require.NoError(t, err)
 
-		require.False(t, item.detectBadlyGuarded(session))
+		require.False(t, item.detectIncorrectlyGuarded(session))
 	})
 
-	t.Run("is badly guarded", func(t *testing.T) {
+	t.Run("is incorrectly guarded", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		session.IsBadlyGuardedCalled = func(tx data.TransactionHandler) bool {
+		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return true
 		}
 
 		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
 		require.NoError(t, err)
 
-		require.True(t, item.detectBadlyGuarded(session))
+		require.True(t, item.detectIncorrectlyGuarded(session))
 	})
 }
 

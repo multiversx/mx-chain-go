@@ -224,18 +224,14 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		require.Equal(t, 200000, int(accumulatedGas))
 	})
 
-	t.Run("with badly guarded", func(t *testing.T) {
+	t.Run("with incorrectly guarded", func(t *testing.T) {
 		cache := newUnconstrainedCacheToTest()
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
 
-		session.IsBadlyGuardedCalled = func(tx data.TransactionHandler) bool {
-			if bytes.Equal(tx.GetData(), []byte("t")) {
-				return true
-			}
-
-			return false
+		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+			return bytes.Equal(tx.GetData(), []byte("t"))
 		}
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withData([]byte("x")).withGasLimit(100000))

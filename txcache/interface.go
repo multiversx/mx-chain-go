@@ -16,7 +16,7 @@ type TxGasHandler interface {
 // SelectionSession provides blockchain information for transaction selection
 type SelectionSession interface {
 	GetAccountState(accountKey []byte) (*types.AccountState, error)
-	IsBadlyGuarded(tx data.TransactionHandler) bool
+	IsIncorrectlyGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool
 }
 

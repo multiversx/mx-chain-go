@@ -157,16 +157,16 @@ func (item *transactionsHeapItem) detectLowerNonce() bool {
 	return isLowerNonce
 }
 
-func (item *transactionsHeapItem) detectBadlyGuarded(session SelectionSession) bool {
-	isBadlyGuarded := session.IsBadlyGuarded(item.currentTransaction.Tx)
-	if isBadlyGuarded {
-		logSelect.Trace("transactionsHeapItem.detectBadlyGuarded",
+func (item *transactionsHeapItem) detectIncorrectlyGuarded(session SelectionSession) bool {
+	IsIncorrectlyGuarded := session.IsIncorrectlyGuarded(item.currentTransaction.Tx)
+	if IsIncorrectlyGuarded {
+		logSelect.Trace("transactionsHeapItem.detectIncorrectlyGuarded",
 			"tx", item.currentTransaction.TxHash,
 			"sender", item.sender,
 		)
 	}
 
-	return isBadlyGuarded
+	return IsIncorrectlyGuarded
 }
 
 func (item *transactionsHeapItem) detectNonceDuplicate() bool {
