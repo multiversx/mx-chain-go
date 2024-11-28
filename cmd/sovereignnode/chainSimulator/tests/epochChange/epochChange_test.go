@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -210,6 +211,34 @@ func checkEpochChangeHeader(t *testing.T, nodeHandler process.NodeHandler) {
 	validatorRootHash, err := nodeHandler.GetStateComponents().PeerAccounts().RootHash()
 	require.Nil(t, err)
 	require.Equal(t, validatorRootHash, currentHeader.GetValidatorStatsRootHash())
+
+	checkEpochChangeRewardsMB(t, nodeHandler, mbs[0], currentHeader)
+}
+
+func checkEpochChangeRewardsMB(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	mb data.MiniBlockHeaderHandler,
+	currentHeader data.HeaderHandler,
+	// allOwnersBalance map[string]*big.Int, TODO : CHECK THAT RECEIEVER IS IN OWNERS BALANCE
+) {
+	mbRewardBytes, ok := nodeHandler.GetDataComponents().Datapool().MiniBlocks().Get(mb.GetHash())
+	require.True(t, ok)
+
+	mbReward, castOk := mbRewardBytes.(*block.MiniBlock)
+	require.True(t, castOk)
+	require.Len(t, mbReward.TxHashes, 7)
+
+	for _, txHash := range mbReward.TxHashes {
+		tx, err := nodeHandler.GetFacadeHandler().GetTransaction(hex.EncodeToString(txHash), false)
+		require.Nil(t, err)
+
+		require.Equal(t, string(transaction.TxTypeReward), tx.Type)
+		require.Equal(t, currentHeader.GetRound(), tx.Round)
+		require.Equal(t, currentHeader.GetEpoch(), tx.Epoch)
+		require.Equal(t, "sovereign", tx.Sender)
+		require.Equal(t, core.SovereignChainShardId, tx.SourceShard)
+	}
 }
 
 func getConsensusOwnersBalances(t *testing.T, nodeHandler process.NodeHandler) map[string]*big.Int {
