@@ -101,25 +101,27 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 
 // GetTransferredValue returns the value transferred by a transaction.
 func (session *selectionSession) GetTransferredValue(tx data.TransactionHandler) *big.Int {
-	hasValue := tx.GetValue() != nil && tx.GetValue().Sign() != 0
+	value := tx.GetValue()
+	hasValue := value != nil && value.Sign() != 0
 	if hasValue {
 		// Early exit (optimization): a transaction can either bear a regular value or be a "MultiESDTNFTTransfer".
-		return tx.GetValue()
+		return value
 	}
 
-	hasData := len(tx.GetData()) > 0
+	data := tx.GetData()
+	hasData := len(data) > 0
 	if !hasData {
 		// Early exit (optimization): no "MultiESDTNFTTransfer" to parse.
 		return tx.GetValue()
 	}
 
-	maybeMultiTransfer := bytes.HasPrefix(tx.GetData(), []byte(core.BuiltInFunctionMultiESDTNFTTransfer))
+	maybeMultiTransfer := bytes.HasPrefix(data, []byte(core.BuiltInFunctionMultiESDTNFTTransfer))
 	if !maybeMultiTransfer {
 		// Early exit (optimization).
 		return nil
 	}
 
-	function, args, err := session.callArgumentsParser.ParseData(string(tx.GetData()))
+	function, args, err := session.callArgumentsParser.ParseData(string(data))
 	if err != nil {
 		return nil
 	}

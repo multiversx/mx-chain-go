@@ -2,10 +2,12 @@ package preprocess
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
@@ -181,4 +183,102 @@ func TestSelectionSession_GetTransferredValue(t *testing.T) {
 		})
 		require.Equal(t, big.NewInt(1000000000000000000), value)
 	})
+}
+
+func TestBenchmarkSelectionSession_GetTransferredValue(t *testing.T) {
+	session, err := newSelectionSession(argsSelectionSession{
+		accountsAdapter:       &stateMock.AccountsStub{},
+		transactionsProcessor: &testscommon.TxProcessorStub{},
+		marshalizer:           &marshal.GogoProtoMarshalizer{},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, session)
+
+	sw := core.NewStopWatch()
+
+	valueMultiplier := int64(1_000_000_000_000)
+
+	t.Run("numTransactions = 5_000", func(t *testing.T) {
+		numTransactions := 5_000
+		transactions := createMultiESDTNFTTransfersWithNativeTransfer(numTransactions, valueMultiplier)
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			tx := transactions[i]
+			value := session.GetTransferredValue(tx)
+			require.Equal(t, big.NewInt(int64(i)*valueMultiplier), value)
+		}
+
+		sw.Stop(t.Name())
+	})
+
+	t.Run("numTransactions = 10_000", func(t *testing.T) {
+		numTransactions := 10_000
+		transactions := createMultiESDTNFTTransfersWithNativeTransfer(numTransactions, valueMultiplier)
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			tx := transactions[i]
+			value := session.GetTransferredValue(tx)
+			require.Equal(t, big.NewInt(int64(i)*valueMultiplier), value)
+		}
+
+		sw.Stop(t.Name())
+	})
+
+	t.Run("numTransactions = 20_000", func(t *testing.T) {
+		numTransactions := 20_000
+		transactions := createMultiESDTNFTTransfersWithNativeTransfer(numTransactions, valueMultiplier)
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			tx := transactions[i]
+			value := session.GetTransferredValue(tx)
+			require.Equal(t, big.NewInt(int64(i)*valueMultiplier), value)
+		}
+
+		sw.Stop(t.Name())
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+
+	// (1)
+	// Vendor ID:                GenuineIntel
+	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//     CPU family:           6
+	//     Model:                140
+	//     Thread(s) per core:   2
+	//     Core(s) per socket:   4
+	//
+	// NOTE: 20% is also due to the require() / assert() calls.
+	// 0.012993s (TestBenchmarkSelectionSession_GetTransferredValue/numTransactions_=_5_000)
+	// 0.024580s (TestBenchmarkSelectionSession_GetTransferredValue/numTransactions_=_10_000)
+	// 0.048808s (TestBenchmarkSelectionSession_GetTransferredValue/numTransactions_=_20_000)
+}
+
+func createMultiESDTNFTTransfersWithNativeTransfer(numTransactions int, valueMultiplier int64) []*transaction.Transaction {
+	transactions := make([]*transaction.Transaction, 0, numTransactions)
+
+	for i := 0; i < numTransactions; i++ {
+		nativeValue := big.NewInt(int64(i) * valueMultiplier)
+		data := fmt.Sprintf(
+			"MultiESDTNFTTransfer@8049d639e5a6980d1cd2392abcce41029cda74a1563523a202f09641cc2618f8@03@4e46542d313233343536@0a@01@544553542d393837363534@01@01@45474c442d303030303030@@%s",
+			hex.EncodeToString(nativeValue.Bytes()),
+		)
+
+		tx := &transaction.Transaction{
+			SndAddr: testscommon.TestPubKeyAlice,
+			RcvAddr: testscommon.TestPubKeyAlice,
+			Data:    []byte(data),
+		}
+
+		transactions = append(transactions, tx)
+	}
+
+	return transactions
 }
