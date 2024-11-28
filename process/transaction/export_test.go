@@ -100,11 +100,6 @@ func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
 	return inTx.checkMaxGasPrice()
 }
 
-// VerifyGuardian calls the un-exported method verifyGuardian
-func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
-	return txProc.VerifyGuardian(tx, account)
-}
-
 // ShouldIncreaseNonce calls the un-exported method shouldIncreaseNonce
 func (txProc *txProcessor) ShouldIncreaseNonce(executionErr error) bool {
 	return txProc.shouldIncreaseNonce(executionErr)

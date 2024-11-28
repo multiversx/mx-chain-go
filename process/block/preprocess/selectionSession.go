@@ -49,9 +49,9 @@ func (session *selectionSession) GetAccountState(address []byte) (*txcache.Accou
 	}, nil
 }
 
-// IsBadlyGuarded checks if a transaction is badly guarded (not executable).
+// IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
-func (session *selectionSession) IsBadlyGuarded(tx data.TransactionHandler) bool {
+func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	address := tx.GetSndAddr()
 	account, err := session.accountsAdapter.GetExistingAccount(address)
 	if err != nil {
@@ -60,7 +60,8 @@ func (session *selectionSession) IsBadlyGuarded(tx data.TransactionHandler) bool
 
 	userAccount, ok := account.(state.UserAccountHandler)
 	if !ok {
-		return false
+		// On this branch, we are (approximately) mirroring the behavior of "transactionsProcessor.VerifyGuardian()".
+		return true
 	}
 
 	txTyped, ok := tx.(*transaction.Transaction)

@@ -74,13 +74,17 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 	require.Nil(t, state)
 }
 
-func TestSelectionSession_IsBadlyGuarded(t *testing.T) {
+func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 	t.Parallel()
 
 	accounts := &stateMock.AccountsStub{}
 	processor := &testscommon.TxProcessorStub{}
 
 	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
+		if bytes.Equal(address, []byte("bob")) {
+			return &stateMock.BaseAccountMock{}, nil
+		}
+
 		return &stateMock.UserAccountStub{}, nil
 	}
 
@@ -99,12 +103,15 @@ func TestSelectionSession_IsBadlyGuarded(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, session)
 
-	isBadlyGuarded := session.IsBadlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
-	require.False(t, isBadlyGuarded)
+	isIncorrectlyGuarded := session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
+	require.False(t, isIncorrectlyGuarded)
 
-	isBadlyGuarded = session.IsBadlyGuarded(&transaction.Transaction{Nonce: 43, SndAddr: []byte("alice")})
-	require.True(t, isBadlyGuarded)
+	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 43, SndAddr: []byte("alice")})
+	require.True(t, isIncorrectlyGuarded)
 
-	isBadlyGuarded = session.IsBadlyGuarded(&transaction.Transaction{Nonce: 44, SndAddr: []byte("alice")})
-	require.False(t, isBadlyGuarded)
+	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 44, SndAddr: []byte("alice")})
+	require.False(t, isIncorrectlyGuarded)
+
+	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 45, SndAddr: []byte("bob")})
+	require.True(t, isIncorrectlyGuarded)
 }
