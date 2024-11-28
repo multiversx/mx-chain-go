@@ -87,7 +87,7 @@ func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig))
+	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig(gbc.arg.EpochConfig))
 	if err != nil {
 		return nil, err
 	}
@@ -106,6 +106,10 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	}
 
 	return mapEmptyGenesisBlocks, nil
+}
+
+func createSovereignGenesisConfig(providedEpochsConfig config.EpochConfig) config.EpochConfig {
+	return providedEpochsConfig
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(epochsConfig config.EpochConfig) error {
@@ -227,7 +231,7 @@ func createSovereignShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
 	nodesListSplitter genesis.NodesListSplitter,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	sovereignGenesisConfig := createGenesisConfig(arg.EpochConfig)
+	sovereignGenesisConfig := createSovereignGenesisConfig(arg.EpochConfig)
 	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err
