@@ -38,13 +38,13 @@ func TestNewTransactionsHeapItem(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	host := txcachemocks.NewMempoolHostMock()
 	session := txcachemocks.NewSelectionSessionMock()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
-	a.precomputeFields(txGasHandler)
-	b.precomputeFields(txGasHandler)
+	a.precomputeFields(host)
+	b.precomputeFields(host)
 
 	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 	require.NoError(t, err)
@@ -135,17 +135,17 @@ func TestTransactionsHeapItem_detectMiddleGap(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	host := txcachemocks.NewMempoolHostMock()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
 	c := createTx([]byte("tx-3"), "alice", 44).withValue(big.NewInt(1000000000000000000))
 	d := createTx([]byte("tx-4"), "alice", 45)
 
-	a.precomputeFields(txGasHandler)
-	b.precomputeFields(txGasHandler)
-	c.precomputeFields(txGasHandler)
-	d.precomputeFields(txGasHandler)
+	a.precomputeFields(host)
+	b.precomputeFields(host)
+	c.precomputeFields(host)
+	d.precomputeFields(host)
 
 	t.Run("unknown", func(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})

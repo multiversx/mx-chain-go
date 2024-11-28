@@ -7,8 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
-// TxGasHandler handles a transaction gas and gas cost
-type TxGasHandler interface {
+// MempoolHost provides blockchain information for mempool operations
+type MempoolHost interface {
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	IsInterfaceNil() bool
 }
