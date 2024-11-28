@@ -112,7 +112,7 @@ func detectSkippableTransaction(session SelectionSession, item *transactionsHeap
 	if item.detectLowerNonce() {
 		return true
 	}
-	if item.detectBadlyGuarded(session) {
+	if item.detectIncorrectlyGuarded(session) {
 		return true
 	}
 	if item.detectNonceDuplicate() {
