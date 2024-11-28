@@ -155,6 +155,13 @@ func (wrappedTx *WrappedTransaction) withSize(size uint64) *WrappedTransaction {
 	return wrappedTx
 }
 
+func (wrappedTx *WrappedTransaction) withData(data []byte) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.Data = data
+	wrappedTx.Size = int64(len(data)) + int64(estimatedSizeOfBoundedTxFields)
+	return wrappedTx
+}
+
 func (wrappedTx *WrappedTransaction) withDataLength(dataLength int) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.Data = make([]byte, dataLength)
@@ -171,12 +178,6 @@ func (wrappedTx *WrappedTransaction) withGasPrice(gasPrice uint64) *WrappedTrans
 func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTransaction {
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.GasLimit = gasLimit
-	return wrappedTx
-}
-
-func (wrappedTx *WrappedTransaction) withGuardian(guardian []byte) *WrappedTransaction {
-	tx := wrappedTx.Tx.(*transaction.Transaction)
-	tx.GuardianAddr = guardian
 	return wrappedTx
 }
 

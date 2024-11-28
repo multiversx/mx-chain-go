@@ -99,9 +99,9 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "maxNum" transactions, with total gas <= "gasRequested".
-func (cache *TxCache) SelectTransactions(accountStateProvider AccountStateProvider, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*WrappedTransaction, uint64) {
-	if check.IfNil(accountStateProvider) {
-		log.Error("TxCache.SelectTransactions", "err", errNilAccountStateProvider)
+func (cache *TxCache) SelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*WrappedTransaction, uint64) {
+	if check.IfNil(session) {
+		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0
 	}
 
@@ -115,7 +115,7 @@ func (cache *TxCache) SelectTransactions(accountStateProvider AccountStateProvid
 		"num senders", cache.CountSenders(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(accountStateProvider, gasRequested, maxNum, selectionLoopMaximumDuration)
+	transactions, accumulatedGas := cache.doSelectTransactions(session, gasRequested, maxNum, selectionLoopMaximumDuration)
 
 	stopWatch.Stop("selection")
 
