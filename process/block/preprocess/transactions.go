@@ -1411,7 +1411,11 @@ func (txs *transactions) computeSortedTxs(
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	log.Debug("computeSortedTxs.GetSortedTransactions")
 
-	session, err := newSelectionSession(txs.basePreProcess.accounts, txs.txProcessor)
+	session, err := newSelectionSession(argsSelectionSession{
+		accountsAdapter:       txs.accounts,
+		transactionsProcessor: txs.txProcessor,
+		marshalizer:           txs.marshalizer,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
