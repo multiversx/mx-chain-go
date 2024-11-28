@@ -923,7 +923,7 @@ func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
 
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
@@ -989,7 +989,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
@@ -1025,7 +1025,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(5), acntSrc.GetNonce())
 	assert.Equal(t, big.NewInt(29), acntSrc.GetBalance())
 	assert.Equal(t, big.NewInt(71), acntDst.GetBalance())
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
@@ -1072,7 +1072,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(5), acntSrc.GetNonce())
 	assert.Equal(t, big.NewInt(13), acntSrc.GetBalance())
 	assert.Equal(t, big.NewInt(71), acntDst.GetBalance())
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
@@ -1324,7 +1324,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	assert.Equal(t, 2, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
@@ -2805,7 +2805,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		require.NotNil(t, txProcLocal)
 
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.Equal(t, process.ErrNotEnoughGas, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 }

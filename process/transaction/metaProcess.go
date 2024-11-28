@@ -135,7 +135,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		return 0, err
 	}
 
+	txCopy := *tx
 	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
+	if txType == process.RelayedTxV3 {
+		// extract the inner transaction in order to get the proper user tx type
+		txCopy.RelayerSignature = nil
+		txType, _ = txProc.txTypeHandler.ComputeTransactionType(&txCopy)
+	}
 	switch txType {
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
@@ -145,8 +151,6 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		if txProc.enableEpochsHandler.IsFlagEnabled(common.ESDTFlag) {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}
-	case process.RelayedTxV3:
-		return vmcommon.Ok, nil // it will be processed through the scr created on source
 	}
 
 	snapshot := txProc.accounts.JournalLen()

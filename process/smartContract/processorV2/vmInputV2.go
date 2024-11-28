@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -40,9 +41,13 @@ func (sc *scProcessor) initializeVMInputFromTx(vmInput *vmcommon.VMInput, tx dat
 	vmInput.CallValue = new(big.Int).Set(tx.GetValue())
 	vmInput.GasPrice = tx.GetGasPrice()
 
-	relayedTx, isRelayed := isRelayedTx(tx)
+	relayedTx, isRelayed := isRelayedSCR(tx)
 	if isRelayed {
 		vmInput.RelayerAddr = relayedTx.RelayerAddr
+	}
+	if common.IsValidRelayedTxV3(tx) {
+		relayedTx := tx.(data.RelayedTransactionHandler)
+		vmInput.RelayerAddr = relayedTx.GetRelayerAddr()
 	}
 
 	vmInput.GasProvided, err = sc.prepareGasProvided(tx)
@@ -68,6 +73,10 @@ func (sc *scProcessor) prepareGasProvided(tx data.TransactionHandler) (uint64, e
 	}
 
 	gasForTxData := sc.economicsFee.ComputeGasLimit(tx)
+	if common.IsValidRelayedTxV3(tx) {
+		gasForTxData -= sc.economicsFee.MinGasLimit() // this was already consumed from the relayer
+	}
+
 	if tx.GetGasLimit() < gasForTxData {
 		return 0, process.ErrNotEnoughGas
 	}
