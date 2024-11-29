@@ -38,18 +38,17 @@ func TestNewTransactionsHeapItem(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	session := txcachemocks.NewSelectionSessionMock()
+	host := txcachemocks.NewMempoolHostMock()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
-	a.precomputeFields(txGasHandler)
-	b.precomputeFields(txGasHandler)
+	a.precomputeFields(host)
+	b.precomputeFields(host)
 
 	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 	require.NoError(t, err)
 
-	selected := item.selectCurrentTransaction(session)
+	selected := item.selectCurrentTransaction()
 	require.Equal(t, a, selected)
 	require.Equal(t, a, item.latestSelectedTransaction)
 	require.Equal(t, 42, int(item.latestSelectedTransactionNonce))
@@ -58,7 +57,7 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	ok := item.gotoNextTransaction()
 	require.True(t, ok)
 
-	selected = item.selectCurrentTransaction(session)
+	selected = item.selectCurrentTransaction()
 	require.Equal(t, b, selected)
 	require.Equal(t, b, item.latestSelectedTransaction)
 	require.Equal(t, 43, int(item.latestSelectedTransactionNonce))
@@ -135,17 +134,17 @@ func TestTransactionsHeapItem_detectMiddleGap(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	host := txcachemocks.NewMempoolHostMock()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
 	c := createTx([]byte("tx-3"), "alice", 44).withValue(big.NewInt(1000000000000000000))
 	d := createTx([]byte("tx-4"), "alice", 45)
 
-	a.precomputeFields(txGasHandler)
-	b.precomputeFields(txGasHandler)
-	c.precomputeFields(txGasHandler)
-	d.precomputeFields(txGasHandler)
+	a.precomputeFields(host)
+	b.precomputeFields(host)
+	c.precomputeFields(host)
+	d.precomputeFields(host)
 
 	t.Run("unknown", func(t *testing.T) {
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
@@ -155,8 +154,6 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 	})
 
 	t.Run("known, not exceeded, then exceeded (a)", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
-
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 		require.NoError(t, err)
 
@@ -166,7 +163,7 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 
 		require.False(t, item.detectWillFeeExceedBalance())
 
-		_ = item.selectCurrentTransaction(session)
+		_ = item.selectCurrentTransaction()
 		_ = item.gotoNextTransaction()
 
 		require.Equal(t, "50000000000000", item.consumedBalance.String())
@@ -174,8 +171,6 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 	})
 
 	t.Run("known, not exceeded, then exceeded (b)", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
-
 		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b, c, d})
 		require.NoError(t, err)
 
@@ -186,21 +181,21 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 		require.False(t, item.detectWillFeeExceedBalance())
 
 		// Select "a", move to "b".
-		_ = item.selectCurrentTransaction(session)
+		_ = item.selectCurrentTransaction()
 		_ = item.gotoNextTransaction()
 
 		require.Equal(t, "50000000000000", item.consumedBalance.String())
 		require.False(t, item.detectWillFeeExceedBalance())
 
 		// Select "b", move to "c".
-		_ = item.selectCurrentTransaction(session)
+		_ = item.selectCurrentTransaction()
 		_ = item.gotoNextTransaction()
 
 		require.Equal(t, "100000000000000", item.consumedBalance.String())
 		require.False(t, item.detectWillFeeExceedBalance())
 
 		// Select "c", move to "d".
-		_ = item.selectCurrentTransaction(session)
+		_ = item.selectCurrentTransaction()
 		_ = item.gotoNextTransaction()
 
 		require.Equal(t, "1000150000000000000", item.consumedBalance.String())
