@@ -19,14 +19,14 @@ type TxCache struct {
 	txListBySender       *txListBySenderMap
 	txByHash             *txByHashMap
 	config               ConfigSourceMe
-	txGasHandler         TxGasHandler
+	host                 MempoolHost
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
 	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -34,8 +34,8 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(txGasHandler) {
-		return nil, errNilTxGasHandler
+	if check.IfNil(host) {
+		return nil, errNilMempoolHost
 	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
@@ -47,7 +47,7 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj),
 		txByHash:       newTxByHashMap(numChunks),
 		config:         config,
-		txGasHandler:   txGasHandler,
+		host:           host,
 	}
 
 	return txCache, nil
@@ -62,7 +62,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	logAdd.Trace("TxCache.AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
 
-	tx.precomputeFields(cache.txGasHandler)
+	tx.precomputeFields(cache.host)
 
 	if cache.config.EvictionEnabled {
 		_ = cache.doEviction()

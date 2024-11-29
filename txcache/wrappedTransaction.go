@@ -21,18 +21,21 @@ type WrappedTransaction struct {
 	// These fields are only set within "precomputeFields".
 	// We don't need to protect them with a mutex, since "precomputeFields" is called only once for each transaction.
 	// Additional note: "WrappedTransaction" objects are created by the Node, in dataRetriever/txpool/shardedTxPool.go.
-	Fee          *big.Int
-	PricePerUnit uint64
+	Fee              *big.Int
+	PricePerUnit     uint64
+	TransferredValue *big.Int
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
-func (wrappedTx *WrappedTransaction) precomputeFields(txGasHandler TxGasHandler) {
-	wrappedTx.Fee = txGasHandler.ComputeTxFee(wrappedTx.Tx)
+func (wrappedTx *WrappedTransaction) precomputeFields(host MempoolHost) {
+	wrappedTx.Fee = host.ComputeTxFee(wrappedTx.Tx)
 
 	gasLimit := wrappedTx.Tx.GetGasLimit()
 	if gasLimit != 0 {
 		wrappedTx.PricePerUnit = wrappedTx.Fee.Uint64() / gasLimit
 	}
+
+	wrappedTx.TransferredValue = host.GetTransferredValue(wrappedTx.Tx)
 }
 
 // Equality is out of scope (not possible in our case).
