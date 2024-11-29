@@ -1517,10 +1517,13 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	err = scbp.commitEpochStart(headerHandler, body)
-	if err != nil {
-		return err
+	sovMetaHdr, castOk := headerHandler.(data.MetaHeaderHandler)
+	if !castOk {
+		log.Error("sovereignChainBlockProcessor.CommitBlock: before commitEpochStart", "error", process.ErrWrongTypeAssertion)
+		return process.ErrWrongTypeAssertion
 	}
+
+	scbp.commitEpochStart(sovMetaHdr, body, scbp.epochRewardsCreator, scbp.validatorInfoCreator)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
 	scbp.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
@@ -1596,7 +1599,6 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	// TODO: MX-15748 Analyse if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() from metablock.go
 	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
 		return err
@@ -1615,28 +1617,6 @@ func (scbp *sovereignChainBlockProcessor) indexValidatorsRatingIfNeeded(
 	}
 
 	indexValidatorsRating(scbp.outportHandler, scbp.validatorStatisticsProcessor, header)
-}
-
-func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
-	if header.IsStartOfEpochBlock() {
-		scbp.epochStartTrigger.SetProcessed(header, body)
-		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
-		if !castOk {
-			log.Error("sovereignChainBlockProcessor.commitEpochStart", "error", process.ErrWrongTypeAssertion)
-			return process.ErrWrongTypeAssertion
-		}
-
-		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
-	} else {
-		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
-		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
-			scbp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
-			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
-		}
-	}
-
-	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {
@@ -2065,8 +2045,7 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
-		// TODO: MX-15748 Analyse this
-		//scbp.markSnapshotDoneInPeerAccounts()
+		scbp.markSnapshotDoneInPeerAccounts()
 
 		go func() {
 			sovHdr, ok := header.(data.MetaHeaderHandler)
