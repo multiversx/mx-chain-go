@@ -130,3 +130,42 @@ func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 45, SndAddr: []byte("bob")})
 	require.True(t, isIncorrectlyGuarded)
 }
+
+func TestSelectionSession_ephemeralAccountsCache_IsSharedAmongCalls(t *testing.T) {
+	t.Parallel()
+
+	accounts := &stateMock.AccountsStub{}
+	processor := &testscommon.TxProcessorStub{}
+
+	numCallsGetExistingAccount := 0
+
+	accounts.GetExistingAccountCalled = func(_ []byte) (vmcommon.AccountHandler, error) {
+		numCallsGetExistingAccount++
+		return &stateMock.UserAccountStub{}, nil
+	}
+
+	session, err := newSelectionSession(argsSelectionSession{
+		accountsAdapter:       accounts,
+		transactionsProcessor: processor,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, session)
+
+	_, _ = session.GetAccountState([]byte("alice"))
+	require.Equal(t, 1, numCallsGetExistingAccount)
+
+	_, _ = session.GetAccountState([]byte("alice"))
+	require.Equal(t, 1, numCallsGetExistingAccount)
+
+	_ = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
+	require.Equal(t, 1, numCallsGetExistingAccount)
+
+	_, _ = session.GetAccountState([]byte("bob"))
+	require.Equal(t, 2, numCallsGetExistingAccount)
+
+	_, _ = session.GetAccountState([]byte("bob"))
+	require.Equal(t, 2, numCallsGetExistingAccount)
+
+	_ = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("bob")})
+	require.Equal(t, 2, numCallsGetExistingAccount)
+}
