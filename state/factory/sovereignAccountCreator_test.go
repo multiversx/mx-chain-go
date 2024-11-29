@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgsSovAccountCreator() ArgsSovereignAccountCreator {
@@ -18,7 +19,7 @@ func createArgsSovAccountCreator() ArgsSovereignAccountCreator {
 			Marshaller:          &marshallerMock.MarshalizerMock{},
 			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		},
-		BaseTokenID: "WEGLD",
+		BaseTokenID: "WEGLD-bd4d79",
 	}
 }
 
@@ -64,7 +65,13 @@ func TestNewSovereignAccountCreator(t *testing.T) {
 func TestSovereignAccountCreator_CreateAccount(t *testing.T) {
 	t.Parallel()
 
+	testCreateAccount(t, "WEGLD-bd4d79")
+	testCreateAccount(t, "sov-ESDT-a1b2c3")
+}
+
+func testCreateAccount(t *testing.T, baseTokenID string) {
 	args := createArgsSovAccountCreator()
+	args.BaseTokenID = baseTokenID
 	sovAccCreator, _ := NewSovereignAccountCreator(args)
 
 	sovAcc, err := sovAccCreator.CreateAccount([]byte("address"))
