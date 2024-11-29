@@ -71,22 +71,22 @@ func (host *mempoolHost) GetTransferredValue(tx data.TransactionHandler) *big.In
 	maybeMultiTransfer := bytes.HasPrefix(data, []byte(core.BuiltInFunctionMultiESDTNFTTransfer))
 	if !maybeMultiTransfer {
 		// Early exit (optimization).
-		return nil
+		return big.NewInt(0)
 	}
 
 	function, args, err := host.callArgumentsParser.ParseData(string(data))
 	if err != nil {
-		return nil
+		return big.NewInt(0)
 	}
 
 	if function != core.BuiltInFunctionMultiESDTNFTTransfer {
 		// Early exit (optimization).
-		return nil
+		return big.NewInt(0)
 	}
 
 	esdtTransfers, err := host.esdtTransferParser.ParseESDTTransfers(tx.GetSndAddr(), tx.GetRcvAddr(), function, args)
 	if err != nil {
-		return nil
+		return big.NewInt(0)
 	}
 
 	accumulatedNativeValue := big.NewInt(0)
