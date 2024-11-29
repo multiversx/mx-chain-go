@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -19,6 +20,7 @@ type SCQueryElementArgs struct {
 	StatusCoreComponents  factory.StatusCoreComponentsHolder
 	DataComponents        factory.DataComponentsHolder
 	ProcessComponents     factory.ProcessComponentsHolder
+	RunTypeComponents     factory.RunTypeComponentsHolder
 	GasScheduleNotifier   core.GasScheduleNotifier
 	MessageSigVerifier    vm.MessageSignVerifier
 	SystemSCConfig        *config.SystemSmartContractsConfig
@@ -47,7 +49,32 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, comm
 		workingDir:            args.WorkingDir,
 		index:                 args.Index,
 		guardedAccountHandler: args.GuardedAccountHandler,
+		runTypeComponents:     args.RunTypeComponents,
 	})
+}
+
+// CreateArgsSCQueryService -
+func CreateArgsSCQueryService(args SCQueryElementArgs) (*smartContract.ArgsNewSCQueryService, error) {
+	argsSCQuery, _, err := createArgsSCQueryService(&scQueryElementArgs{
+		generalConfig:         args.GeneralConfig,
+		epochConfig:           args.EpochConfig,
+		coreComponents:        args.CoreComponents,
+		stateComponents:       args.StateComponents,
+		dataComponents:        args.DataComponents,
+		processComponents:     args.ProcessComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
+		gasScheduleNotifier:   args.GasScheduleNotifier,
+		messageSigVerifier:    args.MessageSigVerifier,
+		systemSCConfig:        args.SystemSCConfig,
+		bootstrapper:          args.Bootstrapper,
+		allowVMQueriesChan:    args.AllowVMQueriesChan,
+		workingDir:            args.WorkingDir,
+		index:                 args.Index,
+		guardedAccountHandler: args.GuardedAccountHandler,
+		runTypeComponents:     args.RunTypeComponents,
+	})
+
+	return argsSCQuery, err
 }
 
 // CreateBlockchainForScQuery -

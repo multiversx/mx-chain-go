@@ -231,11 +231,12 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-) error {
+) (block.MiniBlockSlice, error) {
 	if check.IfNil(body) {
-		return process.ErrNilBlockBody
+		return nil, process.ErrNilBlockBody
 	}
 
+	createdMBs := make(block.MiniBlockSlice, 0)
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
 		if miniBlock.Type != block.RewardsBlock {
@@ -244,18 +245,18 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 
 		pi, err := rtp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
 		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for j := indexOfFirstTxToBeProcessed; j <= pi.indexOfLastTxProcessedByProposer; j++ {
 			if !haveTime() {
-				return process.ErrTimeIsOut
+				return nil, process.ErrTimeIsOut
 			}
 
 			txHash := miniBlock.TxHashes[j]
@@ -264,28 +265,30 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			rtp.rewardTxsForBlock.mutTxsForBlock.RUnlock()
 			if !ok || check.IfNil(txData.tx) {
 				log.Warn("missing rewardsTransaction in ProcessBlockTransactions ", "type", miniBlock.Type, "hash", txHash)
-				return process.ErrMissingTransaction
+				return nil, process.ErrMissingTransaction
 			}
 
 			rTx, ok := txData.tx.(*rewardTx.RewardTx)
 			if !ok {
-				return process.ErrWrongTypeAssertion
+				return nil, process.ErrWrongTypeAssertion
 			}
 
 			err = rtp.saveAccountBalanceForAddress(rTx.GetRcvAddr())
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			rtp.txExecutionOrderHandler.Add(txHash)
 			err = rtp.rewardsProcessor.ProcessRewardTransaction(rTx)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
+
+		createdMBs = append(createdMBs, miniBlock)
 	}
 
-	return nil
+	return createdMBs, nil
 }
 
 // SaveTxsToStorage saves the reward transactions from body into storage

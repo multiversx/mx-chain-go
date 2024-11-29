@@ -107,6 +107,7 @@ func createArgsVMContext() VMContextArgs {
 		ChanceComputer:      &mock.RaterMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 	}
 }
 

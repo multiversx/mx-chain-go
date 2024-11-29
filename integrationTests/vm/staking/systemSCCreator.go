@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonMock "github.com/multiversx/mx-chain-vm-common-go/mock"
 )
@@ -60,7 +61,7 @@ func createSystemSCProcessor(
 	})
 
 	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
-		ShardCoordinator:             shardCoordinator,
+		ShardCoordinator:             shardCoordinator.(metachain.ExtendedShardCoordinatorHandler),
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    ald,
@@ -141,17 +142,19 @@ func createBlockChainHook(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (hooks.ArgBlockChainHook, process.BlockChainHookWithAccountsAdapter) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               coreComponents.InternalMarshalizer(),
-		Accounts:                  accountsAdapter,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             coreComponents.EpochNotifier(),
-		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
-		AutomaticCrawlerAddresses: [][]byte{core.SystemAccountAddress},
-		MaxNumNodesInTransferRole: 1,
-		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
-		MapDNSV2Addresses:         make(map[string]struct{}),
+		GasSchedule:                    gasScheduleNotifier,
+		MapDNSAddresses:                make(map[string]struct{}),
+		Marshalizer:                    coreComponents.InternalMarshalizer(),
+		Accounts:                       accountsAdapter,
+		ShardCoordinator:               shardCoordinator,
+		EpochNotifier:                  coreComponents.EpochNotifier(),
+		EnableEpochsHandler:            coreComponents.EnableEpochsHandler(),
+		AutomaticCrawlerAddresses:      [][]byte{core.SystemAccountAddress},
+		MaxNumAddressesInTransferRole:  1,
+		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
+		DNSV2Addresses:                 []string{},
+		WhiteListedCrossChainAddresses: []string{"c0ff33"},
+		PubKeyConverter:                coreComponents.AddressPubKeyConverter(),
 	}
 
 	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -250,13 +253,14 @@ func createVMContainerFactory(
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: stateComponents.PeerAccounts(),
-		ChanceComputer:      coreComponents.Rater(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    shardCoordinator,
-		NodesCoordinator:    nc,
-		UserAccountsDB:      stateComponents.AccountsAdapter(),
-		ArgBlockChainHook:   argsBlockChainHook,
+		ValidatorAccountsDB:     stateComponents.PeerAccounts(),
+		ChanceComputer:          coreComponents.Rater(),
+		EnableEpochsHandler:     coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nc,
+		UserAccountsDB:          stateComponents.AccountsAdapter(),
+		ArgBlockChainHook:       argsBlockChainHook,
+		VMContextCreatorHandler: systemSmartContracts.NewVMContextCreator(),
 	}
 
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)

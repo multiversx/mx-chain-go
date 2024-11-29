@@ -2362,3 +2362,102 @@ func TestShardedCacheSearchMethod_ToString(t *testing.T) {
 	str := process.ShardedCacheSearchMethod(166).ToString()
 	assert.Equal(t, "unknown method 166", str)
 }
+
+func TestGetExtendedSharHeaderFromStorage(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+	marshaller := &mock.MarshalizerMock{}
+
+	t.Run("should work", func(t *testing.T) {
+		expectedHeader := &block.ShardHeaderExtended{
+			Header: &block.HeaderV2{
+				Header: &block.Header{
+					Nonce: 4,
+				},
+			},
+		}
+
+		storageService := &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						if bytes.Equal(key, hash) {
+							return marshaller.Marshal(expectedHeader)
+						}
+
+						return nil, errors.New("error")
+					},
+				}, nil
+			},
+		}
+
+		header, err := process.GetExtendedShardHeaderFromStorage(hash, marshaller, storageService)
+		require.Nil(t, err)
+		require.Equal(t, expectedHeader, header)
+	})
+
+	t.Run("nil storage service, should return error", func(t *testing.T) {
+		header, err := process.GetExtendedShardHeaderFromStorage(hash, marshaller, nil)
+		require.Equal(t, process.ErrNilStorage, err)
+		require.Nil(t, header)
+	})
+
+	t.Run("cannot unmarshal, should return error", func(t *testing.T) {
+		storageService := &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, nil
+					},
+				}, nil
+			},
+		}
+
+		header, err := process.GetExtendedShardHeaderFromStorage(hash, marshaller, storageService)
+		require.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
+		require.Nil(t, header)
+	})
+}
+
+func TestGetExtendedHeaderFromStorageWithNonce(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(1)
+	hash := []byte("hash")
+	marshaller := &mock.MarshalizerMock{}
+	expectedHeader := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 4,
+			},
+		},
+	}
+
+	t.Run("should work", func(t *testing.T) {
+		storageService, uint64Converter := initDefaultStorageServiceAndConverter(nonce, hash, expectedHeader)
+		header, headerHash, err := process.GetExtendedHeaderFromStorageWithNonce(
+			nonce,
+			storageService,
+			uint64Converter,
+			marshaller)
+
+		require.Nil(t, err)
+		require.Equal(t, hash, headerHash)
+		require.Equal(t, expectedHeader, header)
+	})
+
+	t.Run("cannot unmarshall, should return error", func(t *testing.T) {
+		marshaller.Fail = true
+		storageService, uint64Converter := initDefaultStorageServiceAndConverter(nonce, hash, expectedHeader)
+		header, headerHash, err := process.GetExtendedHeaderFromStorageWithNonce(
+			nonce,
+			storageService,
+			uint64Converter,
+			marshaller)
+
+		require.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
+		require.Nil(t, headerHash)
+		require.Nil(t, header)
+	})
+}

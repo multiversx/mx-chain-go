@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
 	"github.com/multiversx/mx-chain-go/storage/databaseremover/disabled"
@@ -46,36 +48,38 @@ const (
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
 type StorageServiceFactory struct {
-	generalConfig                 config.Config
-	prefsConfig                   config.PreferencesConfig
-	shardCoordinator              storage.ShardCoordinator
-	pathManager                   storage.PathManagerHandler
-	epochStartNotifier            epochStart.EpochStartNotifier
-	oldDataCleanerProvider        clean.OldDataCleanerProvider
-	createTrieEpochRootHashStorer bool
-	currentEpoch                  uint32
-	storageType                   StorageServiceType
-	nodeProcessingMode            common.NodeProcessingMode
-	snapshotsEnabled              bool
-	repopulateTokensSupplies      bool
-	stateStatsHandler             common.StateStatisticsHandler
+	generalConfig                   config.Config
+	prefsConfig                     config.PreferencesConfig
+	shardCoordinator                storage.ShardCoordinator
+	pathManager                     storage.PathManagerHandler
+	epochStartNotifier              epochStart.EpochStartNotifier
+	oldDataCleanerProvider          clean.OldDataCleanerProvider
+	createTrieEpochRootHashStorer   bool
+	currentEpoch                    uint32
+	storageType                     StorageServiceType
+	nodeProcessingMode              common.NodeProcessingMode
+	snapshotsEnabled                bool
+	repopulateTokensSupplies        bool
+	stateStatsHandler               common.StateStatisticsHandler
+	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 // StorageServiceFactoryArgs holds the arguments needed for creating a new storage service factory
 type StorageServiceFactoryArgs struct {
-	Config                        config.Config
-	PrefsConfig                   config.PreferencesConfig
-	ShardCoordinator              storage.ShardCoordinator
-	PathManager                   storage.PathManagerHandler
-	EpochStartNotifier            epochStart.EpochStartNotifier
-	NodeTypeProvider              NodeTypeProviderHandler
-	StorageType                   StorageServiceType
-	ManagedPeersHolder            storage.ManagedPeersHolder
-	CurrentEpoch                  uint32
-	CreateTrieEpochRootHashStorer bool
-	NodeProcessingMode            common.NodeProcessingMode
-	RepopulateTokensSupplies      bool
-	StateStatsHandler             common.StateStatisticsHandler
+	Config                          config.Config
+	PrefsConfig                     config.PreferencesConfig
+	ShardCoordinator                storage.ShardCoordinator
+	PathManager                     storage.PathManagerHandler
+	EpochStartNotifier              epochStart.EpochStartNotifier
+	NodeTypeProvider                NodeTypeProviderHandler
+	StorageType                     StorageServiceType
+	ManagedPeersHolder              storage.ManagedPeersHolder
+	CurrentEpoch                    uint32
+	CreateTrieEpochRootHashStorer   bool
+	NodeProcessingMode              common.NodeProcessingMode
+	RepopulateTokensSupplies        bool
+	StateStatsHandler               common.StateStatisticsHandler
+	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 // NewStorageServiceFactory will return a new instance of StorageServiceFactory
@@ -99,19 +103,20 @@ func NewStorageServiceFactory(args StorageServiceFactoryArgs) (*StorageServiceFa
 	}
 
 	return &StorageServiceFactory{
-		generalConfig:                 args.Config,
-		prefsConfig:                   args.PrefsConfig,
-		shardCoordinator:              args.ShardCoordinator,
-		pathManager:                   args.PathManager,
-		epochStartNotifier:            args.EpochStartNotifier,
-		currentEpoch:                  args.CurrentEpoch,
-		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		oldDataCleanerProvider:        oldDataCleanProvider,
-		storageType:                   args.StorageType,
-		nodeProcessingMode:            args.NodeProcessingMode,
-		snapshotsEnabled:              args.Config.StateTriesConfig.SnapshotsEnabled,
-		repopulateTokensSupplies:      args.RepopulateTokensSupplies,
-		stateStatsHandler:             args.StateStatsHandler,
+		generalConfig:                   args.Config,
+		prefsConfig:                     args.PrefsConfig,
+		shardCoordinator:                args.ShardCoordinator,
+		pathManager:                     args.PathManager,
+		epochStartNotifier:              args.EpochStartNotifier,
+		currentEpoch:                    args.CurrentEpoch,
+		createTrieEpochRootHashStorer:   args.CreateTrieEpochRootHashStorer,
+		oldDataCleanerProvider:          oldDataCleanProvider,
+		storageType:                     args.StorageType,
+		nodeProcessingMode:              args.NodeProcessingMode,
+		snapshotsEnabled:                args.Config.StateTriesConfig.SnapshotsEnabled,
+		repopulateTokensSupplies:        args.RepopulateTokensSupplies,
+		stateStatsHandler:               args.StateStatsHandler,
+		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 	}, nil
 }
 
@@ -130,6 +135,9 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	}
 	if check.IfNil(args.StateStatsHandler) {
 		return statistics.ErrNilStateStatsHandler
+	}
+	if check.IfNil(args.AdditionalStorageServiceCreator) {
+		return errors.ErrNilAdditionalStorageServiceCreator
 	}
 
 	return nil
@@ -294,6 +302,46 @@ func (psf *StorageServiceFactory) createStaticStorageUnit(
 	)
 }
 
+func (psf *StorageServiceFactory) createAndAddStorageUnitsForSovereign(
+	store dataRetriever.StorageService,
+	shardID string,
+) error {
+	disabledCustomDatabaseRemover := disabled.NewDisabledCustomDatabaseRemover()
+
+	extendedHeaderUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage, disabledCustomDatabaseRemover)
+	if err != nil {
+		return err
+	}
+	extendedHeaderUnit, err := psf.createPruningPersister(extendedHeaderUnitArgs)
+	if err != nil {
+		return fmt.Errorf("%w for ExtendedShardHeaderStorage", err)
+	}
+	store.AddStorer(dataRetriever.ExtendedShardHeadersUnit, extendedHeaderUnit)
+
+	extendedShardHdrHashNonceConfig := GetDBFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB)
+	dbPath := psf.pathManager.PathForStatic(shardID, psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.DB.FilePath) + shardID
+	extendedShardHdrHashNonceConfig.FilePath = dbPath
+
+	extendedHeaderConfig := psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage
+	dbConfigExtendedHeader := NewDBConfigHandler(extendedHeaderConfig.DB)
+	extendedHeaderPersisterCreator, err := NewPersisterFactory(dbConfigExtendedHeader.conf)
+	if err != nil {
+		return err
+	}
+
+	extendedShardHdrHashNonceUnit, err := storageunit.NewStorageUnitFromConf(
+		GetCacherFromConfig(psf.generalConfig.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache),
+		extendedShardHdrHashNonceConfig,
+		extendedHeaderPersisterCreator,
+	)
+	if err != nil {
+		return fmt.Errorf("%w for ExtendedShardHdrNonceHashStorage", err)
+	}
+	store.AddStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit, extendedShardHdrHashNonceUnit)
+
+	return nil
+}
+
 // CreateForShard will return the storage service which contains all storers needed for a shard
 func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService, error) {
 	// TODO: if there will be a differentiation between the creation or opening of a DB, the DBs could be destroyed on a defer
@@ -314,6 +362,12 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 
 	store := dataRetriever.NewChainStorer()
 	err = psf.createAndAddBaseStorageUnits(store, customDatabaseRemover, shardID)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: this should be refactored to not get a function as a parameter
+	err = psf.additionalStorageServiceCreator.CreateAdditionalStorageUnits(psf.createAndAddStorageUnitsForSovereign, store, shardID)
 	if err != nil {
 		return nil, err
 	}

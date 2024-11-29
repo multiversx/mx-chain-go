@@ -138,16 +138,18 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                    gasScheduleNotifier,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 []string{},
+		Marshalizer:                    TestMarshalizer,
+		Accounts:                       tpn.AccntState,
+		ShardCoordinator:               tpn.ShardCoordinator,
+		EpochNotifier:                  tpn.EpochNotifier,
+		EnableEpochsHandler:            tpn.EnableEpochsHandler,
+		MaxNumAddressesInTransferRole:  100,
+		GuardedAccountHandler:          tpn.GuardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -212,13 +214,13 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		QueryService:       tpn.SCQueryService,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
-	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := factory.NewTotalStakedListProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	log.LogIfError(err)
 
-	directStakedListHandler, err := factory.CreateDirectStakedListHandler(args)
+	directStakedListHandler, err := factory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	log.LogIfError(err)
 
-	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
+	delegatedListHandler, err := factory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	log.LogIfError(err)
 
 	logsFacade := &testscommon.LogsFacadeStub{}

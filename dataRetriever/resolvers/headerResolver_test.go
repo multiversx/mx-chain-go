@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -33,7 +34,7 @@ func createMockArgBaseResolver() resolvers.ArgBaseResolver {
 func createMockArgHeaderResolver() resolvers.ArgHeaderResolver {
 	return resolvers.ArgHeaderResolver{
 		ArgBaseResolver:      createMockArgBaseResolver(),
-		Headers:              &mock.HeadersCacherStub{},
+		Headers:              &testscommon.HeadersCacherStub{},
 		HdrStorage:           &storageStubs.StorerStub{},
 		HeadersNoncesStorage: &storageStubs.StorerStub{},
 		NonceConverter:       mock.NewNonceHashConverterMock(),
@@ -260,7 +261,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	searchWasCalled := false
 	sendWasCalled := false
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		if bytes.Equal(requestedData, hash) {
@@ -296,7 +297,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	searchWasCalled := false
 	sendWasCalled := false
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		if bytes.Equal(requestedData, hash) {
@@ -332,7 +333,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarsh
 
 	errExpected := errors.New("MarshalizerMock generic error")
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		if bytes.Equal(requestedData, hash) {
 			return &block.Header{}, nil
@@ -371,7 +372,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 
 	requestedData := []byte("aaaa")
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		return nil, errors.New("err")
 	}
@@ -468,7 +469,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 			return 1
 		},
 	}
-	arg.Headers = &mock.HeadersCacherStub{
+	arg.Headers = &testscommon.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return nil, nil, expectedErr
 		},
@@ -507,7 +508,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasResolved := false
 	wasSent := false
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 		wasResolved = true
 		return []data.HeaderHandler{&block.Header{}, &block.Header{}}, [][]byte{[]byte("1"), []byte("2")}, nil
@@ -556,7 +557,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	wasSend := false
 	hash := []byte("aaaa")
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		return nil, errors.New("err")
 	}
@@ -617,7 +618,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	targetShardId := uint32(9)
 	wasResolved := false
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		return nil, errors.New("err")
 	}
@@ -673,7 +674,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	wasSend := false
 	hash := []byte("aaaa")
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		return &block.Header{}, nil
 	}
@@ -715,7 +716,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	targetShardId := uint32(9)
 	errExpected := errors.New("expected error")
 
-	headers := &mock.HeadersCacherStub{}
+	headers := &testscommon.HeadersCacherStub{}
 	headers.GetHeaderByHashCalled = func(hash []byte) (handler data.HeaderHandler, e error) {
 		return nil, errors.New("err")
 	}

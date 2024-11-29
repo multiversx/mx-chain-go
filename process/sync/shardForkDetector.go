@@ -16,6 +16,15 @@ var _ process.ForkDetector = (*shardForkDetector)(nil)
 // shardForkDetector implements the shard fork detector mechanism
 type shardForkDetector struct {
 	*baseForkDetector
+	doJobOnBHProcessedFunc func(header data.HeaderHandler, headerHash []byte, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte)
+}
+
+// ForkDetectorFactoryArgs are the arguments needed to create a new fork detector
+type ForkDetectorFactoryArgs struct {
+	RoundHandler    consensus.RoundHandler
+	HeaderBlackList process.TimeCacher
+	BlockTracker    process.BlockTracker
+	GenesisTime     int64
 }
 
 // NewShardForkDetector method creates a new shardForkDetector object
@@ -68,6 +77,7 @@ func NewShardForkDetector(
 	}
 
 	sfd.blockTracker.RegisterSelfNotarizedFromCrossHeadersHandler(sfd.ReceivedSelfNotarizedFromCrossHeaders)
+	sfd.doJobOnBHProcessedFunc = sfd.doJobOnBHProcessed
 
 	bfd.forkDetector = &sfd
 
@@ -88,7 +98,7 @@ func (sfd *shardForkDetector) AddHeader(
 		state,
 		selfNotarizedHeaders,
 		selfNotarizedHeadersHashes,
-		sfd.doJobOnBHProcessed,
+		sfd.doJobOnBHProcessedFunc,
 	)
 }
 

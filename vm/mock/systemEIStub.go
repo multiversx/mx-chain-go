@@ -20,7 +20,7 @@ type SystemEIStub struct {
 	CleanCacheCalled                    func()
 	FinishCalled                        func(value []byte)
 	AddCodeCalled                       func(addr []byte, code []byte)
-	AddTxValueToSmartContractCalled     func(value *big.Int, scAddress []byte)
+	AddTxValueToSmartContractCalled     func(input *vmcommon.ContractCallInput)
 	BlockChainHookCalled                func() vm.BlockchainHook
 	CryptoHookCalled                    func() vmcommon.CryptoHook
 	UseGasCalled                        func(gas uint64) error
@@ -32,12 +32,12 @@ type SystemEIStub struct {
 	SetStorageForAddressCalled          func(address []byte, key []byte, value []byte)
 	CanUnJailCalled                     func(blsKey []byte) bool
 	IsBadRatingCalled                   func(blsKey []byte) bool
-	SendGlobalSettingToAllCalled        func(sender []byte, input []byte)
+	SendGlobalSettingToAllCalled        func(sender []byte, input []byte) error
 	GetContractCalled                   func(address []byte) (vm.SystemSmartContract, error)
 	GasLeftCalled                       func() uint64
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
-	ProcessBuiltInFunctionCalled        func(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
+	ProcessBuiltInFunctionCalled        func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
 	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
 	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
@@ -179,9 +179,9 @@ func (s *SystemEIStub) AddCode(addr []byte, code []byte) {
 }
 
 // AddTxValueToSmartContract -
-func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
+func (s *SystemEIStub) AddTxValueToSmartContract(input *vmcommon.ContractCallInput) {
 	if s.AddTxValueToSmartContractCalled != nil {
-		s.AddTxValueToSmartContractCalled(value, scAddress)
+		s.AddTxValueToSmartContractCalled(input)
 	}
 }
 
@@ -197,10 +197,11 @@ func (s *SystemEIStub) Finish(value []byte) {
 }
 
 // SendGlobalSettingToAll -
-func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) {
+func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) error {
 	if s.SendGlobalSettingToAllCalled != nil {
-		s.SendGlobalSettingToAllCalled(sender, input)
+		return s.SendGlobalSettingToAllCalled(sender, input)
 	}
+	return nil
 }
 
 // Transfer -
@@ -208,6 +209,14 @@ func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.In
 	if s.TransferCalled != nil {
 		s.TransferCalled(destination, sender, value, input, gasLimit)
 	}
+}
+
+// ProcessBuiltInFunction -
+func (s *SystemEIStub) ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
+	if s.ProcessBuiltInFunctionCalled != nil {
+		return s.ProcessBuiltInFunctionCalled(destination, sender, value, input, gasLimit)
+	}
+	return nil
 }
 
 // GetBalance -
@@ -308,14 +317,6 @@ func (s *SystemEIStub) UpdateCodeDeployerAddress(scAddress string, newOwner []by
 	}
 
 	return nil
-}
-
-// ProcessBuiltInFunction -
-func (s *SystemEIStub) ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error) {
-	if s.ProcessBuiltInFunctionCalled != nil {
-		return s.ProcessBuiltInFunctionCalled(sender, destination, function, arguments)
-	}
-	return &vmcommon.VMOutput{}, nil
 }
 
 // IsInterfaceNil -

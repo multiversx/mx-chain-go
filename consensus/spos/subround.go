@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -31,6 +32,7 @@ type Subround struct {
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
 	appStatusHandler             core.AppStatusHandler
+	enableEpochHandler           common.EnableEpochsHandler
 
 	Job    func(ctx context.Context) bool // method does the Subround Job and send the result to the peers
 	Check  func() bool                    // method checks if the consensus of the Subround is done
@@ -52,6 +54,7 @@ func NewSubround(
 	chainID []byte,
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
+	enableEpochHandler common.EnableEpochsHandler,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
@@ -60,6 +63,7 @@ func NewSubround(
 		container,
 		chainID,
 		appStatusHandler,
+		enableEpochHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -82,6 +86,7 @@ func NewSubround(
 		Extend:                       nil,
 		appStatusHandler:             appStatusHandler,
 		currentPid:                   currentPid,
+		enableEpochHandler:           enableEpochHandler,
 	}
 
 	return &sr, nil
@@ -94,6 +99,7 @@ func checkNewSubroundParams(
 	container ConsensusCoreHandler,
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
+	enableEpochHandler common.EnableEpochsHandler,
 ) error {
 	err := ValidateConsensusCore(container)
 	if err != nil {
@@ -113,6 +119,9 @@ func checkNewSubroundParams(
 	}
 	if check.IfNil(appStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(enableEpochHandler) {
+		return ErrNilEnableEpochHandler
 	}
 
 	return nil
@@ -197,6 +206,11 @@ func (sr *Subround) CurrentPid() core.PeerID {
 // AppStatusHandler method returns the appStatusHandler instance
 func (sr *Subround) AppStatusHandler() core.AppStatusHandler {
 	return sr.appStatusHandler
+}
+
+// EnableEpochHandler method returns the enableEpochHandler instance
+func (sr *Subround) EnableEpochHandler() common.EnableEpochsHandler {
+	return sr.enableEpochHandler
 }
 
 // ConsensusChannel method returns the consensus channel

@@ -7,13 +7,14 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-storage-go/testscommon"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/factory"
 	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-storage-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsOutportHandler(indexerEnabled, notifierEnabled bool) *factory.OutportFactoryArgs {

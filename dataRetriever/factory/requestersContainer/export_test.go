@@ -14,3 +14,9 @@ func (brcf *baseRequestersContainerFactory) NumTotalPeers() int {
 func (brcf *baseRequestersContainerFactory) NumFullHistoryPeers() int {
 	return brcf.numFullHistoryPeers
 }
+
+// ShardRequestersContainerFactory -
+var ShardRequestersContainerFactory = &shardRequestersContainerFactory{}
+
+// SovereignShardRequestersContainerFactory -
+var SovereignShardRequestersContainerFactory = &sovereignShardRequestersContainerFactory{}

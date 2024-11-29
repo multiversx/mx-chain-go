@@ -171,7 +171,7 @@ func (bpp *basePostProcessor) GetCreatedInShardMiniBlock() *block.MiniBlock {
 		return nil
 	}
 
-	return bpp.intraShardMiniBlock.Clone()
+	return bpp.intraShardMiniBlock.DeepClone()
 }
 
 // RemoveProcessedResults will remove the processed results since the last init

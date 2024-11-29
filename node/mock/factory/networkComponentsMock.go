@@ -17,11 +17,12 @@ type NetworkComponentsMock struct {
 	PeersRatingMonitorField          p2p.PeersRatingMonitor
 	FullArchiveNetworkMessengerField p2p.Messenger
 	FullArchivePreferredPeersHolder  factory.PreferredPeersHolderHandler
+	PubKeyCacherField                process.TimeCacher
 }
 
 // PubKeyCacher -
 func (ncm *NetworkComponentsMock) PubKeyCacher() process.TimeCacher {
-	panic("implement me")
+	return ncm.PubKeyCacherField
 }
 
 // PeerHonestyHandler -

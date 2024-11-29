@@ -29,3 +29,8 @@ func (u *userAccountsSyncer) SyncAccountDataTries(
 func (mtnn *missingTrieNodesNotifier) GetNumHandlers() int {
 	return len(mtnn.handlers)
 }
+
+// GetShardID -
+func (v *validatorAccountsSyncer) GetShardID() uint32 {
+	return v.shardId
+}
