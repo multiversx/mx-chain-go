@@ -93,7 +93,7 @@ That is, for contract calls, the PPU is not equal to the gas price, but much low
 
 Transaction **A** is considered **more valuable (for the Network)** than transaction **B** if **it has a higher PPU**.
 
-If two transactions have the same PPU, they are ordered using an arbitrary, but deterministic rule: the transaction with the "lower" transaction hash "wins" the comparison.
+If two transactions have the same PPU, they are ordered by gas limit (higher is better, promoting less "execution fragmentation"). In the end, they are ordered using an arbitrary, but deterministic rule: the transaction with the "lower" transaction hash "wins" the comparison.
 
 Pseudo-code:
 
@@ -103,6 +103,12 @@ func isTransactionMoreValuableForNetwork(A, B):
         return true
     if A.ppu < B.ppu:
         return false
+
+    if A.gasLimit > B.gasLimit:
+        return true
+    if A.gasLimit < B.gasLimit:
+        return false
+
     return A.hash < B.hash
 ```
 
