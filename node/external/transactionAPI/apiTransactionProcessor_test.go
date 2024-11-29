@@ -884,7 +884,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewTxGasHandlerMock())
+	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
 
@@ -901,7 +901,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewTxGasHandlerMock())
+	}, txcachemocks.NewMempoolHostMock())
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
 
@@ -974,7 +974,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewTxGasHandlerMock())
+	}, txcachemocks.NewMempoolHostMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
@@ -1026,7 +1026,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewTxGasHandlerMock())
+	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
 
@@ -1038,7 +1038,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 1,
-	}, txcachemocks.NewTxGasHandlerMock())
+	}, txcachemocks.NewMempoolHostMock())
 
 	require.NoError(t, err)
 

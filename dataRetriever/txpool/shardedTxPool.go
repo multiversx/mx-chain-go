@@ -27,7 +27,7 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
-	txGasHandler                 txcache.TxGasHandler
+	host                         txcache.MempoolHost
 }
 
 type txPoolShard struct {
@@ -41,6 +41,14 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 	log.Debug("NewShardedTxPool", "args.SelfShardID", args.SelfShardID)
 
 	err := args.verify()
+	if err != nil {
+		return nil, err
+	}
+
+	mempoolHost, err := newMempoolHost(argsMempoolHost{
+		txGasHandler: args.TxGasHandler,
+		marshalizer:  args.Marshalizer,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +85,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
-		txGasHandler:                 args.TxGasHandler,
+		host:                         mempoolHost,
 	}
 
 	return shardedTxPoolObject, nil
@@ -134,7 +142,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.txGasHandler)
+		cache, err := txcache.NewTxCache(config, txPool.host)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()
