@@ -80,7 +80,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 		shouldSkipTransaction := detectSkippableTransaction(session, item)
 		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
-			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction(session))
+			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction())
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),
