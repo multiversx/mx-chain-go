@@ -13,7 +13,10 @@ import (
 
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
+const oneQuintillion = 1_000_000_000_000_000_000
 const estimatedSizeOfBoundedTxFields = uint64(128)
+
+var oneQuintillionBig = big.NewInt(oneQuintillion)
 
 // The GitHub Actions runners are (extremely) slow.
 const selectionLoopMaximumDuration = 30 * time.Second
@@ -112,7 +115,7 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 
 func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransactionsPerSender int) []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, nSenders)
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	host := txcachemocks.NewMempoolHostMock()
 
 	for senderTag := 0; senderTag < nSenders; senderTag++ {
 		bunch := make(bunchOfTransactions, 0, nTransactionsPerSender)
@@ -122,7 +125,7 @@ func createBunchesOfTransactionsWithUniformDistribution(nSenders int, nTransacti
 			transactionHash := createFakeTxHash(sender, nonce)
 			gasPrice := oneBillion + rand.Intn(3*oneBillion)
 			transaction := createTx(transactionHash, string(sender), uint64(nonce)).withGasPrice(uint64(gasPrice))
-			transaction.precomputeFields(txGasHandler)
+			transaction.precomputeFields(host)
 
 			bunch = append(bunch, transaction)
 		}
