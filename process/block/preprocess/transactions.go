@@ -1414,7 +1414,6 @@ func (txs *transactions) computeSortedTxs(
 	session, err := newSelectionSession(argsSelectionSession{
 		accountsAdapter:       txs.accounts,
 		transactionsProcessor: txs.txProcessor,
-		marshalizer:           txs.marshalizer,
 	})
 	if err != nil {
 		return nil, nil, err

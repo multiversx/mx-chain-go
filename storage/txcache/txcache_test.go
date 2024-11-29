@@ -27,7 +27,7 @@ func TestNewTxCache(t *testing.T) {
 
 		cache, err := NewTxCache(cfg, nil)
 		assert.Nil(t, cache)
-		assert.ErrorContains(t, err, "nil tx gas handler")
+		assert.ErrorContains(t, err, "nil mempool host")
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -42,7 +42,7 @@ func TestNewTxCache(t *testing.T) {
 			NumItemsToPreemptivelyEvict: 1,
 		}
 
-		cache, err := NewTxCache(cfg, txcachemocks.NewTxGasHandlerMock())
+		cache, err := NewTxCache(cfg, txcachemocks.NewMempoolHostMock())
 		assert.NotNil(t, cache)
 		assert.Nil(t, err)
 	})

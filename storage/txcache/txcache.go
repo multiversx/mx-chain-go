@@ -11,10 +11,10 @@ type WrappedTransaction = txcache.WrappedTransaction
 // AccountState represents the state of an account (as seen by the mempool)
 type AccountState = types.AccountState
 
-// TxGasHandler handles a transaction gas and gas cost
-type TxGasHandler = txcache.TxGasHandler
+// MempoolHost provides blockchain information for mempool operations
+type MempoolHost = txcache.MempoolHost
 
-// SelectionSession provides provides blockchain information for transaction selection
+// SelectionSession provides blockchain information for transaction selection
 type SelectionSession = txcache.SelectionSession
 
 // ForEachTransaction is an iterator callback
@@ -36,8 +36,8 @@ type DisabledCache = txcache.DisabledCache
 type CrossTxCache = txcache.CrossTxCache
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
-	return txcache.NewTxCache(config, txGasHandler)
+func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
+	return txcache.NewTxCache(config, host)
 }
 
 // NewDisabledCache creates a new disabled cache
