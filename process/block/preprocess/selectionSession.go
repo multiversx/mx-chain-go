@@ -9,11 +9,16 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type selectionSession struct {
 	accountsAdapter       state.AccountsAdapter
 	transactionsProcessor process.TransactionProcessor
+
+	// Cache of accounts, held in the scope of a single selection session.
+	// Not concurrency-safe, but never accessed concurrently.
+	ephemeralAccountsCache map[string]vmcommon.AccountHandler
 }
 
 type argsSelectionSession struct {
@@ -30,15 +35,16 @@ func newSelectionSession(args argsSelectionSession) (*selectionSession, error) {
 	}
 
 	return &selectionSession{
-		accountsAdapter:       args.accountsAdapter,
-		transactionsProcessor: args.transactionsProcessor,
+		accountsAdapter:        args.accountsAdapter,
+		transactionsProcessor:  args.transactionsProcessor,
+		ephemeralAccountsCache: make(map[string]vmcommon.AccountHandler),
 	}, nil
 }
 
 // GetAccountState returns the state of an account.
 // Will be called by mempool during transaction selection.
 func (session *selectionSession) GetAccountState(address []byte) (*txcache.AccountState, error) {
-	account, err := session.accountsAdapter.GetExistingAccount(address)
+	account, err := session.getExistingAccount(address)
 	if err != nil {
 		return nil, err
 	}
@@ -54,11 +60,26 @@ func (session *selectionSession) GetAccountState(address []byte) (*txcache.Accou
 	}, nil
 }
 
+func (session *selectionSession) getExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+	account, ok := session.ephemeralAccountsCache[string(address)]
+	if ok {
+		return account, nil
+	}
+
+	account, err := session.accountsAdapter.GetExistingAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	session.ephemeralAccountsCache[string(address)] = account
+	return account, nil
+}
+
 // IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
 func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	address := tx.GetSndAddr()
-	account, err := session.accountsAdapter.GetExistingAccount(address)
+	account, err := session.getExistingAccount(address)
 	if err != nil {
 		return false
 	}
