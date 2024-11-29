@@ -504,6 +504,7 @@ func (bn *branchNode) updateNode(
 		go func(childPos int) {
 			updateFunc(data[childPos], childPos, goRoutinesManager, modifiedHashes, hasBeenModified, db)
 
+			goRoutinesManager.EndGoRoutineProcessing()
 			waitGroup.Done()
 		}(childPos)
 	}
