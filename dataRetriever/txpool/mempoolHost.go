@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -25,8 +26,11 @@ type mempoolHost struct {
 }
 
 func newMempoolHost(args argsMempoolHost) (*mempoolHost, error) {
+	if check.IfNil(args.txGasHandler) {
+		return nil, dataRetriever.ErrNilTxGasHandler
+	}
 	if check.IfNil(args.marshalizer) {
-		return nil, process.ErrNilMarshalizer
+		return nil, dataRetriever.ErrNilMarshalizer
 	}
 
 	argsParser := parsers.NewCallArgsParser()
