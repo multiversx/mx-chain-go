@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -2732,7 +2733,8 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrRelayedTxV3Disabled.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("relayer not in the same shard with the sender should error", func(t *testing.T) {
@@ -2748,7 +2750,8 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrShardIdMissmatch.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("guarded relayer account should error", func(t *testing.T) {
@@ -2781,7 +2784,8 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrGuardedRelayerNotAllowed.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("same guardian and relayer should error", func(t *testing.T) {
@@ -2789,7 +2793,8 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy.Nonce = acntSrc.GetNonce()
 		txCopy.GuardianAddr = txCopy.RelayerAddr
 		returnCode, err := txProc.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrRelayedByGuardianNotAllowed.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("insufficient gas limit should error", func(t *testing.T) {
