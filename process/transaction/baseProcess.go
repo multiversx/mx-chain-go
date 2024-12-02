@@ -120,7 +120,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 	isUserTxOfRelayed bool,
 ) error {
 	if common.IsValidRelayedTxV3(tx) {
-		relayerAccount, _, err := txProc.getAccounts(tx.RelayerAddr, tx.RelayerAddr)
+		relayerAccount, err := txProc.getAccountFromAddress(tx.RelayerAddr)
 		if err != nil {
 			return err
 		}
@@ -244,7 +244,7 @@ func (txProc *baseTxProcessor) getFeePayer(
 		return acntSnd, false, nil
 	}
 
-	acntRelayer, _, err := txProc.getAccounts(tx.RelayerAddr, tx.RelayerAddr)
+	acntRelayer, err := txProc.getAccountFromAddress(tx.RelayerAddr)
 	if err != nil {
 		return nil, true, err
 	}
@@ -261,7 +261,7 @@ func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *b
 }
 
 func (txProc *baseTxProcessor) computeInnerTxFeeAfterBaseCostFix(tx *transaction.Transaction) *big.Int {
-	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
+	_, dstShardTxType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
 	if dstShardTxType == process.MoveBalance {
 		return txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	}

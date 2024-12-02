@@ -43,6 +43,7 @@ type InterceptedTransaction struct {
 	sndShard               uint32
 	isForCurrentShard      bool
 	enableSignedTxWithHash bool
+	enableEpochsHandler    common.EnableEpochsHandler
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -62,6 +63,7 @@ func NewInterceptedTransaction(
 	enableSignedTxWithHash bool,
 	txSignHasher hashing.Hasher,
 	txVersionChecker process.TxVersionCheckerHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -106,6 +108,9 @@ func NewInterceptedTransaction(
 	if check.IfNil(txVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -128,6 +133,7 @@ func NewInterceptedTransaction(
 		enableSignedTxWithHash: enableSignedTxWithHash,
 		txVersionChecker:       txVersionChecker,
 		txSignHasher:           txSignHasher,
+		enableEpochsHandler:    enableEpochsHandler,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -236,6 +242,10 @@ func isRelayedTx(funcName string) bool {
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
 	if !common.IsValidRelayedTxV3(tx) {
 		return nil
+	}
+
+	if !inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
+		return process.ErrRelayedTxV3Disabled
 	}
 
 	err := inTx.integrity(tx)

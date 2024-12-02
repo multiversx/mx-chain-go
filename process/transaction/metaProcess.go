@@ -135,13 +135,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		return 0, err
 	}
 
-	txCopy := *tx
-	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
-	if txType == process.RelayedTxV3 {
-		// extract the inner transaction in order to get the proper user tx type
-		txCopy.RelayerSignature = nil
-		txType, _ = txProc.txTypeHandler.ComputeTransactionType(&txCopy)
-	}
+	txType, _, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
 	switch txType {
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)

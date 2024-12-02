@@ -196,7 +196,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
-	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
+	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
@@ -223,9 +223,16 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return vmcommon.UserError, err
 	}
 
+	if isRelayedV3 {
+		err = txProc.verifyRelayedTxV3(tx)
+		if err != nil {
+			return vmcommon.UserError, err
+		}
+	}
+
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false, false)
+		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false)
 		if err != nil {
 			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
@@ -240,8 +247,6 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		return txProc.processRelayedTx(tx, acntSnd, acntDst)
 	case process.RelayedTxV2:
 		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
-	case process.RelayedTxV3:
-		return txProc.processRelayedTxV3(tx)
 	}
 
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
@@ -351,75 +356,16 @@ func (txProc *txProcessor) executingFailedTransaction(
 	return process.ErrFailedTransaction
 }
 
-func (txProc *txProcessor) executingFailedTransactionRelayedV3(
-	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
-	relayerAccount state.UserAccountHandler,
-	txError error,
-) error {
-	if check.IfNil(relayerAccount) {
-		return nil
-	}
-	if check.IfNil(acntSnd) {
-		return nil
-	}
-
-	txFee := txProc.economicsFee.ComputeTxFee(tx)
-	err := relayerAccount.SubFromBalance(txFee)
-	if err != nil {
-		return err
-	}
-
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return err
-	}
-
-	acntSnd.IncreaseNonce(1)
-	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
-	if err != nil {
-		return err
-	}
-
-	log.Trace("executingFailedTransactionRelayedV3", "fail reason(error)", txError, "tx hash", txHash)
-
-	rpt := &receipt.Receipt{
-		Value:   big.NewInt(0).Set(txFee),
-		SndAddr: relayerAccount.AddressBytes(),
-		Data:    []byte(txError.Error()),
-		TxHash:  txHash,
-	}
-
-	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt}, txHash)
-	if err != nil {
-		return err
-	}
-
-	txProc.txFeeHandler.ProcessTransactionFee(txFee, big.NewInt(0), txHash)
-
-	err = txProc.accounts.SaveAccount(relayerAccount)
-	if err != nil {
-		return err
-	}
-
-	err = txProc.accounts.SaveAccount(acntSnd)
-	if err != nil {
-		return err
-	}
-
-	return process.ErrFailedTransaction
-}
-
 func (txProc *txProcessor) createReceiptWithReturnedGas(
 	txHash []byte,
 	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
+	feePayer state.UserAccountHandler,
 	moveBalanceCost *big.Int,
 	totalProvided *big.Int,
 	destShardTxType process.TransactionType,
 	isUserTxOfRelayed bool,
 ) error {
-	if check.IfNil(acntSnd) || isUserTxOfRelayed {
+	if check.IfNil(feePayer) || isUserTxOfRelayed {
 		return nil
 	}
 	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && core.IsSmartContractAddress(tx.RcvAddr)
@@ -436,38 +382,33 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 
 	rpt := &receipt.Receipt{
 		Value:   big.NewInt(0).Set(refundValue),
-		SndAddr: tx.SndAddr,
+		SndAddr: feePayer.AddressBytes(),
 		Data:    []byte(RefundGasMessage),
 		TxHash:  txHash,
 	}
 
-	err := txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt}, txHash)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt}, txHash)
 }
 
 func (txProc *txProcessor) processTxFee(
 	tx *transaction.Transaction,
-	acntSnd, acntDst state.UserAccountHandler,
+	feePayer, acntDst state.UserAccountHandler,
 	dstShardTxType process.TransactionType,
 	isUserTxOfRelayed bool,
 ) (*big.Int, *big.Int, error) {
-	if check.IfNil(acntSnd) {
+	if check.IfNil(feePayer) {
 		return big.NewInt(0), big.NewInt(0), nil
 	}
 
 	if isUserTxOfRelayed {
 		totalCost := txProc.computeInnerTxFee(tx)
 
-		err := acntSnd.SubFromBalance(totalCost)
+		err := feePayer.SubFromBalance(totalCost)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		err = txProc.accounts.SaveAccount(acntSnd)
+		err = txProc.accounts.SaveAccount(feePayer)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -496,76 +437,23 @@ func (txProc *txProcessor) processTxFee(
 	if dstShardTxType != process.MoveBalance ||
 		(!txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && isCrossShardSCCall) {
 
-		err := acntSnd.SubFromBalance(totalCost)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		err = txProc.accounts.SaveAccount(acntSnd)
+		err := feePayer.SubFromBalance(totalCost)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
-		err := acntSnd.SubFromBalance(moveBalanceFee)
+		err := feePayer.SubFromBalance(moveBalanceFee)
 		if err != nil {
 			return nil, nil, err
 		}
+	}
 
-		err = txProc.accounts.SaveAccount(acntSnd)
-		if err != nil {
-			return nil, nil, err
-		}
+	err := txProc.accounts.SaveAccount(feePayer)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	return moveBalanceFee, totalCost, nil
-}
-
-func (txProc *txProcessor) processTxFeeOfRelayedV3(
-	tx *transaction.Transaction,
-	txHash []byte,
-	relayerAccount state.UserAccountHandler,
-	destinationAccount state.UserAccountHandler,
-	dstShardTxType process.TransactionType,
-) error {
-	if check.IfNil(relayerAccount) {
-		return nil
-	}
-
-	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
-	totalCost := txProc.economicsFee.ComputeTxFee(tx)
-
-	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
-		totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
-	}
-
-	isCrossShardSCCall := check.IfNil(destinationAccount) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
-	if dstShardTxType != process.MoveBalance ||
-		(!txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && isCrossShardSCCall) {
-
-		err := relayerAccount.SubFromBalance(totalCost)
-		if err != nil {
-			return err
-		}
-
-		err = txProc.accounts.SaveAccount(relayerAccount)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := relayerAccount.SubFromBalance(moveBalanceFee)
-		if err != nil {
-			return err
-		}
-
-		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceFee, big.NewInt(0), txHash)
-
-		err = txProc.accounts.SaveAccount(relayerAccount)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (txProc *txProcessor) checkIfValidTxToMetaChain(tx *transaction.Transaction) error {
@@ -596,10 +484,13 @@ func (txProc *txProcessor) processMoveBalance(
 	destShardTxType process.TransactionType,
 	originalTxHash []byte,
 	isUserTxOfRelayed bool,
-	isUserTxOfRelayedV3 bool,
 ) error {
 
-	moveBalanceCost, totalCost, err := txProc.processTxFee(tx, acntSrc, acntDst, destShardTxType, isUserTxOfRelayed)
+	feePayer, _, err := txProc.getFeePayer(tx, acntSrc)
+	if err != nil {
+		return nil
+	}
+	moveBalanceCost, totalCost, err := txProc.processTxFee(tx, feePayer, acntDst, destShardTxType, isUserTxOfRelayed)
 	if err != nil {
 		return err
 	}
@@ -659,14 +550,7 @@ func (txProc *txProcessor) processMoveBalance(
 	}
 
 	txHash := originalTxHash
-	if !isUserTxOfRelayedV3 {
-		txHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = txProc.createReceiptWithReturnedGas(txHash, tx, acntSrc, moveBalanceCost, totalCost, destShardTxType, isUserTxOfRelayed)
+	err = txProc.createReceiptWithReturnedGas(txHash, tx, feePayer, moveBalanceCost, totalCost, destShardTxType, isUserTxOfRelayed)
 	if err != nil {
 		return err
 	}
@@ -675,76 +559,6 @@ func (txProc *txProcessor) processMoveBalance(
 		txProc.txFeeHandler.ProcessTransactionFeeRelayedUserTx(moveBalanceCost, big.NewInt(0), txHash, originalTxHash)
 	} else {
 		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
-	}
-
-	return nil
-}
-
-func (txProc *txProcessor) processMoveBalanceOfRelayedV3(
-	tx *transaction.Transaction,
-	senderAccount state.UserAccountHandler,
-	destinationAccount state.UserAccountHandler,
-	relayerAccount state.UserAccountHandler,
-	destShardTxType process.TransactionType,
-	originalTxHash []byte,
-) error {
-	err := txProc.processTxFeeOfRelayedV3(tx, originalTxHash, relayerAccount, destinationAccount, destShardTxType)
-	if err != nil {
-		return err
-	}
-
-	// is sender address in node shard
-	if !check.IfNil(senderAccount) {
-		senderAccount.IncreaseNonce(1)
-		err = senderAccount.SubFromBalance(tx.Value)
-		if err != nil {
-			return err
-		}
-
-		err = txProc.accounts.SaveAccount(senderAccount)
-		if err != nil {
-			return err
-		}
-	}
-
-	isPayable, err := txProc.scProcessor.IsPayable(tx.SndAddr, tx.RcvAddr)
-	if err != nil {
-		errRefund := txProc.revertConsumedValueFromSender(tx, senderAccount, true)
-		if errRefund != nil {
-			log.Error("failed to return funds to sender after check if receiver is payable", "error", errRefund)
-		}
-		return err
-	}
-	if !isPayable {
-		err = txProc.revertConsumedValueFromSender(tx, senderAccount, true)
-		if err != nil {
-			log.Error("failed to return funds to sender while transferring to non payable sc", "error", err)
-		}
-
-		return process.ErrAccountNotPayable
-	}
-
-	err = txProc.checkIfValidTxToMetaChain(tx)
-	if err != nil {
-		errLocal := txProc.revertConsumedValueFromSender(tx, senderAccount, true)
-		if errLocal != nil {
-			log.Error("failed to return funds to sender while sending invalid tx to metachain", "error", errLocal)
-		}
-
-		return err
-	}
-
-	// is receiver address in node shard
-	if !check.IfNil(destinationAccount) {
-		err = destinationAccount.AddToBalance(tx.Value)
-		if err != nil {
-			return err
-		}
-
-		err = txProc.accounts.SaveAccount(destinationAccount)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -804,88 +618,6 @@ func makeUserTxFromRelayedTxV2Args(args [][]byte) *transaction.Transaction {
 	userTx.Signature = args[3]
 	userTx.Value = big.NewInt(0)
 	return userTx
-}
-
-func (txProc *txProcessor) finishExecutionOfRelayedTxV3(
-	relayerAccount state.UserAccountHandler,
-	tx *transaction.Transaction,
-	userTx *transaction.Transaction,
-) (vmcommon.ReturnCode, error) {
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return 0, err
-	}
-
-	senderAccount, destinationAccount, err := txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
-	if err != nil {
-		errRemove := txProc.increaseSenderNonceIfNeededAndLog(txHash, tx, senderAccount, err)
-		if errRemove != nil {
-			return vmcommon.UserError, errRemove
-		}
-		return vmcommon.UserError, txProc.executeFailedRelayedV3UserTx(
-			tx,
-			txHash,
-			err.Error())
-	}
-
-	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
-	returnCode := vmcommon.Ok
-	switch txType {
-	case process.MoveBalance:
-		err = txProc.processMoveBalanceOfRelayedV3(tx, senderAccount, destinationAccount, relayerAccount, dstShardTxType, txHash)
-	case process.SCDeployment:
-		err = txProc.processTxFeeOfRelayedV3(tx, txHash, relayerAccount, destinationAccount, dstShardTxType)
-		if err != nil {
-			break
-		}
-
-		returnCode, err = txProc.scProcessor.DeploySmartContract(tx, destinationAccount)
-	case process.SCInvoking:
-		err = txProc.processTxFeeOfRelayedV3(tx, txHash, relayerAccount, destinationAccount, dstShardTxType)
-		if err != nil {
-			break
-		}
-
-		returnCode, err = txProc.scProcessor.ExecuteSmartContractTransaction(tx, senderAccount, destinationAccount)
-	case process.BuiltInFunctionCall:
-		err = txProc.processTxFeeOfRelayedV3(tx, txHash, relayerAccount, destinationAccount, dstShardTxType)
-		if err != nil {
-			break
-		}
-
-		returnCode, err = txProc.scProcessor.ExecuteBuiltInFunction(tx, senderAccount, destinationAccount)
-	default:
-		err = process.ErrWrongTransaction
-		errRemove := txProc.increaseSenderNonceIfNeededAndLog(txHash, tx, senderAccount, err)
-		if errRemove != nil {
-			return vmcommon.UserError, errRemove
-		}
-		return vmcommon.UserError, txProc.executeFailedRelayedV3UserTx(
-			tx,
-			txHash,
-			err.Error())
-	}
-
-	if errors.Is(err, process.ErrInvalidMetaTransaction) || errors.Is(err, process.ErrAccountNotPayable) {
-		return vmcommon.UserError, txProc.executeFailedRelayedV3UserTx(
-			tx,
-			txHash,
-			err.Error())
-	}
-
-	if errors.Is(err, process.ErrFailedTransaction) {
-		// in case of failed inner user tx transaction we should just simply return execution failed and
-		// not failed transaction - as the actual transaction (the relayed we correctly executed) and thus
-		// it should not lend in the invalid miniblock
-		return vmcommon.ExecutionFailed, nil
-	}
-
-	if err != nil {
-		log.Error("processUserTx", "protocolError", err)
-		return vmcommon.ExecutionFailed, err
-	}
-
-	return returnCode, err
 }
 
 func (txProc *txProcessor) finishExecutionOfRelayedTx(
@@ -969,39 +701,29 @@ func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler
 	return txProc.accounts.SaveAccount(acntDst)
 }
 
-func (txProc *txProcessor) processRelayedTxV3(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
-	relayerAccount, sndAccount, err := txProc.getAccounts(tx.RelayerAddr, tx.SndAddr)
-	if err != nil {
-		return 0, err
-	}
-
+func (txProc *txProcessor) verifyRelayedTxV3(tx *transaction.Transaction) error {
 	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
-		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrRelayedTxV3Disabled)
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrRelayedTxV3Disabled)
 	}
 
 	if !txProc.shardCoordinator.SameShard(tx.RelayerAddr, tx.SndAddr) {
-		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrShardIdMissmatch)
-	}
-
-	if !check.IfNil(relayerAccount) && relayerAccount.IsGuarded() {
-		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrGuardedRelayerNotAllowed)
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrShardIdMissmatch)
 	}
 
 	if bytes.Equal(tx.RelayerAddr, tx.GuardianAddr) {
-		return vmcommon.UserError, txProc.executingFailedTransactionRelayedV3(tx, sndAccount, relayerAccount, process.ErrRelayedByGuardianNotAllowed)
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrRelayedByGuardianNotAllowed)
 	}
 
-	userTx := *tx
-	// remove relayer signature for tx type handler
-	// hash of this user tx won't be computed/used, but the originalTxHash
-	userTx.RelayerSignature = nil
-	minGasLimit := txProc.economicsFee.MinGasLimit()
-	userTx.GasLimit = userTx.GasLimit - minGasLimit
-	if userTx.GasLimit < txProc.economicsFee.ComputeGasLimit(&userTx) {
-		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAccount, process.ErrInsufficientGasLimitInTx)
+	relayerAccount, err := txProc.getAccountFromAddress(tx.RelayerAddr)
+	if err != nil {
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, err)
 	}
 
-	return txProc.finishExecutionOfRelayedTxV3(relayerAccount, tx, &userTx)
+	if !check.IfNil(relayerAccount) && relayerAccount.IsGuarded() {
+		return fmt.Errorf("%w, %s", process.ErrTransactionNotExecutable, process.ErrGuardedRelayerNotAllowed)
+	}
+
+	return nil
 }
 
 func (txProc *txProcessor) processRelayedTxV2(
@@ -1133,28 +855,6 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 	return nil
 }
 
-func (txProc *txProcessor) increaseSenderNonceIfNeededAndLog(
-	originalTxHash []byte,
-	originalTx *transaction.Transaction,
-	senderAccount vmcommon.AccountHandler,
-	executionErr error,
-) error {
-	if txProc.shouldIncreaseNonce(executionErr) {
-		if check.IfNil(senderAccount) {
-			return process.ErrNilUserAccount
-		}
-
-		senderAccount.IncreaseNonce(1)
-
-		err := txProc.accounts.SaveAccount(senderAccount)
-		if err != nil {
-			return err
-		}
-	}
-
-	return txProc.addNonExecutableLog(executionErr, originalTxHash, originalTx)
-}
-
 func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHash []byte, originalTx data.TransactionHandler) error {
 	if !isNonExecutableError(executionErr) {
 		return nil
@@ -1215,7 +915,7 @@ func (txProc *txProcessor) processUserTx(
 			err.Error())
 	}
 
-	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
+	txType, dstShardTxType, _ := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst, true)
 	if err != nil {
 		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
@@ -1240,7 +940,7 @@ func (txProc *txProcessor) processUserTx(
 	returnCode := vmcommon.Ok
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true, false)
+		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true)
 	case process.SCDeployment:
 		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd, originalTxHash)
 		if err != nil {
@@ -1427,43 +1127,6 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 	}
 
 	return nil
-}
-
-func (txProc *txProcessor) executeFailedRelayedV3UserTx(
-	originalTx *transaction.Transaction,
-	originalTxHash []byte,
-	errorMsg string,
-) error {
-
-	scrForRelayer := &smartContractResult.SmartContractResult{
-		Nonce:          originalTx.Nonce,
-		Value:          big.NewInt(0),
-		RcvAddr:        originalTx.RelayerAddr,
-		SndAddr:        originalTx.SndAddr,
-		PrevTxHash:     originalTxHash,
-		OriginalTxHash: originalTxHash,
-		ReturnMessage:  []byte(errorMsg),
-	}
-
-	err := txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer}, originalTxHash)
-	if err != nil {
-		return err
-	}
-
-	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(originalTx)
-	gasToUse := originalTx.GetGasLimit() - moveBalanceGasLimit
-	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(originalTx, gasToUse)
-	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(originalTx)
-	totalFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
-
-	senderShardID := txProc.shardCoordinator.ComputeId(originalTx.SndAddr)
-	if senderShardID != txProc.shardCoordinator.SelfId() {
-		totalFee.Sub(totalFee, processingUserFee)
-	}
-
-	txProc.txFeeHandler.ProcessTransactionFee(totalFee, big.NewInt(0), originalTxHash)
-
-	return txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx}, originalTxHash)
 }
 
 func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {

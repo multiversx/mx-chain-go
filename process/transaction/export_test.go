@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -100,6 +101,11 @@ func (txProc *txProcessor) ExecuteFailedRelayedTransaction(
 // CheckMaxGasPrice calls the un-exported method checkMaxGasPrice
 func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
 	return inTx.checkMaxGasPrice()
+}
+
+// SetEnableEpochsHandler sets the internal enable epochs handler
+func (inTx *InterceptedTransaction) SetEnableEpochsHandler(handler common.EnableEpochsHandler) {
+	inTx.enableEpochsHandler = handler
 }
 
 // VerifyGuardian calls the un-exported method verifyGuardian
