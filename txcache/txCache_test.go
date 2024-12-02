@@ -522,7 +522,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 		NumBytesThreshold:           419_430_400,
 		NumBytesPerSenderThreshold:  12_288_000,
 		CountThreshold:              300_000,
-		CountPerSenderThreshold:     20_000,
+		CountPerSenderThreshold:     5_000,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 50_000,
 	}
