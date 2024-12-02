@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.RequestersContainerFactory = (*shardRequestersContainerFactory)(nil)
@@ -14,10 +15,14 @@ type shardRequestersContainerFactory struct {
 	*baseRequestersContainerFactory
 }
 
+// THIS SHOULD BE CHANGED FOR SOVEREIGN
+var log = logger.GetOrCreate("dsada")
+
 // NewShardRequestersContainerFactory creates a new container filled with topic requesters for shards
 func NewShardRequestersContainerFactory(
 	args FactoryArgs,
 ) (*shardRequestersContainerFactory, error) {
+	log.Error("#########################################NewShardRequestersContainerFactory")
 	container := containers.NewRequestersContainer()
 	base := &baseRequestersContainerFactory{
 		container:                container,
