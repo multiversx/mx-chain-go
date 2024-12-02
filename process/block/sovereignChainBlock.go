@@ -584,7 +584,7 @@ func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBloc
 			indexOfLastProcessed--
 		}
 
-		err = mbHeader.SetIndexOfLastTxProcessed(indexOfLastProcessed - 1)
+		err = mbHeader.SetIndexOfLastTxProcessed(indexOfLastProcessed)
 		if err != nil {
 			return 0, nil, err
 		}
