@@ -496,7 +496,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 
 	sw := core.NewStopWatch()
 
-	t.Run("numSenders = 10000, numTransactions = 100, maxNum = 50_000", func(t *testing.T) {
+	t.Run("numSenders = 10000, numTransactions = 100, maxNum = 30_000", func(t *testing.T) {
 		cache, err := NewTxCache(config, host)
 		require.Nil(t, err)
 
@@ -505,14 +505,14 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 1000000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 50000, len(selected))
-		require.Equal(t, uint64(2_500_000_000), accumulatedGas)
+		require.Equal(t, 30_000, len(selected))
+		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
 
-	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 50_000", func(t *testing.T) {
+	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 30_000", func(t *testing.T) {
 		cache, err := NewTxCache(config, host)
 		require.Nil(t, err)
 
@@ -521,14 +521,14 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 50000, len(selected))
-		require.Equal(t, uint64(2_500_000_000), accumulatedGas)
+		require.Equal(t, 30_000, len(selected))
+		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
 
-	t.Run("numSenders = 100000, numTransactions = 1, maxNum = 50_000", func(t *testing.T) {
+	t.Run("numSenders = 100000, numTransactions = 1, maxNum = 30_000", func(t *testing.T) {
 		cache, err := NewTxCache(config, host)
 		require.Nil(t, err)
 
@@ -537,14 +537,14 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 50000, len(selected))
-		require.Equal(t, uint64(2_500_000_000), accumulatedGas)
+		require.Equal(t, 30_000, len(selected))
+		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
 
-	t.Run("numSenders = 300000, numTransactions = 1, maxNum = 50_000", func(t *testing.T) {
+	t.Run("numSenders = 300000, numTransactions = 1, maxNum = 30_000", func(t *testing.T) {
 		cache, err := NewTxCache(config, host)
 		require.Nil(t, err)
 
@@ -553,11 +553,11 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 300000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 50_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 50000, len(selected))
-		require.Equal(t, uint64(2_500_000_000), accumulatedGas)
+		require.Equal(t, 30_000, len(selected))
+		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {
@@ -572,8 +572,8 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.126612s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_10000,_numTransactions_=_100,_maxNum_=_50_000)
-	// 0.107361s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_50_000)
-	// 0.168364s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_50_000)
-	// 0.305363s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_50_000)
+	// 0.042209s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_10000,_numTransactions_=_100,_maxNum_=_30_000)
+	// 0.055784s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_30_000)
+	// 0.078637s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_30_000)
+	// 0.222669s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_30_000)
 }
