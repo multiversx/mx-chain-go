@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"math"
@@ -8,6 +9,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
@@ -511,6 +513,93 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 		require.True(t, cache.Has([]byte("alice-x")))
 		require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
 	}
+}
+
+func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
+	config := ConfigSourceMe{
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           419_430_400,
+		NumBytesPerSenderThreshold:  12_288_000,
+		CountThreshold:              300_000,
+		CountPerSenderThreshold:     20_000,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 50_000,
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+	randomBytes := make([]byte, math.MaxUint16*hashLength)
+	_, err := rand.Read(randomBytes)
+	require.Nil(t, err)
+
+	sw := core.NewStopWatch()
+
+	t.Run("numTransactions = 100 (worst case)", func(t *testing.T) {
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+
+		numTransactions := 100
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	t.Run("numTransactions = 1000 (worst case)", func(t *testing.T) {
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+
+		numTransactions := 1000
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	t.Run("numTransactions = 5_000 (worst case)", func(t *testing.T) {
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+
+		numTransactions := 5_000
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+
+	// (1)
+	// Vendor ID:                GenuineIntel
+	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//     CPU family:           6
+	//     Model:                140
+	//     Thread(s) per core:   2
+	//     Core(s) per socket:   4
+	//
+	// 0.000117s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_100)
+	// 0.003117s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_1000)
+	// 0.056481s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000)
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
