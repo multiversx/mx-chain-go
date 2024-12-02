@@ -15,6 +15,7 @@ const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
 const oneQuintillion = 1_000_000_000_000_000_000
 const estimatedSizeOfBoundedTxFields = uint64(128)
+const hashLength = 32
 
 var oneQuintillionBig = big.NewInt(oneQuintillion)
 
