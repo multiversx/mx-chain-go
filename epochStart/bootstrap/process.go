@@ -950,28 +950,24 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	shardID := e.shardCoordinator.SelfId()
-	epochStartBlockHash := epochStartData.GetHeaderHash()
+	prevEpochLatestFinalizedBlock := e.findPrevEpochLatestFinalizedBlockForShard()
+	if prevEpochLatestFinalizedBlock != nil {
+		nonce := prevEpochLatestFinalizedBlock.GetNonce()
+		for {
+			go e.requestHandler.RequestShardHeaderByNonce(e.shardCoordinator.SelfId(), nonce+1)
 
-	// Request the epoch start block header
-	hashesToRequest = [][]byte{epochStartBlockHash}
-	shardIds = []uint32{shardID}
+			hdrs, hashes, err := e.dataPool.Headers().GetHeadersByNonceAndShardId(nonce+1, e.shardCoordinator.SelfId())
+			for err != nil || len(hdrs) == 0 {
+				hdrs, hashes, err = e.dataPool.Headers().GetHeadersByNonceAndShardId(nonce+1, e.shardCoordinator.SelfId())
+			}
 
-	e.headersSyncer.ClearFields()
-	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
-	cancel()
-	if err != nil {
-		return err
-	}
+			if hdrs[0].GetEpoch() == epochStartData.GetEpoch() {
+				e.syncedHeaders[string(hashes[0])] = hdrs[0]
+				break
+			}
 
-	neededHeaders, err = e.headersSyncer.GetHeaders()
-	if err != nil {
-		return err
-	}
-
-	for hash, hdr := range neededHeaders {
-		e.syncedHeaders[hash] = hdr
+			nonce = hdrs[0].GetNonce()
+		}
 	}
 
 	dts, err := e.getDataToSync(
@@ -1043,6 +1039,17 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled, dts.miniBlocks)
 	if errSavingToStorage != nil {
 		return errSavingToStorage
+	}
+
+	return nil
+}
+
+func (e *epochStartBootstrap) findPrevEpochLatestFinalizedBlockForShard() data.EpochStartShardDataHandler {
+	lastFinalizedHeaders := e.prevEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
+	for _, hdr := range lastFinalizedHeaders {
+		if hdr.GetShardID() == e.shardCoordinator.SelfId() {
+			return hdr
+		}
 	}
 
 	return nil

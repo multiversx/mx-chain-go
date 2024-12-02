@@ -95,6 +95,11 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		return err
 	}
 
+	err = ssh.saveEpochStartShardHdrs(components)
+	if err != nil {
+		return err
+	}
+
 	ssh.saveMiniblocksFromComponents(components)
 
 	log.Debug("saving synced miniblocks", "num miniblocks", len(syncedMiniBlocks))
@@ -168,6 +173,19 @@ func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNee
 	err = ssh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (ssh *shardStorageHandler) saveEpochStartShardHdrs(components *ComponentsNeededForBootstrap) error {
+	for _, hdr := range components.Headers {
+		if hdr.IsStartOfEpochBlock() && hdr.GetShardID() != core.MetachainShardId {
+			_, err := ssh.saveShardHdrToStorage(hdr)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
