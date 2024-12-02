@@ -26,6 +26,10 @@ func NewSovereignAPIRewardsHandler(addressPubKeyConverter core.PubkeyConverter) 
 
 // PrepareRewardTx prepares an api reward tx with sender and receiver shard as sovereign chain
 func (sar *sovereignAPIRewards) PrepareRewardTx(tx *rewardTxData.RewardTx) *transaction.ApiTransactionResult {
+	if check.IfNil(tx) {
+		return &transaction.ApiTransactionResult{}
+	}
+
 	return &transaction.ApiTransactionResult{
 		Tx:          tx,
 		Type:        string(transaction.TxTypeReward),
