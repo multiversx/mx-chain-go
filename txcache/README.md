@@ -9,7 +9,7 @@
 ### Configuration
 
 1. **SelectTransactions::gasRequested:** `10_000_000_000`, the maximum total gas limit of the transactions to be returned to a proposer (one _selection session_). This value is provided by the Protocol.
-2. **SelectTransactions::maxNum:** `50_000`, the maximum number of transactions to be returned to a proposer (one _selection session_). This value is provided by the Protocol.
+2. **SelectTransactions::maxNum:** `30_000`, the maximum number of transactions to be returned to a proposer (one _selection session_). This value is provided by the Protocol.
 
 ### Transactions selection
 
