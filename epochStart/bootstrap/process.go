@@ -950,6 +950,30 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return epochStart.ErrWrongTypeAssertion
 	}
 
+	shardID := e.shardCoordinator.SelfId()
+	epochStartBlockHash := epochStartData.GetHeaderHash()
+
+	// Request the epoch start block header
+	hashesToRequest = [][]byte{epochStartBlockHash}
+	shardIds = []uint32{shardID}
+
+	e.headersSyncer.ClearFields()
+	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	neededHeaders, err = e.headersSyncer.GetHeaders()
+	if err != nil {
+		return err
+	}
+
+	for hash, hdr := range neededHeaders {
+		e.syncedHeaders[hash] = hdr
+	}
+
 	dts, err := e.getDataToSync(
 		epochStartData,
 		shardNotarizedHeader,
