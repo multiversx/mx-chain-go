@@ -529,7 +529,9 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 
 	host := txcachemocks.NewMempoolHostMock()
 	randomBytes := make([]byte, math.MaxUint16*hashLength)
-	rand.Read(randomBytes)
+	_, err := rand.Read(randomBytes)
+	require.Nil(t, err)
+
 	sw := core.NewStopWatch()
 
 	t.Run("numTransactions = 100 (worst case)", func(t *testing.T) {
