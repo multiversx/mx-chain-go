@@ -123,6 +123,7 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 
+	// TODO: MX-16228 Move all these 3 below in runTypeComp
 	if check.IfNilReflect(args.DelegatedListFactoryHandler) {
 		return nil, factory.ErrNilDelegatedListFactory
 	}
@@ -132,7 +133,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	if check.IfNilReflect(args.TotalStakedValueFactoryHandler) {
 		return nil, factory.ErrNilTotalStakedValueFactory
 	}
-	if check.IfNilReflect(args.RunTypeComponents.APIRewardsTxHandler()) {
+	if check.IfNil(args.RunTypeComponents.APIRewardsTxHandler()) {
 		return nil, errErd.ErrNilAPIRewardsHandler
 	}
 
