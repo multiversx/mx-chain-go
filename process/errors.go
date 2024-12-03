@@ -1268,3 +1268,6 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
+
+// ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
+var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")

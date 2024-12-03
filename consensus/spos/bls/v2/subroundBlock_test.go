@@ -465,6 +465,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 		providedSignature := []byte("provided signature")
 		providedBitmap := []byte("provided bitmap")
+		providedHash := []byte("provided hash")
 		providedHeadr := &block.HeaderV2{
 			Header: &block.Header{
 				Signature:     []byte("signature"),
@@ -476,6 +477,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return providedHeadr
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return providedHash
 			},
 		}
 		container.SetBlockchain(chainHandler)

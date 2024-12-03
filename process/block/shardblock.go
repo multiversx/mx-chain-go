@@ -537,7 +537,10 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	}
 
 	log.Trace("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
-	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
+	usedMetaHdrs, err := sp.sortHeadersForCurrentBlockByNonce(true)
+	if err != nil {
+		return err
+	}
 	if len(usedMetaHdrs[core.MetachainShardId]) == 0 {
 		return nil
 	}
@@ -580,7 +583,10 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return nil
 	}
 
-	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
+	finalityAttestingMetaHdrs, err := sp.sortHeadersForCurrentBlockByNonce(false)
+	if err != nil {
+		return err
+	}
 
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
@@ -2244,8 +2250,12 @@ func (sp *shardProcessor) applyBodyToHeader(
 	}
 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
-	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
+	metaBlockHashes, err := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
+	if err != nil {
+		return nil, err
+	}
+
 	err = shardHeader.SetMetaBlockHashes(metaBlockHashes[core.MetachainShardId])
 	if err != nil {
 		return nil, err

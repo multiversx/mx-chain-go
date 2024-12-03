@@ -114,4 +114,5 @@ type ArgMetaProcessor struct {
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	HeaderSigVerifier            process.InterceptedHeaderSigVerifier
 }

@@ -1,6 +1,8 @@
 package interceptedBlocks
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -101,9 +103,42 @@ func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.
 		if err != nil {
 			return err
 		}
+
+		err = checkProofs(sd)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func checkProofs(shardData data.ShardDataHandler) error {
+	err := checkProof(shardData.GetPreviousProof())
+	if err != nil {
+		return fmt.Errorf("%w for previous block", err)
+	}
+
+	err = checkProof(shardData.GetCurrentProof())
+	if err != nil {
+		return fmt.Errorf("%w for current block", err)
+	}
+
+	return nil
+}
+
+func checkProof(proof data.HeaderProofHandler) error {
+	if !check.IfNilReflect(proof) && isIncompleteProof(proof) {
+		return process.ErrInvalidHeaderProof
+	}
+
+	return nil
+}
+
+func isIncompleteProof(proof data.HeaderProofHandler) bool {
+	return len(proof.GetAggregatedSignature()) == 0 ||
+		len(proof.GetPubKeysBitmap()) == 0 ||
+		len(proof.GetHeaderHash()) == 0
 }
 
 func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) error {

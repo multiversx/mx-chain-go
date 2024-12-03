@@ -361,7 +361,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
-	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
+	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if err != nil {
 		// for the first block after activation we won't add the proof
 		// TODO: fix this on verifications as well
