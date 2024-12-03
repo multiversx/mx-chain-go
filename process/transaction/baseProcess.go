@@ -119,9 +119,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
-	if check.IfNil(acntSnd) {
-		return nil
-	}
 
 	if common.IsRelayedTxV3(tx) {
 		relayerAccount, err := txProc.getAccountFromAddress(tx.RelayerAddr)
@@ -132,7 +129,24 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return txProc.checkUserTxOfRelayedV3Values(tx, acntSnd, acntDst, relayerAccount)
 	}
 
-	err := txProc.checkTxCommon(tx, acntSnd, acntDst)
+	err := txProc.verifyGuardian(tx, acntSnd)
+	if err != nil {
+		return err
+	}
+	err = txProc.checkUserNames(tx, acntSnd, acntDst)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(acntSnd) {
+		return nil
+	}
+	if acntSnd.GetNonce() < tx.Nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if acntSnd.GetNonce() > tx.Nonce {
+		return process.ErrLowerNonceInTransaction
+	}
+	err = txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -176,7 +190,24 @@ func (txProc *baseTxProcessor) checkUserTxOfRelayedV3Values(
 	destinationAccount state.UserAccountHandler,
 	relayerAccount state.UserAccountHandler,
 ) error {
-	err := txProc.checkTxCommon(tx, senderAccount, destinationAccount)
+	err := txProc.verifyGuardian(tx, senderAccount)
+	if err != nil {
+		return err
+	}
+	err = txProc.checkUserNames(tx, senderAccount, destinationAccount)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(senderAccount) {
+		return nil
+	}
+	if senderAccount.GetNonce() < tx.Nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if senderAccount.GetNonce() > tx.Nonce {
+		return process.ErrLowerNonceInTransaction
+	}
+	err = txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
@@ -204,28 +235,6 @@ func (txProc *baseTxProcessor) checkUserTxOfRelayedV3Values(
 	}
 
 	return nil
-}
-
-func (txProc *baseTxProcessor) checkTxCommon(
-	tx *transaction.Transaction,
-	senderAccount state.UserAccountHandler,
-	destinationAccount state.UserAccountHandler,
-) error {
-	err := txProc.verifyGuardian(tx, senderAccount)
-	if err != nil {
-		return err
-	}
-	err = txProc.checkUserNames(tx, senderAccount, destinationAccount)
-	if err != nil {
-		return err
-	}
-	if senderAccount.GetNonce() < tx.Nonce {
-		return process.ErrHigherNonceInTransaction
-	}
-	if senderAccount.GetNonce() > tx.Nonce {
-		return process.ErrLowerNonceInTransaction
-	}
-	return txProc.economicsFee.CheckValidityTxValues(tx)
 }
 
 func (txProc *baseTxProcessor) getFeePayer(
