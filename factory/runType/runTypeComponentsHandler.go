@@ -252,6 +252,15 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.apiRewardTxHandler) {
 		return errors.ErrNilAPIRewardsHandler
 	}
+	if check.IfNil(mrc.delegatedListFactoryHandler) {
+		return factory.ErrNilDelegatedListFactory
+	}
+	if check.IfNil(mrc.directStakedListFactoryHandler) {
+		return factory.ErrNilDirectStakedListFactory
+	}
+	if check.IfNil(mrc.totalStakedValueFactoryHandler) {
+		return factory.ErrNilTotalStakedValueFactory
+	}
 
 	return nil
 }
