@@ -1160,6 +1160,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	esdtToken := []byte("TCK-RANDOM")
 	sftToken := []byte("SFT-RANDOM")
 	nftToken := []byte("NFT-RANDOM")
+	nftTokenV2 := []byte("NFT-RANDOM-V2")
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
@@ -1173,8 +1174,13 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
 	_ = acc.SaveKeyValue(nftToken, nftMarshalledData)
 
+	nftData2 := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible v2"), TokenType: []byte(core.NonFungibleESDT)}
+	nftMarshalledData2, _ := getMarshalizer().Marshal(nftData2)
+	_ = acc.SaveKeyValue(nftTokenV2, nftMarshalledData2)
+
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 	nftSuffix := append(nftToken, acc.AddressBytes()...)
+	nftSuffix2 := append(nftTokenV2, acc.AddressBytes()...)
 	sftSuffix := append(sftToken, acc.AddressBytes()...)
 
 	acc.SetDataTrie(
@@ -1188,6 +1194,8 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 					leavesChannels.LeavesChan <- trieLeaf
 
 					trieLeaf, _ = tlp.ParseLeaf(nftToken, append(nftMarshalledData, nftSuffix...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(nftTokenV2, append(nftMarshalledData2, nftSuffix2...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -1241,12 +1249,17 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDT, context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(value))
+	assert.Equal(t, 2, len(value)) // for both versions
+	assert.Equal(t, string(nftToken), value[0])
+
+	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDTv2, context.Background())
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(value)) // for both versions
 	assert.Equal(t, string(nftToken), value[0])
 
 	value, err = n.GetAllIssuedESDTs("", context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 3, len(value))
+	assert.Equal(t, 4, len(value))
 }
 
 func TestNode_GetESDTsWithRole(t *testing.T) {
