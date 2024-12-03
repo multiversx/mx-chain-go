@@ -897,6 +897,68 @@ func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShar
 	return epochStartData, epochStart.ErrEpochStartDataForShardNotFound
 }
 
+func (e *epochStartBootstrap) findPrevEpochLatestFinalizedBlockForShard() data.EpochStartShardDataHandler {
+	lastFinalizedHeaders := e.prevEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
+	for _, hdr := range lastFinalizedHeaders {
+		if hdr.GetShardID() == e.shardCoordinator.SelfId() {
+			return hdr
+		}
+	}
+
+	return nil
+}
+
+func (e *epochStartBootstrap) syncLatestEpochStartShardBlock(targetEpoch uint32, ctx context.Context) (data.HeaderHandler, []byte, error) {
+	prevEpochLatestFinalizedBlock := e.findPrevEpochLatestFinalizedBlockForShard()
+	if prevEpochLatestFinalizedBlock == nil {
+		return nil, nil, epochStart.ErrEpochStartDataForShardNotFound
+	}
+
+	type headerResult struct {
+		header data.HeaderHandler
+		hash   []byte
+	}
+
+	waitForHeader := func(nonce uint64, shardId uint32, ch chan headerResult) {
+		for {
+			select {
+			case <-ch:
+				return
+			default:
+				hdrs, hashes, err := e.dataPool.Headers().GetHeadersByNonceAndShardId(nonce, shardId)
+				if err == nil && len(hdrs) > 0 {
+					ch <- headerResult{
+						header: hdrs[0],
+						hash:   hashes[0],
+					}
+					return
+				}
+			}
+		}
+	}
+
+	nonce := prevEpochLatestFinalizedBlock.GetNonce()
+	for {
+		e.requestHandler.RequestShardHeaderByNonce(e.shardCoordinator.SelfId(), nonce+1)
+
+		resultChan := make(chan headerResult)
+		defer close(resultChan)
+
+		go waitForHeader(nonce+1, e.shardCoordinator.SelfId(), resultChan)
+
+		select {
+		case <-ctx.Done():
+			return nil, nil, epochStart.ErrTimeoutWaitingForShardBlock
+		case res := <-resultChan:
+			if res.header.GetEpoch() == targetEpoch {
+				return res.header, res.hash, nil
+			} else {
+				nonce = res.header.GetNonce()
+			}
+		}
+	}
+}
+
 func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
 	epochStartData, err := e.findSelfShardEpochStartData()
 	if err != nil {
@@ -950,25 +1012,14 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	prevEpochLatestFinalizedBlock := e.findPrevEpochLatestFinalizedBlockForShard()
-	if prevEpochLatestFinalizedBlock != nil {
-		nonce := prevEpochLatestFinalizedBlock.GetNonce()
-		for {
-			go e.requestHandler.RequestShardHeaderByNonce(e.shardCoordinator.SelfId(), nonce+1)
-
-			hdrs, hashes, err := e.dataPool.Headers().GetHeadersByNonceAndShardId(nonce+1, e.shardCoordinator.SelfId())
-			for err != nil || len(hdrs) == 0 {
-				hdrs, hashes, err = e.dataPool.Headers().GetHeadersByNonceAndShardId(nonce+1, e.shardCoordinator.SelfId())
-			}
-
-			if hdrs[0].GetEpoch() == epochStartData.GetEpoch() {
-				e.syncedHeaders[string(hashes[0])] = hdrs[0]
-				break
-			}
-
-			nonce = hdrs[0].GetNonce()
-		}
+	ctx, cancel = context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	epochStartShardBlock, epochStartShardBlockHash, err := e.syncLatestEpochStartShardBlock(epochStartData.GetEpoch(), ctx)
+	cancel()
+	if err != nil {
+		return err
 	}
+
+	e.syncedHeaders[string(epochStartShardBlockHash)] = epochStartShardBlock
 
 	dts, err := e.getDataToSync(
 		epochStartData,
@@ -1039,17 +1090,6 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, shardNotarizedHeader, dts.withScheduled, dts.miniBlocks)
 	if errSavingToStorage != nil {
 		return errSavingToStorage
-	}
-
-	return nil
-}
-
-func (e *epochStartBootstrap) findPrevEpochLatestFinalizedBlockForShard() data.EpochStartShardDataHandler {
-	lastFinalizedHeaders := e.prevEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
-	for _, hdr := range lastFinalizedHeaders {
-		if hdr.GetShardID() == e.shardCoordinator.SelfId() {
-			return hdr
-		}
 	}
 
 	return nil

@@ -185,6 +185,9 @@ var ErrNilRater = errors.New("nil rater")
 // ErrTimeoutWaitingForMetaBlock signals that a timeout event was raised while waiting for the epoch start meta block
 var ErrTimeoutWaitingForMetaBlock = errors.New("timeout while waiting for epoch start meta block")
 
+// ErrTimeoutWaitingForShardBlock signals that a timeout event was raised while waiting for the epoch start shard block
+var ErrTimeoutWaitingForShardBlock = errors.New("timeout while waiting for epoch start shard block")
+
 // ErrNilStorageUnitOpener signals that a nil storage unit opener was provided
 var ErrNilStorageUnitOpener = errors.New("nil storage unit opener")
 
