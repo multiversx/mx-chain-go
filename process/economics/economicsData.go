@@ -611,7 +611,7 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 
 // getExtraGasLimitRelayedTx returns extra gas limit for relayed tx in a specific epoch
 func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Transaction, epoch uint32) uint64 {
-	if common.IsValidRelayedTxV3(txInstance) {
+	if common.IsRelayedTxV3(txInstance) {
 		return ed.MinGasLimitInEpoch(epoch)
 	}
 

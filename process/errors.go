@@ -1238,3 +1238,6 @@ var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")
 
 // ErrRelayedByGuardianNotAllowed signals that the provided guardian is also the relayer
 var ErrRelayedByGuardianNotAllowed = errors.New("relayed by guardian not allowed")
+
+// ErrInvalidRelayedTxV3 signals that an invalid relayed tx v3 has been provided
+var ErrInvalidRelayedTxV3 = errors.New("invalid relayed transaction")

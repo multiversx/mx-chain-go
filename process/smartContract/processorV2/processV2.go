@@ -1685,7 +1685,7 @@ func getRelayedValues(tx data.TransactionHandler) ([]byte, *big.Int) {
 		return relayedTx.RelayerAddr, big.NewInt(0)
 	}
 
-	if common.IsValidRelayedTxV3(tx) {
+	if common.IsRelayedTxV3(tx) {
 		relayedTx := tx.(data.RelayedTransactionHandler)
 		return relayedTx.GetRelayerAddr(), big.NewInt(0)
 	}
@@ -1962,7 +1962,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 }
 
 func (sc *scProcessor) getFeePayer(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (state.UserAccountHandler, error) {
-	if !common.IsValidRelayedTxV3(tx) {
+	if !common.IsRelayedTxV3(tx) {
 		return acntSnd, nil
 	}
 
@@ -2654,7 +2654,7 @@ func (sc *scProcessor) createRefundGasToRelayerSCRIfNeeded(
 			gasRefund)
 	}
 
-	isRelayedV3 := common.IsValidRelayedTxV3(tx)
+	isRelayedV3 := common.IsRelayedTxV3(tx)
 	shouldRefundGasToRelayerSCR = isRelayedV3 && callType != vmData.AsynchronousCall && gasRefund.Cmp(zero) > 0
 	if shouldRefundGasToRelayerSCR {
 		relayedTx := tx.(data.RelayedTransactionHandler)

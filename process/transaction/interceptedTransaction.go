@@ -240,12 +240,16 @@ func isRelayedTx(funcName string) bool {
 }
 
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
-	if !common.IsValidRelayedTxV3(tx) {
+	if !common.IsRelayedTxV3(tx) {
 		return nil
 	}
 
 	if !inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
 		return process.ErrRelayedTxV3Disabled
+	}
+
+	if !common.IsValidRelayedTxV3(tx) {
+		return process.ErrInvalidRelayedTxV3
 	}
 
 	err := inTx.integrity(tx)

@@ -1585,7 +1585,14 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	err = txi.CheckValidity()
 	assert.Equal(t, process.ErrRelayedTxV3Disabled, err)
 
+	// invalid relayed v3 should error
+	tx.RelayerSignature = nil
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.Equal(t, process.ErrInvalidRelayedTxV3, err)
+
 	// sender in different shard than relayer should fail
+	tx.RelayerSignature = sigOk
 	tx.RelayerAddr = bytes.Repeat([]byte("a"), len(relayerAddress))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
