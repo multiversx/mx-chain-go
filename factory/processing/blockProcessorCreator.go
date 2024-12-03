@@ -69,6 +69,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -105,6 +106,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			receiptsRepository,
 			blockCutoffProcessingHandler,
 			sentSignaturesTracker,
+			headerSigVerifier,
 		)
 	}
 
@@ -478,6 +480,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -969,6 +972,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		HeaderSigVerifier:            headerSigVerifier,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

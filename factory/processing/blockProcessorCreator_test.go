@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
@@ -58,6 +59,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&consensus.HeaderSigVerifierMock{},
 	)
 
 	require.NoError(t, err)
@@ -185,6 +187,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&consensus.HeaderSigVerifierMock{},
 	)
 
 	require.NoError(t, err)

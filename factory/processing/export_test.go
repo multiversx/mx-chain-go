@@ -25,6 +25,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) (process.BlockProcessor, process.EpochStartSystemSCProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -42,6 +43,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		blockProcessingCutoff,
 		missingTrieNodesNotifier,
 		sentSignaturesTracker,
+		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, nil, err
