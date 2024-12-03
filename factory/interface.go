@@ -40,6 +40,7 @@ import (
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -644,6 +645,9 @@ type RunTypeComponentsHolder interface {
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
 	APIRewardsTxHandler() transactionAPI.APIRewardTxHandler
+	DelegatedListFactoryHandler() trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryHandler() trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

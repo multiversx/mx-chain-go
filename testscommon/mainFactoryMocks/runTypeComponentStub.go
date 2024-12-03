@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -98,6 +99,9 @@ type RunTypeComponentsStub struct {
 	ValidatorAccountsSyncerFactoryHandlerField  syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandlerField storageRequestFactory.ShardRequestersContainerCreatorHandler
 	APIRewardsTxHandlerField                    transactionAPI.APIRewardTxHandler
+	DelegatedListFactoryField                   trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryField                trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	TotalStakedValueFactoryField                trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -417,6 +421,21 @@ func (r *RunTypeComponentsStub) ShardRequestersContainerCreatorHandler() storage
 // APIRewardsTxHandler -
 func (r *RunTypeComponentsStub) APIRewardsTxHandler() transactionAPI.APIRewardTxHandler {
 	return r.APIRewardsTxHandlerField
+}
+
+// DelegatedListFactoryHandler -
+func (r *RunTypeComponentsStub) DelegatedListFactoryHandler() trieIteratorsFactory.DelegatedListProcessorFactoryHandler {
+	return r.DelegatedListFactoryField
+}
+
+// DirectStakedListFactoryHandler -
+func (r *RunTypeComponentsStub) DirectStakedListFactoryHandler() trieIteratorsFactory.DirectStakedListProcessorFactoryHandler {
+	return r.DirectStakedListFactoryField
+}
+
+// TotalStakedValueFactoryHandler -
+func (r *RunTypeComponentsStub) TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler {
+	return r.TotalStakedValueFactoryField
 }
 
 // IsInterfaceNil -

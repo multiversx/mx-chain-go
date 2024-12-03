@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -841,6 +842,42 @@ func (mrc *managedRunTypeComponents) APIRewardsTxHandler() transactionAPI.APIRew
 	}
 
 	return mrc.runTypeComponents.apiRewardTxHandler
+}
+
+// DelegatedListFactoryHandler returns delegated list factory handler
+func (mrc *managedRunTypeComponents) DelegatedListFactoryHandler() trieIteratorsFactory.DelegatedListProcessorFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.delegatedListFactoryHandler
+}
+
+// DirectStakedListFactoryHandler returns direct staked list factory handler
+func (mrc *managedRunTypeComponents) DirectStakedListFactoryHandler() trieIteratorsFactory.DirectStakedListProcessorFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.directStakedListFactoryHandler
+}
+
+// TotalStakedValueFactoryHandler returns total staked value factory handler
+func (mrc *managedRunTypeComponents) TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.totalStakedValueFactoryHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

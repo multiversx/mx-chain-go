@@ -65,7 +65,6 @@ import (
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
-	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
@@ -794,22 +793,19 @@ func (snr *sovereignNodeRunner) createApiFacade(
 	log.Debug("creating api resolver structure")
 
 	apiResolverArgs := &apiComp.ApiResolverArgs{
-		Configs:                        configs.Configs,
-		CoreComponents:                 nodeHandler.GetCoreComponents(),
-		DataComponents:                 nodeHandler.GetDataComponents(),
-		StateComponents:                nodeHandler.GetStateComponents(),
-		BootstrapComponents:            nodeHandler.GetBootstrapComponents(),
-		CryptoComponents:               nodeHandler.GetCryptoComponents(),
-		ProcessComponents:              nodeHandler.GetProcessComponents(),
-		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
-		GasScheduleNotifier:            gasScheduleNotifier,
-		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
-		RunTypeComponents:              nodeHandler.GetRunTypeComponents(),
-		AllowVMQueriesChan:             allowVMQueriesChan,
-		StatusComponents:               nodeHandler.GetStatusComponents(),
-		DelegatedListFactoryHandler:    trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),
-		DirectStakedListFactoryHandler: trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory(),
-		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory(),
+		Configs:              configs.Configs,
+		CoreComponents:       nodeHandler.GetCoreComponents(),
+		DataComponents:       nodeHandler.GetDataComponents(),
+		StateComponents:      nodeHandler.GetStateComponents(),
+		BootstrapComponents:  nodeHandler.GetBootstrapComponents(),
+		CryptoComponents:     nodeHandler.GetCryptoComponents(),
+		ProcessComponents:    nodeHandler.GetProcessComponents(),
+		StatusCoreComponents: nodeHandler.GetStatusCoreComponents(),
+		GasScheduleNotifier:  gasScheduleNotifier,
+		Bootstrapper:         nodeHandler.GetConsensusComponents().Bootstrapper(),
+		RunTypeComponents:    nodeHandler.GetRunTypeComponents(),
+		AllowVMQueriesChan:   allowVMQueriesChan,
+		StatusComponents:     nodeHandler.GetStatusComponents(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

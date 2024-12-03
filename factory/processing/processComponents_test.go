@@ -1127,6 +1127,9 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ValidatorAccountsSyncerFactoryHandlerField:  rt.ValidatorAccountsSyncerFactoryHandler(),
 		ShardRequestersContainerCreatorHandlerField: rt.ShardRequestersContainerCreatorHandler(),
 		APIRewardsTxHandlerField:                    rt.APIRewardsTxHandler(),
+		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
+		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
+		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
 	}
 }
 

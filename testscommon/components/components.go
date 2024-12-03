@@ -1200,6 +1200,9 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ValidatorAccountsSyncerFactoryHandlerField:  rt.ValidatorAccountsSyncerFactoryHandler(),
 		ShardRequestersContainerCreatorHandlerField: rt.ShardRequestersContainerCreatorHandler(),
 		APIRewardsTxHandlerField:                    rt.APIRewardsTxHandler(),
+		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
+		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
+		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
 	}
 }
 
