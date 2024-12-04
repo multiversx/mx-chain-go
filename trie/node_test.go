@@ -21,39 +21,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNode_hashChildrenAndNodeBranchNode(t *testing.T) {
-	t.Parallel()
-
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedBn)
-
-	hash, err := hashChildrenAndNode(bn)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodeHash, hash)
-}
-
-func TestNode_hashChildrenAndNodeExtensionNode(t *testing.T) {
-	t.Parallel()
-
-	en, collapsedEn := getEnAndCollapsedEn()
-	expectedNodeHash, _ := encodeNodeAndGetHash(collapsedEn)
-
-	hash, err := hashChildrenAndNode(en)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodeHash, hash)
-}
-
-func TestNode_hashChildrenAndNodeLeafNode(t *testing.T) {
-	t.Parallel()
-
-	ln := getLn(getTestMarshalizerAndHasher())
-	expectedNodeHash, _ := encodeNodeAndGetHash(ln)
-
-	hash, err := hashChildrenAndNode(ln)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodeHash, hash)
-}
-
 func TestNode_encodeNodeAndGetHashBranchNode(t *testing.T) {
 	t.Parallel()
 
@@ -120,6 +87,7 @@ func TestNode_encodeNodeAndCommitToDBBranchNode(t *testing.T) {
 	encNode, _ := collapsedBn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
 	nodeHash := collapsedBn.hasher.Compute(string(encNode))
+	collapsedBn.hash = nodeHash
 
 	_, err := encodeNodeAndCommitToDB(collapsedBn, db)
 	assert.Nil(t, err)
@@ -136,6 +104,7 @@ func TestNode_encodeNodeAndCommitToDBExtensionNode(t *testing.T) {
 	encNode, _ := collapsedEn.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
 	nodeHash := collapsedEn.hasher.Compute(string(encNode))
+	collapsedEn.hash = nodeHash
 
 	_, err := encodeNodeAndCommitToDB(collapsedEn, db)
 	assert.Nil(t, err)
@@ -152,6 +121,7 @@ func TestNode_encodeNodeAndCommitToDBLeafNode(t *testing.T) {
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
+	ln.hash = nodeHash
 
 	_, err := encodeNodeAndCommitToDB(ln, db)
 	assert.Nil(t, err)
@@ -165,6 +135,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	bn.setHash(getTestGoroutinesManager())
 	_ = bn.commitDirty(0, 5, db, db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
@@ -184,6 +155,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
+	en.setHash(getTestGoroutinesManager())
 	_ = en.commitDirty(0, 5, db, db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
@@ -203,6 +175,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
+	ln.setHash(getTestGoroutinesManager())
 	_ = ln.commitDirty(0, 5, db, db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
@@ -231,25 +204,12 @@ func TestNode_hasValidHash(t *testing.T) {
 	t.Parallel()
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	ok, err := hasValidHash(bn)
-	assert.Nil(t, err)
+	ok := hasValidHash(bn)
 	assert.False(t, ok)
 
-	_ = bn.setHash()
-	bn.dirty = false
-
-	ok, err = hasValidHash(bn)
-	assert.Nil(t, err)
+	bn.setHash(getTestGoroutinesManager())
+	ok = hasValidHash(bn)
 	assert.True(t, ok)
-}
-
-func TestNode_hasValidHashNilNode(t *testing.T) {
-	t.Parallel()
-
-	var nodeInstance *branchNode
-	ok, err := hasValidHash(nodeInstance)
-	assert.Equal(t, ErrNilBranchNode, err)
-	assert.False(t, ok)
 }
 
 func TestNode_decodeNodeBranchNode(t *testing.T) {
@@ -458,9 +418,13 @@ func TestTrieGetObsoleteHashes(t *testing.T) {
 func TestNode_getDirtyHashes(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
+	tr, _ := newEmptyTrie()
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	ExecuteUpdatesFromBatch(tr)
 
-	_ = tr.GetRootNode().setRootHash()
+	tr.GetRootNode().setHash(getTestGoroutinesManager())
 	hashes := make(map[string]struct{})
 	err := tr.GetRootNode().getDirtyHashes(hashes)
 

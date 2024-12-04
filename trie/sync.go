@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"sync"
 	"time"
 
@@ -323,10 +325,6 @@ func getNodeFromCacheOrStorage(
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
-	err = existingNode.setHash()
-	if err != nil {
-		return nil, ErrNodeNotFound
-	}
 
 	return existingNode, nil
 }
@@ -361,7 +359,17 @@ func trieNode(
 		return nil, err
 	}
 
-	err = decodedNode.setHash()
+	th, err := throttler.NewNumGoRoutinesThrottler(1)
+	if err != nil {
+		return nil, err
+	}
+	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+	if err != nil {
+		return nil, err
+	}
+
+	decodedNode.setHash(goRoutinesManager)
+	err = goRoutinesManager.GetError()
 	if err != nil {
 		return nil, err
 	}

@@ -25,7 +25,7 @@ type TrieStub struct {
 	AppendToOldHashesCalled         func([][]byte)
 	GetSerializedNodesCalled        func([]byte, uint64) ([][]byte, uint64, error)
 	GetAllLeavesOnChannelCalled     func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
-	GetProofCalled                  func(key []byte) ([][]byte, []byte, error)
+	GetProofCalled                  func(key []byte, rootHash []byte) ([][]byte, []byte, error)
 	VerifyProofCalled               func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
 	GetStorageManagerCalled         func() common.StorageManager
 	GetSerializedNodeCalled         func(bytes []byte) ([]byte, error)
@@ -45,9 +45,9 @@ func (ts *TrieStub) GetStorageManager() common.StorageManager {
 }
 
 // GetProof -
-func (ts *TrieStub) GetProof(key []byte) ([][]byte, []byte, error) {
+func (ts *TrieStub) GetProof(key []byte, rootHash []byte) ([][]byte, []byte, error) {
 	if ts.GetProofCalled != nil {
-		return ts.GetProofCalled(key)
+		return ts.GetProofCalled(key, rootHash)
 	}
 
 	return nil, nil, nil

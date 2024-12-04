@@ -304,10 +304,18 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if hash != nil {
 		return hash, nil
 	}
-	err := rootNode.setRootHash()
+
+	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
 	if err != nil {
 		return nil, err
 	}
+
+	rootNode.setHash(manager)
+	err = manager.GetError()
+	if err != nil {
+		return nil, err
+	}
+
 	return rootNode.getHash(), nil
 }
 
@@ -336,7 +344,14 @@ func (tr *patriciaMerkleTrie) Commit() error {
 
 		return nil
 	}
-	err = rootNode.setRootHash()
+
+	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	if err != nil {
+		return err
+	}
+
+	rootNode.setHash(manager)
+	err = manager.GetError()
 	if err != nil {
 		return err
 	}
@@ -459,7 +474,13 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 		return nil, nil
 	}
 
-	err = rootNode.setRootHash()
+	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	if err != nil {
+		return nil, err
+	}
+
+	rootNode.setHash(manager)
+	err = manager.GetError()
 	if err != nil {
 		return nil, err
 	}
@@ -492,7 +513,6 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		return nil, nil, err
 	}
 
-	newRoot.setGivenHash(rootHash)
 	newTr.SetNewRootNode(newRoot)
 
 	return newTr, newRoot, nil
@@ -535,12 +555,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	it, err := NewDFSIterator(newTr)
+	it, err := NewDFSIterator(tr, rootHash)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -659,14 +674,18 @@ func logMapWithTrace(message string, paramName string, hashes common.ModifiedHas
 }
 
 // GetProof computes a Merkle proof for the node that is present at the given key
-func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
-	tr.trieOperationInProgress.SetValue(true)
-	defer tr.trieOperationInProgress.Reset()
+func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, []byte, error) {
+	trie, err := tr.Recreate(rootHash)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	tr.updateTrieMutex.Lock()
-	defer tr.updateTrieMutex.Unlock()
+	pmt, ok := trie.(*patriciaMerkleTrie)
+	if !ok {
+		return nil, nil, ErrWrongTypeAssertion
+	}
 
-	rootNode := tr.GetRootNode()
+	rootNode := pmt.GetRootNode()
 	if rootNode == nil {
 		return nil, nil, ErrNilNode
 	}
@@ -674,11 +693,6 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 	var proof [][]byte
 	hexKey := keyBytesToHex(key)
 	currentNode := rootNode
-
-	err := currentNode.setRootHash()
-	if err != nil {
-		return nil, nil, err
-	}
 
 	for {
 		encodedNode, errGet := currentNode.getEncodedNode()

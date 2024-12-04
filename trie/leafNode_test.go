@@ -76,30 +76,11 @@ func TestLeafNode_setHash(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 	hash, _ := encodeNodeAndGetHash(ln)
+	manager := getTestGoroutinesManager()
 
-	err := ln.setHash()
-	assert.Nil(t, err)
+	ln.setHash(manager)
+	assert.Nil(t, manager.GetError())
 	assert.Equal(t, hash, ln.hash)
-}
-
-func TestLeafNode_setHashEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{baseNode: &baseNode{}}
-
-	err := ln.setHash()
-	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
-	assert.Nil(t, ln.hash)
-}
-
-func TestLeafNode_setHashNilNode(t *testing.T) {
-	t.Parallel()
-
-	var ln *leafNode
-
-	err := ln.setHash()
-	assert.True(t, errors.Is(err, ErrNilLeafNode))
-	assert.Nil(t, ln)
 }
 
 func TestLeafNode_setGivenHash(t *testing.T) {
@@ -110,14 +91,6 @@ func TestLeafNode_setGivenHash(t *testing.T) {
 
 	ln.setGivenHash(expectedHash)
 	assert.Equal(t, expectedHash, ln.hash)
-}
-
-func TestLeafNode_hashChildren(t *testing.T) {
-	t.Parallel()
-
-	ln := getLn(getTestMarshalizerAndHasher())
-
-	assert.Nil(t, ln.hashChildren())
 }
 
 func TestLeafNode_hashNode(t *testing.T) {
@@ -157,7 +130,7 @@ func TestLeafNode_commit(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
 	hash, _ := encodeNodeAndGetHash(ln)
-	_ = ln.setHash()
+	ln.setHash(getTestGoroutinesManager())
 
 	err := ln.commitDirty(0, 5, db, db)
 	assert.Nil(t, err)
@@ -674,7 +647,7 @@ func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.setHash()
+	ln.setHash(getTestGoroutinesManager())
 	leavesChannel := make(chan core.KeyValueHolder, 2)
 
 	err := writeNodeOnChannel(ln, leavesChannel)

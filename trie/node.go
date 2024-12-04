@@ -45,20 +45,6 @@ type leafNode struct {
 	*baseNode
 }
 
-func hashChildrenAndNode(n node) ([]byte, error) {
-	err := n.hashChildren()
-	if err != nil {
-		return nil, err
-	}
-
-	hashed, err := n.hashNode()
-	if err != nil {
-		return nil, err
-	}
-
-	return hashed, nil
-}
-
 func encodeNodeAndGetHash(n node) ([]byte, error) {
 	encNode, err := n.getEncodedNode()
 	if err != nil {
@@ -72,9 +58,9 @@ func encodeNodeAndGetHash(n node) ([]byte, error) {
 
 // encodeNodeAndCommitToDB will encode and save provided node. It returns the node's value in bytes
 func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
-	key, err := computeAndSetNodeHash(n)
-	if err != nil {
-		return 0, err
+	key := n.getHash()
+	if len(key) == 0 {
+		return 0, ErrNodeHashIsNotSet
 	}
 
 	val, err := collapseAndEncodeNode(n)
@@ -96,21 +82,6 @@ func collapseAndEncodeNode(n node) ([]byte, error) {
 	}
 
 	return n.getEncodedNode()
-}
-
-func computeAndSetNodeHash(n node) ([]byte, error) {
-	key := n.getHash()
-	if len(key) != 0 {
-		return key, nil
-	}
-
-	err := n.setHash()
-	if err != nil {
-		return nil, err
-	}
-	key = n.getHash()
-
-	return key, nil
 }
 
 func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
@@ -152,19 +123,13 @@ func concat(s1 []byte, s2 ...byte) []byte {
 	return r
 }
 
-func hasValidHash(n node) (bool, error) {
-	err := n.isEmptyOrNil()
-	if err != nil {
-		return false, err
-	}
-
+func hasValidHash(n node) bool {
 	childHash := n.getHash()
-	childIsDirty := n.isDirty()
-	if childHash == nil || childIsDirty {
-		return false, nil
+	if childHash == nil {
+		return false
 	}
 
-	return true, nil
+	return true
 }
 
 func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
