@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -923,7 +924,7 @@ func TestTxProcessor_ProcessMoveBalanceToSmartPayableContract(t *testing.T) {
 
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func testProcessCheck(t *testing.T, nonce uint64, value *big.Int) {
@@ -989,7 +990,7 @@ func TestTxProcessor_ProcessMoveBalancesShouldWork(t *testing.T) {
 
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
@@ -1025,7 +1026,7 @@ func TestTxProcessor_ProcessOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(5), acntSrc.GetNonce())
 	assert.Equal(t, big.NewInt(29), acntSrc.GetBalance())
 	assert.Equal(t, big.NewInt(71), acntDst.GetBalance())
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
@@ -1072,7 +1073,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(5), acntSrc.GetNonce())
 	assert.Equal(t, big.NewInt(13), acntSrc.GetBalance())
 	assert.Equal(t, big.NewInt(71), acntDst.GetBalance())
-	assert.Equal(t, 2, saveAccountCalled)
+	assert.Equal(t, 3, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
@@ -1111,8 +1112,8 @@ func TestTxProcessor_ProcessTransactionScDeployTxShouldWork(t *testing.T) {
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, destinationTransactionType process.TransactionType) {
-			return process.SCDeployment, process.SCDeployment
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType process.TransactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+			return process.SCDeployment, process.SCDeployment, false
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1159,8 +1160,8 @@ func TestTxProcessor_ProcessTransactionBuiltInFunctionCallShouldWork(t *testing.
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1207,8 +1208,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1253,8 +1254,8 @@ func TestTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails(t *
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -1324,7 +1325,7 @@ func TestTxProcessor_ProcessTransactionScTxShouldNotBeCalledWhenAdrDstIsNotInNod
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
-	assert.Equal(t, 1, saveAccountCalled)
+	assert.Equal(t, 2, saveAccountCalled)
 }
 
 func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
@@ -1573,8 +1574,8 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 		},
 	}
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.MoveBalance
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.MoveBalance, false
 		},
 	}
 	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.MetaProtectionFlag)
@@ -1621,8 +1622,8 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 		},
 	}
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.InvalidTransaction, process.InvalidTransaction
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.InvalidTransaction, process.InvalidTransaction, false
 		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2181,8 +2182,8 @@ func TestTxProcessor_ProcessRelayedTransactionArgsParserErrorShouldError(t *test
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2244,8 +2245,8 @@ func TestTxProcessor_ProcessRelayedTransactionMultipleArgumentsShouldError(t *te
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2307,8 +2308,8 @@ func TestTxProcessor_ProcessRelayedTransactionFailUnMarshalInnerShouldError(t *t
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2370,8 +2371,8 @@ func TestTxProcessor_ProcessRelayedTransactionDifferentSenderInInnerTxThanReceiv
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2433,8 +2434,8 @@ func TestTxProcessor_ProcessRelayedTransactionSmallerValueInnerTxShouldError(t *
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2496,8 +2497,8 @@ func TestTxProcessor_ProcessRelayedTransactionGasPriceMismatchShouldError(t *tes
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2559,8 +2560,8 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2732,7 +2733,8 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrRelayedTxV3Disabled.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("relayer not in the same shard with the sender should error", func(t *testing.T) {
@@ -2748,7 +2750,8 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrShardIdMissmatch.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("guarded relayer account should error", func(t *testing.T) {
@@ -2781,7 +2784,17 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrGuardedRelayerNotAllowed.Error()))
+		assert.Equal(t, vmcommon.UserError, returnCode)
+	})
+	t.Run("same guardian and relayer should error", func(t *testing.T) {
+		txCopy := *tx
+		txCopy.Nonce = acntSrc.GetNonce()
+		txCopy.GuardianAddr = txCopy.RelayerAddr
+		returnCode, err := txProc.ProcessTransaction(&txCopy)
+		assert.True(t, errors.Is(err, process.ErrTransactionNotExecutable))
+		assert.True(t, strings.Contains(err.Error(), process.ErrRelayedByGuardianNotAllowed.Error()))
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 	t.Run("insufficient gas limit should error", func(t *testing.T) {
@@ -2797,7 +2810,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		require.NotNil(t, txProcLocal)
 
 		returnCode, err := txProcLocal.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
+		assert.Equal(t, process.ErrNotEnoughGas, err)
 		assert.Equal(t, vmcommon.UserError, returnCode)
 	})
 }
@@ -2904,8 +2917,8 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.RelayedTx, process.RelayedTx
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.RelayedTx, process.RelayedTx, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -2967,8 +2980,8 @@ func TestTxProcessor_ProcessUserTxOfTypeMoveBalanceShouldWork(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.MoveBalance, process.MoveBalance
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.MoveBalance, process.MoveBalance, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -3030,8 +3043,8 @@ func TestTxProcessor_ProcessUserTxOfTypeSCDeploymentShouldWork(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.SCDeployment, process.SCDeployment
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.SCDeployment, process.SCDeployment, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -3093,8 +3106,8 @@ func TestTxProcessor_ProcessUserTxOfTypeSCInvokingShouldWork(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.SCInvoking, process.SCInvoking
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.SCInvoking, process.SCInvoking, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -3156,8 +3169,8 @@ func TestTxProcessor_ProcessUserTxOfTypeBuiltInFunctionCallShouldWork(t *testing
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -3223,8 +3236,8 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.MoveBalance, process.MoveBalance
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.MoveBalance, process.MoveBalance, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -3292,8 +3305,8 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 		return nil, errors.New("failure")
 	}
 	args.Accounts = adb
-	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType) {
-		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (transactionType, destinationTransactionType process.TransactionType, isRelayedV3 bool) {
+		return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 	}}
 
 	execTx, _ := txproc.NewTxProcessor(args)
@@ -3514,13 +3527,13 @@ func TestTxProcessor_ProcessMoveBalanceToNonPayableContract(t *testing.T) {
 	args.SignMarshalizer = &marshaller
 	cnt := 0
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
 			cnt++
 			if cnt == 1 {
-				return process.RelayedTx, process.RelayedTx
+				return process.RelayedTx, process.RelayedTx, false
 			}
 
-			return process.MoveBalance, process.MoveBalance
+			return process.MoveBalance, process.MoveBalance, false
 		},
 	}
 	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(

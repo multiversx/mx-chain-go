@@ -109,7 +109,7 @@ func (txv *txValidator) getFeePayerAccount(
 	payerAccount := accountHandler
 
 	tx := interceptedTx.Transaction()
-	if common.IsValidRelayedTxV3(tx) {
+	if common.IsRelayedTxV3(tx) {
 		relayedTx := tx.(data.RelayedTransactionHandler)
 		payerAddress = relayedTx.GetRelayerAddr()
 		relayerAccount, err := txv.accounts.GetExistingAccount(payerAddress)

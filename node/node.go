@@ -723,7 +723,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	if errors.Is(err, process.ErrAccountNotFound) {
 		return fmt.Errorf("%w for address %s",
 			process.ErrInsufficientFunds,
-			n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.SndAddr, log),
+			n.extractAddressFromError(err),
 		)
 	}
 
@@ -798,6 +798,7 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
+		n.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -1543,6 +1544,22 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+func (n *Node) extractAddressFromError(err error) string {
+	if !strings.Contains(err.Error(), "for address") {
+		return ""
+	}
+
+	errWords := strings.Split(err.Error(), " ")
+	for _, word := range errWords {
+		_, errDecode := n.coreComponents.AddressPubKeyConverter().Decode(word)
+		if errDecode == nil {
+			return word
+		}
+	}
+
+	return ""
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

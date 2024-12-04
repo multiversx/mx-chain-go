@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -60,6 +61,8 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	t.Run("cross shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 1))
 	t.Run("intra shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 0))
 	t.Run("cross shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 1))
+
+	t.Run("create new delegation contract", testRelayedV3MetaInteraction())
 }
 
 func testRelayedV3MoveBalance(
@@ -143,6 +146,10 @@ func testRelayedV3MoveBalance(
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
+		if relayerShard == destinationShard {
+			require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
+		}
+
 		// check fee fields
 		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, big.NewInt(0), true, guardedTx)
 		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
@@ -163,25 +170,11 @@ func testRelayedV3MoveBalance(
 		receiverBalanceAfter := getBalance(t, cs, receiver)
 		require.Equal(t, oneEGLD.String(), receiverBalanceAfter.String())
 
-		// check scr
-		require.Equal(t, 1, len(result.SmartContractResults))
-		require.Equal(t, relayer.Bech32, result.SmartContractResults[0].RelayerAddr)
-		require.Equal(t, sender.Bech32, result.SmartContractResults[0].SndAddr)
-		require.Equal(t, receiver.Bech32, result.SmartContractResults[0].RcvAddr)
-		require.Equal(t, relayedTx.Value, result.SmartContractResults[0].Value)
+		// check scrs, should be none
+		require.Zero(t, len(result.SmartContractResults))
 
 		// check intra shard logs, should be none
 		require.Nil(t, result.Logs)
-
-		// check cross shard log, should be one completedTxEvent
-		if relayerShard == destinationShard {
-			return
-		}
-		scrResult, err := cs.GetNodeHandler(destinationShard).GetFacadeHandler().GetTransaction(result.SmartContractResults[0].Hash, true)
-		require.NoError(t, err)
-		require.NotNil(t, scrResult.Logs)
-		require.Equal(t, 1, len(scrResult.Logs.Events))
-		require.Contains(t, scrResult.Logs.Events[0].Identifier, core.CompletedTxEventIdentifier)
 	}
 }
 
@@ -346,7 +339,7 @@ func testRelayedV3ScCall(
 		require.Equal(t, feeDeploy.String(), ownerFee.String())
 
 		// check scrs
-		require.Equal(t, 2, len(result.SmartContractResults))
+		require.Equal(t, 1, len(result.SmartContractResults))
 		for _, scr := range result.SmartContractResults {
 			checkSCRSucceeded(t, cs, scr)
 		}
@@ -395,16 +388,9 @@ func testRelayedV3ScCallInvalidGasLimit(
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
-		logs := result.Logs
-		// if cross shard, generate few more blocks for cross shard scrs
-		if relayerShard != ownerShard {
-			require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
-			logs = result.SmartContractResults[0].Logs
-		}
-
-		require.NotNil(t, logs)
-		require.Equal(t, 2, len(logs.Events))
-		for _, event := range logs.Events {
+		require.NotNil(t, result.Logs)
+		require.Equal(t, 2, len(result.Logs.Events))
+		for _, event := range result.Logs.Events {
 			if event.Identifier == core.SignalErrorOperation {
 				continue
 			}
@@ -477,16 +463,9 @@ func testRelayedV3ScCallInvalidMethod(
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
-		logs := result.Logs
-		// if cross shard, generate few more blocks for cross shard scrs
-		if relayerShard != ownerShard {
-			require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
-			logs = result.SmartContractResults[0].Logs
-		}
-
-		require.NotNil(t, logs)
-		require.Equal(t, 2, len(logs.Events))
-		for _, event := range logs.Events {
+		require.NotNil(t, result.Logs)
+		require.Equal(t, 2, len(result.Logs.Events))
+		for _, event := range result.Logs.Events {
 			if event.Identifier == core.SignalErrorOperation {
 				continue
 			}
@@ -510,6 +489,71 @@ func testRelayedV3ScCallInvalidMethod(
 		// check sender balance
 		senderBalanceAfter := getBalance(t, cs, sender)
 		require.Equal(t, initialBalance.String(), senderBalanceAfter.String())
+	}
+}
+
+func testRelayedV3MetaInteraction() func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("this is not a short test")
+		}
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		relayerShard := uint32(0)
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000))
+		relayer, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
+		require.NoError(t, err)
+
+		sender, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
+		require.NoError(t, err)
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		// send createNewDelegationContract transaction
+		txData := "createNewDelegationContract@00@00"
+		gasLimit := uint64(60000000)
+		value := big.NewInt(0).Mul(oneEGLD, big.NewInt(1250))
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, 0, vm.DelegationManagerSCAddress, relayer.Bytes, value, txData, gasLimit)
+
+		relayerBefore := getBalance(t, cs, relayer)
+		senderBefore := getBalance(t, cs, sender)
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
+
+		relayerAfter := getBalance(t, cs, relayer)
+		senderAfter := getBalance(t, cs, sender)
+
+		// check consumed fees
+		refund := getRefundValue(result.SmartContractResults)
+		consumedFee := big.NewInt(0).Sub(relayerBefore, relayerAfter)
+
+		gasForFullPrice := uint64(len(txData)*gasPerDataByte + minGasLimit + minGasLimit)
+		gasForDeductedPrice := gasLimit - gasForFullPrice
+		deductedGasPrice := uint64(minGasPrice / deductionFactor)
+		initialFee := gasForFullPrice*minGasPrice + gasForDeductedPrice*deductedGasPrice
+		initialFeeInt := big.NewInt(0).SetUint64(initialFee)
+		expectedConsumedFee := big.NewInt(0).Sub(initialFeeInt, refund)
+
+		gasUsed := gasForFullPrice + gasForDeductedPrice - refund.Uint64()/deductedGasPrice
+		require.Equal(t, expectedConsumedFee.String(), consumedFee.String())
+		require.Equal(t, value.String(), big.NewInt(0).Sub(senderBefore, senderAfter).String(), "sender should have consumed the value only")
+		require.Equal(t, initialFeeInt.String(), result.InitiallyPaidFee)
+		require.Equal(t, expectedConsumedFee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
 	}
 }
 

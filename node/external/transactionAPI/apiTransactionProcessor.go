@@ -183,7 +183,11 @@ func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTr
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
-	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	typeOnSource, typeOnDestination, isRelayedV3 := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	if isRelayedV3 {
+		typeOnSource = process.RelayedTxV3
+		typeOnDestination = process.RelayedTxV3
+	}
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
