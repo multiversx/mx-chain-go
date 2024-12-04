@@ -2,6 +2,7 @@ package block
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -126,6 +127,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
+		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 	}
 
 	sp := shardProcessor{
@@ -289,6 +291,15 @@ func (sp *shardProcessor) ProcessBlock(
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return process.ErrAccountStateDirty
+	}
+
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		// check proofs for cross notarized metablocks
+		for _, metaBlockHash := range header.GetMetaBlockHashes() {
+			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
+				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+			}
+		}
 	}
 
 	defer func() {
@@ -526,7 +537,10 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	}
 
 	log.Trace("checkMetaHeadersValidityAndFinality", "lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce())
-	usedMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(true)
+	usedMetaHdrs, err := sp.sortHeadersForCurrentBlockByNonce(true)
+	if err != nil {
+		return err
+	}
 	if len(usedMetaHdrs[core.MetachainShardId]) == 0 {
 		return nil
 	}
@@ -555,7 +569,24 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	finalityAttestingMetaHdrs := sp.sortHeadersForCurrentBlockByNonce(false)
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		marshalledHeader, err := sp.marshalizer.Marshal(header)
+		if err != nil {
+			return err
+		}
+
+		headerHash := sp.hasher.Compute(string(marshalledHeader))
+		if !sp.proofsPool.HasProof(header.GetShardID(), headerHash) {
+			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(headerHash))
+		}
+
+		return nil
+	}
+
+	finalityAttestingMetaHdrs, err := sp.sortHeadersForCurrentBlockByNonce(false)
+	if err != nil {
+		return err
+	}
 
 	lastVerifiedHdr := header
 	// verify if there are "K" block after current to make this one final
@@ -1710,12 +1741,11 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 			}
 		}
 
+		hasProofForMetablock := false
 		// attesting something
 		if sp.hdrsForCurrBlock.missingHdrs == 0 {
-			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
-				core.MetachainShardId,
-				sp.metaBlockFinality,
-			)
+			hasProofForMetablock = sp.hasProofForMetablock(metaBlockHash, metaBlock)
+
 			if sp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting meta headers")
 			}
@@ -1725,7 +1755,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		missingFinalityAttestingMetaHdrs := sp.hdrsForCurrBlock.missingFinalityAttestingHdrs
 		sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-		allMissingMetaHeadersReceived := missingMetaHdrs == 0 && missingFinalityAttestingMetaHdrs == 0
+		allMissingMetaHeadersReceived := missingMetaHdrs == 0 && missingFinalityAttestingMetaHdrs == 0 && hasProofForMetablock
 		if allMissingMetaHeadersReceived {
 			sp.chRcvAllMetaHdrs <- true
 		}
@@ -1734,6 +1764,20 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 	}
 
 	go sp.requestMiniBlocksIfNeeded(headerHandler)
+}
+
+func (sp *shardProcessor) hasProofForMetablock(metaBlockHash []byte, metaBlock *block.MetaBlock) bool {
+	shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.Epoch)
+	if !shouldConsiderProofsForNotarization {
+		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
+			core.MetachainShardId,
+			sp.metaBlockFinality,
+		)
+
+		return true // no proof needed
+	}
+
+	return sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash)
 }
 
 func (sp *shardProcessor) requestMetaHeaders(shardHeader data.ShardHeaderHandler) (uint32, uint32) {
@@ -1750,6 +1794,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+	notarizedMetaHdrsBasedOnProofs := 0
 	metaBlockHashes := header.GetMetaBlockHashes()
 	for i := 0; i < len(metaBlockHashes); i++ {
 		hdr, err := process.GetMetaHeaderFromPool(
@@ -1762,6 +1807,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 				hdr:         nil,
 				usedInBlock: true,
 			}
+
 			go sp.requestHandler.RequestMetaHeader(metaBlockHashes[i])
 			continue
 		}
@@ -1774,9 +1820,14 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 		if hdr.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] {
 			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.Nonce
 		}
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.Epoch)
+		if shouldConsiderProofsForNotarization {
+			notarizedMetaHdrsBasedOnProofs++
+		}
 	}
 
-	if sp.hdrsForCurrBlock.missingHdrs == 0 {
+	shouldRequestMissingFinalityAttestingMetaHeaders := notarizedMetaHdrsBasedOnProofs != len(metaBlockHashes)
+	if sp.hdrsForCurrBlock.missingHdrs == 0 && shouldRequestMissingFinalityAttestingMetaHeaders {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
 			sp.metaBlockFinality,
@@ -1904,9 +1955,21 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			break
 		}
 
+		hasProofForHdr := sp.proofsPool.HasProof(core.MetachainShardId, orderedMetaBlocksHashes[i])
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, orderedMetaBlocks[i].GetEpoch())
+		if !hasProofForHdr && shouldConsiderProofsForNotarization {
+			log.Trace("no proof for meta header",
+				"hash", logger.DisplayByteSlice(orderedMetaBlocksHashes[i]),
+			)
+			break
+		}
+
 		createAndProcessInfo.currMetaHdrHash = orderedMetaBlocksHashes[i]
 		if len(createAndProcessInfo.currMetaHdr.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currMetaHdr, usedInBlock: true}
+			sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{
+				hdr:         createAndProcessInfo.currMetaHdr,
+				usedInBlock: true,
+			}
 			createAndProcessInfo.numHdrsAdded++
 			lastMetaHdr = createAndProcessInfo.currMetaHdr
 			continue
@@ -1970,7 +2033,10 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	createAndProcessInfo.numTxsAdded += currNumTxsAdded
 
 	if !createAndProcessInfo.hdrAdded && currNumTxsAdded > 0 {
-		sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{hdr: createAndProcessInfo.currMetaHdr, usedInBlock: true}
+		sp.hdrsForCurrBlock.hdrHashAndInfo[string(createAndProcessInfo.currMetaHdrHash)] = &hdrInfo{
+			hdr:         createAndProcessInfo.currMetaHdr,
+			usedInBlock: true,
+		}
 		createAndProcessInfo.numHdrsAdded++
 		createAndProcessInfo.hdrAdded = true
 	}
@@ -2184,8 +2250,12 @@ func (sp *shardProcessor) applyBodyToHeader(
 	}
 
 	sw.Start("sortHeaderHashesForCurrentBlockByNonce")
-	metaBlockHashes := sp.sortHeaderHashesForCurrentBlockByNonce(true)
+	metaBlockHashes, err := sp.sortHeaderHashesForCurrentBlockByNonce(true)
 	sw.Stop("sortHeaderHashesForCurrentBlockByNonce")
+	if err != nil {
+		return nil, err
+	}
+
 	err = shardHeader.SetMetaBlockHashes(metaBlockHashes[core.MetachainShardId])
 	if err != nil {
 		return nil, err

@@ -3,13 +3,12 @@ package v2
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -362,9 +361,11 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
-	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), sr.GetData())
+	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if err != nil {
-		return false
+		// for the first block after activation we won't add the proof
+		// TODO: fix this on verifications as well
+		return common.IsEpochChangeBlockForFlagActivation(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag)
 	}
 
 	if !isProofEmpty(prevBlockProof) {
@@ -372,33 +373,13 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	// this may happen in 2 cases:
-	// 1. on the very first block, after equivalent messages flag activation
-	// in this case, we set the previous proof as signature and bitmap from the previous header
-	// 2. current node is leader in the first block after sync
-	// in this case, we won't set the proof, return false and wait for the next round to receive a proof
-	prevBlockHeader := sr.Blockchain().GetCurrentBlockHeader()
-	if check.IfNil(prevBlockHeader) {
-		log.Debug("addProofOnHeader.GetCurrentBlockHeader, returned nil header")
-		return false
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		hash = []byte("")
 	}
 
-	isFlagEnabledForPrevHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevBlockHeader.GetEpoch())
-	if !isFlagEnabledForPrevHeader {
-		proof := &block.HeaderProof{
-			PubKeysBitmap:       prevBlockHeader.GetSignature(),
-			AggregatedSignature: prevBlockHeader.GetPubKeysBitmap(),
-			HeaderHash:          sr.Blockchain().GetCurrentBlockHeaderHash(),
-			HeaderEpoch:         prevBlockHeader.GetEpoch(),
-			HeaderNonce:         prevBlockHeader.GetNonce(),
-			HeaderShardId:       prevBlockHeader.GetShardID(),
-		}
+	log.Debug("addProofOnHeader: no proof found", "header hash", hex.EncodeToString(hash))
 
-		header.SetPreviousProof(proof)
-		return true
-	}
-
-	log.Debug("addProofOnHeader: leader after sync, no proof for current header, will wait one round")
 	return false
 }
 

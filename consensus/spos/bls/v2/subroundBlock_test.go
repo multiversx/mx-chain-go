@@ -465,6 +465,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 		providedSignature := []byte("provided signature")
 		providedBitmap := []byte("provided bitmap")
+		providedHash := []byte("provided hash")
 		providedHeadr := &block.HeaderV2{
 			Header: &block.Header{
 				Signature:     []byte("signature"),
@@ -476,6 +477,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return providedHeadr
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return providedHash
 			},
 		}
 		container.SetBlockchain(chainHandler)
@@ -553,35 +557,6 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		proof := sr.GetHeader().GetPreviousProof()
 		assert.Equal(t, providedSignature, proof.GetAggregatedSignature())
 		assert.Equal(t, providedBitmap, proof.GetPubKeysBitmap())
-	})
-	t.Run("should work, equivalent messages flag not enabled", func(t *testing.T) {
-		t.Parallel()
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-
-		container.SetRoundHandler(&testscommon.RoundHandlerMock{
-			IndexCalled: func() int64 {
-				return 1
-			},
-		})
-
-		leader, err := sr.GetLeader()
-		assert.Nil(t, err)
-		sr.SetSelfPubKey(leader)
-		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-		container.SetBlockProcessor(bpm)
-		bm := &consensusMocks.BroadcastMessengerMock{
-			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				return nil
-			},
-		}
-		container.SetBroadcastMessenger(bm)
-		container.SetRoundHandler(&consensusMocks.RoundHandlerMock{
-			RoundIndex: 1,
-		})
-		r := sr.DoBlockJob()
-		assert.True(t, r)
-		assert.Equal(t, uint64(1), sr.GetHeader().GetNonce())
 	})
 }
 
