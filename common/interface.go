@@ -399,6 +399,7 @@ type TrieGoroutinesManager interface {
 	ShouldContinueProcessing() bool
 	CanStartGoRoutine() bool
 	EndGoRoutineProcessing()
+	SetNewErrorChannel(BufferedErrChan) error
 	SetError(err error)
 	GetError() error
 	IsInterfaceNil() bool
