@@ -75,6 +75,20 @@ func (gm *goroutinesManager) EndGoRoutineProcessing() {
 	gm.throttler.EndProcessing()
 }
 
+// SetNewErrorChannel sets a new error channel
+func (gm *goroutinesManager) SetNewErrorChannel(errChan common.BufferedErrChan) error {
+	gm.mutex.Lock()
+	defer gm.mutex.Unlock()
+
+	err := gm.errorChannel.ReadFromChanNonBlocking()
+	if err != nil {
+		return err
+	}
+
+	gm.errorChannel = errChan
+	return nil
+}
+
 // SetError sets an error in the error channel
 func (gm *goroutinesManager) SetError(err error) {
 	gm.mutex.Lock()

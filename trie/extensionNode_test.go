@@ -498,7 +498,7 @@ func TestExtensionNode_insert(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
 
-	newNode := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	newNode := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
@@ -519,7 +519,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
 
-	newNode := collapsedEn.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), db)
+	newNode := collapsedEn.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
@@ -544,7 +544,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
 
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := en.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -566,7 +566,7 @@ func TestExtensionNode_insertInStoredEnDifferentKey(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
 
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := en.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -582,7 +582,7 @@ func TestExtensionNode_insertInDirtyEnSameKey(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
 
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -600,7 +600,7 @@ func TestExtensionNode_insertInDirtyEnDifferentKey(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
 
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -615,7 +615,7 @@ func TestExtensionNode_insertInNilNode(t *testing.T) {
 	goRoutinesManager := getTestGoroutinesManager()
 	data := []core.TrieData{getTrieDataWithDefaultVersion("key", "val")}
 
-	newNode := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	newNode := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilExtensionNode))
 	assert.Nil(t, newNode)
@@ -638,7 +638,7 @@ func TestExtensionNode_delete(t *testing.T) {
 	data := []core.TrieData{{Key: key}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	dirty, _ := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	dirty, _ := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
 	val, _, _ = en.tryGet(key, 0, nil)
@@ -664,7 +664,7 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	data := []core.TrieData{{Key: lnPathKey}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	dirty, _ := en.delete(data, goRoutinesManager, modifiedHashes, db)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -679,7 +679,7 @@ func TestExtensionNode_deleteFromDirtyEn(t *testing.T) {
 	data := []core.TrieData{{Key: lnKey}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	dirty, _ := en.delete(data, goRoutinesManager, modifiedHashes, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -693,7 +693,7 @@ func TestExtendedNode_deleteEmptyNode(t *testing.T) {
 	data := []core.TrieData{{Key: []byte("dog")}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newNode := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	dirty, newNode := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrEmptyExtensionNode))
 	assert.Nil(t, newNode)
@@ -706,7 +706,7 @@ func TestExtensionNode_deleteNilNode(t *testing.T) {
 	data := []core.TrieData{{Key: []byte("dog")}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newNode := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	dirty, newNode := en.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilExtensionNode))
 	assert.Nil(t, newNode)
@@ -731,7 +731,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	data := []core.TrieData{{Key: key}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newNode := collapsedEn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), db)
+	dirty, newNode := collapsedEn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), db)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
 	val, _, _ = newNode.tryGet(key, 0, db)
@@ -1258,7 +1258,7 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		expectedNumTrieNodesChanged := 0
@@ -1282,7 +1282,7 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		expectedNumTrieNodesChanged := 2
@@ -1318,7 +1318,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		expectedNumTrieNodesChanged := 1
@@ -1352,7 +1352,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := en.insert(data, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		expectedNumTrieNodesChanged := 1
@@ -1385,7 +1385,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := en.delete(data, goRoutinesManager, modifiedHashes, nil)
 		assert.False(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -1408,7 +1408,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := en.delete(data, goRoutinesManager, modifiedHashes, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -1431,7 +1431,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		_ = en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+		_ = en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 		err = en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 		assert.Nil(t, err)
 
@@ -1439,7 +1439,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "dog"),
 		}
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := en.delete(dataForRemoval, goRoutinesManager, modifiedHashes, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -1466,7 +1466,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := en.delete(data, goRoutinesManager, modifiedHashes, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())

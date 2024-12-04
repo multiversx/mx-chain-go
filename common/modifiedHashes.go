@@ -22,9 +22,9 @@ type modifiedHashesSlice struct {
 }
 
 // NewModifiedHashesSlice is used to create a new instance of modifiedHashesSlice
-func NewModifiedHashesSlice() *modifiedHashesSlice {
+func NewModifiedHashesSlice(initialCapacity int) *modifiedHashesSlice {
 	return &modifiedHashesSlice{
-		hashes: make([][]byte, 0),
+		hashes: make([][]byte, 0, initialCapacity),
 	}
 }
 

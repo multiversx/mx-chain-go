@@ -44,8 +44,8 @@ type patriciaMerkleTrie struct {
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	batchManager            common.TrieBatchManager
+	goRoutinesManager       common.TrieGoroutinesManager
 	mutOperation            sync.RWMutex
-	goroutinesThrottler     core.Throttler
 
 	oldHashes            [][]byte
 	oldRoot              []byte
@@ -83,8 +83,14 @@ func NewTrie(
 		return nil, err
 	}
 
-	// TODO give this as an argument
+	// TODO give num goroutines from config as argument
 	trieThrottler, err := throttler.NewNumGoRoutinesThrottler(20)
+	if err != nil {
+		return nil, err
+	}
+
+	chanClose := make(chan struct{})
+	goRoutinesManager, err := NewGoroutinesManager(trieThrottler, errChan.NewErrChanWrapper(), chanClose)
 	if err != nil {
 		return nil, err
 	}
@@ -96,11 +102,11 @@ func NewTrie(
 		oldHashes:               make([][]byte, 0),
 		oldRoot:                 make([]byte, 0),
 		maxTrieLevelInMemory:    maxTrieLevelInMemory,
-		chanClose:               make(chan struct{}),
+		chanClose:               chanClose,
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
-		goroutinesThrottler:     trieThrottler,
+		goRoutinesManager:       goRoutinesManager,
 	}, nil
 }
 
@@ -213,14 +219,15 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
 
-	oldHashes := common.NewModifiedHashesSlice()
-	newRoot := tr.root.insert(sortedDataForInsertion, manager, oldHashes, tr.trieStorage)
-	err = manager.GetError()
+	initialSliceCapacity := len(sortedDataForInsertion) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
+	oldHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
+	newRoot := tr.root.insert(sortedDataForInsertion, tr.goRoutinesManager, oldHashes, tr.trieStorage)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
@@ -250,14 +257,15 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
 
-	modifiedHashes := common.NewModifiedHashesSlice()
-	_, newRoot := tr.root.delete(data, manager, modifiedHashes, tr.trieStorage)
-	err = manager.GetError()
+	initialSliceCapacity := len(data) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
+	modifiedHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
+	_, newRoot := tr.root.delete(data, tr.goRoutinesManager, modifiedHashes, tr.trieStorage)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
