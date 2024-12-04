@@ -2649,8 +2649,8 @@ func (sc *scProcessor) createRefundGasToRelayerSCRIfNeeded(
 			relayedSCR.Nonce+1,
 			relayedSCR.RelayerAddr,
 			relayedSCR.OriginalSender,
-			relayedSCR.OriginalTxHash,
 			txHash,
+			relayedSCR.OriginalTxHash,
 			gasRefund)
 	}
 
