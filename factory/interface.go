@@ -42,6 +42,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/outport"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -644,6 +645,7 @@ type RunTypeComponentsHolder interface {
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
 	APIRewardsTxHandler() transactionAPI.APIRewardTxHandler
+	OutportDataProviderFactory() OutportDataProviderFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -711,5 +713,11 @@ type DataRetrieverContainersSetter interface {
 // ExportHandlerFactoryCreator should create an export factory handler
 type ExportHandlerFactoryCreator interface {
 	CreateExportFactoryHandler(args ArgsExporter) (update.ExportFactoryHandler, error)
+	IsInterfaceNil() bool
+}
+
+// OutportDataProviderFactoryHandler defines an outport data provider factory handler
+type OutportDataProviderFactoryHandler interface {
+	CreateOutportDataProvider(arg outportFactory.ArgOutportDataProviderFactory) (outport.DataProviderOutport, error)
 	IsInterfaceNil() bool
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -124,6 +125,7 @@ type runTypeComponents struct {
 	validatorAccountsSyncerFactoryHandler   syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	shardRequestersContainerCreatorHandler  storageRequestFactory.ShardRequestersContainerCreatorHandler
 	apiRewardTxHandler                      transactionAPI.APIRewardTxHandler
+	outportDataProviderFactory              mainFactory.OutportDataProviderFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -302,6 +304,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
 		apiRewardTxHandler:                      apiRewardTxHandler,
+		outportDataProviderFactory:              outportFactory.NewOutportDataProviderFactory(),
 	}, nil
 }
 

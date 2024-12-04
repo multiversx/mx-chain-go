@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 )
 
 func TestCreateOutportDataProviderDisabled(t *testing.T) {
@@ -14,7 +15,8 @@ func TestCreateOutportDataProviderDisabled(t *testing.T) {
 	arg := createArgOutportDataProviderFactory()
 	arg.HasDrivers = false
 
-	provider, err := CreateOutportDataProvider(arg)
+	factory := NewOutportDataProviderFactory()
+	provider, err := factory.CreateOutportDataProvider(arg)
 	require.Nil(t, err)
 	require.NotNil(t, provider)
 	require.Equal(t, "*disabled.disabledOutportDataProvider", fmt.Sprintf("%T", provider))
@@ -27,7 +29,8 @@ func TestCreateOutportDataProviderError(t *testing.T) {
 	arg.HasDrivers = true
 	arg.AddressConverter = nil
 
-	provider, err := CreateOutportDataProvider(arg)
+	factory := NewOutportDataProviderFactory()
+	provider, err := factory.CreateOutportDataProvider(arg)
 	require.Nil(t, provider)
 	require.Equal(t, alteredaccounts.ErrNilPubKeyConverter, err)
 }
@@ -38,8 +41,10 @@ func TestCreateOutportDataProvider(t *testing.T) {
 	arg := createArgOutportDataProviderFactory()
 	arg.HasDrivers = true
 
-	provider, err := CreateOutportDataProvider(arg)
+	factory := NewOutportDataProviderFactory()
+	provider, err := factory.CreateOutportDataProvider(arg)
 	require.Nil(t, err)
 	require.NotNil(t, provider)
 	require.Equal(t, "*process.outportDataProvider", fmt.Sprintf("%T", provider))
+	require.False(t, factory.IsInterfaceNil())
 }

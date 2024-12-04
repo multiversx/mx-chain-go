@@ -98,6 +98,7 @@ type RunTypeComponentsStub struct {
 	ValidatorAccountsSyncerFactoryHandlerField  syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandlerField storageRequestFactory.ShardRequestersContainerCreatorHandler
 	APIRewardsTxHandlerField                    transactionAPI.APIRewardTxHandler
+	OutportDataProviderFactoryField             factory.OutportDataProviderFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -151,6 +152,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ValidatorAccountsSyncerFactoryHandlerField:  &testFactory.ValidatorAccountsSyncerFactoryMock{},
 		ShardRequestersContainerCreatorHandlerField: &testFactory.ShardRequestersContainerCreatorMock{},
 		APIRewardsTxHandlerField:                    &apiTests.APIRewardsHandlerStub{},
+		OutportDataProviderFactoryField:             &testFactory.OutportDataProviderFactoryMock{},
 	}
 }
 
@@ -417,6 +419,11 @@ func (r *RunTypeComponentsStub) ShardRequestersContainerCreatorHandler() storage
 // APIRewardsTxHandler -
 func (r *RunTypeComponentsStub) APIRewardsTxHandler() transactionAPI.APIRewardTxHandler {
 	return r.APIRewardsTxHandlerField
+}
+
+// OutportDataProviderFactory -
+func (r *RunTypeComponentsStub) OutportDataProviderFactory() factory.OutportDataProviderFactoryHandler {
+	return r.OutportDataProviderFactoryField
 }
 
 // IsInterfaceNil -
