@@ -1,7 +1,7 @@
 package interceptedBlocks
 
 import (
-	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -93,7 +93,14 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 	return hdr.CheckFieldsForNil()
 }
 
-func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.Coordinator) error {
+func checkMetaShardInfo(
+	shardInfo []data.ShardDataHandler,
+	coordinator sharding.Coordinator,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
+) error {
+	wgProofsVerification := sync.WaitGroup{}
+	wgProofsVerification.Add(len(shardInfo))
+	errChan := make(chan error, len(shardInfo))
 	for _, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
 			return process.ErrInvalidShardId
@@ -104,30 +111,32 @@ func checkMetaShardInfo(shardInfo []data.ShardDataHandler, coordinator sharding.
 			return err
 		}
 
-		err = checkProofs(sd)
-		if err != nil {
-			return err
+		checkProofAsync(sd.GetPreviousProof(), headerSigVerifier, &wgProofsVerification, errChan)
+	}
+
+	wgProofsVerification.Wait()
+	close(errChan)
+
+	return <-errChan
+}
+
+func checkProofAsync(
+	proof data.HeaderProofHandler,
+	headerSigVerifier process.InterceptedHeaderSigVerifier,
+	wg *sync.WaitGroup,
+	errChan chan error,
+) {
+	go func(proof data.HeaderProofHandler) {
+		errCheckProof := checkProof(proof, headerSigVerifier)
+		if errCheckProof != nil {
+			errChan <- errCheckProof
 		}
-	}
 
-	return nil
+		wg.Done()
+	}(proof)
 }
 
-func checkProofs(shardData data.ShardDataHandler) error {
-	err := checkProof(shardData.GetPreviousProof())
-	if err != nil {
-		return fmt.Errorf("%w for previous block", err)
-	}
-
-	err = checkProof(shardData.GetCurrentProof())
-	if err != nil {
-		return fmt.Errorf("%w for current block", err)
-	}
-
-	return nil
-}
-
-func checkProof(proof data.HeaderProofHandler) error {
+func checkProof(proof data.HeaderProofHandler, headerSigVerifier process.InterceptedHeaderSigVerifier) error {
 	if check.IfNilReflect(proof) {
 		return nil
 	}
@@ -136,7 +145,7 @@ func checkProof(proof data.HeaderProofHandler) error {
 		return process.ErrInvalidHeaderProof
 	}
 
-	return nil
+	return headerSigVerifier.VerifyHeaderProof(proof)
 }
 
 func isIncompleteProof(proof data.HeaderProofHandler) bool {

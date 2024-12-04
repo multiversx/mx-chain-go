@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -161,7 +160,6 @@ func createMockMetaArguments(
 		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
-		HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
 	}
 	return arguments
 }
@@ -537,17 +535,6 @@ func TestNewMetaProcessor_NilBlockProcessingCutoffHandlerShouldErr(t *testing.T)
 
 	be, err := blproc.NewMetaProcessor(arguments)
 	assert.Equal(t, process.ErrNilBlockProcessingCutoffHandler, err)
-	assert.Nil(t, be)
-}
-
-func TestNewMetaProcessor_NilHeaderSigVerifierShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockMetaArguments(createMockComponentHolders())
-	arguments.HeaderSigVerifier = nil
-
-	be, err := blproc.NewMetaProcessor(arguments)
-	assert.Equal(t, process.ErrNilHeaderSigVerifier, err)
 	assert.Nil(t, be)
 }
 

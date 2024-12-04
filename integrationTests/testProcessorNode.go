@@ -2406,7 +2406,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-			HeaderSigVerifier:            tpn.HeaderSigVerifier,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
