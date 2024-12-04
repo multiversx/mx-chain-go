@@ -51,6 +51,6 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 }
 
 // CreateAPITransactionEvaluator -
-func (pcf *processComponentsFactory) CreateAPITransactionEvaluator() (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
-	return pcf.createAPITransactionEvaluator()
+func (pcf *processComponentsFactory) CreateAPITransactionEvaluator(epochStartTrigger process.EpochStartTriggerHandler) (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+	return pcf.createAPITransactionEvaluator(epochStartTrigger)
 }
