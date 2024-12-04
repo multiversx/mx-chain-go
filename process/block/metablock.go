@@ -1885,7 +1885,11 @@ func (mp *metaProcessor) verifyShardDataProofs(shardData block.ShardData) error 
 }
 
 func (mp *metaProcessor) verifyProof(proof data.HeaderProofHandler) error {
-	if !check.IfNilReflect(proof) && isIncompleteProof(proof) {
+	if check.IfNilReflect(proof) {
+		return nil
+	}
+
+	if isIncompleteProof(proof) {
 		return process.ErrInvalidHeaderProof
 	}
 
