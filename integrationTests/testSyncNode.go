@@ -125,7 +125,6 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
-			HeaderSigVerifier:      tpn.HeaderSigVerifier,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

@@ -632,7 +632,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
-		headerSigVerifier,
 	)
 	if err != nil {
 		return nil, err

@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
@@ -118,7 +117,6 @@ func createMetaBlockProcessor(
 		EpochValidatorInfoCreator:    valInfoCreator,
 		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
-		HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
 	}
 
 	metaProc, _ := blproc.NewMetaProcessor(args)

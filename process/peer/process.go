@@ -934,15 +934,11 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			return shardInfoErr
 		}
 
-		bitmap := h.PubKeysBitmap
-		if !check.IfNilReflect(h.CurrentShardHeaderProof) && vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, h.CurrentShardHeaderProof.HeaderEpoch) {
-			bitmap = h.CurrentShardHeaderProof.PubKeysBitmap
-		}
 		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			leader,
 			shardConsensus,
-			bitmap,
+			h.PubKeysBitmap,
 			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
 			h.ShardID,
 		)
