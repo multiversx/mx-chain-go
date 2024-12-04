@@ -128,6 +128,7 @@ type epochStartBootstrap struct {
 	dataPool                        dataRetriever.PoolsHolder
 	miniBlocksSyncer                epochStart.PendingMiniBlocksSyncHandler
 	headersSyncer                   epochStart.HeadersByHashSyncer
+	epochStartShardHeaderSyncer     epochStart.PendingEpochStartShardHeaderSyncer
 	txSyncerForScheduled            update.TransactionsSyncHandler
 	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler              StartOfEpochNodesConfigHandler
@@ -618,6 +619,16 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
+	epochStartShardHeaderSyncerArgs := updateSync.ArgsNewPendingEpochStartShardHeaderSyncer{
+		HeadersPool:    e.dataPool.Headers(),
+		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler: e.requestHandler,
+	}
+	e.epochStartShardHeaderSyncer, err = updateSync.NewPendingEpochStartShardHeaderSyncer(epochStartShardHeaderSyncerArgs)
+	if err != nil {
+		return err
+	}
+
 	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
 		DataPools:      e.dataPool,
 		Storages:       disabled.NewChainStorer(),
@@ -914,49 +925,18 @@ func (e *epochStartBootstrap) syncLatestEpochStartShardBlock(targetEpoch uint32,
 		return nil, nil, epochStart.ErrEpochStartDataForShardNotFound
 	}
 
-	type headerResult struct {
-		header data.HeaderHandler
-		hash   []byte
+	e.epochStartShardHeaderSyncer.ClearFields()
+	err := e.epochStartShardHeaderSyncer.SyncEpochStartShardHeader(e.shardCoordinator.SelfId(), targetEpoch, prevEpochLatestFinalizedBlock.GetNonce(), ctx)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	waitForHeader := func(nonce uint64, shardId uint32, ch chan headerResult) {
-		for {
-			select {
-			case <-ch:
-				return
-			default:
-				hdrs, hashes, err := e.dataPool.Headers().GetHeadersByNonceAndShardId(nonce, shardId)
-				if err == nil && len(hdrs) > 0 {
-					ch <- headerResult{
-						header: hdrs[0],
-						hash:   hashes[0],
-					}
-					return
-				}
-			}
-		}
+	epochStartShardBlock, epochStartShardBlockHash, err := e.epochStartShardHeaderSyncer.GetEpochStartHeader()
+	if err != nil {
+		return nil, nil, err
 	}
 
-	nonce := prevEpochLatestFinalizedBlock.GetNonce()
-	for {
-		e.requestHandler.RequestShardHeaderByNonce(e.shardCoordinator.SelfId(), nonce+1)
-
-		resultChan := make(chan headerResult)
-		defer close(resultChan)
-
-		go waitForHeader(nonce+1, e.shardCoordinator.SelfId(), resultChan)
-
-		select {
-		case <-ctx.Done():
-			return nil, nil, epochStart.ErrTimeoutWaitingForShardBlock
-		case res := <-resultChan:
-			if res.header.GetEpoch() == targetEpoch {
-				return res.header, res.hash, nil
-			} else {
-				nonce = res.header.GetNonce()
-			}
-		}
-	}
+	return epochStartShardBlock, epochStartShardBlockHash, nil
 }
 
 func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.MiniBlock) error {
