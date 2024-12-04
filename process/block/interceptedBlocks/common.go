@@ -128,7 +128,11 @@ func checkProofs(shardData data.ShardDataHandler) error {
 }
 
 func checkProof(proof data.HeaderProofHandler) error {
-	if !check.IfNilReflect(proof) && isIncompleteProof(proof) {
+	if check.IfNilReflect(proof) {
+		return nil
+	}
+
+	if isIncompleteProof(proof) {
 		return process.ErrInvalidHeaderProof
 	}
 
