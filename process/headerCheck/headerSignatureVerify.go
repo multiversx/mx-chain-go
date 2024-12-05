@@ -130,8 +130,11 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler, pub
 	if len(pubKeysBitmap) == 0 {
 		return nil, process.ErrNilPubKeysBitmap
 	}
-	if pubKeysBitmap[0]&1 == 0 {
-		return nil, process.ErrBlockProposerSignatureMissing
+
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		if pubKeysBitmap[0]&1 == 0 {
+			return nil, process.ErrBlockProposerSignatureMissing
+		}
 	}
 
 	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
@@ -172,6 +175,7 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 }
 
 // VerifySignature will check if signature is correct
+// TODO: Adapt header signature verification for the changes related to equivalent proofs
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
 	if err != nil {
@@ -262,7 +266,8 @@ func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler
 	return headerCopy, hash, sig, bitmap, nil
 }
 
-// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
+// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag.
+// It also verifies previous block proof singature
 func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
 	previousProof := header.GetPreviousProof()
 
@@ -279,6 +284,12 @@ func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler
 	}
 
 	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+
+	if !isFlagEnabled && !hasProof {
+		log.Trace("HeaderSigVerifier: should not verify previous proof yet")
+		return nil
+	}
+
 	if isFlagEnabled && !hasProof {
 		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
 	}
@@ -289,7 +300,7 @@ func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler
 		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
 	}
 
-	return nil
+	return hsv.VerifyHeaderProof(previousProof)
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler, bitmap []byte) error {

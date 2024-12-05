@@ -104,6 +104,8 @@ type WorkerHandler interface {
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
 	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
+	// AddReceivedProofHandler adds a new handler function for a received proof
+	AddReceivedProofHandler(handler func(consensus.ProofHandler))
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it

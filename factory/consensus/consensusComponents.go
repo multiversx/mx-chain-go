@@ -217,6 +217,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 
 	cc.worker.StartWorking()
 	ccf.dataComponents.Datapool().Headers().RegisterHandler(cc.worker.ReceivedHeader)
+	ccf.dataComponents.Datapool().Proofs().RegisterHandler(cc.worker.ReceivedProof)
 
 	ccf.networkComponents.InputAntiFloodHandler().SetConsensusSizeNotifier(
 		ccf.coreComponents.ChainParametersSubscriber(),
@@ -499,6 +500,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -629,6 +631,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

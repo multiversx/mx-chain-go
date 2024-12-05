@@ -208,3 +208,13 @@ type EquivalentProofsPool interface {
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }
+
+// ProofHandler defines the interface for a proof handler
+type ProofHandler interface {
+	GetPubKeysBitmap() []byte
+	GetAggregatedSignature() []byte
+	GetHeaderHash() []byte
+	GetHeaderEpoch() uint32
+	GetHeaderNonce() uint64
+	GetHeaderShardId() uint32
+}

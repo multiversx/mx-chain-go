@@ -57,21 +57,23 @@ type notarizedInfo struct {
 type baseBootstrap struct {
 	historyRepo dblookupext.HistoryRepository
 	headers     dataRetriever.HeadersPool
+	proofs      dataRetriever.ProofsPool
 
 	chainHandler   data.ChainHandler
 	blockProcessor process.BlockProcessor
 	store          dataRetriever.StorageService
 
-	roundHandler      consensus.RoundHandler
-	hasher            hashing.Hasher
-	marshalizer       marshal.Marshalizer
-	epochHandler      dataRetriever.EpochHandler
-	forkDetector      process.ForkDetector
-	requestHandler    process.RequestHandler
-	shardCoordinator  sharding.Coordinator
-	accounts          state.AccountsAdapter
-	blockBootstrapper blockBootstrapper
-	blackListHandler  process.TimeCacher
+	roundHandler        consensus.RoundHandler
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	epochHandler        dataRetriever.EpochHandler
+	forkDetector        process.ForkDetector
+	requestHandler      process.RequestHandler
+	shardCoordinator    sharding.Coordinator
+	accounts            state.AccountsAdapter
+	blockBootstrapper   blockBootstrapper
+	blackListHandler    process.TimeCacher
+	enableEpochsHandler common.EnableEpochsHandler
 
 	mutHeader     sync.RWMutex
 	headerNonce   *uint64
@@ -491,6 +493,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if arguments.ProcessWaitTime < minimumProcessWaitTime {
 		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
 	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
 
 	return nil
 }
@@ -637,6 +642,14 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
+	if boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		// process block only if there is a proof for it
+		hasProof := boot.proofs.HasProof(header.GetShardID(), header.GetPrevHash())
+		if !hasProof {
+			return fmt.Errorf("process sync: did not have proof for header")
+		}
+	}
+
 	body, err = boot.blockBootstrapper.getBlockBodyRequestingIfMissing(header)
 	if err != nil {
 		return err
@@ -687,6 +700,7 @@ func (boot *baseBootstrap) syncBlock() error {
 	)
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
+	boot.cleanProofsBehindFinal(header)
 
 	return nil
 }
@@ -712,6 +726,22 @@ func (boot *baseBootstrap) cleanNoncesSyncedWithErrorsBehindFinal() {
 		if nonce < finalNonce {
 			delete(boot.mapNonceSyncedWithErrors, nonce)
 		}
+	}
+}
+
+func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
+	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return
+	}
+
+	finalNonce := boot.forkDetector.GetHighestFinalBlockNonce()
+
+	err := boot.proofs.CleanupProofsBehindNonce(header.GetShardID(), finalNonce)
+	if err != nil {
+		log.Warn("failed to cleanup notarized proofs behind nonce",
+			"nonce", finalNonce,
+			"shardID", header.GetShardID(),
+			"error", err)
 	}
 }
 

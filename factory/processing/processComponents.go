@@ -1337,17 +1337,19 @@ func (pcf *processComponentsFactory) newBlockTracker(
 ) (process.BlockTracker, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:           pcf.coreData.Hasher(),
-		HeaderValidator:  headerValidator,
-		Marshalizer:      pcf.coreData.InternalMarshalizer(),
-		RequestHandler:   requestHandler,
-		RoundHandler:     pcf.coreData.RoundHandler(),
-		ShardCoordinator: shardCoordinator,
-		Store:            pcf.data.StorageService(),
-		StartHeaders:     genesisBlocks,
-		PoolsHolder:      pcf.data.Datapool(),
-		WhitelistHandler: pcf.whiteListHandler,
-		FeeHandler:       pcf.coreData.EconomicsData(),
+		Hasher:              pcf.coreData.Hasher(),
+		HeaderValidator:     headerValidator,
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		RequestHandler:      requestHandler,
+		RoundHandler:        pcf.coreData.RoundHandler(),
+		ShardCoordinator:    shardCoordinator,
+		Store:               pcf.data.StorageService(),
+		StartHeaders:        genesisBlocks,
+		PoolsHolder:         pcf.data.Datapool(),
+		WhitelistHandler:    pcf.whiteListHandler,
+		FeeHandler:          pcf.coreData.EconomicsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		ProofsPool:          pcf.data.Datapool().Proofs(),
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
