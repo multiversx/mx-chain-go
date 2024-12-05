@@ -235,7 +235,7 @@ func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, [
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor) (node, [][]byte, error) {
+func (ln *leafNode) insert(newData []core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	err := ln.isEmptyOrNil()
 	if err != nil {
 		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
@@ -246,14 +246,12 @@ func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor
 		oldHash = append(oldHash, ln.hash)
 	}
 
-	nodeKey := ln.Key
-
-	if bytes.Equal(newData.Key, nodeKey) {
-		return ln.insertInSameLn(newData, oldHash)
+	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
+		return ln.insertInSameLn(newData[0], oldHash)
 	}
 
-	keyMatchLen := prefixLen(newData.Key, nodeKey)
-	bn, err := ln.insertInNewBn(newData, keyMatchLen)
+	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
+	bn, err := ln.insertInNewBn(newData, keyMatchLen, db)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -262,7 +260,7 @@ func (ln *leafNode) insert(newData core.TrieData, _ common.TrieStorageInteractor
 		return bn, oldHash, nil
 	}
 
-	newEn, err := newExtensionNode(nodeKey[:keyMatchLen], bn, ln.marsh, ln.hasher)
+	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -282,54 +280,62 @@ func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (n
 	return ln, oldHashes, nil
 }
 
-func (ln *leafNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node, error) {
+func trimKeys(data []core.TrieData, keyMatchLen int) {
+	for i := range data {
+		data[i].Key = data[i].Key[keyMatchLen:]
+	}
+}
+
+func (ln *leafNode) insertInNewBn(newData []core.TrieData, keyMatchLen int, db common.TrieStorageInteractor) (node, error) {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
 
-	oldChildPos := ln.Key[keyMatchLen]
-	newChildPos := newData.Key[keyMatchLen]
-	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
-		return nil, ErrChildPosOutOfRange
-	}
-
-	oldLnVersion, err := ln.getVersion()
+	lnVersion, err := ln.getVersion()
 	if err != nil {
 		return nil, err
 	}
 
-	oldLnData := core.TrieData{
-		Key:     ln.Key[keyMatchLen+1:],
+	var newKeyForOldLn []byte
+	posForOldLn := byte(hexTerminator)
+	if len(ln.Key) > keyMatchLen {
+		newKeyForOldLn = ln.Key[keyMatchLen+1:]
+		posForOldLn = ln.Key[keyMatchLen]
+	}
+
+	lnData := core.TrieData{
+		Key:     newKeyForOldLn,
 		Value:   ln.Value,
-		Version: oldLnVersion,
+		Version: lnVersion,
 	}
-	newLnOldChildPos, err := newLeafNode(oldLnData, ln.marsh, ln.hasher)
+
+	oldLn, err := newLeafNode(lnData, ln.marsh, ln.hasher)
 	if err != nil {
 		return nil, err
 	}
-	bn.children[oldChildPos] = newLnOldChildPos
-	bn.setVersionForChild(oldLnVersion, oldChildPos)
+	bn.children[posForOldLn] = oldLn
+	bn.setVersionForChild(lnVersion, posForOldLn)
 
-	newData.Key = newData.Key[keyMatchLen+1:]
-	newLnNewChildPos, err := newLeafNode(newData, ln.marsh, ln.hasher)
+	trimKeys(newData, keyMatchLen)
+	newNode, _, err := bn.insert(newData, db)
 	if err != nil {
 		return nil, err
 	}
-	bn.children[newChildPos] = newLnNewChildPos
-	bn.setVersionForChild(newData.Version, newChildPos)
 
-	return bn, nil
+	return newNode, nil
 }
 
-func (ln *leafNode) delete(key []byte, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
-	if bytes.Equal(key, ln.Key) {
-		oldHash := make([][]byte, 0)
-		if !ln.dirty {
-			oldHash = append(oldHash, ln.hash)
-		}
+func (ln *leafNode) delete(data []core.TrieData, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
+	for _, d := range data {
+		if bytes.Equal(d.Key, ln.Key) {
+			oldHash := make([][]byte, 0)
+			if !ln.dirty {
+				oldHash = append(oldHash, ln.hash)
+			}
 
-		return true, nil, oldHash, nil
+			return true, nil, oldHash, nil
+		}
 	}
 	return false, ln, [][]byte{}, nil
 }

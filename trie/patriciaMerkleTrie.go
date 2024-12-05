@@ -151,7 +151,7 @@ func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core
 			Value:   value,
 			Version: version,
 		}
-		tr.batchManager.Add(hexKey, newData)
+		tr.batchManager.Add(newData)
 		return nil
 	}
 
@@ -172,56 +172,73 @@ func (tr *patriciaMerkleTrie) updateTrie() error {
 	}
 	defer tr.batchManager.MarkTrieUpdateCompleted()
 
-	keys, data := batch.GetSortedDataForInsertion()
-	for _, key := range keys {
-		newData := data[key]
-		if tr.root == nil {
-			newRoot, err := newLeafNode(newData, tr.marshalizer, tr.hasher)
-			if err != nil {
-				return err
-			}
+	err = tr.insertBatch(batch.GetSortedDataForInsertion())
+	if err != nil {
+		return err
+	}
 
-			tr.root = newRoot
-			continue
-		}
+	return tr.deleteBatch(batch.GetSortedDataForRemoval())
+}
 
-		if !tr.root.isDirty() {
-			tr.oldRoot = tr.root.getHash()
-		}
+func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData) error {
+	if len(sortedDataForInsertion) == 0 {
+		return nil
+	}
 
-		newRoot, oldHashes, err := tr.root.insert(newData, tr.trieStorage)
+	if tr.root == nil {
+		newRoot, err := newLeafNode(sortedDataForInsertion[0], tr.marshalizer, tr.hasher)
 		if err != nil {
 			return err
 		}
 
-		if check.IfNil(newRoot) {
-			continue
-		}
-
 		tr.root = newRoot
-		tr.oldHashes = append(tr.oldHashes, oldHashes...)
+		sortedDataForInsertion = sortedDataForInsertion[1:]
 
-		logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
-	}
-
-	keysToBeRemoved := batch.GetSortedDataForRemoval()
-	for _, hexKey := range keysToBeRemoved {
-		if tr.root == nil {
+		if len(sortedDataForInsertion) == 0 {
 			return nil
 		}
-
-		if !tr.root.isDirty() {
-			tr.oldRoot = tr.root.getHash()
-		}
-
-		_, newRoot, oldHashes, err := tr.root.delete([]byte(hexKey), tr.trieStorage)
-		if err != nil {
-			return err
-		}
-		tr.root = newRoot
-		tr.oldHashes = append(tr.oldHashes, oldHashes...)
-		logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 	}
+
+	if !tr.root.isDirty() {
+		tr.oldRoot = tr.root.getHash()
+	}
+
+	newRoot, oldHashes, err := tr.root.insert(sortedDataForInsertion, tr.trieStorage)
+	if err != nil {
+		return err
+	}
+
+	if check.IfNil(newRoot) {
+		return nil
+	}
+
+	tr.root = newRoot
+	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
+	logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	if tr.root == nil {
+		return nil
+	}
+
+	if !tr.root.isDirty() {
+		tr.oldRoot = tr.root.getHash()
+	}
+
+	_, newRoot, oldHashes, err := tr.root.delete(data, tr.trieStorage)
+	if err != nil {
+		return err
+	}
+	tr.root = newRoot
+	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 
 	return nil
 }

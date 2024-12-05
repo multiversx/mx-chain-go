@@ -1,6 +1,7 @@
 package trieChangesBatch
 
 import (
+	"bytes"
 	"sort"
 	"sync"
 
@@ -23,16 +24,16 @@ func NewTrieChangesBatch() *trieChangesBatch {
 }
 
 // Add adds a new key and data to the batch
-func (t *trieChangesBatch) Add(key []byte, data core.TrieData) {
+func (t *trieChangesBatch) Add(data core.TrieData) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	_, ok := t.deletedKeys[string(key)]
+	_, ok := t.deletedKeys[string(data.Key)]
 	if ok {
-		delete(t.deletedKeys, string(key))
+		delete(t.deletedKeys, string(data.Key))
 	}
 
-	t.insertedData[string(key)] = data
+	t.insertedData[string(data.Key)] = data
 }
 
 // MarkForRemoval marks the key for removal
@@ -67,34 +68,40 @@ func (t *trieChangesBatch) Get(key []byte) ([]byte, bool) {
 }
 
 // GetSortedDataForInsertion returns the data sorted for insertion
-func (t *trieChangesBatch) GetSortedDataForInsertion() ([]string, map[string]core.TrieData) {
+func (t *trieChangesBatch) GetSortedDataForInsertion() []core.TrieData {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	keys := make([]string, 0, len(t.insertedData))
+	data := make([]core.TrieData, 0, len(t.insertedData))
 	for k := range t.insertedData {
-		keys = append(keys, k)
+		data = append(data, t.insertedData[k])
 	}
-	sort.Strings(keys)
 
-	return keys, t.insertedData
+	return getSortedData(data)
 }
 
 // GetSortedDataForRemoval returns the data sorted for removal
-func (t *trieChangesBatch) GetSortedDataForRemoval() []string {
+func (t *trieChangesBatch) GetSortedDataForRemoval() []core.TrieData {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	keys := make([]string, 0, len(t.deletedKeys))
+	data := make([]core.TrieData, 0, len(t.deletedKeys))
 	for k := range t.deletedKeys {
-		keys = append(keys, k)
+		data = append(data, core.TrieData{Key: []byte(k)})
 	}
-	sort.Strings(keys)
 
-	return keys
+	return getSortedData(data)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (t *trieChangesBatch) IsInterfaceNil() bool {
 	return t == nil
+}
+
+func getSortedData(data []core.TrieData) []core.TrieData {
+	sort.Slice(data, func(i, j int) bool {
+		return bytes.Compare(data[i].Key, data[j].Key) < 0
+	})
+
+	return data
 }
