@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieBatchManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -40,6 +41,7 @@ type patriciaMerkleTrie struct {
 	hasher                  hashing.Hasher
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
+	batchManager            common.TrieBatchManager
 	mutOperation            sync.RWMutex
 
 	oldHashes            [][]byte
@@ -88,19 +90,26 @@ func NewTrie(
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
+		batchManager:            trieBatchManager.NewTrieBatchManager(),
 	}, nil
 }
 
 // Get starts at the root and searches for the given key.
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
+	hexKey := keyBytesToHex(key)
+	//TODO in order to reduce the memory usage, store keys as bytes and convert them to hex only when needed
+	val, found := tr.batchManager.Get(hexKey)
+	if found {
+		return val, 0, nil
+	}
+
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
 	if tr.root == nil {
 		return nil, 0, nil
 	}
-	hexKey := keyBytesToHex(key)
 
 	val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
 	if err != nil {
@@ -115,32 +124,26 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 // If the key is not in the trie, it will be added.
 // If the value is empty, the key will be removed from the trie
 func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
 	log.Trace("update trie",
 		"key", hex.EncodeToString(key),
 		"val", hex.EncodeToString(value),
 	)
 
-	return tr.update(key, value, core.NotSpecified)
+	return tr.updateBatch(key, value, core.NotSpecified)
 }
 
 // UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
 func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
 	log.Trace("update trie with version",
 		"key", hex.EncodeToString(key),
 		"val", hex.EncodeToString(value),
 		"version", version,
 	)
 
-	return tr.update(key, value, version)
+	return tr.updateBatch(key, value, version)
 }
 
-func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.TrieNodeVersion) error {
+func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core.TrieNodeVersion) error {
 	hexKey := keyBytesToHex(key)
 	if len(value) != 0 {
 		newData := core.TrieData{
@@ -148,51 +151,79 @@ func (tr *patriciaMerkleTrie) update(key []byte, value []byte, version core.Trie
 			Value:   value,
 			Version: version,
 		}
-
-		if tr.root == nil {
-			newRoot, err := newLeafNode(newData, tr.marshalizer, tr.hasher)
-			if err != nil {
-				return err
-			}
-
-			tr.root = newRoot
-			return nil
-		}
-
-		if !tr.root.isDirty() {
-			tr.oldRoot = tr.root.getHash()
-		}
-
-		newRoot, oldHashes, err := tr.root.insert(newData, tr.trieStorage)
-		if err != nil {
-			return err
-		}
-
-		if check.IfNil(newRoot) {
-			return nil
-		}
-
-		tr.root = newRoot
-		tr.oldHashes = append(tr.oldHashes, oldHashes...)
-
-		logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
-	} else {
-		return tr.delete(hexKey)
+		tr.batchManager.Add(newData)
+		return nil
 	}
 
+	tr.batchManager.MarkForRemoval(hexKey)
 	return nil
 }
 
 // Delete removes the node that has the given key from the tree
-func (tr *patriciaMerkleTrie) Delete(key []byte) error {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
+func (tr *patriciaMerkleTrie) Delete(key []byte) {
 	hexKey := keyBytesToHex(key)
-	return tr.delete(hexKey)
+	tr.batchManager.MarkForRemoval(hexKey)
 }
 
-func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
+func (tr *patriciaMerkleTrie) updateTrie() error {
+	batch, err := tr.batchManager.MarkTrieUpdateInProgress()
+	if err != nil {
+		return err
+	}
+	defer tr.batchManager.MarkTrieUpdateCompleted()
+
+	err = tr.insertBatch(batch.GetSortedDataForInsertion())
+	if err != nil {
+		return err
+	}
+
+	return tr.deleteBatch(batch.GetSortedDataForRemoval())
+}
+
+func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData) error {
+	if len(sortedDataForInsertion) == 0 {
+		return nil
+	}
+
+	if tr.root == nil {
+		newRoot, err := newLeafNode(sortedDataForInsertion[0], tr.marshalizer, tr.hasher)
+		if err != nil {
+			return err
+		}
+
+		tr.root = newRoot
+		sortedDataForInsertion = sortedDataForInsertion[1:]
+
+		if len(sortedDataForInsertion) == 0 {
+			return nil
+		}
+	}
+
+	if !tr.root.isDirty() {
+		tr.oldRoot = tr.root.getHash()
+	}
+
+	newRoot, oldHashes, err := tr.root.insert(sortedDataForInsertion, tr.trieStorage)
+	if err != nil {
+		return err
+	}
+
+	if check.IfNil(newRoot) {
+		return nil
+	}
+
+	tr.root = newRoot
+	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+
+	logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
+	return nil
+}
+
+func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
+	if len(data) == 0 {
+		return nil
+	}
+
 	if tr.root == nil {
 		return nil
 	}
@@ -201,7 +232,7 @@ func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(hexKey, tr.trieStorage)
+	_, newRoot, oldHashes, err := tr.root.delete(data, tr.trieStorage)
 	if err != nil {
 		return err
 	}
@@ -216,6 +247,11 @@ func (tr *patriciaMerkleTrie) delete(hexKey []byte) error {
 func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
+
+	err := tr.updateTrie()
+	if err != nil {
+		return nil, err
+	}
 
 	return tr.getRootHash()
 }
@@ -241,15 +277,24 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	err := tr.updateTrie()
+	if err != nil {
+		return err
+	}
+
 	if tr.root == nil {
 		log.Trace("trying to commit empty trie")
 		return nil
 	}
 	if !tr.root.isDirty() {
 		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
+
+		tr.oldRoot = make([]byte, 0)
+		tr.oldHashes = make([][]byte, 0)
+
 		return nil
 	}
-	err := tr.root.setRootHash()
+	err = tr.root.setRootHash()
 	if err != nil {
 		return err
 	}
@@ -261,12 +306,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
 }
 
 // Recreate returns a new trie, given the options
@@ -317,6 +357,12 @@ func (tr *patriciaMerkleTrie) String() string {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	err := tr.updateTrie()
+	if err != nil {
+		log.Warn("print trie - could not save batched changes", "error", err)
+		return ""
+	}
+
 	writer := bytes.NewBuffer(make([]byte, 0))
 
 	if tr.root == nil {
@@ -336,6 +382,10 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 // GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
 func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
 	tr.mutOperation.Lock()
+	err := tr.updateTrie()
+	if err != nil {
+		log.Warn("get obsolete hashes - could not save batched changes", "error", err)
+	}
 	oldHashes := tr.oldHashes
 	logArrayWithTrace("old trie hash", "hash", oldHashes)
 
@@ -349,11 +399,16 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	err := tr.updateTrie()
+	if err != nil {
+		return nil, err
+	}
+
 	if tr.root == nil {
 		return nil, nil
 	}
 
-	err := tr.root.setRootHash()
+	err = tr.root.setRootHash()
 	if err != nil {
 		return nil, err
 	}
@@ -526,12 +581,17 @@ func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	err := tr.updateTrie()
+	if err != nil {
+		return nil, err
+	}
+
 	hashes := make([][]byte, 0)
 	if tr.root == nil {
 		return hashes, nil
 	}
 
-	err := tr.root.setRootHash()
+	err = tr.root.setRootHash()
 	if err != nil {
 		return nil, err
 	}
@@ -565,6 +625,11 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	err := tr.updateTrie()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if tr.root == nil {
 		return nil, nil, ErrNilNode
 	}
@@ -573,7 +638,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 	hexKey := keyBytesToHex(key)
 	currentNode := tr.root
 
-	err := currentNode.setRootHash()
+	err = currentNode.setRootHash()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -599,9 +664,6 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 
 // VerifyProof verifies the given Merkle proof
 func (tr *patriciaMerkleTrie) VerifyProof(rootHash []byte, key []byte, proof [][]byte) (bool, error) {
-	tr.mutOperation.RLock()
-	defer tr.mutOperation.RUnlock()
-
 	ok, err := tr.verifyProof(rootHash, tr.hasher.Compute(string(key)), proof)
 	if err != nil {
 		return false, err
@@ -651,6 +713,10 @@ func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	if !check.IfNil(tr.root) && !tr.root.isDirty() {
+		return tr.root.getHash()
+	}
+
 	return tr.oldRoot
 }
 
@@ -677,6 +743,11 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrat
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
+	err := tr.updateTrie()
+	if err != nil {
+		return err
+	}
+
 	if check.IfNil(tr.root) {
 		return nil
 	}
@@ -684,7 +755,7 @@ func (tr *patriciaMerkleTrie) CollectLeavesForMigration(args vmcommon.ArgsMigrat
 		return errors.ErrNilTrieMigrator
 	}
 
-	err := tr.checkIfMigrationPossible(args)
+	err = tr.checkIfMigrationPossible(args)
 	if err != nil {
 		return err
 	}

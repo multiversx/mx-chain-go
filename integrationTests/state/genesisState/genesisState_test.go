@@ -368,7 +368,7 @@ func execute(
 	for _, idx := range randomRemovablePairsIdx {
 		tPair := totalPairs[idx]
 
-		_ = tr.Delete(tPair.key)
+		tr.Delete(tPair.key)
 	}
 	finalRootHash, _ := tr.RootHash()
 
