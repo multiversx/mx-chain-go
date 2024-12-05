@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -246,6 +247,12 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.shardRequestersContainerCreatorHandler) {
 		return errors.ErrNilShardRequestersContainerCreatorHandler
+	}
+	if check.IfNil(mrc.apiRewardTxHandler) {
+		return errors.ErrNilAPIRewardsHandler
+	}
+	if check.IfNil(mrc.outportDataProviderFactory) {
+		return errors.ErrNilOutportDataProviderFactory
 	}
 
 	return nil
@@ -825,6 +832,30 @@ func (mrc *managedRunTypeComponents) ShardRequestersContainerCreatorHandler() st
 	}
 
 	return mrc.runTypeComponents.shardRequestersContainerCreatorHandler
+}
+
+// APIRewardsTxHandler returns api rewards tx handler
+func (mrc *managedRunTypeComponents) APIRewardsTxHandler() transactionAPI.APIRewardTxHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.apiRewardTxHandler
+}
+
+// OutportDataProviderFactory returns the outport data provider factory
+func (mrc *managedRunTypeComponents) OutportDataProviderFactory() factory.OutportDataProviderFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.outportDataProviderFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

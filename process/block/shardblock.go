@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -19,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.BlockProcessor = (*shardProcessor)(nil)
@@ -612,6 +613,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 	headerHash []byte,
 	header data.HeaderHandler,
 	lastBlockHeader data.HeaderHandler,
+	rewardsTxs map[string]data.TransactionHandler,
 ) {
 	if !sp.outportHandler.HasDrivers() {
 		return
@@ -625,6 +627,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		PreviousHeader:         lastBlockHeader,
 		HighestFinalBlockNonce: sp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
+		RewardsTxs:             rewardsTxs,
 	})
 	if err != nil {
 		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error(),
@@ -1053,7 +1056,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.managedPeersHolder,
 	)
 
-	err = sp.commonHeaderAndBodyCommit(header, body, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	err = sp.commonHeaderAndBodyCommit(header, body, headerHash, selfNotarizedHeaders, selfNotarizedHeadersHashes, nil)
 	if err != nil {
 		return err
 	}
@@ -1067,6 +1070,7 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	headerHash []byte,
 	selfNotarizedHeaders []data.HeaderHandler,
 	selfNotarizedHeadersHashes [][]byte,
+	rewardsTxs map[string]data.TransactionHandler,
 ) error {
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
@@ -1081,8 +1085,8 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
-	// TODO: MX-15708 Here, also index reward txs for sovereign and analyse other missing meta fields
-	sp.indexBlockIfNeeded(body, headerHash, header, lastBlockHeader)
+
+	sp.indexBlockIfNeeded(body, headerHash, header, lastBlockHeader, rewardsTxs)
 	sp.recordBlockInHistory(headerHash, header, body)
 
 	headerInfo := bootstrapStorage.BootstrapHeaderInfo{

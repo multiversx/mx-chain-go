@@ -1302,7 +1302,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		return nil, err
 	}
 
-	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
+	return pcf.runTypeComponents.OutportDataProviderFactory().CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapter(),

@@ -1163,7 +1163,7 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	// must be called before commitEpochStart
-	rewardsTxs := mp.getRewardsTxs(header, body)
+	rewardsTxs := mp.getRewardsTxs(mp.epochRewardsCreator, header, body)
 
 	mp.commitEpochStart(header, body, mp.epochRewardsCreator, mp.validatorInfoCreator)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
@@ -1509,19 +1509,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	}
 
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
-}
-
-// getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
-func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
-	if !mp.outportHandler.HasDrivers() {
-		return
-	}
-	if !header.IsStartOfEpochBlock() {
-		return
-	}
-
-	rewardsTx = mp.epochRewardsCreator.GetRewardsTxs(body)
-	return rewardsTx
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header

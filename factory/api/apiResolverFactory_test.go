@@ -10,8 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -37,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/require"
 )
 
 const unreachableStep = 10000
@@ -340,6 +342,18 @@ func TestCreateApiResolver(t *testing.T) {
 		args.TotalStakedValueFactoryHandler = nil
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilTotalStakedValueFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("APIRewardsTxHandlerField nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.APIRewardsTxHandlerField = nil
+		args.RunTypeComponents = runTypeCompsStub
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, errErd.ErrNilAPIRewardsHandler, err)
 		require.True(t, check.IfNil(apiResolver))
 	})
 }
