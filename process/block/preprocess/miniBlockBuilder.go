@@ -22,7 +22,6 @@ import (
 type miniBlocksBuilderArgs struct {
 	gasTracker                gasTracker
 	accounts                  state.AccountsAdapter
-	accountTxsShards          *accountTxsShards
 	blockSizeComputation      BlockSizeComputationHandler
 	balanceComputationHandler BalanceComputationHandler
 	haveTime                  func() bool
@@ -50,7 +49,6 @@ type miniBlockBuilderStats struct {
 type miniBlocksBuilder struct {
 	gasTracker
 	accounts                   state.AccountsAdapter
-	accountTxsShards           *accountTxsShards
 	balanceComputationHandler  BalanceComputationHandler
 	blockSizeComputation       BlockSizeComputationHandler
 	gasConsumedInReceiverShard map[uint32]uint64
@@ -75,7 +73,6 @@ func newMiniBlockBuilder(args miniBlocksBuilderArgs) (*miniBlocksBuilder, error)
 	return &miniBlocksBuilder{
 		gasTracker:                 args.gasTracker,
 		accounts:                   args.accounts,
-		accountTxsShards:           args.accountTxsShards,
 		balanceComputationHandler:  args.balanceComputationHandler,
 		blockSizeComputation:       args.blockSizeComputation,
 		miniBlocks:                 initializeMiniBlocksMap(args.gasTracker.shardCoordinator),
@@ -117,9 +114,6 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	if check.IfNil(args.txPool) {
 		return process.ErrNilTransactionPool
 	}
-	if args.accountTxsShards == nil {
-		return process.ErrNilAccountTxsPerShard
-	}
 	if args.haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
@@ -134,15 +128,6 @@ func checkMiniBlocksBuilderArgs(args miniBlocksBuilderArgs) error {
 	}
 
 	return nil
-}
-
-func (mbb *miniBlocksBuilder) updateAccountShardsInfo(tx *transaction.Transaction, wtx *txcache.WrappedTransaction) {
-	mbb.accountTxsShards.Lock()
-	mbb.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{
-		senderShardID:   wtx.SenderShardID,
-		receiverShardID: wtx.ReceiverShardID,
-	}
-	mbb.accountTxsShards.Unlock()
 }
 
 // checkAddTransaction method returns a set of actions which could be done afterwards, by checking the given transaction
