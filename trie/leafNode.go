@@ -235,49 +235,59 @@ func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, [
 	}
 	return nil, nil, ErrNodeNotFound
 }
-func (ln *leafNode) insert(newData []core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
+func (ln *leafNode) insert(
+	newData []core.TrieData,
+	goRoutinesManager common.TrieGoroutinesManager,
+	modifiedHashes common.AtomicBytesSlice,
+	db common.TrieStorageInteractor,
+) node {
 	err := ln.isEmptyOrNil()
 	if err != nil {
-		return nil, [][]byte{}, fmt.Errorf("insert error %w", err)
-	}
-
-	oldHash := make([][]byte, 0)
-	if !ln.dirty {
-		oldHash = append(oldHash, ln.hash)
+		goRoutinesManager.SetError(fmt.Errorf("insert error %w", err))
+		return nil
 	}
 
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
-		return ln.insertInSameLn(newData[0], oldHash)
+		return ln.insertInSameLn(newData[0], modifiedHashes)
 	}
 
 	keyMatchLen, _ := getMinKeyMatchLen(newData, ln.Key)
-	bn, err := ln.insertInNewBn(newData, keyMatchLen, db)
-	if err != nil {
-		return nil, [][]byte{}, err
+	bn := ln.insertInNewBn(newData, keyMatchLen, goRoutinesManager, modifiedHashes, db)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return nil
+	}
+
+	if !ln.dirty {
+		modifiedHashes.Append([][]byte{ln.hash})
 	}
 
 	if keyMatchLen == 0 {
-		return bn, oldHash, nil
+		return bn
 	}
 
 	newEn, err := newExtensionNode(ln.Key[:keyMatchLen], bn, ln.marsh, ln.hasher)
 	if err != nil {
-		return nil, [][]byte{}, err
+		goRoutinesManager.SetError(err)
+		return nil
 	}
 
-	return newEn, oldHash, nil
+	return newEn
 }
 
-func (ln *leafNode) insertInSameLn(newData core.TrieData, oldHashes [][]byte) (node, [][]byte, error) {
+func (ln *leafNode) insertInSameLn(newData core.TrieData, modifiedHashes common.AtomicBytesSlice) node {
 	if bytes.Equal(ln.Value, newData.Value) {
-		return nil, [][]byte{}, nil
+		return nil
+	}
+
+	if !ln.dirty {
+		modifiedHashes.Append([][]byte{ln.hash})
 	}
 
 	ln.Value = newData.Value
 	ln.Version = uint32(newData.Version)
 	ln.dirty = true
 	ln.hash = nil
-	return ln, oldHashes, nil
+	return ln
 }
 
 func trimKeys(data []core.TrieData, keyMatchLen int) {
@@ -286,15 +296,23 @@ func trimKeys(data []core.TrieData, keyMatchLen int) {
 	}
 }
 
-func (ln *leafNode) insertInNewBn(newData []core.TrieData, keyMatchLen int, db common.TrieStorageInteractor) (node, error) {
+func (ln *leafNode) insertInNewBn(
+	newData []core.TrieData,
+	keyMatchLen int,
+	goRoutinesManager common.TrieGoroutinesManager,
+	modifiedHashes common.AtomicBytesSlice,
+	db common.TrieStorageInteractor,
+) node {
 	bn, err := newBranchNode(ln.marsh, ln.hasher)
 	if err != nil {
-		return nil, err
+		goRoutinesManager.SetError(err)
+		return nil
 	}
 
 	lnVersion, err := ln.getVersion()
 	if err != nil {
-		return nil, err
+		goRoutinesManager.SetError(err)
+		return nil
 	}
 
 	var newKeyForOldLn []byte
@@ -312,32 +330,32 @@ func (ln *leafNode) insertInNewBn(newData []core.TrieData, keyMatchLen int, db c
 
 	oldLn, err := newLeafNode(lnData, ln.marsh, ln.hasher)
 	if err != nil {
-		return nil, err
+		goRoutinesManager.SetError(err)
+		return nil
 	}
 	bn.children[posForOldLn] = oldLn
 	bn.setVersionForChild(lnVersion, posForOldLn)
 
 	trimKeys(newData, keyMatchLen)
-	newNode, _, err := bn.insert(newData, db)
-	if err != nil {
-		return nil, err
-	}
-
-	return newNode, nil
+	return bn.insert(newData, goRoutinesManager, modifiedHashes, db)
 }
 
-func (ln *leafNode) delete(data []core.TrieData, _ common.TrieStorageInteractor) (bool, node, [][]byte, error) {
+func (ln *leafNode) delete(
+	data []core.TrieData,
+	_ common.TrieGoroutinesManager,
+	modifiedHashes common.AtomicBytesSlice,
+	_ common.TrieStorageInteractor,
+) (bool, node) {
 	for _, d := range data {
 		if bytes.Equal(d.Key, ln.Key) {
-			oldHash := make([][]byte, 0)
 			if !ln.dirty {
-				oldHash = append(oldHash, ln.hash)
+				modifiedHashes.Append([][]byte{ln.hash})
 			}
 
-			return true, nil, oldHash, nil
+			return true, nil
 		}
 	}
-	return false, ln, [][]byte{}, nil
+	return false, ln
 }
 
 func (ln *leafNode) reduceNode(pos int) (node, bool, error) {

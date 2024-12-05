@@ -260,7 +260,7 @@ func TestNode_resolveIfCollapsedNilNode(t *testing.T) {
 	var nodeInstance *extensionNode
 
 	err := resolveIfCollapsed(nodeInstance, 0, nil)
-	assert.Equal(t, ErrNilExtensionNode, err)
+	assert.Equal(t, ErrNilNode, err)
 }
 
 func TestNode_concat(t *testing.T) {
