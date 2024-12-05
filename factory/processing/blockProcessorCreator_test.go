@@ -162,7 +162,8 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardC)
 
-	pcf, _ := processComp.NewProcessComponentsFactory(args)
+	pcf, err := processComp.NewProcessComponentsFactory(args)
+	require.NoError(t, err)
 	require.NotNil(t, pcf)
 
 	_, err = pcf.Create()

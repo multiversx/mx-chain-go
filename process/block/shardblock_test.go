@@ -3053,6 +3053,12 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		JournalLenCalled: func() int {
 			return 0
 		},
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return &stateMock.UserAccountStub{
+				Nonce:   45,
+				Balance: big.NewInt(1000000000000000000),
+			}, nil
+		},
 	}
 
 	totalGasProvided := uint64(0)
