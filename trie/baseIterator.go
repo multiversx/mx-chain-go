@@ -23,13 +23,14 @@ func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 	}
 
 	trieStorage := trie.GetStorageManager()
-	nextNodes, err := pmt.root.getChildren(trieStorage)
+	rootNode := pmt.GetRootNode()
+	nextNodes, err := rootNode.getChildren(trieStorage)
 	if err != nil {
 		return nil, err
 	}
 
 	return &baseIterator{
-		currentNode: pmt.root,
+		currentNode: rootNode,
 		nextNodes:   nextNodes,
 		db:          trieStorage,
 	}, nil

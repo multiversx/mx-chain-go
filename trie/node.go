@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -27,24 +26,18 @@ const (
 	pollingIdleNode      = time.Millisecond
 )
 
-type baseNode struct {
-	hash   []byte
-	dirty  bool
-	marsh  marshal.Marshalizer
-	hasher hashing.Hasher
-}
-
 type branchNode struct {
 	CollapsedBn
 	children [nrOfChildren]node
 	*baseNode
-	mutex sync.RWMutex
+	childrenMutexes [nrOfChildren]sync.RWMutex
 }
 
 type extensionNode struct {
 	CollapsedEn
 	child node
 	*baseNode
+	childMutex sync.RWMutex
 }
 
 type leafNode struct {
@@ -128,7 +121,13 @@ func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshaliz
 		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
-	return decodeNode(encChild, marshalizer, hasher)
+	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedNode.setGivenHash(n)
+	return decodedNode, nil
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {
@@ -137,19 +136,6 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 	}
 
 	logInstance.Trace(core.GetNodeFromDBErrorString, "error", err, "key", key, "stack trace", string(debug.Stack()))
-}
-
-func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
-	if check.IfNil(n) {
-		return ErrNilNode
-	}
-
-	if !n.isPosCollapsed(int(pos)) {
-		handleStorageInteractorStats(db)
-		return nil
-	}
-
-	return n.resolveCollapsed(pos, db)
 }
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {

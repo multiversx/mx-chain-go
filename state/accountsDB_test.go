@@ -1819,89 +1819,6 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	assert.Equal(t, 3, len(hashesForEviction))
 }
 
-func TestAccountsDB_RemoveAccountSetsObsoleteHashes(t *testing.T) {
-	t.Parallel()
-
-	_, adb := getDefaultTrieAndAccountsDb()
-
-	addr := make([]byte, 32)
-	acc, _ := adb.LoadAccount(addr)
-	userAcc := acc.(state.UserAccountHandler)
-	_ = userAcc.SaveKeyValue([]byte("key"), []byte("value"))
-
-	_ = adb.SaveAccount(userAcc)
-	_, _ = adb.Commit()
-
-	acc, _ = adb.LoadAccount(addr)
-	userAcc = acc.(state.UserAccountHandler)
-	userAcc.SetCode([]byte("code"))
-	snapshot := adb.JournalLen()
-	hashes, _ := userAcc.DataTrie().(common.Trie).GetAllHashes()
-
-	err := adb.RemoveAccount(addr)
-	obsoleteHashes := adb.GetObsoleteHashes()
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(obsoleteHashes))
-	assert.Equal(t, hashes, obsoleteHashes[string(hashes[0])])
-
-	err = adb.RevertToSnapshot(snapshot)
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(adb.GetObsoleteHashes()))
-}
-
-func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
-	t.Parallel()
-
-	maxTrieLevelInMemory := uint(5)
-	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-
-	ewl := stateMock.NewEvictionWaitingListMock(100)
-	args := storage.GetStorageManagerArgs()
-	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
-	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
-
-	argsAccountsDB := createMockAccountsDBArgs()
-	argsAccountsDB.Trie = tr
-	argsAccountsDB.Hasher = hasher
-	argsAccountsDB.Marshaller = marshaller
-	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
-	argsAccountsDB.StoragePruningManager = spm
-
-	adb, _ := state.NewAccountsDB(argsAccountsDB)
-
-	addr := make([]byte, 32)
-	acc, _ := adb.LoadAccount(addr)
-	userAcc := acc.(state.UserAccountHandler)
-	_ = userAcc.SaveKeyValue([]byte("key"), []byte("value"))
-	_ = adb.SaveAccount(userAcc)
-
-	addr1 := make([]byte, 32)
-	addr1[0] = 1
-	acc, _ = adb.LoadAccount(addr1)
-	_ = adb.SaveAccount(acc)
-
-	rootHash, _ := adb.Commit()
-	hashes, _ := userAcc.DataTrie().(common.Trie).GetAllHashes()
-
-	err := adb.RemoveAccount(addr)
-	obsoleteHashes := adb.GetObsoleteHashes()
-	assert.Nil(t, err)
-	assert.Equal(t, 1, len(obsoleteHashes))
-	assert.Equal(t, hashes, obsoleteHashes[string(hashes[0])])
-
-	_, _ = adb.Commit()
-	rootHash = append(rootHash, byte(state.OldRoot))
-	oldHashes := ewl.Cache[string(rootHash)]
-	assert.Equal(t, 5, len(oldHashes))
-}
-
 func TestAccountsDB_TrieDatabasePruning(t *testing.T) {
 	t.Parallel()
 
@@ -2635,7 +2552,8 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 	t.Run("can not sync missing snapshot node should not put activeDbKey", func(t *testing.T) {
 		t.Parallel()
 
-		trieHashes := make([][]byte, 0)
+		trieHashes := common.ModifiedHashes{}
+		var rootHash []byte
 		valuesMap := make(map[string][]byte)
 		missingNodeError := errors.New("missing trie node")
 		isMissingNodeCalled := false
@@ -2653,7 +2571,7 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 				return []byte(common.ActiveDBVal), nil
 			}
 
-			if len(trieHashes) != 0 && bytes.Equal(key, trieHashes[0]) {
+			if len(trieHashes) != 0 && bytes.Equal(key, rootHash) {
 				isMissingNodeCalled = true
 				return nil, missingNodeError
 			}
@@ -2666,10 +2584,9 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 		}
 
 		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
-		prepareTrie(tr, 3)
+		trieHashes = prepareTrie(tr, 3)
 
-		rootHash, _ := tr.RootHash()
-		trieHashes, _ = tr.GetAllHashes()
+		rootHash, _ = tr.RootHash()
 
 		syncer := &mock.AccountsDBSyncerStub{
 			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
@@ -2691,7 +2608,8 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 	t.Run("nil syncer should not put activeDbKey", func(t *testing.T) {
 		t.Parallel()
 
-		trieHashes := make([][]byte, 0)
+		trieHashes := common.ModifiedHashes{}
+		var rootHash []byte
 		valuesMap := make(map[string][]byte)
 		missingNodeError := errors.New("missing trie node")
 		isMissingNodeCalled := false
@@ -2708,7 +2626,7 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 				return []byte(common.ActiveDBVal), nil
 			}
 
-			if len(trieHashes) != 0 && bytes.Equal(key, trieHashes[0]) {
+			if len(trieHashes) != 0 && bytes.Equal(key, rootHash) {
 				isMissingNodeCalled = true
 				return nil, missingNodeError
 			}
@@ -2721,10 +2639,9 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 		}
 
 		tr, adb := getDefaultTrieAndAccountsDbWithCustomDB(&testscommon.SnapshotPruningStorerMock{MemDbMock: memDbMock})
-		prepareTrie(tr, 3)
+		trieHashes = prepareTrie(tr, 3)
 
-		rootHash, _ := tr.RootHash()
-		trieHashes, _ = tr.GetAllHashes()
+		rootHash, _ = tr.RootHash()
 
 		adb.SnapshotState(rootHash, 0)
 
@@ -2769,14 +2686,17 @@ func TestAccountsDB_SyncMissingSnapshotNodes(t *testing.T) {
 	})
 }
 
-func prepareTrie(tr common.Trie, numKeys int) {
+func prepareTrie(tr common.Trie, numKeys int) common.ModifiedHashes {
 	for i := 0; i < numKeys; i++ {
 		key := fmt.Sprintf("key%d", i)
 		val := fmt.Sprintf("val%d", i)
 		_ = tr.Update([]byte(key), []byte(val))
 	}
 
+	hashes, _ := tr.GetDirtyHashes()
 	_ = tr.Commit()
+
+	return hashes
 }
 
 func addDataTries(accountsAddresses [][]byte, adb *state.AccountsDB) {
