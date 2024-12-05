@@ -1,21 +1,23 @@
 package txcache
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
-type scoreComputer interface {
-	computeScore(scoreParams senderScoreParams) uint32
+// MempoolHost provides blockchain information for mempool operations
+type MempoolHost interface {
+	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
+	GetTransferredValue(tx data.TransactionHandler) *big.Int
+	IsInterfaceNil() bool
 }
 
-// TxGasHandler handles a transaction gas and gas cost
-type TxGasHandler interface {
-	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
-	MinGasPrice() uint64
-	MinGasLimit() uint64
-	MinGasPriceForProcessing() uint64
+// SelectionSession provides blockchain information for transaction selection
+type SelectionSession interface {
+	GetAccountState(accountKey []byte) (*types.AccountState, error)
+	IsIncorrectlyGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool
 }
 

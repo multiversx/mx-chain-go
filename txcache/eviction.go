@@ -1,18 +1,27 @@
 package txcache
 
 import (
+	"container/heap"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-// doEviction does cache eviction
-// We do not allow more evictions to start concurrently
-func (cache *TxCache) doEviction() {
+// evictionJournal keeps a short journal about the eviction process
+// This is useful for debugging and reasoning about the eviction
+type evictionJournal struct {
+	numEvicted       int
+	numEvictedByPass []int
+}
+
+// doEviction does cache eviction.
+// We do not allow more evictions to start concurrently.
+func (cache *TxCache) doEviction() *evictionJournal {
 	if cache.isEvictionInProgress.IsSet() {
-		return
+		return nil
 	}
 
 	if !cache.isCapacityExceeded() {
-		return
+		return nil
 	}
 
 	cache.evictionMutex.Lock()
@@ -22,31 +31,37 @@ func (cache *TxCache) doEviction() {
 	defer cache.isEvictionInProgress.Reset()
 
 	if !cache.isCapacityExceeded() {
-		return
+		return nil
 	}
 
-	stopWatch := cache.monitorEvictionStart()
-	cache.makeSnapshotOfSenders()
+	logRemove.Debug("doEviction: before eviction",
+		"num bytes", cache.NumBytes(),
+		"num txs", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+	)
 
-	journal := evictionJournal{}
-	journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
-	journal.evictionPerformed = true
-	cache.evictionJournal = journal
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("eviction")
 
-	cache.monitorEvictionEnd(stopWatch)
-	cache.destroySnapshotOfSenders()
-}
+	evictionJournal := cache.evictLeastLikelyToSelectTransactions()
 
-func (cache *TxCache) makeSnapshotOfSenders() {
-	cache.evictionSnapshotOfSenders = cache.txListBySender.getSnapshotAscending()
-}
+	stopWatch.Stop("eviction")
 
-func (cache *TxCache) destroySnapshotOfSenders() {
-	cache.evictionSnapshotOfSenders = nil
+	logRemove.Debug(
+		"doEviction: after eviction",
+		"num bytes", cache.NumBytes(),
+		"num now", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+		"duration", stopWatch.GetMeasurement("eviction"),
+		"evicted txs", evictionJournal.numEvicted,
+	)
+
+	return evictionJournal
 }
 
 func (cache *TxCache) isCapacityExceeded() bool {
-	return cache.areThereTooManyBytes() || cache.areThereTooManySenders() || cache.areThereTooManyTxs()
+	exceeded := cache.areThereTooManyBytes() || cache.areThereTooManySenders() || cache.areThereTooManyTxs()
+	return exceeded
 }
 
 func (cache *TxCache) areThereTooManyBytes() bool {
@@ -67,62 +82,88 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 	return tooManyTxs
 }
 
-// This is called concurrently by two goroutines: the eviction one and the sweeping one
-func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string) (countTxs uint32, countSenders uint32) {
-	countTxs = cache.txByHash.RemoveTxsBulk(txsToEvict)
-	countSenders = cache.txListBySender.RemoveSendersBulk(sendersToEvict)
-	return
-}
+// Eviction tolerates concurrent transaction additions / removals.
+func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
+	senders := cache.getSenders()
+	bunches := make([]bunchOfTransactions, 0, len(senders))
 
-func (cache *TxCache) evictSendersInLoop() (uint32, uint32, uint32) {
-	return cache.evictSendersWhile(cache.isCapacityExceeded)
-}
-
-// evictSendersWhileTooManyTxs removes transactions in a loop, as long as "shouldContinue" is true
-// One batch of senders is removed in each step
-func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, numTxs uint32, numSenders uint32) {
-	if !shouldContinue() {
-		return
+	for _, sender := range senders {
+		// Include transactions after gaps, as well (important), unlike when selecting transactions for processing.
+		// Reverse the order of transactions (will come in handy later, when creating the min-heap).
+		bunch := sender.getTxsReversed()
+		bunches = append(bunches, bunch)
 	}
 
-	snapshot := cache.evictionSnapshotOfSenders
-	snapshotLength := uint32(len(snapshot))
-	batchSize := cache.config.NumSendersToPreemptivelyEvict
-	batchStart := uint32(0)
+	journal := &evictionJournal{}
 
-	for step = 0; shouldContinue(); step++ {
-		batchEnd := batchStart + batchSize
-		batchEndBounded := core.MinUint32(batchEnd, snapshotLength)
-		batch := snapshot[batchStart:batchEndBounded]
+	// Heap is reused among passes.
+	// Items popped from the heap are added to "transactionsToEvict" (slice is re-created in each pass).
+	transactionsHeap := newMinTransactionsHeap(len(bunches))
+	heap.Init(transactionsHeap)
 
-		numTxsEvictedInStep, numSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
+	// Initialize the heap with the first transaction of each bunch
+	for _, bunch := range bunches {
+		item, err := newTransactionsHeapItem(bunch)
+		if err != nil {
+			continue
+		}
 
-		numTxs += numTxsEvictedInStep
-		numSenders += numSendersEvictedInStep
-		batchStart += batchSize
+		// Items will be reused (see below). Each sender gets one (and only one) item in the heap.
+		heap.Push(transactionsHeap, item)
+	}
 
-		reachedEnd := batchStart >= snapshotLength
-		noTxsEvicted := numTxsEvictedInStep == 0
-		incompleteBatch := numSendersEvictedInStep < batchSize
+	for pass := 0; cache.isCapacityExceeded(); pass++ {
+		transactionsToEvict := make(bunchOfTransactions, 0, cache.config.NumItemsToPreemptivelyEvict)
+		transactionsToEvictHashes := make([][]byte, 0, cache.config.NumItemsToPreemptivelyEvict)
 
-		shouldBreak := noTxsEvicted || incompleteBatch || reachedEnd
-		if shouldBreak {
+		// Select transactions (sorted).
+		for transactionsHeap.Len() > 0 {
+			// Always pick the "worst" transaction.
+			item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
+
+			if len(transactionsToEvict) >= int(cache.config.NumItemsToPreemptivelyEvict) {
+				// We have enough transactions to evict in this pass.
+				break
+			}
+
+			transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
+			transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
+
+			// If there are more transactions in the same bunch (same sender as the popped item),
+			// add the next one to the heap (to compete with the others in being "the worst").
+			// Item is reused (same originating sender), pushed back on the heap.
+			if item.gotoNextTransaction() {
+				heap.Push(transactionsHeap, item)
+			}
+		}
+
+		if len(transactionsToEvict) == 0 {
+			// No more transactions to evict.
 			break
 		}
+
+		// For each sender, find the "lowest" (in nonce) transaction to evict,
+		// so that we can remove all transactions with higher or equal nonces (of a sender) in one go (see below).
+		lowestToEvictBySender := make(map[string]uint64)
+
+		for _, tx := range transactionsToEvict {
+			sender := string(tx.Tx.GetSndAddr())
+			lowestToEvictBySender[sender] = tx.Tx.GetNonce()
+		}
+
+		// Remove those transactions from "txListBySender".
+		for sender, nonce := range lowestToEvictBySender {
+			cache.txListBySender.removeTransactionsWithHigherOrEqualNonce([]byte(sender), nonce)
+		}
+
+		// Remove those transactions from "txByHash".
+		_ = cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
+
+		journal.numEvictedByPass = append(journal.numEvictedByPass, len(transactionsToEvict))
+		journal.numEvicted += len(transactionsToEvict)
+
+		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num evicted", len(transactionsToEvict))
 	}
 
-	return
-}
-
-// This is called concurrently by two goroutines: the eviction one and the sweeping one
-func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {
-	sendersToEvict := make([]string, 0, len(listsToEvict))
-	txsToEvict := make([][]byte, 0, approximatelyCountTxInLists(listsToEvict))
-
-	for _, txList := range listsToEvict {
-		sendersToEvict = append(sendersToEvict, txList.sender)
-		txsToEvict = append(txsToEvict, txList.getTxHashes()...)
-	}
-
-	return cache.doEvictItems(txsToEvict, sendersToEvict)
+	return journal
 }
