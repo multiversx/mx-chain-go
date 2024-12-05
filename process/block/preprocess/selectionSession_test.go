@@ -17,23 +17,23 @@ import (
 func TestNewSelectionSession(t *testing.T) {
 	t.Parallel()
 
-	session, err := newSelectionSession(argsSelectionSession{
-		accountsAdapter:       nil,
-		transactionsProcessor: &testscommon.TxProcessorStub{},
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       nil,
+		TransactionsProcessor: &testscommon.TxProcessorStub{},
 	})
 	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilAccountsAdapter)
 
-	session, err = newSelectionSession(argsSelectionSession{
-		accountsAdapter:       &stateMock.AccountsStub{},
-		transactionsProcessor: nil,
+	session, err = NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       &stateMock.AccountsStub{},
+		TransactionsProcessor: nil,
 	})
 	require.Nil(t, session)
 	require.ErrorIs(t, err, process.ErrNilTxProcessor)
 
-	session, err = newSelectionSession(argsSelectionSession{
-		accountsAdapter:       &stateMock.AccountsStub{},
-		transactionsProcessor: &testscommon.TxProcessorStub{},
+	session, err = NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       &stateMock.AccountsStub{},
+		TransactionsProcessor: &testscommon.TxProcessorStub{},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -66,9 +66,9 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 		return nil, fmt.Errorf("account not found: %s", address)
 	}
 
-	session, err := newSelectionSession(argsSelectionSession{
-		accountsAdapter:       accounts,
-		transactionsProcessor: processor,
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       accounts,
+		TransactionsProcessor: processor,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -111,9 +111,9 @@ func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 		return nil
 	}
 
-	session, err := newSelectionSession(argsSelectionSession{
-		accountsAdapter:       accounts,
-		transactionsProcessor: processor,
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       accounts,
+		TransactionsProcessor: processor,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
@@ -144,9 +144,9 @@ func TestSelectionSession_ephemeralAccountsCache_IsSharedAmongCalls(t *testing.T
 		return &stateMock.UserAccountStub{}, nil
 	}
 
-	session, err := newSelectionSession(argsSelectionSession{
-		accountsAdapter:       accounts,
-		transactionsProcessor: processor,
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       accounts,
+		TransactionsProcessor: processor,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, session)
