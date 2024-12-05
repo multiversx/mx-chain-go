@@ -119,7 +119,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
-	err := txProc.verifyGuardian(tx, acntSnd)
+	err := txProc.VerifyGuardian(tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -288,7 +288,7 @@ func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *tran
 	return nil
 }
 
-func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
+func (txProc *baseTxProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	if check.IfNil(account) {
 		return nil
 	}
