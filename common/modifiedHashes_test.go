@@ -70,14 +70,3 @@ func TestModifiedHashesSlice_Get(t *testing.T) {
 	newRetrievedHashes := mhs.Get()
 	assert.NotEqual(t, retrievedHashes, newRetrievedHashes)
 }
-
-func TestModifiedHashesSlice_Reset(t *testing.T) {
-	t.Parallel()
-
-	hashes := [][]byte{{1}, {2}, {3}}
-	mhs := NewModifiedHashesSlice(len(hashes))
-	mhs.Append(hashes)
-	assert.Equal(t, len(hashes), len(mhs.hashes))
-	mhs.Reset()
-	assert.Equal(t, 0, len(mhs.hashes))
-}

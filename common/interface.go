@@ -410,5 +410,4 @@ type TrieGoroutinesManager interface {
 type AtomicBytesSlice interface {
 	Append(data [][]byte)
 	Get() [][]byte
-	Reset()
 }
