@@ -10,15 +10,18 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/storage"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
+	logger.SetLogLevel("*:INFO,txcache:DEBUG")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	numSenders := 100
+	numSenders := 10000
 	numTransactionsPerSender := 3
 	shard := 0
 
@@ -53,15 +56,19 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	}
 
 	sendTransactions(t, simulator, transactions)
-	require.Equal(t, 300, getNumTransactionsInPool(simulator, shard))
+	require.Equal(t, 30_000, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, gas := selectTransactions(t, simulator, shard)
-	require.Equal(t, 300, len(selectedTransactions))
-	require.Equal(t, 50_000*300, int(gas))
+	require.Equal(t, 30_000, len(selectedTransactions))
+	require.Equal(t, 50_000*30_000, int(gas))
 
 	err := simulator.GenerateBlocks(1)
 	require.Nil(t, err)
-	require.Equal(t, 300, getNumTransactionsInCurrentBlock(simulator, shard))
+	require.Equal(t, 27_756, getNumTransactionsInCurrentBlock(simulator, shard))
+
+	selectedTransactions, gas = selectTransactions(t, simulator, shard)
+	require.Equal(t, 30_000, len(selectedTransactions))
+	require.Equal(t, 50_000*30_000, int(gas))
 }
 
 func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
