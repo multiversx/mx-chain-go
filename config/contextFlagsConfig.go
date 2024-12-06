@@ -7,6 +7,7 @@ type ContextFlagsConfig struct {
 	LogsDir                      string
 	EnableGops                   bool
 	SaveLogFile                  bool
+	SaveLogFileJson              bool
 	EnableLogCorrelation         bool
 	EnableLogName                bool
 	LogLevel                     string

@@ -4,18 +4,14 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"time"
 
 	"github.com/klauspost/cpuid/v2"
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
 	"github.com/multiversx/mx-chain-go/node"
 	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-logger-go/file"
 	"github.com/urfave/cli"
 	// test point 1 for custom profiler
 )
@@ -92,9 +88,10 @@ func main() {
 func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) error {
 	flagsConfig := getFlagsConfig(c, log)
 
-	fileLogging, errLogger := attachFileLogger(log, flagsConfig)
-	if errLogger != nil {
-		return errLogger
+	logging := &nodeLogging{}
+	errLogging := logging.setup(log, flagsConfig)
+	if errLogging != nil {
+		return errLogging
 	}
 
 	cfgs, errCfg := readConfigs(c, log)
@@ -107,14 +104,9 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return errCfgOverride
 	}
 
-	if !check.IfNil(fileLogging) {
-		timeLogLifeSpan := time.Second * time.Duration(cfgs.GeneralConfig.Logs.LogFileLifeSpanInSec)
-		sizeLogLifeSpanInMB := uint64(cfgs.GeneralConfig.Logs.LogFileLifeSpanInMB)
-
-		err := fileLogging.ChangeFileLifeSpan(timeLogLifeSpan, sizeLogLifeSpanInMB)
-		if err != nil {
-			return err
-		}
+	errLogging = logging.applyFileLifeSpan(log, cfgs.GeneralConfig)
+	if errLogging != nil {
+		return errLogging
 	}
 
 	err := applyFlags(c, cfgs, flagsConfig, log)
@@ -148,10 +140,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		log.Error(err.Error())
 	}
 
-	if !check.IfNil(fileLogging) {
-		err = fileLogging.Close()
-		log.LogIfError(err)
-	}
+	logging.closeFiles(log)
 
 	return err
 }
@@ -268,48 +257,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		EpochConfig:              epochConfig,
 		RoundConfig:              roundConfig,
 	}, nil
-}
-
-func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig) (factory.FileLoggingHandler, error) {
-	var fileLogging factory.FileLoggingHandler
-	var err error
-	if flagsConfig.SaveLogFile {
-		args := file.ArgsFileLogging{
-			WorkingDir:      flagsConfig.LogsDir,
-			DefaultLogsPath: defaultLogsPath,
-			LogFilePrefix:   logFilePrefix,
-		}
-		fileLogging, err = file.NewFileLogging(args)
-		if err != nil {
-			return nil, fmt.Errorf("%w creating a log file", err)
-		}
-	}
-
-	err = logger.SetDisplayByteSlice(logger.ToHex)
-	log.LogIfError(err)
-	logger.ToggleCorrelation(flagsConfig.EnableLogCorrelation)
-	logger.ToggleLoggerName(flagsConfig.EnableLogName)
-	logLevelFlagValue := flagsConfig.LogLevel
-
-	err = logger.SetLogLevel(logLevelFlagValue)
-	if err != nil {
-		return nil, err
-	}
-
-	if flagsConfig.DisableAnsiColor {
-		err = logger.RemoveLogObserver(os.Stdout)
-		if err != nil {
-			return nil, err
-		}
-
-		err = logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	log.Trace("logger updated", "level", logLevelFlagValue, "disable ANSI color", flagsConfig.DisableAnsiColor)
-
-	return fileLogging, nil
 }
 
 func checkHardwareRequirements(cfg config.HardwareRequirementsConfig) error {

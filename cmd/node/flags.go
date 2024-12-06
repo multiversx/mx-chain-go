@@ -246,6 +246,11 @@ var (
 		Name:  "log-save",
 		Usage: "Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.",
 	}
+	// logSaveFileJson is used to enable log saving as newline-delimited JSON
+	logSaveFileJson = cli.BoolFlag{
+		Name:  "log-save-json",
+		Usage: "Boolean option for enabling log saving as newline-delimited JSON.",
+	}
 	// logWithCorrelation is used to enable log correlation elements
 	logWithCorrelation = cli.BoolFlag{
 		Name:  "log-correlation",
@@ -443,6 +448,7 @@ func getFlags() []cli.Flag {
 		disableAnsiColor,
 		logLevel,
 		logSaveFile,
+		logSaveFileJson,
 		logWithCorrelation,
 		logWithLoggerName,
 		useLogView,
@@ -481,6 +487,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.LogsDir = getCustomDirIfSet(ctx, logsDirectory, log)
 	flagsConfig.EnableGops = ctx.GlobalBool(gopsEn.Name)
 	flagsConfig.SaveLogFile = ctx.GlobalBool(logSaveFile.Name)
+	flagsConfig.SaveLogFileJson = ctx.GlobalBool(logSaveFile.Name)
 	flagsConfig.EnableLogCorrelation = ctx.GlobalBool(logWithCorrelation.Name)
 	flagsConfig.EnableLogName = ctx.GlobalBool(logWithLoggerName.Name)
 	flagsConfig.LogLevel = ctx.GlobalString(logLevel.Name)
