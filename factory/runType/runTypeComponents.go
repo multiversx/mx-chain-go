@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -125,6 +126,7 @@ type runTypeComponents struct {
 	validatorAccountsSyncerFactoryHandler   syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	shardRequestersContainerCreatorHandler  storageRequestFactory.ShardRequestersContainerCreatorHandler
 	apiRewardTxHandler                      transactionAPI.APIRewardTxHandler
+	outportDataProviderFactory              mainFactory.OutportDataProviderFactoryHandler
 	delegatedListFactoryHandler             trieIteratorsFactory.DelegatedListProcessorFactoryHandler
 	directStakedListFactoryHandler          trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 	totalStakedValueFactoryHandler          trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
@@ -306,6 +308,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
 		apiRewardTxHandler:                      apiRewardTxHandler,
+		outportDataProviderFactory:              outportFactory.NewOutportDataProviderFactory(),
 		delegatedListFactoryHandler:             trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		directStakedListFactoryHandler:          trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		totalStakedValueFactoryHandler:          trieIteratorsFactory.NewTotalStakedListProcessorFactory(),

@@ -871,3 +871,6 @@ var ErrNilShardRequestersContainerCreatorHandler = errors.New("nil shard request
 
 // ErrNilAPIRewardsHandler signals that a nil api rewards handler has been provided
 var ErrNilAPIRewardsHandler = errors.New("nil api rewards handler has been provided")
+
+// ErrNilOutportDataProviderFactory signals that a nil outport data provider factory has been provided
+var ErrNilOutportDataProviderFactory = errors.New("nil outport data provider factory has been provided")

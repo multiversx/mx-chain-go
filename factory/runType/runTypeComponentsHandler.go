@@ -252,6 +252,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.apiRewardTxHandler) {
 		return errors.ErrNilAPIRewardsHandler
 	}
+	if check.IfNil(mrc.outportDataProviderFactory) {
+		return errors.ErrNilOutportDataProviderFactory
+	}
 	if check.IfNil(mrc.delegatedListFactoryHandler) {
 		return factory.ErrNilDelegatedListFactory
 	}
@@ -851,6 +854,18 @@ func (mrc *managedRunTypeComponents) APIRewardsTxHandler() transactionAPI.APIRew
 	}
 
 	return mrc.runTypeComponents.apiRewardTxHandler
+}
+
+// OutportDataProviderFactory returns the outport data provider factory
+func (mrc *managedRunTypeComponents) OutportDataProviderFactory() factory.OutportDataProviderFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.outportDataProviderFactory
 }
 
 // DelegatedListFactoryHandler returns delegated list factory handler

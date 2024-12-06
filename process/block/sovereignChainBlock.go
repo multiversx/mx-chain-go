@@ -579,16 +579,6 @@ func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBloc
 			Reserved:        mb.Reserved,
 		}
 
-		indexOfLastProcessed := int32(txCount)
-		if indexOfLastProcessed > 1 {
-			indexOfLastProcessed--
-		}
-
-		err = mbHeader.SetIndexOfLastTxProcessed(indexOfLastProcessed)
-		if err != nil {
-			return 0, nil, err
-		}
-
 		miniBlockHeaders = append(miniBlockHeaders, mbHeader)
 	}
 
