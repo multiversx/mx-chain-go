@@ -99,7 +99,7 @@ func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
 
 // GetSovereignRunTypeCoreComponents -
 func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
-	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory(config.SovereignEpochConfig{})
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovRunTypeCoreComponentsFactory)
 	if err != nil {
 		log.Error("GetSovereignRunTypeCoreComponents.NewManagedRunTypeCoreComponents", "error", err.Error())
@@ -145,6 +145,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
 		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 }
 
@@ -689,8 +690,8 @@ func GetProcessArgs(
 			}, nil
 		},
 	}
-
 	args.RunTypeComponents = runTypeComponents
+	args.EnableEpochsFactory = GetRunTypeCoreComponents().EnableEpochsFactoryCreator()
 	return args
 }
 
@@ -745,6 +746,7 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = runTypeComponents
+	processArgs.EnableEpochsFactory = GetSovereignRunTypeCoreComponents().EnableEpochsFactoryCreator()
 
 	return processArgs
 }

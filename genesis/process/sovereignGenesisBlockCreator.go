@@ -13,15 +13,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
-
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	"github.com/multiversx/mx-chain-go/genesis"
 	genesisCommon "github.com/multiversx/mx-chain-go/genesis/process/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -110,11 +109,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 }
 
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
-	cfg := createGenesisConfig(providedEnableEpochs)
-	cfg.ESDTMultiTransferEnableEpoch = 0
-	cfg.StakeEnableEpoch = 0
-	cfg.PenalizedTooMuchGasEnableEpoch = 0
-	return cfg
+	return providedEnableEpochs
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {

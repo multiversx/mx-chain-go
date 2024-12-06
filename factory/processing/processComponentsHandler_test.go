@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -43,12 +44,12 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testManagedProcessComponentsCreateShouldWork(t, common.MetachainShardId, getRunTypeComponentsMock())
-	testManagedProcessComponentsCreateShouldWork(t, 0, getRunTypeComponentsMock())
-	testManagedProcessComponentsCreateShouldWork(t, core.SovereignChainShardId, getSovereignRunTypeComponentsMock())
+	testManagedProcessComponentsCreateShouldWork(t, common.MetachainShardId, componentsMock.GetRunTypeCoreComponents(), getRunTypeComponentsMock())
+	testManagedProcessComponentsCreateShouldWork(t, 0, componentsMock.GetRunTypeCoreComponents(), getRunTypeComponentsMock())
+	testManagedProcessComponentsCreateShouldWork(t, core.SovereignChainShardId, componentsMock.GetRunTypeCoreComponents(), getSovereignRunTypeComponentsMock())
 }
 
-func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, rtch *mainFactoryMocks.RunTypeComponentsStub) {
+func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, rttc factory.RunTypeCoreComponentsHolder, rtc *mainFactoryMocks.RunTypeComponentsStub) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.CurrentShard = shardID
@@ -60,7 +61,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 		return 0
 	}
 
-	args := createProcessComponentsFactoryArgs(rtch)
+	args := createProcessComponentsFactoryArgs(rttc, rtc)
 	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardCoordinator)
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
 	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)

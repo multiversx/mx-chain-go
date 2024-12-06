@@ -4,12 +4,14 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	"github.com/multiversx/mx-chain-go/state"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewCoreComponentsFactory(t *testing.T) {
@@ -34,6 +36,13 @@ func TestNewCoreComponentsFactory(t *testing.T) {
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilRatingsDataFactory, err)
+	})
+	t.Run("nil enable epochs factory, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		args.EnableEpochsFactory = nil
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, enablers.ErrNilEnableEpochsFactory, err)
 	})
 }
 
