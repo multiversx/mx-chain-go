@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
-	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
@@ -123,10 +122,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		RunTypeComponents:              componentsMock.GetRunTypeComponents(),
-		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
-		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
-		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
+		RunTypeComponents: componentsMock.GetRunTypeComponents(),
 	}
 }
 
@@ -321,7 +317,10 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		args.DelegatedListFactoryHandler = nil
+		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.DelegatedListFactoryField = nil
+		args.RunTypeComponents = runTypeCompsStub
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilDelegatedListFactory, err)
 		require.True(t, check.IfNil(apiResolver))
@@ -330,7 +329,10 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		args.DirectStakedListFactoryHandler = nil
+		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.DirectStakedListFactoryField = nil
+		args.RunTypeComponents = runTypeCompsStub
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilDirectStakedListFactory, err)
 		require.True(t, check.IfNil(apiResolver))
@@ -339,7 +341,10 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		args.TotalStakedValueFactoryHandler = nil
+		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.TotalStakedValueFactoryField = nil
+		args.RunTypeComponents = runTypeCompsStub
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilTotalStakedValueFactory, err)
 		require.True(t, check.IfNil(apiResolver))

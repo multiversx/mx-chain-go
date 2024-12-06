@@ -1139,6 +1139,9 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ShardRequestersContainerCreatorHandlerField: rt.ShardRequestersContainerCreatorHandler(),
 		APIRewardsTxHandlerField:                    rt.APIRewardsTxHandler(),
 		OutportDataProviderFactoryField:             rt.OutportDataProviderFactory(),
+		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
+		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
+		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
 	}
 }
 

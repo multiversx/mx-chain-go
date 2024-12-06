@@ -1201,6 +1201,9 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ShardRequestersContainerCreatorHandlerField: rt.ShardRequestersContainerCreatorHandler(),
 		APIRewardsTxHandlerField:                    rt.APIRewardsTxHandler(),
 		OutportDataProviderFactoryField:             rt.OutportDataProviderFactory(),
+		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
+		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
+		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
 	}
 }
 

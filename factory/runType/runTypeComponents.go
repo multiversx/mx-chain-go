@@ -28,6 +28,7 @@ import (
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -126,6 +127,9 @@ type runTypeComponents struct {
 	shardRequestersContainerCreatorHandler  storageRequestFactory.ShardRequestersContainerCreatorHandler
 	apiRewardTxHandler                      transactionAPI.APIRewardTxHandler
 	outportDataProviderFactory              mainFactory.OutportDataProviderFactoryHandler
+	delegatedListFactoryHandler             trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	directStakedListFactoryHandler          trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	totalStakedValueFactoryHandler          trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -305,6 +309,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
 		apiRewardTxHandler:                      apiRewardTxHandler,
 		outportDataProviderFactory:              outportFactory.NewOutportDataProviderFactory(),
+		delegatedListFactoryHandler:             trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		directStakedListFactoryHandler:          trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
+		totalStakedValueFactoryHandler:          trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
 	}, nil
 }
 

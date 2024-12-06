@@ -32,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/node/trieIterators"
-	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -58,23 +57,20 @@ var log = logger.GetOrCreate("factory")
 
 // ApiResolverArgs holds the argument needed to create an API resolver
 type ApiResolverArgs struct {
-	Configs                        *config.Configs
-	CoreComponents                 factory.CoreComponentsHolder
-	DataComponents                 factory.DataComponentsHolder
-	StateComponents                factory.StateComponentsHolder
-	BootstrapComponents            factory.BootstrapComponentsHolder
-	CryptoComponents               factory.CryptoComponentsHolder
-	ProcessComponents              factory.ProcessComponentsHolder
-	StatusCoreComponents           factory.StatusCoreComponentsHolder
-	StatusComponents               factory.StatusComponentsHolder
-	GasScheduleNotifier            common.GasScheduleNotifierAPI
-	Bootstrapper                   process.Bootstrapper
-	RunTypeComponents              factory.RunTypeComponentsHolder
-	AllowVMQueriesChan             chan struct{}
-	ProcessingMode                 common.NodeProcessingMode
-	DelegatedListFactoryHandler    trieIteratorsFactory.DelegatedListProcessorFactoryHandler
-	DirectStakedListFactoryHandler trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
-	TotalStakedValueFactoryHandler trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
+	Configs              *config.Configs
+	CoreComponents       factory.CoreComponentsHolder
+	DataComponents       factory.DataComponentsHolder
+	StateComponents      factory.StateComponentsHolder
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	ProcessComponents    factory.ProcessComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	StatusComponents     factory.StatusComponentsHolder
+	GasScheduleNotifier  common.GasScheduleNotifierAPI
+	Bootstrapper         process.Bootstrapper
+	RunTypeComponents    factory.RunTypeComponentsHolder
+	AllowVMQueriesChan   chan struct{}
+	ProcessingMode       common.NodeProcessingMode
 }
 
 type scQueryServiceArgs struct {
@@ -123,14 +119,13 @@ type scQueryElementArgs struct {
 func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	apiWorkingDir := filepath.Join(args.Configs.FlagsConfig.WorkingDir, common.TemporaryPath)
 
-	// TODO: MX-16228 Move all these 3 below in runTypeComp
-	if check.IfNilReflect(args.DelegatedListFactoryHandler) {
+	if check.IfNil(args.RunTypeComponents.DelegatedListFactoryHandler()) {
 		return nil, factory.ErrNilDelegatedListFactory
 	}
-	if check.IfNilReflect(args.DirectStakedListFactoryHandler) {
+	if check.IfNil(args.RunTypeComponents.DirectStakedListFactoryHandler()) {
 		return nil, factory.ErrNilDirectStakedListFactory
 	}
-	if check.IfNilReflect(args.TotalStakedValueFactoryHandler) {
+	if check.IfNil(args.RunTypeComponents.TotalStakedValueFactoryHandler()) {
 		return nil, factory.ErrNilTotalStakedValueFactory
 	}
 	if check.IfNil(args.RunTypeComponents.APIRewardsTxHandler()) {
@@ -217,17 +212,17 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		PublicKeyConverter: args.CoreComponents.AddressPubKeyConverter(),
 		QueryService:       scQueryService,
 	}
-	totalStakedValueHandler, err := args.TotalStakedValueFactoryHandler.CreateTotalStakedValueProcessorHandler(argsProcessors)
+	totalStakedValueHandler, err := args.RunTypeComponents.TotalStakedValueFactoryHandler().CreateTotalStakedValueProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	directStakedListHandler, err := args.DirectStakedListFactoryHandler.CreateDirectStakedListProcessorHandler(argsProcessors)
+	directStakedListHandler, err := args.RunTypeComponents.DirectStakedListFactoryHandler().CreateDirectStakedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}
 
-	delegatedListHandler, err := args.DelegatedListFactoryHandler.CreateDelegatedListProcessorHandler(argsProcessors)
+	delegatedListHandler, err := args.RunTypeComponents.DelegatedListFactoryHandler().CreateDelegatedListProcessorHandler(argsProcessors)
 	if err != nil {
 		return nil, err
 	}

@@ -25,6 +25,7 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
@@ -273,5 +274,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewSovereignShardRequestersContainerCreator(),
 		apiRewardTxHandler:                      apiRewardTxHandler,
 		outportDataProviderFactory:              outportFactory.NewSovereignOutportDataProviderFactory(),
+		delegatedListFactoryHandler:             trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),
+		directStakedListFactoryHandler:          trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory(),
+		totalStakedValueFactoryHandler:          trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory(),
 	}, nil
 }
