@@ -394,8 +394,8 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 		rcvUsernameField: wrappedTx.Tx.GetRcvUserName(),
 		dataField:        wrappedTx.Tx.GetData(),
 		valueField:       getTxValue(wrappedTx),
-		senderShardID:    wrappedTx.SenderShardID,
-		receiverShardID:  wrappedTx.ReceiverShardID,
+		senderShardID:    atp.shardCoordinator.ComputeId(wrappedTx.Tx.GetSndAddr()),
+		receiverShardID:  atp.shardCoordinator.ComputeId(wrappedTx.Tx.GetRcvAddr()),
 	}
 
 	guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
