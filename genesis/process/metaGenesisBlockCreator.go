@@ -73,7 +73,7 @@ func CreateMetaGenesisBlock(
 
 	processors, err := createProcessorsForMetaGenesisBlock(
 		arg,
-		createGenesisConfig(arg.EpochConfig),
+		createGenesisConfig(arg.EpochConfig.EnableEpochs),
 		createGenesisRoundConfig(arg.RoundConfig),
 	)
 	if err != nil {
@@ -222,7 +222,7 @@ func createArgsMetaBlockCreatorAfterHardFork(
 ) (hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(core.MetachainShardId)
-	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, arg.EpochConfig, arg.RoundConfig)
+	processors, err := createProcessorsForMetaGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs, arg.RoundConfig)
 	if err != nil {
 		return hardForkProcess.ArgsNewMetaBlockCreatorAfterHardFork{}, err
 	}
@@ -301,13 +301,13 @@ func saveGenesisMetaToStorage(
 	return nil
 }
 
-func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, epochsConfig config.EpochConfig, roundConfig config.RoundConfig) (*genesisProcessors, error) {
+func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig config.RoundConfig) (*genesisProcessors, error) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	temporaryMetaHeader := &block.MetaBlock{
 		Epoch:     arg.StartEpochNum,
 		TimeStamp: arg.GenesisTime,
 	}
-	enableEpochsHandler, err := arg.EnableEpochsFactory.CreateEnableEpochsHandler(epochsConfig, epochNotifier)
+	enableEpochsHandler, err := arg.EnableEpochsFactory.CreateEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return nil, err
 	}

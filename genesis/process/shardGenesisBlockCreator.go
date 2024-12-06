@@ -57,19 +57,19 @@ type deployedScMetrics struct {
 	numOtherTypes int
 }
 
-func createGenesisConfig(providedEpochsConfig config.EpochConfig) config.EpochConfig {
-	clonedConfig := providedEpochsConfig
-	clonedConfig.EnableEpochs.BuiltInFunctionsEnableEpoch = 0
-	clonedConfig.EnableEpochs.PenalizedTooMuchGasEnableEpoch = unreachableEpoch
-	clonedConfig.EnableEpochs.MaxNodesChangeEnableEpoch = []config.MaxNodesChangeConfig{
+func createGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
+	clonedConfig := providedEnableEpochs
+	clonedConfig.BuiltInFunctionsEnableEpoch = 0
+	clonedConfig.PenalizedTooMuchGasEnableEpoch = unreachableEpoch
+	clonedConfig.MaxNodesChangeEnableEpoch = []config.MaxNodesChangeConfig{
 		{
 			EpochEnable:            unreachableEpoch,
 			MaxNumNodes:            0,
 			NodesToShufflePerShard: 0,
 		},
 	}
-	clonedConfig.EnableEpochs.StakeEnableEpoch = unreachableEpoch // we need to specifically disable this, we have exceptions in the staking system SC
-	clonedConfig.EnableEpochs.DoubleKeyProtectionEnableEpoch = 0
+	clonedConfig.StakeEnableEpoch = unreachableEpoch // we need to specifically disable this, we have exceptions in the staking system SC
+	clonedConfig.DoubleKeyProtectionEnableEpoch = 0
 
 	return clonedConfig
 }
@@ -92,7 +92,7 @@ func CreateShardGenesisBlock(
 	}
 
 	processors, err := createProcessorsForShardGenesisBlock(
-		arg, createGenesisConfig(arg.EpochConfig),
+		arg, createGenesisConfig(arg.EpochConfig.EnableEpochs),
 		createGenesisRoundConfig(arg.RoundConfig),
 	)
 	if err != nil {
@@ -277,7 +277,7 @@ func createArgsShardBlockCreatorAfterHardFork(
 ) (hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork, error) {
 	tmpArg := arg
 	tmpArg.Accounts = arg.importHandler.GetAccountsDBForShard(arg.ShardCoordinator.SelfId())
-	processors, err := createProcessorsForShardGenesisBlock(tmpArg, arg.EpochConfig, arg.RoundConfig)
+	processors, err := createProcessorsForShardGenesisBlock(tmpArg, arg.EpochConfig.EnableEpochs, arg.RoundConfig)
 	if err != nil {
 		return hardForkProcess.ArgsNewShardBlockCreatorAfterHardFork{}, err
 	}
@@ -357,10 +357,10 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, epochsConfig config.EpochConfig, roundConfig config.RoundConfig) (*genesisProcessors, error) {
+func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig config.RoundConfig) (*genesisProcessors, error) {
 	genesisWasmVMLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
 	epochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, err := arg.EnableEpochsFactory.CreateEnableEpochsHandler(epochsConfig, epochNotifier)
+	enableEpochsHandler, err := arg.EnableEpochsFactory.CreateEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,6 @@ import (
 
 // EnableEpochsFactory defines enable epochs handler factory behavior
 type EnableEpochsFactory interface {
-	CreateEnableEpochsHandler(epochConfig config.EpochConfig, epochNotifier process.EpochNotifier) (common.EnableEpochsHandler, error)
+	CreateEnableEpochsHandler(enableEpochs config.EnableEpochs, epochNotifier process.EpochNotifier) (common.EnableEpochsHandler, error)
 	IsInterfaceNil() bool
 }

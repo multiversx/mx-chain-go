@@ -17,8 +17,7 @@ type sovereignEnableEpochsHandler struct {
 // NewSovereignEnableEpochsHandler creates a new instance of sovereign enable epochs handler
 func NewSovereignEnableEpochsHandler(
 	enableEpochsConfig config.EnableEpochs,
-	sovereignEnableEpochsConfig config.SovereignEnableEpochs,
-	sovereignChainSpecificEnableEpochsConfig config.SovereignChainSpecificEnableEpochs,
+	sovereignEpochConfig config.SovereignEpochConfig,
 	epochNotifier process.EpochNotifier,
 ) (*sovereignEnableEpochsHandler, error) {
 	if check.IfNil(epochNotifier) {
@@ -29,8 +28,8 @@ func NewSovereignEnableEpochsHandler(
 		enableEpochsHandler: &enableEpochsHandler{
 			enableEpochsConfig: enableEpochsConfig,
 		},
-		sovereignEnableEpochsConfig:              sovereignEnableEpochsConfig,
-		sovereignChainSpecificEnableEpochsConfig: sovereignChainSpecificEnableEpochsConfig,
+		sovereignEnableEpochsConfig:              sovereignEpochConfig.SovereignEnableEpochs,
+		sovereignChainSpecificEnableEpochsConfig: sovereignEpochConfig.SovereignChainSpecificEnableEpochs,
 	}
 
 	sovHandler.createAllFlagsMap()

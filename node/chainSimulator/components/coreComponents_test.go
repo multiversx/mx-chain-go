@@ -46,7 +46,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				PublicKeyToListenFrom: "41378f754e2c7b2745208c3ed21b151d297acdc84c3aca00b9e292cf28ec2d444771070157ea7760ed83c26f4fed387d0077e00b563a95825dac2cbc349fc0025ccf774e37b0a98ad9724d30e90f8c29b4091ccb738ed9ffc0573df776ee9ea30b3c038b55e532760ea4a8f152f2a52848020e5cee1cc537f2c2323399723081",
 			},
 		},
-		EpochsConfig: config.EpochConfig{},
+		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{
 			RoundActivations: map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {

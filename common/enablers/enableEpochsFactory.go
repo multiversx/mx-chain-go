@@ -14,8 +14,8 @@ func NewEnableEpochsFactory() EnableEpochsFactory {
 }
 
 // CreateEnableEpochsHandler creates an enable epochs handler for regular chain
-func (eef *enableEpochsFactory) CreateEnableEpochsHandler(epochConfig config.EpochConfig, epochNotifier process.EpochNotifier) (common.EnableEpochsHandler, error) {
-	return NewEnableEpochsHandler(epochConfig.EnableEpochs, epochNotifier)
+func (eef *enableEpochsFactory) CreateEnableEpochsHandler(enableEpochs config.EnableEpochs, epochNotifier process.EpochNotifier) (common.EnableEpochsHandler, error) {
+	return NewEnableEpochsHandler(enableEpochs, epochNotifier)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

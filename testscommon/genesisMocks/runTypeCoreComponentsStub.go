@@ -2,6 +2,7 @@ package genesisMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/config"
 	genesisMocks "github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -29,7 +30,7 @@ func NewSovereignRunTypeCoreComponentsStub() *RunTypeCoreComponentsStub {
 	return &RunTypeCoreComponentsStub{
 		GenesisNodesSetupFactory: &genesisMocks.GenesisNodesSetupFactoryMock{},
 		RatingsDataFactory:       &testscommon.RatingsDataFactoryMock{},
-		EnableEpochsFactory:      enablers.NewSovereignEnableEpochsFactory(),
+		EnableEpochsFactory:      enablers.NewSovereignEnableEpochsFactory(config.SovereignEpochConfig{}),
 	}
 }
 

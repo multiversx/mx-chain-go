@@ -51,7 +51,7 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
 
-	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig)
+	err = gbc.computeSovereignDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig(gbc.arg.EpochConfig))
+	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
 	if err != nil {
 		return nil, err
 	}
@@ -108,17 +108,17 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	return mapEmptyGenesisBlocks, nil
 }
 
-func createSovereignGenesisConfig(providedEpochsConfig config.EpochConfig) config.EpochConfig {
-	return providedEpochsConfig
+func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
+	return providedEnableEpochs
 }
 
-func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(epochsConfig config.EpochConfig) error {
+func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
 	initialAddresses, err := addressDecoder.DecodeAddresses(gbc.arg.Core.AddressPubKeyConverter(), gbc.arg.DNSV2Addresses)
 	if err != nil {
 		return err
 	}
 
-	return gbc.computeDNSAddresses(epochsConfig, initialAddresses)
+	return gbc.computeDNSAddresses(enableEpochsConfig, initialAddresses)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCreatorArgs) (map[uint32]data.HeaderHandler, error) {
@@ -231,7 +231,7 @@ func createSovereignShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
 	nodesListSplitter genesis.NodesListSplitter,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	sovereignGenesisConfig := createSovereignGenesisConfig(arg.EpochConfig)
+	sovereignGenesisConfig := createSovereignGenesisConfig(arg.EpochConfig.EnableEpochs)
 	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err

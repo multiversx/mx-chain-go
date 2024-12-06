@@ -18,7 +18,7 @@ func TestNewSovereignEnableEpochsHandler(t *testing.T) {
 	t.Run("nil epoch notifier should error", func(t *testing.T) {
 		t.Parallel()
 
-		sovHandler, err := NewSovereignEnableEpochsHandler(createEnableEpochsConfig(), config.SovereignEnableEpochs{}, config.SovereignChainSpecificEnableEpochs{}, nil)
+		sovHandler, err := NewSovereignEnableEpochsHandler(createEnableEpochsConfig(), config.SovereignEpochConfig{}, nil)
 		require.Equal(t, process.ErrNilEpochNotifier, err)
 		require.True(t, sovHandler.IsInterfaceNil())
 	})
@@ -26,7 +26,7 @@ func TestNewSovereignEnableEpochsHandler(t *testing.T) {
 		t.Parallel()
 
 		wasCalled := false
-		sovHandler, err := NewSovereignEnableEpochsHandler(createEnableEpochsConfig(), config.SovereignEnableEpochs{}, config.SovereignChainSpecificEnableEpochs{}, &epochNotifier.EpochNotifierStub{
+		sovHandler, err := NewSovereignEnableEpochsHandler(createEnableEpochsConfig(), config.SovereignEpochConfig{}, &epochNotifier.EpochNotifierStub{
 			RegisterNotifyHandlerCalled: func(handler vmcommon.EpochSubscriberHandler) {
 				wasCalled = true
 			},

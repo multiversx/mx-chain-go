@@ -15,7 +15,7 @@ func TestEnableEpochsFactory_CreateEnableEpochsHandler(t *testing.T) {
 	factory := NewEnableEpochsFactory()
 	require.False(t, factory.IsInterfaceNil())
 
-	eeh, err := factory.CreateEnableEpochsHandler(config.EpochConfig{}, &epochNotifier.EpochNotifierStub{})
+	eeh, err := factory.CreateEnableEpochsHandler(config.EnableEpochs{}, &epochNotifier.EpochNotifierStub{})
 	require.Nil(t, err)
 	require.NotNil(t, eeh)
 	require.IsType(t, &enableEpochsHandler{}, eeh)

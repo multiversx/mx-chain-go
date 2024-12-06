@@ -103,7 +103,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
-		EpochsConfig:                *args.Configs.EpochConfig,
+		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
 		RoundsConfig:                *args.Configs.RoundConfig,
 		EconomicsConfig:             *args.Configs.EconomicsConfig,
 		ChanStopNodeProcess:         args.ChanStopNodeProcess,

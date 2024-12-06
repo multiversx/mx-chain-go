@@ -264,7 +264,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeInitialDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig))
+	err := gbc.computeInitialDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func (gbc *genesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHan
 			return nil, err
 		}
 
-		err = gbc.computeInitialDNSAddresses(gbc.arg.EpochConfig)
+		err = gbc.computeInitialDNSAddresses(gbc.arg.EpochConfig.EnableEpochs)
 		if err != nil {
 			return nil, err
 		}
@@ -449,19 +449,19 @@ func (gbc *genesisBlockCreator) createHeaders(args *headerCreatorArgs) (map[uint
 	return genesisBlocks, nil
 }
 
-func (gbc *genesisBlockCreator) computeInitialDNSAddresses(epochsConfig config.EpochConfig) error {
+func (gbc *genesisBlockCreator) computeInitialDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
 	isForCurrentShard := func([]byte) bool {
 		// after hardfork we are interested only in the smart contract addresses, as they are already deployed
 		return true
 	}
 	initialAddresses := intermediate.GenerateInitialPublicKeys(genesis.InitialDNSAddress, isForCurrentShard)
 
-	return gbc.computeDNSAddresses(epochsConfig, initialAddresses)
+	return gbc.computeDNSAddresses(enableEpochsConfig, initialAddresses)
 }
 
 // in case of hardfork initial smart contracts deployment is not called as they are all imported from previous state
 func (gbc *genesisBlockCreator) computeDNSAddresses(
-	epochsConfig config.EpochConfig,
+	enableEpochsConfig config.EnableEpochs,
 	initialAddresses [][]byte,
 ) error {
 	var dnsSC genesis.InitialSmartContractHandler
@@ -480,7 +480,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(
 		Epoch:     gbc.arg.StartEpochNum,
 		TimeStamp: gbc.arg.GenesisTime,
 	}
-	enableEpochsHandler, err := gbc.arg.EnableEpochsFactory.CreateEnableEpochsHandler(epochsConfig, epochNotifier)
+	enableEpochsHandler, err := gbc.arg.EnableEpochsFactory.CreateEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return err
 	}
