@@ -251,7 +251,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 			continue
 		}
 
-		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
+		if tokenTypeEquals(esdtToken.TokenType, tokenType) {
 			tokens = append(tokens, tokenName)
 		}
 	}
@@ -266,6 +266,19 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	}
 
 	return tokens, nil
+}
+
+func tokenTypeEquals(tokenType []byte, providedTokenType string) bool {
+	if providedTokenType == core.NonFungibleESDTv2 ||
+		providedTokenType == core.NonFungibleESDT {
+		return bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) || bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) || bytes.Equal(tokenType, []byte(core.DynamicNFTESDT))
+	}
+
+	if providedTokenType == core.SemiFungibleESDT {
+		return bytes.Equal(tokenType, []byte(core.SemiFungibleESDT)) || bytes.Equal(tokenType, []byte(core.DynamicSFTESDT))
+	}
+
+	return bytes.Equal(tokenType, []byte(providedTokenType))
 }
 
 func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContracts.ESDTDataV2, bool) {
