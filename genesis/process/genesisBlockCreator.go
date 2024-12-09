@@ -11,8 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/factory/vm"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
+	"github.com/multiversx/mx-chain-go/factory/vm"
 
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -533,11 +534,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
 	newArgument := gbc.arg // copy the arguments
-	newArgument.versionedHeaderFactory, err = gbc.createVersionedHeaderFactory()
-	if err != nil {
-		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating a VersionedHeaderFactory instance for shard %d",
-			err, shardID)
-	}
+	newArgument.versionedHeaderFactory = gbc.arg.RunTypeComponents.VersionedHeaderFactory()
 
 	if isCurrentShard {
 		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
