@@ -45,11 +45,3 @@ func (mhs *modifiedHashesSlice) Get() [][]byte {
 	copy(hashes, mhs.hashes)
 	return hashes
 }
-
-// Reset is used to reset the slice
-func (mhs *modifiedHashesSlice) Reset() {
-	mhs.Lock()
-	defer mhs.Unlock()
-
-	mhs.hashes = nil
-}
