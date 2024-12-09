@@ -1175,6 +1175,11 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {
+	if log.GetLevel() != logger.LogTrace {
+		// do not need to load peer account if not log level trace
+		return
+	}
+
 	peerAcc, err := vs.loadPeerAccount([]byte(validatorKey))
 	if err != nil {
 		log.Trace("display peer acc", "error", err)
