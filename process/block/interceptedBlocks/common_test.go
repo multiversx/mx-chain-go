@@ -462,7 +462,7 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestCheckMetaShardInfo_OkValsShouldWorkMultipleShardData(t *testing.T) {
+func TestCheckMetaShardInfo_FewShardDataErrorShouldReturnError(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()

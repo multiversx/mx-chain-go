@@ -1845,7 +1845,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			return nil, process.ErrDeveloperFeesDoNotMatch
 		}
 
-		err = mp.verifyProof(shardData.GetPreviousProof())
+		err = verifyProof(shardData.GetPreviousProof())
 		if err != nil {
 			return nil, err
 		}
@@ -1865,7 +1865,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 	return highestNonceHdrs, nil
 }
 
-func (mp *metaProcessor) verifyProof(proof data.HeaderProofHandler) error {
+func verifyProof(proof data.HeaderProofHandler) error {
 	if check.IfNilReflect(proof) {
 		return nil
 	}
