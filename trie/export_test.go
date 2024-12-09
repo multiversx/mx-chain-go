@@ -2,8 +2,7 @@ package trie
 
 import (
 	"time"
-	
-	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -102,20 +101,24 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	}
 }
 
+// ExecuteUpdatesFromBatch -
 func ExecuteUpdatesFromBatch(tr common.Trie) {
 	pmt, _ := tr.(*patriciaMerkleTrie)
 	_ = pmt.updateTrie()
 }
 
+// KeyBytesToHex -
 func KeyBytesToHex(str []byte) []byte {
 	return keyBytesToHex(str)
 }
 
+// GetBatchManager -
 func GetBatchManager(tr common.Trie) common.TrieBatchManager {
 	return tr.(*patriciaMerkleTrie).batchManager
 }
 
-func SetGoRoutinesThrottlerToTrie(tr common.Trie, gt core.Throttler) {
+// SetGoRoutinesManager -
+func SetGoRoutinesManager(tr common.Trie, gm common.TrieGoroutinesManager) {
 	pmt, _ := tr.(*patriciaMerkleTrie)
-	pmt.goroutinesThrottler = gt
+	pmt.goRoutinesManager = gm
 }

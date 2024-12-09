@@ -1581,20 +1581,18 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
 		startedProcessing := atomic.Bool{}
-		throttler := &mock.ThrottlerStub{
-			CanProcessCalled: func() bool {
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
 				return true
 			},
-			StartProcessingCalled: func() {
-				startedProcessing.Store(true)
-			},
-			EndProcessingCalled: func() {
+			EndGoRoutineProcessingCalled: func() {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
 		}
-		trie.SetGoRoutinesThrottlerToTrie(tr, throttler)
+		trie.SetGoRoutinesManager(tr, grm)
 
 		firstBatchOperations := 1000
 		secondBatchOperations := 500
@@ -1648,20 +1646,18 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
 		startedProcessing := atomic.Bool{}
-		throttler := &mock.ThrottlerStub{
-			CanProcessCalled: func() bool {
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
 				return true
 			},
-			StartProcessingCalled: func() {
-				startedProcessing.Store(true)
-			},
-			EndProcessingCalled: func() {
+			EndGoRoutineProcessingCalled: func() {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
 		}
-		trie.SetGoRoutinesThrottlerToTrie(tr, throttler)
+		trie.SetGoRoutinesManager(tr, grm)
 
 		firstBatchOperations := 1000
 		secondBatchOperations := 500
@@ -1815,20 +1811,18 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
 		startedProcessing := atomic.Bool{}
-		throttler := &mock.ThrottlerStub{
-			CanProcessCalled: func() bool {
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
 				return true
 			},
-			StartProcessingCalled: func() {
-				startedProcessing.Store(true)
-			},
-			EndProcessingCalled: func() {
+			EndGoRoutineProcessingCalled: func() {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
 		}
-		trie.SetGoRoutinesThrottlerToTrie(tr, throttler)
+		trie.SetGoRoutinesManager(tr, grm)
 
 		numOperations := 1000
 		for i := 0; i < numOperations; i++ {
