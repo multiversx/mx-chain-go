@@ -1581,19 +1581,17 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:                   *snr.configs.GeneralConfig,
-		ConfigPathsHolder:        *snr.configs.ConfigurationPathsHolder,
-		EpochConfig:              *snr.configs.EpochConfig,
-		RoundConfig:              *snr.configs.RoundConfig,
-		ImportDbConfig:           *snr.configs.ImportDbConfig,
-		RatingsConfig:            *snr.configs.RatingsConfig,
-		EconomicsConfig:          *snr.configs.EconomicsConfig,
-		NodesFilename:            snr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
-		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
+		Config:                *snr.configs.GeneralConfig,
+		ConfigPathsHolder:     *snr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *snr.configs.EpochConfig,
+		RoundConfig:           *snr.configs.RoundConfig,
+		ImportDbConfig:        *snr.configs.ImportDbConfig,
+		RatingsConfig:         *snr.configs.RatingsConfig,
+		EconomicsConfig:       *snr.configs.EconomicsConfig,
+		NodesFilename:         snr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:      snr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		RunTypeCoreComponents: runTypeCoreComponents,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1686,7 +1684,7 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeCoreComponents creates the managed run type core components
 func (snr *sovereignNodeRunner) CreateManagedRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHandler, error) {
-	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory(*snr.configs.SovereignEpochConfig)
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
 	if err != nil {
 		return nil, err

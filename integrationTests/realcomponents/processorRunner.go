@@ -129,19 +129,17 @@ func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 	argsCore := factoryCore.CoreComponentsFactoryArgs{
-		Config:                   *pr.Config.GeneralConfig,
-		ConfigPathsHolder:        *pr.Config.ConfigurationPathsHolder,
-		EpochConfig:              *pr.Config.EpochConfig,
-		RoundConfig:              *pr.Config.RoundConfig,
-		RatingsConfig:            *pr.Config.RatingsConfig,
-		EconomicsConfig:          *pr.Config.EconomicsConfig,
-		ImportDbConfig:           *pr.Config.ImportDbConfig,
-		NodesFilename:            pr.Config.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:         pr.Config.FlagsConfig.WorkingDir,
-		ChanStopNodeProcess:      make(chan endProcess.ArgEndProcess),
-		GenesisNodesSetupFactory: pr.RunTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       pr.RunTypeCoreComponents.RatingsDataFactoryCreator(),
-		EnableEpochsFactory:      pr.RunTypeCoreComponents.EnableEpochsFactoryCreator(),
+		Config:                *pr.Config.GeneralConfig,
+		ConfigPathsHolder:     *pr.Config.ConfigurationPathsHolder,
+		EpochConfig:           *pr.Config.EpochConfig,
+		RoundConfig:           *pr.Config.RoundConfig,
+		RatingsConfig:         *pr.Config.RatingsConfig,
+		EconomicsConfig:       *pr.Config.EconomicsConfig,
+		ImportDbConfig:        *pr.Config.ImportDbConfig,
+		NodesFilename:         pr.Config.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:      pr.Config.FlagsConfig.WorkingDir,
+		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
+		RunTypeCoreComponents: pr.RunTypeCoreComponents,
 	}
 	coreFactory, err := factoryCore.NewCoreComponentsFactory(argsCore)
 	require.Nil(tb, err)
