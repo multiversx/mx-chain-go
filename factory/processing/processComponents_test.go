@@ -1142,6 +1142,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
 		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
 		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
+		VersionedHeaderFactoryField:                 rt.VersionedHeaderFactory(),
 	}
 }
 

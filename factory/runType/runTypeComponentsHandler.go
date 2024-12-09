@@ -264,6 +264,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.totalStakedValueFactoryHandler) {
 		return factory.ErrNilTotalStakedValueFactory
 	}
+	if check.IfNil(mrc.versionedHeaderFactory) {
+		return process.ErrNilVersionedHeaderFactory
+	}
 
 	return nil
 }
@@ -902,6 +905,18 @@ func (mrc *managedRunTypeComponents) TotalStakedValueFactoryHandler() trieIterat
 	}
 
 	return mrc.runTypeComponents.totalStakedValueFactoryHandler
+}
+
+// VersionedHeaderFactory returns the versioned header factory
+func (mrc *managedRunTypeComponents) VersionedHeaderFactory() genesis.VersionedHeaderFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.versionedHeaderFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

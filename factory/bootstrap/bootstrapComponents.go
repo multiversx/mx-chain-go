@@ -117,6 +117,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.LatestDataProviderFactory()) {
 		return nil, errors.ErrNilLatestDataProviderFactory
 	}
+	if check.IfNil(args.RunTypeComponents.VersionedHeaderFactory()) {
+		return nil, process.ErrNilVersionedHeaderFactory
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,
@@ -317,7 +320,7 @@ func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.H
 	if shardID == core.MetachainShardId {
 		return block.NewMetaHeaderFactory(handler)
 	}
-	return block.NewShardHeaderFactory(handler)
+	return bcf.runTypeComponents.VersionedHeaderFactory(), nil
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
