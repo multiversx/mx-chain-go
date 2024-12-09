@@ -108,6 +108,7 @@ func TestConsensusComponents_Close_ShouldWork(t *testing.T) {
 		managedStatusComponents,
 		managedStatusCoreComponents,
 		managedRunTypeComponents,
+		managedRunTypeCoreComponents,
 		gasScheduleNotifier,
 		nodesCoord,
 	)

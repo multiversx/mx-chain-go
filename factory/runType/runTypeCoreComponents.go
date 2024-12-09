@@ -1,6 +1,7 @@
 package runType
 
 import (
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -8,6 +9,7 @@ import (
 type runTypeCoreComponents struct {
 	genesisNodesSetupFactory sharding.GenesisNodesSetupFactory
 	ratingsDataFactory       rating.RatingsDataFactory
+	enableEpochsFactory      enablers.EnableEpochsFactory
 }
 
 // Close does nothing

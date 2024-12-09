@@ -9,7 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -96,6 +98,7 @@ type ArgsGenesisBlockCreator struct {
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	RunTypeComponents       runTypeComponentsHandler
 	Config                  config.Config
+	EnableEpochsFactory     enablers.EnableEpochsFactory
 
 	GenesisNodePrice *big.Int
 	GenesisString    string

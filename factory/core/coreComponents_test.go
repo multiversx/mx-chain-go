@@ -4,12 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	"github.com/multiversx/mx-chain-go/state"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewCoreComponentsFactory(t *testing.T) {
@@ -21,19 +22,12 @@ func TestNewCoreComponentsFactory(t *testing.T) {
 		require.NotNil(t, ccf)
 		require.Nil(t, err)
 	})
-	t.Run("nil genesis nodes setup factory, should return error", func(t *testing.T) {
+	t.Run("nil run type core components, should return error", func(t *testing.T) {
 		args := componentsMock.GetCoreArgs()
-		args.GenesisNodesSetupFactory = nil
+		args.RunTypeCoreComponents = nil
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.Nil(t, ccf)
-		require.Equal(t, errorsMx.ErrNilNodesSetupFactory, err)
-	})
-	t.Run("nil ratings data factory, should return error", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs()
-		args.RatingsDataFactory = nil
-		ccf, err := coreComp.NewCoreComponentsFactory(args)
-		require.Nil(t, ccf)
-		require.Equal(t, errorsMx.ErrNilRatingsDataFactory, err)
+		require.Equal(t, errorsMx.ErrNilRunTypeCoreComponents, err)
 	})
 }
 

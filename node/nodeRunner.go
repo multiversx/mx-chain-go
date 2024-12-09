@@ -443,6 +443,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedStatusCoreComponents,
 		managedRunTypeComponents,
+		managedRunTypeCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 	)
@@ -1176,6 +1177,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
+	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
@@ -1262,6 +1264,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:             *configs.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
 		RunTypeComponents:       runTypeComponents,
+		EnableEpochsFactory:     runTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1462,18 +1465,17 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:                   *nr.configs.GeneralConfig,
-		ConfigPathsHolder:        *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:              *nr.configs.EpochConfig,
-		RoundConfig:              *nr.configs.RoundConfig,
-		ImportDbConfig:           *nr.configs.ImportDbConfig,
-		RatingsConfig:            *nr.configs.RatingsConfig,
-		EconomicsConfig:          *nr.configs.EconomicsConfig,
-		NodesFilename:            nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:         nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *nr.configs.EpochConfig,
+		RoundConfig:           *nr.configs.RoundConfig,
+		ImportDbConfig:        *nr.configs.ImportDbConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		EconomicsConfig:       *nr.configs.EconomicsConfig,
+		NodesFilename:         nr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:      nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		RunTypeCoreComponents: runTypeCoreComponents,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
