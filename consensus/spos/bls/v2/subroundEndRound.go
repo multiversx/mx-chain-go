@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/bits"
 	"sync"
 	"time"
 
@@ -43,9 +44,7 @@ func NewSubroundEndRound(
 	worker spos.WorkerHandler,
 	signatureThrottler core.Throttler,
 ) (*subroundEndRound, error) {
-	err := checkNewSubroundEndRoundParams(
-		baseSubround,
-	)
+	err := checkNewSubroundEndRoundParams(baseSubround)
 	if err != nil {
 		return nil, err
 	}
@@ -93,127 +92,35 @@ func checkNewSubroundEndRoundParams(
 	return err
 }
 
-// receivedBlockHeaderFinalInfo method is called when a block header final info is received
-func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsDta *consensus.Message) bool {
+func (sr *subroundEndRound) isProofForCurrentConsensus(proof consensus.ProofHandler) bool {
+	return bytes.Equal(sr.GetData(), proof.GetHeaderHash())
+}
+
+// receivedProof method is called when a block header final info is received
+func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
-	messageSender := string(cnsDta.PubKey)
-
+	if sr.IsJobDone(sr.SelfPubKey(), sr.Current()) {
+		return
+	}
 	if !sr.IsConsensusDataSet() {
-		return false
+		return
 	}
 	if check.IfNil(sr.GetHeader()) {
-		return false
+		return
+	}
+	if !sr.isProofForCurrentConsensus(proof) {
+		return
 	}
 
-	// TODO[cleanup cns finality]: remove if statement
-	isSenderAllowed := sr.IsNodeInConsensusGroup(messageSender)
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		isSenderAllowed = sr.IsNodeLeaderInCurrentRound(messageSender)
-	}
-	if !isSenderAllowed { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().ChangeScore(
-			messageSender,
-			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor,
-		)
-
-		return false
-	}
-
-	// TODO[cleanup cns finality]: remove if
-	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		isSelfSender = sr.IsSelfLeader()
-	}
-	if isSelfSender {
-		return false
-	}
-
-	if !sr.IsConsensusDataEqual(cnsDta.BlockHeaderHash) {
-		return false
-	}
-
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
-		return false
-	}
-
-	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), cnsDta.BlockHeaderHash)
-	if hasProof && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return true
-	}
-
-	if !sr.isBlockHeaderFinalInfoValid(cnsDta) {
-		return false
-	}
-
+	// no need to re-verify the proof since it was already verified when it was added to the proofs pool
 	log.Debug("step 3: block header final info has been received",
-		"PubKeysBitmap", cnsDta.PubKeysBitmap,
-		"AggregateSignature", cnsDta.AggregateSignature,
-		"LeaderSignature", cnsDta.LeaderSignature)
+		"PubKeysBitmap", proof.GetPubKeysBitmap(),
+		"AggregateSignature", proof.GetAggregatedSignature(),
+		"HederHash", proof.GetHeaderHash())
 
-	sr.PeerHonestyHandler().ChangeScore(
-		messageSender,
-		spos.GetConsensusTopicID(sr.ShardCoordinator()),
-		spos.LeaderPeerHonestyIncreaseFactor,
-	)
-
-	return sr.doEndRoundJobByParticipant(cnsDta)
-}
-
-func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
-	if check.IfNil(sr.GetHeader()) {
-		return false
-	}
-
-	header := sr.GetHeader().ShallowClone()
-
-	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return sr.verifySignatures(header, cnsDta)
-	}
-
-	err := sr.HeaderSigVerifier().VerifySignatureForHash(header, cnsDta.BlockHeaderHash, cnsDta.PubKeysBitmap, cnsDta.AggregateSignature)
-	if err != nil {
-		log.Debug("isBlockHeaderFinalInfoValid.VerifySignatureForHash", "error", err.Error())
-		return false
-	}
-
-	return true
-}
-
-func (sr *subroundEndRound) verifySignatures(header data.HeaderHandler, cnsDta *consensus.Message) bool {
-	err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
-	if err != nil {
-		log.Debug("verifySignatures.SetPubKeysBitmap", "error", err.Error())
-		return false
-	}
-
-	err = header.SetSignature(cnsDta.AggregateSignature)
-	if err != nil {
-		log.Debug("verifySignatures.SetSignature", "error", err.Error())
-		return false
-	}
-
-	err = header.SetLeaderSignature(cnsDta.LeaderSignature)
-	if err != nil {
-		log.Debug("verifySignatures.SetLeaderSignature", "error", err.Error())
-		return false
-	}
-
-	err = sr.HeaderSigVerifier().VerifyLeaderSignature(header)
-	if err != nil {
-		log.Debug("verifySignatures.VerifyLeaderSignature", "error", err.Error())
-		return false
-	}
-	err = sr.HeaderSigVerifier().VerifySignature(header)
-	if err != nil {
-		log.Debug("verifySignatures.VerifySignature", "error", err.Error())
-		return false
-	}
-
-	return true
+	sr.doEndRoundJobByNode()
 }
 
 // receivedInvalidSignersInfo method is called when a message with invalid signers has been received
@@ -227,26 +134,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	// TODO[cleanup cns finality]: remove if statement
-	isSenderAllowed := sr.IsNodeInConsensusGroup(messageSender)
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		isSenderAllowed = sr.IsNodeLeaderInCurrentRound(messageSender)
-	}
-	if !isSenderAllowed { // is NOT this node leader in current round?
-		sr.PeerHonestyHandler().ChangeScore(
-			messageSender,
-			spos.GetConsensusTopicID(sr.ShardCoordinator()),
-			spos.LeaderPeerHonestyDecreaseFactor,
-		)
-
-		return false
-	}
-
-	// TODO[cleanup cns finality]: update this check
 	isSelfSender := sr.IsNodeSelf(messageSender) || sr.IsKeyManagedBySelf([]byte(messageSender))
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		isSelfSender = sr.IsSelfLeader()
-	}
 	if isSelfSender {
 		return false
 	}
@@ -325,67 +213,33 @@ func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
 	sr.PeerBlacklistHandler().BlacklistPeer(peer, common.InvalidSigningBlacklistDuration)
 }
 
-func (sr *subroundEndRound) receivedHeader(headerHandler data.HeaderHandler) {
-	isFlagEnabledForHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch())
-	// TODO[cleanup cns finality]: remove this method
-	// if flag is enabled, no need to commit this header, as it will be committed once the proof is available
-	if isFlagEnabledForHeader {
-		return
-	}
-
-	isLeader := sr.IsSelfLeader()
-	if sr.ConsensusGroup() == nil || isLeader {
-		return
-	}
-
-	sr.mutProcessingEndRound.Lock()
-	defer sr.mutProcessingEndRound.Unlock()
-
-	sr.AddReceivedHeader(headerHandler)
-
-	sr.doEndRoundJobByParticipant(nil)
-}
-
 // doEndRoundJob method does the job of the subround EndRound
 func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 	if check.IfNil(sr.GetHeader()) {
 		return false
 	}
 
-	// TODO[cleanup cns finality]: remove this code block
-	isFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch())
-	if !sr.IsSelfLeader() && !isFlagEnabled {
-		if sr.IsSelfInConsensusGroup() {
-			err := sr.prepareBroadcastBlockDataForValidator()
-			if err != nil {
-				log.Warn("validator in consensus group preparing for delayed broadcast",
-					"error", err.Error())
-			}
-		}
-
-		sr.mutProcessingEndRound.Lock()
-		defer sr.mutProcessingEndRound.Unlock()
-
-		return sr.doEndRoundJobByParticipant(nil)
-	}
-
-	if !sr.IsSelfInConsensusGroup() {
-		sr.mutProcessingEndRound.Lock()
-		defer sr.mutProcessingEndRound.Unlock()
-
-		return sr.doEndRoundJobByParticipant(nil)
-	}
-
-	return sr.doEndRoundJobByLeader()
+	return sr.doEndRoundJobByNode()
 }
 
-// TODO[cleanup cns finality]: rename this method, as this will be done by each participant
-func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
-	sender, err := sr.getSender()
+func (sr *subroundEndRound) commitBlock() error {
+	startTime := time.Now()
+	err := sr.BlockProcessor().CommitBlock(sr.GetHeader(), sr.GetBody())
+	elapsedTime := time.Since(startTime)
+	if elapsedTime >= common.CommitMaxTime {
+		log.Warn("doEndRoundJobByNode.CommitBlock", "elapsed time", elapsedTime)
+	} else {
+		log.Debug("elapsed time to commit block", "time [s]", elapsedTime)
+	}
 	if err != nil {
-		return false
+		log.Debug("doEndRoundJobByNode.CommitBlock", "error", err)
+		return err
 	}
 
+	return nil
+}
+
+func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	if !sr.waitForSignalSync() {
 		return false
 	}
@@ -393,43 +247,18 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
-	if !sr.shouldSendFinalInfo() {
-		return false
-	}
+	proof := sr.sendProof()
 
-	proof, ok := sr.sendFinalInfo(sender)
-	if !ok {
-		return false
-	}
-
-	// broadcast header
-	// TODO[cleanup cns finality]: remove this, header already broadcast during subroundBlock
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		err = sr.BroadcastMessenger().BroadcastHeader(sr.GetHeader(), sender)
-		if err != nil {
-			log.Warn("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
-		}
-	}
-
-	startTime := time.Now()
-	err = sr.BlockProcessor().CommitBlock(sr.GetHeader(), sr.GetBody())
-	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.CommitMaxTime {
-		log.Warn("doEndRoundJobByLeader.CommitBlock", "elapsed time", elapsedTime)
-	} else {
-		log.Debug("elapsed time to commit block",
-			"time [s]", elapsedTime,
-		)
-	}
+	err := sr.commitBlock()
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.CommitBlock", "error", err)
 		return false
 	}
 
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
+	// if proof not nil, it was created and broadcasted so it has to be added to the pool
+	if proof != nil {
 		err = sr.EquivalentProofsPool().AddProof(proof)
 		if err != nil {
-			log.Debug("doEndRoundJobByLeader.AddProof", "error", err)
+			log.Debug("doEndRoundJobByNode.AddProof", "error", err)
 			return false
 		}
 	}
@@ -438,12 +267,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	sr.worker.DisplayStatistics()
 
-	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
-
-	err = sr.broadcastBlockDataLeader(sender)
-	if err != nil {
-		log.Debug("doEndRoundJobByLeader.broadcastBlockDataLeader", "error", err.Error())
-	}
+	log.Debug("step 3: Body and Header have been committed")
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.GetHeader().GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
@@ -453,93 +277,46 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProofHandler, bool) {
+func (sr *subroundEndRound) sendProof() data.HeaderProofHandler {
+	if !sr.shouldSendProof() {
+		return nil
+	}
+
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
-		log.Debug("sendFinalInfo.checkSignaturesValidity", "error", err.Error())
-		return nil, false
+		log.Debug("sendProof.checkSignaturesValidity", "error", err.Error())
+		return nil
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
-		log.Debug("sendFinalInfo.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return nil, false
-	}
-
-	// TODO[cleanup cns finality]: remove this code block
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		err = sr.GetHeader().SetPubKeysBitmap(bitmap)
-		if err != nil {
-			log.Debug("sendFinalInfo.SetPubKeysBitmap", "error", err.Error())
-			return nil, false
-		}
-
-		err = sr.GetHeader().SetSignature(sig)
-		if err != nil {
-			log.Debug("sendFinalInfo.SetSignature", "error", err.Error())
-			return nil, false
-		}
-
-		// Header is complete so the leader can sign it
-		leaderSignature, err := sr.signBlockHeader(sender)
-		if err != nil {
-			log.Error(err.Error())
-			return nil, false
-		}
-
-		err = sr.GetHeader().SetLeaderSignature(leaderSignature)
-		if err != nil {
-			log.Debug("sendFinalInfo.SetLeaderSignature", "error", err.Error())
-			return nil, false
-		}
+		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
+		return nil
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return nil, false
+		return nil
 	}
 
 	roundHandler := sr.RoundHandler()
 	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
-		log.Debug("sendFinalInfo: time is out -> cancel broadcasting final info and header",
+		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return nil, false
+		return nil
 	}
 
-	// broadcast header and final info section
-	// TODO[cleanup cns finality]: remove leaderSigToBroadcast
-	leaderSigToBroadcast := sr.GetHeader().GetLeaderSignature()
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		leaderSigToBroadcast = nil
-	}
-
-	if !sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender) {
-		return nil, false
-	}
-
-	return &block.HeaderProof{
-		PubKeysBitmap:       bitmap,
-		AggregatedSignature: sig,
-		HeaderHash:          sr.GetData(),
-		HeaderEpoch:         sr.GetHeader().GetEpoch(),
-		HeaderNonce:         sr.GetHeader().GetNonce(),
-		HeaderShardId:       sr.GetHeader().GetShardID(),
-	}, true
+	// broadcast header proof
+	return sr.createAndBroadcastProof(sig, bitmap)
 }
 
-func (sr *subroundEndRound) shouldSendFinalInfo() bool {
-	// TODO[cleanup cns finality]: remove this check
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return true
-	}
-
-	// TODO: check if this is the best approach. Perhaps we don't want to relay only on the first received message
+func (sr *subroundEndRound) shouldSendProof() bool {
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
-		log.Debug("shouldSendFinalInfo: equivalent message already processed")
+		log.Debug("shouldSendProof: equivalent message already processed")
 		return false
 	}
 
@@ -549,20 +326,21 @@ func (sr *subroundEndRound) shouldSendFinalInfo() bool {
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.AggregateSigs", "error", err.Error())
+		log.Debug("doEndRoundJobByNode.AggregateSigs", "error", err.Error())
 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
 
 	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.SetAggregatedSig", "error", err.Error())
+		log.Debug("doEndRoundJobByNode.SetAggregatedSig", "error", err.Error())
 		return nil, nil, err
 	}
 
+	// the header (hash) verified here is with leader signature on it
 	err = sr.SigningHandler().Verify(sr.GetData(), bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.Verify", "error", err.Error())
+		log.Debug("doEndRoundJobByNode.Verify", "error", err.Error())
 
 		return sr.handleInvalidSignersOnAggSigFail()
 	}
@@ -685,23 +463,24 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 	invalidPubKeys, err := sr.verifyNodesOnAggSigFail(ctx)
 	cancel()
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.verifyNodesOnAggSigFail", "error", err.Error())
+		log.Debug("doEndRoundJobByNode.verifyNodesOnAggSigFail", "error", err.Error())
 		return nil, nil, err
 	}
 
-	invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+	_, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.getFullMessagesForInvalidSigners", "error", err.Error())
+		log.Debug("doEndRoundJobByNode.getFullMessagesForInvalidSigners", "error", err.Error())
 		return nil, nil, err
 	}
 
-	if len(invalidSigners) > 0 {
-		sr.createAndBroadcastInvalidSigners(invalidSigners)
-	}
+	// TODO: handle invalid signers broadcast without flooding the network
+	// if len(invalidSigners) > 0 {
+	// 	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	// }
 
 	bitmap, sig, err := sr.computeAggSigOnValidNodes()
 	if err != nil {
-		log.Debug("doEndRoundJobByLeader.computeAggSigOnValidNodes", "error", err.Error())
+		log.Debug("doEndRoundJobByNode.computeAggSigOnValidNodes", "error", err.Error())
 		return nil, nil, err
 	}
 
@@ -740,38 +519,34 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []byte, bitmap []byte, leaderSignature []byte, pubKey []byte) bool {
-	index, err := sr.ConsensusGroupIndex(string(pubKey))
-	if err != nil {
-		log.Debug("createAndBroadcastHeaderFinalInfoForKey.ConsensusGroupIndex", "error", err.Error())
-		return false
-	}
-
+func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) *block.HeaderProof {
 	headerProof := &block.HeaderProof{
-		AggregatedSignature: signature,
 		PubKeysBitmap:       bitmap,
+		AggregatedSignature: signature,
 		HeaderHash:          sr.GetData(),
 		HeaderEpoch:         sr.GetHeader().GetEpoch(),
+		HeaderNonce:         sr.GetHeader().GetNonce(),
+		HeaderShardId:       sr.GetHeader().GetShardID(),
 	}
 
-	sr.BroadcastMessenger().PrepareBroadcastEquivalentProof(headerProof, index, pubKey)
-	log.Debug("step 3: block header proof has been sent to delayed broadcaster",
-		"PubKeysBitmap", bitmap,
-		"AggregateSignature", signature,
-		"LeaderSignature", leaderSignature,
-		"Index", index)
+	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))
+	if err != nil {
+		return nil
+	}
 
-	return true
+	log.Debug("step 3: block header proof has been sent",
+		"PubKeysBitmap", bitmap,
+		"AggregateSignature", signature)
+
+	return headerProof
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
-	// TODO[cleanup cns finality]: remove the leader check
-	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch())
-	if !sr.IsSelfLeader() && !isEquivalentMessagesFlagEnabled {
+	if !sr.ShouldConsiderSelfKeyInConsensus() {
 		return
 	}
 
-	sender, err := sr.getSender()
+	sender, err := sr.GetLeader()
 	if err != nil {
 		log.Debug("createAndBroadcastInvalidSigners.getSender", "error", err)
 		return
@@ -782,7 +557,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		nil,
 		nil,
-		sender,
+		[]byte(sender),
 		nil,
 		int(bls.MtInvalidSigners),
 		sr.RoundHandler().Index(),
@@ -790,11 +565,10 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		nil,
 		nil,
-		sr.GetAssociatedPid(sender),
+		sr.GetAssociatedPid([]byte(sender)),
 		invalidSigners,
 	)
 
-	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
@@ -804,248 +578,11 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 	log.Debug("step 3: invalid signers info has been sent")
 }
 
-func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message) bool {
-	if sr.GetRoundCanceled() {
-		return false
-	}
-	if !sr.IsConsensusDataSet() {
-		return false
-	}
-	if !sr.IsSubroundFinished(sr.Previous()) {
-		return false
-	}
-	if sr.IsSubroundFinished(sr.Current()) {
-		return false
-	}
-
-	haveHeader, header := sr.haveConsensusHeaderWithFullInfo(cnsDta)
-	if !haveHeader {
-		return false
-	}
-
-	defer func() {
-		sr.SetProcessingBlock(false)
-	}()
-
-	sr.SetProcessingBlock(true)
-
-	shouldNotCommitBlock := sr.GetExtendedCalled() || int64(header.GetRound()) < sr.RoundHandler().Index()
-	if shouldNotCommitBlock {
-		log.Debug("canceled round, extended has been called or round index has been changed",
-			"round", sr.RoundHandler().Index(),
-			"subround", sr.Name(),
-			"header round", header.GetRound(),
-			"extended called", sr.GetExtendedCalled(),
-		)
-		return false
-	}
-
-	if sr.isOutOfTime() {
-		return false
-	}
-
-	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	if !ok {
-		return false
-	}
-
-	startTime := time.Now()
-	err := sr.BlockProcessor().CommitBlock(header, sr.GetBody())
-	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.CommitMaxTime {
-		log.Warn("doEndRoundJobByParticipant.CommitBlock", "elapsed time", elapsedTime)
-	} else {
-		log.Debug("elapsed time to commit block",
-			"time [s]", elapsedTime,
-		)
-	}
-	if err != nil {
-		log.Debug("doEndRoundJobByParticipant.CommitBlock", "error", err.Error())
-		return false
-	}
-
-	isSelfInConsensus := sr.IsSelfInConsensusGroup()
-	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
-	if isSelfInConsensus && cnsDta != nil && isEquivalentMessagesFlagEnabled {
-		proof := &block.HeaderProof{
-			PubKeysBitmap:       cnsDta.PubKeysBitmap,
-			AggregatedSignature: cnsDta.AggregateSignature,
-			HeaderHash:          cnsDta.BlockHeaderHash,
-			HeaderEpoch:         header.GetEpoch(),
-			HeaderNonce:         header.GetNonce(),
-			HeaderShardId:       header.GetShardID(),
-		}
-		err = sr.EquivalentProofsPool().AddProof(proof)
-		if err != nil {
-			log.Debug("doEndRoundJobByParticipant.AddProof", "error", err)
-			return false
-		}
-	}
-
-	sr.SetStatus(sr.Current(), spos.SsFinished)
-
-	// TODO[cleanup cns finality]: remove this
-	if isSelfInConsensus && !isEquivalentMessagesFlagEnabled {
-		err = sr.setHeaderForValidator(header)
-		if err != nil {
-			log.Warn("doEndRoundJobByParticipant", "error", err.Error())
-		}
-	}
-
-	sr.worker.DisplayStatistics()
-
-	log.Debug("step 3: Body and Header have been committed")
-
-	headerTypeMsg := "received"
-	if cnsDta != nil {
-		headerTypeMsg = "assembled"
-	}
-
-	msg := fmt.Sprintf("Added %s block with nonce  %d  in blockchain", headerTypeMsg, header.GetNonce())
-	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "-"))
-	return true
-}
-
-func (sr *subroundEndRound) haveConsensusHeaderWithFullInfo(cnsDta *consensus.Message) (bool, data.HeaderHandler) {
-	if cnsDta == nil {
-		return sr.isConsensusHeaderReceived()
-	}
-
-	if check.IfNil(sr.GetHeader()) {
-		return false, nil
-	}
-
-	header := sr.GetHeader().ShallowClone()
-	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		err := header.SetPubKeysBitmap(cnsDta.PubKeysBitmap)
-		if err != nil {
-			return false, nil
-		}
-
-		err = header.SetSignature(cnsDta.AggregateSignature)
-		if err != nil {
-			return false, nil
-		}
-
-		err = header.SetLeaderSignature(cnsDta.LeaderSignature)
-		if err != nil {
-			return false, nil
-		}
-
-		return true, header
-	}
-
-	return true, header
-}
-
-func (sr *subroundEndRound) isConsensusHeaderReceived() (bool, data.HeaderHandler) {
-	if check.IfNil(sr.GetHeader()) {
-		return false, nil
-	}
-
-	consensusHeaderHash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), sr.GetHeader())
-	if err != nil {
-		log.Debug("isConsensusHeaderReceived: calculate consensus header hash", "error", err.Error())
-		return false, nil
-	}
-
-	receivedHeaders := sr.GetReceivedHeaders()
-
-	var receivedHeaderHash []byte
-	for index := range receivedHeaders {
-		// TODO[cleanup cns finality]: remove this
-		receivedHeader := receivedHeaders[index].ShallowClone()
-		if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, receivedHeader.GetEpoch()) {
-			err = receivedHeader.SetLeaderSignature(nil)
-			if err != nil {
-				log.Debug("isConsensusHeaderReceived - SetLeaderSignature", "error", err.Error())
-				return false, nil
-			}
-
-			err = receivedHeader.SetPubKeysBitmap(nil)
-			if err != nil {
-				log.Debug("isConsensusHeaderReceived - SetPubKeysBitmap", "error", err.Error())
-				return false, nil
-			}
-
-			err = receivedHeader.SetSignature(nil)
-			if err != nil {
-				log.Debug("isConsensusHeaderReceived - SetSignature", "error", err.Error())
-				return false, nil
-			}
-		}
-
-		receivedHeaderHash, err = core.CalculateHash(sr.Marshalizer(), sr.Hasher(), receivedHeader)
-		if err != nil {
-			log.Debug("isConsensusHeaderReceived: calculate received header hash", "error", err.Error())
-			return false, nil
-		}
-
-		if bytes.Equal(receivedHeaderHash, consensusHeaderHash) {
-			return true, receivedHeaders[index]
-		}
-	}
-
-	return false, nil
-}
-
-func (sr *subroundEndRound) signBlockHeader(leader []byte) ([]byte, error) {
-	headerClone := sr.GetHeader().ShallowClone()
-	err := headerClone.SetLeaderSignature(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	marshalizedHdr, err := sr.Marshalizer().Marshal(headerClone)
-	if err != nil {
-		return nil, err
-	}
-
-	return sr.SigningHandler().CreateSignatureForPublicKey(marshalizedHdr, leader)
-}
-
 func (sr *subroundEndRound) updateMetricsForLeader() {
 	// TODO: decide if we keep these metrics the same way
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
 		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
-}
-
-func (sr *subroundEndRound) broadcastBlockDataLeader(sender []byte) error {
-	// TODO[cleanup cns finality]: remove this method, block data was already broadcast during subroundBlock
-	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return nil
-	}
-
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
-	if err != nil {
-		return err
-	}
-
-	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.GetHeader(), miniBlocks, transactions, sender)
-}
-
-func (sr *subroundEndRound) setHeaderForValidator(header data.HeaderHandler) error {
-	idx, pk, miniBlocks, transactions, err := sr.getIndexPkAndDataToBroadcast()
-	if err != nil {
-		return err
-	}
-
-	go sr.BroadcastMessenger().PrepareBroadcastHeaderValidator(header, miniBlocks, transactions, idx, pk)
-
-	return nil
-}
-
-func (sr *subroundEndRound) prepareBroadcastBlockDataForValidator() error {
-	idx, pk, miniBlocks, transactions, err := sr.getIndexPkAndDataToBroadcast()
-	if err != nil {
-		return err
-	}
-
-	go sr.BroadcastMessenger().PrepareBroadcastBlockDataValidator(sr.GetHeader(), miniBlocks, transactions, idx, pk)
-
-	return nil
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
@@ -1057,12 +594,54 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	return sr.IsSubroundFinished(sr.Current())
 }
 
-func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
-	if !sr.hasProposerSignature(bitmap) {
-		return spos.ErrMissingProposerSignature
+// IsBitmapInvalid checks if the bitmap is valid
+// TODO: remove duplicated code and use the header sig verifier instead
+func (sr *subroundEndRound) IsBitmapInvalid(bitmap []byte, consensusPubKeys []string) error {
+	consensusSize := len(consensusPubKeys)
+
+	expectedBitmapSize := consensusSize / 8
+	if consensusSize%8 != 0 {
+		expectedBitmapSize++
+	}
+	if len(bitmap) != expectedBitmapSize {
+		log.Debug("wrong size bitmap",
+			"expected number of bytes", expectedBitmapSize,
+			"actual", len(bitmap))
+		return ErrWrongSizeBitmap
 	}
 
+	numOfOnesInBitmap := 0
+	for index := range bitmap {
+		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
+	}
+
+	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
+	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
+		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
+		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
+			"minimum number of signatures required", minNumRequiredSignatures,
+			"actual number of signatures in bitmap", numOfOnesInBitmap,
+		)
+	}
+
+	if numOfOnesInBitmap >= minNumRequiredSignatures {
+		return nil
+	}
+
+	log.Debug("not enough signatures",
+		"minimum expected", minNumRequiredSignatures,
+		"actual", numOfOnesInBitmap)
+
+	return ErrNotEnoughSignatures
+}
+
+func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	consensusGroup := sr.ConsensusGroup()
+	err := sr.IsBitmapInvalid(bitmap, consensusGroup)
+	if err != nil {
+		return err
+	}
+
 	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, bitmap)
 	for _, pubKey := range signers {
 		isSigJobDone, err := sr.JobDone(pubKey, bls.SrSignature)
@@ -1078,15 +657,6 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	return nil
 }
 
-func (sr *subroundEndRound) hasProposerSignature(bitmap []byte) bool {
-	// TODO[cleanup cns finality]: remove this check
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return true
-	}
-
-	return bitmap[0]&1 > 0
-}
-
 func (sr *subroundEndRound) isOutOfTime() bool {
 	startTime := sr.GetRoundTimeStamp()
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
@@ -1100,31 +670,6 @@ func (sr *subroundEndRound) isOutOfTime() bool {
 	}
 
 	return false
-}
-
-func (sr *subroundEndRound) getIndexPkAndDataToBroadcast() (int, []byte, map[uint32][]byte, map[string][][]byte, error) {
-	minIdx := sr.getMinConsensusGroupIndexOfManagedKeys()
-
-	idx, err := sr.SelfConsensusGroupIndex()
-	if err == nil {
-		if idx < minIdx {
-			minIdx = idx
-		}
-	}
-
-	if minIdx == sr.ConsensusGroupSize() {
-		return -1, nil, nil, nil, err
-	}
-
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
-	if err != nil {
-		return -1, nil, nil, nil, err
-	}
-
-	consensusGroup := sr.ConsensusGroup()
-	pk := []byte(consensusGroup[minIdx])
-
-	return minIdx, pk, miniBlocks, transactions, nil
 }
 
 func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
@@ -1143,36 +688,7 @@ func (sr *subroundEndRound) getMinConsensusGroupIndexOfManagedKeys() int {
 	return minIdx
 }
 
-func (sr *subroundEndRound) getSender() ([]byte, error) {
-	// TODO[cleanup cns finality]: remove this code block
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		leader, errGetLeader := sr.GetLeader()
-		if errGetLeader != nil {
-			log.Debug("GetLeader", "error", errGetLeader)
-			return nil, errGetLeader
-		}
-
-		return []byte(leader), nil
-	}
-
-	for _, pk := range sr.ConsensusGroup() {
-		pkBytes := []byte(pk)
-		if !sr.IsKeyManagedBySelf(pkBytes) {
-			continue
-		}
-
-		return pkBytes, nil
-	}
-
-	return []byte(sr.SelfPubKey()), nil
-}
-
 func (sr *subroundEndRound) waitForSignalSync() bool {
-	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return true
-	}
-
 	if sr.IsSubroundFinished(sr.Current()) {
 		return true
 	}
@@ -1181,8 +697,10 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 		return true
 	}
 
-	go sr.waitAllSignatures()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	go sr.waitSignatures(ctx)
 	timerBetweenStatusChecks := time.NewTimer(timeBetweenSignaturesChecks)
 
 	remainingSRTime := sr.remainingTime()
@@ -1206,22 +724,21 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 	}
 }
 
-func (sr *subroundEndRound) waitAllSignatures() {
+func (sr *subroundEndRound) waitSignatures(ctx context.Context) {
 	remainingTime := sr.remainingTime()
-	time.Sleep(remainingTime)
-
 	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
-
 	sr.SetWaitingAllSignaturesTimeOut(true)
 
 	select {
-	case sr.ConsensusChannel() <- true:
-	default:
+	case <-time.After(remainingTime):
+	case <-ctx.Done():
 	}
+	sr.ConsensusChannel() <- true
 }
 
+// maximum time to wait for signatures
 func (sr *subroundEndRound) remainingTime() time.Duration {
 	startTime := sr.RoundHandler().TimeStamp()
 	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
@@ -1234,11 +751,6 @@ func (sr *subroundEndRound) remainingTime() time.Duration {
 // If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
-	// TODO[cleanup cns finality]: remove this check
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.GetHeader().GetEpoch()) {
-		return true
-	}
-
 	node := string(cnsDta.PubKey)
 	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
 
