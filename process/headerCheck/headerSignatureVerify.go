@@ -266,7 +266,8 @@ func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler
 	return headerCopy, hash, sig, bitmap, nil
 }
 
-// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
+// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag.
+// It also verifies previous block proof singature
 func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
 	previousProof := header.GetPreviousProof()
 
@@ -293,7 +294,7 @@ func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler
 		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
 	}
 
-	return nil
+	return hsv.VerifyHeaderProof(previousProof)
 }
 
 func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler, bitmap []byte) error {

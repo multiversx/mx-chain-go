@@ -51,8 +51,7 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 	)
 }
 
-// CreatePoolsHolder -
-func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHolder {
+func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolArgs {
 	var err error
 
 	txPool, err := CreateTxPool(numShards, selfShard)
@@ -160,8 +159,31 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
 	}
+
+	return dataPoolArgs
+}
+
+// CreatePoolsHolder -
+func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHolder {
+
+	dataPoolArgs := createPoolHolderArgs(numShards, selfShard)
+
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
+
+	return holder
+}
+
+// CreatePoolsHolderWithProofsPool -
+func CreatePoolsHolderWithProofsPool(
+	numShards uint32, selfShard uint32,
+	proofsPool dataRetriever.ProofsPool,
+) dataRetriever.PoolsHolder {
+	dataPoolArgs := createPoolHolderArgs(numShards, selfShard)
+	dataPoolArgs.Proofs = proofsPool
+
+	holder, err := dataPool.NewDataPool(dataPoolArgs)
+	panicIfError("CreatePoolsHolderWithProofsPool", err)
 
 	return holder
 }
