@@ -467,15 +467,16 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 		return nil, nil, err
 	}
 
-	invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+	_, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.getFullMessagesForInvalidSigners", "error", err.Error())
 		return nil, nil, err
 	}
 
-	if len(invalidSigners) > 0 {
-		sr.createAndBroadcastInvalidSigners(invalidSigners)
-	}
+	// TODO: handle invalid signers broadcast without flooding the network
+	// if len(invalidSigners) > 0 {
+	// 	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	// }
 
 	bitmap, sig, err := sr.computeAggSigOnValidNodes()
 	if err != nil {
