@@ -3,6 +3,7 @@ package track
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type blockNotarizerHandler interface {
@@ -53,5 +54,11 @@ type blockBalancerHandler interface {
 // including the single signer keys or the set of multi-keys
 type KeysHandler interface {
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
+	IsInterfaceNil() bool
+}
+
+// BlockTrackerCreator is an interface for creating block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker(argShardTracker ArgShardTracker) (process.BlockTracker, error)
 	IsInterfaceNil() bool
 }

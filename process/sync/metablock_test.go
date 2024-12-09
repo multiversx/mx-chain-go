@@ -36,9 +36,9 @@ import (
 
 func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
 	blockProcessorMock := &testscommon.BlockProcessorStub{
-		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
-			return nil
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+			_ = blk.SetCurrentBlockHeaderAndRootHash(header.(*block.MetaBlock), header.GetRootHash())
+			return header, body, nil
 		},
 		RevertCurrentBlockCalled: func() {
 		},
@@ -92,13 +92,13 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper:         argsBaseBootstrapper,
-		EpochBootstrapper:           &mock.EpochStartTriggerStub{},
-		ValidatorAccountsDB:         &stateMock.AccountsStub{},
-		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   &mock.EpochStartTriggerStub{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
 	}
 
 	return argsMetaBootstrapper
@@ -134,7 +134,7 @@ func TestNewMetaBootstrap_NilValidatorDBSyncerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := CreateMetaBootstrapMockArguments()
-	args.ValidatorStatisticsDBSyncer = nil
+	args.ValidatorDBSyncer = nil
 
 	bs, err := sync.NewMetaBootstrap(args)
 
@@ -708,8 +708,8 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	args.ChainHandler = blkc
 
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrBlockHashDoesNotMatch
+	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, process.ErrBlockHashDoesNotMatch
 	}
 	args.BlockProcessor = blockProcessor
 
@@ -1628,8 +1628,8 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 
 	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), dataRetriever.UserAccountsUnit.String())
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return errGetNodeFromDB
+	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, errGetNodeFromDB
 	}
 	args.BlockProcessor = blockProcessor
 
@@ -1775,7 +1775,7 @@ func TestMetaBootstrap_SyncAccountsDBs(t *testing.T) {
 
 		args := CreateMetaBootstrapMockArguments()
 		accountsSyncCalled := false
-		args.ValidatorStatisticsDBSyncer = &mock.AccountsDBSyncerStub{
+		args.ValidatorDBSyncer = &mock.AccountsDBSyncerStub{
 			SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 				accountsSyncCalled = true
 				return nil

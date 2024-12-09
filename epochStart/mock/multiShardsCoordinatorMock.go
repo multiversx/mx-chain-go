@@ -20,6 +20,11 @@ func NewMultiShardsCoordinatorMock(nrShard uint32) *multipleShardsCoordinatorMoc
 	return &multipleShardsCoordinatorMock{noShards: nrShard}
 }
 
+// TotalNumberOfShards -
+func (scm *multipleShardsCoordinatorMock) TotalNumberOfShards() uint32 {
+	return scm.NumberOfShards() + 1
+}
+
 // NumberOfShards -
 func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
 	return scm.noShards

@@ -114,9 +114,9 @@ func createFullStore() dataRetriever.StorageService {
 
 func createBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
 	blockProcessorMock := &testscommon.BlockProcessorStub{
-		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
-			return nil
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+			_ = blk.SetCurrentBlockHeaderAndRootHash(header.(*block.Header), header.GetRootHash())
+			return header, body, nil
 		},
 		RevertCurrentBlockCalled: func() {
 		},
@@ -219,6 +219,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -860,8 +861,8 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 	args.ChainHandler = blkc
 
 	blockProcessor := createBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrBlockHashDoesNotMatch
+	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, process.ErrBlockHashDoesNotMatch
 	}
 	args.BlockProcessor = blockProcessor
 
@@ -2050,9 +2051,7 @@ func TestShardBootstrap_CleanNoncesSyncedWithErrorsBehindFinalShouldWork(t *test
 	assert.Equal(t, uint32(9), bs.GetNumSyncedWithErrorsForNonce(3))
 }
 
-func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
-	t.Parallel()
-
+func createArgsForSyncBlockGetNodeDBError(errGetNodeFromDB error) sync.ArgShardBootstrapper {
 	args := CreateShardBootstrapMockArguments()
 
 	hdr := block.Header{Nonce: 1, PubKeysBitmap: []byte("X")}
@@ -2066,10 +2065,9 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 	}
 	args.ChainHandler = blkc
 
-	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), "")
 	blockProcessor := createBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return errGetNodeFromDB
+	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, errGetNodeFromDB
 	}
 	args.BlockProcessor = blockProcessor
 
@@ -2133,17 +2131,24 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		&mock.SyncTimerMock{},
 		0,
 	)
+	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
+		return []byte("roothash"), nil
+	}}
 
+	return args
+}
+
+func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
+	t.Parallel()
+
+	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), "")
+	args := createArgsForSyncBlockGetNodeDBError(errGetNodeFromDB)
 	syncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
 		SyncAccountsCalled: func(rootHash []byte, _ common.StorageMarker) error {
 			syncCalled = true
 			return nil
 		}}
-	args.Accounts = &stateMock.AccountsStub{RootHashCalled: func() ([]byte, error) {
-		return []byte("roothash"), nil
-	}}
-
 	bs, _ := sync.NewShardBootstrap(args)
 
 	err := bs.SyncBlock(context.Background())

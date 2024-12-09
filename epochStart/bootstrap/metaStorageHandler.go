@@ -29,19 +29,20 @@ func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error)
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        args.GeneralConfig,
-			PrefsConfig:                   args.PreferencesConfig,
-			ShardCoordinator:              args.ShardCoordinator,
-			PathManager:                   args.PathManagerHandler,
-			EpochStartNotifier:            epochStartNotifier,
-			NodeTypeProvider:              args.NodeTypeProvider,
-			StorageType:                   factory.BootstrapStorageService,
-			ManagedPeersHolder:            args.ManagedPeersHolder,
-			CurrentEpoch:                  args.CurrentEpoch,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            args.NodeProcessingMode,
-			RepopulateTokensSupplies:      false,
-			StateStatsHandler:             args.StateStatsHandler,
+			Config:                          args.GeneralConfig,
+			PrefsConfig:                     args.PreferencesConfig,
+			ShardCoordinator:                args.ShardCoordinator,
+			PathManager:                     args.PathManagerHandler,
+			EpochStartNotifier:              epochStartNotifier,
+			NodeTypeProvider:                args.NodeTypeProvider,
+			StorageType:                     factory.BootstrapStorageService,
+			ManagedPeersHolder:              args.ManagedPeersHolder,
+			CurrentEpoch:                    args.CurrentEpoch,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              args.NodeProcessingMode,
+			RepopulateTokensSupplies:        false,
+			StateStatsHandler:               args.StateStatsHandler,
+			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 		},
 	)
 	if err != nil {
@@ -86,12 +87,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = msh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
-	if err != nil {
-		return err
-	}
-
-	err = msh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	err = msh.saveEpochStartMetaHdrs(components, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return err
 	}

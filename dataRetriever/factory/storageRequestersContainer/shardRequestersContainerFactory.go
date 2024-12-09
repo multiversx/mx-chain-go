@@ -64,7 +64,7 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
-	err = srcf.generateHeaderRequesters()
+	err = srcf.generateHeaderRequesters(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -77,11 +77,11 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 	return srcf.container, nil
 }
 
-func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
+func (srcf *shardRequestersContainerFactory) generateHeaderRequesters(destShardID uint32) error {
 	shardC := srcf.shardCoordinator
 
 	// only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(destShardID)
 
 	hdrStorer, err := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {

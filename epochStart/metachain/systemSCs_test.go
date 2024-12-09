@@ -819,7 +819,6 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	signVerifer, _ := disabled.NewMessageSignVerifier(&cryptoMocks.KeyGenStub{})
-
 	nodesSetup := &genesisMocks.NodesSetupStub{}
 
 	argsHook := hooks.ArgBlockChainHook{
@@ -904,13 +903,14 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: peerAccountsDB,
-		UserAccountsDB:      userAccountsDB,
-		ChanceComputer:      &mock.ChanceComputerStub{},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
-		EnableEpochsHandler: enableEpochsHandler,
-		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
-		ArgBlockChainHook:   argsHook,
+		ValidatorAccountsDB:     peerAccountsDB,
+		UserAccountsDB:          userAccountsDB,
+		ChanceComputer:          &mock.ChanceComputerStub{},
+		ShardCoordinator:        &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler:     enableEpochsHandler,
+		NodesCoordinator:        &shardingMocks.NodesCoordinatorStub{},
+		ArgBlockChainHook:       argsHook,
+		VMContextCreatorHandler: systemSmartContracts.NewVMContextCreator(),
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 
@@ -2109,7 +2109,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	})
 
 	argsAuctionListSelector := AuctionListSelectorArgs{
-		ShardCoordinator:             args.ShardCoordinator,
+		ShardCoordinator:             args.ShardCoordinator.(ExtendedShardCoordinatorHandler),
 		StakingDataProvider:          args.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		SoftAuctionConfig:            auctionCfg,

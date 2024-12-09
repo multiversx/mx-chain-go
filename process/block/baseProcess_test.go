@@ -14,20 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
-	"github.com/multiversx/mx-chain-core-go/data/scheduled"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -41,12 +32,12 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -55,6 +46,17 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -90,7 +92,7 @@ func createArgBaseProcessor(
 		},
 	}
 
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
@@ -128,6 +130,7 @@ func createArgBaseProcessor(
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
+		RunTypeComponents:              components.GetRunTypeComponents(),
 	}
 }
 
@@ -355,12 +358,19 @@ func isInTxHashes(searched []byte, list [][]byte) bool {
 type wrongBody struct {
 }
 
+// Clone -
 func (wr *wrongBody) Clone() data.BodyHandler {
 	wrCopy := *wr
 
 	return &wrCopy
 }
 
+// SetMiniBlocks -
+func (wr *wrongBody) SetMiniBlocks(_ []data.MiniBlockHandler) error {
+	return nil
+}
+
+// IntegrityAndValidity -
 func (wr *wrongBody) IntegrityAndValidity() error {
 	return nil
 }
@@ -706,7 +716,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+				args.StatusCoreComponents = &mock.StatusCoreComponentsStub{
 					AppStatusHandlerField: nil,
 				}
 				return args
@@ -783,6 +793,54 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RunTypeComponents = nil
+				return args
+			},
+			expectedErr: errorsMx.ErrNilRunTypeComponents,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.AccountCreator = nil
+				args.RunTypeComponents = rtMock
+				return args
+			},
+			expectedErr: state.ErrNilAccountFactory,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.OutGoingOperationsPool = nil
+				args.RunTypeComponents = rtMock
+				return args
+			},
+			expectedErr: errorsMx.ErrNilOutGoingOperationsPool,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.DataCodec = nil
+				args.RunTypeComponents = rtMock
+				return args
+			},
+			expectedErr: errorsMx.ErrNilDataCodec,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.TopicsChecker = nil
+				args.RunTypeComponents = rtMock
+				return args
+			},
+			expectedErr: errorsMx.ErrNilTopicsChecker,
+		},
 	}
 
 	for _, test := range tests {
@@ -796,7 +854,6 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 	err := blproc.CheckProcessorNilParameters(args)
 	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
-
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 
@@ -1336,7 +1393,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr(t *testing.T) {
 	header := &block.Header{Round: 10, Nonce: 1}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
@@ -1372,7 +1429,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr2(t *testing.T) {
 	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
@@ -1409,7 +1466,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErr3(t *testing.T) {
 	header := &block.Header{Round: 10, Nonce: 1, Epoch: 5, RandSeed: randSeed, PrevRandSeed: randSeed}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 }
@@ -1470,13 +1527,13 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
 	epochStartTrigger.EpochStartMetaHdrHashCalled = func() []byte {
 		return header.EpochStartMetaHash
 	}
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
 
@@ -1535,14 +1592,14 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	}
 
 	blk := &block.Body{}
-	err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err := sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrMissingHeader))
 
 	metaHdr := &block.MetaBlock{}
 	metaHdrData, _ := coreComponents.InternalMarshalizer().Marshal(metaHdr)
 	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
 
 	metaHdr = &block.MetaBlock{Epoch: 3, EpochStart: block.EpochStart{
@@ -1552,7 +1609,7 @@ func TestShardProcessor_ProcessBlockEpochDoesNotMatchShouldErrMetaHashDoesNotMat
 	metaHdrData, _ = coreComponents.InternalMarshalizer().Marshal(metaHdr)
 	_ = dataComponents.StorageService().Put(dataRetriever.MetaBlockUnit, header.EpochStartMetaHash, metaHdrData)
 
-	err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
+	_, _, err = sp.ProcessBlock(header, blk, func() time.Duration { return time.Second })
 	assert.Nil(t, err)
 }
 
@@ -2999,7 +3056,7 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.Config = config.Config{}
-	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+	arguments.StatusCoreComponents = &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)

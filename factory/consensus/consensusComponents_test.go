@@ -2,6 +2,7 @@ package consensus_test
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -11,16 +12,23 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -30,6 +38,7 @@ import (
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	outportMocks "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -37,7 +46,9 @@ import (
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/update"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,7 +108,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &testscommon.CacherStub{}
 				},
 				HeadersCalled: func() retriever.HeadersPool {
-					return &testsMocks.HeadersCacherStub{}
+					return &testscommon.HeadersCacherStub{}
 				},
 			},
 			BlockChain: &testscommon.ChainHandlerStub{
@@ -105,7 +116,11 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return []byte("genesis hash")
 				},
 				GetGenesisHeaderCalled: func() data.HeaderHandler {
-					return &testscommon.HeaderHandlerStub{}
+					return &testscommon.HeaderHandlerStub{
+						GetRandSeedCalled: func() []byte {
+							return []byte("rand seed")
+						},
+					}
 				},
 			},
 			MbProvider: &testsMocks.MiniBlocksProviderStub{},
@@ -160,6 +175,24 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ScheduledProcessor:    &consensusMocks.ScheduledProcessorStub{},
 		IsInImportMode:        false,
 		ShouldDisableWatchdog: false,
+		ConsensusModel:        consensus.ConsensusModelV1,
+		ExtraSignersHolder:    &subRoundsHolder.ExtraSignersHolderMock{},
+		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
+		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{
+				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+					return &processMock.StorageBootstrapperMock{}, nil
+				},
+			},
+			BootstrapperFactory: &factoryMocks.BootstrapperFactoryMock{
+				CreateBootstrapperCalled: func(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+					return &processMock.BootstrapperStub{}, nil
+				},
+			},
+			ShardMessengerFactoryField:                 &factoryMocks.ShardChainMessengerFactoryMock{},
+			ValidatorAccountsSyncerFactoryHandlerField: &factoryMocks.ValidatorAccountsSyncerFactoryMock{},
+			ConsensusModelType:                         consensus.ConsensusModelV1,
+		},
 	}
 }
 
@@ -404,6 +437,74 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
+	t.Run("nil extraSignersHolder, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.ExtraSignersHolder = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilExtraSignersHolder, err)
+	})
+	t.Run("nil SubRoundEndV2Creator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.SubRoundEndV2Creator = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilSubRoundEndV2Creator, err)
+	})
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.RunTypeComponents = nil
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilRunTypeComponents, err)
+	})
+	t.Run("nil BootstrapperFromStorageFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: nil,
+			BootstrapperFactory:            &factoryMocks.BootstrapperFactoryMock{},
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBootstrapperFromStorageCreator, err)
+	})
+	t.Run("nil BootstrapperFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{},
+			BootstrapperFactory:            nil,
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBootstrapperCreator, err)
+	})
+	t.Run("nil ShardMessengerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		runTypeComps := mainFactoryMocks.NewRunTypeComponentsStub()
+		runTypeComps.ShardMessengerFactoryField = nil
+		args.RunTypeComponents = runTypeComps
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBroadCastShardMessengerFactoryHandler, err)
+	})
 }
 
 func TestConsensusComponentsFactory_Create(t *testing.T) {
@@ -538,22 +639,27 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockConsensusComponentsFactoryArgs()
-		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
-		require.True(t, ok)
-		cnt := 0
-		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
-			cnt++
-			if cnt > 3 {
-				return nil // NewShardStorageBootstrapper fails
-			}
-			return testscommon.NewMultiShardsCoordinatorMock(2)
+		createShardBootstrapperErr := errors.New("expected error")
+		args.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			BootstrapperFromStorageFactory: &factoryMocks.BootstrapperFromStorageFactoryMock{
+				CreateBootstrapperFromStorageCalled: func(args storageBootstrap.ArgsShardStorageBootstrapper) (process.BootstrapperFromStorage, error) {
+					return nil, expectedErr
+				},
+			},
+			BootstrapperFactory: &factoryMocks.BootstrapperFactoryMock{
+				CreateBootstrapperCalled: func(argsBaseBootstrapper sync.ArgShardBootstrapper) (process.Bootstrapper, error) {
+					return &processMock.BootstrapperStub{}, nil
+				},
+			},
+			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
+			ConsensusModelType:         consensus.ConsensusModelV1,
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
 
 		cc, err := ccf.Create()
 		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "shard coordinator"))
+		require.Equal(t, createShardBootstrapperErr, err)
 		require.Nil(t, cc)
 	})
 	t.Run("createUserAccountsSyncer fails due to missing UserAccountTrie should error", func(t *testing.T) {
@@ -952,5 +1058,52 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		require.NotNil(t, cc)
 
 		require.Nil(t, cc.Close())
+	})
+}
+
+func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldWork(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should create a shard storage and sync bootstrapper main chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
+
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
+		cc, err := ccf.Create()
+
+		require.NotNil(t, cc)
+		assert.Nil(t, err)
+
+		assert.Equal(t, "*sync.ShardBootstrap", fmt.Sprintf("%T", cc.BootStrapper()))
+	})
+
+	t.Run("should create a shard storage and sync bootstrapper sovereign chain instance", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
+
+		processArgs := componentsMock.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
+		processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
+		require.Nil(t, err)
+
+		managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
+		require.Nil(t, err)
+
+		err = managedProcessComponents.Create()
+		require.Nil(t, err)
+
+		args.ProcessComponents = managedProcessComponents
+		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
+		cc, err := ccf.Create()
+
+		require.NotNil(t, cc)
+		assert.Nil(t, err)
+
+		assert.Equal(t, "*sync.SovereignChainShardBootstrap", fmt.Sprintf("%T", cc.BootStrapper()))
 	})
 }

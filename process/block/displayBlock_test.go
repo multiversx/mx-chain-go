@@ -1,11 +1,13 @@
 package block
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
@@ -99,6 +101,132 @@ func TestDisplayBlock_DisplayMetaHashesIncluded(t *testing.T) {
 
 	assert.NotNil(t, lines)
 	assert.Equal(t, len(header.MetaBlockHashes), len(lines))
+}
+
+func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
+	t.Parallel()
+
+	shardLines := make([]*display.LineData, 0)
+
+	extendedShardHeaderHashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
+	outGoingMbHeader := &block.OutGoingMiniBlockHeader{
+		Hash:                                  []byte("outGoingTxDataHash"),
+		OutGoingOperationsHash:                []byte("outGoingOperationsHash"),
+		AggregatedSignatureOutGoingOperations: []byte("aggregatedSig"),
+		LeaderSignatureOutGoingOperations:     []byte("leaderSig"),
+	}
+	sovChainHeader := &block.SovereignChainHeader{
+		OutGoingMiniBlockHeader:   outGoingMbHeader,
+		ExtendedShardHeaderHashes: extendedShardHeaderHashes,
+	}
+
+	args := createMockArgsTransactionCounter()
+	txCounter, _ := NewTransactionCounter(args)
+	lines := txCounter.displaySovereignChainHeader(
+		shardLines,
+		sovChainHeader,
+	)
+
+	expectedLines := []*display.LineData{
+		{
+			Values:              []string{"ExtendedShardHeaderHashes", "ExtendedShardHeaderHash_1", hex.EncodeToString(extendedShardHeaderHashes[0])},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "...", "..."},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "ExtendedShardHeaderHash_3", hex.EncodeToString(extendedShardHeaderHashes[2])},
+			HorizontalRuleAfter: true,
+		},
+		{
+			Values:              []string{"OutGoing mini block header", "Hash", hex.EncodeToString(outGoingMbHeader.GetHash())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "OutGoingTxDataHash", hex.EncodeToString(outGoingMbHeader.GetOutGoingOperationsHash())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetAggregatedSignatureOutGoingOperations())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
+			HorizontalRuleAfter: true,
+		},
+	}
+	require.Equal(t, expectedLines, lines)
+
+	crossChainData := block.EpochStartCrossChainData{
+		ShardID:    core.MainChainShardId,
+		Epoch:      5,
+		Round:      12,
+		Nonce:      13,
+		HeaderHash: []byte{0xa, 0xb},
+	}
+	sovChainHeader.EpochStart.LastFinalizedCrossChainHeader = crossChainData
+	lastFinalizedCrossChainHeaderLines := []*display.LineData{
+		{
+			Values:              []string{"Last cross chain notarized header", "Hash", hex.EncodeToString(crossChainData.HeaderHash)},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "ShardID", getShardName(core.MainChainShardId)},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Epoch", "5"},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Round", "12"},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Nonce", "13"},
+			HorizontalRuleAfter: true,
+		},
+	}
+	expectedLines = append(expectedLines, lastFinalizedCrossChainHeaderLines...)
+	lines = txCounter.displaySovereignChainHeader(
+		shardLines,
+		sovChainHeader,
+	)
+	require.Equal(t, expectedLines, lines)
+}
+
+func TestDisplayBlock_DisplayExtendedShardHeaderHashesIncluded(t *testing.T) {
+	t.Parallel()
+
+	shardLines := make([]*display.LineData, 0)
+
+	hash1 := []byte("hash1")
+	hash2 := []byte("hash2")
+	hash3 := []byte("hash3")
+	extendedShardHeaderHashes := [][]byte{hash1, hash2, hash3}
+	args := createMockArgsTransactionCounter()
+	txCounter, _ := NewTransactionCounter(args)
+	lines := txCounter.displayExtendedShardHeaderHashesIncluded(
+		shardLines,
+		extendedShardHeaderHashes,
+	)
+
+	require.Equal(t, []*display.LineData{
+		{
+			Values:              []string{"ExtendedShardHeaderHashes", "ExtendedShardHeaderHash_1", hex.EncodeToString(hash1)},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "...", "..."},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "ExtendedShardHeaderHash_3", hex.EncodeToString(hash3)},
+			HorizontalRuleAfter: true,
+		},
+	}, lines)
 }
 
 func TestDisplayBlock_DisplayTxBlockBody(t *testing.T) {

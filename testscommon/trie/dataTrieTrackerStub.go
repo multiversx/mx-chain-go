@@ -26,7 +26,7 @@ func (dtts *DataTrieTrackerStub) RetrieveValue(key []byte) ([]byte, uint32, erro
 		return dtts.RetrieveValueCalled(key)
 	}
 
-	return []byte{}, 0, nil
+	return []byte{0}, 0, nil
 }
 
 // SaveKeyValue -

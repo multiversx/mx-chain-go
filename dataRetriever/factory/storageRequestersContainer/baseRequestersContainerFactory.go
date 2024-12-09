@@ -108,7 +108,7 @@ func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
 		return err
 	}
 
-	return brcf.generateValidatorInfoRequester()
+	return brcf.generateValidatorInfoRequester(common.ValidatorInfoTopic)
 }
 
 func (brcf *baseRequestersContainerFactory) generateTxRequesters(
@@ -242,13 +242,12 @@ func (brcf *baseRequestersContainerFactory) generatePeerAuthenticationRequester(
 	return brcf.container.Add(identifierPeerAuth, peerAuthRequester)
 }
 
-func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() error {
+func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester(identifierValidatorInfo string) error {
 	validatorInfoStorer, err := brcf.store.GetStorer(dataRetriever.UnsignedTransactionUnit)
 	if err != nil {
 		return err
 	}
 
-	identifierValidatorInfo := common.ValidatorInfoTopic
 	arg := storagerequesters.ArgSliceRequester{
 		Messenger:                brcf.messenger,
 		ResponseTopicName:        identifierValidatorInfo,

@@ -54,6 +54,8 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 	}
 
 	mbt.blockProcessor = blockProcessorObject
+	mbt.doReceivedHeaderJobFunc = mbt.doReceivedHeaderJob
+	mbt.getFinalHeaderFunc = mbt.getFinalHeader
 	mbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
 	mbt.headersPool.Clear()

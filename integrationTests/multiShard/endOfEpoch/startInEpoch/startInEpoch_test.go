@@ -6,11 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -24,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/pendingMb"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -40,6 +36,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -170,9 +172,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		GetRoundDurationCalled: func() uint64 {
 			return 4000
 		},
-		GetChainIdCalled: func() string {
-			return string(integrationTests.ChainID)
-		},
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return 1
 		},
@@ -181,9 +180,6 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		NumberOfShardsCalled: func() uint32 {
 			return uint32(numOfShards)
-		},
-		GetMinTransactionVersionCalled: func() uint32 {
-			return integrationTests.MinTransactionVersion
 		},
 	}
 	defer func() {
@@ -239,6 +235,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		&marshallerMock.MarshalizerMock{},
 		444,
 	)
+	additionalStorageServiceFactory := &testscommon.AdditionalStorageServiceFactoryMock{}
+
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		CryptoComponentsHolder:          cryptoComponents,
@@ -279,6 +277,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabled.NewStateStatistics(),
+		RunTypeComponents:          processMocks.NewRunTypeComponentsStub(),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -293,18 +292,19 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        generalConfig,
-			PrefsConfig:                   prefsConfig,
-			ShardCoordinator:              shardC,
-			PathManager:                   &testscommon.PathManagerStub{},
-			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
-			NodeTypeProvider:              &nodeTypeProviderMock.NodeTypeProviderStub{},
-			CurrentEpoch:                  0,
-			StorageType:                   factory.ProcessStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            common.Normal,
-			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
-			StateStatsHandler:             disabled.NewStateStatistics(),
+			Config:                          generalConfig,
+			PrefsConfig:                     prefsConfig,
+			ShardCoordinator:                shardC,
+			PathManager:                     &testscommon.PathManagerStub{},
+			EpochStartNotifier:              notifier.NewEpochStartSubscriptionHandler(),
+			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+			CurrentEpoch:                    0,
+			StorageType:                     factory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              common.Normal,
+			ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+			StateStatsHandler:               disabled.NewStateStatistics(),
+			AdditionalStorageServiceCreator: additionalStorageServiceFactory,
 		},
 	)
 	assert.NoError(t, err)
