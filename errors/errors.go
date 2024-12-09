@@ -868,3 +868,9 @@ var ErrNilValidatorAccountsDBSyncerFactory = errors.New("nil validator accounts 
 
 // ErrNilShardRequestersContainerCreatorHandler signals that a nil shard requesters container creator has been provided
 var ErrNilShardRequestersContainerCreatorHandler = errors.New("nil shard requesters container creator has been provided")
+
+// ErrNilAPIRewardsHandler signals that a nil api rewards handler has been provided
+var ErrNilAPIRewardsHandler = errors.New("nil api rewards handler has been provided")
+
+// ErrNilOutportDataProviderFactory signals that a nil outport data provider factory has been provided
+var ErrNilOutportDataProviderFactory = errors.New("nil outport data provider factory has been provided")

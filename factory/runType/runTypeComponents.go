@@ -26,6 +26,9 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/checking"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -122,6 +125,11 @@ type runTypeComponents struct {
 	exportHandlerFactoryCreator             mainFactory.ExportHandlerFactoryCreator
 	validatorAccountsSyncerFactoryHandler   syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	shardRequestersContainerCreatorHandler  storageRequestFactory.ShardRequestersContainerCreatorHandler
+	apiRewardTxHandler                      transactionAPI.APIRewardTxHandler
+	outportDataProviderFactory              mainFactory.OutportDataProviderFactoryHandler
+	delegatedListFactoryHandler             trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	directStakedListFactoryHandler          trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	totalStakedValueFactoryHandler          trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -245,6 +253,10 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
+	apiRewardTxHandler, err := transactionAPI.NewAPIRewardsHandler(rcf.coreComponents.AddressPubKeyConverter())
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewAPIRewardsHandler failed: %w", err)
+	}
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
@@ -295,6 +307,11 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		exportHandlerFactoryCreator:             updateFactory.NewExportHandlerFactoryCreator(),
 		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewValidatorAccountsSyncerFactory(),
 		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewShardRequestersContainerCreator(),
+		apiRewardTxHandler:                      apiRewardTxHandler,
+		outportDataProviderFactory:              outportFactory.NewOutportDataProviderFactory(),
+		delegatedListFactoryHandler:             trieIteratorsFactory.NewDelegatedListProcessorFactory(),
+		directStakedListFactoryHandler:          trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
+		totalStakedValueFactoryHandler:          trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
 	}, nil
 }
 

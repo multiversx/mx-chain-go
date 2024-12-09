@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
@@ -2341,4 +2342,40 @@ func (bp *baseProcessor) isPreviousBlockEpochStart() (uint32, bool) {
 	}
 
 	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
+}
+
+func (bp *baseProcessor) commitEpochStart(
+	header data.MetaHeaderHandler,
+	body *block.Body,
+	epochRewardsCreator process.RewardsCreator,
+	validatorInfoCreator process.EpochStartValidatorInfoCreator,
+) {
+	if header.IsStartOfEpochBlock() {
+		bp.epochStartTrigger.SetProcessed(header, body)
+		go epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		go validatorInfoCreator.SaveBlockDataToStorage(header, body)
+	} else {
+		currentHeader := bp.blockChain.GetCurrentBlockHeader()
+		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
+			bp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
+			bp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
+	}
+}
+
+// getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
+func (bp *baseProcessor) getRewardsTxs(
+	epochRewardsCreator epochStart.RewardsCreator,
+	header data.MetaHeaderHandler,
+	body *block.Body,
+) (rewardsTx map[string]data.TransactionHandler) {
+	if !bp.outportHandler.HasDrivers() {
+		return
+	}
+	if !header.IsStartOfEpochBlock() {
+		return
+	}
+
+	rewardsTx = epochRewardsCreator.GetRewardsTxs(body)
+	return rewardsTx
 }

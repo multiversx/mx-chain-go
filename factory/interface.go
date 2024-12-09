@@ -40,8 +40,11 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/outport"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -643,6 +646,11 @@ type RunTypeComponentsHolder interface {
 	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
+	APIRewardsTxHandler() transactionAPI.APIRewardTxHandler
+	OutportDataProviderFactory() OutportDataProviderFactoryHandler
+	DelegatedListFactoryHandler() trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryHandler() trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -711,5 +719,11 @@ type DataRetrieverContainersSetter interface {
 // ExportHandlerFactoryCreator should create an export factory handler
 type ExportHandlerFactoryCreator interface {
 	CreateExportFactoryHandler(args ArgsExporter) (update.ExportFactoryHandler, error)
+	IsInterfaceNil() bool
+}
+
+// OutportDataProviderFactoryHandler defines an outport data provider factory handler
+type OutportDataProviderFactoryHandler interface {
+	CreateOutportDataProvider(arg outportFactory.ArgOutportDataProviderFactory) (outport.DataProviderOutport, error)
 	IsInterfaceNil() bool
 }

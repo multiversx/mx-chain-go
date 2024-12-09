@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
@@ -21,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const firstHeaderNonce = uint64(1)
@@ -1162,9 +1163,9 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	// must be called before commitEpochStart
-	rewardsTxs := mp.getRewardsTxs(header, body)
+	rewardsTxs := mp.getRewardsTxs(mp.epochRewardsCreator, header, body)
 
-	mp.commitEpochStart(header, body)
+	mp.commitEpochStart(header, body, mp.epochRewardsCreator, mp.validatorInfoCreator)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
@@ -1508,33 +1509,6 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 	}
 
 	return lastNotarizedMetaHeader, lastNotarizedMetaHeaderHash
-}
-
-// getRewardsTxs must be called before method commitEpoch start because when commit is done rewards txs are removed from pool and saved in storage
-func (mp *metaProcessor) getRewardsTxs(header *block.MetaBlock, body *block.Body) (rewardsTx map[string]data.TransactionHandler) {
-	if !mp.outportHandler.HasDrivers() {
-		return
-	}
-	if !header.IsStartOfEpochBlock() {
-		return
-	}
-
-	rewardsTx = mp.epochRewardsCreator.GetRewardsTxs(body)
-	return rewardsTx
-}
-
-func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.Body) {
-	if header.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.SetProcessed(header, body)
-		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
-		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-	} else {
-		currentHeader := mp.blockChain.GetCurrentBlockHeader()
-		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
-			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
-			mp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
-		}
-	}
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
