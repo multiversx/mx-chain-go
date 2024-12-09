@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -234,55 +235,6 @@ func GetStatusCoreComponents(
 	return statusCoreComponents
 }
 
-// GetSovereignConsensusArgs -
-func GetSovereignConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
-	coreComponents := GetSovereignCoreComponents()
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	networkComponents := GetNetworkComponents(cryptoComponents)
-	stateComponents := GetSovereignStateComponents(coreComponents, GetStatusCoreComponents())
-	dataComponents := GetSovereignDataComponents(coreComponents, shardCoordinator)
-	processComponents := GetSovereignProcessComponents(
-		shardCoordinator,
-		coreComponents,
-		networkComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-	)
-	statusComponents := GetStatusComponents(
-		coreComponents,
-		networkComponents,
-		stateComponents,
-		shardCoordinator,
-		processComponents.NodesCoordinator(),
-	)
-
-	args := spos.ScheduledProcessorWrapperArgs{
-		SyncTimer:                coreComponents.SyncTimer(),
-		Processor:                processComponents.BlockProcessor(),
-		RoundTimeDurationHandler: coreComponents.RoundHandler(),
-	}
-	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
-
-	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		FlagsConfig:          config.ContextFlagsConfig{},
-		BootstrapRoundIndex:  0,
-		CoreComponents:       coreComponents,
-		NetworkComponents:    networkComponents,
-		CryptoComponents:     cryptoComponents,
-		DataComponents:       dataComponents,
-		ProcessComponents:    processComponents,
-		StateComponents:      stateComponents,
-		StatusComponents:     statusComponents,
-		StatusCoreComponents: GetStatusCoreComponents(),
-		ScheduledProcessor:   scheduledProcessor,
-		RunTypeComponents:    GetSovereignRunTypeComponents(),
-		ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
-		SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
-	}
-}
-
 // GetCryptoArgs -
 func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.CryptoComponentsFactoryArgs {
 	args := cryptoComp.CryptoComponentsFactoryArgs{
@@ -401,16 +353,6 @@ func createArgsRunTypeComponents(coreComponents factory.CoreComponentsHolder, cr
 		InitialAccounts: createAccounts(),
 	}
 }
-
-//// GetSovereignCoreComponents -
-//func GetSovereignCoreComponents() factory.CoreComponentsHolder {
-//	sovRunTypeCoreComponents := GetSovereignRunTypeCoreComponents()
-//	coreArgs := GetCoreArgs()
-//	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
-//	coreArgs.GenesisNodesSetupFactory = sovRunTypeCoreComponents.GenesisNodesSetupFactoryCreator()
-//	coreArgs.RatingsDataFactory = sovRunTypeCoreComponents.RatingsDataFactoryCreator()
-//	return createCoreComponents(coreArgs)
-//}
 
 // GetRunTypeComponents -
 func GetRunTypeComponents(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) factory.RunTypeComponentsHolder {
@@ -824,7 +766,7 @@ func GetStatusFactoryArgs(
 				{
 					MarshallerType:     "json",
 					Mode:               "client",
-					URL:                "localhost:12345",
+					URL:                "ws://localhost:12345",
 					RetryDurationInSec: 1,
 				},
 			},
@@ -1034,37 +976,6 @@ func GetProcessComponents(
 	err = managedProcessComponents.Create()
 	if err != nil {
 		log.Error("getProcessComponents Create", "error", err.Error())
-		return nil
-	}
-	return managedProcessComponents
-}
-
-// GetSovereignProcessComponents -
-func GetSovereignProcessComponents(
-	shardCoordinator sharding.Coordinator,
-	coreComponents factory.CoreComponentsHolder,
-	networkComponents factory.NetworkComponentsHolder,
-	dataComponents factory.DataComponentsHolder,
-	cryptoComponents factory.CryptoComponentsHolder,
-	stateComponents factory.StateComponentsHolder,
-) factory.ProcessComponentsHolder {
-	processArgs := GetSovereignProcessArgs(
-		shardCoordinator,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-		networkComponents,
-	)
-	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
-	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
-	if err != nil {
-		log.Error("GetSovereignProcessComponents NewManagedProcessComponents", "error", err.Error())
-		return nil
-	}
-	err = managedProcessComponents.Create()
-	if err != nil {
-		log.Error("GetSovereignProcessComponents Create", "error", err.Error())
 		return nil
 	}
 	return managedProcessComponents

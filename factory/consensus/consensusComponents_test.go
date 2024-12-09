@@ -16,7 +16,6 @@ import (
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
-	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"

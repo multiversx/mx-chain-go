@@ -314,7 +314,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.DelegatedListFactoryField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -326,7 +326,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.DirectStakedListFactoryField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -338,7 +338,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.TotalStakedValueFactoryField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -350,7 +350,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.APIRewardsTxHandlerField = nil
 		args.RunTypeComponents = runTypeCompsStub

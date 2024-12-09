@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -344,7 +345,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	var err error
 	tcn.Node, err = node.NewNode(
-		node.WithRunTypeComponents(components.GetRunTypeComponents()),
+		node.WithRunTypeComponents(components.GetRunTypeComponents(coreComponents, cryptoComponents)),
 		node.WithCoreComponents(coreComponents),
 		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),
