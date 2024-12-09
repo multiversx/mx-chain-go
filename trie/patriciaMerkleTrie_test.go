@@ -1522,6 +1522,21 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	})
 }
 
+func TestPatriciaMerkleTrie_InsertOneValInNilTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	key := []byte("dog")
+	value := []byte("cat")
+	_ = tr.Update(key, value)
+	trie.ExecuteUpdatesFromBatch(tr)
+
+	val, depth, err := tr.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, value, val)
+	assert.Equal(t, uint32(0), depth)
+}
+
 func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 	t.Parallel()
 

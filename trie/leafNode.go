@@ -200,11 +200,6 @@ func (ln *leafNode) insert(
 	modifiedHashes common.AtomicBytesSlice,
 	db common.TrieStorageInteractor,
 ) node {
-	oldHash := make([][]byte, 0)
-	if !ln.dirty {
-		oldHash = append(oldHash, ln.hash)
-	}
-
 	if len(newData) == 1 && bytes.Equal(newData[0].Key, ln.Key) {
 		return ln.insertInSameLn(newData[0], modifiedHashes)
 	}
