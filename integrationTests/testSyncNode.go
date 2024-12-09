@@ -177,6 +177,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -223,13 +224,13 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
+		ValidatorDBSyncer:            &mock.AccountsDBSyncerStub{},
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper:         argsBaseBootstrapper,
-		EpochBootstrapper:           tpn.EpochStartTrigger,
-		ValidatorAccountsDB:         tpn.PeerState,
-		ValidatorStatisticsDBSyncer: &mock.AccountsDBSyncerStub{},
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   tpn.EpochStartTrigger,
+		ValidatorAccountsDB: tpn.PeerState,
 	}
 
 	bootstrap, err := sync.NewMetaBootstrap(argsMetaBootstrapper)

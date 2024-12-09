@@ -10,6 +10,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/sharding"
+	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -21,20 +32,8 @@ import (
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	processing "github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/rating"
 	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/sharding"
-	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const delaySendTxs = time.Millisecond
@@ -54,9 +53,7 @@ type ArgsChainSimulator struct {
 	PathToInitialConfig            string
 	NumOfShards                    uint32
 	MinNodesPerShard               uint32
-	ConsensusGroupSize             uint32
 	MetaChainMinNodes              uint32
-	MetaChainConsensusGroupSize    uint32
 	NumNodesWaitingListShard       uint32
 	NumNodesWaitingListMeta        uint32
 	GenesisTimestamp               int64
@@ -67,12 +64,19 @@ type ArgsChainSimulator struct {
 	RoundsPerEpoch                 core.OptionalUint64
 	ApiInterface                   components.APIConfigurator
 	AlterConfigsFunction           func(cfg *config.Configs)
-	CreateGenesisNodesSetup        func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData              func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
-	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
+	VmQueryDelayAfterStartInMs     uint64
+	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
+	CreateIncomingHeaderSubscriber func(config config.WebSocketConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
 	ChainProcessorFactory          ChainHandlerFactory
+}
+
+// ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
+type ArgsBaseChainSimulator struct {
+	ArgsChainSimulator
+	ConsensusGroupSize          uint32
+	MetaChainConsensusGroupSize uint32
 }
 
 type simulator struct {
@@ -89,7 +93,16 @@ type simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
-	setSimulatorRunTypeArguments(&args)
+	return NewBaseChainSimulator(ArgsBaseChainSimulator{
+		ArgsChainSimulator:          args,
+		ConsensusGroupSize:          configs.ChainSimulatorConsensusGroupSize,
+		MetaChainConsensusGroupSize: configs.ChainSimulatorConsensusGroupSize,
+	})
+}
+
+// NewBaseChainSimulator will create a new instance of simulator
+func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
+	setSimulatorRunTypeArguments(&args.ArgsChainSimulator)
 
 	instance := &simulator{
 		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
@@ -110,18 +123,13 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 }
 
 func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
-	if args.CreateGenesisNodesSetup == nil {
-		args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error) {
-			return mxChainSharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
-		}
-	}
-	if args.CreateRatingsData == nil {
-		args.CreateRatingsData = func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error) {
-			return rating.NewRatingsData(arg)
+	if args.CreateRunTypeCoreComponents == nil {
+		args.CreateRunTypeCoreComponents = func() (factory.RunTypeCoreComponentsHolder, error) {
+			return createRunTypeCoreComponents()
 		}
 	}
 	if args.CreateIncomingHeaderSubscriber == nil {
-		args.CreateIncomingHeaderSubscriber = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
+		args.CreateIncomingHeaderSubscriber = func(_ config.WebSocketConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
 			return &sovereign.IncomingHeaderSubscriberStub{}, nil
 		}
 	}
@@ -136,6 +144,20 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	if args.ChainProcessorFactory == nil {
 		args.ChainProcessorFactory = NewChainHandlerFactory()
 	}
+}
+
+func createRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
 }
 
 func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
@@ -155,11 +177,11 @@ func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTyp
 	return managedRunTypeComponents, nil
 }
 
-func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
+func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:                 args.NumOfShards,
 		OriginalConfigsPath:         args.PathToInitialConfig,
-		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args),
+		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args.ArgsChainSimulator),
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		TempDir:                     args.TempDir,
 		MinNodesPerShard:            args.MinNodesPerShard,
@@ -206,7 +228,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 			}
 
 			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(currentRootHash)
-			if errRootHash != nil {
+			if errGet != nil {
 				return errGet
 			}
 
@@ -244,7 +266,7 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 }
 
 func (s *simulator) createTestNode(
-	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
+	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
 		Configs:                        outputConfigs.Configs,
@@ -262,8 +284,8 @@ func (s *simulator) createTestNode(
 		MinNodesMeta:                   args.MetaChainMinNodes,
 		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:          args.RoundDurationInMillis,
-		CreateGenesisNodesSetup:        args.CreateGenesisNodesSetup,
-		CreateRatingsData:              args.CreateRatingsData,
+		VmQueryDelayAfterStartInMs:     args.VmQueryDelayAfterStartInMs,
+		CreateRunTypeCoreComponents:    args.CreateRunTypeCoreComponents,
 		CreateIncomingHeaderSubscriber: args.CreateIncomingHeaderSubscriber,
 		CreateRunTypeComponents:        args.CreateRunTypeComponents,
 		NodeFactory:                    args.NodeFactory,
@@ -346,6 +368,22 @@ func (s *simulator) incrementRoundOnAllValidators() {
 	for _, node := range s.handlers {
 		node.IncrementRound()
 	}
+}
+
+// ForceChangeOfEpoch will force the change of current epoch
+// This method will call the epoch change trigger and generate block till a new epoch is reached
+func (s *simulator) ForceChangeOfEpoch() error {
+	log.Info("force change of epoch")
+	for shardID, node := range s.nodes {
+		err := node.ForceChangeOfEpoch()
+		if err != nil {
+			return fmt.Errorf("force change of epoch shardID-%d: error-%w", shardID, err)
+		}
+	}
+
+	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+
+	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
@@ -612,6 +650,7 @@ func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 
 func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithResult) bool {
 	allAreExecuted := true
+	contractDeploySCAddress := make([]byte, s.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Len())
 	for _, resultTx := range txsWithResult {
 		if resultTx.result != nil {
 			continue
@@ -619,6 +658,10 @@ func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithRe
 
 		sentTx := resultTx.tx
 		destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.RcvAddr)
+		if bytes.Equal(sentTx.RcvAddr, contractDeploySCAddress) {
+			destinationShardID = s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.SndAddr)
+		}
+
 		result, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
 		if errGet == nil && result.Status != transaction.TxStatusPending {
 			log.Info("############## transaction was executed ##############", "txHash", resultTx.hexHash)

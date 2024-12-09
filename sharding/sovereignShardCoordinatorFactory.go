@@ -9,8 +9,8 @@ func NewSovereignShardCoordinatorFactory() *sovereignShardCoordinatorFactory {
 }
 
 // CreateShardCoordinator creates a shard coordinator for sovereign chain
-func (ssc *sovereignShardCoordinatorFactory) CreateShardCoordinator(_, selfId uint32) (Coordinator, error) {
-	return NewSovereignShardCoordinator(selfId), nil
+func (ssc *sovereignShardCoordinatorFactory) CreateShardCoordinator(_, _ uint32) (Coordinator, error) {
+	return NewSovereignShardCoordinator(), nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

@@ -2,18 +2,19 @@ package main
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	factoryHost "github.com/multiversx/mx-chain-communication-go/websocket/factory"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -30,12 +31,6 @@ import (
 // from this branch: sovereign-stress-test-branch.
 // 2. Keep the config in variables.sh with at least 3 validators.
 //
-// If you need to simulate bridge outgoing txs with notifier confirmation, but don't have yet any SC deployed in sovereign
-// shard, you can simply add the following lines in `sovereignChainBlock.go`, func: `createAndSetOutGoingMiniBlock`
-//   + bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1" + hex.EncodeToString(headerHandler.GetRandSeed()))
-//   + bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2" + hex.EncodeToString(headerHandler.GetRandSeed()))
-//   + outGoingOperations = [][]byte{bridgeOp1, bridgeOp2}
-//
 // If you are running with a local testnet and need the necessary certificate files to mock bridge operations, you
 // can find them(certificate.crt + private_key.pem) within testnet environment setup at ~MultiversX/testnet/node/config
 
@@ -50,6 +45,9 @@ func main() {
 		"The blocks are sent with an arbitrary period between them."
 	app.Flags = []cli.Flag{
 		logLevel,
+		grpcEnabled,
+		sovereignBridgeCertificateFile,
+		sovereignBridgeCertificatePkFile,
 	}
 	app.Authors = []cli.Author{
 		{
@@ -78,7 +76,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer()
+	mockedGRPCServer, grpcServerConn, err := createAndStartGRPCServer(ctx)
 	if err != nil {
 		log.Error("cannot create grpc server", "error", err)
 		return err
@@ -95,7 +93,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		return err
 	}
 
-	nonce := uint64(10)
+	nonce := uint64(3)
 	prevHash := generateRandomHash()
 	prevRandSeed := generateRandomHash()
 	for {
@@ -120,7 +118,7 @@ func startMockNotifier(ctx *cli.Context) error {
 		err = sendOutportBlock(outportBlock, host)
 		log.LogIfError(err)
 
-		time.Sleep(3000 * time.Millisecond)
+		time.Sleep(2000 * time.Millisecond)
 
 		err = sendFinalizedBlock(headerHash, host)
 		log.LogIfError(err)
@@ -155,15 +153,19 @@ func createWSHost() (factoryHost.FullDuplexHost, error) {
 	return factoryHost.CreateWebSocketHost(args)
 }
 
-func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
+func createAndStartGRPCServer(ctx *cli.Context) (MockServer, GRPCServerMock, error) {
+	if !ctx.Bool(grpcEnabled.Name) {
+		return NewDisabledMockServer(), NewDisabledGRPCServer(), nil
+	}
+
 	listener, err := net.Listen("tcp", grpcAddress)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	tlsConfig, err := cert.LoadTLSServerConfig(cert.FileCfg{
-		CertFile: "certificate.crt",
-		PkFile:   "private_key.pem",
+		CertFile: getAbsolutePath(ctx.GlobalString(sovereignBridgeCertificateFile.Name)),
+		PkFile:   getAbsolutePath(ctx.GlobalString(sovereignBridgeCertificatePkFile.Name)),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -187,6 +189,19 @@ func createAndStartGRPCServer() (*mockServer, *grpc.Server, error) {
 	}()
 
 	return mockedServer, grpcServer, nil
+}
+
+func getAbsolutePath(path string) string {
+	if !strings.HasPrefix(path, "~") {
+		return path
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Error("Error getting home directory: " + err.Error())
+		return ""
+	}
+	return strings.Replace(path, "~", homeDir, 1)
 }
 
 func generateRandomHash() []byte {
@@ -244,12 +259,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 		return nil, err
 	}
 
-	nonce := big.NewInt(int64(ct)).Bytes()
-	gasLimit := big.NewInt(69327).Bytes()
-	dummyFuncWithArgsAndGas := []byte("@0a@@66756e6332@61726731@")
-
-	logData := append(nonce, dummyFuncWithArgsAndGas...)
-	logData = append(logData, gasLimit...)
+	eventData := createEventData(ct, subscribedAddr)
 
 	return []*outport.LogData{
 		{
@@ -260,7 +270,7 @@ func createLogs(subscribedAddr []byte, ct uint64) ([]*outport.LogData, error) {
 						Address:    subscribedAddr,
 						Identifier: []byte("deposit"),
 						Topics:     topics,
-						Data:       logData,
+						Data:       eventData,
 					},
 				},
 			},
@@ -276,8 +286,8 @@ func createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps []*ConfirmedBrid
 				Events: []*transaction.Event{
 					{
 						Address:    subscribedAddr,
-						Identifier: []byte("executedBridgeOp"),
-						Topics:     [][]byte{confirmedBridgeOp.HashOfHashes, confirmedBridgeOp.BridgeOpHash},
+						Identifier: []byte("execute"),
+						Topics:     [][]byte{[]byte("executedBridgeOp"), confirmedBridgeOp.HashOfHashes, confirmedBridgeOp.BridgeOpHash},
 					},
 				},
 			},
@@ -289,43 +299,86 @@ func createOutGoingBridgeOpsConfirmationLogs(confirmedBridgeOps []*ConfirmedBrid
 
 func createTransferTopics(addr []byte, ct int64) ([][]byte, error) {
 	nftTransferNonce := big.NewInt(ct%2 + 1)
-	nftTransferValue := big.NewInt(100)
-	nftMetaData, err := createNFTMetaData(nftTransferValue, nftTransferNonce.Uint64(), addr)
-	if err != nil {
-		return nil, err
-	}
-
+	nftMetaData := createESDTTokenData(core.NonFungibleV2, big.NewInt(1).Bytes(), "hash", "name", "attributes", addr, big.NewInt(1000).Bytes(), "uri1", "uri2")
 	transferNFT := [][]byte{
 		[]byte("ASH-a642d1"),     // id
 		nftTransferNonce.Bytes(), // nonce != 0
 		nftMetaData,              // meta data
 	}
+
+	tokenMetaData := createESDTTokenData(core.Fungible, big.NewInt(50+ct).Bytes(), "", "", "", addr, big.NewInt(0).Bytes())
 	transferESDT := [][]byte{
-		[]byte("WEGLD-bd4d79"),      // id
-		big.NewInt(0).Bytes(),       // nonce = 0
-		big.NewInt(50 + ct).Bytes(), // value
+		[]byte("WEGLD-bd4d79"), // id
+		big.NewInt(0).Bytes(),  // nonce = 0
+		tokenMetaData,          // meta data
 	}
 
-	topic := append([][]byte{addr}, transferNFT...)
-	topic = append(topic, transferESDT...)
-	return topic, nil
+	topics := make([][]byte, 0)
+	topics = append(topics, []byte("deposit"))
+	topics = append(topics, addr)
+	topics = append(topics, transferNFT...)
+	topics = append(topics, transferESDT...)
+	return topics, nil
 }
 
-func createNFTMetaData(value *big.Int, nonce uint64, creator []byte) ([]byte, error) {
-	esdtData := &esdt.ESDigitalToken{
-		Type:  uint32(core.NonFungible),
-		Value: value,
-		TokenMetaData: &esdt.MetaData{
-			URIs:       [][]byte{[]byte("uri1"), []byte("uri2"), []byte("uri3")},
-			Nonce:      nonce,
-			Hash:       []byte("NFT hash"),
-			Name:       []byte("name nft"),
-			Attributes: []byte("attributes"),
-			Creator:    creator,
-		},
+func createESDTTokenData(
+	esdtType core.ESDTType,
+	amount []byte,
+	hash string,
+	name string,
+	attributes string,
+	creator []byte,
+	royalties []byte,
+	uris ...string,
+) []byte {
+	esdtTokenData := make([]byte, 0)
+	esdtTokenData = append(esdtTokenData, uint8(esdtType))                                        // esdt type
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(amount)), lenItemSize)...)     // length of amount
+	esdtTokenData = append(esdtTokenData, amount...)                                              // amount
+	esdtTokenData = append(esdtTokenData, []byte{0x00}...)                                        // not frozen
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(hash)), lenItemSize)...)       // length of hash
+	esdtTokenData = append(esdtTokenData, hash...)                                                // hash
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(name)), lenItemSize)...)       // length of name
+	esdtTokenData = append(esdtTokenData, name...)                                                // name
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(attributes)), lenItemSize)...) // length of attributes
+	esdtTokenData = append(esdtTokenData, attributes...)                                          // attributes
+	esdtTokenData = append(esdtTokenData, creator...)                                             // creator
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(royalties)), lenItemSize)...)  // length of royalties
+	esdtTokenData = append(esdtTokenData, royalties...)                                           // royalties
+	esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uris)), lenItemSize)...)       // number of uris
+	for _, uri := range uris {
+		esdtTokenData = append(esdtTokenData, numberToBytes(uint64(len(uri)), lenItemSize)...) // length of uri
+		esdtTokenData = append(esdtTokenData, []byte(uri)...)                                  // uri
 	}
 
-	return marshaller.Marshal(esdtData)
+	return esdtTokenData
+}
+
+func createEventData(nonce uint64, addr []byte) []byte {
+	gasLimit := uint64(10000000)
+	function := []byte("func")
+	args := [][]byte{[]byte("arg1")}
+
+	eventData := make([]byte, 0)
+	eventData = append(eventData, numberToBytes(nonce, u64Size)...)                     // event nonce
+	eventData = append(eventData, addr...)                                              // original sender
+	eventData = append(eventData, []byte{0x01}...)                                      // has transfer data
+	eventData = append(eventData, numberToBytes(gasLimit, u64Size)...)                  // gas limit bytes
+	eventData = append(eventData, numberToBytes(uint64(len(function)), lenItemSize)...) // length of function
+	eventData = append(eventData, function...)                                          // function
+	eventData = append(eventData, numberToBytes(uint64(len(args)), lenItemSize)...)     // number of arguments
+	for _, arg := range args {
+		eventData = append(eventData, numberToBytes(uint64(len(arg)), lenItemSize)...) // length of current argument
+		eventData = append(eventData, arg...)                                          // current argument
+	}
+
+	return eventData
+}
+
+func numberToBytes(number uint64, size int) []byte {
+	result := make([]byte, 8)
+	binary.BigEndian.PutUint64(result, number)
+	return result[8-size:]
 }
 
 func createBlockData(headerV2 *block.HeaderV2) (*outport.BlockData, error) {

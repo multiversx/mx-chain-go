@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCreateHostDriver(t *testing.T) {
@@ -15,7 +16,7 @@ func TestCreateHostDriver(t *testing.T) {
 
 	args := ArgsHostDriverFactory{
 		HostConfig: config.HostDriversConfig{
-			URL:                "localhost",
+			URL:                "ws://localhost",
 			RetryDurationInSec: 1,
 			MarshallerType:     "json",
 			Mode:               data.ModeClient,

@@ -2,9 +2,7 @@ package bls
 
 import (
 	"context"
-	"time"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
@@ -30,44 +28,15 @@ func NewSubroundBlockV2(subroundBlock *subroundBlock) (*subroundBlockV2, error) 
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlockV2) doBlockJob(ctx context.Context) bool {
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
-		return false
-	}
+	args, deferFunc := sr.doBlockComputation()
+	defer deferFunc()
 
-	if sr.RoundHandler().Index() <= sr.getRoundInLastCommittedBlock() {
-		return false
-	}
-
-	if sr.IsSelfJobDone(sr.Current()) {
-		return false
-	}
-
-	if sr.IsSubroundFinished(sr.Current()) {
-		return false
-	}
-
-	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
-
-	header, err := sr.createHeader()
-	if err != nil {
-		printLogMessage(ctx, "doBlockJob.createHeader", err)
-		return false
-	}
-
-	header, body, err := sr.createBlock(header)
-	if err != nil {
-		printLogMessage(ctx, "doBlockJob.createBlock", err)
-		return false
-	}
-
-	sentWithSuccess := sr.sendBlock(header, body)
-	if !sentWithSuccess {
+	if args == nil {
 		return false
 	}
 
 	cnsDta := &consensus.Message{
-		PubKey:     []byte(sr.SelfPubKey()),
+		PubKey:     []byte(args.leader),
 		RoundIndex: sr.RoundHandler().Index(),
 	}
 

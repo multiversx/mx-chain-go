@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -31,11 +32,17 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
+	// TODO: MX-15633 Once we have sovereign core components merged, we should delete this and have it directly from constructor
+	sovereignShuffler, err := newSovereignHashValidatorShuffler(arguments.Shuffler)
+	if err != nil {
+		return nil, err
+	}
+
 	ihnc := &sovereignIndexHashedNodesCoordinator{
 		indexHashedNodesCoordinator: &indexHashedNodesCoordinator{
 			marshalizer:                     arguments.Marshalizer,
 			hasher:                          arguments.Hasher,
-			shuffler:                        arguments.Shuffler,
+			shuffler:                        sovereignShuffler,
 			epochStartRegistrationHandler:   arguments.EpochStartNotifier,
 			bootStorer:                      arguments.BootStorer,
 			selfPubKey:                      arguments.SelfPublicKey,
@@ -45,7 +52,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			shardConsensusGroupSize:         arguments.ShardConsensusGroupSize,
 			metaConsensusGroupSize:          arguments.MetaConsensusGroupSize,
 			consensusGroupCacher:            arguments.ConsensusGroupCache,
-			shardIDAsObserver:               arguments.ShardIDAsObserver,
+			shardIDAsObserver:               core.SovereignChainShardId,
 			shuffledOutHandler:              arguments.ShuffledOutHandler,
 			startEpoch:                      arguments.StartEpoch,
 			publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
@@ -56,6 +63,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			validatorInfoCacher:             arguments.ValidatorInfoCacher,
 			genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 			nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
+			numberOfShardsComputer:          newSovereignNumberOfShardsComputer(),
 		},
 	}
 
@@ -88,7 +96,9 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 		currentConfig.eligibleMap,
 		currentConfig.waitingMap,
 		currentConfig.leavingMap,
-		make(map[uint32][]Validator))
+		make(map[uint32][]Validator),
+		make(map[uint32][]Validator),
+	)
 
 	ihnc.epochStartRegistrationHandler.RegisterHandler(ihnc)
 	return ihnc, nil
@@ -206,8 +216,91 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) GetConsensusValidatorsPublicKe
 }
 
 // EpochStartPrepare is not implemented for sovereign
-func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
-	log.Error("sovereignIndexHashedNodesCoordinator.EpochStartPrepare was called, not implemented in sovereign")
+func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
+	if !hdr.IsStartOfEpochBlock() {
+		log.Error("could not process EpochStartPrepare on sovereignIndexHashedNodesCoordinator - not epoch start block")
+		return
+	}
+
+	randomness := hdr.GetPrevRandSeed()
+	newEpoch := hdr.GetEpoch()
+
+	if check.IfNil(body) && newEpoch == ihnc.currentEpoch {
+		log.Debug("nil body provided for epoch start prepare for sovereign, it is normal in case of revertStateToBlock")
+		return
+	}
+
+	ihnc.updateEpochFlags(newEpoch)
+
+	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
+	if err != nil {
+		log.Error("could not create validator info from body - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare", "error", err.Error())
+		return
+	}
+
+	// TODO: compare with previous nodesConfig if exists
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(allValidatorInfo)
+	if err != nil {
+		log.Error("could not compute nodes config from list - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare", "error", err)
+		return
+	}
+
+	newNodesConfig.nbShards = 1
+
+	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
+	if err != nil {
+		log.Error("could not compute additionalLeaving Nodes  - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare")
+		return
+	}
+
+	unStakeLeavingList := ihnc.createSortedListFromMap(newNodesConfig.leavingMap)
+	additionalLeavingList := ihnc.createSortedListFromMap(additionalLeavingMap)
+
+	shufflerArgs := ArgsUpdateNodes{
+		Eligible:          newNodesConfig.eligibleMap,
+		Waiting:           newNodesConfig.waitingMap,
+		NewNodes:          newNodesConfig.newList,
+		Auction:           newNodesConfig.auctionList,
+		UnStakeLeaving:    unStakeLeavingList,
+		AdditionalLeaving: additionalLeavingList,
+		Rand:              randomness,
+		NbShards:          newNodesConfig.nbShards,
+		Epoch:             newEpoch,
+	}
+
+	resUpdateNodes, err := ihnc.shuffler.UpdateNodeLists(shufflerArgs)
+	if err != nil {
+		log.Error("could not compute UpdateNodeLists - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare", "err", err.Error())
+		return
+	}
+
+	leavingNodesMap, stillRemainingNodesMap := createActuallyLeavingPerShards(
+		newNodesConfig.leavingMap,
+		additionalLeavingMap,
+		resUpdateNodes.Leaving,
+	)
+
+	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, resUpdateNodes.ShuffledOut, newEpoch, resUpdateNodes.LowWaitingList)
+	if err != nil {
+		log.Error("set nodes per shard failed", "error", err.Error())
+	}
+
+	ihnc.fillPublicKeyToValidatorMap()
+	err = ihnc.saveState(randomness, newEpoch)
+	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
+
+	displaySovereignNodesConfiguration(
+		resUpdateNodes.Eligible,
+		resUpdateNodes.Waiting,
+		leavingNodesMap,
+		stillRemainingNodesMap,
+		resUpdateNodes.ShuffledOut)
+
+	ihnc.mutSavedStateKey.Lock()
+	ihnc.savedStateKey = randomness
+	ihnc.mutSavedStateKey.Unlock()
+
+	ihnc.consensusGroupCacher.Clear()
 }
 
 func displaySovereignNodesConfiguration(
@@ -215,6 +308,7 @@ func displaySovereignNodesConfiguration(
 	waiting map[uint32][]Validator,
 	leaving map[uint32][]Validator,
 	actualRemaining map[uint32][]Validator,
+	shuffledOut map[uint32][]Validator,
 ) {
 	shardID := core.SovereignChainShardId
 	for _, v := range eligible[shardID] {
@@ -233,5 +327,8 @@ func displaySovereignNodesConfiguration(
 		pk := v.PubKey()
 		log.Debug("actual remaining", "pk", pk, "shardID", shardID)
 	}
-
+	for _, v := range shuffledOut[shardID] {
+		pk := v.PubKey()
+		log.Debug("shuffled out", "pk", pk, "shardID", shardID)
+	}
 }

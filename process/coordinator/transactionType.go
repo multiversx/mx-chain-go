@@ -90,7 +90,6 @@ func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (pr
 		}
 		return process.InvalidTransaction, process.InvalidTransaction
 	}
-
 	if len(tx.GetData()) == 0 {
 		return process.MoveBalance, process.MoveBalance
 	}

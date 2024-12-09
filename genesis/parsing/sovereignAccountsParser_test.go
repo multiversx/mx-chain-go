@@ -68,7 +68,7 @@ func TestSovereignAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	err := sovAccParser.Process()
 	require.Nil(t, err)
 
-	shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	shardCoordinator := sharding.NewSovereignShardCoordinator()
 	indexingDataMap := map[uint32]*genesis.IndexingData{
 		core.SovereignChainShardId: {
 			DelegationTxs:      make([]coreData.TransactionHandler, 0),

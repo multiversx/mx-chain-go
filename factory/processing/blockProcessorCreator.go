@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -14,6 +16,7 @@ import (
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -28,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -48,6 +52,12 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
+
+type argsMetaBlockProcessorAndVmFactories struct {
+	vmFactoryForProcessing process.VirtualMachinesContainerFactory
+	epochSystemSCProcessor process.EpochStartSystemSCProcessor
+	argsMetaBlockProcessor block.ArgMetaProcessor
+}
 
 type blockProcessorAndVmFactories struct {
 	blockProcessor         process.BlockProcessor
@@ -93,7 +103,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return pcf.newMetaBlockProcessor(
+		argsMetaAndFactories, err := pcf.createArgsMetaBlockProcessor(
 			requestHandler,
 			forkDetector,
 			validatorStatisticsProcessor,
@@ -109,6 +119,10 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			sentSignaturesTracker,
 		)
+		if err != nil {
+			return nil, err
+		}
+		return pcf.newMetaBlockProcessor(argsMetaAndFactories)
 	}
 
 	return nil, errors.New("could not create block processor")
@@ -182,7 +196,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		MissingTrieNodesNotifier: missingTrieNodesNotifier,
 	}
 
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
 		Config:              pcf.config.VirtualMachine.Execution,
 		BlockGasLimit:       pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:         pcf.gasSchedule,
@@ -205,12 +225,17 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	if err != nil {
 		return nil, err
 	}
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return nil, err
+	}
+
+	err = builtInFuncFactory.SetBlockchainHook(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return nil, err
 	}
@@ -364,33 +389,32 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsPreProc := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:                       pcf.bootstrapComponents.ShardCoordinator(),
-		Store:                                  pcf.data.StorageService(),
-		Marshaller:                             pcf.coreData.InternalMarshalizer(),
-		Hasher:                                 pcf.coreData.Hasher(),
-		DataPool:                               pcf.data.Datapool(),
-		PubkeyConverter:                        pcf.coreData.AddressPubKeyConverter(),
-		Accounts:                               pcf.state.AccountsAdapter(),
-		RequestHandler:                         requestHandler,
-		TxProcessor:                            transactionProcessor,
-		ScProcessor:                            scProcessorProxy,
-		ScResultProcessor:                      scProcessorProxy,
-		RewardsTxProcessor:                     rewardsTxProcessor,
-		EconomicsFee:                           pcf.coreData.EconomicsData(),
-		GasHandler:                             gasHandler,
-		BlockTracker:                           blockTracker,
-		BlockSizeComputation:                   blockSizeComputationHandler,
-		BalanceComputation:                     balanceComputationHandler,
-		EnableEpochsHandler:                    pcf.coreData.EnableEpochsHandler(),
-		TxTypeHandler:                          txTypeHandler,
-		ScheduledTxsExecutionHandler:           scheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
-		SmartContractResultPreProcessorCreator: pcf.runTypeComponents.SCResultsPreProcessorCreator(),
-		TxExecutionOrderHandler:                pcf.txExecutionOrderHandler,
-		TxPreProcessorCreator:                  pcf.runTypeComponents.TxPreProcessorCreator(),
+	argsPreProc := shardData.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshaller:                   pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScProcessor:                  scProcessorProxy,
+		ScResultProcessor:            scProcessorProxy,
+		RewardsTxProcessor:           rewardsTxProcessor,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		RunTypeComponents:            pcf.runTypeComponents,
 	}
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
+	preProcFactory, err := pcf.runTypeComponents.PreProcessorsContainerFactoryCreator().CreatePreProcessorContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +507,15 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
-	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
+
+	extraMetaArgsFunc := pcf.createExtraMetaBlockProcessorArgs(
+		requestHandler,
+		blockTracker,
+		epochStartTrigger,
+		validatorStatisticsProcessor,
+	)
+
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, extraMetaArgsFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -494,16 +526,14 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 	}
 
-	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
-	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
-
 	return blockProcessorComponents, nil
 }
 
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
+	extraMetaArgs block.ExtraMetaBlockProcessorCreateFunc,
 ) (process.BlockProcessor, error) {
-	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor)
+	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor, extraMetaArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -517,6 +547,28 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
+	arguments *argsMetaBlockProcessorAndVmFactories,
+) (*blockProcessorAndVmFactories, error) {
+	metaProcessor, err := block.NewMetaProcessor(arguments.argsMetaBlockProcessor)
+	if err != nil {
+		return nil, errors.New("could not create meta block processor: " + err.Error())
+	}
+
+	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
+	blockProcessorComponents := &blockProcessorAndVmFactories{
+		blockProcessor:         metaProcessor,
+		vmFactoryForProcessing: arguments.vmFactoryForProcessing,
+		epochSystemSCProcessor: arguments.epochSystemSCProcessor,
+	}
+
+	return blockProcessorComponents, nil
+}
+
+func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
@@ -531,7 +583,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 	sentSignaturesTracker process.SentSignaturesTracker,
-) (*blockProcessorAndVmFactories, error) {
+) (*argsMetaBlockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
 		return nil, err
@@ -562,7 +614,13 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           pcf.coreData.EconomicsData(),
 		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
@@ -579,7 +637,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -644,7 +702,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	txFeeHandler := postprocess.NewFeeAccumulator()
-	enableEpochs := pcf.epochConfig.EnableEpochs
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
@@ -788,18 +845,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
-	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
-		Hasher:              pcf.coreData.Hasher(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		PeerState:           pcf.state.PeerAccounts(),
-		BaseState:           pcf.state.AccountsAdapter(),
-		ArgParser:           argsParser,
-		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
-		RatingsData:         pcf.coreData.RatingsData(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-	}
-	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
+	smartContractToProtocol, err := pcf.createStakingToPeer(argsParser)
 	if err != nil {
 		return nil, err
 	}
@@ -823,20 +869,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	}
 
 	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
-	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:           pcf.coreData.InternalMarshalizer(),
-		Hasher:                pcf.coreData.Hasher(),
-		Store:                 pcf.data.StorageService(),
-		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
-		RewardsHandler:        pcf.coreData.EconomicsData(),
-		RoundTime:             pcf.coreData.RoundHandler(),
-		GenesisNonce:          genesisHdr.GetNonce(),
-		GenesisEpoch:          genesisHdr.GetEpoch(),
-		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
-		EconomicsDataNotified: economicsDataProvider,
-		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
-	}
-	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+	epochEconomics, err := pcf.createEndOfEpochEconomics(economicsDataProvider, genesisHdr)
 	if err != nil {
 		return nil, err
 	}
@@ -868,13 +901,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	stakingDataProviderAPI, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
-	if err != nil {
-		return nil, err
-	}
-
-	pcf.stakingDataProviderAPI = stakingDataProviderAPI
-
 	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
 		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
@@ -894,7 +920,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		EconomicsDataProvider: economicsDataProvider,
 	}
-	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
+	epochRewards, err := pcf.runTypeComponents.RewardsCreatorFactory().CreateRewardsCreator(argsEpochRewards)
 	if err != nil {
 		return nil, err
 	}
@@ -961,15 +987,42 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 	}
 
-	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
+	err = pcf.setAPIComps(argsStakingDataProvider)
 	if err != nil {
-		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress "+
-			"in processComponentsFactory.newMetaBlockProcessor", err)
+		return nil, err
 	}
 
+	epochStartSystemSCProcessor, err := pcf.createEpochStartSysSCProcessor(stakingDataProvider, validatorStatisticsProcessor, systemVM)
+	if err != nil {
+		return nil, err
+	}
+
+	return &argsMetaBlockProcessorAndVmFactories{
+		vmFactoryForProcessing: vmFactory,
+		epochSystemSCProcessor: epochStartSystemSCProcessor,
+
+		argsMetaBlockProcessor: block.ArgMetaProcessor{
+			ArgBaseProcessor:             argumentsBaseProcessor,
+			SCToProtocol:                 smartContractToProtocol,
+			PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
+			EpochStartDataCreator:        epochStartDataCreator,
+			EpochEconomics:               epochEconomics,
+			EpochRewardsCreator:          epochRewards,
+			EpochValidatorInfoCreator:    validatorInfoCreator,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		},
+	}, nil
+}
+
+func (pcf *processComponentsFactory) createEpochStartSysSCProcessor(
+	stakingDataProvider epochStart.StakingDataProvider,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	systemVM vmcommon.VMExecutionHandler,
+) (process.EpochStartSystemSCProcessor, error) {
 	maxNodesChangeConfigProvider, err := notifier.NewNodesConfigProvider(
 		pcf.epochNotifier,
-		enableEpochs.MaxNodesChangeEnableEpoch,
+		pcf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -987,37 +1040,30 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ExtendedShardCoordinatorHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
+	}
+
 	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:             extendedShardCoordinator,
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    auctionListDisplayer,
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 	}
+
 	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
 	if err != nil {
 		return nil, err
 	}
 
-	maxNodesChangeConfigProviderAPI, err := notifier.NewNodesConfigProviderAPI(pcf.epochNotifier, pcf.epochConfig.EnableEpochs)
+	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress "+
+			"in processComponentsFactory.createEpochStartSysSCProcessor", err)
 	}
-	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
-		StakingDataProvider:          stakingDataProviderAPI,
-		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
-		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
-		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
-		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
-	}
-	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	pcf.auctionListSelectorAPI = auctionListSelectorAPI
 
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                     systemVM,
@@ -1040,40 +1086,195 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		AuctionListSelector:          auctionListSelector,
 	}
 
-	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
+	return pcf.runTypeComponents.SystemSCProcessorFactory().CreateSystemSCProcessor(argsEpochSystemSC)
+}
+
+func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
+	requestHandler process.RequestHandler,
+	blockTracker process.BlockTracker,
+	epochStartTrigger process.EpochStartTriggerHandler,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+) block.ExtraMetaBlockProcessorCreateFunc {
+	return func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
+		validatorInfoStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
+		if err != nil {
+			return nil, err
+		}
+		miniBlockStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+		if err != nil {
+			return nil, err
+		}
+
+		argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
+			ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+			ValidatorInfoStorage: validatorInfoStorage,
+			MiniBlockStorage:     miniBlockStorage,
+			Hasher:               pcf.coreData.Hasher(),
+			Marshalizer:          pcf.coreData.InternalMarshalizer(),
+			DataPool:             pcf.data.Datapool(),
+			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+		}
+		validatorInfoCreator, err := pcf.runTypeComponents.ValidatorInfoCreatorFactory().CreateValidatorInfoCreator(argsEpochValidatorInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		rewardsStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
+		if err != nil {
+			return nil, err
+		}
+
+		genesisHdr := pcf.data.Blockchain().GetGenesisHeader()
+		argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
+			Marshalizer:         pcf.coreData.InternalMarshalizer(),
+			Hasher:              pcf.coreData.Hasher(),
+			Store:               pcf.data.StorageService(),
+			DataPool:            pcf.data.Datapool(),
+			BlockTracker:        blockTracker,
+			ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+			EpochStartTrigger:   epochStartTrigger,
+			RequestHandler:      requestHandler,
+			GenesisEpoch:        genesisHdr.GetEpoch(),
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		}
+		epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
+		if err != nil {
+			return nil, err
+		}
+
+		economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
+		argsStakingDataProvider := metachainEpochStart.StakingDataProviderArgs{
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+			SystemVM:            systemVM,
+			MinNodePrice:        pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		}
+
+		// TODO: in case of changing the minimum node price, make sure to update the staking data provider
+		stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
+		if err != nil {
+			return nil, err
+		}
+
+		argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
+			BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
+				ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
+				PubkeyConverter:               pcf.coreData.AddressPubKeyConverter(),
+				RewardsStorage:                rewardsStorage,
+				MiniBlockStorage:              miniBlockStorage,
+				Hasher:                        pcf.coreData.Hasher(),
+				Marshalizer:                   pcf.coreData.InternalMarshalizer(),
+				DataPool:                      pcf.data.Datapool(),
+				ProtocolSustainabilityAddress: pcf.coreData.EconomicsData().ProtocolSustainabilityAddress(),
+				NodesConfigProvider:           pcf.nodesCoordinator,
+				UserAccountsDB:                pcf.state.AccountsAdapter(),
+				EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+				ExecutionOrderHandler:         pcf.txExecutionOrderHandler,
+			},
+			StakingDataProvider:   stakingDataProvider,
+			RewardsHandler:        pcf.coreData.EconomicsData(),
+			EconomicsDataProvider: economicsDataProvider,
+		}
+		epochRewards, err := pcf.runTypeComponents.RewardsCreatorFactory().CreateRewardsCreator(argsEpochRewards)
+		if err != nil {
+			return nil, err
+		}
+
+		epochStartSystemSCProcessor, err := pcf.createEpochStartSysSCProcessor(stakingDataProvider, validatorStatisticsProcessor, systemVM)
+		if err != nil {
+			return nil, err
+		}
+
+		smartContractToProtocol, err := pcf.createStakingToPeer(smartContract.NewArgumentParser())
+		if err != nil {
+			return nil, err
+		}
+
+		err = pcf.setAPIComps(argsStakingDataProvider)
+		if err != nil {
+			return nil, err
+		}
+
+		epochEconomics, err := pcf.createEndOfEpochEconomics(economicsDataProvider, genesisHdr)
+		if err != nil {
+			return nil, err
+		}
+
+		return &block.ExtraArgsMetaBlockProcessor{
+			EpochRewardsCreator:       epochRewards,
+			EpochStartDataCreator:     epochStartDataCreator,
+			EpochValidatorInfoCreator: validatorInfoCreator,
+			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
+			SCToProtocol:              smartContractToProtocol,
+			EpochEconomics:            epochEconomics,
+		}, nil
+	}
+}
+
+func (pcf *processComponentsFactory) createStakingToPeer(argParser process.ArgumentsParser) (process.SmartContractToProtocolHandler, error) {
+	argsStaking := scToProtocol.ArgStakingToPeer{
+		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		PeerState:           pcf.state.PeerAccounts(),
+		BaseState:           pcf.state.AccountsAdapter(),
+		ArgParser:           argParser,
+		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
+		RatingsData:         pcf.coreData.RatingsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+	smartContractToProtocol, err := pcf.runTypeComponents.StakingToPeerFactory().CreateStakingToPeer(argsStaking)
 	if err != nil {
 		return nil, err
 	}
 
-	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor:             argumentsBaseProcessor,
-		SCToProtocol:                 smartContractToProtocol,
-		PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
-		EpochStartDataCreator:        epochStartDataCreator,
-		EpochEconomics:               epochEconomics,
-		EpochRewardsCreator:          epochRewards,
-		EpochValidatorInfoCreator:    validatorInfoCreator,
-		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-	}
+	return smartContractToProtocol, nil
+}
 
-	metaProcessor, err := block.NewMetaProcessor(arguments)
+func (pcf *processComponentsFactory) setAPIComps(
+	argsStakingDataProvider metachainEpochStart.StakingDataProviderArgs,
+) error {
+	apiComps, err := pcf.runTypeComponents.ApiProcessorCompsCreatorHandler().CreateAPIComps(api.ArgsCreateAPIProcessComps{
+		ArgsStakingDataProvider: argsStakingDataProvider,
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:           pcf.epochNotifier,
+		SoftAuctionConfig:       pcf.systemSCConfig.SoftAuctionConfig,
+		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		Denomination:            pcf.economicsConfig.GlobalSettings.Denomination,
+	})
 	if err != nil {
-		return nil, errors.New("could not create meta block processor: " + err.Error())
+		return err
 	}
 
-	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
-	if err != nil {
-		return nil, err
+	pcf.stakingDataProviderAPI = apiComps.StakingDataProviderAPI
+	pcf.auctionListSelectorAPI = apiComps.AuctionListSelector
+
+	return nil
+}
+
+func (pcf *processComponentsFactory) createEndOfEpochEconomics(
+	economicsDataProvider epochStart.EpochEconomicsDataProvider,
+	genesisHdr data.HeaderHandler,
+) (process.EndOfEpochEconomics, error) {
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ExtendedShardCoordinatorHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
 	}
 
-	blockProcessorComponents := &blockProcessorAndVmFactories{
-		blockProcessor:         metaProcessor,
-		vmFactoryForProcessing: vmFactory,
-		epochSystemSCProcessor: epochStartSystemSCProcessor,
+	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		Hasher:                pcf.coreData.Hasher(),
+		Store:                 pcf.data.StorageService(),
+		ShardCoordinator:      extendedShardCoordinator,
+		RewardsHandler:        pcf.coreData.EconomicsData(),
+		RoundTime:             pcf.coreData.RoundHandler(),
+		GenesisNonce:          genesisHdr.GetNonce(),
+		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
+		EconomicsDataNotified: economicsDataProvider,
+		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
 	}
 
-	return blockProcessorComponents, nil
+	return pcf.runTypeComponents.EndOfEpochEconomicsFactoryHandler().CreateEndOfEpochEconomics(argsEpochEconomics)
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(
@@ -1101,7 +1302,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		return nil, err
 	}
 
-	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
+	return pcf.runTypeComponents.OutportDataProviderFactory().CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapter(),
@@ -1147,17 +1348,20 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               pcf.gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		MapDNSV2Addresses:         mapDNSV2Addresses,
-		Marshalizer:               pcf.coreData.InternalMarshalizer(),
-		Accounts:                  accounts,
-		ShardCoordinator:          pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:             pcf.coreData.EpochNotifier(),
-		EnableEpochsHandler:       pcf.coreData.EnableEpochsHandler(),
-		GuardedAccountHandler:     pcf.bootstrapComponents.GuardedAccountHandler(),
-		AutomaticCrawlerAddresses: convertedAddresses,
-		MaxNumNodesInTransferRole: pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		GasSchedule:                    pcf.gasSchedule,
+		MapDNSAddresses:                mapDNSAddresses,
+		DNSV2Addresses:                 pcf.config.BuiltInFunctions.DNSV2Addresses,
+		WhiteListedCrossChainAddresses: pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
+		Marshalizer:                    pcf.coreData.InternalMarshalizer(),
+		Accounts:                       accounts,
+		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                  pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:            pcf.coreData.EnableEpochsHandler(),
+		GuardedAccountHandler:          pcf.bootstrapComponents.GuardedAccountHandler(),
+		AutomaticCrawlerAddresses:      convertedAddresses,
+		MaxNumAddressesInTransferRole:  pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		SelfESDTPrefix:                 []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		PubKeyConverter:                pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

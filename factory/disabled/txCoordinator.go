@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
@@ -111,7 +112,7 @@ func (txCoordinator *TxCoordinator) VerifyCreatedMiniBlocks(_ data.HeaderHandler
 }
 
 // AddIntermediateTransactions does nothing as it is disabled
-func (txCoordinator *TxCoordinator) AddIntermediateTransactions(_ map[block.Type][]data.TransactionHandler) error {
+func (txCoordinator *TxCoordinator) AddIntermediateTransactions(_ map[block.Type][]data.TransactionHandler, _ []byte) error {
 	return nil
 }
 

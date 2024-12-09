@@ -3,10 +3,9 @@ package bootstrap
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignChainEpochStartBootstrap(t *testing.T) {
@@ -36,24 +35,16 @@ func TestNewSovereignChainEpochStartBootstrap(t *testing.T) {
 	})
 }
 
-func TestGetDataToSync_ShouldWork(t *testing.T) {
+func TestSovereignEpochStartBootstrap_GetShardIDForLatestEpoch(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	destinationShardId := uint32(2)
+	args := createEpochStartBootstrapParams(destinationShardId)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	sesp, _ := NewSovereignChainEpochStartBootstrap(epochStartProvider)
 
-	esb, _ := NewEpochStartBootstrap(args)
-	scesb, _ := NewSovereignChainEpochStartBootstrap(esb)
-
-	rootHash := []byte("rootHash")
-	hdr := &block.Header{
-		RootHash: rootHash,
-	}
-	dts, err := scesb.getDataToSync(nil, hdr)
-
-	require.Nil(t, err)
-	assert.Equal(t, hdr, dts.ownShardHdr)
-	assert.Equal(t, rootHash, dts.rootHashToSync)
-	assert.False(t, dts.withScheduled)
-	assert.Nil(t, dts.additionalHeaders)
+	shardId, isShuffledOut, err := sesp.GetShardIDForLatestEpoch()
+	assert.Equal(t, core.SovereignChainShardId, shardId)
+	assert.False(t, isShuffledOut)
+	assert.Nil(t, err)
 }

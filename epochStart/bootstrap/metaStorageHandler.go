@@ -87,12 +87,7 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	err = msh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
-	if err != nil {
-		return err
-	}
-
-	err = msh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
+	err = msh.saveEpochStartMetaHdrs(components, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return err
 	}

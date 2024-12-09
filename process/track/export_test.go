@@ -274,6 +274,10 @@ func (scbp *sovereignChainBlockProcessor) ShouldProcessReceivedHeader(headerHand
 	return scbp.shouldProcessReceivedHeaderFunc(headerHandler)
 }
 
+func (scbp *sovereignChainBlockProcessor) GetBlockFinality() uint64 {
+	return scbp.blockFinality
+}
+
 // miniBlockTrack
 
 func (mbt *miniBlockTrack) ReceivedMiniBlock(key []byte, value interface{}) {

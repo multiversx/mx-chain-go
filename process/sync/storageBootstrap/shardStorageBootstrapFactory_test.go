@@ -18,16 +18,14 @@ import (
 func TestNewShardStorageBootstrapperFactory(t *testing.T) {
 	t.Parallel()
 
-	sbf, err := NewShardStorageBootstrapperFactory()
-
+	sbf := NewShardStorageBootstrapperFactory()
 	require.NotNil(t, sbf)
-	require.Nil(t, err)
 }
 
 func TestShardStorageBootstrapperFactory_CreateShardStorageBootstrapper(t *testing.T) {
 	t.Parallel()
 
-	sbf, _ := NewShardStorageBootstrapperFactory()
+	sbf := NewShardStorageBootstrapperFactory()
 	bootStrapper, err := sbf.CreateBootstrapperFromStorage(getDefaultArgShardBootstrapper())
 
 	require.NotNil(t, bootStrapper)
@@ -37,7 +35,7 @@ func TestShardStorageBootstrapperFactory_CreateShardStorageBootstrapper(t *testi
 func TestShardStorageBootstrapperFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	sbf, _ := NewShardStorageBootstrapperFactory()
+	sbf := NewShardStorageBootstrapperFactory()
 	require.False(t, sbf.IsInterfaceNil())
 
 	sbf = nil

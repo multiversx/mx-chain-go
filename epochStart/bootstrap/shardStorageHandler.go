@@ -81,17 +81,12 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 
 // SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
 func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool, syncedMiniBlocks map[string]*block.MiniBlock) error {
-	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
-	if err != nil {
-		return err
-	}
-
 	lastHeader, err := ssh.saveLastHeader(components.ShardHeader)
 	if err != nil {
 		return err
 	}
 
-	err = ssh.saveEpochStartMetaHdrs(components)
+	err = ssh.saveEpochStartMetaHdrs(components, dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return err
 	}
@@ -133,6 +128,18 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 		HighestFinalBlockNonce:     lastHeader.Nonce,
 		LastRound:                  0,
 	}
+	return ssh.saveBootStrapData(components, bootStrapData)
+}
+
+func (ssh *shardStorageHandler) saveBootStrapData(
+	components *ComponentsNeededForBootstrap,
+	bootStrapData bootstrapStorage.BootstrapData,
+) error {
+	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
+
 	bootStrapDataBytes, err := ssh.marshalizer.Marshal(&bootStrapData)
 	if err != nil {
 		return err
@@ -153,20 +160,6 @@ func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededFo
 	log.Info("saved bootstrap data to storage", "round", roundToUseAsKey)
 	key := []byte(strconv.FormatInt(roundToUseAsKey, 10))
 	err = bootStorer.Put(key, bootStrapDataBytes)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
-	err := ssh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock)
-	if err != nil {
-		return err
-	}
-
-	err = ssh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart)
 	if err != nil {
 		return err
 	}
@@ -835,10 +828,14 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		EpochStartShardHeader:       &block.Header{},
 	}
 
-	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
+	return ssh.baseSaveTriggerRegistry(&triggerReg, shardHeader.GetRound())
+}
+
+func (ssh *shardStorageHandler) baseSaveTriggerRegistry(triggerReg shardTriggerRegistryHandler, round uint64) ([]byte, error) {
+	bootstrapKey := []byte(fmt.Sprint(round))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := ssh.marshalizer.Marshal(&triggerReg)
+	triggerRegBytes, err := ssh.marshalizer.Marshal(triggerReg)
 	if err != nil {
 		return nil, err
 	}

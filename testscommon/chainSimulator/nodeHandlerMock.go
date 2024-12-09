@@ -26,8 +26,14 @@ type NodeHandlerMock struct {
 	SetKeyValueForAddressCalled    func(addressBytes []byte, state map[string]string) error
 	SetStateForAddressCalled       func(address []byte, state *dtos.AddressState) error
 	RemoveAccountCalled            func(address []byte) error
+	GetRunTypeComponentsCalled     func() factory.RunTypeComponentsHolder
 	GetIncomingHeaderHandlerCalled func() process.IncomingHeaderSubscriber
 	CloseCalled                    func() error
+}
+
+// ForceChangeOfEpoch -
+func (mock *NodeHandlerMock) ForceChangeOfEpoch() error {
+	return nil
 }
 
 // GetProcessComponents -
@@ -106,6 +112,14 @@ func (mock *NodeHandlerMock) GetFacadeHandler() shared.FacadeHandler {
 func (mock *NodeHandlerMock) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	if mock.GetStatusCoreComponentsCalled != nil {
 		return mock.GetStatusCoreComponentsCalled()
+	}
+	return nil
+}
+
+// GetRunTypeComponents -
+func (mock *NodeHandlerMock) GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	if mock.GetRunTypeComponentsCalled != nil {
+		return mock.GetRunTypeComponentsCalled()
 	}
 	return nil
 }

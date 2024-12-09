@@ -38,6 +38,7 @@ type OutGoingBridgeCertificate struct {
 
 // NotifierConfig holds sovereign notifier configuration
 type NotifierConfig struct {
+	Enabled          bool              `toml:"Enabled"`
 	SubscribedEvents []SubscribedEvent `toml:"SubscribedEvents"`
 	WebSocketConfig  WebSocketConfig   `toml:"WebSocket"`
 }

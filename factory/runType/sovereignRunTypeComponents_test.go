@@ -18,7 +18,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		RunTypeComponentsFactory: rcf,
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
-				NativeESDT: "WEGLD",
+				NativeESDT: "WEGLD-bd4d79",
 			},
 		},
 		DataCodec:     &sovereign.DataCodecMock{},

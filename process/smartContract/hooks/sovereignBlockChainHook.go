@@ -8,6 +8,8 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+var metachainIdentifier = []byte{255}
+
 type sovereignBlockChainHook struct {
 	*BlockChainHookImpl
 }
@@ -46,4 +48,29 @@ func (sbh *sovereignBlockChainHook) getUserAccounts(
 	}
 
 	return sndAccount, dstAccount, nil
+}
+
+// GetStorageData returns the storage value of a variable held in account's data trie
+func (sbh *sovereignBlockChainHook) GetStorageData(accountAddress []byte, index []byte) ([]byte, uint32, error) {
+	defer stopMeasure(startMeasure("GetStorageData"))
+
+	err := sbh.processMaxReadsCounters(accountAddress)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return sbh.getStorageData(accountAddress, index)
+}
+
+func (sbh *sovereignBlockChainHook) processMaxReadsCounters(address []byte) error {
+	if core.IsSmartContractOnMetachain(metachainIdentifier, address) {
+		return nil
+	}
+
+	return sbh.counter.ProcessCrtNumberOfTrieReadsCounter()
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sbh *sovereignBlockChainHook) IsInterfaceNil() bool {
+	return sbh == nil
 }

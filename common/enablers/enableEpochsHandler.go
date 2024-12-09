@@ -120,6 +120,8 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RepairCallbackEnableEpoch,
 		},
+		// TODO: MX-15702 This flag cannot be enabled from epoch 0.
+		// We need a logic to put all "mainnet legacy" flags on 0 after we merge core run type components
 		common.ReturnDataToLastTransferFlagAfterEpoch: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch
@@ -150,6 +152,8 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV2EnableEpoch,
 		},
+		// TODO: MX-15702 This flag cannot be enabled from epoch 0.
+		// We need a logic to put all "mainnet legacy" flags on 0 after we merge core run type components
 		common.StakingV2FlagAfterEpoch: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch > handler.enableEpochsConfig.StakingV2EnableEpoch
@@ -732,6 +736,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
 		},
+		common.UseGasBoundedShouldFailExecutionFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch,
+		},
 		common.DynamicESDTFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
@@ -749,6 +759,30 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
+		},
+		common.UnJailCleanupFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UnJailCleanupEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
+		},
+		common.FixRelayedBaseCostFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
+		},
+		common.MultiESDTNFTTransferAndExecuteByUserFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch,
+		},
+		common.FixRelayedMoveBalanceToNonPayableSCFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch,
 		},
 		common.ConsensusModelV2Flag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -822,16 +856,6 @@ func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
 	handler.epochMut.RUnlock()
 
 	return currentEpoch
-}
-
-// StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
-func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
-}
-
-// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
-func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

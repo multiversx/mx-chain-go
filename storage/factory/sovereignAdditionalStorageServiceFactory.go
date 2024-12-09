@@ -9,8 +9,8 @@ type sovereignAdditionalStorageServiceFactory struct {
 }
 
 // NewSovereignAdditionalStorageServiceFactory creates a new instance of sovereignAdditionalStorageServiceFactory
-func NewSovereignAdditionalStorageServiceFactory() (*sovereignAdditionalStorageServiceFactory, error) {
-	return &sovereignAdditionalStorageServiceFactory{}, nil
+func NewSovereignAdditionalStorageServiceFactory() *sovereignAdditionalStorageServiceFactory {
+	return &sovereignAdditionalStorageServiceFactory{}
 }
 
 // CreateAdditionalStorageUnits creates additional storage units for a sovereign shard

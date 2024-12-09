@@ -15,6 +15,8 @@ func (scn *sovereignShardCrossNotarizer) getLastCrossNotarizedHeaders() []bootst
 		return nil
 	}
 
+	bootstrapHeaderInfo.ShardId = core.MainChainShardId
+
 	lastCrossNotarizedHeaders := make([]bootstrapStorage.BootstrapHeaderInfo, 0, 1)
 	lastCrossNotarizedHeaders = append(lastCrossNotarizedHeaders, *bootstrapHeaderInfo)
 	return trimSliceBootstrapHeaderInfo(lastCrossNotarizedHeaders)

@@ -1,10 +1,12 @@
 IMAGE_NAME="multiversx/sov-observer"
+CONTAINER_NAME="sov-observer"
 
 prepareObserver() {
     manualUpdateConfigFile #update config file
 
-    local DOCKER_IMAGE=""
+    docker rmi $IMAGE_NAME # remove old docker image
 
+    local DOCKER_IMAGE=""
     if [ -n "$1" ]; then
         DOCKER_IMAGE=$1
     else
@@ -27,24 +29,27 @@ prepareObserver() {
     local LINE="FROM $DOCKER_IMAGE"
     sed -i "1s,.*,${LINE}," "$SCRIPT_PATH/observer/shard-observer" # replace first line with the docker image
 
+    echo "Preparing Docker image for Observer..."
     docker image build . -t $IMAGE_NAME -f $SCRIPT_PATH/observer/shard-observer
+ }
+
+createObserver() {
+    echo "Creating Docker container for Observer..."
+    local SHARD=$(getShardOfAddress)
+    docker create -p 8083:8080 -p 22111:22111 --name $CONTAINER_NAME $IMAGE_NAME --destination-shard-as-observer=$SHARD
 }
 
 deployObserver() {
-    local SHARD=$(getShardOfAddress)
-
-    docker run -d -p 8083:8080 -p 22111:22111 $IMAGE_NAME --destination-shard-as-observer=$SHARD
+    echo "Starting Docker container for Observer..."
+    docker start $CONTAINER_NAME
 }
 
 stopObserver() {
-    local CONTAINER_IDS=$(docker ps -q --filter "ancestor=${IMAGE_NAME}")
+    echo "Stopping Docker container for Observer..."
+    docker stop $CONTAINER_NAME
+}
 
-    if [ -z "$CONTAINER_IDS" ]; then
-        echo "No containers running based on image ${IMAGE_NAME}"
-        return
-    fi
-
-    for CONTAINER_ID in $CONTAINER_IDS; do
-        docker stop $CONTAINER_ID
-    done
+cleanObserver() {
+    echo "Removing Docker container for Observer..."
+    docker remove $CONTAINER_NAME
 }

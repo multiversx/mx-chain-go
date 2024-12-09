@@ -30,6 +30,7 @@ type NodesCoordinatorMock struct {
 	GetAllShuffledOutValidatorsPublicKeysCalled       func(epoch uint32) (map[uint32][][]byte, error)
 	GetShuffledOutToAuctionValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetNumTotalEligibleCalled                         func() uint64
+	NodesCoordinatorToRegistryCalled                  func(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler
 }
 
 // NewNodesCoordinatorMock -
@@ -312,7 +313,11 @@ func (ncm *NodesCoordinatorMock) EpochStartPrepare(_ data.HeaderHandler, _ data.
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorMock) NodesCoordinatorToRegistry(_ uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
+func (ncm *NodesCoordinatorMock) NodesCoordinatorToRegistry(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
+	if ncm.NodesCoordinatorToRegistryCalled != nil {
+		return ncm.NodesCoordinatorToRegistryCalled(epoch)
+	}
+
 	return nil
 }
 

@@ -44,14 +44,17 @@ func NewInterceptedMiniblockDataFactory(argument *ArgInterceptedDataFactory) (*i
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (imfd *interceptedMiniblockDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := &interceptedBlocks.ArgInterceptedMiniblock{
+	arg := imfd.createArgsInterceptedMiniBlock(buff)
+	return interceptedBlocks.NewInterceptedMiniblock(arg)
+}
+
+func (imfd *interceptedMiniblockDataFactory) createArgsInterceptedMiniBlock(buff []byte) *interceptedBlocks.ArgInterceptedMiniblock {
+	return &interceptedBlocks.ArgInterceptedMiniblock{
 		MiniblockBuff:    buff,
 		Marshalizer:      imfd.marshalizer,
 		Hasher:           imfd.hasher,
 		ShardCoordinator: imfd.shardCoordinator,
 	}
-
-	return interceptedBlocks.NewInterceptedMiniblock(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

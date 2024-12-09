@@ -12,10 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -284,11 +285,20 @@ func (bbt *baseBlockTrack) CleanupHeadersBehindNonce(
 	selfNotarizedNonce uint64,
 	crossNotarizedNonce uint64,
 ) {
+	bbt.cleanupHeadersBehindNonce(shardID, shardID, selfNotarizedNonce, crossNotarizedNonce)
+}
+
+func (bbt *baseBlockTrack) cleanupHeadersBehindNonce(
+	shardID uint32,
+	crossShardID uint32,
+	selfNotarizedNonce uint64,
+	crossNotarizedNonce uint64,
+) {
 	bbt.selfNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, selfNotarizedNonce)
 	nonce := selfNotarizedNonce
 
 	if shardID != bbt.shardCoordinator.SelfId() {
-		bbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(shardID, crossNotarizedNonce)
+		bbt.crossNotarizer.CleanupNotarizedHeadersBehindNonce(crossShardID, crossNotarizedNonce)
 		nonce = crossNotarizedNonce
 	}
 

@@ -119,3 +119,13 @@ type ArgMetaProcessor struct {
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }
+
+// ExtraArgsMetaBlockProcessor holds extra arguments needed to create a meta block processor
+type ExtraArgsMetaBlockProcessor struct {
+	EpochStartDataCreator     process.EpochStartDataCreator
+	EpochValidatorInfoCreator process.EpochStartValidatorInfoCreator
+	EpochRewardsCreator       process.RewardsCreator
+	EpochSystemSCProcessor    process.EpochStartSystemSCProcessor
+	SCToProtocol              process.SmartContractToProtocolHandler
+	EpochEconomics            process.EndOfEpochEconomics
+}

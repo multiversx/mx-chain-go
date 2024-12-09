@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getAddressFromUint32(address uint32) []byte {
@@ -221,4 +222,9 @@ func TestMultiShardCoordinator_CommunicationIdentifier(t *testing.T) {
 	selfId := uint32(0)
 	shard, _ := NewMultiShardCoordinator(2, selfId)
 	assert.Equal(t, fmt.Sprintf("_%d_%d", selfId, destId), shard.CommunicationIdentifier(destId))
+}
+
+func TestShardCoordinator_TotalNumberOfShards(t *testing.T) {
+	shardCoordinator, _ := NewMultiShardCoordinator(3, 1)
+	require.Equal(t, uint32(4), shardCoordinator.TotalNumberOfShards())
 }

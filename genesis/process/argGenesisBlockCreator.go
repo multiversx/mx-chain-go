@@ -9,15 +9,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -35,6 +36,8 @@ type coreComponentsHandler interface {
 	TxVersionChecker() process.TxVersionCheckerHandler
 	ChainID() string
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EconomicsData() process.EconomicsDataHandler
+	Rater() sharding.PeerAccountListAndRatingHandler
 	IsInterfaceNil() bool
 }
 
@@ -57,6 +60,9 @@ type runTypeComponentsHandler interface {
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
+	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
+	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	IsInterfaceNil() bool
 }
 

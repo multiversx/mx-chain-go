@@ -7,23 +7,34 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcastFactory"
 	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
+	"github.com/multiversx/mx-chain-go/factory/processing/dataRetriever"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	procSovereign "github.com/multiversx/mx-chain-go/process/factory/sovereign"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -32,7 +43,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
+	updateFactory "github.com/multiversx/mx-chain-go/update/factory/creator"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -89,10 +103,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignEpochStartBootstrapperFactory failed: %w", err)
 	}
 
-	bootstrapperFromStorageFactory, err := storageBootstrap.NewSovereignShardStorageBootstrapperFactory(rtc.bootstrapperFromStorageCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignShardStorageBootstrapperFactory failed: %w", err)
-	}
+	bootstrapperFromStorageFactory := storageBootstrap.NewSovereignShardStorageBootstrapperFactory()
 
 	bootstrapperFactory, err := storageBootstrap.NewSovereignShardBootstrapFactory(rtc.bootstrapperCreator)
 	if err != nil {
@@ -139,11 +150,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignValidatorStatisticsProcessorFactory failed: %w", err)
 	}
 
-	additionalStorageServiceCreator, err := storageFactory.NewSovereignAdditionalStorageServiceFactory()
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
-	}
-
 	scProcessorCreator, err := processorV2.NewSovereignSCProcessFactory(rtc.scProcessorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSCProcessFactory failed: %w", err)
@@ -155,17 +161,12 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	sovVMContextCreator := systemSmartContracts.NewOneShardSystemVMEEICreator()
-	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovBlockChainHookHandlerFactory, sovVMContextCreator)
+	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovVMContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
 
-	rtc.vmContainerShardFactory, err = factoryVm.NewVmContainerShardFactory(sovBlockChainHookHandlerFactory)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
-	}
-
-	sovereignVmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(sovBlockChainHookHandlerFactory, rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
+	sovereignVmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignVmContainerShardFactory failed: %w", err)
 	}
@@ -217,6 +218,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
 	}
 
+	apiRewardTxHandler, err := transactionAPI.NewSovereignAPIRewardsHandler(rcf.coreComponents.AddressPubKeyConverter())
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAPIRewardsHandler failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:            sovBlockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
@@ -230,7 +236,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
 		transactionCoordinatorCreator:           transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:         additionalStorageServiceCreator,
+		additionalStorageServiceCreator:         storageFactory.NewSovereignAdditionalStorageServiceFactory(),
 		scProcessorCreator:                      scProcessorCreator,
 		scResultPreProcessorCreator:             scResultPreProcessorCreator,
 		consensusModel:                          consensus.ConsensusModelV2,
@@ -251,5 +257,25 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		extraHeaderSigVerifierHolder:            rtc.extraHeaderSigVerifierHolder,
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),
+		nodesSetupCheckerFactory:                rtc.nodesSetupCheckerFactory,
+		epochStartTriggerFactory:                epochStartTrigger.NewSovereignEpochStartTriggerFactory(),
+		latestDataProviderFactory:               latestData.NewSovereignLatestDataProviderFactory(),
+		scToProtocolFactory:                     scToProtocol.NewSovereignStakingToPeerFactory(),
+		validatorInfoCreatorFactory:             metachain.NewSovereignValidatorInfoCreatorFactory(),
+		apiProcessorCompsCreatorHandler:         api.NewSovereignAPIProcessorCompsCreator(),
+		endOfEpochEconomicsFactoryHandler:       metachain.NewSovereignEconomicsFactory(),
+		rewardsCreatorFactory:                   metachain.NewSovereignRewardsCreatorFactory(),
+		systemSCProcessorFactory:                metachain.NewSovereignSysSCFactory(),
+		preProcessorsContainerFactoryCreator:    procSovereign.NewSovereignPreProcessorContainerFactoryCreator(),
+		dataRetrieverContainersSetter:           dataRetriever.NewSovereignDataRetrieverContainerSetter(),
+		shardMessengerFactory:                   broadcastFactory.NewSovereignShardChainMessengerFactory(),
+		exportHandlerFactoryCreator:             updateFactory.NewSovereignExportHandlerFactoryCreator(),
+		validatorAccountsSyncerFactoryHandler:   syncerFactory.NewSovereignValidatorAccountsSyncerFactory(),
+		shardRequestersContainerCreatorHandler:  storageRequestFactory.NewSovereignShardRequestersContainerCreator(),
+		apiRewardTxHandler:                      apiRewardTxHandler,
+		outportDataProviderFactory:              outportFactory.NewSovereignOutportDataProviderFactory(),
+		delegatedListFactoryHandler:             trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),
+		directStakedListFactoryHandler:          trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory(),
+		totalStakedValueFactoryHandler:          trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory(),
 	}, nil
 }

@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -23,8 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxGasLimitPerBlock = uint64(1500000000)
@@ -198,7 +199,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactions(t *testing.T) 
 	assert.NotNil(t, irp)
 	assert.Nil(t, err)
 
-	err = irp.AddIntermediateTransactions(nil)
+	err = irp.AddIntermediateTransactions(nil, nil)
 	assert.Nil(t, err)
 }
 
@@ -216,7 +217,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsWrongType(t *te
 	txs := make([]data.TransactionHandler, 0)
 	txs = append(txs, &transaction.Transaction{})
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
@@ -242,7 +243,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilSender(t *te
 	shardC.ComputeIdCalled = func(address []byte) uint32 {
 		return shardC.SelfId()
 	}
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Equal(t, process.ErrNilSndAddr, err)
 }
 
@@ -268,7 +269,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNilReceiver(t *
 	shardC.ComputeIdCalled = func(address []byte) uint32 {
 		return shardC.SelfId()
 	}
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Equal(t, process.ErrNilRcvAddr, err)
 }
 
@@ -303,7 +304,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 	txs = append(txs, scr)
 	txs = append(txs, scr)
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Equal(t, process.ErrShardIdMissmatch, err)
 }
 
@@ -329,14 +330,14 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsNegativeValueIn
 	shardC.ComputeIdCalled = func(address []byte) uint32 {
 		return shardC.SelfId()
 	}
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	shardC.ComputeIdCalled = func(address []byte) uint32 {
 		return shardC.SelfId() + 1
 	}
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Equal(t, process.ErrNegativeValue, err)
 }
 
@@ -364,7 +365,7 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	txs = append(txs, scr)
 	txs = append(txs, scr)
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 }
 
@@ -394,25 +395,26 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 3})
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 4})
 
+	parentKey := []byte("parentKey")
 	key := []byte("key")
-	irp.InitProcessedResults(key)
+	irp.InitProcessedResults(key, parentKey)
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, key)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)].results), len(txs))
 	assert.Equal(t, len(txs), calledCount)
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	require.Nil(t, irp.mapProcessedResult[string(key)])
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.InitProcessedResults(key)
+	irp.InitProcessedResults(key, parentKey)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), 0)
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)].results), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
@@ -460,7 +462,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	txs = append(txs, scr)
 	txs = append(txs, scr)
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
@@ -500,7 +502,7 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
@@ -545,7 +547,7 @@ func TestIntermediateResultsProcessor_GetNumOfCrossInterMbsAndTxsShouldWork(t *t
 	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 8, SndAddr: snd, RcvAddr: []byte("3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	txs = append(txs, &smartContractResult.SmartContractResult{Nonce: 9, SndAddr: snd, RcvAddr: []byte("3"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
-	_ = irp.AddIntermediateTransactions(txs)
+	_ = irp.AddIntermediateTransactions(txs, nil)
 
 	numMbs, numTxs := irp.GetNumOfCrossInterMbsAndTxs()
 	assert.Equal(t, 3, numMbs)
@@ -644,7 +646,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	err = irp.VerifyInterMiniBlocks(body)
@@ -689,7 +691,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	miniBlock := &block.MiniBlock{
@@ -763,7 +765,7 @@ func TestIntermediateResultsProcessor_SaveCurrentIntermediateTxToStorageShouldSa
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr4"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: []byte("recvaddr5"), Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	irp.SaveCurrentIntermediateTxToStorage()
@@ -843,7 +845,7 @@ func TestIntermediateResultsProcessor_CreateMarshalizedData(t *testing.T) {
 	currHash, _ = core.CalculateHash(marshalizer, hasher, txs[4])
 	txHashes = append(txHashes, currHash)
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	mrsTxs, err := irp.CreateMarshalledData(txHashes)
@@ -889,7 +891,7 @@ func TestIntermediateResultsProcessor_GetAllCurrentUsedTxs(t *testing.T) {
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 1, Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 	txs = append(txs, &smartContractResult.SmartContractResult{SndAddr: snd, RcvAddr: snd, Nonce: 2, Value: big.NewInt(0), PrevTxHash: []byte("txHash")})
 
-	err = irp.AddIntermediateTransactions(txs)
+	err = irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	usedTxs := irp.GetAllCurrentFinishedTxs()
@@ -958,13 +960,13 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 	irp, _ := NewIntermediateResultsProcessor(createMockArgsNewIntermediateResultsProcessor())
 
 	key := []byte("key")
-	irp.InitProcessedResults(key)
+	irp.InitProcessedResults(key, nil)
 
 	tx := &transaction.Transaction{}
 	txHash := []byte("txHash")
 	sndShardID := uint32(1)
 	rcvShardID := uint32(2)
-	irp.addIntermediateTxToResultsForBlock(tx, txHash, sndShardID, rcvShardID)
+	irp.addIntermediateTxToResultsForBlock(tx, txHash, sndShardID, rcvShardID, key)
 
 	require.Equal(t, 1, len(irp.interResultsForBlock))
 	require.Equal(t, 1, len(irp.mapProcessedResult))
@@ -977,6 +979,6 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 
 	intermediateResultsHashes, ok := irp.mapProcessedResult[string(key)]
 	require.True(t, ok)
-	require.Equal(t, 1, len(intermediateResultsHashes))
-	assert.Equal(t, txHash, intermediateResultsHashes[0])
+	require.Equal(t, 1, len(intermediateResultsHashes.results))
+	assert.Equal(t, txHash, intermediateResultsHashes.results[0])
 }

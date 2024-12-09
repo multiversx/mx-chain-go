@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -173,6 +174,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		&factory.ShardChainMessengerFactoryMock{},
 	)
 
 	assert.Nil(t, err)
@@ -204,6 +206,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		&factory.ShardChainMessengerFactoryMock{},
 	)
 
 	assert.Nil(t, err)
@@ -227,6 +230,7 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		&factory.ShardChainMessengerFactoryMock{},
 	)
 
 	assert.Nil(t, bm)
@@ -254,6 +258,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		&factory.ShardChainMessengerFactoryMock{},
 	)
 
 	assert.Nil(t, bm)

@@ -3,6 +3,10 @@ package staking
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -22,14 +26,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
+	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 func createMetaBlockProcessor(
@@ -85,7 +85,7 @@ func createMetaBlockProcessor(
 			DataComponents:      dataComponents,
 			BootstrapComponents: bootstrapComponents,
 			StatusComponents:    statusComponents,
-			StatusCoreComponents: &factory2.StatusCoreComponentsStub{
+			StatusCoreComponents: &testFactory.StatusCoreComponentsStub{
 				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 			},
 			AccountsDB:                     accountsDb,

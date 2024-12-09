@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -54,7 +55,7 @@ func NewOneMiniBlockPostProcessor(
 		shardCoordinator:   coordinator,
 		store:              store,
 		storageType:        storageType,
-		mapProcessedResult: make(map[string][][]byte),
+		mapProcessedResult: make(map[string]*processedResult),
 		economicsFee:       economicsFee,
 	}
 
@@ -143,7 +144,7 @@ func (opp *oneMBPostProcessor) VerifyInterMiniBlocks(body *block.Body) error {
 }
 
 // AddIntermediateTransactions adds receipts/bad transactions resulting from transaction processor
-func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.TransactionHandler, key []byte) error {
 	opp.mutInterResultsForBlock.Lock()
 	defer opp.mutInterResultsForBlock.Unlock()
 
@@ -155,7 +156,7 @@ func (opp *oneMBPostProcessor) AddIntermediateTransactions(txs []data.Transactio
 			return err
 		}
 
-		opp.addIntermediateTxToResultsForBlock(txs[i], txHash, selfId, selfId)
+		opp.addIntermediateTxToResultsForBlock(txs[i], txHash, selfId, selfId, key)
 	}
 
 	return nil

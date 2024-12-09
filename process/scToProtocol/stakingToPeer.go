@@ -11,14 +11,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	"github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.SmartContractToProtocolHandler = (*stakingToPeer)(nil)
@@ -41,17 +42,18 @@ type ArgStakingToPeer struct {
 // stakingToPeer defines the component which will translate changes from staking SC state
 // to validator statistics trie
 type stakingToPeer struct {
-	pubkeyConv          core.PubkeyConverter
-	hasher              hashing.Hasher
-	marshalizer         marshal.Marshalizer
-	peerState           state.AccountsAdapter
-	baseState           state.AccountsAdapter
-	argParser           process.ArgumentsParser
-	currTxs             dataRetriever.TransactionCacher
-	startRating         uint32
-	unJailRating        uint32
-	jailRating          uint32
-	enableEpochsHandler common.EnableEpochsHandler
+	pubkeyConv                      core.PubkeyConverter
+	hasher                          hashing.Hasher
+	marshalizer                     marshal.Marshalizer
+	peerState                       state.AccountsAdapter
+	baseState                       state.AccountsAdapter
+	argParser                       process.ArgumentsParser
+	currTxs                         dataRetriever.TransactionCacher
+	startRating                     uint32
+	unJailRating                    uint32
+	jailRating                      uint32
+	enableEpochsHandler             common.EnableEpochsHandler
+	modifiedMBShardIDCheckerHandler modifiedMBShardIDCheckerHandler
 }
 
 // NewStakingToPeer creates the component which moves from staking sc state to peer state
@@ -62,17 +64,18 @@ func NewStakingToPeer(args ArgStakingToPeer) (*stakingToPeer, error) {
 	}
 
 	st := &stakingToPeer{
-		pubkeyConv:          args.PubkeyConv,
-		hasher:              args.Hasher,
-		marshalizer:         args.Marshalizer,
-		peerState:           args.PeerState,
-		baseState:           args.BaseState,
-		argParser:           args.ArgParser,
-		currTxs:             args.CurrTxs,
-		startRating:         args.RatingsData.StartRating(),
-		unJailRating:        args.RatingsData.StartRating(),
-		jailRating:          args.RatingsData.MinRating(),
-		enableEpochsHandler: args.EnableEpochsHandler,
+		pubkeyConv:                      args.PubkeyConv,
+		hasher:                          args.Hasher,
+		marshalizer:                     args.Marshalizer,
+		peerState:                       args.PeerState,
+		baseState:                       args.BaseState,
+		argParser:                       args.ArgParser,
+		currTxs:                         args.CurrTxs,
+		startRating:                     args.RatingsData.StartRating(),
+		unJailRating:                    args.RatingsData.StartRating(),
+		jailRating:                      args.RatingsData.MinRating(),
+		enableEpochsHandler:             args.EnableEpochsHandler,
+		modifiedMBShardIDCheckerHandler: &modifiedMBShardIDChecker{},
 	}
 
 	return st, nil
@@ -109,6 +112,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.StakeFlag,
 		common.ValidatorToDelegationFlag,
+		common.UnJailCleanupFlag,
 	})
 }
 
@@ -341,6 +345,9 @@ func (stp *stakingToPeer) updatePeerState(
 		if account.GetTempRating() < stp.unJailRating {
 			log.Debug("node is unJailed, setting temp rating to start rating", "blsKey", blsPubKey)
 			account.SetTempRating(stp.unJailRating)
+			if stp.enableEpochsHandler.IsFlagEnabled(common.UnJailCleanupFlag) {
+				account.SetConsecutiveProposerMisses(0)
+			}
 		}
 
 		isNewValidator := !isValidator && stakingData.Staked
@@ -377,7 +384,7 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 		if miniBlock.Type != block.SmartContractResultBlock {
 			continue
 		}
-		if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.MetachainShardId {
+		if !stp.modifiedMBShardIDCheckerHandler.isModifiedStateMBValid(miniBlock) {
 			continue
 		}
 

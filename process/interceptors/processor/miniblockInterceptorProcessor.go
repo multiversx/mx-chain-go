@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -72,7 +71,7 @@ func (mip *MiniblockInterceptorProcessor) Validate(_ process.InterceptedData, _ 
 // Save will save the received miniblocks inside the miniblock cacher after a new validation round
 // that will be done on each miniblock
 func (mip *MiniblockInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
-	interceptedMiniblock, ok := data.(*interceptedBlocks.InterceptedMiniblock)
+	interceptedMiniblock, ok := data.(process.InterceptedMiniBlockHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}

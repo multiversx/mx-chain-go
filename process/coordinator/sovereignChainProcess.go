@@ -63,6 +63,16 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 
 	shouldSkipShard := make(map[uint32]bool)
 
+	headerHash, err := core.CalculateHash(sctc.marshalizer, sctc.hasher, hdr)
+	if err != nil {
+		log.Warn("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe CalculateHash error",
+			"error", err)
+
+		// we return the nil error here as to allow the proposer execute as much as it can, even if it ends up in a
+		// totally unlikely situation in which it can not marshall a block.
+		return createMBDestMeExecutionInfo.miniBlocks, createMBDestMeExecutionInfo.numTxAdded, false, err
+	}
+
 	defer func() {
 		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
 			"header round", hdr.GetRound(),
@@ -138,7 +148,7 @@ func (sctc *sovereignChainTransactionCoordinator) CreateMbsAndProcessCrossShardT
 
 		oldIndexOfLastTxProcessed := processedMbInfo.IndexOfLastTxProcessed
 
-		errProc := sctc.processCompleteMiniBlock(preproc, miniBlock, miniBlockHash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo)
+		errProc := sctc.processCompleteMiniBlock(preproc, miniBlock, miniBlockHash, haveTime, haveAdditionalTime, scheduledMode, processedMbInfo, headerHash)
 		sctc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 
 		log.Debug("sovereignChainTransactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processing",

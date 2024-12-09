@@ -15,27 +15,33 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const gasPrice = uint64(10)
+const (
+	gasPrice         = uint64(10)
+	minGasLimit      = uint64(1)
+	gasPriceModifier = float64(0.1)
+)
 
-type metaData struct {
-	tokenId    []byte
-	nonce      []byte
-	name       []byte
-	royalties  []byte
-	hash       []byte
-	attributes []byte
-	uris       [][]byte
+// MetaData defines test meta data struct
+type MetaData struct {
+	TokenId    []byte
+	Nonce      []byte
+	Name       []byte
+	Royalties  []byte
+	Hash       []byte
+	Attributes []byte
+	Uris       [][]byte
 }
 
-func getDefaultMetaData() *metaData {
-	return &metaData{
-		tokenId:    []byte(hex.EncodeToString([]byte("tokenId"))),
-		nonce:      []byte(hex.EncodeToString(big.NewInt(0).Bytes())),
-		name:       []byte(hex.EncodeToString([]byte("name"))),
-		royalties:  []byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-		hash:       []byte(hex.EncodeToString([]byte("hash"))),
-		attributes: []byte(hex.EncodeToString([]byte("attributes"))),
-		uris:       [][]byte{[]byte(hex.EncodeToString([]byte("uri1"))), []byte(hex.EncodeToString([]byte("uri2"))), []byte(hex.EncodeToString([]byte("uri3")))},
+// GetDefaultMetaData will return default meta data structure
+func GetDefaultMetaData() *MetaData {
+	return &MetaData{
+		TokenId:    []byte(hex.EncodeToString([]byte("tokenId"))),
+		Nonce:      []byte(hex.EncodeToString(big.NewInt(0).Bytes())),
+		Name:       []byte(hex.EncodeToString([]byte("name"))),
+		Royalties:  []byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+		Hash:       []byte(hex.EncodeToString([]byte("hash"))),
+		Attributes: []byte(hex.EncodeToString([]byte("attributes"))),
+		Uris:       [][]byte{[]byte(hex.EncodeToString([]byte("uri1"))), []byte(hex.EncodeToString([]byte("uri2"))), []byte(hex.EncodeToString([]byte("uri3")))},
 	}
 }
 
@@ -55,17 +61,17 @@ func getMetaDataFromAcc(t *testing.T, testContext *vm.VMTestContext, accWithMeta
 	return esdtData.TokenMetaData
 }
 
-func checkMetaData(t *testing.T, testContext *vm.VMTestContext, accWithMetaData []byte, token []byte, expectedMetaData *metaData) {
+func checkMetaData(t *testing.T, testContext *vm.VMTestContext, accWithMetaData []byte, token []byte, expectedMetaData *MetaData) {
 	retrievedMetaData := getMetaDataFromAcc(t, testContext, accWithMetaData, token)
 
-	require.Equal(t, expectedMetaData.nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
-	require.Equal(t, expectedMetaData.name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
-	require.Equal(t, expectedMetaData.royalties, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Royalties)).Bytes())))
-	require.Equal(t, expectedMetaData.hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
-	for i, uri := range expectedMetaData.uris {
+	require.Equal(t, expectedMetaData.Nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, expectedMetaData.Name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, expectedMetaData.Royalties, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Royalties)).Bytes())))
+	require.Equal(t, expectedMetaData.Hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range expectedMetaData.Uris {
 		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
 	}
-	require.Equal(t, expectedMetaData.attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+	require.Equal(t, expectedMetaData.Attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
 }
 
 func getDynamicTokenTypes() []string {
@@ -81,17 +87,17 @@ func createTokenTx(
 	rcvAddr []byte,
 	gasLimit uint64,
 	quantity int64,
-	metaData *metaData,
+	metaData *MetaData,
 ) *transaction.Transaction {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.BuiltInFunctionESDTNFTCreate),
-			metaData.tokenId,
+			metaData.TokenId,
 			[]byte(hex.EncodeToString(big.NewInt(quantity).Bytes())), // quantity
-			metaData.name,
-			metaData.royalties,
-			metaData.hash,
-			metaData.attributes,
+			metaData.Name,
+			metaData.Royalties,
+			metaData.Hash,
+			metaData.Attributes,
 			[]byte(hex.EncodeToString([]byte("uri"))),
 		},
 		[]byte("@"),

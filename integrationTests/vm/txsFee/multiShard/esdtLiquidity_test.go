@@ -25,17 +25,17 @@ func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
 	tokenID := []byte("MYNFT")
 	sh0Addr := []byte("12345678901234567890123456789010")
 	sh1Addr := []byte("12345678901234567890123456789011")
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh1Context.Close()
 	_, _ = vm.CreateAccount(sh1Context.Accounts, sh1Addr, 0, big.NewInt(1000000000))
 
 	// create the nft and ensure that it exists on the account's trie and the liquidity is set on the system account
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID, 1, big.NewInt(1))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(100000000), tokenID, 1, big.NewInt(1), uint32(core.NonFungible))
 	utils.CheckESDTNFTBalance(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(1))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(1))
 
@@ -77,16 +77,16 @@ func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
 	tokenID := []byte("MYNFT-0a0a0a")
 	sh0Addr := bytes.Repeat([]byte{1}, 31)
 	sh0Addr = append(sh0Addr, 0)
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer metaContext.Close()
 
 	// create the nft and ensure that it exists on the account's trie and the liquidity is set on the system account
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(1))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(1), uint32(core.NonFungible))
 	utils.CheckESDTNFTBalance(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(1))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(1))
 
@@ -127,16 +127,16 @@ func TestSystemAccountLiquidityAfterSFTWipe(t *testing.T) {
 	tokenID := []byte("MYSFT-0a0a0a")
 	sh0Addr := bytes.Repeat([]byte{1}, 31)
 	sh0Addr = append(sh0Addr, 0)
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer metaContext.Close()
 
 	// create the nft and ensure that it exists on the account's trie and the liquidity is set on the system account
-	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(10))
+	utils.CreateAccountWithESDTBalance(t, sh0Context.Accounts, sh0Addr, big.NewInt(10000000000000), tokenID, 1, big.NewInt(10), uint32(core.SemiFungible))
 	utils.CheckESDTNFTBalance(t, sh0Context, sh0Addr, tokenID, 1, big.NewInt(10))
 	utils.CheckESDTNFTBalance(t, sh0Context, core.SystemAccountAddress, tokenID, 1, big.NewInt(10))
 

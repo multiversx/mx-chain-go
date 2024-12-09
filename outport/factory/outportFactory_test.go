@@ -7,13 +7,14 @@ import (
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-storage-go/testscommon"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/factory"
 	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-storage-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsOutportHandler(indexerEnabled, notifierEnabled bool) *factory.OutportFactoryArgs {
@@ -122,7 +123,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
-					URL:                "localhost",
+					URL:                "ws://localhost",
 					RetryDurationInSec: 1,
 					MarshallerType:     "json",
 					Mode:               data.ModeClient,
@@ -132,7 +133,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            false,
-					URL:                "localhost",
+					URL:                "ws://localhost",
 					RetryDurationInSec: 1,
 					MarshallerType:     "json",
 					Mode:               data.ModeClient,
@@ -142,7 +143,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 				Marshaller: &testscommon.MarshalizerMock{},
 				HostConfig: config.HostDriversConfig{
 					Enabled:            true,
-					URL:                "localhost",
+					URL:                "ws://localhost",
 					RetryDurationInSec: 1,
 					MarshallerType:     "json",
 					Mode:               data.ModeClient,

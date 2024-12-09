@@ -12,9 +12,8 @@ import (
 func TestNewSovereignAdditionalStorageServiceFactory(t *testing.T) {
 	t.Parallel()
 
-	f, err := factory.NewSovereignAdditionalStorageServiceFactory()
+	f := factory.NewSovereignAdditionalStorageServiceFactory()
 	require.NotNil(t, f)
-	require.NoError(t, err)
 }
 
 func TestSovereignAdditionalStorageServiceFactory_CreateAdditionalStorageUnits(t *testing.T) {
@@ -23,14 +22,14 @@ func TestSovereignAdditionalStorageServiceFactory_CreateAdditionalStorageUnits(t
 	t.Run("nil function should err", func(t *testing.T) {
 		t.Parallel()
 
-		f, _ := factory.NewSovereignAdditionalStorageServiceFactory()
+		f := factory.NewSovereignAdditionalStorageServiceFactory()
 		err := f.CreateAdditionalStorageUnits(nil, nil, "")
 		require.ErrorIs(t, errors.ErrNilFunction, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		f, _ := factory.NewSovereignAdditionalStorageServiceFactory()
+		f := factory.NewSovereignAdditionalStorageServiceFactory()
 
 		wasCalled := false
 		fParam := func(store dataRetriever.StorageService, shardID string) error {
@@ -47,6 +46,6 @@ func TestSovereignAdditionalStorageServiceFactory_CreateAdditionalStorageUnits(t
 func TestSovereignAdditionalStorageServiceFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	f, _ := factory.NewSovereignAdditionalStorageServiceFactory()
+	f := factory.NewSovereignAdditionalStorageServiceFactory()
 	require.False(t, f.IsInterfaceNil())
 }

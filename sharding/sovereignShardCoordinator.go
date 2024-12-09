@@ -1,14 +1,16 @@
 package sharding
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 type sovereignShardCoordinator struct {
 	*multiShardCoordinator
 }
 
 // NewSovereignShardCoordinator creates a new sovereign shard coordinator
-func NewSovereignShardCoordinator(selfId uint32) *sovereignShardCoordinator {
+func NewSovereignShardCoordinator() *sovereignShardCoordinator {
 	sr := &sovereignShardCoordinator{
 		multiShardCoordinator: &multiShardCoordinator{
-			selfId:         selfId,
+			selfId:         core.SovereignChainShardId,
 			numberOfShards: 1,
 		},
 	}
@@ -24,4 +26,14 @@ func (ssc *sovereignShardCoordinator) ComputeId(_ []byte) uint32 {
 // SameShard returns true if the addresses are in the same shard
 func (msc *sovereignShardCoordinator) SameShard(_, _ []byte) bool {
 	return true
+}
+
+// TotalNumberOfShards returns one for sovereign chain
+func (msc *sovereignShardCoordinator) TotalNumberOfShards() uint32 {
+	return 1
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (msc *sovereignShardCoordinator) IsInterfaceNil() bool {
+	return msc == nil
 }

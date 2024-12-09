@@ -27,12 +27,51 @@ func NewSovereignShardResolversContainerFactory(shardContainer *shardResolversCo
 
 // Create returns a resolver container that will hold all resolvers in the system
 func (srcf *sovereignShardResolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
-	_, err := srcf.shardResolversContainerFactory.Create()
+	err := srcf.generateTxResolvers(
+		factory.TransactionTopic,
+		dataRetriever.TransactionUnit,
+		srcf.dataPools.Transactions(),
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = srcf.generateSovereignHeaderResolvers()
+	err = srcf.generateTxResolvers(
+		factory.UnsignedTransactionTopic,
+		dataRetriever.UnsignedTransactionUnit,
+		srcf.dataPools.UnsignedTransactions(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateHeaderResolvers(core.SovereignChainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateMiniBlocksResolvers()
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateAccountAndValidatorTrieNodesResolvers(core.SovereignChainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generatePeerAuthenticationResolver()
+	if err != nil {
+		return nil, err
+	}
+
+	validatorInfoTopicID := common.ValidatorInfoTopic + srcf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	err = srcf.generateValidatorInfoResolver(validatorInfoTopicID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateSovereignExtendedHeaderResolvers()
 	if err != nil {
 		return nil, err
 	}
@@ -40,7 +79,7 @@ func (srcf *sovereignShardResolversContainerFactory) Create() (dataRetriever.Res
 	return srcf.container, nil
 }
 
-func (srcf *sovereignShardResolversContainerFactory) generateSovereignHeaderResolvers() error {
+func (srcf *sovereignShardResolversContainerFactory) generateSovereignExtendedHeaderResolvers() error {
 	shardC := srcf.shardCoordinator
 
 	hdrStorer, err := srcf.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
@@ -89,6 +128,36 @@ func (srcf *sovereignShardResolversContainerFactory) generateSovereignHeaderReso
 	}
 
 	return srcf.container.Add(identifierHdr, resolver)
+}
+
+func (srcf *sovereignShardResolversContainerFactory) generateTxResolvers(
+	topic string,
+	unit dataRetriever.UnitType,
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+) error {
+	shardC := srcf.shardCoordinator
+	id := shardC.SelfId()
+	identifierTx := topic + shardC.CommunicationIdentifier(id)
+
+	resolver, err := srcf.createTxResolver(identifierTx, EmptyExcludePeersOnTopic, unit, dataPool, id)
+	if err != nil {
+		return err
+	}
+
+	return srcf.container.Add(identifierTx, resolver)
+}
+
+func (srcf *sovereignShardResolversContainerFactory) generateMiniBlocksResolvers() error {
+	shardC := srcf.shardCoordinator
+	id := shardC.SelfId()
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(id)
+
+	resolver, err := srcf.createMiniBlocksResolver(identifierMiniBlocks, EmptyExcludePeersOnTopic, id)
+	if err != nil {
+		return err
+	}
+
+	return srcf.container.Add(identifierMiniBlocks, resolver)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

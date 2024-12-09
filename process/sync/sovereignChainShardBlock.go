@@ -21,6 +21,7 @@ func NewSovereignChainShardBootstrap(shardBootstrap *ShardBootstrap) (*Sovereign
 	scsb.handleScheduledRollBackToHeaderFunc = scsb.sovereignChainHandleScheduledRollBackToHeader
 	scsb.getRootHashFromBlockFunc = scsb.sovereignChainGetRootHashFromBlock
 	scsb.doProcessReceivedHeaderJobFunc = scsb.sovereignChainDoProcessReceivedHeaderJob
+	scsb.syncShardAccountsDBsFunc = scsb.syncAccountsDBs
 
 	return scsb, nil
 }

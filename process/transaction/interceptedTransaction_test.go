@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -108,7 +109,7 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		shardCoordinator,
 		txFeeHandler,
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("T"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -151,7 +152,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		shardCoordinator,
 		txFeeHandler,
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		chainID,
 		false,
 		&hashingMocks.HasherMock{},
@@ -218,7 +219,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -268,7 +269,7 @@ func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -293,7 +294,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -318,7 +319,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -343,7 +344,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -368,7 +369,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -393,7 +394,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -418,7 +419,7 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -443,7 +444,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		nil,
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -468,7 +469,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		nil,
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -493,7 +494,7 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		nil,
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -518,7 +519,7 @@ func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		nil,
 		false,
 		&hashingMocks.HasherMock{},
@@ -543,7 +544,7 @@ func TestNewInterceptedTransaction_NilTxSignHasherShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		nil,
@@ -574,7 +575,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		mock.NewOneShardCoordinatorMock(),
 		&economicsmocks.EconomicsHandlerStub{},
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("chainID"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -1044,7 +1045,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		chainID,
 		false,
 		&hashingMocks.HasherMock{},
@@ -1104,7 +1105,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShouldWork(t *testing
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		chainID,
 		true,
 		&hashingMocks.HasherMock{},
@@ -1189,7 +1190,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		chainID,
 		false,
 		&hashingMocks.HasherMock{},
@@ -1328,7 +1329,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		whiteListerVerifiedTxs,
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		chainID,
 		false,
 		&hashingMocks.HasherMock{},
@@ -1426,7 +1427,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
+	assert.Contains(t, err.Error(), "inner transaction")
 }
 
 func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
@@ -1487,7 +1489,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString([]byte(core.RelayedTransaction)) + "@" + hex.EncodeToString(userTx.Signature))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
+	assert.Contains(t, err.Error(), "inner transaction")
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
@@ -1621,7 +1624,7 @@ func TestInterceptedTransaction_Fee(t *testing.T) {
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("T"),
 		false,
 		&hashingMocks.HasherMock{},
@@ -1664,7 +1667,7 @@ func TestInterceptedTransaction_String(t *testing.T) {
 		shardCoordinator,
 		createFreeTxFeeHandler(),
 		&testscommon.WhiteListHandlerStub{},
-		&mock.ArgumentParserMock{},
+		&testscommon.ArgumentParserMock{},
 		[]byte("T"),
 		false,
 		&hashingMocks.HasherMock{},

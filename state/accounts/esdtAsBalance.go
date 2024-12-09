@@ -7,9 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 const baseESDTKeyPrefix = core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
@@ -29,14 +30,31 @@ func NewESDTAsBalance(
 	if check.IfNil(marshaller) {
 		return nil, errors.ErrNilMarshalizer
 	}
-	if len(baseTokenID) == 0 {
-		return nil, errors.ErrEmptyBaseToken
+	err := validateBaseToken(baseTokenID)
+	if err != nil {
+		return nil, err
 	}
 
 	return &esdtAsBalance{
 		keyPrefix:  []byte(baseESDTKeyPrefix + baseTokenID),
 		marshaller: marshaller,
 	}, nil
+}
+
+func validateBaseToken(baseTokenID string) error {
+	if len(baseTokenID) == 0 {
+		return errors.ErrEmptyBaseToken
+	}
+
+	if _, isValid := esdt.IsValidPrefixedToken(baseTokenID); isValid {
+		return nil
+	}
+
+	if vmcommon.ValidateToken([]byte(baseTokenID)) {
+		return nil
+	}
+
+	return errors.ErrInvalidBaseToken
 }
 
 // GetBalance returns the native esdt balance

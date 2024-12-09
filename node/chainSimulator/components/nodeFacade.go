@@ -14,13 +14,12 @@ import (
 	apiComp "github.com/multiversx/mx-chain-go/factory/api"
 	nodePack "github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
-	"github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, nodeFactory nodePack.NodeFactory) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64, nodeFactory nodePack.NodeFactory) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -41,7 +40,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	allowVMQueriesChan := make(chan struct{})
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(vmQueryDelayAfterStartInMs) * time.Millisecond)
 		close(allowVMQueriesChan)
 		node.StatusCoreComponents.AppStatusHandler().SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}()
@@ -61,13 +60,10 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 				return common.NsSynchronized
 			},
 		},
-		AllowVMQueriesChan:             allowVMQueriesChan,
-		StatusComponents:               node.StatusComponentsHolder,
-		ProcessingMode:                 common.GetNodeProcessingMode(configs.ImportDbConfig),
-		RunTypeComponents:              node.RunTypeComponents,
-		DelegatedListFactoryHandler:    factory.NewDelegatedListProcessorFactory(),
-		DirectStakedListFactoryHandler: factory.NewDirectStakedListProcessorFactory(),
-		TotalStakedValueFactoryHandler: factory.NewTotalStakedListProcessorFactory(),
+		AllowVMQueriesChan: allowVMQueriesChan,
+		StatusComponents:   node.StatusComponentsHolder,
+		ProcessingMode:     common.GetNodeProcessingMode(configs.ImportDbConfig),
+		RunTypeComponents:  node.RunTypeComponents,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

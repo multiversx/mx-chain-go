@@ -36,44 +36,6 @@ import (
 
 var log = logger.GetOrCreate("update/factory")
 
-// ArgsExporter is the argument structure to create a new exporter
-type ArgsExporter struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	StatusCoreComponents             process.StatusCoreComponentsHolder
-	NetworkComponents                mxFactory.NetworkComponentsHolder
-	HeaderValidator                  epochStart.HeaderValidator
-	DataPool                         dataRetriever.PoolsHolder
-	StorageService                   dataRetriever.StorageService
-	RequestHandler                   process.RequestHandler
-	ShardCoordinator                 sharding.Coordinator
-	ActiveAccountsDBs                map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ExistingResolvers                dataRetriever.ResolversContainer
-	ExistingRequesters               dataRetriever.RequestersContainer
-	ExportFolder                     string
-	ExportTriesStorageConfig         config.StorageConfig
-	ExportStateStorageConfig         config.StorageConfig
-	ExportStateKeysConfig            config.StorageConfig
-	MaxTrieLevelInMemory             uint
-	WhiteListHandler                 process.WhiteListHandler
-	WhiteListerVerifiedTxs           process.WhiteListHandler
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	NodesCoordinator                 nodesCoordinator.NodesCoordinator
-	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	ValidityAttester                 process.ValidityAttester
-	RoundHandler                     process.RoundHandler
-	InterceptorDebugConfig           config.InterceptorResolverDebugConfig
-	MaxHardCapForMissingNodes        int
-	NumConcurrentTrieSyncers         int
-	TrieSyncerVersion                int
-	CheckNodesOnDisk                 bool
-	NodeOperationMode                common.NodeOperation
-
-	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
-}
-
 type exportHandlerFactory struct {
 	coreComponents                   process.CoreComponentsHolder
 	cryptoComponents                 process.CryptoComponentsHolder
@@ -116,7 +78,7 @@ type exportHandlerFactory struct {
 }
 
 // NewExportHandlerFactory creates an exporter factory
-func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
+func NewExportHandlerFactory(args mxFactory.ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}

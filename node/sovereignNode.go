@@ -6,27 +6,53 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+
 	"github.com/multiversx/mx-chain-go/errors"
+)
+
+const (
+	baseESDTKeyPrefix = core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
 )
 
 type sovereignNode struct {
 	*Node
+	nativeESDT string
 }
 
 // NewSovereignNode creates a new sovereign node instance
-func NewSovereignNode(node *Node) (*sovereignNode, error) {
+func NewSovereignNode(node *Node, nativeESDT string) (*sovereignNode, error) {
 	if check.IfNil(node) {
 		return nil, errors.ErrNilNode
 	}
+	if len(nativeESDT) == 0 {
+		return nil, ErrEmptyNativeEsdt
+	}
 
 	return &sovereignNode{
-		node,
+		Node:       node,
+		nativeESDT: nativeESDT,
 	}, nil
 }
 
 // GetAllIssuedESDTs returns all the issued esdt tokens, works only on metachain
 func (sn *sovereignNode) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
-	return sn.baseGetAllIssuedESDTs(tokenType, ctx)
+	tokens, err := sn.baseGetAllIssuedESDTs(tokenType, ctx)
+	if err != nil {
+		return make([]string, 0), err
+	}
+
+	return sn.getTokensWithoutNativeESDT(tokens), nil
+}
+
+func (sn *sovereignNode) getTokensWithoutNativeESDT(tokens []string) []string {
+	nativeEsdtWithBasePrefix := baseESDTKeyPrefix + sn.nativeESDT
+	issuedTokens := make([]string, 0)
+	for _, token := range tokens {
+		if token != nativeEsdtWithBasePrefix {
+			issuedTokens = append(issuedTokens, token)
+		}
+	}
+	return issuedTokens
 }
 
 // GetNFTTokenIDsRegisteredByAddress returns all the token identifiers for semi or non fungible tokens registered by the address

@@ -21,24 +21,17 @@ def update_notarization_round(lines, section, identifier, round) -> []:
 
 
 def get_current_round(proxy, shard):
-    params = {
-        "size": 1,
-        "shard": shard,
-        "fields": "round"
-    }
-
-    api = proxy.replace("gateway", "api")
-    response = requests.get(api + f"/blocks?size=1&shard={shard}&fields=round")
+    response = requests.get(proxy + f"/network/status/{shard}")
 
     if response.status_code == 200:
         data = response.json()
         if data:
-            return data[0]["round"]
+            return data["data"]["status"]["erd_current_round"]
         else:
-            print("No data returned from the API.")
+            print("No data returned from proxy.")
             return -1
     else:
-        print("Failed to retrieve data from the API. Status code:", response.status_code)
+        print("Failed to retrieve data from the proxy. Status code:", response.status_code)
         return -1
 
 

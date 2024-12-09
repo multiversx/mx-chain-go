@@ -4,21 +4,22 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/node"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/node"
 )
 
 func TestNewSovereignNodeFactory(t *testing.T) {
 	t.Parallel()
 
-	sovereignNodeFactory := node.NewSovereignNodeFactory()
+	sovereignNodeFactory := node.NewSovereignNodeFactory(nativeESDT)
 	require.False(t, sovereignNodeFactory.IsInterfaceNil())
 }
 
 func TestSovereignNodeFactory_CreateNewNode(t *testing.T) {
 	t.Parallel()
 
-	sovereignNodeFactory := node.NewSovereignNodeFactory()
+	sovereignNodeFactory := node.NewSovereignNodeFactory(nativeESDT)
 
 	sn, err := sovereignNodeFactory.CreateNewNode()
 	require.Nil(t, err)
@@ -29,7 +30,7 @@ func TestSovereignNodeFactory_CreateNewNode(t *testing.T) {
 func TestSovereignNodeFactory_CreateNewNodeFail(t *testing.T) {
 	t.Parallel()
 
-	sovereignNodeFactory := node.NewSovereignNodeFactory()
+	sovereignNodeFactory := node.NewSovereignNodeFactory(nativeESDT)
 
 	options := []node.Option{
 		node.WithStatusCoreComponents(nil),

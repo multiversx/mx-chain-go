@@ -3,7 +3,7 @@ package testscommon
 // PreProcessorExecutionInfoHandlerMock -
 type PreProcessorExecutionInfoHandlerMock struct {
 	GetNumOfCrossInterMbsAndTxsCalled func() (int, int)
-	InitProcessedTxsResultsCalled     func(key []byte)
+	InitProcessedTxsResultsCalled     func(key []byte, parentKey []byte)
 	RevertProcessedTxsResultsCalled   func(txHashes [][]byte, key []byte)
 }
 
@@ -16,9 +16,9 @@ func (ppeihm *PreProcessorExecutionInfoHandlerMock) GetNumOfCrossInterMbsAndTxs(
 }
 
 // InitProcessedTxsResults -
-func (ppeihm *PreProcessorExecutionInfoHandlerMock) InitProcessedTxsResults(key []byte) {
+func (ppeihm *PreProcessorExecutionInfoHandlerMock) InitProcessedTxsResults(key []byte, parentKey []byte) {
 	if ppeihm.InitProcessedTxsResultsCalled != nil {
-		ppeihm.InitProcessedTxsResultsCalled(key)
+		ppeihm.InitProcessedTxsResultsCalled(key, parentKey)
 	}
 }
 

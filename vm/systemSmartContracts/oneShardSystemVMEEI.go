@@ -5,15 +5,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
 type oneShardSystemVMEEI struct {
-	vm.ContextHandler
+	*vmContext
 }
 
 // NewOneShardSystemVMEEI creates a new system vm eei context, mainly used for now in sovereign chain
-func NewOneShardSystemVMEEI(vmContext vm.ContextHandler) (*oneShardSystemVMEEI, error) {
+func NewOneShardSystemVMEEI(vmContext *vmContext) (*oneShardSystemVMEEI, error) {
 	if check.IfNil(vmContext) {
 		return nil, vm.ErrNilSystemEnvironmentInterface
 	}
@@ -24,12 +25,23 @@ func NewOneShardSystemVMEEI(vmContext vm.ContextHandler) (*oneShardSystemVMEEI, 
 }
 
 // SendGlobalSettingToAll handles sending global settings information
-func (sovHost *oneShardSystemVMEEI) SendGlobalSettingToAll(sender []byte, input []byte) error {
-	// TODO: MX-15470 remove sameShard check from ProcessBuiltInFunction
-	return sovHost.ProcessBuiltInFunction(core.SystemAccountAddress, sender, big.NewInt(0), input, 0)
+func (host *oneShardSystemVMEEI) SendGlobalSettingToAll(sender []byte, input []byte) error {
+	return host.ProcessBuiltInFunction(core.SystemAccountAddress, sender, big.NewInt(0), input, 0)
+}
+
+// ProcessBuiltInFunction will execute process if sender and destination is same shard/sovereign
+func (host *oneShardSystemVMEEI) ProcessBuiltInFunction(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
+	host.Transfer(destination, sender, value, input, gasLimit)
+	return host.processBuiltInFunction(destination, sender, value, input, gasLimit)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (sovHost *oneShardSystemVMEEI) IsInterfaceNil() bool {
-	return sovHost == nil
+func (host *oneShardSystemVMEEI) IsInterfaceNil() bool {
+	return host == nil
 }

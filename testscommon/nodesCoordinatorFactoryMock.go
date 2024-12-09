@@ -13,7 +13,7 @@ type NodesCoordinatorFactoryMock struct {
 // CreateNodesCoordinatorWithRater -
 func (n *NodesCoordinatorFactoryMock) CreateNodesCoordinatorWithRater(args *nodesCoordinator.NodesCoordinatorWithRaterArgs) (nodesCoordinator.NodesCoordinator, error) {
 	if n.CreateNodesCoordinatorWithRaterCalled != nil {
-		return n.CreateNodesCoordinatorWithRater(args)
+		return n.CreateNodesCoordinatorWithRaterCalled(args)
 	}
 	return &shardingMocks.NodesCoordinatorMock{}, nil
 }

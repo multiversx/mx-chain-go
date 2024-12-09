@@ -22,6 +22,12 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 }
 
+type subRoundBlockProcessArgs struct {
+	header data.HeaderHandler
+	body   data.BodyHandler
+	leader string
+}
+
 // NewSubroundBlock creates a subroundBlock object
 func NewSubroundBlock(
 	baseSubround *spos.Subround,
@@ -62,7 +68,77 @@ func checkNewSubroundBlockParams(
 }
 
 // doBlockJob method does the job of the subround Block
-func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
+func (sr *subroundBlock) doBlockJob(_ context.Context) bool {
+	args, deferFunc := sr.doBlockComputation()
+	defer deferFunc()
+
+	if args == nil {
+		return false
+	}
+
+	err := sr.SetJobDone(args.leader, sr.Current(), true)
+	if err != nil {
+		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
+		return false
+	}
+
+	// placeholder for subroundBlock.doBlockJob script
+
+	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(args.header, args.body, sr.RoundTimeStamp)
+
+	return true
+}
+
+func (sr *subroundBlock) doBlockComputation() (*subRoundBlockProcessArgs, func()) {
+	shouldProcess := sr.shouldProcess()
+	if !shouldProcess {
+		return nil, func() {}
+	}
+
+	metricStatTime := time.Now()
+	deferFunc := func() {
+		sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
+	}
+
+	header, body := sr.doBlockCreationJob(context.Background())
+	if check.IfNil(header) {
+		return nil, deferFunc
+	}
+
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		return nil, deferFunc
+	}
+
+	return &subRoundBlockProcessArgs{
+		header: header,
+		body:   body,
+		leader: leader,
+	}, deferFunc
+}
+
+func (sr *subroundBlock) doBlockCreationJob(ctx context.Context) (data.HeaderHandler, data.BodyHandler) {
+	header, err := sr.createHeader()
+	if err != nil {
+		printLogMessage(ctx, "doBlockJob.createHeader", err)
+		return nil, nil
+	}
+
+	header, body, err := sr.createBlock(header)
+	if err != nil {
+		printLogMessage(ctx, "doBlockJob.createBlock", err)
+		return nil, nil
+	}
+
+	sentWithSuccess := sr.sendBlock(header, body)
+	if !sentWithSuccess {
+		return nil, nil
+	}
+	return header, body
+}
+
+func (sr *subroundBlock) shouldProcess() bool {
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
 	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
@@ -79,43 +155,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
-
-	metricStatTime := time.Now()
-	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
-
-	header, err := sr.createHeader()
-	if err != nil {
-		printLogMessage(ctx, "doBlockJob.createHeader", err)
-		return false
-	}
-
-	header, body, err := sr.createBlock(header)
-	if err != nil {
-		printLogMessage(ctx, "doBlockJob.createBlock", err)
-		return false
-	}
-
-	sentWithSuccess := sr.sendBlock(header, body)
-	if !sentWithSuccess {
-		return false
-	}
-
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
-		return false
-	}
-
-	err = sr.SetJobDone(leader, sr.Current(), true)
-	if err != nil {
-		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
-		return false
-	}
-
-	// placeholder for subroundBlock.doBlockJob script
-
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.RoundTimeStamp)
-
 	return true
 }
 

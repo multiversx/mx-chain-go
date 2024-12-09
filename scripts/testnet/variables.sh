@@ -19,6 +19,9 @@ export USE_TXGEN=0
 # Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
 export USE_ELASTICSEARCH=0
 
+# Elasticsearch volume name to keep the elastic history on host. History will be loaded when docker is starting.
+export ELASTICSEARCH_VOLUME="sov-elastic"
+
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.
@@ -87,6 +90,9 @@ export EXTRA_KEYS=1
 
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
+# DEFAULT_CHAIN_ID represents the default chain ID
+export DEFAULT_CHAIN_ID="local-testnet"
 
 # ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
 export ROUNDS_PER_EPOCH=0

@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 )
