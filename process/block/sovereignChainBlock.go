@@ -570,14 +570,16 @@ func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBloc
 			return 0, nil, err
 		}
 
-		miniBlockHeaders = append(miniBlockHeaders, &block.MiniBlockHeader{
+		mbHeader := &block.MiniBlockHeader{
 			Hash:            hash,
 			SenderShardID:   mb.SenderShardID,
 			ReceiverShardID: mb.ReceiverShardID,
 			TxCount:         uint32(txCount),
 			Type:            mb.Type,
 			Reserved:        mb.Reserved,
-		})
+		}
+
+		miniBlockHeaders = append(miniBlockHeaders, mbHeader)
 	}
 
 	return totalTxCount, miniBlockHeaders, nil
@@ -1523,6 +1525,9 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return process.ErrWrongTypeAssertion
 	}
 
+	// must be called before commitEpochStart
+	rewardsTxs := scbp.getRewardsTxs(scbp.epochRewardsCreator, sovMetaHdr, body)
+
 	scbp.commitEpochStart(sovMetaHdr, body, scbp.epochRewardsCreator, scbp.validatorInfoCreator)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
@@ -1599,7 +1604,14 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
+	err = scbp.commonHeaderAndBodyCommit(
+		headerHandler,
+		body,
+		headerHash,
+		[]data.HeaderHandler{lastSelfNotarizedHeader},
+		[][]byte{lastSelfNotarizedHeaderHash},
+		rewardsTxs,
+	)
 	if err != nil {
 		return err
 	}

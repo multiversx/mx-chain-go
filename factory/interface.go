@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -37,8 +39,10 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/outport"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -66,7 +70,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -641,6 +644,8 @@ type RunTypeComponentsHolder interface {
 	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
 	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
 	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
+	APIRewardsTxHandler() transactionAPI.APIRewardTxHandler
+	OutportDataProviderFactory() OutportDataProviderFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -708,5 +713,11 @@ type DataRetrieverContainersSetter interface {
 // ExportHandlerFactoryCreator should create an export factory handler
 type ExportHandlerFactoryCreator interface {
 	CreateExportFactoryHandler(args ArgsExporter) (update.ExportFactoryHandler, error)
+	IsInterfaceNil() bool
+}
+
+// OutportDataProviderFactoryHandler defines an outport data provider factory handler
+type OutportDataProviderFactoryHandler interface {
+	CreateOutportDataProvider(arg outportFactory.ArgOutportDataProviderFactory) (outport.DataProviderOutport, error)
 	IsInterfaceNil() bool
 }
