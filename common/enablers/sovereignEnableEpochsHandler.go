@@ -1,7 +1,6 @@
 package enablers
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -46,19 +45,13 @@ func (sovHandler *sovereignEnableEpochsHandler) createAllFlagsMap() {
 }
 
 func (sovHandler *sovereignEnableEpochsHandler) addSovereignFlags() {
-	sovereignFlags := map[core.EnableEpochFlag]flagHandler{}
-
-	for key, value := range sovereignFlags {
-		sovHandler.enableEpochsHandler.allFlagsDefined[key] = value
-	}
+	// follow the implementation from enableEpochsHandler.go to add a new sovereign flag
+	// add the new flags in sovHandler.enableEpochsHandler.allFlagsDefined map
 }
 
 func (sovHandler *sovereignEnableEpochsHandler) addSovereignChainSpecificFlags() {
-	sovereignChainSpecificFlags := map[core.EnableEpochFlag]flagHandler{}
-
-	for key, value := range sovereignChainSpecificFlags {
-		sovHandler.enableEpochsHandler.allFlagsDefined[key] = value
-	}
+	// follow the implementation from enableEpochsHandler.go to add a new sovereign flag
+	// add the new flags in sovHandler.enableEpochsHandler.allFlagsDefined map
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
