@@ -25,10 +25,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for index := range sortedTxs {
 		if !haveTime() {
@@ -174,10 +170,6 @@ func (txs *transactions) processTransaction(
 	)
 	elapsedTime = time.Since(startTime)
 	mbInfo.processingInfo.totalTimeUsedForProcess += elapsedTime
-
-	txs.accountTxsShards.Lock()
-	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.accountTxsShards.Unlock()
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		if errors.Is(err, process.ErrHigherNonceInTransaction) {
@@ -378,10 +370,6 @@ func (txs *transactions) verifyTransaction(
 	err = txs.txProcessor.VerifyTransaction(tx)
 	elapsedTime = time.Since(startTime)
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
-
-	txs.accountTxsShards.Lock()
-	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.accountTxsShards.Unlock()
 
 	if err != nil {
 		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)

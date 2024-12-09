@@ -40,9 +40,19 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+	)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedCryptoComponents,
+	)
 	require.Nil(t, err)
 	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)
