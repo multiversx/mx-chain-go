@@ -1414,3 +1414,9 @@ type InterceptedDataVerifierFactory interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// ProofsPool defines the behaviour of a proofs pool components
+type ProofsPool interface {
+	HasProof(shardID uint32, headerHash []byte) bool
+	IsInterfaceNil() bool
+}
