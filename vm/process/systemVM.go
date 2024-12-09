@@ -6,9 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type systemVM struct {
@@ -18,6 +19,7 @@ type systemVM struct {
 	asyncCallbackGasLock uint64
 	asyncCallStepCost    uint64
 	mutGasLock           sync.RWMutex
+	criticalSection      sync.Mutex
 }
 
 // ArgsNewSystemVM defines the needed arguments to create a new system vm
@@ -68,6 +70,9 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 
 // RunSmartContractCreate creates and saves a new smart contract to the trie
 func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+	s.criticalSection.Lock()
+	defer s.criticalSection.Unlock()
+
 	if input == nil {
 		return nil, vm.ErrInputArgsIsNil
 	}
@@ -101,6 +106,9 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 
 // RunSmartContractCall executes a smart contract according to the input
 func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+	s.criticalSection.Lock()
+	defer s.criticalSection.Unlock()
+
 	s.systemEI.CleanCache()
 	s.systemEI.SetSCAddress(input.RecipientAddr)
 	s.systemEI.AddTxValueToSmartContract(input)

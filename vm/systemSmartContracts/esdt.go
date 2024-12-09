@@ -15,8 +15,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	esdtCore "github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -24,8 +26,6 @@ import (
 const numOfRetriesForIdentifier = 50
 const tickerSeparator = "-"
 const tickerRandomSequenceLength = 3
-const minLengthForTickerName = 3
-const maxLengthForTickerName = 10
 const minLengthForInitTokenName = 10
 const minLengthForTokenName = 3
 const maxLengthForTokenName = 20
@@ -43,6 +43,7 @@ const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
 const canCreateMultiShard = "canCreateMultiShard"
 const upgradeProperties = "upgradeProperties"
+const eGLD = "EGLD"
 
 const conversionBase = 10
 
@@ -58,6 +59,7 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 	enableEpochsHandler    common.EnableEpochsHandler
+	esdtPrefix             []byte
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -117,6 +119,11 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
+	esdtPrefix, err := createESDTPrefixWithSeparator(args.ESDTSCConfig.ESDTPrefix)
+	if err != nil {
+		return nil, err
+	}
+
 	return &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
@@ -130,7 +137,20 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		esdtPrefix:             esdtPrefix,
 	}, nil
+}
+
+func createESDTPrefixWithSeparator(esdtPrefix string) ([]byte, error) {
+	if len(esdtPrefix) == 0 {
+		return nil, nil
+	}
+
+	if !esdtCore.IsValidTokenPrefix(esdtPrefix) {
+		return nil, fmt.Errorf("%w: %s", errors.ErrInvalidTokenPrefix, esdtPrefix)
+	}
+
+	return append([]byte(esdtPrefix), []byte(tickerSeparator)...), nil
 }
 
 // Execute calls one of the functions from the esdt smart contract and runs the code according to the input
@@ -552,9 +572,21 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 func (e *esdt) getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 	switch tokenType {
 	case core.NonFungibleESDT, core.NonFungibleESDTv2, core.DynamicNFTESDT:
-		nftRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
+		nftRoles := [][]byte{
+			[]byte(core.ESDTRoleNFTCreate),
+			[]byte(core.ESDTRoleNFTBurn),
+			[]byte(core.ESDTRoleNFTUpdateAttributes),
+			[]byte(core.ESDTRoleNFTAddURI),
+		}
+
 		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
-			nftRoles = append(nftRoles, [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleModifyCreator), []byte(core.ESDTRoleModifyRoyalties), []byte(core.ESDTRoleSetNewURI)}...)
+			nftRoles = append(nftRoles, [][]byte{
+				[]byte(core.ESDTRoleNFTRecreate),
+				[]byte(core.ESDTRoleModifyCreator),
+				[]byte(core.ESDTRoleModifyRoyalties),
+				[]byte(core.ESDTRoleSetNewURI),
+				[]byte(core.ESDTRoleNFTUpdate),
+			}...)
 		}
 
 		return nftRoles, nil
@@ -563,8 +595,21 @@ func (e *esdt) getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 	case core.FungibleESDT:
 		return [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, nil
 	case core.DynamicSFTESDT, core.DynamicMetaESDT:
-		dynamicRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
-		dynamicRoles = append(dynamicRoles, [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleModifyCreator), []byte(core.ESDTRoleModifyRoyalties), []byte(core.ESDTRoleSetNewURI)}...)
+		dynamicRoles := [][]byte{
+			[]byte(core.ESDTRoleNFTCreate),
+			[]byte(core.ESDTRoleNFTBurn),
+			[]byte(core.ESDTRoleNFTAddQuantity),
+			[]byte(core.ESDTRoleNFTUpdateAttributes),
+			[]byte(core.ESDTRoleNFTAddURI),
+		}
+
+		dynamicRoles = append(dynamicRoles, [][]byte{
+			[]byte(core.ESDTRoleNFTRecreate),
+			[]byte(core.ESDTRoleModifyCreator),
+			[]byte(core.ESDTRoleModifyRoyalties),
+			[]byte(core.ESDTRoleSetNewURI),
+			[]byte(core.ESDTRoleNFTUpdate),
+		}...)
 
 		return dynamicRoles, nil
 	}
@@ -588,6 +633,15 @@ func (e *esdt) getTokenType(compressed []byte) (bool, []byte, error) {
 		return true, []byte(core.FungibleESDT), nil
 	}
 	return false, nil, vm.ErrInvalidArgument
+}
+
+func getDynamicTokenType(tokenType []byte) []byte {
+	if bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) ||
+		bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) {
+		return []byte(core.DynamicNFTESDT)
+	}
+
+	return append([]byte(core.Dynamic), tokenType...)
 }
 
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -655,7 +709,7 @@ func (e *esdt) createNewToken(
 	if !isTokenNameHumanReadable(tokenName) {
 		return nil, nil, vm.ErrTokenNameNotHumanReadable
 	}
-	if !isTickerValid(tickerName) {
+	if !esdtCore.IsTickerValid(string(tickerName)) {
 		return nil, nil, vm.ErrTickerNameNotValid
 	}
 
@@ -698,23 +752,6 @@ func (e *esdt) createNewToken(
 	return tokenIdentifier, newESDTToken, nil
 }
 
-func isTickerValid(tickerName []byte) bool {
-	if len(tickerName) < minLengthForTickerName || len(tickerName) > maxLengthForTickerName {
-		return false
-	}
-
-	for _, ch := range tickerName {
-		isBigCharacter := ch >= 'A' && ch <= 'Z'
-		isNumber := ch >= '0' && ch <= '9'
-		isReadable := isBigCharacter || isNumber
-		if !isReadable {
-			return false
-		}
-	}
-
-	return true
-}
-
 func isTokenNameHumanReadable(tokenName []byte) bool {
 	for _, ch := range tokenName {
 		isSmallCharacter := ch >= 'a' && ch <= 'z'
@@ -729,6 +766,11 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 }
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
+	if e.enableEpochsHandler.IsFlagEnabled(common.EGLDInESDTMultiTransferFlag) {
+		if bytes.Equal(ticker, []byte(eGLD)) {
+			return nil, vm.ErrCouldNotCreateNewTokenIdentifier
+		}
+	}
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
 	newRandom := e.hasher.Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
@@ -742,12 +784,20 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 		newIdentifier := append(tickerPrefix, encoded...)
 		buff := e.eei.GetStorage(newIdentifier)
 		if len(buff) == 0 {
-			return newIdentifier, nil
+			return e.createTokenIdentifierWithPrefix(newIdentifier), nil
 		}
 		newRandomAsBigInt.Add(newRandomAsBigInt, one)
 	}
 
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
+}
+
+func (e *esdt) createTokenIdentifierWithPrefix(tokenID []byte) []byte {
+	if len(e.esdtPrefix) == 0 {
+		return tokenID
+	}
+
+	return append(e.esdtPrefix, tokenID...)
 }
 
 func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
@@ -1666,6 +1716,11 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 			return nil
 		}
 		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTUpdate:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
@@ -1690,6 +1745,8 @@ func (e *esdt) isSpecialRoleValidForDynamicNFT(argument string) error {
 	case core.ESDTRoleModifyRoyalties:
 		return nil
 	case core.ESDTRoleNFTRecreate:
+		return nil
+	case core.ESDTRoleNFTUpdate:
 		return nil
 	default:
 		return vm.ErrInvalidArgument
@@ -1801,8 +1858,16 @@ func isDynamicTokenType(tokenType []byte) bool {
 }
 
 func rolesForDynamicWhichHasToBeSingular() []string {
-	return []string{core.ESDTRoleNFTCreate, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI,
-		core.ESDTRoleSetNewURI, core.ESDTRoleModifyCreator, core.ESDTRoleModifyRoyalties, core.ESDTRoleNFTRecreate}
+	return []string{
+		core.ESDTRoleNFTCreate,
+		core.ESDTRoleNFTUpdateAttributes,
+		core.ESDTRoleNFTAddURI,
+		core.ESDTRoleSetNewURI,
+		core.ESDTRoleModifyCreator,
+		core.ESDTRoleModifyRoyalties,
+		core.ESDTRoleNFTRecreate,
+		core.ESDTRoleNFTUpdate,
+	}
 }
 
 func (e *esdt) checkRolesForDynamicTokens(
@@ -2321,6 +2386,11 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		return nil, nil, vmcommon.UserError
 	}
 
+	if isNotAllowedToCreateDynamicToken(tokenType) {
+		e.eei.AddReturnMessage(fmt.Sprintf("cannot create %s tokens as dynamic", tokenType))
+		return nil, nil, vmcommon.UserError
+	}
+
 	propertiesStart := 3
 	numOfDecimals := uint32(0)
 	if isWithDecimals {
@@ -2342,7 +2412,7 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		}
 	}
 
-	dynamicTokenType := append([]byte(core.Dynamic), tokenType...)
+	dynamicTokenType := getDynamicTokenType(tokenType)
 
 	tokenIdentifier, token, err := e.createNewToken(
 		args.CallerAddr,
@@ -2434,8 +2504,8 @@ func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.Return
 		return returnCode
 	}
 
-	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {
-		e.eei.AddReturnMessage("cannot change fungible tokens to dynamic")
+	if isNotAllowed(token.TokenType) {
+		e.eei.AddReturnMessage(fmt.Sprintf("cannot change %s tokens to dynamic", token.TokenType))
 		return vmcommon.UserError
 	}
 	if isDynamicTokenType(token.TokenType) {
@@ -2471,6 +2541,26 @@ func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.Return
 	}
 
 	return vmcommon.Ok
+}
+
+func isNotAllowed(tokenType []byte) bool {
+	notAllowedTypes := [][]byte{
+		[]byte(core.FungibleESDT),
+		[]byte(core.NonFungibleESDT),
+		[]byte(core.NonFungibleESDTv2),
+	}
+
+	for _, notAllowedType := range notAllowedTypes {
+		if bytes.Equal(tokenType, notAllowedType) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isNotAllowedToCreateDynamicToken(tokenType []byte) bool {
+	return bytes.Equal(tokenType, []byte(core.FungibleESDT))
 }
 
 func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) error {

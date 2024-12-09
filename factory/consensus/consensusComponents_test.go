@@ -16,6 +16,7 @@ import (
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
+	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -191,7 +192,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ConsensusModelType: consensus.ConsensusModelV1,
+			ShardMessengerFactoryField:                 &factoryMocks.ShardChainMessengerFactoryMock{},
+			ValidatorAccountsSyncerFactoryHandlerField: &factoryMocks.ValidatorAccountsSyncerFactoryMock{},
+			ConsensusModelType:                         consensus.ConsensusModelV1,
 		},
 	}
 }
@@ -493,6 +496,18 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilBootstrapperCreator, err)
 	})
+	t.Run("nil ShardMessengerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		runTypeComps := mainFactoryMocks.NewRunTypeComponentsStub()
+		runTypeComps.ShardMessengerFactoryField = nil
+		args.RunTypeComponents = runTypeComps
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBroadCastShardMessengerFactoryHandler, err)
+	})
 }
 
 func TestConsensusComponentsFactory_Create(t *testing.T) {
@@ -639,7 +654,8 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ConsensusModelType: consensus.ConsensusModelV1,
+			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
+			ConsensusModelType:         consensus.ConsensusModelV1,
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)

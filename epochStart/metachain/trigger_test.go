@@ -3,7 +3,6 @@ package metachain
 import (
 	"errors"
 	"math"
-	"math/big"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -58,6 +58,9 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
+			},
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &testscommon.HeadersCacherStub{}
 			},
 		},
 	}
@@ -263,77 +266,45 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	assert.True(t, isEpochStart)
 }
 
-func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
+func TestTrigger_RevertStateToBlock(t *testing.T) {
 	t.Parallel()
 
-	epoch := uint32(0)
-	round := uint64(0)
-	nonce := uint64(100)
-	arguments := createMockEpochStartTriggerArguments()
-	arguments.Epoch = epoch
-	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+	triggerFactory := func(arguments *ArgsNewMetaEpochStartTrigger) epochStart.TriggerHandler {
+		epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+		return epochStartTrigger
+	}
+	metaHdrFactory := func(round uint64, epoch uint32, isEpochStart bool) data.MetaHeaderHandler {
+		metaBlock := &block.MetaBlock{
+			Round: round,
+			Epoch: epoch,
+		}
 
-	epochStartTrigger.Update(round, nonce)
-	round++
-	epochStartTrigger.Update(round, nonce)
-	round++
-	epochStartTrigger.Update(round, nonce)
-	round++
-	epochStartTrigger.Update(round, nonce)
+		if isEpochStart {
+			metaBlock.EpochStart = block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}
+		}
 
-	ret := epochStartTrigger.IsEpochStart()
-	assert.True(t, ret)
+		return metaBlock
+	}
 
-	epc := epochStartTrigger.Epoch()
-	assert.Equal(t, epoch+1, epc)
-
-	metaHdr := &block.MetaBlock{
-		Round: round,
-		Epoch: epoch + 1,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
-			Economics: block.Economics{
-				TotalSupply:         big.NewInt(0),
-				TotalToDistribute:   big.NewInt(0),
-				TotalNewlyMinted:    big.NewInt(0),
-				RewardsPerBlock:     big.NewInt(0),
-				NodePrice:           big.NewInt(0),
-				PrevEpochStartRound: 0,
-			}}}
-	epochStartTrigger.SetProcessed(metaHdr, nil)
-	ret = epochStartTrigger.IsEpochStart()
-	assert.False(t, ret)
-
-	err := epochStartTrigger.RevertStateToBlock(metaHdr)
-	assert.Nil(t, err)
-	assert.Equal(t, metaHdr.Epoch, epochStartTrigger.Epoch())
-	assert.False(t, epochStartTrigger.IsEpochStart())
-	assert.Equal(t, epochStartTrigger.currEpochStartRound, metaHdr.Round)
-
-	epochStartTrigger.Update(round, nonce)
-	ret = epochStartTrigger.IsEpochStart()
-	assert.False(t, ret)
-
-	epc = epochStartTrigger.Epoch()
-	assert.Equal(t, epoch+1, epc)
-
-	epochStartTrigger.SetProcessed(&block.MetaBlock{
-		Round:      round,
-		Epoch:      epoch + 1,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
-	ret = epochStartTrigger.IsEpochStart()
-	assert.False(t, ret)
+	testTriggerRevertToEndOfEpochUpdate(t, triggerFactory, metaHdrFactory)
+	testTriggerRevertBehindEpochStartBlock(t, triggerFactory, metaHdrFactory)
 }
 
-func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
-	t.Parallel()
+type createTriggerFunc func(arguments *ArgsNewMetaEpochStartTrigger) epochStart.TriggerHandler
+type createEpochStartMetaHdrFunc func(round uint64, epoch uint32, isEpochStart bool) data.MetaHeaderHandler
 
+func testTriggerRevertBehindEpochStartBlock(
+	t *testing.T,
+	createTriggerFunc createTriggerFunc,
+	createEpochStartMetaHdrFunc createEpochStartMetaHdrFunc,
+) {
 	epoch := uint32(0)
 	round := uint64(0)
 	nonce := uint64(100)
 	arguments := createMockEpochStartTriggerArguments()
 	arguments.Epoch = epoch
-	firstBlock := &block.MetaBlock{}
+
+	firstBlock := createEpochStartMetaHdrFunc(0, 0, false)
 	firstBlockBuff, _ := arguments.Marshalizer.Marshal(firstBlock)
 
 	arguments.Storage = &storageStubs.ChainStorerStub{
@@ -355,7 +326,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 		},
 	}
 
-	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
+	epochStartTrigger := createTriggerFunc(arguments)
 
 	epochStartTrigger.Update(round, nonce)
 	round++
@@ -371,41 +342,27 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	epc := epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	prevMetaHdr := &block.MetaBlock{
-		Round: round - 1,
-		Epoch: epoch,
-	}
+	prevMetaHdr := createEpochStartMetaHdrFunc(round-1, epoch, false)
+	prevHash, _ := core.CalculateHash(arguments.Marshalizer, arguments.Hasher, prevMetaHdr)
+	metaHdr := createEpochStartMetaHdrFunc(round, epoch+1, true)
+	err := metaHdr.SetPrevHash(prevHash)
+	require.Nil(t, err)
 
-	prevHash, _ := core.CalculateHash(epochStartTrigger.marshaller, epochStartTrigger.hasher, prevMetaHdr)
-	metaHdr := &block.MetaBlock{
-		Round:    round,
-		Epoch:    epoch + 1,
-		PrevHash: prevHash,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
-			Economics: block.Economics{
-				TotalSupply:         big.NewInt(0),
-				TotalToDistribute:   big.NewInt(0),
-				TotalNewlyMinted:    big.NewInt(0),
-				RewardsPerBlock:     big.NewInt(0),
-				NodePrice:           big.NewInt(0),
-				PrevEpochStartRound: 0,
-			}}}
 	epochStartTrigger.SetProcessed(metaHdr, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 
-	err := epochStartTrigger.RevertStateToBlock(metaHdr)
+	err = epochStartTrigger.RevertStateToBlock(metaHdr)
 	assert.Nil(t, err)
-	assert.Equal(t, metaHdr.Epoch, epochStartTrigger.Epoch())
+	assert.Equal(t, metaHdr.GetEpoch(), epochStartTrigger.Epoch())
 	assert.False(t, epochStartTrigger.IsEpochStart())
-	assert.Equal(t, epochStartTrigger.currEpochStartRound, metaHdr.Round)
+	assert.Equal(t, epochStartTrigger.EpochStartRound(), metaHdr.GetRound())
 
 	err = epochStartTrigger.RevertStateToBlock(prevMetaHdr)
 	assert.Nil(t, err)
-	assert.Equal(t, firstBlock.Epoch, epochStartTrigger.Epoch())
+	assert.Equal(t, firstBlock.GetEpoch(), epochStartTrigger.Epoch())
 	assert.False(t, epochStartTrigger.IsEpochStart())
-	assert.Equal(t, epochStartTrigger.currEpochStartRound, firstBlock.Round)
+	assert.Equal(t, epochStartTrigger.EpochStartRound(), firstBlock.GetRound())
 
 	epochStartTrigger.Update(round, nonce)
 	ret = epochStartTrigger.IsEpochStart()
@@ -414,10 +371,56 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	epc = epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
 
-	epochStartTrigger.SetProcessed(&block.MetaBlock{
-		Round:      round,
-		Epoch:      epoch + 1,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
+	epochStartTrigger.SetProcessed(createEpochStartMetaHdrFunc(round, epoch+1, true), nil)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
+}
+
+func testTriggerRevertToEndOfEpochUpdate(
+	t *testing.T,
+	createTriggerFunc createTriggerFunc,
+	createEpochStartMetaHdrFunc createEpochStartMetaHdrFunc,
+) {
+	epoch := uint32(0)
+	round := uint64(0)
+	nonce := uint64(100)
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Epoch = epoch
+	epochStartTrigger := createTriggerFunc(arguments)
+
+	epochStartTrigger.Update(round, nonce)
+	round++
+	epochStartTrigger.Update(round, nonce)
+	round++
+	epochStartTrigger.Update(round, nonce)
+	round++
+	epochStartTrigger.Update(round, nonce)
+
+	ret := epochStartTrigger.IsEpochStart()
+	assert.True(t, ret)
+
+	epc := epochStartTrigger.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	metaHdr := createEpochStartMetaHdrFunc(round, epoch+1, true)
+	epochStartTrigger.SetProcessed(metaHdr, nil)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
+
+	err := epochStartTrigger.RevertStateToBlock(metaHdr)
+	assert.Nil(t, err)
+	assert.Equal(t, metaHdr.GetEpoch(), epochStartTrigger.Epoch())
+	assert.False(t, epochStartTrigger.IsEpochStart())
+	assert.Equal(t, epochStartTrigger.EpochStartRound(), metaHdr.GetRound())
+
+	epochStartTrigger.Update(round, nonce)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
+
+	epc = epochStartTrigger.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	epochStartTrigger.SetProcessed(createEpochStartMetaHdrFunc(round, epoch+1, true), nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }

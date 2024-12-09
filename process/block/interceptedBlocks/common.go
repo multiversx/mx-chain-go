@@ -122,13 +122,13 @@ func checkShardData(sd data.ShardDataHandler, coordinator sharding.Coordinator) 
 	return nil
 }
 
-func checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
+func checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator, acceptedCrossShardID uint32) error {
 	for _, mbHeader := range mbHeaders {
 		isWrongSenderShardId := mbHeader.GetSenderShardID() >= coordinator.NumberOfShards() &&
-			mbHeader.GetSenderShardID() != core.MetachainShardId &&
+			mbHeader.GetSenderShardID() != acceptedCrossShardID &&
 			mbHeader.GetSenderShardID() != core.AllShardId
 		isWrongDestinationShardId := mbHeader.GetReceiverShardID() >= coordinator.NumberOfShards() &&
-			mbHeader.GetReceiverShardID() != core.MetachainShardId &&
+			mbHeader.GetReceiverShardID() != acceptedCrossShardID &&
 			mbHeader.GetReceiverShardID() != core.AllShardId
 		isWrongShardId := isWrongSenderShardId || isWrongDestinationShardId
 		if isWrongShardId {

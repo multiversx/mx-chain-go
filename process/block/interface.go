@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 )
@@ -39,6 +40,8 @@ type validatorStatsRootHashGetter interface {
 type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
 	GetOutGoingMiniBlockHeaderHandler() data.OutGoingMiniBlockHeaderHandler
+	GetEpochStartHandler() data.EpochStartHandler
+	GetLastFinalizedCrossChainHeaderHandler() data.EpochStartChainDataHandler
 }
 
 type crossNotarizer interface {
@@ -47,7 +50,7 @@ type crossNotarizer interface {
 
 // BlockProcessorCreator defines the block processor factory handler
 type BlockProcessorCreator interface {
-	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, argsMetaProcessorCreateFunc ExtraMetaBlockProcessorCreateFunc) (process.DebuggerBlockProcessor, error)
 	IsInterfaceNil() bool
 }
 
@@ -64,3 +67,6 @@ type runTypeComponentsHolder interface {
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	IsInterfaceNil() bool
 }
+
+// ExtraMetaBlockProcessorCreateFunc defines a func able to create extra args needed to create meta block processor args
+type ExtraMetaBlockProcessorCreateFunc func(systemVM vmcommon.VMExecutionHandler) (*ExtraArgsMetaBlockProcessor, error)

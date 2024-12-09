@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -497,6 +498,11 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
+	miniBlockHash, err := core.CalculateHash(rtp.marshalizer, rtp.hasher, miniBlock)
+	if err != nil {
+		return nil, indexOfLastTxProcessed, false, err
+	}
+
 	processedTxHashes := make([][]byte, 0)
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockRewardTxs); txIndex++ {
 		if !haveTime() {
@@ -509,7 +515,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 			break
 		}
 
-		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex])
+		snapshot := rtp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, miniBlockTxHashes[txIndex], miniBlockHash)
 
 		rtp.txExecutionOrderHandler.Add(miniBlockTxHashes[txIndex])
 		err = rtp.rewardsProcessor.ProcessRewardTransaction(miniBlockRewardTxs[txIndex])

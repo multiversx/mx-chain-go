@@ -13,6 +13,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	mockVm "github.com/multiversx/mx-chain-vm-common-go/mock"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -37,11 +43,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	mockVm "github.com/multiversx/mx-chain-vm-common-go/mock"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -126,11 +127,12 @@ func createAccountsDB() *state.AccountsDB {
 
 func createESDTDataStorage(accountsDB state.AccountsAdapter) vmcommon.ESDTNFTStorageHandler {
 	esdtDataStorage, _ := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
-		Accounts:              accountsDB,
-		GlobalSettingsHandler: &mockVm.GlobalSettingsHandlerStub{},
-		Marshalizer:           sovMarshaller,
-		EnableEpochsHandler:   sovEnableEpochsHandler,
-		ShardCoordinator:      sovShardCoord,
+		Accounts:                      accountsDB,
+		GlobalSettingsHandler:         &mockVm.GlobalSettingsHandlerStub{},
+		Marshalizer:                   sovMarshaller,
+		EnableEpochsHandler:           sovEnableEpochsHandler,
+		ShardCoordinator:              sovShardCoord,
+		CrossChainTokenCheckerHandler: &mockVm.CrossChainTokenCheckerMock{},
 	})
 
 	return esdtDataStorage

@@ -15,7 +15,11 @@ startSovereignValidators() {
   setTerminalSession "multiversx-nodes"
   setTerminalLayout "tiled"
   setWorkdirForNextCommands "$TESTNETDIR/node"
-  iterateOverSovereignValidators startSingleValidator
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+    iterateOverSovereignValidatorsMultiKey startSingleValidator
+  else
+    iterateOverSovereignValidators startSingleValidator
+  fi
 }
 
 pauseValidators() {
@@ -95,6 +99,16 @@ iterateOverValidatorsMultiKey() {
     sleep 0.5
   fi
    (( VALIDATOR_INDEX++ ))
+}
+
+iterateOverSovereignValidatorsMultiKey() {
+  local callback=$1
+  local VALIDATOR_INDEX=0
+  local SHARD="0"
+  if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+    $callback $SHARD $VALIDATOR_INDEX
+    sleep 0.5
+  fi
 }
 
 startSingleValidator() {

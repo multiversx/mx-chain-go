@@ -10,13 +10,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	"github.com/multiversx/mx-chain-go/genesis"
 	genesisCommon "github.com/multiversx/mx-chain-go/genesis/process/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -43,7 +47,6 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	if err != nil {
 		return nil, err
 	}
-
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
@@ -108,6 +111,8 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
 	cfg := createGenesisConfig(providedEnableEpochs)
 	cfg.ESDTMultiTransferEnableEpoch = 0
+	cfg.StakeEnableEpoch = 0
+	cfg.PenalizedTooMuchGasEnableEpoch = 0
 	return cfg
 }
 
@@ -137,29 +142,93 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, fmt.Errorf("'%w' while generating genesis block for shard %d", err, shardID)
 	}
 
-	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	allScAddresses := make([][]byte, 0)
-	allScAddresses = append(allScAddresses, scResults...)
-	genesisBlocks[shardID] = genesisBlock
 	err = gbc.saveGenesisBlock(genesisBlock)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while saving genesis block for shard %d", err, shardID)
 	}
 
-	err = gbc.checkDelegationsAgainstDeployedSC(allScAddresses, gbc.arg)
+	err = gbc.checkDelegationsAgainstDeployedSC(scResults, gbc.arg)
 	if err != nil {
 		return nil, err
 	}
 
-	gb := genesisBlocks[shardID]
+	err = genesisBlock.SetSoftwareVersion(process.SovereignHeaderVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	prevHash := gbc.arg.Core.Hasher().Compute(gbc.arg.GenesisString)
+	err = genesisBlock.SetPrevHash(prevHash)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorRootHash, err := gbc.arg.ValidatorAccounts.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: MX-15667 Ugly fix, we need header versioning creator here to be integrated for sovereign chain
+	sovereignHeader := &block.SovereignChainHeader{
+		Header:                 genesisBlock.(*block.Header),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		ValidatorStatsRootHash: validatorRootHash,
+		IsStartOfEpoch:         true,
+	}
+	sovereignHeader.EpochStart.Economics = block.Economics{
+		TotalSupply:       big.NewInt(0).Set(gbc.arg.Economics.GenesisTotalSupply()),
+		TotalToDistribute: big.NewInt(0),
+		TotalNewlyMinted:  big.NewInt(0),
+		RewardsPerBlock:   big.NewInt(0),
+		NodePrice:         big.NewInt(0).Set(gbc.arg.GenesisNodePrice),
+	}
+
+	err = saveSovereignGenesisStorage(gbc.arg.Data.StorageService(), gbc.arg.Core.InternalMarshalizer(), sovereignHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Info("sovereignGenesisBlockCreator.createSovereignHeaders",
-		"shard", gb.GetShardID(),
-		"nonce", gb.GetNonce(),
-		"round", gb.GetRound(),
-		"root hash", gb.GetRootHash(),
+		"shard", sovereignHeader.GetShardID(),
+		"nonce", sovereignHeader.GetNonce(),
+		"round", sovereignHeader.GetRound(),
+		"root hash", sovereignHeader.GetRootHash(),
 	)
 
-	return genesisBlocks, nil
+	return map[uint32]data.HeaderHandler{
+		core.SovereignChainShardId: sovereignHeader,
+	}, nil
+}
+
+func saveSovereignGenesisStorage(
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	genesisBlock data.HeaderHandler,
+) error {
+	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
+
+	blockHdrStorage, err := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return err
+	}
+
+	triggerStorage, err := storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
+
+	marshaledData, err := marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = blockHdrStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return triggerStorage.Put([]byte(epochStartID), marshaledData)
 }
 
 func createSovereignShardGenesisBlock(
@@ -178,6 +247,11 @@ func createSovereignShardGenesisBlock(
 	}
 
 	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	err = initSystemSCs(shardProcessors.vmContainer, arg.Accounts)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -223,6 +297,20 @@ func createSovereignShardGenesisBlock(
 	}
 
 	return genesisBlock, scAddresses, indexingData, nil
+}
+
+func initSystemSCs(vmContainer process.VirtualMachinesContainer, accounts state.AccountsAdapter) error {
+	vmExecutionHandler, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	err = genesisCommon.InitDelegationSystemSC(vmExecutionHandler, accounts)
+	if err != nil {
+		return err
+	}
+
+	return genesisCommon.InitGovernanceV2(vmExecutionHandler, accounts)
 }
 
 func setRootHash(header data.HeaderHandler, rootHash []byte) error {
@@ -272,6 +360,7 @@ func setSovereignStakedData(
 	stakeValue := arg.GenesisNodePrice
 
 	stakedNodes := nodesListSplitter.GetAllNodes()
+	argsUpdateOwnersForBlsKeys := make([][]byte, 0)
 	for _, nodeInfo := range stakedNodes {
 		senderAcc, err := arg.Accounts.LoadAccount(nodeInfo.AddressBytes())
 		if err != nil {
@@ -305,6 +394,14 @@ func setSovereignStakedData(
 		if vmOutput.ReturnCode != vmcommon.Ok {
 			return nil, genesis.ErrBLSKeyNotStaked
 		}
+
+		argsUpdateOwnersForBlsKeys = append(argsUpdateOwnersForBlsKeys, nodeInfo.PubKeyBytes())
+		argsUpdateOwnersForBlsKeys = append(argsUpdateOwnersForBlsKeys, senderAcc.AddressBytes())
+	}
+
+	err := updateOwnersForBlsKeys(argsUpdateOwnersForBlsKeys, processors.vmContainer, arg.Accounts)
+	if err != nil {
+		return nil, err
 	}
 
 	log.Debug("sovereign genesis block",
@@ -312,4 +409,35 @@ func setSovereignStakedData(
 	)
 
 	return stakingTxs, nil
+}
+
+func updateOwnersForBlsKeys(
+	arguments [][]byte,
+	vmContainer process.VirtualMachinesContainer,
+	accounts state.AccountsAdapter,
+) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  arguments,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "setOwnersOnAddresses",
+	}
+
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	vmOutput, errRun := systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when calling setOwnersOnAddresses function", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when calling setOwnersOnAddresses", vmOutput.ReturnCode)
+	}
+
+	return genesisCommon.ProcessSCOutputAccounts(vmOutput, accounts)
 }

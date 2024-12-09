@@ -76,6 +76,9 @@ var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})
 
+// CrossChainAddresses -
+var CrossChainAddresses = []string{"3132333435363738393031323334353637383930313233343536373839303234"}
+
 // TestContext -
 type TestContext struct {
 	T *testing.T
@@ -261,17 +264,26 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
+
+	dnsV2Addresses := make([]string, 0)
+	for dnsAddr := range DNSAddresses {
+		dnsAddrEncoded, _ := pkConverter.Encode([]byte(dnsAddr))
+		dnsV2Addresses = append(dnsV2Addresses, dnsAddrEncoded)
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           DNSAddresses,
-		MapDNSV2Addresses:         DNSAddresses,
-		Marshalizer:               marshalizer,
-		Accounts:                  context.Accounts,
-		ShardCoordinator:          oneShardCoordinator,
-		EpochNotifier:             context.EpochNotifier,
-		EnableEpochsHandler:       context.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
+		GasSchedule:                    gasSchedule,
+		MapDNSAddresses:                DNSAddresses,
+		DNSV2Addresses:                 dnsV2Addresses,
+		Marshalizer:                    marshalizer,
+		Accounts:                       context.Accounts,
+		ShardCoordinator:               oneShardCoordinator,
+		EpochNotifier:                  context.EpochNotifier,
+		EnableEpochsHandler:            context.EnableEpochsHandler,
+		MaxNumAddressesInTransferRole:  100,
+		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                pkConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 

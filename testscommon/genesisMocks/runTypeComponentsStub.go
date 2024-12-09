@@ -1,9 +1,13 @@
 package genesisMocks
 
 import (
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
+	"github.com/multiversx/mx-chain-go/process/factory/sovereign"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
@@ -20,15 +24,18 @@ import (
 
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
-	BlockChainHookHandlerFactory  hooks.BlockChainHookHandlerCreator
-	TransactionCoordinatorFactory coordinator.TransactionCoordinatorCreator
-	SCResultsPreProcessorFactory  preprocess.SmartContractResultPreProcessorCreator
-	SCProcessorFactory            scrCommon.SCProcessorCreator
-	AccountParser                 genesis.AccountsParser
-	AccountCreator                state.AccountFactory
-	VMContextCreatorHandler       systemSmartContracts.VMContextCreatorHandler
-	ShardCoordinatorFactory       sharding.ShardCoordinatorFactory
-	TxPreProcessorFactory         preprocess.TxPreProcessorCreator
+	BlockChainHookHandlerFactory              hooks.BlockChainHookHandlerCreator
+	TransactionCoordinatorFactory             coordinator.TransactionCoordinatorCreator
+	SCResultsPreProcessorFactory              preprocess.SmartContractResultPreProcessorCreator
+	SCProcessorFactory                        scrCommon.SCProcessorCreator
+	AccountParser                             genesis.AccountsParser
+	AccountCreator                            state.AccountFactory
+	VMContextCreatorHandler                   systemSmartContracts.VMContextCreatorHandler
+	ShardCoordinatorFactory                   sharding.ShardCoordinatorFactory
+	TxPreProcessorFactory                     preprocess.TxPreProcessorCreator
+	VmContainerShardFactory                   factoryVm.VmContainerCreator
+	VmContainerMetaFactory                    factoryVm.VmContainerCreator
+	PreProcessorsContainerFactoryCreatorField data.PreProcessorsContainerFactoryCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -42,17 +49,22 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
+	vmContainerShard := factoryVm.NewVmContainerShardFactory()
+	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(systemSmartContracts.NewVMContextCreator())
 
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
-		TransactionCoordinatorFactory: transactionCoordinatorFactory,
-		SCResultsPreProcessorFactory:  scResultsPreProcessorCreator,
-		SCProcessorFactory:            scProcessorCreator,
-		AccountParser:                 &AccountsParserStub{},
-		AccountCreator:                accountsCreator,
-		VMContextCreatorHandler:       systemSmartContracts.NewVMContextCreator(),
-		ShardCoordinatorFactory:       sharding.NewMultiShardCoordinatorFactory(),
-		TxPreProcessorFactory:         preprocess.NewTxPreProcessorCreator(),
+		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
+		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
+		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
+		SCProcessorFactory:                        scProcessorCreator,
+		AccountParser:                             &AccountsParserStub{},
+		AccountCreator:                            accountsCreator,
+		VMContextCreatorHandler:                   systemSmartContracts.NewVMContextCreator(),
+		ShardCoordinatorFactory:                   sharding.NewMultiShardCoordinatorFactory(),
+		TxPreProcessorFactory:                     preprocess.NewTxPreProcessorCreator(),
+		VmContainerShardFactory:                   vmContainerShard,
+		VmContainerMetaFactory:                    vmContainerMeta,
+		PreProcessorsContainerFactoryCreatorField: shard.NewPreProcessorContainerFactoryCreator(),
 	}
 }
 
@@ -73,16 +85,24 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		BaseTokenID: "WEGLD-bd4d79",
 	})
 
+	oneShardVM := systemSmartContracts.NewOneShardSystemVMEEICreator()
+	vmMetaFactory, _ := factoryVm.NewVmContainerMetaFactory(oneShardVM)
+	sovVMContainerShardFactory, _ := factoryVm.NewSovereignVmContainerShardFactory(vmMetaFactory, runTypeComponents.VmContainerShardFactory)
+	sovVMContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(oneShardVM)
+
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
-		TransactionCoordinatorFactory: transactionCoordinatorFactory,
-		SCResultsPreProcessorFactory:  scResultsPreProcessorCreator,
-		SCProcessorFactory:            scProcessorCreator,
-		AccountParser:                 &AccountsParserStub{},
-		AccountCreator:                accountsCreator,
-		VMContextCreatorHandler:       &vmContext.VMContextCreatorStub{},
-		ShardCoordinatorFactory:       sharding.NewSovereignShardCoordinatorFactory(),
-		TxPreProcessorFactory:         preprocess.NewSovereignTxPreProcessorCreator(),
+		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
+		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
+		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
+		SCProcessorFactory:                        scProcessorCreator,
+		AccountParser:                             &AccountsParserStub{},
+		AccountCreator:                            accountsCreator,
+		VMContextCreatorHandler:                   &vmContext.VMContextCreatorStub{},
+		ShardCoordinatorFactory:                   sharding.NewSovereignShardCoordinatorFactory(),
+		TxPreProcessorFactory:                     preprocess.NewSovereignTxPreProcessorCreator(),
+		VmContainerShardFactory:                   sovVMContainerShardFactory,
+		VmContainerMetaFactory:                    sovVMContainerMeta,
+		PreProcessorsContainerFactoryCreatorField: sovereign.NewSovereignPreProcessorContainerFactoryCreator(),
 	}
 }
 
@@ -129,6 +149,21 @@ func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordina
 // TxPreProcessorCreator -
 func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
 	return r.TxPreProcessorFactory
+}
+
+// VmContainerShardFactoryCreator -
+func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
+	return r.VmContainerShardFactory
+}
+
+// VmContainerMetaFactoryCreator -
+func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
+	return r.VmContainerMetaFactory
+}
+
+// PreProcessorsContainerFactoryCreator -
+func (r *RunTypeComponentsStub) PreProcessorsContainerFactoryCreator() data.PreProcessorsContainerFactoryCreator {
+	return r.PreProcessorsContainerFactoryCreatorField
 }
 
 // IsInterfaceNil -

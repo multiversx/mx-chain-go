@@ -5,10 +5,13 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
-	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
+)
 
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+const (
+	separator = "@"
 )
 
 // CreateSovereignArgsRunTypeComponents creates the args for run type component
@@ -21,12 +24,14 @@ func CreateSovereignArgsRunTypeComponents(
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
-	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
+	serializer, err := abi.NewSerializer(abi.ArgsNewSerializer{
+		PartsSeparator: separator,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
+	dataCodecHandler, err := dataCodec.NewDataCodec(serializer)
 	if err != nil {
 		return nil, err
 	}

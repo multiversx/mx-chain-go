@@ -22,7 +22,7 @@ const (
 	adderWasmPath              = "../testdata/adder.wasm"
 )
 
-func TestSovereignChain_SmartContract_Adder(t *testing.T) {
+func TestSovereignChainSimulator_SmartContract_Adder(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -30,7 +30,7 @@ func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
+			BypassTxSignatureCheck: true,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
@@ -38,7 +38,6 @@ func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 		},
 	})
 	require.Nil(t, err)
@@ -55,6 +54,9 @@ func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
 	nonce := uint64(0)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	initSum := big.NewInt(123)
 	initArgs := "@" + hex.EncodeToString(initSum.Bytes())
@@ -73,7 +75,7 @@ func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 
 	addedSum := big.NewInt(10)
 	addTxData := "add@" + hex.EncodeToString(addedSum.Bytes())
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, chainSim.ZeroValue, addTxData, uint64(10000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, deployedContractAddress, chainSim.ZeroValue, addTxData, uint64(10000000))
 
 	res, _, err = nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,

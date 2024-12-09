@@ -5,3 +5,8 @@ type runTypeComponentsCreator interface {
 	Create() (*runTypeComponents, error)
 	IsInterfaceNil() bool
 }
+
+type runTypeCoreComponentsCreator interface {
+	Create() *runTypeCoreComponents
+	IsInterfaceNil() bool
+}

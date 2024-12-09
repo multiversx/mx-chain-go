@@ -18,6 +18,10 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -25,9 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -555,7 +556,7 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults, txHash)
 	if err != nil {
 		log.Error("AddIntermediateTransactions error", "error", err.Error())
 		return 0, err
@@ -888,7 +889,7 @@ func (sc *scProcessor) resolveFailedTransaction(
 	}
 
 	if _, ok := tx.(*transaction.Transaction); ok {
-		err = sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+		err = sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
 		if err != nil {
 			return err
 		}
@@ -1456,7 +1457,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 	userErrorLog := createNewLogFromSCRIfError(scrIfError)
 
 	if !sc.enableEpochsHandler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag) || !sc.isInformativeTxHandler(scrIfError) {
-		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError}, txHash)
 		if err != nil {
 			return err
 		}
@@ -1595,7 +1596,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 	}
 
 	if !sc.enableEpochsHandler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag) || scrForRelayer.Value.Cmp(zero) > 0 {
-		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer}, txHash)
 		if err != nil {
 			return nil, err
 		}
@@ -1833,7 +1834,7 @@ func (sc *scProcessor) doDeploySmartContract(
 		return 0, err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults, txHash)
 	if err != nil {
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return 0, err

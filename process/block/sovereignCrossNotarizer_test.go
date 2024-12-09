@@ -33,7 +33,7 @@ func TestSovereignShardCrossNotarizer_getLastCrossNotarizedHeaders(t *testing.T)
 	headers := sovereignNotarzier.getLastCrossNotarizedHeaders()
 	expectedHeaders := []bootstrapStorage.BootstrapHeaderInfo{
 		{
-			ShardId: header.GetShardID(),
+			ShardId: core.MainChainShardId,
 			Nonce:   header.GetNonce(),
 			Hash:    hash,
 		},

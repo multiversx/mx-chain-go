@@ -394,14 +394,10 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 
 // ------- Hdr interceptor
 
-func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error {
-	shardC := bicf.shardCoordinator
-
-	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(bicf.argInterceptorFactory)
-	if err != nil {
-		return err
-	}
-
+func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors(
+	headerDataFactory process.InterceptedDataFactory,
+	shardID uint32,
+) error {
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        bicf.dataPool.Headers(),
 		BlockBlackList: bicf.blockBlackList,
@@ -412,13 +408,13 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + bicf.shardCoordinator.CommunicationIdentifier(shardID)
 
 	// only one intrashard header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                identifierHdr,
-			DataFactory:          hdrFactory,
+			DataFactory:          headerDataFactory,
 			Processor:            hdrProcessor,
 			Throttler:            bicf.globalThrottler,
 			AntifloodHandler:     bicf.antifloodHandler,
@@ -483,6 +479,18 @@ func (bicf *baseInterceptorsContainerFactory) generateMiniBlocksInterceptors() e
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(topic string) (process.Interceptor, error) {
+	miniBlockFactory, err := interceptorFactory.NewInterceptedMiniblockDataFactory(bicf.argInterceptorFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	return bicf.baseCreateOneMiniBlocksInterceptor(miniBlockFactory, topic)
+}
+
+func (bicf *baseInterceptorsContainerFactory) baseCreateOneMiniBlocksInterceptor(
+	miniBlockFactory process.InterceptedDataFactory,
+	topic string,
+) (process.Interceptor, error) {
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	hasher := bicf.argInterceptorFactory.CoreComponents.Hasher()
 	argProcessor := &processor.ArgMiniblockInterceptorProcessor{
@@ -497,16 +505,11 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		return nil, err
 	}
 
-	miniblockFactory, err := interceptorFactory.NewInterceptedMiniblockDataFactory(bicf.argInterceptorFactory)
-	if err != nil {
-		return nil, err
-	}
-
 	interceptor, err := interceptors.NewMultiDataInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                topic,
 			Marshalizer:          internalMarshaller,
-			DataFactory:          miniblockFactory,
+			DataFactory:          miniBlockFactory,
 			Processor:            miniblockProcessor,
 			Throttler:            bicf.globalThrottler,
 			AntifloodHandler:     bicf.antifloodHandler,
@@ -796,8 +799,8 @@ func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(
 	return bicf.createTopicAndAssignHandler(identifier, interceptor, true)
 }
 
-func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
-	identifier := common.ValidatorInfoTopic
+func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor(topicID string) error {
+	identifier := topicID
 
 	interceptedValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoDataFactory(*bicf.argInterceptorFactory)
 	if err != nil {
@@ -837,6 +840,31 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 	}
 
 	return bicf.addInterceptorsToContainers([]string{identifier}, []process.Interceptor{interceptor})
+}
+
+func (bicf *baseInterceptorsContainerFactory) generateValidatorAndAccountTrieNodesInterceptors(shardID uint32) error {
+	keys := make([]string, 0)
+	trieInterceptors := make([]process.Interceptor, 0)
+
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	interceptor, err := bicf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	interceptor, err = bicf.createOneTrieNodesInterceptor(identifierTrieNodes)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierTrieNodes)
+	trieInterceptors = append(trieInterceptors, interceptor)
+
+	return bicf.addInterceptorsToContainers(keys, trieInterceptors)
 }
 
 func (bicf *baseInterceptorsContainerFactory) addInterceptorsToContainers(keys []string, interceptors []process.Interceptor) error {

@@ -1,6 +1,6 @@
 import sys
 
-from multiversx_sdk_core import Address, AddressComputer
+from multiversx_sdk import Address, AddressComputer
 
 
 def main():

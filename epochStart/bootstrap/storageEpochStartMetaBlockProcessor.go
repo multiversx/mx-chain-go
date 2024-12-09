@@ -8,8 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataCore "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -25,7 +24,7 @@ type storageEpochStartMetaBlockProcessor struct {
 	hasher         hashing.Hasher
 	chanReceived   chan struct{}
 	mutMetablock   sync.Mutex
-	metaBlock      data.MetaHeaderHandler
+	metaBlock      dataCore.MetaHeaderHandler
 }
 
 // NewStorageEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block when importing
@@ -81,7 +80,7 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 		return nil
 	}
 
-	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(dataCore.MetaHeaderHandler)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
 			"header", interceptedHdr.HeaderHandler())
@@ -108,7 +107,7 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
+func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (dataCore.MetaHeaderHandler, error) {
 	ses.requestMetaBlock()
 
 	chanRequests := time.After(durationBetweenReRequests)
@@ -125,7 +124,7 @@ func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx conte
 	}
 }
 
-func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (data.MetaHeaderHandler, error) {
+func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (dataCore.MetaHeaderHandler, error) {
 	ses.mutMetablock.Lock()
 	defer ses.mutMetablock.Unlock()
 

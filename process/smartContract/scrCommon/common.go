@@ -38,7 +38,7 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher      storage.Cacher
 	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
-	EpochNotifier       vmcommon.EpochNotifier
+	EpochNotifier           vmcommon.EpochNotifier
 }
 
 // ScrProcessingData is a struct placeholder for scr data to be processed after validation checks

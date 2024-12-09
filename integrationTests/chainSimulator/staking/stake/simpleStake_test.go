@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -66,20 +65,18 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     3,
-		NumNodesWaitingListShard:    3,
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  3,
+		NumNodesWaitingListShard: 3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, 2)
 		},
@@ -94,6 +91,9 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	wallet2, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 	wallet3, err := cs.GenerateAndMintWalletAddress(0, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(3)
@@ -161,7 +161,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	stakingV4Step3Epoch := uint32(4)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -171,13 +171,11 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 			HasValue: true,
 			Value:    30,
 		},
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            4,
-		MetaChainMinNodes:           4,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     4,
-		NumNodesWaitingListShard:    4,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         4,
+		MetaChainMinNodes:        4,
+		NumNodesWaitingListMeta:  4,
+		NumNodesWaitingListShard: 4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4Step1Epoch
 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4Step2Epoch
@@ -203,6 +201,9 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 
 	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Stake a new validator that should end up in auction in step 1
@@ -267,30 +268,8 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 		err = cs.GenerateBlocks(2)
 		require.Nil(t, err)
 
-		qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+		qualified, unQualified := staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 		require.Equal(t, 8, len(qualified))
 		require.Equal(t, 1, len(unQualified))
 	}
-}
-
-func getQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode process.NodeHandler) ([]string, []string) {
-	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
-	require.Nil(t, err)
-	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
-	require.Nil(t, err)
-
-	qualified := make([]string, 0)
-	unQualified := make([]string, 0)
-
-	for _, auctionOwnerData := range auctionList {
-		for _, auctionNode := range auctionOwnerData.Nodes {
-			if auctionNode.Qualified {
-				qualified = append(qualified, auctionNode.BlsKey)
-			} else {
-				unQualified = append(unQualified, auctionNode.BlsKey)
-			}
-		}
-	}
-
-	return qualified, unQualified
 }

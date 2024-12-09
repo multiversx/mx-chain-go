@@ -26,13 +26,3 @@ type TokenDataEncoder interface {
 type OperationDataEncoder interface {
 	SerializeOperation(operation sovereign.Operation) ([]byte, error)
 }
-
-// SovereignDataCodec is the interface for serializing/deserializing data
-type SovereignDataCodec interface {
-	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
-	DeserializeEventData(data []byte) (*sovereign.EventData, error)
-	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
-	DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error)
-	SerializeOperation(operation sovereign.Operation) ([]byte, error)
-	IsInterfaceNil() bool
-}

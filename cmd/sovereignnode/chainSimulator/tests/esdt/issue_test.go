@@ -9,6 +9,7 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 	"github.com/multiversx/mx-chain-go/vm"
 
@@ -17,7 +18,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSovereignChain_IssueFungible(t *testing.T) {
+const (
+	getTokenPropertiesFunc = "getTokenProperties"
+)
+
+func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -25,7 +30,7 @@ func TestSovereignChain_IssueFungible(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
+			BypassTxSignatureCheck: true,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
@@ -33,7 +38,6 @@ func TestSovereignChain_IssueFungible(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
 			},
@@ -44,10 +48,23 @@ func TestSovereignChain_IssueFungible(t *testing.T) {
 
 	defer cs.Close()
 
+	time.Sleep(time.Second) // wait for VM to be ready for processing queries
+
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	issuedESDTs, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("")
+	require.Nil(t, err)
+	require.NotNil(t, issuedESDTs)
+	require.Equal(t, 0, len(issuedESDTs))
 
 	nonce := uint64(0)
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
@@ -55,7 +72,12 @@ func TestSovereignChain_IssueFungible(t *testing.T) {
 	tokenName := "SovereignTkn"
 	tokenTicker := "SVN"
 	numDecimals := 18
-	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+
+	issuedESDTs, err = nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("")
+	require.Nil(t, err)
+	require.NotNil(t, issuedESDTs)
+	require.Equal(t, 1, len(issuedESDTs))
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -63,8 +85,18 @@ func TestSovereignChain_IssueFungible(t *testing.T) {
 	require.True(t, len(tokens) == 2)
 	require.Equal(t, supply, tokens[tokenIdentifier].Value)
 
+	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  getTokenPropertiesFunc,
+		Arguments: [][]byte{[]byte(tokenIdentifier)},
+	})
+	require.Nil(t, err)
+	require.Equal(t, chainSim.OkReturnCode, res.ReturnCode)
+	esdtSupply, _ := big.NewInt(0).SetString(string(res.ReturnData[3]), 10)
+	require.Equal(t, supply, esdtSupply)
+
 	setRolesArgs := setSpecialRole(tokenIdentifier, wallet.Bytes, fungibleRoles)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
+	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, tokenIdentifier, fungibleRoles)
 }

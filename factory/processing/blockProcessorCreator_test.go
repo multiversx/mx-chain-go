@@ -73,7 +73,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+		shardCoordinator := sharding.NewSovereignShardCoordinator()
 		processArgs := createSovereignProcessFactoryArgs(t, shardCoordinator)
 		pcf, err := processComp.NewProcessComponentsFactory(processArgs)
 		require.NoError(t, err)
@@ -89,7 +89,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&mock.BoostrapStorerStub{},
 			&testscommon.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
-			&mock.ExtendedShardHeaderTrackerStub{},
+			&testscommon.ExtendedShardHeaderTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
 			&sync.RWMutex{},
 			&testscommon.ScheduledTxsExecutionStub{},

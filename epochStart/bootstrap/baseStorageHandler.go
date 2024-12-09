@@ -195,14 +195,28 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 	return headerHash, nil
 }
 
-func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderHandler) error {
+func (ssh *baseStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap, metaHdrStorerType dataRetriever.UnitType) error {
+	err := ssh.saveMetaHdrForEpochTrigger(components.EpochStartMetaBlock, metaHdrStorerType)
+	if err != nil {
+		return err
+	}
+
+	err = ssh.saveMetaHdrForEpochTrigger(components.PreviousEpochStart, metaHdrStorerType)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderHandler, metaHdrStorerType dataRetriever.UnitType) error {
 	lastHeaderBytes, err := bsh.marshalizer.Marshal(metaBlock)
 	if err != nil {
 		return err
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
-	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, err := bsh.storageService.GetStorer(metaHdrStorerType)
 	if err != nil {
 		return err
 	}
