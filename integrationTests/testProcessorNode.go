@@ -3060,17 +3060,19 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 
 func (tpn *TestProcessorNode) initBlockTracker() {
 	argBaseTracker := track.ArgBaseTracker{
-		Hasher:           TestHasher,
-		HeaderValidator:  tpn.HeaderValidator,
-		Marshalizer:      TestMarshalizer,
-		RequestHandler:   tpn.RequestHandler,
-		RoundHandler:     tpn.RoundHandler,
-		ShardCoordinator: tpn.ShardCoordinator,
-		Store:            tpn.Storage,
-		StartHeaders:     tpn.GenesisBlocks,
-		PoolsHolder:      tpn.DataPool,
-		WhitelistHandler: tpn.WhiteListHandler,
-		FeeHandler:       tpn.EconomicsData,
+		Hasher:              TestHasher,
+		HeaderValidator:     tpn.HeaderValidator,
+		Marshalizer:         TestMarshalizer,
+		RequestHandler:      tpn.RequestHandler,
+		RoundHandler:        tpn.RoundHandler,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		Store:               tpn.Storage,
+		StartHeaders:        tpn.GenesisBlocks,
+		PoolsHolder:         tpn.DataPool,
+		WhitelistHandler:    tpn.WhiteListHandler,
+		FeeHandler:          tpn.EconomicsData,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		ProofsPool:          tpn.DataPool.Proofs(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {

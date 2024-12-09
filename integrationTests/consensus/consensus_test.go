@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -219,7 +218,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int, equivalentMessagesEnableEpoch uint32) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4 * numKeysOnEachNode)
@@ -234,8 +233,8 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentMessagesEnableEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 	nodes := initNodesAndTest(
 		numMetaNodes,
 		numNodes,
@@ -246,19 +245,6 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		numKeysOnEachNode,
 		enableEpochsConfig,
 	)
-
-	if equivalentMessagesEnableEpoch != integrationTests.UnreachableEpoch {
-		for shardID := range nodes {
-			for _, n := range nodes[shardID] {
-				// this is just for the test only, as equivalent messages are enabled from epoch 0
-				_ = n.Node.GetDataComponents().Datapool().Proofs().AddProof(&block.HeaderProof{
-					AggregatedSignature: []byte("initial sig"),
-					PubKeysBitmap:       []byte("initial bitmap"),
-					HeaderShardId:       shardID,
-				})
-			}
-		}
-	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -304,12 +290,7 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before equivalent messages", func(t *testing.T) {
-		runFullConsensusTest(t, blsConsensusType, 1, integrationTests.UnreachableEpoch)
-	})
-	t.Run("after equivalent messages", func(t *testing.T) {
-		runFullConsensusTest(t, blsConsensusType, 1, 0)
-	})
+	runFullConsensusTest(t, blsConsensusType, 1)
 }
 
 func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
@@ -317,23 +298,18 @@ func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before equivalent messages", func(t *testing.T) {
-		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
-	})
-	t.Run("after equivalent messages", func(t *testing.T) {
-		runFullConsensusTest(t, blsConsensusType, 5, 0)
-	})
+	runFullConsensusTest(t, blsConsensusType, 5)
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, equivalentMessagesEnableEpoch uint32) {
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentMessagesEnableEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {
@@ -372,12 +348,7 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before equivalent messages", func(t *testing.T) {
-		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
-	})
-	t.Run("after equivalent messages", func(t *testing.T) {
-		runConsensusWithNotEnoughValidators(t, blsConsensusType, 0)
-	})
+	runConsensusWithNotEnoughValidators(t, blsConsensusType)
 }
 
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
