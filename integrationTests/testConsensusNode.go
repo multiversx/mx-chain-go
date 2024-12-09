@@ -63,7 +63,7 @@ const (
 	maxShards        = 1
 )
 
-var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
+var testPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 // ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
 type ArgsTestConsensusNode struct {
