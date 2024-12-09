@@ -151,7 +151,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier)
 	if err != nil {
 		return err
 	}
