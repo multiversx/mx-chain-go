@@ -4,9 +4,11 @@ package trie
 import (
 	"context"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -36,6 +38,7 @@ type branchNode struct {
 	CollapsedBn
 	children [nrOfChildren]node
 	*baseNode
+	mutex sync.RWMutex
 }
 
 type extensionNode struct {
@@ -137,9 +140,8 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 }
 
 func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error {
-	err := n.isEmptyOrNil()
-	if err != nil {
-		return err
+	if check.IfNil(n) {
+		return ErrNilNode
 	}
 
 	if !n.isPosCollapsed(int(pos)) {

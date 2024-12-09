@@ -394,3 +394,20 @@ type BatchHandler interface {
 	MarkForRemoval(key []byte)
 	Get(key []byte) ([]byte, bool)
 }
+
+// TrieGoroutinesManager defines the methods needed for managing the trie goroutines
+type TrieGoroutinesManager interface {
+	ShouldContinueProcessing() bool
+	CanStartGoRoutine() bool
+	EndGoRoutineProcessing()
+	SetNewErrorChannel(BufferedErrChan) error
+	SetError(err error)
+	GetError() error
+	IsInterfaceNil() bool
+}
+
+// AtomicBytesSlice defines the methods needed for an atomic bytes slice
+type AtomicBytesSlice interface {
+	Append(data [][]byte)
+	Get() [][]byte
+}

@@ -9,9 +9,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -42,6 +44,7 @@ type patriciaMerkleTrie struct {
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	batchManager            common.TrieBatchManager
+	goRoutinesManager       common.TrieGoroutinesManager
 	mutOperation            sync.RWMutex
 
 	oldHashes            [][]byte
@@ -80,6 +83,18 @@ func NewTrie(
 		return nil, err
 	}
 
+	// TODO give num goroutines from config as argument
+	trieThrottler, err := throttler.NewNumGoRoutinesThrottler(20)
+	if err != nil {
+		return nil, err
+	}
+
+	chanClose := make(chan struct{})
+	goRoutinesManager, err := NewGoroutinesManager(trieThrottler, errChan.NewErrChanWrapper(), chanClose)
+	if err != nil {
+		return nil, err
+	}
+
 	return &patriciaMerkleTrie{
 		trieStorage:             trieStorage,
 		marshalizer:             msh,
@@ -87,10 +102,11 @@ func NewTrie(
 		oldHashes:               make([][]byte, 0),
 		oldRoot:                 make([]byte, 0),
 		maxTrieLevelInMemory:    maxTrieLevelInMemory,
-		chanClose:               make(chan struct{}),
+		chanClose:               chanClose,
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
+		goRoutinesManager:       goRoutinesManager,
 	}, nil
 }
 
@@ -203,7 +219,15 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	newRoot, oldHashes, err := tr.root.insert(sortedDataForInsertion, tr.trieStorage)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
+	if err != nil {
+		return err
+	}
+
+	initialSliceCapacity := len(sortedDataForInsertion) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
+	oldHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
+	newRoot := tr.root.insert(sortedDataForInsertion, tr.goRoutinesManager, oldHashes, tr.trieStorage)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
@@ -213,9 +237,10 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 	}
 
 	tr.root = newRoot
-	tr.oldHashes = append(tr.oldHashes, oldHashes...)
+	hashes := oldHashes.Get()
+	tr.oldHashes = append(tr.oldHashes, hashes...)
 
-	logArrayWithTrace("oldHashes after insert", "hash", oldHashes)
+	logArrayWithTrace("oldHashes after insert", "hash", hashes)
 	return nil
 }
 
@@ -232,11 +257,21 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		tr.oldRoot = tr.root.getHash()
 	}
 
-	_, newRoot, oldHashes, err := tr.root.delete(data, tr.trieStorage)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
+
+	initialSliceCapacity := len(data) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
+	modifiedHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
+	_, newRoot := tr.root.delete(data, tr.goRoutinesManager, modifiedHashes, tr.trieStorage)
+	err = tr.goRoutinesManager.GetError()
+	if err != nil {
+		return err
+	}
+
 	tr.root = newRoot
+	oldHashes := modifiedHashes.Get()
 	tr.oldHashes = append(tr.oldHashes, oldHashes...)
 	logArrayWithTrace("oldHashes after delete", "hash", oldHashes)
 
