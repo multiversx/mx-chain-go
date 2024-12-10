@@ -9,7 +9,7 @@ type HeaderSigVerifierMock struct {
 	VerifyRandSeedCalled                   func(header data.HeaderHandler) error
 	VerifyLeaderSignatureCalled            func(header data.HeaderHandler) error
 	VerifySignatureForHashCalled           func(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
-	VerifyPreviousBlockProofCalled         func(header data.HeaderHandler) error
+	VerifyPreviousBlockProofCalled         func(proof data.HeaderProofHandler) error
 	VerifyHeaderProofCalled                func(proofHandler data.HeaderProofHandler) error
 }
 
@@ -59,7 +59,7 @@ func (mock *HeaderSigVerifierMock) VerifySignatureForHash(header data.HeaderHand
 }
 
 // VerifyPreviousBlockProof -
-func (mock *HeaderSigVerifierMock) verifyProofIntegrity(proof data.HeaderProofHandler) error {
+func (mock *HeaderSigVerifierMock) VerifyPreviousBlockProof(proof data.HeaderProofHandler) error {
 	if mock.VerifyPreviousBlockProofCalled != nil {
 		return mock.VerifyPreviousBlockProofCalled(proof)
 	}
