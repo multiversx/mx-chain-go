@@ -386,6 +386,8 @@ type ConsensusWorker interface {
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
 	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
+	// AddReceivedProofHandler adds a new handler function for a received proof
+	AddReceivedProofHandler(handler func(proofHandler consensus.ProofHandler))
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
@@ -402,6 +404,8 @@ type ConsensusWorker interface {
 	ResetConsensusMessages()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	// ReceivedProof will handle a received proof in consensus worker
+	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

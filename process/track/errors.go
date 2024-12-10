@@ -33,3 +33,6 @@ var ErrNilRoundHandler = errors.New("nil roundHandler")
 
 // ErrNilKeysHandler signals that a nil keys handler was provided
 var ErrNilKeysHandler = errors.New("nil keys handler")
+
+// ErrNilProofsPool signals that a nil proofs pool has been provided
+var ErrNilProofsPool = errors.New("nil proofs pool")
