@@ -110,7 +110,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
 
 	cfg := testscommon.GetGeneralConfig()
-	coreComponents := componentsMock.GetCoreComponents(cfg)
+	coreComponents := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	runTypeComponents := componentsMock.GetRunTypeComponents(coreComponents, cryptoComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)

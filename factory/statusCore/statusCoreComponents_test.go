@@ -48,7 +48,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		cfg := testscommon.GetGeneralConfig()
-		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
+		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		assert.Nil(t, err)
 		require.NotNil(t, sccf)
@@ -62,7 +62,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		cfg := testscommon.GetGeneralConfig()
-		coreComp := componentsMock.GetCoreComponents(cfg)
+		coreComp := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetStatusCoreArgs(cfg, coreComp)
 		args.Config = config.Config{
 			ResourceStats: config.ResourceStatsConfig{
@@ -80,7 +80,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		cfg := testscommon.GetGeneralConfig()
-		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents(cfg))
+		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
 			return nil
 		}
@@ -97,7 +97,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 
 		cfg := testscommon.GetGeneralConfig()
 		expectedErr := errors.New("expected error")
-		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents(cfg))
+		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 		coreCompStub.EconomicsDataCalled = func() process.EconomicsDataHandler {
 			return &economicsmocks.EconomicsHandlerStub{
 				SetStatusHandlerCalled: func(statusHandler core.AppStatusHandler) error {
@@ -117,7 +117,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		cfg := testscommon.GetGeneralConfig()
-		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
+		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 		args.Config.ResourceStats.Enabled = true // coverage
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		require.Nil(t, err)
@@ -134,7 +134,7 @@ func TestStatusCoreComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
 
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetCoreComponents(cfg)
+	coreComp := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetStatusCoreArgs(cfg, coreComp)
 	sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 	require.Nil(t, err)

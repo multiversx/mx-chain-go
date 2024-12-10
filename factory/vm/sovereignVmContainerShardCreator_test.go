@@ -15,7 +15,7 @@ import (
 )
 
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
-	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetSovereignRunTypeCoreComponents())
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 
 	return componentsMock.GetRunTypeComponents(coreComp, cryptoComp)

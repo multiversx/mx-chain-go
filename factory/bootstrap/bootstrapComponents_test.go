@@ -24,19 +24,20 @@ import (
 )
 
 func createBootstrapFactoryArgs() bootstrap.BootstrapComponentsFactoryArgs {
-	return createFactoryArgs(componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
+	return createFactoryArgs(componentsMock.GetRunTypeCoreComponents, componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
 }
 
 func createSovereignBootstrapFactoryArgs() bootstrap.BootstrapComponentsFactoryArgs {
-	return createFactoryArgs(componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
+	return createFactoryArgs(componentsMock.GetSovereignRunTypeCoreComponents, componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
 }
 
 func createFactoryArgs(
-	getCoreComponents func(cfg config.Config) mainFactory.CoreComponentsHolder,
+	getRunTypeCoreComponents func() mainFactory.RunTypeCoreComponentsHolder,
+	getCoreComponents func(cfg config.Config, runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder) mainFactory.CoreComponentsHolder,
 	getRunTypeComponents func(coreComp mainFactory.CoreComponentsHolder, cryptoComp mainFactory.CryptoComponentsHolder) mainFactory.RunTypeComponentsHolder,
 ) bootstrap.BootstrapComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := getCoreComponents(cfg)
+	coreComp := getCoreComponents(cfg, getRunTypeCoreComponents())
 	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)

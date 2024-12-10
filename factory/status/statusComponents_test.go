@@ -69,7 +69,7 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 
 func createStatusFactoryArgs() statusComp.StatusComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetCoreComponents(cfg)
+	coreComp := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)

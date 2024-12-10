@@ -78,7 +78,7 @@ func (fs *failingSteps) reset() {
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComponents := componentsMock.GetCoreComponents(cfg)
+	coreComponents := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	statusCoreComponents := componentsMock.GetStatusCoreComponents(cfg, coreComponents)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
@@ -361,7 +361,7 @@ func TestCreateApiResolver(t *testing.T) {
 }
 
 func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
-	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
@@ -612,7 +612,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 	t.Run("sovereign chain should add systemVM", func(t *testing.T) {
 		t.Parallel()
 
-		coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig())
+		coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetSovereignRunTypeCoreComponents())
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 		args := createMockSCQueryElementArgs(0)
 		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)

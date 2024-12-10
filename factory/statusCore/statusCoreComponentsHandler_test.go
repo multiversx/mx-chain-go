@@ -55,7 +55,7 @@ func TestManagedStatusCoreComponents_Create(t *testing.T) {
 		t.Parallel()
 
 		cfg := testscommon.GetGeneralConfig()
-		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
+		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 		statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 		require.NoError(t, err)
 		managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
@@ -88,7 +88,7 @@ func TestManagedStatusCoreComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
 	cfg := testscommon.GetGeneralConfig()
-	args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
+	args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 	statusCoreComponentsFactory, _ := statusCore.NewStatusCoreComponentsFactory(args)
 	managedStatusCoreComponents, _ := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 
@@ -106,7 +106,7 @@ func TestManagedStatusCoreComponents_Close(t *testing.T) {
 	t.Parallel()
 
 	cfg := testscommon.GetGeneralConfig()
-	args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
+	args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 	require.NoError(t, err)
 	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)

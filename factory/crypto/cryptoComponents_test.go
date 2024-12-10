@@ -46,7 +46,7 @@ func TestNewCryptoComponentsFactory_NilValidatorPublicKeyConverterShouldErr(t *t
 func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.ValidatorKeyPemFileName = ""
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -57,7 +57,7 @@ func TestNewCryptoComponentsFactory_NilPemFileShouldErr(t *testing.T) {
 func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.KeyLoader = nil
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -69,7 +69,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsNilKeyLoaderShouldErr(t *test
 func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
 	require.NoError(t, err)
@@ -79,7 +79,7 @@ func TestNewCryptoComponentsFactory_OkValsShouldWork(t *testing.T) {
 func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.ImportModeNoSigCheck = true
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -90,7 +90,7 @@ func TestNewCryptoComponentsFactory_DisabledSigShouldWork(t *testing.T) {
 func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "invalid"
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -103,7 +103,7 @@ func TestNewCryptoComponentsFactory_CreateInvalidConsensusTypeShouldErr(t *testi
 func TestCryptoComponentsFactory_CreateShouldErrDueToMissingConfig(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config = config.Config{
 		ValidatorPubkeyConverter: config.PubkeyConfig{
@@ -123,7 +123,7 @@ func TestCryptoComponentsFactory_CreateShouldErrDueToMissingConfig(t *testing.T)
 func TestCryptoComponentsFactory_CreateInvalidMultiSigHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config.MultisigHasher.Type = "invalid"
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -137,7 +137,7 @@ func TestCryptoComponentsFactory_CreateInvalidMultiSigHasherShouldErr(t *testing
 func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
@@ -151,7 +151,7 @@ func TestCryptoComponentsFactory_CreateOK(t *testing.T) {
 func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.IsInImportMode = true
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -165,7 +165,7 @@ func TestCryptoComponentsFactory_CreateWithDisabledSig(t *testing.T) {
 func TestCryptoComponentsFactory_CreateWithAutoGenerateKey(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.P2pKeyPemFileName = ""
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -179,7 +179,7 @@ func TestCryptoComponentsFactory_CreateWithAutoGenerateKey(t *testing.T) {
 func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "invalid"
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -194,7 +194,7 @@ func TestCryptoComponentsFactory_CreateSingleSignerInvalidConsensusTypeShouldErr
 func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
 	require.NotNil(t, ccf)
@@ -208,7 +208,7 @@ func TestCryptoComponentsFactory_CreateSingleSignerOK(t *testing.T) {
 func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "other"
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -223,7 +223,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerInvalidConsensusTypeShouldErr(
 func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
 	require.NotNil(t, ccf)
@@ -240,7 +240,7 @@ func TestCryptoComponentsFactory_CreateMultiSignerOK(t *testing.T) {
 func TestCryptoComponentsFactory_GetSuiteInvalidConsensusTypeShouldErr(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = ""
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -255,7 +255,7 @@ func TestCryptoComponentsFactory_GetSuiteInvalidConsensusTypeShouldErr(t *testin
 func TestCryptoComponentsFactory_GetSuiteOK(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.Config.Consensus.Type = "bls"
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
@@ -270,7 +270,7 @@ func TestCryptoComponentsFactory_GetSuiteOK(t *testing.T) {
 func TestCryptoComponentsFactory_CreateCryptoParamsInvalidPrivateKeyByteArrayShouldNotError(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: componentsMock.DummyLoadSkPkFromPemFile([]byte{}, componentsMock.DummyPk, nil)}
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -288,7 +288,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldNotError(t 
 
 	expectedError := errors.New("expected error")
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.KeyLoader = &mock.KeyLoaderStub{
 		LoadKeyCalled: componentsMock.DummyLoadSkPkFromPemFile([]byte{}, "", expectedError),
@@ -306,7 +306,7 @@ func TestCryptoComponentsFactory_CreateCryptoParamsLoadKeysFailShouldNotError(t 
 func TestCryptoComponentsFactory_CreateCryptoParamsOK(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
 
@@ -323,7 +323,7 @@ func TestCryptoComponentsFactory_GetSkPkInvalidSkBytesShouldErr(t *testing.T) {
 
 	setSk := []byte("zxwY")
 	setPk := []byte(componentsMock.DummyPk)
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: componentsMock.DummyLoadSkPkFromPemFile(setSk, string(setPk), nil)}
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -340,7 +340,7 @@ func TestCryptoComponentsFactory_GetSkPkInvalidPkBytesShouldErr(t *testing.T) {
 	setSk := []byte(componentsMock.DummySk)
 	setPk := "0"
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	args.KeyLoader = &mock.KeyLoaderStub{LoadKeyCalled: componentsMock.DummyLoadSkPkFromPemFile(setSk, setPk, nil)}
 	ccf, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -354,7 +354,7 @@ func TestCryptoComponentsFactory_GetSkPkInvalidPkBytesShouldErr(t *testing.T) {
 func TestCryptoComponentsFactory_GetSkPkOK(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	ccf, err := cryptoComp.NewCryptoComponentsFactory(args)
 	require.Nil(t, err)
@@ -374,7 +374,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("internal error, LoadAllKeys returns different lengths for private and public keys", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
@@ -398,7 +398,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("encoded private key can not be hex decoded", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -421,7 +421,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("encoded public key can not be hex decoded", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -444,7 +444,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("not a valid private key", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -467,7 +467,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("wrong public string read from file", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -493,7 +493,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()

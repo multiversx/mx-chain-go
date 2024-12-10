@@ -37,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
-	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -110,8 +109,7 @@ func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
 }
 
 // GetCoreArgs -
-func GetCoreArgs(cfg config.Config) coreComp.CoreComponentsFactoryArgs {
-	runTypeCoreComponents := GetRunTypeCoreComponents()
+func GetCoreArgs(cfg config.Config, runTypeCoreComponents factory.RunTypeCoreComponentsHolder) coreComp.CoreComponentsFactoryArgs {
 	return coreComp.CoreComponentsFactoryArgs{
 		Config: cfg,
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
@@ -145,8 +143,8 @@ func GetCoreArgs(cfg config.Config) coreComp.CoreComponentsFactoryArgs {
 }
 
 // GetCoreComponents -
-func GetCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
-	coreArgs := GetCoreArgs(cfg)
+func GetCoreComponents(cfg config.Config, runTypeCoreComponents factory.RunTypeCoreComponentsHolder) factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs(cfg, runTypeCoreComponents)
 	return createCoreComponents(coreArgs)
 }
 
@@ -156,11 +154,9 @@ func GetCoreComponentsWithArgs(args coreComp.CoreComponentsFactoryArgs) factory.
 }
 
 // GetSovereignCoreComponents -
-func GetSovereignCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
-	coreArgs := GetCoreArgs(cfg)
+func GetSovereignCoreComponents(cfg config.Config, runTypeCoreComponents factory.RunTypeCoreComponentsHolder) factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs(cfg, runTypeCoreComponents)
 	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
-	coreArgs.GenesisNodesSetupFactory = sharding.NewSovereignGenesisNodesSetupFactory()
-	coreArgs.RatingsDataFactory = rating.NewSovereignRatingsDataFactory()
 	return createCoreComponents(coreArgs)
 }
 
