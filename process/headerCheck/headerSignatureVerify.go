@@ -438,9 +438,11 @@ func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (d
 		return nil, err
 	}
 
-	err = headerCopy.SetLeaderSignature(nil)
-	if err != nil {
-		return nil, err
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		err = headerCopy.SetLeaderSignature(nil)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return headerCopy, nil
