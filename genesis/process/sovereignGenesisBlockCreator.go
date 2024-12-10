@@ -94,18 +94,35 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(gbc.arg)
 
-	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler, 1)
-	mapEmptyGenesisBlocks[core.SovereignChainShardId] = &block.SovereignChainHeader{
-		Header: &block.Header{
-			Round:     round,
-			Nonce:     nonce,
-			Epoch:     epoch,
-			TimeStamp: gbc.arg.GenesisTime,
-			ShardID:   core.SovereignChainShardId,
-		},
+	genesisEmptyBlock := gbc.arg.RunTypeComponents.VersionedHeaderFactory().Create(epoch)
+	err = gbc.setGenesisEmptyBlockData(genesisEmptyBlock, round, nonce)
+	if err != nil {
+		return nil, err
 	}
 
+	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler, 1)
+	mapEmptyGenesisBlocks[core.SovereignChainShardId] = genesisEmptyBlock
 	return mapEmptyGenesisBlocks, nil
+}
+
+func (gbc *sovereignGenesisBlockCreator) setGenesisEmptyBlockData(
+	genesisEmptyBlock data.HeaderHandler,
+	round uint64,
+	nonce uint64,
+) error {
+	err := genesisEmptyBlock.SetShardID(core.SovereignChainShardId)
+	if err != nil {
+		return err
+	}
+	err = genesisEmptyBlock.SetRound(round)
+	if err != nil {
+		return err
+	}
+	err = genesisEmptyBlock.SetNonce(nonce)
+	if err != nil {
+		return err
+	}
+	return genesisEmptyBlock.SetTimeStamp(gbc.arg.GenesisTime)
 }
 
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
