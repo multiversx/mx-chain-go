@@ -69,20 +69,18 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				maxNodesChangeEnableEpoch := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
 				blsMultiSignerEnableEpoch := cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch
@@ -115,20 +113,18 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 is not active and all is done in epoch 0", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				maxNodesChangeEnableEpoch := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
 				blsMultiSignerEnableEpoch := cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch
@@ -168,20 +164,18 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -207,20 +201,18 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -246,20 +238,18 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -300,6 +290,9 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.Nil(t, err)
 
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -497,20 +490,18 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
@@ -528,20 +519,18 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	})
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -559,20 +548,18 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	})
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -590,20 +577,18 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	})
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -641,6 +626,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t *
 	require.Nil(t, err)
 
 	validatorOwnerB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -730,20 +718,18 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
@@ -763,20 +749,18 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	})
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
@@ -797,20 +781,18 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	})
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
@@ -831,20 +813,18 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	})
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
@@ -890,6 +870,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	require.Nil(t, err)
 
 	delegator, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -1058,20 +1041,18 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
@@ -1099,20 +1080,18 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -1140,20 +1119,18 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -1181,20 +1158,18 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -1226,6 +1201,9 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Nil(t, err)
 
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, initialFunds)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	maxDelegationCap := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(51000)) // 51000 EGLD cap
@@ -1434,20 +1412,18 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
@@ -1477,20 +1453,18 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -1520,20 +1494,18 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -1563,20 +1535,18 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -1611,6 +1581,9 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Nil(t, err)
 
 	delegatorC, err := cs.GenerateAndMintWalletAddress(core.AllShardId, initialFunds)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Step 3: Create a new delegation contract
@@ -1852,20 +1825,18 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
@@ -1885,20 +1856,18 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
@@ -1919,20 +1888,18 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
@@ -1953,20 +1920,18 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:      false,
-			TempDir:                     t.TempDir(),
-			PathToInitialConfig:         defaultPathToInitialConfig,
-			NumOfShards:                 3,
-			GenesisTimestamp:            time.Now().Unix(),
-			RoundDurationInMillis:       roundDurationInMillis,
-			RoundsPerEpoch:              roundsPerEpoch,
-			ApiInterface:                api.NewNoApiInterface(),
-			MinNodesPerShard:            3,
-			MetaChainMinNodes:           3,
-			ConsensusGroupSize:          1,
-			MetaChainConsensusGroupSize: 1,
-			NumNodesWaitingListMeta:     3,
-			NumNodesWaitingListShard:    3,
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
@@ -2004,6 +1969,9 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Nil(t, err)
 
 	validatorB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("Step 1. User A: - stake 1 node to have 100 egld more than minimum stake value")
@@ -2053,10 +2021,10 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorB.Bytes))
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
+	require.Equal(t, delegationAddress, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	require.Equal(t, validatorB.Bytes, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+	require.Equal(t, validatorB.Bytes, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
 	log.Info("Step 4. User A : whitelistForMerge@addressB")
 	txDataField = fmt.Sprintf("whitelistForMerge@%s", hex.EncodeToString(validatorB.Bytes))
@@ -2080,26 +2048,11 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Nil(t, err)
 
 	decodedBLSKey0, _ = hex.DecodeString(blsKeys[0])
-	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
+	require.Equal(t, delegationAddress, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ = hex.DecodeString(blsKeys[1])
-	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+	require.Equal(t, delegationAddress, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
 	expectedTopUpValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(200))
 	require.Equal(t, expectedTopUpValue, getBLSTopUpValue(t, metachainNode, delegationAddress))
-}
-
-func getBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.StakingSCAddress,
-		FuncName:   "getOwner",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{blsKey},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, chainSimulatorIntegrationTests.OkReturnCode, result.ReturnCode)
-
-	return result.ReturnData[0]
 }

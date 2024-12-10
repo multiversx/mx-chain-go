@@ -19,7 +19,7 @@ import (
 
 func createDataArgs(shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetCoreComponents(cfg)
+	coreComp := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)

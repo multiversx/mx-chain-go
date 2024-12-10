@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -147,6 +148,17 @@ func TestNewESDTSmartContract_InvalidBaseIssuingCostShouldErr(t *testing.T) {
 	e, err := NewESDTSmartContract(args)
 	assert.Nil(t, e)
 	assert.Equal(t, vm.ErrInvalidBaseIssuingCost, err)
+}
+
+func TestNewESDTSmartContract_InvalidTokenPrefixShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.ESDTSCConfig.ESDTPrefix = "Prefix"
+
+	e, err := NewESDTSmartContract(args)
+	require.Nil(t, e)
+	require.Equal(t, fmt.Errorf("%w: %s", errorsCommon.ErrInvalidTokenPrefix, "Prefix"), err)
 }
 
 func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
@@ -4846,7 +4858,7 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot change fungible tokens to dynamic"))
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot change FungibleESDT tokens to dynamic"))
 
 	esdtData.TokenType = []byte(core.DynamicMetaESDT)
 	_ = e.saveToken(vmInput.Arguments[0], esdtData)
@@ -4874,4 +4886,54 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 
 	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
 	assert.True(t, strings.Contains(string(esdtData.TokenType), core.Dynamic))
+}
+
+func TestEsdt_CreateNewTokenIdentifierWithPrefix(t *testing.T) {
+	t.Parallel()
+
+	caller := []byte("caller")
+	tokenName := []byte("TICKER")
+
+	prefix := "pref"
+	randomness := []byte("randomness")
+	randomTicker := []byte("75f")
+	randomSuffixBigInt := big.NewInt(0).SetBytes(randomTicker)
+	suffix := fmt.Sprintf("%06x", randomSuffixBigInt)
+
+	args := createMockArgumentsForESDT()
+	args.ESDTSCConfig.ESDTPrefix = prefix
+	args.Hasher = &testscommon.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			require.Equal(t, string(append(caller, randomness...)), s)
+			return randomTicker
+		},
+	}
+	eei := createDefaultEei()
+	eei.blockChainHook = &testscommon.BlockChainHookStub{
+		CurrentRandomSeedCalled: func() []byte {
+			return randomness
+		},
+	}
+	args.Eei = eei
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  caller,
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issueNonFungible",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	vmInput.Arguments = [][]byte{caller, tokenName}
+
+	esdtSC, _ := NewESDTSmartContract(args)
+	output := esdtSC.Execute(vmInput)
+	require.Equal(t, vmcommon.Ok, output)
+	lastOutput := eei.output[len(eei.output)-1]
+	tokenID := []byte(fmt.Sprintf("%s-%s-%s", prefix, string(tokenName), suffix))
+	require.Equal(t, lastOutput, tokenID)
 }

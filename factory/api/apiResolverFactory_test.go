@@ -6,13 +6,19 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
-	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
@@ -32,12 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/stretchr/testify/require"
 )
 
 const unreachableStep = 10000
@@ -78,7 +78,7 @@ func (fs *failingSteps) reset() {
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComponents := componentsMock.GetCoreComponents(cfg)
+	coreComponents := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	statusCoreComponents := componentsMock.GetStatusCoreComponents(cfg, coreComponents)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
@@ -102,6 +102,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 			GeneralConfig:   &cfg,
 			EpochConfig:     &config.EpochConfig{},
 			EconomicsConfig: &economicsConfig,
+			SystemSCConfig:  &config.SystemSmartContractsConfig{},
 		},
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -118,10 +119,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		RunTypeComponents:              runTypeComponents,
-		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
-		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
-		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
+		RunTypeComponents: runTypeComponents,
 	}
 }
 
@@ -316,7 +314,10 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		args.DelegatedListFactoryHandler = nil
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.DelegatedListFactoryField = nil
+		args.RunTypeComponents = runTypeCompsStub
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilDelegatedListFactory, err)
 		require.True(t, check.IfNil(apiResolver))
@@ -325,7 +326,10 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		args.DirectStakedListFactoryHandler = nil
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.DirectStakedListFactoryField = nil
+		args.RunTypeComponents = runTypeCompsStub
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilDirectStakedListFactory, err)
 		require.True(t, check.IfNil(apiResolver))
@@ -334,21 +338,37 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		args.TotalStakedValueFactoryHandler = nil
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.TotalStakedValueFactoryField = nil
+		args.RunTypeComponents = runTypeCompsStub
 		apiResolver, err := api.CreateApiResolver(args)
 		require.Equal(t, factoryErrors.ErrNilTotalStakedValueFactory, err)
+		require.True(t, check.IfNil(apiResolver))
+	})
+	t.Run("APIRewardsTxHandlerField nil should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs(t)
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
+		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
+		runTypeCompsStub.APIRewardsTxHandlerField = nil
+		args.RunTypeComponents = runTypeCompsStub
+		apiResolver, err := api.CreateApiResolver(args)
+		require.Equal(t, errErd.ErrNilAPIRewardsHandler, err)
 		require.True(t, check.IfNil(apiResolver))
 	})
 }
 
 func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
-	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
 				MaxNumAddressesInTransferRole: 1,
 				AutomaticCrawlerAddresses:     []string{"addr1"},
+				DNSV2Addresses:                []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 			},
 			SmartContractDataPool: config.CacheConfig{
 				Type:     "LRU",
@@ -592,7 +612,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 	t.Run("sovereign chain should add systemVM", func(t *testing.T) {
 		t.Parallel()
 
-		coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig())
+		coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetSovereignRunTypeCoreComponents())
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 		args := createMockSCQueryElementArgs(0)
 		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)

@@ -80,6 +80,7 @@ func GetBroadcastMessenger(
 	interceptorsContainer process.InterceptorsContainer,
 	alarmScheduler core.TimersScheduler,
 	keysHandler consensus.KeysHandler,
+	shardMessengerFactory BroadCastShardMessengerFactoryHandler,
 ) (consensus.BroadcastMessenger, error) {
 
 	if check.IfNil(shardCoordinator) {
@@ -105,7 +106,7 @@ func GetBroadcastMessenger(
 			CommonMessengerArgs: commonMessengerArgs,
 		}
 
-		return broadcast.NewShardChainMessenger(shardMessengerArgs)
+		return shardMessengerFactory.CreateShardChainMessenger(shardMessengerArgs)
 	}
 
 	if shardCoordinator.SelfId() == core.MetachainShardId {

@@ -76,8 +76,9 @@ type consensusComponentsFactory struct {
 	isInImportMode        bool
 	shouldDisableWatchdog bool
 
-	extraSignersHolder   bls.ExtraSignersHolder
-	subRoundEndV2Creator bls.SubRoundEndV2Creator
+	extraSignersHolder    bls.ExtraSignersHolder
+	subRoundEndV2Creator  bls.SubRoundEndV2Creator
+	shardMessengerFactory sposFactory.BroadCastShardMessengerFactoryHandler
 }
 
 type consensusComponents struct {
@@ -115,6 +116,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		runTypeComponents:     args.RunTypeComponents,
 		extraSignersHolder:    args.ExtraSignersHolder,
 		subRoundEndV2Creator:  args.SubRoundEndV2Creator,
+		shardMessengerFactory: args.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	}, nil
 }
 
@@ -174,6 +176,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
+		ccf.shardMessengerFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -476,6 +479,11 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		return nil, err
 	}
 
+	validatorDBSyncer, err := ccf.createValidatorAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
@@ -505,6 +513,7 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		ValidatorDBSyncer:            validatorDBSyncer,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -531,6 +540,7 @@ func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageM
 	}
 }
 
+// TODO: MX-15586 Analyse this sync storage units
 func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.AccountsDBSyncer, error) {
 	trieStorageManager, ok := ccf.stateComponents.TrieStorageManagers()[dataRetriever.PeerAccountsUnit.String()]
 	if !ok {
@@ -540,7 +550,7 @@ func (ccf *consensusComponentsFactory) createValidatorAccountsSyncer() (process.
 	args := syncer.ArgsNewValidatorAccountsSyncer{
 		ArgsNewBaseAccountsSyncer: ccf.createArgsBaseAccountsSyncer(trieStorageManager),
 	}
-	return syncer.NewValidatorAccountsSyncer(args)
+	return ccf.runTypeComponents.ValidatorAccountsSyncerFactoryHandler().CreateValidatorAccountsSyncer(args)
 }
 
 func (ccf *consensusComponentsFactory) createUserAccountsSyncer() (process.AccountsDBSyncer, error) {
@@ -634,13 +644,13 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		ValidatorDBSyncer:            validatorAccountsDBSyncer,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{
-		ArgBaseBootstrapper:         argsBaseBootstrapper,
-		EpochBootstrapper:           ccf.processComponents.EpochStartTrigger(),
-		ValidatorAccountsDB:         ccf.stateComponents.PeerAccounts(),
-		ValidatorStatisticsDBSyncer: validatorAccountsDBSyncer,
+		ArgBaseBootstrapper: argsBaseBootstrapper,
+		EpochBootstrapper:   ccf.processComponents.EpochStartTrigger(),
+		ValidatorAccountsDB: ccf.stateComponents.PeerAccounts(),
 	}
 
 	return sync.NewMetaBootstrap(argsMetaBootstrapper)
@@ -779,6 +789,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
 		return errors.ErrNilBootstrapperFromStorageCreator
+	}
+	if check.IfNil(args.RunTypeComponents.BroadCastShardMessengerFactoryHandler()) {
+		return errors.ErrNilBroadCastShardMessengerFactoryHandler
 	}
 	return nil
 }

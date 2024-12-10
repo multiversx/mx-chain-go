@@ -14,7 +14,7 @@ import (
 
 func createNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetCoreComponents(cfg)
+	coreComp := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 
 	return componentsMock.GetNetworkFactoryArgs(cryptoComp)

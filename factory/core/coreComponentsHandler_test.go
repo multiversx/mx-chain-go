@@ -28,7 +28,7 @@ func TestManagedCoreComponents(t *testing.T) {
 	t.Run("invalid args should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		coreArgs.Config.Marshalizer = config.MarshalizerConfig{
 			Type:           "invalid_marshalizer_type",
 			SizeCheckDelta: 0,
@@ -43,7 +43,7 @@ func TestManagedCoreComponents(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 		managedCoreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 		require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestManagedCoreComponents(t *testing.T) {
 func TestManagedCoreComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 	managedCoreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 	require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestManagedCoreComponents_CheckSubcomponents(t *testing.T) {
 func TestManagedCoreComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(componentsMock.GetCoreArgs(testscommon.GetGeneralConfig()))
+	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents()))
 	managedCoreComponents, _ := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 	err := managedCoreComponents.Close()
 	require.NoError(t, err)
@@ -158,7 +158,7 @@ func TestManagedCoreComponents_IsInterfaceNil(t *testing.T) {
 	managedCoreComponents, _ := coreComp.NewManagedCoreComponents(nil)
 	require.True(t, managedCoreComponents.IsInterfaceNil())
 
-	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 	managedCoreComponents, _ = coreComp.NewManagedCoreComponents(coreComponentsFactory)
 	require.False(t, managedCoreComponents.IsInterfaceNil())

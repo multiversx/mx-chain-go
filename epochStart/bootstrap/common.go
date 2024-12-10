@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
@@ -139,6 +140,18 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRequestHandlerCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.RequestersContainerFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRequesterContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ValidatorAccountsSyncerFactoryHandler()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilValidatorAccountsDBSyncerFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.ShardRequestersContainerCreatorHandler()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilShardRequestersContainerCreatorHandler)
+	}
+	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, state.ErrNilAccountFactory)
 	}
 
 	return nil

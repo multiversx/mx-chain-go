@@ -3,6 +3,8 @@ package node_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	runType "github.com/multiversx/mx-chain-go/factory"
@@ -13,12 +15,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/factoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
-
-	"github.com/stretchr/testify/require"
 )
 
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
-	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	coreArgs.NodesFilename = "../factory/mock/testdata/nodesSetupMock.json"
 	coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
@@ -76,7 +76,7 @@ func TestCreateNode(t *testing.T) {
 			},
 			0,
 			false,
-			node.NewSovereignNodeFactory())
+			node.NewSovereignNodeFactory(nativeESDT))
 
 		require.Nil(t, err)
 		require.NotNil(t, nodeHandler)

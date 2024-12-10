@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -40,6 +41,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
+		require.NoError(t, vmContainerFactory.Close())
 	})
 	t.Run("should work for metachain", func(t *testing.T) {
 		processArgs := createProcessFactoryArgs(t, shardCoordinatorForMetachain)
@@ -49,5 +51,6 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
+		require.NoError(t, vmContainerFactory.Close())
 	})
 }

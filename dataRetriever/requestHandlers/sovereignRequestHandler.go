@@ -3,6 +3,7 @@ package requestHandlers
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -18,6 +19,11 @@ type sovereignResolverRequestHandler struct {
 func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestHandler) (*sovereignResolverRequestHandler, error) {
 	if resolverRequestHandler == nil {
 		return nil, process.ErrNilRequestHandler
+	}
+
+	resolverRequestHandler.shardID = core.SovereignChainShardId
+	resolverRequestHandler.baseRequestHandler = &baseSovereignRequest{
+		requestersFinder: resolverRequestHandler.requestersFinder,
 	}
 
 	srrh := &sovereignResolverRequestHandler{

@@ -191,7 +191,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ConsensusModelType: consensus.ConsensusModelV1,
+			ShardMessengerFactoryField:                 &factoryMocks.ShardChainMessengerFactoryMock{},
+			ValidatorAccountsSyncerFactoryHandlerField: &factoryMocks.ValidatorAccountsSyncerFactoryMock{},
+			ConsensusModelType:                         consensus.ConsensusModelV1,
 		},
 	}
 }
@@ -493,6 +495,18 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilBootstrapperCreator, err)
 	})
+	t.Run("nil ShardMessengerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		runTypeComps := mainFactoryMocks.NewRunTypeComponentsStub()
+		runTypeComps.ShardMessengerFactoryField = nil
+		args.RunTypeComponents = runTypeComps
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilBroadCastShardMessengerFactoryHandler, err)
+	})
 }
 
 func TestConsensusComponentsFactory_Create(t *testing.T) {
@@ -639,7 +653,8 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ConsensusModelType: consensus.ConsensusModelV1,
+			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
+			ConsensusModelType:         consensus.ConsensusModelV1,
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		require.NotNil(t, ccf)
@@ -1049,19 +1064,20 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 }
 
 func createConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
-	return createFactoryArgs(componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
+	return createFactoryArgs(componentsMock.GetRunTypeCoreComponents, componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
 }
 
 func createSovereignConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
-	return createFactoryArgs(componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
+	return createFactoryArgs(componentsMock.GetSovereignRunTypeCoreComponents, componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
 }
 
 func createFactoryArgs(
-	getCoreComponents func(cfg config.Config) mainFactory.CoreComponentsHolder,
+	getRunTypeCoreComponents func() mainFactory.RunTypeCoreComponentsHolder,
+	getCoreComponents func(cfg config.Config, runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder) mainFactory.CoreComponentsHolder,
 	getRunTypeComponents func(coreComp mainFactory.CoreComponentsHolder, cryptoComp mainFactory.CryptoComponentsHolder) mainFactory.RunTypeComponentsHolder,
 ) consensusComp.ConsensusComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := getCoreComponents(cfg)
+	coreComp := getCoreComponents(cfg, getRunTypeCoreComponents())
 	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)

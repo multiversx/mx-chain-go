@@ -61,7 +61,7 @@ func createSystemSCProcessor(
 	})
 
 	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
-		ShardCoordinator:             shardCoordinator,
+		ShardCoordinator:             shardCoordinator.(metachain.ExtendedShardCoordinatorHandler),
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    ald,
@@ -142,17 +142,19 @@ func createBlockChainHook(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (hooks.ArgBlockChainHook, process.BlockChainHookWithAccountsAdapter) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               coreComponents.InternalMarshalizer(),
-		Accounts:                  accountsAdapter,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             coreComponents.EpochNotifier(),
-		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
-		AutomaticCrawlerAddresses: [][]byte{core.SystemAccountAddress},
-		MaxNumNodesInTransferRole: 1,
-		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
-		MapDNSV2Addresses:         make(map[string]struct{}),
+		GasSchedule:                    gasScheduleNotifier,
+		MapDNSAddresses:                make(map[string]struct{}),
+		Marshalizer:                    coreComponents.InternalMarshalizer(),
+		Accounts:                       accountsAdapter,
+		ShardCoordinator:               shardCoordinator,
+		EpochNotifier:                  coreComponents.EpochNotifier(),
+		EnableEpochsHandler:            coreComponents.EnableEpochsHandler(),
+		AutomaticCrawlerAddresses:      [][]byte{core.SystemAccountAddress},
+		MaxNumAddressesInTransferRole:  1,
+		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
+		DNSV2Addresses:                 []string{},
+		WhiteListedCrossChainAddresses: []string{"c0ff33"},
+		PubKeyConverter:                coreComponents.AddressPubKeyConverter(),
 	}
 
 	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

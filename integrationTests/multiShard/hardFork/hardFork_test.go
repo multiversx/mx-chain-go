@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
+
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -404,7 +406,7 @@ func hardForkImport(
 			return integrationTests.MinTransactionVersion
 		}
 
-		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
 		coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
@@ -608,7 +610,7 @@ func createHardForkExporter(
 		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
 		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
-		argsExportHandler := factory.ArgsExporter{
+		argsExportHandler := mxFactory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
 			StatusCoreComponents: statusCoreComponents,

@@ -23,6 +23,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -41,8 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -54,7 +55,7 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-// //	over the None struct.
+// over the None struct.
 type Option func(*Node) error
 
 type filter interface {
@@ -299,7 +300,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, api.BlockInfo{}, nil
+		return map[string]string{}, blockInfo, nil
 	}
 
 	mapToReturn, err := n.getKeys(userAccount, ctx)
@@ -640,7 +641,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 			return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
-		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
+		tokenID, hasPrefix, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
 		esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
@@ -655,7 +656,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 				return nil, api.BlockInfo{}, errEncode
 			}
 			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
-			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
+			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce, hasPrefix)
 		}
 
 		allESDTs[tokenName] = esdtToken
@@ -673,8 +674,13 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	return allESDTs, blockInfo, nil
 }
 
-func adjustNftTokenIdentifier(token string, nonce uint64) string {
+func adjustNftTokenIdentifier(token string, nonce uint64, hasPrefix bool) string {
 	splitToken := strings.Split(token, "-")
+	splitTokenWithPrefix := splitToken
+	if hasPrefix {
+		splitToken = splitToken[1:]
+	}
+
 	if len(splitToken) < 2 {
 		return token
 	}
@@ -688,6 +694,10 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 		splitToken[0],
 		splitToken[1][:esdtTickerNumChars],
 		hex.EncodeToString(nonceBytes))
+
+	if hasPrefix {
+		formattedTokenIdentifier = fmt.Sprintf("%s-%s", splitTokenWithPrefix[0], formattedTokenIdentifier)
+	}
 
 	return formattedTokenIdentifier
 }
@@ -975,6 +985,10 @@ func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOption
 
 	var keys map[string]string
 	if options.WithKeys {
+		if accInfo.account == nil || accInfo.account.DataTrie() == nil {
+			return accInfo.accountResponse, accInfo.block, nil
+		}
+
 		keys, err = n.getKeys(accInfo.account, ctx)
 		if err != nil {
 			return api.AccountResponse{}, api.BlockInfo{}, err

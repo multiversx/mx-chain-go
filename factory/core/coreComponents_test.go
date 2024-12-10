@@ -18,20 +18,20 @@ func TestNewCoreComponentsFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.NotNil(t, ccf)
 		require.Nil(t, err)
 	})
 	t.Run("nil genesis nodes setup factory, should return error", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args.GenesisNodesSetupFactory = nil
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilNodesSetupFactory, err)
 	})
 	t.Run("nil ratings data factory, should return error", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args.RatingsDataFactory = nil
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.Nil(t, ccf)
@@ -42,7 +42,7 @@ func TestNewCoreComponentsFactory(t *testing.T) {
 func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           componentsMock.TestMarshalizer,
@@ -59,7 +59,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *te
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           componentsMock.TestMarshalizer,
@@ -79,7 +79,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidHasherConfigShouldErr(
 func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Hasher: config.TypeConfig{
 			Type: componentsMock.TestHasher,
@@ -95,7 +95,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoInternalMarshallerConfigSho
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           "invalid_marshalizer_type",
@@ -115,7 +115,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidInternalMarshallerConf
 func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Hasher: config.TypeConfig{
 			Type: componentsMock.TestHasher,
@@ -135,7 +135,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoVmMarshallerConfigShouldErr
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           componentsMock.TestMarshalizer,
@@ -158,7 +158,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidVmMarshallerConfigShou
 func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Hasher: config.TypeConfig{
 			Type: componentsMock.TestHasher,
@@ -181,7 +181,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNoTxSignMarshallerConfigShoul
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config = config.Config{
 		Marshalizer: config.MarshalizerConfig{
 			Type:           componentsMock.TestMarshalizer,
@@ -207,7 +207,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignMarshallerConfig
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignHasherConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config.TxSignHasher = config.TypeConfig{
 		Type: "invalid",
 	}
@@ -221,7 +221,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidTxSignHasherConfigShou
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config.ValidatorPubkeyConverter.Type = "invalid"
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -233,7 +233,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidValPubKeyConverterShou
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config.AddressPubkeyConverter.Type = "invalid"
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -245,7 +245,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidAddrPubKeyConverterSho
 func TestCoreComponentsFactory_CreateCoreComponentsNilChanStopNodeProcessShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.ChanStopNodeProcess = nil
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -257,7 +257,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsNilChanStopNodeProcessShouldE
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidRoundConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.RoundConfig = config.RoundConfig{}
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -269,7 +269,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidRoundConfigShouldErr(t
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidGenesisMaxNumberOfShardsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config.GeneralSettings.GenesisMaxNumberOfShards = 0
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -281,7 +281,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidGenesisMaxNumberOfShar
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidEconomicsConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.EconomicsConfig = config.EconomicsConfig{}
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -293,7 +293,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidEconomicsConfigShouldE
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidRatingsConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.RatingsConfig = config.RatingsConfig{}
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -305,7 +305,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidRatingsConfigShouldErr
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidHardforkPubKeyShouldErr(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config.Hardfork.PublicKeyToListenFrom = "invalid"
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -317,7 +317,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidHardforkPubKeyShouldEr
 func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
 	cc, err := ccf.Create()
@@ -328,7 +328,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsShouldWork(t *testing.T) {
 func TestCoreComponentsFactory_CreateCoreComponentsShouldWorkAfterHardfork(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args.Config.Hardfork.AfterHardFork = true
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 
@@ -341,7 +341,7 @@ func TestCoreComponentsFactory_CreateCoreComponentsShouldWorkAfterHardfork(t *te
 func TestCoreComponents_CloseShouldWork(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+	args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	ccf, _ := coreComp.NewCoreComponentsFactory(args)
 	cc, _ := ccf.Create()
 	err := cc.Close()
