@@ -12,11 +12,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
 
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -405,7 +406,7 @@ func hardForkImport(
 			return integrationTests.MinTransactionVersion
 		}
 
-		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
 		coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)

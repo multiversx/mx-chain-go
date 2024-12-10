@@ -136,7 +136,7 @@ func createArgBaseProcessor(
 }
 
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
-	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig(), components.GetRunTypeCoreComponents())
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	return components.GetRunTypeComponents(coreComp, cryptoComp)
 }
