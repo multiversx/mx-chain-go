@@ -143,6 +143,7 @@ func checkArgs(args StorageServiceFactoryArgs) error {
 	return nil
 }
 
+// THESE STORAGE UNITS ARE WRONG
 func (psf *StorageServiceFactory) createAndAddTxStorageUnits(
 	store dataRetriever.StorageService,
 ) error {
@@ -191,6 +192,7 @@ func (psf *StorageServiceFactory) createAndAddTxStorageUnits(
 	return nil
 }
 
+// THESE STORAGE UNITS ARE WRONG
 func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	store dataRetriever.StorageService,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
@@ -367,6 +369,7 @@ func (psf *StorageServiceFactory) CreateForShard() (dataRetriever.StorageService
 	}
 
 	// TODO: this should be refactored to not get a function as a parameter
+	// THIS SHOULD NOT EXIST HERE
 	err = psf.additionalStorageServiceCreator.CreateAdditionalStorageUnits(psf.createAndAddStorageUnitsForSovereign, store, shardID)
 	if err != nil {
 		return nil, err
