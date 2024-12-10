@@ -1,7 +1,7 @@
 package genesisMocks
 
 import (
-	factory2 "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/block"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -115,7 +115,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	}
 }
 
-func createHeaderVersionHandler(version string) factory2.HeaderVersionHandler {
+func createHeaderVersionHandler(version string) nodeFactory.HeaderVersionHandler {
 	hdrVersionHandler, _ := block.NewHeaderVersionHandler(
 		[]config.VersionByEpochs{
 			{

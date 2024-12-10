@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
-	factory2 "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -330,7 +330,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}, nil
 }
 
-func (rcf *runTypeComponentsFactory) createHeaderVersionHandler() (factory2.HeaderVersionHandler, error) {
+func (rcf *runTypeComponentsFactory) createHeaderVersionHandler() (nodeFactory.HeaderVersionHandler, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(rcf.configs.GeneralConfig.Versions.Cache)
 	cache, err := storageunit.NewCache(cacheConfig)
 	if err != nil {
