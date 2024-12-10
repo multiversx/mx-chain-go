@@ -525,10 +525,12 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
-	err = wrk.headerSigVerifier.VerifyPreviousBlockProof(header)
-	if err != nil {
-		return fmt.Errorf("%w : verify previous block proof for received header from consensus topic failed",
-			err)
+	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		err = wrk.headerSigVerifier.VerifyHeaderWithProof(header)
+		if err != nil {
+			return fmt.Errorf("%w : verify previous block proof for received header from consensus topic failed",
+				err)
+		}
 	}
 
 	wrk.processReceivedHeaderMetric(cnsMsg)

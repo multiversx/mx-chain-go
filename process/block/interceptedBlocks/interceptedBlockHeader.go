@@ -78,11 +78,6 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 		return err
 	}
 
-	err = inHdr.sigVerifier.VerifyPreviousBlockProof(inHdr.hdr)
-	if err != nil {
-		return err
-	}
-
 	return inHdr.verifySignatures()
 }
 

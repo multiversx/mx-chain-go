@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -70,7 +71,6 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 }
 
 func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
-	// TODO[cleanup cns finality]: remove these checks
 	if len(hdr.GetPubKeysBitmap()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
 		return process.ErrNilPubKeysBitmap
 	}

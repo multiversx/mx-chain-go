@@ -59,9 +59,9 @@ func (mock *HeaderSigVerifierMock) VerifySignatureForHash(header data.HeaderHand
 }
 
 // VerifyPreviousBlockProof -
-func (mock *HeaderSigVerifierMock) VerifyPreviousBlockProof(header data.HeaderHandler) error {
+func (mock *HeaderSigVerifierMock) verifyProofIntegrity(proof data.HeaderProofHandler) error {
 	if mock.VerifyPreviousBlockProofCalled != nil {
-		return mock.VerifyPreviousBlockProofCalled(header)
+		return mock.VerifyPreviousBlockProofCalled(proof)
 	}
 
 	return nil

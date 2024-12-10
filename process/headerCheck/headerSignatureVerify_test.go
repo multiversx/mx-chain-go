@@ -668,7 +668,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 				return nil
 			},
 		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
+		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
 		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
 		assert.True(t, strings.Contains(err.Error(), "received header without proof after flag activation"))
 	})
@@ -688,7 +688,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 				}
 			},
 		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
+		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
 		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
 		assert.True(t, strings.Contains(err.Error(), "received header with proof before flag activation"))
 	})
@@ -712,7 +712,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 				}
 			},
 		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
+		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
 		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
 		assert.True(t, strings.Contains(err.Error(), "received header without leader signature after flag activation"))
 	})
@@ -736,7 +736,7 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 				}
 			},
 		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
+		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
 		assert.Nil(t, err)
 	})
 }

@@ -1,6 +1,7 @@
 package headerCheck
 
 import (
+	"bytes"
 	"fmt"
 	"math/bits"
 
@@ -175,8 +176,11 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 }
 
 // VerifySignature will check if signature is correct
-// TODO: Adapt header signature verification for the changes related to equivalent proofs
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return hsv.VerifyHeaderWithProof(header)
+	}
+
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
 	if err != nil {
 		return err
@@ -189,14 +193,20 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 
 	bitmap := header.GetPubKeysBitmap()
 	sig := header.GetSignature()
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerCopy.GetEpoch()) {
-		headerCopy, hash, sig, bitmap, err = hsv.getPrevHeaderInfo(headerCopy)
-		if err != nil {
-			return err
-		}
+	return hsv.VerifySignatureForHash(headerCopy, hash, bitmap, sig)
+}
+
+func verifyPrevProofForHeader(header data.HeaderHandler) error {
+	prevProof := header.GetPreviousProof()
+	if header.GetShardID() != prevProof.GetHeaderShardId() {
+		return ErrProofShardMismatch
 	}
 
-	return hsv.VerifySignatureForHash(headerCopy, hash, bitmap, sig)
+	if !bytes.Equal(header.GetPrevHash(), prevProof.GetHeaderHash()) {
+		return ErrProofHeaderHashMismatch
+	}
+
+	return nil
 }
 
 // VerifySignatureForHash will check if signature is correct for the provided hash
@@ -214,12 +224,26 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
 }
 
+func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
+	err := verifyPrevProofForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	prevProof := header.GetPreviousProof()
+	return hsv.VerifyHeaderProof(prevProof)
+}
+
 // VerifyHeaderProof checks if the proof is correct for the header
 func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHandler) error {
 	if check.IfNilReflect(proofHandler) {
 		return process.ErrNilHeaderProof
 	}
 
+	err := hsv.verifyProofIntegrity(proofHandler)
+	if err != nil {
+		return err
+	}
 	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixedOrderInConsensusFlag, proofHandler.GetHeaderEpoch()) {
 		return fmt.Errorf("%w for %s", process.ErrFlagNotActive, common.FixedOrderInConsensusFlag)
 	}
@@ -239,58 +263,21 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
-func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, []byte, error) {
-	previousProof := currentHeader.GetPreviousProof()
-
-	var sig, bitmap []byte
-	if previousProof != nil {
-		sig, bitmap = previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
-	}
-
-	hash := currentHeader.GetPrevHash()
-	prevHeader, err := hsv.headersPool.GetHeaderByHash(hash)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	headerCopy, err := hsv.copyHeaderWithoutSig(prevHeader)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	hash, err = core.CalculateHash(hsv.marshalizer, hsv.hasher, headerCopy)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	return headerCopy, hash, sig, bitmap, nil
-}
-
 // VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
-func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
-	previousProof := header.GetPreviousProof()
-
+func (hsv *HeaderSigVerifier) verifyProofIntegrity(proof data.HeaderProofHandler) error {
 	hasProof := false
-	hasLeaderSignature := false
 
-	if previousProof != nil {
-		previousAggregatedSignature, previousBitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
-		hasProof = len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
-
-		if len(previousBitmap) > 0 {
-			hasLeaderSignature = previousBitmap[0]&1 != 0
-		}
+	if proof != nil {
+		aggregatedSignature, proofBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+		hasProof = len(aggregatedSignature) > 0 && len(proofBitmap) > 0
 	}
 
-	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
+	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proof.GetHeaderEpoch())
 	if isFlagEnabled && !hasProof {
 		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
 	}
 	if !isFlagEnabled && hasProof {
 		return fmt.Errorf("%w, received header with proof before flag activation", process.ErrInvalidHeader)
-	}
-	if isFlagEnabled && !hasLeaderSignature {
-		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
 	}
 
 	return nil
