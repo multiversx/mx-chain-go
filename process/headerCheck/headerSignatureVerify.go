@@ -224,6 +224,7 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
 }
 
+// VerifyHeaderWithProof checks if the proof on the header is correct
 func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
 	err := verifyPrevProofForHeader(header)
 	if err != nil {

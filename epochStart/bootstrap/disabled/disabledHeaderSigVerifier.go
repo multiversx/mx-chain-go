@@ -46,6 +46,11 @@ func (h *headerSigVerifier) verifyProofIntegrity(proof data.HeaderProofHandler) 
 	return nil
 }
 
+// VerifyHeaderWithProof returns nil as it is disabled
+func (h *headerSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
+	return nil
+}
+
 // VerifyHeaderProof returns nil as it is disabled
 func (h *headerSigVerifier) VerifyHeaderProof(_ data.HeaderProofHandler) error {
 	return nil
