@@ -37,6 +37,7 @@ func (ed *economicsData) GetGasLimitSetting(epoch uint32) *config.GasLimitSettin
 	gasLimitSetting.MaxGasLimitPerTx = strconv.FormatUint(cfg.maxGasLimitPerTx, 10)
 	gasLimitSetting.MinGasLimit = strconv.FormatUint(cfg.minGasLimit, 10)
 	gasLimitSetting.ExtraGasLimitGuardedTx = strconv.FormatUint(cfg.extraGasLimitGuardedTx, 10)
+	gasLimitSetting.MaxGasHigherFactorAccepted = strconv.FormatUint(cfg.maxGasHigherFactorAccepted, 10)
 
 	return gasLimitSetting
 }
