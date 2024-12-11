@@ -19,6 +19,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		require.Equal(t, "51500000000000", tx.Fee.String())
 		require.Equal(t, oneBillion, int(tx.PricePerUnit))
 		require.Equal(t, "1000000000000000000", tx.TransferredValue.String())
+		require.Equal(t, []byte("a"), tx.FeePayer)
 	})
 
 	t.Run("move balance gas limit and execution gas limit (a)", func(t *testing.T) {
@@ -29,6 +30,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 
 		require.Equal(t, "51500010000000", tx.Fee.String())
 		require.Equal(t, 999_980_777, int(tx.PricePerUnit))
+		require.Equal(t, []byte("b"), tx.FeePayer)
 	})
 
 	t.Run("move balance gas limit and execution gas limit (b)", func(t *testing.T) {
@@ -41,6 +43,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		require.Equal(t, "60985000000000", tx.Fee.String())
 		require.Equal(t, 60_985_000_000_000, actualFee)
 		require.Equal(t, actualFee/oneMilion, int(tx.PricePerUnit))
+		require.Equal(t, []byte("c"), tx.FeePayer)
 	})
 
 	t.Run("with guardian", func(t *testing.T) {
@@ -52,6 +55,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		require.Equal(t, "50000000000000", tx.Fee.String())
 		require.Equal(t, oneBillion, int(tx.PricePerUnit))
 		require.Equal(t, "1000000000000000000", tx.TransferredValue.String())
+		require.Equal(t, []byte("a"), tx.FeePayer)
 	})
 
 	t.Run("with nil transferred value", func(t *testing.T) {
@@ -61,6 +65,7 @@ func TestWrappedTransaction_precomputeFields(t *testing.T) {
 		tx.precomputeFields(host)
 
 		require.Nil(t, tx.TransferredValue)
+		require.Equal(t, []byte("a"), tx.FeePayer)
 	})
 
 	t.Run("queries host", func(t *testing.T) {

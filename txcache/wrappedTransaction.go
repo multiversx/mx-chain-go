@@ -24,6 +24,7 @@ type WrappedTransaction struct {
 	Fee              *big.Int
 	PricePerUnit     uint64
 	TransferredValue *big.Int
+	FeePayer         []byte
 }
 
 // precomputeFields computes (and caches) the (average) price per gas unit.
@@ -36,6 +37,16 @@ func (wrappedTx *WrappedTransaction) precomputeFields(host MempoolHost) {
 	}
 
 	wrappedTx.TransferredValue = host.GetTransferredValue(wrappedTx.Tx)
+	wrappedTx.FeePayer = wrappedTx.decideFeePayer()
+}
+
+func (wrappedTx *WrappedTransaction) decideFeePayer() []byte {
+	asRelayed, ok := wrappedTx.Tx.(data.RelayedTransactionHandler)
+	if ok && len(asRelayed.GetRelayerAddr()) > 0 {
+		return asRelayed.GetRelayerAddr()
+	}
+
+	return wrappedTx.Tx.GetSndAddr()
 }
 
 // Equality is out of scope (not possible in our case).
