@@ -143,6 +143,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		coreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
+
 	stateComponents := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
 			return &stateMock.AccountsStub{

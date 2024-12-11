@@ -48,7 +48,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		cfg := testscommon.GetGeneralConfig()
-		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents()))
+		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents()))
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		assert.Nil(t, err)
 		require.NotNil(t, sccf)

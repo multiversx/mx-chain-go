@@ -3,6 +3,7 @@ package status
 import (
 	nodeData "github.com/multiversx/mx-chain-core-go/data"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
@@ -30,6 +31,10 @@ func CreateSaveValidatorsPubKeysEventHandler(
 			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
 			Epoch:                  currentEpoch,
 		})
+
+		for _, key := range validatorsPubKeys {
+			log.Warn("validator", "key", key, "epoch", currentEpoch, "shardID", hdr.GetShardID())
+		}
 
 	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
 

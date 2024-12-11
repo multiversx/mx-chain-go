@@ -17,11 +17,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	mxFactory "github.com/multiversx/mx-chain-go/factory"
-
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"

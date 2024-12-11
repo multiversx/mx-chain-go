@@ -1633,8 +1633,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			}
 			return shardCoordinator.CurrentShard
 		}
-
 		fundGenesisWallets(t, processArgs)
+
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
 
