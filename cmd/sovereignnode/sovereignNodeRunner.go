@@ -1225,6 +1225,7 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 		IsInImportMode:       isInImportMode,
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
+		IsSovereign:          true,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
