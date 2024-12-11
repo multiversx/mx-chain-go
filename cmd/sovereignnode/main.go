@@ -245,7 +245,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 	if err != nil {
 		return nil, err
 	}
-	log.Debug("config", "file", configurationPaths.Epoch)
+	log.Debug("config sovereign", "file", configurationPaths.Epoch)
 
 	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
 		CertificatePath:   ctx.GlobalString(sovereignBridgeCertificateFile.Name),
