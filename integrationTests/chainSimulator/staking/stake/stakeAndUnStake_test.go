@@ -2398,19 +2398,19 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
-	qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified := staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 8, len(qualified))
 	require.Equal(t, 0, len(unQualified))
 
 	stakeOneNode(t, cs)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 8, len(qualified))
 	require.Equal(t, 1, len(unQualified))
 
 	unStakeOneActiveNode(t, cs)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 8, len(qualified))
 	require.Equal(t, 1, len(unQualified))
 }
@@ -2476,7 +2476,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified := staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 0, len(qualified))
 	require.Equal(t, 0, len(unQualified))
 
@@ -2485,18 +2485,18 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
 	require.Nil(t, err)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 0, len(qualified))
 	require.Equal(t, 0, len(unQualified))
 
 	// stake 16 mode nodes, these will go to auction list
-	stakeNodes(t, cs, 17)
+	staking.StakeNodes(t, cs, metachainNode, 17)
 
 	epochToCheck += 1
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
 	require.Nil(t, err)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = staking.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	// all the previously registered will be selected, as we have 24 nodes in eligible+waiting, 8 will shuffle out,
 	// but this time there will be not be lowWaitingList, as there are enough in auction, so we will end up with
 	// 24-8 = 16 nodes remaining + 16 from auction, to fill up all 32 positions
@@ -2521,44 +2521,13 @@ func checkKeysNotInMap(t *testing.T, m map[uint32][][]byte, keys []string) {
 	}
 }
 
-func stakeNodes(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, numNodesToStake int) {
-	txs := make([]*transaction.Transaction, numNodesToStake)
-	for i := 0; i < numNodesToStake; i++ {
-		txs[i] = createStakeTransaction(t, cs)
-	}
-
-	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, stakeTxs)
-	require.Len(t, stakeTxs, numNodesToStake)
-
-	require.Nil(t, cs.GenerateBlocks(1))
-}
-
 func stakeOneNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
-	txStake := createStakeTransaction(t, cs)
+	txStake, _ := staking.CreateStakeTransaction(t, cs)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	require.Nil(t, cs.GenerateBlocks(1))
-}
-
-func createStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) *transaction.Transaction {
-	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
-	require.Nil(t, err)
-	err = cs.AddValidatorKeys(privateKey)
-	require.Nil(t, err)
-
-	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
-	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
-	require.Nil(t, err)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
-
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	return chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
 }
 
 func unStakeOneActiveNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {

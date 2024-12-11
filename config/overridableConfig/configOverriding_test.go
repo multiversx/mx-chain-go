@@ -74,6 +74,17 @@ func TestOverrideConfigValues(t *testing.T) {
 		require.Equal(t, "new pass", configs.ExternalConfig.ElasticSearchConnector.Password)
 	})
 
+	t.Run("should work for systemSmartContractsConfig.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{SystemSCConfig: &config.SystemSmartContractsConfig{ESDTSystemSCConfig: config.ESDTSystemSCConfig{BaseIssuingCost: "100"}}}
+
+		expectedNewValue := "222"
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "ESDTSystemSCConfig.BaseIssuingCost", Value: expectedNewValue, File: "systemSmartContractsConfig.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, expectedNewValue, configs.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost)
+	})
+
 	t.Run("should work for enableEpochs.toml", func(t *testing.T) {
 		t.Parallel()
 

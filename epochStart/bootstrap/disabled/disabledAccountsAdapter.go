@@ -3,17 +3,26 @@ package disabled
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsAdapter struct {
+	accountFactory state.AccountFactory
 }
 
 // NewAccountsAdapter returns a nil implementation of accountsAdapter
-func NewAccountsAdapter() *accountsAdapter {
-	return &accountsAdapter{}
+func NewAccountsAdapter(accountFactory state.AccountFactory) (*accountsAdapter, error) {
+	if check.IfNil(accountFactory) {
+		return nil, state.ErrNilAccountFactory
+	}
+
+	return &accountsAdapter{
+		accountFactory: accountFactory,
+	}, nil
 }
 
 // SetSyncer -
@@ -37,8 +46,8 @@ func (a *accountsAdapter) GetCode(_ []byte) []byte {
 }
 
 // LoadAccount -
-func (a *accountsAdapter) LoadAccount(_ []byte) (vmcommon.AccountHandler, error) {
-	return nil, nil
+func (a *accountsAdapter) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
+	return a.accountFactory.CreateAccount(address)
 }
 
 // SaveAccount -
@@ -51,13 +60,13 @@ func (a *accountsAdapter) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ s
 }
 
 // GetExistingAccount -
-func (a *accountsAdapter) GetExistingAccount(_ []byte) (vmcommon.AccountHandler, error) {
-	return nil, nil
+func (a *accountsAdapter) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
+	return a.accountFactory.CreateAccount(address)
 }
 
 // GetAccountFromBytes -
-func (a *accountsAdapter) GetAccountFromBytes(_ []byte, _ []byte) (vmcommon.AccountHandler, error) {
-	return nil, nil
+func (a *accountsAdapter) GetAccountFromBytes(address []byte, _ []byte) (vmcommon.AccountHandler, error) {
+	return a.accountFactory.CreateAccount(address)
 }
 
 // RemoveAccount -

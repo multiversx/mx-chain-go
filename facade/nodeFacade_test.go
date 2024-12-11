@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade/mock"
 	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -85,7 +86,7 @@ func TestNewNodeFacade(t *testing.T) {
 		nf, err := NewNodeFacade(arg)
 
 		require.Nil(t, nf)
-		require.Equal(t, ErrNilNode, err)
+		require.Equal(t, errorsMx.ErrNilNode, err)
 	})
 	t.Run("nil ApiResolver should error", func(t *testing.T) {
 		t.Parallel()

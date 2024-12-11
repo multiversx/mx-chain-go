@@ -23,6 +23,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -41,8 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -101,8 +102,10 @@ type Node struct {
 	processComponents     mainFactory.ProcessComponentsHolder
 	stateComponents       mainFactory.StateComponentsHolder
 	statusComponents      mainFactory.StatusComponentsHolder
+	runTypeComponents     mainFactory.RunTypeComponentsHolder
 
 	closableComponents        []mainFactory.Closer
+	mutClosableComponents     syncGo.RWMutex
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 }
@@ -215,6 +218,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetAllIssuedESDTs(tokenType, ctx)
+}
+
+func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
 		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
@@ -456,6 +463,14 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetTokensIDsWithFilter(f, options, ctx)
+}
+
+func (n *Node) baseGetTokensIDsWithFilter(
+	f filter,
+	options api.AccountQueryOptions,
+	ctx context.Context,
+) ([]string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
@@ -626,7 +641,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 			return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
-		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
+		tokenID, hasPrefix, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
 		esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
@@ -641,7 +656,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 				return nil, api.BlockInfo{}, errEncode
 			}
 			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
-			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
+			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce, hasPrefix)
 		}
 
 		allESDTs[tokenName] = esdtToken
@@ -659,8 +674,13 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	return allESDTs, blockInfo, nil
 }
 
-func adjustNftTokenIdentifier(token string, nonce uint64) string {
+func adjustNftTokenIdentifier(token string, nonce uint64, hasPrefix bool) string {
 	splitToken := strings.Split(token, "-")
+	splitTokenWithPrefix := splitToken
+	if hasPrefix {
+		splitToken = splitToken[1:]
+	}
+
 	if len(splitToken) < 2 {
 		return token
 	}
@@ -674,6 +694,10 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 		splitToken[0],
 		splitToken[1][:esdtTickerNumChars],
 		hex.EncodeToString(nonceBytes))
+
+	if hasPrefix {
+		formattedTokenIdentifier = fmt.Sprintf("%s-%s", splitTokenWithPrefix[0], formattedTokenIdentifier)
+	}
 
 	return formattedTokenIdentifier
 }
@@ -1307,6 +1331,11 @@ func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 	return n.statusComponents
 }
 
+// GetRunTypeComponents returns the run type components
+func (n *Node) GetRunTypeComponents() mainFactory.RunTypeComponentsHolder {
+	return n.runTypeComponents
+}
+
 func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
@@ -1337,6 +1366,9 @@ func (n *Node) Close() error {
 	}
 
 	var closeError error = nil
+
+	n.mutClosableComponents.RLock()
+	defer n.mutClosableComponents.RUnlock()
 
 	allComponents := make([]string, 0, len(n.closableComponents))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
@@ -1523,6 +1555,13 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+// AddClosableComponent adds a closable component to the internal stored components
+func (n *Node) AddClosableComponent(component mainFactory.Closer) {
+	n.mutClosableComponents.Lock()
+	n.closableComponents = append(n.closableComponents, component)
+	n.mutClosableComponents.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

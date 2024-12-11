@@ -20,8 +20,9 @@ type ArgsHeaderValidator struct {
 }
 
 type headerValidator struct {
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	calculateHeaderHashFunc func(headerHandler data.HeaderHandler) ([]byte, error)
 }
 
 // NewHeaderValidator returns a new header validator
@@ -33,10 +34,13 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 		return nil, process.ErrNilMarshalizer
 	}
 
-	return &headerValidator{
+	hv := &headerValidator{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-	}, nil
+	}
+
+	hv.calculateHeaderHashFunc = hv.calculateHeaderHash
+	return hv, nil
 }
 
 // IsHeaderConstructionValid verified if header is constructed correctly on top of other
@@ -64,7 +68,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrWrongNonceInBlock
 	}
 
-	prevHeaderHash, err := core.CalculateHash(h.marshalizer, h.hasher, prevHeader)
+	prevHeaderHash, err := h.calculateHeaderHashFunc(prevHeader)
 	if err != nil {
 		return err
 	}
@@ -88,6 +92,10 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	return nil
+}
+
+func (h *headerValidator) calculateHeaderHash(headerHandler data.HeaderHandler) ([]byte, error) {
+	return core.CalculateHash(h.marshalizer, h.hasher, headerHandler)
 }
 
 // IsInterfaceNil returns if underlying object is true

@@ -352,3 +352,6 @@ var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
 
 // ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
 var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")
+
+// ErrNilValidatorInfoSyncer signals that a nil validator info syncer has been provided
+var ErrNilValidatorInfoSyncer = errors.New("nil validator info syncer has been provided")

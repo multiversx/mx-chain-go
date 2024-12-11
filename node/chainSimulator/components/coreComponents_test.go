@@ -11,6 +11,8 @@ import (
 )
 
 func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
+	runTypeCoreComponents, _ := createRunTypeCoreComponents()
+
 	return ArgsCoreComponentsHolder{
 		Config: config.Config{
 			Marshalizer: config.MarshalizerConfig{
@@ -136,6 +138,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
 		RoundDurationInMs:           6000,
+		RunTypeCoreComponents:       runTypeCoreComponents,
 	}
 }
 

@@ -9,11 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
@@ -23,63 +23,75 @@ import (
 
 //TODO increase code coverage
 
-func TestNewStateImport(t *testing.T) {
+func createArgsNewStateImport() ArgsNewStateImport {
 	trieStorageManagers := make(map[string]common.StorageManager)
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = &storageManager.StorageManagerStub{}
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = &storageManager.StorageManagerStub{}
+	return ArgsNewStateImport{
+		HardforkStorer:      &mock.HardforkStorerStub{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		Hasher:              &mock.HasherStub{},
+		TrieStorageManagers: trieStorageManagers,
+		AddressConverter:    &testscommon.PubkeyConverterMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		AccountCreator:      &stateMock.AccountsFactoryStub{},
+	}
+}
+
+func TestNewStateImport(t *testing.T) {
+
 	tests := []struct {
 		name    string
-		args    ArgsNewStateImport
+		args    func() ArgsNewStateImport
 		exError error
 	}{
 		{
 			name: "NilHarforkStorer",
-			args: ArgsNewStateImport{
-				HardforkStorer:      nil,
-				Marshalizer:         &mock.MarshalizerMock{},
-				Hasher:              &mock.HasherStub{},
-				TrieStorageManagers: trieStorageManagers,
-				AddressConverter:    &testscommon.PubkeyConverterMock{},
+			args: func() ArgsNewStateImport {
+				args := createArgsNewStateImport()
+				args.HardforkStorer = nil
+				return args
 			},
 			exError: update.ErrNilHardforkStorer,
 		},
 		{
 			name: "NilMarshalizer",
-			args: ArgsNewStateImport{
-				HardforkStorer:      &mock.HardforkStorerStub{},
-				Marshalizer:         nil,
-				Hasher:              &mock.HasherStub{},
-				TrieStorageManagers: trieStorageManagers,
-				AddressConverter:    &testscommon.PubkeyConverterMock{},
+			args: func() ArgsNewStateImport {
+				args := createArgsNewStateImport()
+				args.Marshalizer = nil
+				return args
 			},
 			exError: update.ErrNilMarshalizer,
 		},
 		{
 			name: "NilHasher",
-			args: ArgsNewStateImport{
-				HardforkStorer:      &mock.HardforkStorerStub{},
-				Marshalizer:         &mock.MarshalizerMock{},
-				Hasher:              nil,
-				TrieStorageManagers: trieStorageManagers,
-				AddressConverter:    &testscommon.PubkeyConverterMock{},
+			args: func() ArgsNewStateImport {
+				args := createArgsNewStateImport()
+				args.Hasher = nil
+				return args
 			},
 			exError: update.ErrNilHasher,
 		},
 		{
+			name: "NilAccountCreator",
+			args: func() ArgsNewStateImport {
+				args := createArgsNewStateImport()
+				args.AccountCreator = nil
+				return args
+			},
+			exError: state.ErrNilAccountFactory,
+		},
+		{
 			name: "Ok",
-			args: ArgsNewStateImport{
-				HardforkStorer:      &mock.HardforkStorerStub{},
-				Marshalizer:         &mock.MarshalizerMock{},
-				Hasher:              &mock.HasherStub{},
-				TrieStorageManagers: trieStorageManagers,
-				AddressConverter:    &testscommon.PubkeyConverterMock{},
-				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			args: func() ArgsNewStateImport {
+				return createArgsNewStateImport()
 			},
 			exError: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewStateImport(tt.args)
+			_, err := NewStateImport(tt.args())
 			require.Equal(t, tt.exError, err)
 		})
 	}
@@ -88,21 +100,7 @@ func TestNewStateImport(t *testing.T) {
 func TestImportAll(t *testing.T) {
 	t.Parallel()
 
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = &storageManager.StorageManagerStub{}
-	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = &storageManager.StorageManagerStub{}
-
-	args := ArgsNewStateImport{
-		HardforkStorer:      &mock.HardforkStorerStub{},
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		TrieStorageManagers: trieStorageManagers,
-		ShardID:             0,
-		StorageConfig:       config.StorageConfig{},
-		AddressConverter:    &testscommon.PubkeyConverterMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-
+	args := createArgsNewStateImport()
 	importState, _ := NewStateImport(args)
 	require.False(t, check.IfNil(importState))
 
@@ -113,32 +111,18 @@ func TestImportAll(t *testing.T) {
 func TestStateImport_ImportUnFinishedMetaBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = &storageManager.StorageManagerStub{}
-
-	hasher := &hashingMocks.HasherMock{}
-	marshahlizer := &mock.MarshalizerMock{}
+	args := createArgsNewStateImport()
 	metaBlock := &block.MetaBlock{
 		Round:   1,
 		ChainID: []byte("chainId"),
 	}
-	metaBlockHash, _ := core.CalculateHash(marshahlizer, hasher, metaBlock)
+	metaBlockHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, metaBlock)
 
-	args := ArgsNewStateImport{
-		HardforkStorer: &mock.HardforkStorerStub{
-			GetCalled: func(identifier string, key []byte) ([]byte, error) {
-				return marshahlizer.Marshal(metaBlock)
-			},
+	args.HardforkStorer = &mock.HardforkStorerStub{
+		GetCalled: func(identifier string, key []byte) ([]byte, error) {
+			return args.Marshalizer.Marshal(metaBlock)
 		},
-		Hasher:              hasher,
-		Marshalizer:         marshahlizer,
-		TrieStorageManagers: trieStorageManagers,
-		ShardID:             0,
-		StorageConfig:       config.StorageConfig{},
-		AddressConverter:    &testscommon.PubkeyConverterMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
-
 	importState, _ := NewStateImport(args)
 	require.False(t, check.IfNil(importState))
 

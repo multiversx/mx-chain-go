@@ -14,6 +14,14 @@ export USE_PROXY=1
 # repository (mx-chain-txgen-go).
 export USE_TXGEN=0
 
+# Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
+# It will also change the external.toml files for observers, so they can index data into it.
+# Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
+export USE_ELASTICSEARCH=0
+
+# Elasticsearch volume name to keep the elastic history on host. History will be loaded when docker is starting.
+export ELASTICSEARCH_VOLUME="sov-elastic"
+
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.
@@ -27,6 +35,10 @@ export CONFIGGENERATOROUTPUTDIR="output"
 # Path to the executable node. Leave unchanged unless well justified.
 export NODEDIR="$MULTIVERSXDIR/cmd/node"
 export NODE="$NODEDIR/node"     # Leave unchanged
+
+# Path to the executable sovereign node. Leave unchanged unless well justified.
+export SOVEREIGNNODEDIR="$MULTIVERSXDIR/cmd/sovereignnode"
+export SOVEREIGNNODE="$SOVEREIGNNODEDIR/sovereignnode"     # Leave unchanged
 
 # Path to the executable seednode. Leave unchanged unless well justified.
 export SEEDNODEDIR="$MULTIVERSXDIR/cmd/seednode"
@@ -44,24 +56,30 @@ export NODE_WATCHER=0
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=60
+export NODE_DELAY=30
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
 #if set to 1, each observer will turn off the antiflooding capability, allowing spam in our network
 export OBSERVERS_ANTIFLOOD_DISABLE=0
 
+# If set to 1, this will deploy nodes in a sovereign shard.
+# All variables from metashard structure(validators, observers, consensus) should be set to zero and SHARDCOUNT to 1
+# For now, make sure that you checkout feat/sovereign branch from mx-chain-deploy repo when using these scripts
+export SOVEREIGN_DEPLOY=1
+
 # Shard structure
-export SHARDCOUNT=2
-export SHARD_VALIDATORCOUNT=3
+export SHARDCOUNT=1
+export SHARD_VALIDATORCOUNT=2
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=3
+export SHARD_CONSENSUS_SIZE=2
 
 # Metashard structure
-export META_VALIDATORCOUNT=3
-export META_OBSERVERCOUNT=1
+export META_VALIDATORCOUNT=0
+export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
+# ROUND_DURATION_IN_MS is the duration in milliseconds for one round
 export ROUND_DURATION_IN_MS=6000
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
@@ -72,6 +90,9 @@ export EXTRA_KEYS=1
 
 # ALWAYS_NEW_CHAINID will generate a fresh new chain ID each time start.sh/config.sh is called
 export ALWAYS_NEW_CHAINID=1
+
+# DEFAULT_CHAIN_ID represents the default chain ID
+export DEFAULT_CHAIN_ID="local-testnet"
 
 # ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
 export ROUNDS_PER_EPOCH=0
@@ -105,7 +126,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then
@@ -145,7 +166,7 @@ export NUMACCOUNTS="250"
 # Whether txgen should regenerate its accounts when starting, or not.
 # Recommended value is 1, but 0 is useful to run the txgen a second time, to
 # continue a testing session on the same accounts.
-export TXGEN_REGENERATE_ACCOUNTS=0
+export TXGEN_REGENERATE_ACCOUNTS=1
 
 # COPY_BACK_CONFIGS when set to 1 will copy back the configs and keys to the ./cmd/node/config directory
 # in order to have a node in the IDE that can run a node in debug mode but in the same network with the rest of the nodes

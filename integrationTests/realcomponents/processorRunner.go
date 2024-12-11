@@ -9,13 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
+	commonRunType "github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -26,20 +23,27 @@ import (
 	factoryData "github.com/multiversx/mx-chain-go/factory/data"
 	factoryNetwork "github.com/multiversx/mx-chain-go/factory/network"
 	factoryProcessing "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	factoryStatus "github.com/multiversx/mx-chain-go/factory/status"
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
-	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,6 +61,7 @@ type ProcessorRunner struct {
 	NodesCoordinator     nodesCoord.NodesCoordinator
 	StatusComponents     factory.StatusComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
@@ -74,6 +79,7 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
+	pr.createRunTypeComponents(tb)
 	pr.createStatusCoreComponents(tb)
 	pr.createNetworkComponents(tb)
 	pr.createBootstrapComponents(tb)
@@ -83,18 +89,43 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createProcessComponents(tb)
 }
 
+func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
+	initialAccounts, err := commonRunType.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
+	require.Nil(tb, err)
+
+	rtFactory, err := runType.NewRunTypeComponentsFactory(runType.ArgsRunTypeComponents{
+		CoreComponents:   pr.CoreComponents,
+		CryptoComponents: pr.CryptoComponents,
+		Configs:          pr.Config,
+		InitialAccounts:  initialAccounts,
+	})
+	require.Nil(tb, err)
+
+	rtComp, err := runType.NewManagedRunTypeComponents(rtFactory)
+	require.Nil(tb, err)
+
+	err = rtComp.Create()
+	require.Nil(tb, err)
+	require.Nil(tb, rtComp.CheckSubcomponents())
+
+	pr.closers = append(pr.closers, rtComp)
+	pr.RunTypeComponents = rtComp
+}
+
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 	argsCore := factoryCore.CoreComponentsFactoryArgs{
-		Config:              *pr.Config.GeneralConfig,
-		ConfigPathsHolder:   *pr.Config.ConfigurationPathsHolder,
-		EpochConfig:         *pr.Config.EpochConfig,
-		RoundConfig:         *pr.Config.RoundConfig,
-		RatingsConfig:       *pr.Config.RatingsConfig,
-		EconomicsConfig:     *pr.Config.EconomicsConfig,
-		ImportDbConfig:      *pr.Config.ImportDbConfig,
-		NodesFilename:       pr.Config.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:    pr.Config.FlagsConfig.WorkingDir,
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
+		Config:                   *pr.Config.GeneralConfig,
+		ConfigPathsHolder:        *pr.Config.ConfigurationPathsHolder,
+		EpochConfig:              *pr.Config.EpochConfig,
+		RoundConfig:              *pr.Config.RoundConfig,
+		RatingsConfig:            *pr.Config.RatingsConfig,
+		EconomicsConfig:          *pr.Config.EconomicsConfig,
+		ImportDbConfig:           *pr.Config.ImportDbConfig,
+		NodesFilename:            pr.Config.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:         pr.Config.FlagsConfig.WorkingDir,
+		ChanStopNodeProcess:      make(chan endProcess.ArgEndProcess),
+		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
+		RatingsDataFactory:       rating.NewRatingsDataFactory(),
 	}
 	coreFactory, err := factoryCore.NewCoreComponentsFactory(argsCore)
 	require.Nil(tb, err)
@@ -206,6 +237,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
+		RunTypeComponents:    pr.RunTypeComponents,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -224,16 +256,17 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 	argsData := factoryData.DataComponentsFactoryArgs{
-		Config:                        *pr.Config.GeneralConfig,
-		PrefsConfig:                   pr.Config.PreferencesConfig.Preferences,
-		ShardCoordinator:              pr.BootstrapComponents.ShardCoordinator(),
-		Core:                          pr.CoreComponents,
-		StatusCore:                    pr.StatusCoreComponents,
-		Crypto:                        pr.CryptoComponents,
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: false,
-		NodeProcessingMode:            common.Normal,
-		FlagsConfigs:                  config.ContextFlagsConfig{},
+		Config:                          *pr.Config.GeneralConfig,
+		PrefsConfig:                     pr.Config.PreferencesConfig.Preferences,
+		ShardCoordinator:                pr.BootstrapComponents.ShardCoordinator(),
+		Core:                            pr.CoreComponents,
+		StatusCore:                      pr.StatusCoreComponents,
+		Crypto:                          pr.CryptoComponents,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: pr.RunTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -259,6 +292,7 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
+		AccountsCreator:          pr.RunTypeComponents.AccountsCreator(),
 	}
 
 	stateFactory, err := factoryState.NewStateComponentsFactory(argsState)
@@ -305,6 +339,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
 		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
+		pr.RunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	require.Nil(tb, err)
 
@@ -321,6 +356,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		StateComponents:      pr.StateComponents,
 		CryptoComponents:     pr.CryptoComponents,
 		IsInImportMode:       false,
+		IsSovereign:          false,
 	}
 
 	statusFactory, err := factoryStatus.NewStatusComponentsFactory(argsStatus)
@@ -338,22 +374,6 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
-	totalSupply, ok := big.NewInt(0).SetString(pr.Config.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	require.True(tb, ok)
-
-	args := genesis.AccountsParserArgs{
-		GenesisFilePath: pr.Config.ConfigurationPathsHolder.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   pr.Config.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress,
-		PubkeyConverter: pr.CoreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    pr.CryptoComponents.TxSignKeyGen(),
-		Hasher:          pr.CoreComponents.Hasher(),
-		Marshalizer:     pr.CoreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(args)
-	require.Nil(tb, err)
-
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(pr.Config.GeneralConfig.WhiteListPool))
 	require.Nil(tb, err)
 
@@ -414,7 +434,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        pr.NodesCoordinator,
@@ -434,6 +453,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:        pr.StatusComponents,
 		StatusCoreComponents:    pr.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		RunTypeComponents:       pr.RunTypeComponents,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

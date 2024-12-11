@@ -69,7 +69,7 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
-	err = srcf.generateHeaderRequesters()
+	err = srcf.generateHeaderRequesters(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +87,12 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 	return srcf.container, nil
 }
 
-func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
+func (srcf *shardRequestersContainerFactory) generateHeaderRequesters(shardID uint32) error {
 	shardC := srcf.shardCoordinator
 
 	// only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, core.MetachainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(shardID)
+	requestSender, err := srcf.createOneRequestSenderWithSpecifiedNumRequests(identifierHdr, EmptyExcludePeersOnTopic, shardID, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}

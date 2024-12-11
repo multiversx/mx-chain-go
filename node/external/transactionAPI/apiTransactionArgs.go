@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -30,4 +31,5 @@ type ArgAPITransactionProcessor struct {
 	DataFieldParser          DataFieldParser
 	TxMarshaller             marshal.Marshalizer
 	EnableEpochsHandler      common.EnableEpochsHandler
+	ApiRewardTxHandler       APIRewardTxHandler
 }
