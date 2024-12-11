@@ -1,82 +1,72 @@
 package txcache
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"math"
 	"sort"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
+	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/types"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_NewTxCache(t *testing.T) {
 	config := ConfigSourceMe{
-		Name:                       "test",
-		NumChunks:                  16,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:    math.MaxUint32,
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
 	}
 
-	withEvictionConfig := ConfigSourceMe{
-		Name:                          "test",
-		NumChunks:                     16,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		CountThreshold:                math.MaxUint32,
-		NumSendersToPreemptivelyEvict: 100,
-	}
-	txGasHandler, _ := dummyParams()
+	host := txcachemocks.NewMempoolHostMock()
 
-	cache, err := NewTxCache(config, txGasHandler)
+	cache, err := NewTxCache(config, host)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
 	badConfig := config
 	badConfig.Name = ""
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.Name", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.Name", host)
 
 	badConfig = config
 	badConfig.NumChunks = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumChunks", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumChunks", host)
 
 	badConfig = config
 	badConfig.NumBytesPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesPerSenderThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesPerSenderThreshold", host)
 
 	badConfig = config
 	badConfig.CountPerSenderThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountPerSenderThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountPerSenderThreshold", host)
 
 	badConfig = config
 	cache, err = NewTxCache(config, nil)
 	require.Nil(t, cache)
-	require.Equal(t, common.ErrNilTxGasHandler, err)
+	require.Equal(t, errNilMempoolHost, err)
 
-	badConfig = withEvictionConfig
+	badConfig = config
 	badConfig.NumBytesThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesThreshold", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumBytesThreshold", host)
 
-	badConfig = withEvictionConfig
+	badConfig = config
 	badConfig.CountThreshold = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", txGasHandler)
-
-	badConfig = withEvictionConfig
-	badConfig.NumSendersToPreemptivelyEvict = 0
-	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.NumSendersToPreemptivelyEvict", txGasHandler)
+	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", host)
 }
 
-func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, txGasHandler TxGasHandler) {
-	cache, errReceived := NewTxCache(config, txGasHandler)
+func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, host MempoolHost) {
+	cache, errReceived := NewTxCache(config, host)
 	require.Nil(t, cache)
 	require.True(t, errors.Is(errReceived, errExpected))
 	require.Contains(t, errReceived.Error(), errPartialMessage)
@@ -138,18 +128,18 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 	cache := newCacheToTest(1024, math.MaxUint32)
 
-	cache.AddTx(createTxWithParams([]byte("tx-alice-1"), "alice", 1, 128, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-2"), "alice", 2, 512, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-4"), "alice", 3, 256, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-1"), "bob", 1, 512, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 2, 513, 42, 42))
+	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1).withSize(128).withGasLimit(50000))
+	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2).withSize(512).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 3).withSize(256).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1).withSize(512).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2).withSize(513).withGasLimit(1500000))
 
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
 	require.Equal(t, []string{"tx-bob-1"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 
-	cache.AddTx(createTxWithParams([]byte("tx-alice-3"), "alice", 3, 256, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 3, 512, 42, 42))
+	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withSize(256).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 3).withSize(512).withGasLimit(1500000))
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
 	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
@@ -163,7 +153,12 @@ func Test_RemoveByTxHash(t *testing.T) {
 
 	removed := cache.RemoveTxByHash([]byte("hash-1"))
 	require.True(t, removed)
-	cache.Remove([]byte("hash-2"))
+
+	removed = cache.RemoveTxByHash([]byte("hash-2"))
+	require.True(t, removed)
+
+	removed = cache.RemoveTxByHash([]byte("hash-3"))
+	require.False(t, removed)
 
 	foundTx, ok := cache.GetByTxHash([]byte("hash-1"))
 	require.False(t, ok)
@@ -172,6 +167,8 @@ func Test_RemoveByTxHash(t *testing.T) {
 	foundTx, ok = cache.GetByTxHash([]byte("hash-2"))
 	require.False(t, ok)
 	require.Nil(t, foundTx)
+
+	require.Equal(t, uint64(0), cache.CountTx())
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
@@ -227,7 +224,7 @@ func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 	cache.AddTx(tx)
 
 	// Cause an inconsistency between the two internal maps (theoretically possible in case of misbehaving eviction)
-	cache.txListBySender.removeTx(tx)
+	_ = cache.txListBySender.removeTransactionsWithLowerOrEqualNonceReturnHashes(tx)
 
 	_ = cache.RemoveTxByHash(txHash)
 	require.Equal(t, 0, cache.txByHash.backingMap.Count())
@@ -292,101 +289,10 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, wrappedTxs2, txs)
 
-	cache.RemoveTxByHash(txHashes2[0])
+	_ = cache.RemoveTxByHash(txHashes2[0])
 	expectedTxs := wrappedTxs2[1:]
 	txs = cache.GetTransactionsPoolForSender(txSender2)
 	require.Equal(t, expectedTxs, txs)
-}
-
-func Test_SelectTransactions_Dummy(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-
-	cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
-	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
-	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
-	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
-	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
-	cache.AddTx(createTx([]byte("hash-bob-6"), "bob", 6))
-	cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
-	cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
-
-	sorted := cache.SelectTransactionsWithBandwidth(10, 2, math.MaxUint64)
-	require.Len(t, sorted, 8)
-}
-
-func Test_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-4"), "alice", 4, 100000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-3"), "alice", 3, 100000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-2"), "alice", 2, 500000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-alice-1"), "alice", 1, 200000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-7"), "bob", 7, 100000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-6"), "bob", 6, 50000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-bob-5"), "bob", 5, 50000))
-	cache.AddTx(createTxWithGasLimit([]byte("hash-carol-1"), "carol", 1, 50000))
-
-	sorted := cache.SelectTransactionsWithBandwidth(5, 2, 200000)
-	numSelected := 1 + 1 + 3 // 1 alice, 1 carol, 3 bob
-
-	require.Len(t, sorted, numSelected)
-}
-
-func Test_SelectTransactions_BreaksAtNonceGaps(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-
-	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
-	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
-	cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
-	cache.AddTx(createTx([]byte("hash-alice-5"), "alice", 5))
-	cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
-	cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 44))
-	cache.AddTx(createTx([]byte("hash-bob-45"), "bob", 45))
-	cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
-	cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
-	cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10))
-	cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
-
-	numSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
-
-	sorted := cache.SelectTransactionsWithBandwidth(10, 2, math.MaxUint64)
-	require.Len(t, sorted, numSelected)
-}
-
-func Test_SelectTransactions(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-
-	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
-	nSenders := 1000
-	nTransactionsPerSender := 100
-	nTotalTransactions := nSenders * nTransactionsPerSender
-	nRequestedTransactions := math.MaxInt16
-
-	for senderTag := 0; senderTag < nSenders; senderTag++ {
-		sender := fmt.Sprintf("sender:%d", senderTag)
-
-		for txNonce := nTransactionsPerSender; txNonce > 0; txNonce-- {
-			txHash := fmt.Sprintf("hash:%d:%d", senderTag, txNonce)
-			tx := createTx([]byte(txHash), sender, uint64(txNonce))
-			cache.AddTx(tx)
-		}
-	}
-
-	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
-
-	sorted := cache.SelectTransactionsWithBandwidth(nRequestedTransactions, 2, math.MaxUint64)
-
-	require.Len(t, sorted, core.MinInt(nRequestedTransactions, nTotalTransactions))
-
-	// Check order
-	nonces := make(map[string]uint64, nSenders)
-	for _, tx := range sorted {
-		nonce := tx.Tx.GetNonce()
-		sender := string(tx.Tx.GetSndAddr())
-		previousNonce := nonces[sender]
-
-		require.LessOrEqual(t, previousNonce, nonce)
-		nonces[sender] = nonce
-	}
 }
 
 func Test_Keys(t *testing.T) {
@@ -406,44 +312,111 @@ func Test_Keys(t *testing.T) {
 }
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
-	txGasHandler, _ := dummyParams()
-	config := ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		CountThreshold:                100,
-		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
-	}
+	host := txcachemocks.NewMempoolHostMock()
 
-	// 11 * 10
-	cache, err := NewTxCache(config, txGasHandler)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
+	t.Run("numSenders = 11, numTransactions = 10, countThreshold = 100, numItemsToPreemptivelyEvict = 1", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              100,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 1,
+		}
 
-	addManyTransactionsWithUniformDistribution(cache, 11, 10)
-	require.LessOrEqual(t, cache.CountTx(), uint64(100))
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
 
-	config = ConfigSourceMe{
-		Name:                          "untitled",
-		NumChunks:                     16,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             maxNumBytesUpperBound,
-		CountThreshold:                250000,
-		NumSendersToPreemptivelyEvict: 1,
-		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:       math.MaxUint32,
-	}
+		addManyTransactionsWithUniformDistribution(cache, 11, 10)
 
-	// 100 * 1000
-	cache, err = NewTxCache(config, txGasHandler)
-	require.Nil(t, err)
-	require.NotNil(t, cache)
+		// Eviction happens if the cache capacity is already exceeded,
+		// but not if the capacity will be exceeded after the addition.
+		// Thus, for the given value of "NumItemsToPreemptivelyEvict", there will be "countThreshold" + 1 transactions in the cache.
+		require.Equal(t, 101, int(cache.CountTx()))
+	})
 
-	addManyTransactionsWithUniformDistribution(cache, 100, 1000)
-	require.LessOrEqual(t, cache.CountTx(), uint64(250000))
+	t.Run("numSenders = 3, numTransactions = 5, countThreshold = 4, numItemsToPreemptivelyEvict = 3", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              4,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 3,
+		}
+
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 3, 5)
+		require.Equal(t, 3, int(cache.CountTx()))
+	})
+
+	t.Run("numSenders = 11, numTransactions = 10, countThreshold = 100, numItemsToPreemptivelyEvict = 2", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              100,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 2,
+		}
+
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 11, 10)
+		require.Equal(t, 100, int(cache.CountTx()))
+	})
+
+	t.Run("numSenders = 100, numTransactions = 1000, countThreshold = 250000 (no eviction)", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              250000,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 1,
+		}
+
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 100, 1000)
+		require.Equal(t, 100000, int(cache.CountTx()))
+	})
+
+	t.Run("numSenders = 1000, numTransactions = 500, countThreshold = 250000, NumItemsToPreemptivelyEvict = 50000", func(t *testing.T) {
+		config := ConfigSourceMe{
+			Name:                        "untitled",
+			NumChunks:                   16,
+			EvictionEnabled:             true,
+			NumBytesThreshold:           maxNumBytesUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			CountThreshold:              250000,
+			CountPerSenderThreshold:     math.MaxUint32,
+			NumItemsToPreemptivelyEvict: 10000,
+		}
+
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+		require.NotNil(t, cache)
+
+		addManyTransactionsWithUniformDistribution(cache, 1000, 500)
+		require.Equal(t, 250000, int(cache.CountTx()))
+	})
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
@@ -457,7 +430,6 @@ func Test_NotImplementedFunctions(t *testing.T) {
 	require.False(t, added)
 
 	require.NotPanics(t, func() { cache.RegisterHandler(nil, "") })
-	require.Zero(t, cache.MaxSize())
 
 	err := cache.Close()
 	require.Nil(t, err)
@@ -473,44 +445,6 @@ func Test_IsInterfaceNil(t *testing.T) {
 
 	thisIsNil := makeNil()
 	require.True(t, check.IfNil(thisIsNil))
-}
-
-func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
-
-	// Alice will quickly move between two score buckets (chunks)
-	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneBillion)
-	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneBillion)
-	cache.AddTx(cheapTransaction)
-	cache.AddTx(expensiveTransaction)
-
-	wg := sync.WaitGroup{}
-
-	// Simulate selection
-	wg.Add(1)
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("Selection", i)
-			cache.SelectTransactionsWithBandwidth(100, 100, math.MaxUint64)
-		}
-
-		wg.Done()
-	}()
-
-	// Simulate add / remove transactions
-	wg.Add(1)
-	go func() {
-		for i := 0; i < 100; i++ {
-			fmt.Println("Add / remove", i)
-			cache.Remove([]byte("alice-x-1"))
-			cache.AddTx(expensiveTransaction)
-		}
-
-		wg.Done()
-	}()
-
-	timedOut := waitTimeout(&wg, 1*time.Second)
-	require.False(t, timedOut, "Timed out. Perhaps deadlock?")
 }
 
 func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
@@ -529,7 +463,7 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 
 	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
-	cache.txListBySender.addTx(createTx([]byte("alice-x"), "alice", 42))
+	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42))
 
 	require.False(t, cache.Has([]byte("alice-x")))
 	ok, added = cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
@@ -543,7 +477,7 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
-	// A lot of routines concur to add & remove THE FIRST transaction of a sender
+	// A lot of routines concur to add & remove a transaction
 	for try := 0; try < 100; try++ {
 		var wg sync.WaitGroup
 
@@ -579,61 +513,108 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 		require.True(t, cache.Has([]byte("alice-x")))
 		require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
 	}
+}
 
-	cache.Clear()
-
-	// A lot of routines concur to add & remove subsequent transactions of a sender
-	cache.AddTx(createTx([]byte("alice-w"), "alice", 41))
-
-	for try := 0; try < 100; try++ {
-		var wg sync.WaitGroup
-
-		for i := 0; i < 50; i++ {
-			wg.Add(1)
-			go func() {
-				cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-				_ = cache.RemoveTxByHash([]byte("alice-x"))
-				wg.Done()
-			}()
-		}
-
-		wg.Wait()
-
-		// In this case, there is the slight chance that:
-		// go A: add to map by hash
-		// go B: won't add in map by hash, already there
-		// go A: add to map by sender (existing sender/list)
-		// go A: remove from map by hash
-		// go A: remove from map by sender
-		// go B: add to map by sender (existing sender/list)
-		// go B: can't remove from map by hash, not found
-		// go B: won't remove from map by sender (sender unknown)
-
-		// Therefore, Alice may have one or two transactions in her list.
-		require.Equal(t, 1, cache.txByHash.backingMap.Count())
-		expectedTxsConsistent := []string{"alice-w"}
-		expectedTxsSlightlyInconsistent := []string{"alice-w", "alice-x"}
-		actualTxs := cache.getHashesForSender("alice")
-		require.True(t, assert.ObjectsAreEqual(expectedTxsConsistent, actualTxs) || assert.ObjectsAreEqual(expectedTxsSlightlyInconsistent, actualTxs))
-
-		// A further addition works:
-		cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
-		require.True(t, cache.Has([]byte("alice-w")))
-		require.True(t, cache.Has([]byte("alice-x")))
-		require.Equal(t, []string{"alice-w", "alice-x"}, cache.getHashesForSender("alice"))
+func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
+	config := ConfigSourceMe{
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           419_430_400,
+		NumBytesPerSenderThreshold:  12_288_000,
+		CountThreshold:              300_000,
+		CountPerSenderThreshold:     5_000,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 50_000,
 	}
 
-	cache.Clear()
+	host := txcachemocks.NewMempoolHostMock()
+	randomBytes := make([]byte, math.MaxUint16*hashLength)
+	_, err := rand.Read(randomBytes)
+	require.Nil(t, err)
+
+	sw := core.NewStopWatch()
+
+	t.Run("numTransactions = 100 (worst case)", func(t *testing.T) {
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+
+		numTransactions := 100
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	t.Run("numTransactions = 1000 (worst case)", func(t *testing.T) {
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+
+		numTransactions := 1000
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	t.Run("numTransactions = 5_000 (worst case)", func(t *testing.T) {
+		cache, err := NewTxCache(config, host)
+		require.Nil(t, err)
+
+		numTransactions := 5_000
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+
+	// (1)
+	// Vendor ID:                GenuineIntel
+	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//     CPU family:           6
+	//     Model:                140
+	//     Thread(s) per core:   2
+	//     Core(s) per socket:   4
+	//
+	// 0.000117s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_100)
+	// 0.003117s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_1000)
+	// 0.056481s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000)
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
-	txGasHandler, _ := dummyParams()
+	host := txcachemocks.NewMempoolHostMock()
+
 	cache, err := NewTxCache(ConfigSourceMe{
-		Name:                       "test",
-		NumChunks:                  16,
-		NumBytesPerSenderThreshold: maxNumBytesPerSenderUpperBound,
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, txGasHandler)
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
 	}
@@ -642,13 +623,18 @@ func newUnconstrainedCacheToTest() *TxCache {
 }
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
-	txGasHandler, _ := dummyParams()
+	host := txcachemocks.NewMempoolHostMock()
+
 	cache, err := NewTxCache(ConfigSourceMe{
-		Name:                       "test",
-		NumChunks:                  16,
-		NumBytesPerSenderThreshold: numBytesPerSenderThreshold,
-		CountPerSenderThreshold:    countPerSenderThreshold,
-	}, txGasHandler)
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  numBytesPerSenderThreshold,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     countPerSenderThreshold,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))
 	}

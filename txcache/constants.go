@@ -1,9 +1,5 @@
 package txcache
 
-const estimatedNumOfSweepableSendersPerSelection = 100
-
-const senderGracePeriodLowerBound = 2
-
-const senderGracePeriodUpperBound = 2
-
-const numEvictedTxsToDisplay = 3
+const diagnosisMaxTransactionsToDisplay = 10000
+const initialCapacityOfSelectionSlice = 30000
+const selectionLoopDurationCheckInterval = 10
