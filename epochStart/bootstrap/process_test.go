@@ -254,6 +254,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider:     &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:              disabledStatistics.NewStateStatistics(),
+		EnableEpochsHandler:            &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		InterceptedDataVerifierFactory: &processMock.InterceptedDataVerifierFactoryMock{},
 	}
 }
@@ -990,6 +991,9 @@ func TestCreateSyncers(t *testing.T) {
 		},
 		HeartbeatsCalled: func() storage.Cacher {
 			return cache.NewCacherStub()
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
 		},
 	}
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
@@ -2406,6 +2410,9 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 		},
 		HeartbeatsCalled: func() storage.Cacher {
 			return cache.NewCacherStub()
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
 		},
 	}
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{
