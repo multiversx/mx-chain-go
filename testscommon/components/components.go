@@ -1126,6 +1126,7 @@ func createSovereignAccounts() []genesis.InitialAccountHandler {
 }
 
 func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
+	generalCfg := GetGeneralConfig()
 	return runType.ArgsRunTypeComponents{
 		CoreComponents: &mockCoreComp.CoreComponentsStub{
 			HasherField:                 &hashingMocks.HasherMock{},
@@ -1144,6 +1145,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &generalCfg,
 		},
 		InitialAccounts: createAccounts(),
 	}
@@ -1204,6 +1206,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
 		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
 		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
+		VersionedHeaderFactoryField:                 rt.VersionedHeaderFactory(),
 	}
 }
 
@@ -1273,7 +1276,6 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
-
 	return runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config: config.SovereignConfig{

@@ -165,24 +165,45 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	scbp.epochStartTrigger.Update(round, nonce)
 	scbp.enableRoundsHandler.RoundConfirmed(round, 0)
+	epoch := scbp.epochStartTrigger.MetaEpoch()
 
-	// Todo: MX-15667 use factory header interface and use setters/getters
-	header := &block.SovereignChainHeader{
-		Header: &block.Header{
-			SoftwareVersion: process.SovereignHeaderVersion,
-			RootHash:        scbp.uncomputedRootHash,
-		},
-		ValidatorStatsRootHash: scbp.uncomputedRootHash,
-		DevFeesInEpoch:         big.NewInt(0),
-		AccumulatedFeesInEpoch: big.NewInt(0),
-	}
+	header := scbp.versionedHeaderFactory.Create(epoch)
 
 	err := scbp.setRoundNonceInitFees(round, nonce, header)
 	if err != nil {
 		return nil, err
 	}
 
+	err = scbp.setSovHeaderInitFields(header)
+	if err != nil {
+		return nil, err
+	}
+
 	return header, nil
+}
+
+func (scbp *sovereignChainBlockProcessor) setSovHeaderInitFields(header data.HeaderHandler) error {
+	sovHdr, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.setSovHeaderInitFields", process.ErrWrongTypeAssertion)
+	}
+
+	err := sovHdr.SetValidatorStatsRootHash(scbp.uncomputedRootHash)
+	if err != nil {
+		return err
+	}
+
+	err = sovHdr.SetRootHash(scbp.uncomputedRootHash)
+	if err != nil {
+		return err
+	}
+
+	err = sovHdr.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return sovHdr.SetAccumulatedFeesInEpoch(big.NewInt(0))
 }
 
 // CreateBlock selects and puts transaction into the temporary block body

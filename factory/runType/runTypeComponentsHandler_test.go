@@ -227,6 +227,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 		},
 	}
 
+	generalConfig := testscommon.GetGeneralConfig()
 	return runType.ArgsRunTypeComponents{
 		CoreComponents: &factoryMock.CoreComponentsHolderMock{
 			InternalMarshalizerCalled: func() marshal.Marshalizer {
@@ -253,6 +254,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &generalConfig,
 		},
 		InitialAccounts: []genesis.InitialAccountHandler{&acc1},
 	}

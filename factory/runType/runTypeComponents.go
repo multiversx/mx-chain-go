@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -18,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	factoryBlock "github.com/multiversx/mx-chain-go/factory/block"
 	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
 	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	"github.com/multiversx/mx-chain-go/factory/processing/dataRetriever"
@@ -27,8 +29,8 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
-	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -54,6 +56,7 @@ import (
 	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	updateFactory "github.com/multiversx/mx-chain-go/update/factory/creator"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
@@ -130,6 +133,7 @@ type runTypeComponents struct {
 	delegatedListFactoryHandler             trieIteratorsFactory.DelegatedListProcessorFactoryHandler
 	directStakedListFactoryHandler          trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 	totalStakedValueFactoryHandler          trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
+	versionedHeaderFactory                  genesis.VersionedHeaderFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -258,6 +262,16 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAPIRewardsHandler failed: %w", err)
 	}
 
+	headerVersionHandler, err := rcf.createHeaderVersionHandler()
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - createHeaderVersionHandler failed: %w", err)
+	}
+
+	versionedHeaderFactory, err := factoryBlock.NewShardHeaderFactory(headerVersionHandler)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardHeaderFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
@@ -312,7 +326,22 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		delegatedListFactoryHandler:             trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		directStakedListFactoryHandler:          trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		totalStakedValueFactoryHandler:          trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
+		versionedHeaderFactory:                  versionedHeaderFactory,
 	}, nil
+}
+
+func (rcf *runTypeComponentsFactory) createHeaderVersionHandler() (nodeFactory.HeaderVersionHandler, error) {
+	cacheConfig := storageFactory.GetCacherFromConfig(rcf.configs.GeneralConfig.Versions.Cache)
+	cache, err := storageunit.NewCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return factoryBlock.NewHeaderVersionHandler(
+		rcf.configs.GeneralConfig.Versions.VersionsByEpochs,
+		rcf.configs.GeneralConfig.Versions.DefaultVersion,
+		cache,
+	)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

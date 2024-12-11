@@ -183,8 +183,12 @@ func GetGeneralConfig() config.Config {
 			PollingIntervalInMinutes: 30,
 		},
 		Versions: config.VersionsConfig{
-			DefaultVersion:   "1",
-			VersionsByEpochs: nil,
+			DefaultVersion: "1",
+			VersionsByEpochs: []config.VersionByEpochs{
+				{
+					Version: "*",
+				},
+			},
 			Cache: config.CacheConfig{
 				Type:     "LRU",
 				Capacity: 1000,

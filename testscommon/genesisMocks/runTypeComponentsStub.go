@@ -1,6 +1,9 @@
 package genesisMocks
 
 import (
+	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/factory/block"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -15,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -36,6 +40,7 @@ type RunTypeComponentsStub struct {
 	VmContainerShardFactory                   factoryVm.VmContainerCreator
 	VmContainerMetaFactory                    factoryVm.VmContainerCreator
 	PreProcessorsContainerFactoryCreatorField data.PreProcessorsContainerFactoryCreator
+	VersionedHeaderFactoryField               genesis.VersionedHeaderFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -51,6 +56,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	})
 	vmContainerShard := factoryVm.NewVmContainerShardFactory()
 	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(systemSmartContracts.NewVMContextCreator())
+	hdrFactory, _ := block.NewShardHeaderFactory(createHeaderVersionHandler("*"))
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
@@ -65,6 +71,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerShardFactory:                   vmContainerShard,
 		VmContainerMetaFactory:                    vmContainerMeta,
 		PreProcessorsContainerFactoryCreatorField: shard.NewPreProcessorContainerFactoryCreator(),
+		VersionedHeaderFactoryField:               hdrFactory,
 	}
 }
 
@@ -89,6 +96,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	vmMetaFactory, _ := factoryVm.NewVmContainerMetaFactory(oneShardVM)
 	sovVMContainerShardFactory, _ := factoryVm.NewSovereignVmContainerShardFactory(vmMetaFactory, runTypeComponents.VmContainerShardFactory)
 	sovVMContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(oneShardVM)
+	sovHdrFactory, _ := block.NewSovereignShardHeaderFactory(createHeaderVersionHandler("S1"))
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
@@ -103,7 +111,21 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerShardFactory:                   sovVMContainerShardFactory,
 		VmContainerMetaFactory:                    sovVMContainerMeta,
 		PreProcessorsContainerFactoryCreatorField: sovereign.NewSovereignPreProcessorContainerFactoryCreator(),
+		VersionedHeaderFactoryField:               sovHdrFactory,
 	}
+}
+
+func createHeaderVersionHandler(version string) nodeFactory.HeaderVersionHandler {
+	hdrVersionHandler, _ := block.NewHeaderVersionHandler(
+		[]config.VersionByEpochs{
+			{
+				Version: version,
+			},
+		},
+		version,
+		&testscommon.CacherStub{},
+	)
+	return hdrVersionHandler
 }
 
 // BlockChainHookHandlerCreator -
@@ -164,6 +186,11 @@ func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmCont
 // PreProcessorsContainerFactoryCreator -
 func (r *RunTypeComponentsStub) PreProcessorsContainerFactoryCreator() data.PreProcessorsContainerFactoryCreator {
 	return r.PreProcessorsContainerFactoryCreatorField
+}
+
+// VersionedHeaderFactory  -
+func (r *RunTypeComponentsStub) VersionedHeaderFactory() genesis.VersionedHeaderFactory {
+	return r.VersionedHeaderFactoryField
 }
 
 // IsInterfaceNil -

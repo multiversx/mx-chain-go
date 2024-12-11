@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -169,7 +170,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilRequestHandlerCreator, err)
 	})
-	t.Run("nil ErrNilLatestDataProviderFactory should error", func(t *testing.T) {
+	t.Run("nil LatestDataProviderFactory should error", func(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
@@ -179,6 +180,17 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilLatestDataProviderFactory, err)
+	})
+	t.Run("nil VersionedHeaderFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.VersionedHeaderFactoryField = nil
+		argsCopy.RunTypeComponents = rtMock
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, process.ErrNilVersionedHeaderFactory, err)
 	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
