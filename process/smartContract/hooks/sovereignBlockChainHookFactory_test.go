@@ -3,8 +3,9 @@ package hooks
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 func TestNewSovereignBlockChainHookFactory(t *testing.T) {
@@ -15,7 +16,7 @@ func TestNewSovereignBlockChainHookFactory(t *testing.T) {
 	require.Nil(t, factory)
 	require.Equal(t, errors.ErrNilBlockChainHookFactory, err)
 
-	baseFactory, _ := NewBlockChainHookFactory()
+	baseFactory := NewBlockChainHookFactory()
 	factory, err = NewSovereignBlockChainHookFactory(baseFactory)
 
 	require.Nil(t, err)
@@ -25,7 +26,7 @@ func TestNewSovereignBlockChainHookFactory(t *testing.T) {
 func TestSovereignBlockChainHookFactory_CreateBlockChainHook(t *testing.T) {
 	t.Parallel()
 
-	baseFactory, _ := NewBlockChainHookFactory()
+	baseFactory := NewBlockChainHookFactory()
 	factory, _ := NewSovereignBlockChainHookFactory(baseFactory)
 
 	bhh, err := factory.CreateBlockChainHookHandler(ArgBlockChainHook{})
@@ -42,7 +43,7 @@ func TestSovereignBlockChainHookFactory_CreateBlockChainHook(t *testing.T) {
 func TestSovereignBlockChainHookFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	baseFactory, _ := NewBlockChainHookFactory()
+	baseFactory := NewBlockChainHookFactory()
 	factory, _ := NewSovereignBlockChainHookFactory(baseFactory)
 
 	require.False(t, factory.IsInterfaceNil())

@@ -156,22 +156,8 @@ func NewRunTypeComponentsFactory(args ArgsRunTypeComponents) (*runTypeComponents
 	}, nil
 }
 
-// TODO remove the error from the factories where it's possible - MX-15415
 // Create creates the runType components
 func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
-	blockChainHookHandlerFactory, err := hooks.NewBlockChainHookFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewBlockChainHookFactory failed: %w", err)
-	}
-
-	epochStartBootstrapperFactory := bootstrap.NewEpochStartBootstrapperFactory()
-	bootstrapperFromStorageFactory := storageBootstrap.NewShardStorageBootstrapperFactory()
-
-	shardBootstrapFactory, err := storageBootstrap.NewShardBootstrapFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBootstrapFactory failed: %w", err)
-	}
-
 	blockProcessorFactory, err := block.NewShardBlockProcessorFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
@@ -273,10 +259,10 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
-		bootstrapperCreator:                     shardBootstrapFactory,
+		blockChainHookHandlerCreator:            hooks.NewBlockChainHookFactory(),
+		epochStartBootstrapperCreator:           bootstrap.NewEpochStartBootstrapperFactory(),
+		bootstrapperFromStorageCreator:          storageBootstrap.NewShardStorageBootstrapperFactory(),
+		bootstrapperCreator:                     storageBootstrap.NewShardBootstrapFactory(),
 		blockProcessorCreator:                   blockProcessorFactory,
 		forkDetectorCreator:                     forkDetectorFactory,
 		blockTrackerCreator:                     blockTrackerFactory,

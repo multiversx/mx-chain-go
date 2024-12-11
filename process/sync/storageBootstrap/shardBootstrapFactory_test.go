@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -17,41 +19,24 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardBootstrapFactory(t *testing.T) {
 	t.Parallel()
 
-	sbf, err := NewShardBootstrapFactory()
-
+	sbf := NewShardBootstrapFactory()
 	require.NotNil(t, sbf)
-	require.Nil(t, err)
+	require.False(t, sbf.IsInterfaceNil())
 }
 
 func TestShardBootstrapFactory_CreateShardBootstrapFactory(t *testing.T) {
 	t.Parallel()
 
-	sbf, err := NewShardBootstrapFactory()
-
-	require.NotNil(t, sbf)
-	require.Nil(t, err)
-
+	sbf := NewShardBootstrapFactory()
 	bootStrapper, err := sbf.CreateBootstrapper(getDefaultArgs())
 
 	require.NotNil(t, bootStrapper)
 	require.Nil(t, err)
-}
-
-func TestShardBootstrapFactory_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	sbf, _ := NewShardBootstrapFactory()
-
-	require.False(t, sbf.IsInterfaceNil())
-
-	sbf = nil
-	require.True(t, sbf.IsInterfaceNil())
 }
 
 func getDefaultArgs() sync.ArgShardBootstrapper {

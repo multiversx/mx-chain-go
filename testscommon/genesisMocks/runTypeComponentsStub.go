@@ -45,7 +45,6 @@ type RunTypeComponentsStub struct {
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
-	blockChainHookHandlerFactory, _ := hooks.NewBlockChainHookFactory()
 	transactionCoordinatorFactory, _ := coordinator.NewShardTransactionCoordinatorFactory()
 	scResultsPreProcessorCreator, _ := preprocess.NewSmartContractResultPreProcessorFactory()
 	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
@@ -59,7 +58,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	hdrFactory, _ := block.NewShardHeaderFactory(createHeaderVersionHandler("*"))
 
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
+		BlockChainHookHandlerFactory:              hooks.NewBlockChainHookFactory(),
 		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
 		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
 		SCProcessorFactory:                        scProcessorCreator,
