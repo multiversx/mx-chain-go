@@ -7,8 +7,9 @@ import (
 )
 
 type transactionsHeapItem struct {
-	sender []byte
-	bunch  bunchOfTransactions
+	sender          []byte
+	bunch           bunchOfTransactions
+	balancesTracker *accountsBalancesTracker
 
 	// The sender's state, as fetched in "requestAccountStateIfNecessary".
 	senderState *types.AccountState
@@ -22,7 +23,7 @@ type transactionsHeapItem struct {
 	consumedBalance *big.Int
 }
 
-func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, error) {
+func newTransactionsHeapItem(bunch bunchOfTransactions, balancesTracker *accountsBalancesTracker) (*transactionsHeapItem, error) {
 	if len(bunch) == 0 {
 		return nil, errEmptyBunchOfTransactions
 	}
@@ -30,8 +31,9 @@ func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, 
 	firstTransaction := bunch[0]
 
 	return &transactionsHeapItem{
-		sender: firstTransaction.Tx.GetSndAddr(),
-		bunch:  bunch,
+		sender:          firstTransaction.Tx.GetSndAddr(),
+		bunch:           bunch,
+		balancesTracker: balancesTracker,
 
 		senderState: nil,
 
@@ -201,6 +203,7 @@ func (item *transactionsHeapItem) requestAccountStateIfNecessary(session Selecti
 	}
 
 	item.senderState = senderState
+	item.balancesTracker.setupAccount(item.sender, senderState)
 	return nil
 }
 

@@ -11,8 +11,10 @@ import (
 )
 
 func TestNewTransactionsHeapItem(t *testing.T) {
+	balancesTracker := newAccountsBalancesTracker()
+
 	t.Run("empty bunch", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(nil)
+		item, err := newTransactionsHeapItem(nil, balancesTracker)
 		require.Nil(t, item)
 		require.Equal(t, errEmptyBunchOfTransactions, err)
 	})
@@ -22,7 +24,7 @@ func TestNewTransactionsHeapItem(t *testing.T) {
 			createTx([]byte("tx-1"), "alice", 42),
 		}
 
-		item, err := newTransactionsHeapItem(bunch)
+		item, err := newTransactionsHeapItem(bunch, balancesTracker)
 		require.NotNil(t, item)
 		require.Nil(t, err)
 
@@ -39,13 +41,14 @@ func TestNewTransactionsHeapItem(t *testing.T) {
 
 func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	host := txcachemocks.NewMempoolHostMock()
+	balancesTracker := newAccountsBalancesTracker()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
 	a.precomputeFields(host)
 	b.precomputeFields(host)
 
-	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 	require.NoError(t, err)
 
 	selected := item.selectCurrentTransaction()
@@ -68,18 +71,19 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_detectInitialGap(t *testing.T) {
+	balancesTracker := newAccountsBalancesTracker()
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
 
 	t.Run("unknown", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		require.False(t, item.detectInitialGap())
 	})
 
 	t.Run("known, without gap", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		item.senderState = &types.AccountState{
@@ -90,7 +94,7 @@ func TestTransactionsHeapItem_detectInitialGap(t *testing.T) {
 	})
 
 	t.Run("known, without gap", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		item.senderState = &types.AccountState{
@@ -135,6 +139,7 @@ func TestTransactionsHeapItem_detectMiddleGap(t *testing.T) {
 
 func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 	host := txcachemocks.NewMempoolHostMock()
+	balancesTracker := newAccountsBalancesTracker()
 
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
@@ -147,14 +152,14 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 	d.precomputeFields(host)
 
 	t.Run("unknown", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 
 		require.NoError(t, err)
 		require.False(t, item.detectWillFeeExceedBalance())
 	})
 
 	t.Run("known, not exceeded, then exceeded (a)", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		item.senderState = &types.AccountState{
@@ -171,7 +176,7 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 	})
 
 	t.Run("known, not exceeded, then exceeded (b)", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b, c, d})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b, c, d}, balancesTracker)
 		require.NoError(t, err)
 
 		item.senderState = &types.AccountState{
@@ -204,18 +209,19 @@ func TestTransactionsHeapItem_detectWillFeeExceedBalance(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_detectLowerNonce(t *testing.T) {
+	balancesTracker := newAccountsBalancesTracker()
 	a := createTx([]byte("tx-1"), "alice", 42)
 	b := createTx([]byte("tx-2"), "alice", 43)
 
 	t.Run("unknown", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		require.False(t, item.detectInitialGap())
 	})
 
 	t.Run("known, good", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		item.senderState = &types.AccountState{
@@ -226,7 +232,7 @@ func TestTransactionsHeapItem_detectLowerNonce(t *testing.T) {
 	})
 
 	t.Run("known, lower", func(t *testing.T) {
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b}, balancesTracker)
 		require.NoError(t, err)
 
 		item.senderState = &types.AccountState{
@@ -270,13 +276,15 @@ func TestTransactionsHeapItem_detectNonceDuplicate(t *testing.T) {
 }
 
 func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
+	balancesTracker := newAccountsBalancesTracker()
+
 	t.Run("is correctly guarded", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
 		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
 			return false
 		}
 
-		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)}, balancesTracker)
 		require.NoError(t, err)
 
 		require.False(t, item.detectIncorrectlyGuarded(session))
@@ -288,7 +296,7 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 			return true
 		}
 
-		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)})
+		item, err := newTransactionsHeapItem(bunchOfTransactions{createTx([]byte("tx-1"), "alice", 42)}, balancesTracker)
 		require.NoError(t, err)
 
 		require.True(t, item.detectIncorrectlyGuarded(session))
@@ -297,6 +305,7 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 
 func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
 	session := txcachemocks.NewSelectionSessionMock()
+	balancesTracker := newAccountsBalancesTracker()
 
 	noncesByAddress := session.AccountStateByAddress
 	noncesByAddress["alice"] = &types.AccountState{
@@ -309,11 +318,13 @@ func TestTransactionsHeapItem_requestAccountStateIfNecessary(t *testing.T) {
 	}
 
 	a := &transactionsHeapItem{
-		sender: []byte("alice"),
+		sender:          []byte("alice"),
+		balancesTracker: balancesTracker,
 	}
 
 	b := &transactionsHeapItem{
-		sender: []byte("bob"),
+		sender:          []byte("bob"),
+		balancesTracker: balancesTracker,
 	}
 
 	c := &transactionsHeapItem{}

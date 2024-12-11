@@ -86,6 +86,7 @@ func (cache *TxCache) areThereTooManyTxs() bool {
 func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 	senders := cache.getSenders()
 	bunches := make([]bunchOfTransactions, 0, len(senders))
+	unusedBalancesTracker := newAccountsBalancesTracker()
 
 	for _, sender := range senders {
 		// Include transactions after gaps, as well (important), unlike when selecting transactions for processing.
@@ -103,7 +104,7 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 
 	// Initialize the heap with the first transaction of each bunch
 	for _, bunch := range bunches {
-		item, err := newTransactionsHeapItem(bunch)
+		item, err := newTransactionsHeapItem(bunch, unusedBalancesTracker)
 		if err != nil {
 			continue
 		}
