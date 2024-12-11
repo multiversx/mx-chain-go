@@ -1320,8 +1320,8 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCDeployment
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.SCDeployment, false
 		}
 
 		dataPool.Transactions().AddData([]byte{0, 2}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
@@ -1364,8 +1364,8 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-		return process.MoveBalance, process.SCDeployment
+	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		return process.MoveBalance, process.SCDeployment, false
 	}
 
 	feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {

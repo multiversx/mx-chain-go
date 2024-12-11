@@ -25,8 +25,8 @@ func (txCoordinator *TxCoordinator) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ComputeTransactionType(_ data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-	return 0, 0
+func (txCoordinator *TxCoordinator) ComputeTransactionType(_ data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+	return 0, 0, false
 }
 
 // RequestMiniBlocksAndTransactions does nothing as it is disabled

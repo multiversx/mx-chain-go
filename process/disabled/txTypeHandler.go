@@ -17,9 +17,9 @@ func NewTxTypeHandler() *txTypeHandler {
 }
 
 // ComputeTransactionType always returns invalid transaction as it is disabled
-func (handler *txTypeHandler) ComputeTransactionType(_ data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+func (handler *txTypeHandler) ComputeTransactionType(_ data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
 	log.Warn("disabled txTypeHandler ComputeTransactionType always returns invalid transaction")
-	return process.InvalidTransaction, process.InvalidTransaction
+	return process.InvalidTransaction, process.InvalidTransaction, false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
