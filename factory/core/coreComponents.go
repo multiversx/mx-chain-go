@@ -117,6 +117,15 @@ func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFa
 	if check.IfNil(args.RunTypeCoreComponents) {
 		return nil, errors.ErrNilRunTypeCoreComponents
 	}
+	if check.IfNil(args.RunTypeCoreComponents.GenesisNodesSetupFactoryCreator()) {
+		return nil, sharding.ErrNilGenesisNodesSetupFactory
+	}
+	if check.IfNil(args.RunTypeCoreComponents.RatingsDataFactoryCreator()) {
+		return nil, errors.ErrNilRatingsDataFactory
+	}
+	if check.IfNil(args.RunTypeCoreComponents.EnableEpochsFactoryCreator()) {
+		return nil, enablers.ErrNilEnableEpochsFactory
+	}
 
 	return &coreComponentsFactory{
 		config:                args.Config,
