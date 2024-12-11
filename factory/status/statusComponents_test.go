@@ -4,6 +4,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -16,10 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-
-	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryArgs {
@@ -64,6 +64,7 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
 		IsInImportMode: false,
+		IsSovereign:    false,
 	}
 }
 
