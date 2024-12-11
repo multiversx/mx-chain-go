@@ -2,10 +2,11 @@ package txcache
 
 import (
 	"sync"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -14,25 +15,18 @@ var _ types.Cacher = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	name                      string
-	txListBySender            *txListBySenderMap
-	txByHash                  *txByHashMap
-	config                    ConfigSourceMe
-	evictionMutex             sync.Mutex
-	evictionJournal           evictionJournal
-	evictionSnapshotOfSenders []*txListForSender
-	isEvictionInProgress      atomic.Flag
-	numSendersSelected        atomic.Counter
-	numSendersWithInitialGap  atomic.Counter
-	numSendersWithMiddleGap   atomic.Counter
-	numSendersInGracePeriod   atomic.Counter
-	sweepingMutex             sync.Mutex
-	sweepingListOfSenders     []*txListForSender
-	mutTxOperation            sync.Mutex
+	name                 string
+	txListBySender       *txListBySenderMap
+	txByHash             *txByHashMap
+	config               ConfigSourceMe
+	host                 MempoolHost
+	evictionMutex        sync.Mutex
+	isEvictionInProgress atomic.Flag
+	mutTxOperation       sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
 	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -40,25 +34,22 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(txGasHandler) {
-		return nil, common.ErrNilTxGasHandler
+	if check.IfNil(host) {
+		return nil, errNilMempoolHost
 	}
 
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
 	senderConstraintsObj := config.getSenderConstraints()
-	txFeeHelper := newFeeComputationHelper(txGasHandler.MinGasPrice(), txGasHandler.MinGasLimit(), txGasHandler.MinGasPriceForProcessing())
-	scoreComputerObj := newDefaultScoreComputer(txFeeHelper)
 
 	txCache := &TxCache{
-		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler, txFeeHelper),
-		txByHash:        newTxByHashMap(numChunks),
-		config:          config,
-		evictionJournal: evictionJournal{},
+		name:           config.Name,
+		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj),
+		txByHash:       newTxByHashMap(numChunks),
+		config:         config,
+		host:           host,
 	}
 
-	txCache.initSweepable()
 	return txCache, nil
 }
 
@@ -69,13 +60,17 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
+	logAdd.Trace("TxCache.AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
+
+	tx.precomputeFields(cache.host)
+
 	if cache.config.EvictionEnabled {
-		cache.doEviction()
+		_ = cache.doEviction()
 	}
 
 	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
-	addedInBySender, evicted := cache.txListBySender.addTx(tx)
+	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx)
 	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
@@ -83,11 +78,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		logAdd.Debug("TxCache.AddTx: slight inconsistency detected:", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
-		cache.monitorEvictionWrtSenderLimit(tx.Tx.GetSndAddr(), evicted)
+		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
@@ -102,91 +97,62 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	return tx, ok
 }
 
-// SelectTransactionsWithBandwidth selects a reasonably fair list of transactions to be included in the next miniblock
-// It returns at most "numRequested" transactions
-// Each sender gets the chance to give at least bandwidthPerSender gas worth of transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
-	result := cache.doSelectTransactions(numRequested, batchSizePerSender, bandwidthPerSender)
-	go cache.doAfterSelection()
-	return result
-}
-
-func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
-	stopWatch := cache.monitorSelectionStart()
-
-	result := make([]*WrappedTransaction, numRequested)
-	resultFillIndex := 0
-	resultIsFull := false
-
-	snapshotOfSenders := cache.getSendersEligibleForSelection()
-
-	for pass := 0; !resultIsFull; pass++ {
-		copiedInThisPass := 0
-
-		for _, txList := range snapshotOfSenders {
-			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getLastComputedScore()+1)
-			// Reset happens on first pass only
-			isFirstBatch := pass == 0
-			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient, bandwidthPerSender)
-			cache.monitorBatchSelectionEnd(journal)
-
-			if isFirstBatch {
-				cache.collectSweepable(txList)
-			}
-
-			resultFillIndex += journal.copied
-			copiedInThisPass += journal.copied
-			resultIsFull = resultFillIndex == numRequested
-			if resultIsFull {
-				break
-			}
-		}
-
-		nothingCopiedThisPass := copiedInThisPass == 0
-
-		// No more passes needed
-		if nothingCopiedThisPass {
-			break
-		}
+// SelectTransactions selects the best transactions to be included in the next miniblock.
+// It returns up to "maxNum" transactions, with total gas <= "gasRequested".
+func (cache *TxCache) SelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*WrappedTransaction, uint64) {
+	if check.IfNil(session) {
+		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
+		return nil, 0
 	}
 
-	result = result[:resultFillIndex]
-	cache.monitorSelectionEnd(result, stopWatch)
-	return result
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("selection")
+
+	logSelect.Debug(
+		"TxCache.SelectTransactions: begin",
+		"num bytes", cache.NumBytes(),
+		"num txs", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+	)
+
+	transactions, accumulatedGas := cache.doSelectTransactions(session, gasRequested, maxNum, selectionLoopMaximumDuration)
+
+	stopWatch.Stop("selection")
+
+	logSelect.Debug(
+		"TxCache.SelectTransactions: end",
+		"duration", stopWatch.GetMeasurement("selection"),
+		"num txs selected", len(transactions),
+		"gas", accumulatedGas,
+	)
+
+	go cache.diagnoseCounters()
+	go displaySelectionOutcome(logSelect, "selection", transactions)
+
+	return transactions, accumulatedGas
 }
 
-func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
-	return cache.txListBySender.getSnapshotDescending()
+func (cache *TxCache) getSenders() []*txListForSender {
+	return cache.txListBySender.getSenders()
 }
 
-func (cache *TxCache) doAfterSelection() {
-	cache.sweepSweepable()
-	cache.Diagnose(false)
-}
-
-// RemoveTxByHash removes tx by hash
+// RemoveTxByHash removes transactions with nonces lower or equal to the given transaction's nonce
 func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
+		// Transaction might have been removed in the meantime.
 		return false
 	}
 
-	foundInBySender := cache.txListBySender.removeTx(tx)
-	if !foundInBySender {
-		// This condition can arise often at high load & eviction, when two go-routines concur to remove the same transaction:
-		// - A = remove transactions upon commit / final
-		// - B = remove transactions due to high load (eviction)
-		//
-		// - A reaches "RemoveTxByHash()", then "cache.txByHash.removeTx()".
-		// - B reaches "cache.txByHash.RemoveTxsBulk()"
-		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
-		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
+	evicted := cache.txListBySender.removeTransactionsWithLowerOrEqualNonceReturnHashes(tx)
+	if len(evicted) > 0 {
+		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
+	logRemove.Trace("TxCache.RemoveTxByHash", "tx", txHash, "len(evicted)", len(evicted))
 	return true
 }
 
@@ -220,6 +186,17 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 	cache.txByHash.forEach(function)
 }
 
+// getAllTransactions returns all transactions in the cache
+func (cache *TxCache) getAllTransactions() []*WrappedTransaction {
+	transactions := make([]*WrappedTransaction, 0, cache.Len())
+
+	cache.ForEachTransaction(func(_ []byte, tx *WrappedTransaction) {
+		transactions = append(transactions, tx)
+	})
+
+	return transactions
+}
+
 // GetTransactionsPoolForSender returns the list of transaction hashes for the sender
 func (cache *TxCache) GetTransactionsPoolForSender(sender string) []*WrappedTransaction {
 	listForSender, ok := cache.txListBySender.getListForSender(sender)
@@ -227,13 +204,7 @@ func (cache *TxCache) GetTransactionsPoolForSender(sender string) []*WrappedTran
 		return nil
 	}
 
-	wrappedTxs := make([]*WrappedTransaction, listForSender.items.Len())
-	for element, i := listForSender.items.Front(), 0; element != nil; element, i = element.Next(), i+1 {
-		tx := element.Value.(*WrappedTransaction)
-		wrappedTxs[i] = tx
-	}
-
-	return wrappedTxs
+	return listForSender.getTxs()
 }
 
 // Clear clears the cache
@@ -292,9 +263,9 @@ func (cache *TxCache) Keys() [][]byte {
 	return cache.txByHash.keys()
 }
 
-// MaxSize is not implemented
+// MaxSize returns the maximum number of transactions that can be stored in the cache.
+// See: https://github.com/multiversx/mx-chain-go/blob/v1.8.4/dataRetriever/txpool/shardedTxPool.go#L55
 func (cache *TxCache) MaxSize() int {
-	// TODO: Should be analyzed if the returned value represents the max size of one cache in sharded cache configuration
 	return int(cache.config.CountThreshold)
 }
 
@@ -306,12 +277,6 @@ func (cache *TxCache) RegisterHandler(func(key []byte, value interface{}), strin
 // UnRegisterHandler is not implemented
 func (cache *TxCache) UnRegisterHandler(string) {
 	log.Error("TxCache.UnRegisterHandler is not implemented")
-}
-
-// NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
-// in order to inform the cache about initial nonce gap phenomena
-func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache

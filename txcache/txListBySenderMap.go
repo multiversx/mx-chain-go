@@ -7,16 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-storage-go/txcache/maps"
 )
 
-const numberOfScoreChunks = uint32(100)
-
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap        *maps.BucketSortedMap
+	backingMap        *maps.ConcurrentMap
 	senderConstraints senderConstraints
 	counter           atomic.Counter
-	scoreComputer     scoreComputer
-	txGasHandler      TxGasHandler
-	txFeeHelper       feeHelper
 	mutex             sync.Mutex
 }
 
@@ -24,26 +19,23 @@ type txListBySenderMap struct {
 func newTxListBySenderMap(
 	nChunksHint uint32,
 	senderConstraints senderConstraints,
-	scoreComputer scoreComputer,
-	txGasHandler TxGasHandler,
-	txFeeHelper feeHelper,
 ) *txListBySenderMap {
-	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
+	backingMap := maps.NewConcurrentMap(nChunksHint)
 
 	return &txListBySenderMap{
 		backingMap:        backingMap,
 		senderConstraints: senderConstraints,
-		scoreComputer:     scoreComputer,
-		txGasHandler:      txGasHandler,
-		txFeeHelper:       txFeeHelper,
 	}
 }
 
-// addTx adds a transaction in the map, in the corresponding list (selected by its sender)
-func (txMap *txListBySenderMap) addTx(tx *WrappedTransaction) (bool, [][]byte) {
+// addTxReturnEvicted adds a transaction in the map, in the corresponding list (selected by its sender).
+// This function returns a boolean indicating whether the transaction was added, and a slice of evicted transaction hashes (upon applying sender-level constraints).
+func (txMap *txListBySenderMap) addTxReturnEvicted(tx *WrappedTransaction) (bool, [][]byte) {
 	sender := string(tx.Tx.GetSndAddr())
 	listForSender := txMap.getOrAddListForSender(sender)
-	return listForSender.AddTx(tx, txMap.txGasHandler, txMap.txFeeHelper)
+
+	added, evictedHashes := listForSender.AddTx(tx)
+	return added, evictedHashes
 }
 
 // getOrAddListForSender gets or lazily creates a list (using double-checked locking pattern)
@@ -75,43 +67,41 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.notifyScoreChange)
+	listForSender := newTxListForSender(sender, &txMap.senderConstraints)
 
-	txMap.backingMap.Set(listForSender)
+	txMap.backingMap.Set(sender, listForSender)
 	txMap.counter.Increment()
 
 	return listForSender
 }
 
-// This function should only be called in a critical section managed by a "txListForSender"
-func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender, scoreParams senderScoreParams) {
-	score := txMap.scoreComputer.computeScore(scoreParams)
-	txList.setLastComputedScore(score)
-	txMap.backingMap.NotifyScoreChange(txList, score)
-}
-
-// removeTx removes a transaction from the map
-func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
+// removeTransactionsWithLowerOrEqualNonceReturnHashes removes transactions with nonces lower or equal to the given transaction's nonce.
+func (txMap *txListBySenderMap) removeTransactionsWithLowerOrEqualNonceReturnHashes(tx *WrappedTransaction) [][]byte {
 	sender := string(tx.Tx.GetSndAddr())
 
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
 		// This happens when a sender whose transactions were selected for processing is removed from cache in the meantime.
 		// When it comes to remove one if its transactions due to processing (commited / finalized block), they don't exist in cache anymore.
-		log.Trace("txListBySenderMap.removeTx() detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
-		return false
+		log.Trace("txListBySenderMap.removeTxReturnEvicted detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
+		return nil
 	}
 
-	isFound := listForSender.RemoveTx(tx)
-	isEmpty := listForSender.IsEmpty()
-	if isEmpty {
-		txMap.removeSender(sender)
-	}
-
-	return isFound
+	evicted := listForSender.removeTransactionsWithLowerOrEqualNonceReturnHashes(tx.Tx.GetNonce())
+	txMap.removeSenderIfEmpty(listForSender)
+	return evicted
 }
 
+func (txMap *txListBySenderMap) removeSenderIfEmpty(listForSender *txListForSender) {
+	if listForSender.IsEmpty() {
+		txMap.removeSender(listForSender.sender)
+	}
+}
+
+// Important note: this doesn't remove the transactions from txCache.txByHash. That is the responsibility of the caller (of this function).
 func (txMap *txListBySenderMap) removeSender(sender string) bool {
+	logRemove.Trace("txListBySenderMap.removeSender", "sender", sender)
+
 	_, removed := txMap.backingMap.Remove(sender)
 	if removed {
 		txMap.counter.Decrement()
@@ -133,36 +123,28 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return numRemoved
 }
 
-func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
+// removeTransactionsWithHigherOrEqualNonce removes transactions with nonces higher or equal to the given nonce.
+// Useful for the eviction flow.
+func (txMap *txListBySenderMap) removeTransactionsWithHigherOrEqualNonce(accountKey []byte, nonce uint64) {
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
 		return
 	}
 
-	listForSender.notifyAccountNonce(nonce)
+	listForSender.removeTransactionsWithHigherOrEqualNonce(nonce)
+	txMap.removeSenderIfEmpty(listForSender)
 }
 
-func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
-	itemsSnapshot := txMap.backingMap.GetSnapshotAscending()
-	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
+func (txMap *txListBySenderMap) getSenders() []*txListForSender {
+	senders := make([]*txListForSender, 0, txMap.counter.Get())
 
-	for i, item := range itemsSnapshot {
-		listsSnapshot[i] = item.(*txListForSender)
-	}
+	txMap.backingMap.IterCb(func(key string, item interface{}) {
+		listForSender := item.(*txListForSender)
+		senders = append(senders, listForSender)
+	})
 
-	return listsSnapshot
-}
-
-func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
-	itemsSnapshot := txMap.backingMap.GetSnapshotDescending()
-	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
-
-	for i, item := range itemsSnapshot {
-		listsSnapshot[i] = item.(*txListForSender)
-	}
-
-	return listsSnapshot
+	return senders
 }
 
 func (txMap *txListBySenderMap) clear() {
