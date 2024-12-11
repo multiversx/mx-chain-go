@@ -188,7 +188,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 		}
 		time.Sleep(time.Second)
 
-		roundToPropagateMultiShard := int64(25)
+		roundToPropagateMultiShard := int64(40)
 		for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -200,7 +200,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 		finalBalance.Mul(finalBalance, sendValue)
 
 		checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
-		checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
+		checkSCBalance(t, ownerNode, scAddress, receiverAddress2, finalBalance)
 
 		checkPlayerBalances(t, nodes, players)
 
@@ -436,7 +436,7 @@ func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAd
 	})
 	assert.Nil(t, err)
 	actualBalance := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-	assert.Equal(t, 0, actualBalance.Cmp(balance))
+	assert.Equal(t, balance.String(), actualBalance.String())
 }
 
 func checkPlayerBalances(

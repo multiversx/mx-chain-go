@@ -1059,9 +1059,6 @@ var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block s
 // ErrNilTxMaxTotalCostHandler signals a nil transaction max total cost
 var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 
-// ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
-var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
-
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
 
