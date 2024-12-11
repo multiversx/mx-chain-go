@@ -779,7 +779,7 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		}
 		log.Debug("change epoch pruning storer success", "persister", ps.identifier, "epoch", epoch)
 
-		return nil
+		return ps.removeOldPersistersIfNeeded(header)
 	}
 
 	shardID := core.GetShardIDString(ps.shardCoordinator.SelfId())
@@ -802,6 +802,11 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 	ps.activePersisters = append(singleItemPersisters, ps.activePersisters...)
 	ps.persistersMapByEpoch[epoch] = newPersister
 
+	return ps.removeOldPersistersIfNeeded(header)
+}
+
+func (ps *PruningStorer) removeOldPersistersIfNeeded(header data.HeaderHandler) error {
+	epoch := header.GetEpoch()
 	wasExtended := ps.extendSavedEpochsIfNeeded(header)
 	if wasExtended {
 		if len(ps.activePersisters) > int(ps.numOfActivePersisters) {
@@ -814,11 +819,12 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 		return nil
 	}
 
-	err = ps.closeAndDestroyPersisters(epoch)
+	err := ps.closeAndDestroyPersisters(epoch)
 	if err != nil {
 		log.Warn("closing persisters", "error", err.Error())
 		return err
 	}
+
 	return nil
 }
 
