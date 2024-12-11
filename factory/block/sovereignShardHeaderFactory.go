@@ -4,8 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 type sovereignShardHeaderFactory struct {
@@ -32,7 +30,7 @@ func (shf *sovereignShardHeaderFactory) Create(epoch uint32) data.HeaderHandler 
 		return &block.SovereignChainHeader{
 			Header: &block.Header{
 				Epoch:           epoch,
-				SoftwareVersion: process.SovereignHeaderVersion,
+				SoftwareVersion: []byte(version),
 			},
 		}
 	}
