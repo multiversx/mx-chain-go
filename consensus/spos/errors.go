@@ -267,3 +267,6 @@ var ErrNilHeaderProof = errors.New("nil header proof")
 
 // ErrHeaderProofNotExpected signals that a header proof was not expected
 var ErrHeaderProofNotExpected = errors.New("header proof not expected")
+
+// ErrConsensusMessageNotExpected signals that a consensus message was not expected
+var ErrConsensusMessageNotExpected = errors.New("consensus message not expected")

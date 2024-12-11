@@ -545,15 +545,11 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 
 func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
 	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		err := wrk.headerSigVerifier.VerifyHeaderWithProof(header)
-		if err != nil {
-			return fmt.Errorf("%w : verify previous block proof for received header from consensus topic failed",
-				err)
-		}
-	} else {
-		if header.GetPreviousProof() != nil {
-			return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
-		}
+		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
+	}
+
+	if !check.IfNilReflect(header.GetPreviousProof()) {
+		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
 	}
 
 	return nil

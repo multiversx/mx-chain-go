@@ -198,6 +198,10 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 
 func verifyPrevProofForHeader(header data.HeaderHandler) error {
 	prevProof := header.GetPreviousProof()
+	if check.IfNilReflect(prevProof) {
+		return process.ErrNilHeaderProof
+	}
+
 	if header.GetShardID() != prevProof.GetHeaderShardId() {
 		return ErrProofShardMismatch
 	}
@@ -237,10 +241,6 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 
 // VerifyHeaderProof checks if the proof is correct for the header
 func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHandler) error {
-	if check.IfNilReflect(proofHandler) {
-		return process.ErrNilHeaderProof
-	}
-
 	err := hsv.verifyProofIntegrity(proofHandler)
 	if err != nil {
 		return err
@@ -266,8 +266,11 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 
 // VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
 func (hsv *HeaderSigVerifier) verifyProofIntegrity(proof data.HeaderProofHandler) error {
-	hasProof := false
+	if check.IfNilReflect(proof) {
+		return process.ErrNilHeaderProof
+	}
 
+	hasProof := false
 	if proof != nil {
 		aggregatedSignature, proofBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 		hasProof = len(aggregatedSignature) > 0 && len(proofBitmap) > 0
