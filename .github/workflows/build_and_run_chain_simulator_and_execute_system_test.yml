@@ -6,6 +6,7 @@ on:
       - 'main'
       - 'master'
       - 'rc/*'
+      - 'feat/chain-go-sdk'
   workflow_dispatch:
   issue_comment:
     types: [created]
