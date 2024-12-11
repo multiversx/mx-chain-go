@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -26,7 +27,7 @@ func NewProofsPool() *proofsPool {
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
 ) error {
-	if headerProof == nil {
+	if check.IfNilReflect(headerProof) {
 		return ErrNilProof
 	}
 

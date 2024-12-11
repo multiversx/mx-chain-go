@@ -364,7 +364,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	proof := headerHandler.GetPreviousProof()
 
 	var prevAggregatedSig, prevBitmap []byte
-	if proof != nil {
+	if !check.IfNilReflect(proof) {
 		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 	}
 

@@ -699,9 +699,8 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 
 	// TODO: should be handled from interceptor
 	proof := headerHandler.GetPreviousProof()
-
 	var aggSig, bitmap []byte
-	if proof != nil {
+	if !check.IfNilReflect(proof) {
 		aggSig, bitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 	}
 

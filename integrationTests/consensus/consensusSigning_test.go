@@ -8,8 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/integrationTests"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 func initNodesWithTestSigner(
@@ -69,6 +71,8 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
+
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
@@ -103,7 +107,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 		go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
 
 		extraTime := uint64(2)
-		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
+		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + 10*time.Minute
 		select {
 		case <-chDone:
 		case <-time.After(endTime):

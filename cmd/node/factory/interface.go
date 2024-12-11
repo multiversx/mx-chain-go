@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
@@ -15,7 +16,6 @@ type HeaderSigVerifierHandler interface {
 	VerifyRandSeedAndLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
 	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
-	VerifyPreviousBlockProof(header data.HeaderHandler) error
 	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }

@@ -525,10 +525,9 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			err)
 	}
 
-	err = wrk.headerSigVerifier.VerifyPreviousBlockProof(header)
+	err = wrk.checkHeaderPreviousProof(header)
 	if err != nil {
-		return fmt.Errorf("%w : verify previous block proof for received header from consensus topic failed",
-			err)
+		return err
 	}
 
 	wrk.processReceivedHeaderMetric(cnsMsg)
@@ -539,6 +538,18 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 			"error", errNotCritical.Error())
 		// we should not return error here because the other peers connected to self might need this message
 		// to advance the consensus
+	}
+
+	return nil
+}
+
+func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
+	if wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
+	}
+
+	if !check.IfNilReflect(header.GetPreviousProof()) {
+		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
 	}
 
 	return nil
