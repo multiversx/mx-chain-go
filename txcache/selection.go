@@ -25,6 +25,7 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 // Selection tolerates concurrent transaction additions / removals.
 func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
+	balancesTracker := newAccountsBalancesTracker()
 
 	// Items popped from the heap are added to "selectedTransactions".
 	transactionsHeap := newMaxTransactionsHeap(len(bunches))
@@ -32,7 +33,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 
 	// Initialize the heap with the first transaction of each bunch
 	for _, bunch := range bunches {
-		item, err := newTransactionsHeapItem(bunch)
+		item, err := newTransactionsHeapItem(bunch, balancesTracker)
 		if err != nil {
 			continue
 		}
