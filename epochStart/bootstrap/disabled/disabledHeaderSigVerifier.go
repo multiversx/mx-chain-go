@@ -41,13 +41,8 @@ func (h *headerSigVerifier) VerifySignatureForHash(_ data.HeaderHandler, _ []byt
 	return nil
 }
 
-// VerifyPreviousBlockProof returns nil as it is disabled
-func (h *headerSigVerifier) verifyProofIntegrity(proof data.HeaderProofHandler) error {
-	return nil
-}
-
 // VerifyHeaderWithProof returns nil as it is disabled
-func (h *headerSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
+func (h *headerSigVerifier) VerifyHeaderWithProof(_ data.HeaderHandler) error {
 	return nil
 }
 

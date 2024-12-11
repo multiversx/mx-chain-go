@@ -253,9 +253,6 @@ var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
-// ErrMissingProposerSignature signals that proposer signature is missing
-var ErrMissingProposerSignature = errors.New("missing proposer signature")
-
 // ErrNilThrottler signals that a nil throttler has been provided
 var ErrNilThrottler = errors.New("nil throttler")
 
@@ -267,3 +264,6 @@ var ErrNilEquivalentProofPool = errors.New("nil equivalent proof pool")
 
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
+
+// ErrHeaderProofNotExpected signals that a header proof was not expected
+var ErrHeaderProofNotExpected = errors.New("header proof not expected")
