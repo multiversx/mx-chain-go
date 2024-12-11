@@ -74,7 +74,7 @@
 
     # TODO: MX-15702: Sovereign enable epoch handler should have all these type of flags always disabled
     # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
-    CorrectLastUnjailedEnableEpoch = 1000000
+    CorrectLastUnjailedEnableEpoch = 0
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
     RelayedTransactionsV2EnableEpoch = 0
@@ -92,7 +92,7 @@
     ValidatorToDelegationEnableEpoch = 0
 
     # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 1000000
+    WaitingListFixEnableEpoch = 0
 
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
@@ -108,7 +108,7 @@
     ESDTTransferRoleEnableEpoch = 0
 
     # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 1000000
+    BuiltInFunctionOnMetaEnableEpoch = 0
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 0
