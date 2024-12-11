@@ -63,8 +63,8 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 		CryptoComponents: &mock.CryptoComponentsMock{
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
-		IsInImportMode:  false,
-		IsSovereignType: false,
+		IsInImportMode: false,
+		IsSovereign:    false,
 	}
 }
 

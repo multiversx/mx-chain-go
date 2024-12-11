@@ -46,7 +46,7 @@ type StatusComponentsFactoryArgs struct {
 	StateComponents      factory.StateComponentsHolder
 	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
-	IsSovereignType      bool
+	IsSovereign          bool
 }
 
 type statusComponentsFactory struct {
@@ -63,7 +63,7 @@ type statusComponentsFactory struct {
 	stateComponents      factory.StateComponentsHolder
 	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
-	isSovereignType      bool
+	isSovereign          bool
 }
 
 var log = logger.GetOrCreate("factory")
@@ -108,7 +108,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
 		cryptoComponents:     args.CryptoComponents,
-		isSovereignType:      args.IsSovereignType,
+		isSovereign:          args.IsSovereign,
 	}, nil
 }
 
@@ -233,7 +233,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
-		Sovereign:                scf.isSovereignType,
+		Sovereign:                scf.isSovereign,
 	}
 }
 
