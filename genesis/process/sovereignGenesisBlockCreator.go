@@ -109,11 +109,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 }
 
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
-	cfg := createGenesisConfig(providedEnableEpochs)
-	cfg.ESDTMultiTransferEnableEpoch = 0
-	cfg.StakeEnableEpoch = 0
-	cfg.PenalizedTooMuchGasEnableEpoch = 0
-	return cfg
+	return providedEnableEpochs
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {

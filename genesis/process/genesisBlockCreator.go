@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/factory/vm"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -21,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryBlock "github.com/multiversx/mx-chain-go/factory/block"
+	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -233,6 +233,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.RunTypeComponents.PreProcessorsContainerFactoryCreator()) {
 		return errors.ErrNilPreProcessorsContainerFactoryCreator
+	}
+	if check.IfNil(arg.EnableEpochsFactory) {
+		return enablers.ErrNilEnableEpochsFactory
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
@@ -477,7 +480,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(
 		Epoch:     gbc.arg.StartEpochNum,
 		TimeStamp: gbc.arg.GenesisTime,
 	}
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	enableEpochsHandler, err := gbc.arg.EnableEpochsFactory.CreateEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return err
 	}
