@@ -40,8 +40,11 @@ func newFieldsHandler(parameters string) fieldsHandler {
 	}
 
 	parameters = strings.ToLower(parameters)
+	fieldsMap := sliceToMap(strings.Split(parameters, separator))
+	fieldsMap[hashField] = struct{}{} // hashField should always be returned
+
 	return fieldsHandler{
-		fieldsMap: sliceToMap(strings.Split(parameters, separator)),
+		fieldsMap: fieldsMap,
 	}
 }
 

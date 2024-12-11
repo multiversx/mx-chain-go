@@ -129,7 +129,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return txProc.checkUserTxOfRelayedV3Values(tx, acntSnd, acntDst, relayerAccount)
 	}
 
-	err := txProc.verifyGuardian(tx, acntSnd)
+	err := txProc.VerifyGuardian(tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (txProc *baseTxProcessor) checkUserTxOfRelayedV3Values(
 	destinationAccount state.UserAccountHandler,
 	relayerAccount state.UserAccountHandler,
 ) error {
-	err := txProc.verifyGuardian(tx, senderAccount)
+	err := txProc.VerifyGuardian(tx, senderAccount)
 	if err != nil {
 		return err
 	}
@@ -367,7 +367,8 @@ func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *tran
 	return nil
 }
 
-func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
+// VerifyGuardian does the guardian verification
+func (txProc *baseTxProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	if check.IfNil(account) {
 		return nil
 	}

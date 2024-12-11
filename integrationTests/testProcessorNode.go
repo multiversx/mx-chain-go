@@ -1689,6 +1689,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
+	guardianChecker := &guardianMocks.GuardedAccountHandlerStub{}
 
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
@@ -1734,7 +1735,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ScrForwarder:        tpn.ScrForwarder,
 		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		GuardianChecker:     guardianChecker,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 	}
@@ -2823,9 +2824,13 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 	}
 }
 
-// CommitBlock commits the block and body
+// CommitBlock commits the block and body.
+// This isn't entirely correct, since there's not state rollback if the commit fails.
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(header, body)
+	err := tpn.BlockProcessor.CommitBlock(header, body)
+	if err != nil {
+		log.Error("TestProcessorNode.CommitBlock", "error", err.Error())
+	}
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
