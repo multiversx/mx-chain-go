@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"math"
 	"path/filepath"
 	"sync"
@@ -398,4 +399,34 @@ func TestFullHistoryPruningStorer_IsInterfaceNil(t *testing.T) {
 	}
 	fhps, _ = pruning.NewFullHistoryPruningStorer(fhArgs)
 	require.False(t, fhps.IsInterfaceNil())
+}
+
+func TestFullHistoryPruningStorer_changeEpochClosesOldDbs(t *testing.T) {
+	t.Parallel()
+
+	shouldCleanCalled := false
+	args := getDefaultArgs()
+	fhArgs := pruning.FullHistoryStorerArgs{
+		StorerArgs:               args,
+		NumOfOldActivePersisters: 2,
+	}
+	fhArgs.OldDataCleanerProvider = &testscommon.OldDataCleanerProviderStub{
+		ShouldCleanCalled: func() bool {
+			shouldCleanCalled = true
+			return true
+		},
+	}
+	fhps, err := pruning.NewFullHistoryPruningStorer(fhArgs)
+	require.Nil(t, err)
+
+	numEpochsChanged := 10
+	startEpoch := uint32(0)
+	for i := 0; i < numEpochsChanged; i++ {
+		startEpoch++
+		key := []byte(fmt.Sprintf("key-%d", i))
+		_, _ = fhps.GetFromEpoch(key, startEpoch)
+		err = fhps.ChangeEpochSimple(startEpoch)
+		require.Nil(t, err)
+	}
+	require.True(t, shouldCleanCalled)
 }
