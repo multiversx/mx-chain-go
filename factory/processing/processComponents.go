@@ -2119,6 +2119,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.OutportDataProviderFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilOutportDataProviderFactory)
 	}
+	if check.IfNil(args.IncomingHeaderSubscriber) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilIncomingHeaderSubscriber)
+	}
 
 	return nil
 }

@@ -43,6 +43,7 @@ import (
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -1235,33 +1236,34 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  *configs.GeneralConfig,
-		EpochConfig:             *configs.EpochConfig,
-		RoundConfig:             *configs.RoundConfig,
-		PrefConfigs:             *configs.PreferencesConfig,
-		ImportDBConfig:          *configs.ImportDbConfig,
-		EconomicsConfig:         *configs.EconomicsConfig,
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        nodesCoordinator,
-		Data:                    dataComponents,
-		CoreData:                coreComponents,
-		Crypto:                  cryptoComponents,
-		State:                   stateComponents,
-		Network:                 networkComponents,
-		BootstrapComponents:     bootstrapComponents,
-		StatusComponents:        statusComponents,
-		StatusCoreComponents:    statusCoreComponents,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:          configs.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             *configs.FlagsConfig,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		RunTypeComponents:       runTypeComponents,
+		Config:                   *configs.GeneralConfig,
+		EpochConfig:              *configs.EpochConfig,
+		RoundConfig:              *configs.RoundConfig,
+		PrefConfigs:              *configs.PreferencesConfig,
+		ImportDBConfig:           *configs.ImportDbConfig,
+		EconomicsConfig:          *configs.EconomicsConfig,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         nodesCoordinator,
+		Data:                     dataComponents,
+		CoreData:                 coreComponents,
+		Crypto:                   cryptoComponents,
+		State:                    stateComponents,
+		Network:                  networkComponents,
+		BootstrapComponents:      bootstrapComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:           configs.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              *configs.FlagsConfig,
+		TxExecutionOrderHandler:  txExecutionOrderHandler,
+		RunTypeComponents:        runTypeComponents,
+		IncomingHeaderSubscriber: &factoryDisabled.IncomingHeaderProcessor{},
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
