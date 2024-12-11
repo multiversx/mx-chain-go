@@ -6,7 +6,7 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +23,8 @@ func TestNewManagedNetworkComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(componentsMock.GetNetworkFactoryArgs())
+		networkArgs := createNetworkFactoryArgs()
+		networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 		managedNetworkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 		require.NoError(t, err)
 		require.NotNil(t, managedNetworkComponents)
@@ -36,7 +37,7 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 	t.Run("invalid config should error", func(t *testing.T) {
 		t.Parallel()
 
-		networkArgs := componentsMock.GetNetworkFactoryArgs()
+		networkArgs := createNetworkFactoryArgs()
 		networkArgs.MainP2pConfig.Node.Port = "invalid"
 		networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 		managedNetworkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
@@ -48,7 +49,7 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		networkArgs := componentsMock.GetNetworkFactoryArgs()
+		networkArgs := createNetworkFactoryArgs()
 		networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 		managedNetworkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 		require.NoError(t, err)
@@ -84,7 +85,7 @@ func TestManagedNetworkComponents_Create(t *testing.T) {
 func TestManagedNetworkComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	networkArgs := componentsMock.GetNetworkFactoryArgs()
+	networkArgs := createNetworkFactoryArgs()
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	managedNetworkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 	require.NoError(t, err)
@@ -102,7 +103,7 @@ func TestManagedNetworkComponents_Close(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	networkArgs := componentsMock.GetNetworkFactoryArgs()
+	networkArgs := createNetworkFactoryArgs()
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	managedNetworkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 	err := managedNetworkComponents.Close()
@@ -122,7 +123,7 @@ func TestManagedNetworkComponents_IsInterfaceNil(t *testing.T) {
 	managedNetworkComponents, _ := networkComp.NewManagedNetworkComponents(nil)
 	require.True(t, managedNetworkComponents.IsInterfaceNil())
 
-	networkArgs := componentsMock.GetNetworkFactoryArgs()
+	networkArgs := createNetworkFactoryArgs()
 	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
 	managedNetworkComponents, _ = networkComp.NewManagedNetworkComponents(networkComponentsFactory)
 	require.False(t, managedNetworkComponents.IsInterfaceNil())

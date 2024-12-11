@@ -7,7 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +27,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("invalid args should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		args.Config.Consensus.Type = "invalid"
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -38,7 +40,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("pub key mismatch will not return critical error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		args.Config.Consensus.Type = "disabled"
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -50,7 +52,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("should work with activateBLSPubKeyMessageVerification", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		args.ActivateBLSPubKeyMessageVerification = true
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -62,7 +64,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
 		managedCryptoComponents, err := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
@@ -123,7 +125,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 func TestNewManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
 	managedCryptoComponents, err := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
@@ -138,7 +140,7 @@ func TestNewManagedCryptoComponents_CheckSubcomponents(t *testing.T) {
 func TestNewManagedCryptoComponents_SetMultiSignerContainer(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
 	managedCryptoComponents, _ := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
@@ -151,7 +153,7 @@ func TestNewManagedCryptoComponents_SetMultiSignerContainer(t *testing.T) {
 func TestManagedCryptoComponents_Clone(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
 	managedCryptoComponents, _ := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
@@ -177,7 +179,7 @@ func TestNewManagedCryptoComponents_IsInterfaceNil(t *testing.T) {
 	require.Equal(t, errorsMx.ErrNilCryptoComponentsFactory, err)
 	require.True(t, managedCryptoComponents.IsInterfaceNil())
 
-	coreComponents := componentsMock.GetCoreComponents()
+	coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
 	args := componentsMock.GetCryptoArgs(coreComponents)
 	cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
 	managedCryptoComponents, err = cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
