@@ -667,6 +667,7 @@ func GetProcessArgs(
 				},
 			},
 		},
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	initialAccounts := createAccounts()
