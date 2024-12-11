@@ -233,7 +233,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
-		SovereignType:            scf.isSovereignType,
+		Sovereign:                scf.isSovereignType,
 	}
 }
 
