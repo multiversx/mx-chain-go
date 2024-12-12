@@ -462,10 +462,10 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.057519s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_1000,_numTransactions_=_1000)
-	// 0.048023s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_10000,_numTransactions_=_100)
-	// 0.289515s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
-	// 0.460242s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
+	// 0.074999s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_1000,_numTransactions_=_1000)
+	// 0.059256s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_10000,_numTransactions_=_100)
+	// 0.389317s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_100000,_numTransactions_=_3)
+	// 0.498457s (TestBenchmarkTxCache_selectTransactionsFromBunches/numSenders_=_300000,_numTransactions_=_1)
 }
 
 func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *testing.T) {
@@ -572,8 +572,8 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.042209s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_10000,_numTransactions_=_100,_maxNum_=_30_000)
-	// 0.055784s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_30_000)
-	// 0.078637s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_30_000)
-	// 0.222669s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_30_000)
+	// 0.048709s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_10000,_numTransactions_=_100,_maxNum_=_30_000)
+	// 0.076177s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_30_000)
+	// 0.104399s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_30_000)
+	// 0.319060s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_30_000)
 }

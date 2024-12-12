@@ -1,9 +1,11 @@
 package txcache
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -131,3 +133,104 @@ func TestSelectionSessionWrapper_detectWillFeeExceedBalance(t *testing.T) {
 	})
 }
 
+func TestBenchmarkSelectionSessionWrapper_getNonce(t *testing.T) {
+	sw := core.NewStopWatch()
+
+	t.Run("getNonce: numAccounts = 300, numTransactionsPerAccount = 100", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		sessionWrapper := newSelectionSessionWrapper(session)
+
+		numAccounts := 300
+		numTransactions := 100
+		// See "detectSkippableSender()" and "detectSkippableTransaction()".
+		numCallsGetNoncePerTransaction := 2
+		numCallsGetNoncePerAccount := numTransactions * numCallsGetNoncePerTransaction
+
+		for i := 0; i < numAccounts; i++ {
+			session.SetNonce(randomAddresses.getItem(i), uint64(i))
+		}
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numAccounts; i++ {
+			for j := 0; j < numCallsGetNoncePerAccount; j++ {
+				_ = sessionWrapper.getNonce(randomAddresses.getItem(i))
+			}
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
+	})
+
+	t.Run("getNonce: numAccounts = 10_000, numTransactionsPerAccount = 3", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		sessionWrapper := newSelectionSessionWrapper(session)
+
+		numAccounts := 10_000
+		numTransactions := 3
+		// See "detectSkippableSender()" and "detectSkippableTransaction()".
+		numCallsGetNoncePerTransaction := 2
+		numCallsGetNoncePerAccount := numTransactions * numCallsGetNoncePerTransaction
+
+		for i := 0; i < numAccounts; i++ {
+			session.SetNonce(randomAddresses.getItem(i), uint64(i))
+		}
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numAccounts; i++ {
+			for j := 0; j < numCallsGetNoncePerAccount; j++ {
+				_ = sessionWrapper.getNonce(randomAddresses.getItem(i))
+			}
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
+	})
+
+	t.Run("getNonce: numAccounts = 30_000, numTransactionsPerAccount = 1", func(t *testing.T) {
+		session := txcachemocks.NewSelectionSessionMock()
+		sessionWrapper := newSelectionSessionWrapper(session)
+
+		numAccounts := 30_000
+		numTransactions := 1
+		// See "detectSkippableSender()" and "detectSkippableTransaction()".
+		numCallsGetNoncePerTransaction := 2
+		numCallsGetNoncePerAccount := numTransactions * numCallsGetNoncePerTransaction
+
+		for i := 0; i < numAccounts; i++ {
+			session.SetNonce(randomAddresses.getItem(i), uint64(i))
+		}
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numAccounts; i++ {
+			for j := 0; j < numCallsGetNoncePerAccount; j++ {
+				_ = sessionWrapper.getNonce(randomAddresses.getItem(i))
+			}
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numAccounts, session.NumCallsGetAccountState)
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+
+	// (1)
+	// Vendor ID:                GenuineIntel
+	//   Model name:             11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//     CPU family:           6
+	//     Model:                140
+	//     Thread(s) per core:   2
+	//     Core(s) per socket:   4
+	//
+	// Session wrapper operations should have a negligible impact on the performance!
+	// 0.000826s (TestBenchmarkSelectionSessionWrapper_queriesBreakdown/getNonce:_numAccounts_=_300,_numTransactionsPerAccount_=_100)
+	// 0.003263s (TestBenchmarkSelectionSessionWrapper_queriesBreakdown/getNonce:_numAccounts_=_10_000,_numTransactionsPerAccount_=_3)
+	// 0.010291s (TestBenchmarkSelectionSessionWrapper_queriesBreakdown/getNonce:_numAccounts_=_30_000,_numTransactionsPerAccount_=_1)
+}
