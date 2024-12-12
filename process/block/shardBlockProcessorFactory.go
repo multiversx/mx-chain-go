@@ -10,8 +10,8 @@ type shardBlockProcessorFactory struct {
 }
 
 // NewShardBlockProcessorFactory creates a new shard block processor factory
-func NewShardBlockProcessorFactory() (*shardBlockProcessorFactory, error) {
-	return &shardBlockProcessorFactory{}, nil
+func NewShardBlockProcessorFactory() *shardBlockProcessorFactory {
+	return &shardBlockProcessorFactory{}
 }
 
 // CreateBlockProcessor creates a new shard block processor for the chain run type normal

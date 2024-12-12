@@ -45,29 +45,25 @@ type RunTypeComponentsStub struct {
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
-	transactionCoordinatorFactory, _ := coordinator.NewShardTransactionCoordinatorFactory()
-	scResultsPreProcessorCreator, _ := preprocess.NewSmartContractResultPreProcessorFactory()
-	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
 	accountsCreator, _ := factory.NewAccountCreator(factory.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
-	vmContainerShard := factoryVm.NewVmContainerShardFactory()
 	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(systemSmartContracts.NewVMContextCreator())
 	hdrFactory, _ := block.NewShardHeaderFactory(createHeaderVersionHandler("*"))
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:              hooks.NewBlockChainHookFactory(),
-		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
-		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
-		SCProcessorFactory:                        scProcessorCreator,
+		TransactionCoordinatorFactory:             coordinator.NewShardTransactionCoordinatorFactory(),
+		SCResultsPreProcessorFactory:              preprocess.NewSmartContractResultPreProcessorFactory(),
+		SCProcessorFactory:                        processProxy.NewSCProcessProxyFactory(),
 		AccountParser:                             &AccountsParserStub{},
 		AccountCreator:                            accountsCreator,
 		VMContextCreatorHandler:                   systemSmartContracts.NewVMContextCreator(),
 		ShardCoordinatorFactory:                   sharding.NewMultiShardCoordinatorFactory(),
 		TxPreProcessorFactory:                     preprocess.NewTxPreProcessorCreator(),
-		VmContainerShardFactory:                   vmContainerShard,
+		VmContainerShardFactory:                   factoryVm.NewVmContainerShardFactory(),
 		VmContainerMetaFactory:                    vmContainerMeta,
 		PreProcessorsContainerFactoryCreatorField: shard.NewPreProcessorContainerFactoryCreator(),
 		VersionedHeaderFactoryField:               hdrFactory,

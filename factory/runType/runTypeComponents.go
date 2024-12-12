@@ -158,43 +158,6 @@ func NewRunTypeComponentsFactory(args ArgsRunTypeComponents) (*runTypeComponents
 
 // Create creates the runType components
 func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
-	blockProcessorFactory, err := block.NewShardBlockProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
-	}
-
-	forkDetectorFactory, err := sync.NewShardForkDetectorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardForkDetectorFactory failed: %w", err)
-	}
-
-	blockTrackerFactory, err := track.NewShardBlockTrackerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockTrackerFactory failed: %w", err)
-	}
-
-	requestHandlerFactory := requestHandlers.NewResolverRequestHandlerFactory()
-
-	headerValidatorFactory, err := block.NewShardHeaderValidatorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardHeaderValidatorFactory failed: %w", err)
-	}
-
-	scheduledTxsExecutionFactory, err := preprocess.NewShardScheduledTxsExecutionFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
-	}
-
-	scResultsPreProcessorCreator, err := preprocess.NewSmartContractResultPreProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSmartContractResultPreProcessorFactory failed: %w", err)
-	}
-
-	transactionCoordinatorFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardTransactionCoordinatorFactory failed: %w", err)
-	}
-
 	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
@@ -263,17 +226,17 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		epochStartBootstrapperCreator:           bootstrap.NewEpochStartBootstrapperFactory(),
 		bootstrapperFromStorageCreator:          storageBootstrap.NewShardStorageBootstrapperFactory(),
 		bootstrapperCreator:                     storageBootstrap.NewShardBootstrapFactory(),
-		blockProcessorCreator:                   blockProcessorFactory,
-		forkDetectorCreator:                     forkDetectorFactory,
-		blockTrackerCreator:                     blockTrackerFactory,
-		requestHandlerCreator:                   requestHandlerFactory,
-		headerValidatorCreator:                  headerValidatorFactory,
-		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:           transactionCoordinatorFactory,
+		blockProcessorCreator:                   block.NewShardBlockProcessorFactory(),
+		forkDetectorCreator:                     sync.NewShardForkDetectorFactory(),
+		blockTrackerCreator:                     track.NewShardBlockTrackerFactory(),
+		requestHandlerCreator:                   requestHandlers.NewResolverRequestHandlerFactory(),
+		headerValidatorCreator:                  block.NewShardHeaderValidatorFactory(),
+		scheduledTxsExecutionCreator:            preprocess.NewShardScheduledTxsExecutionFactory(),
+		transactionCoordinatorCreator:           coordinator.NewShardTransactionCoordinatorFactory(),
 		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:         additionalStorageServiceCreator,
 		scProcessorCreator:                      scProcessorCreator,
-		scResultPreProcessorCreator:             scResultsPreProcessorCreator,
+		scResultPreProcessorCreator:             preprocess.NewSmartContractResultPreProcessorFactory(),
 		consensusModel:                          consensus.ConsensusModelV1,
 		vmContainerMetaFactory:                  vmContainerMetaCreator,
 		vmContainerShardFactory:                 vmContainerShardCreator,
