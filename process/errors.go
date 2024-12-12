@@ -239,6 +239,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
+// ErrNilProofsPool signals that a nil proofs pool was used
+var ErrNilProofsPool = errors.New("nil proofs pool")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 

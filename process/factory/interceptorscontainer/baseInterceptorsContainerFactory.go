@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
 const (
@@ -426,6 +425,7 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        bicf.dataPool.Headers(),
 		BlockBlackList: bicf.blockBlackList,
+		Proofs:         bicf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -568,6 +568,7 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        bicf.dataPool.Headers(),
 		BlockBlackList: bicf.blockBlackList,
+		Proofs:         bicf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -913,7 +914,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 
 	marshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgEquivalentProofsInterceptorProcessor{
-		EquivalentProofsPool: &processMocks.EquivalentProofsPoolMock{}, // TODO: pass the real implementation when is done
+		EquivalentProofsPool: bicf.dataPool.Proofs(),
 		Marshaller:           marshaller,
 	}
 	equivalentProofsProcessor, err := processor.NewEquivalentProofsInterceptorProcessor(argProcessor)

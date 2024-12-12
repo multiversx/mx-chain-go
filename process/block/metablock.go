@@ -2120,7 +2120,11 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 		}
 	}
 
-	shouldRequestMissingFinalityAttestingShardHeaders := notarizedShardHdrsBasedOnProofs != len(metaBlock.ShardInfo)
+	shouldRequestMissingFinalityAttestingShardHeaders := true
+	if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+		shouldRequestMissingFinalityAttestingShardHeaders = notarizedShardHdrsBasedOnProofs != len(metaBlock.ShardInfo)
+	}
+
 	if mp.hdrsForCurrBlock.missingHdrs == 0 && shouldRequestMissingFinalityAttestingShardHeaders {
 		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}

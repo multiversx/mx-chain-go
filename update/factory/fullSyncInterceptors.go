@@ -350,6 +350,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        ficf.dataPool.Headers(),
 		BlockBlackList: ficf.blockBlackList,
+		Proofs:         ficf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -764,6 +765,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
 		Headers:        ficf.dataPool.Headers(),
 		BlockBlackList: ficf.blockBlackList,
+		Proofs:         ficf.dataPool.Proofs(),
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

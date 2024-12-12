@@ -1826,7 +1826,11 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 		}
 	}
 
-	shouldRequestMissingFinalityAttestingMetaHeaders := notarizedMetaHdrsBasedOnProofs != len(metaBlockHashes)
+	shouldRequestMissingFinalityAttestingMetaHeaders := true
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		shouldRequestMissingFinalityAttestingMetaHeaders = notarizedMetaHdrsBasedOnProofs != len(metaBlockHashes)
+	}
+
 	if sp.hdrsForCurrBlock.missingHdrs == 0 && shouldRequestMissingFinalityAttestingMetaHeaders {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,

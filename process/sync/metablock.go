@@ -31,6 +31,9 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
+	if check.IfNil(arguments.PoolsHolder.Proofs()) {
+		return nil, process.ErrNilProofsPool
+	}
 	if check.IfNil(arguments.EpochBootstrapper) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
@@ -54,6 +57,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		blockProcessor:               arguments.BlockProcessor,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
+		proofs:                       arguments.PoolsHolder.Proofs(),
 		roundHandler:                 arguments.RoundHandler,
 		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,
@@ -78,6 +82,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		enableEpochsHandler:          arguments.EnableEpochsHandler,
 	}
 
 	if base.isInImportMode {

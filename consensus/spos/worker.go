@@ -311,7 +311,7 @@ func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 }
 
 // ReceivedProof process the received proof, calling each received proof handler registered in worker instance
-func (wrk *Worker) ReceivedProof(proofHandler consensus.ProofHandler) {
+func (wrk *Worker) ReceivedProof(proofHandler data.HeaderProofHandler) {
 	// TODO: add preliminary checks
 
 	wrk.mutReceivedProofHandler.RLock()
