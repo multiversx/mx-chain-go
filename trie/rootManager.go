@@ -1,8 +1,9 @@
 package trie
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 type rootManager struct {
@@ -12,6 +13,7 @@ type rootManager struct {
 	mutOperation sync.RWMutex
 }
 
+// NewRootManager creates a new instance of rootManager. All operations are protected by a mutex
 func NewRootManager() *rootManager {
 	return &rootManager{
 		root:         nil,
@@ -21,6 +23,7 @@ func NewRootManager() *rootManager {
 	}
 }
 
+// GetRootNode returns the root node
 func (rm *rootManager) GetRootNode() node {
 	rm.mutOperation.RLock()
 	defer rm.mutOperation.RUnlock()
@@ -28,6 +31,7 @@ func (rm *rootManager) GetRootNode() node {
 	return rm.root
 }
 
+// SetNewRootNode sets the given node as the new root node
 func (rm *rootManager) SetNewRootNode(newRoot node) {
 	rm.mutOperation.Lock()
 	defer rm.mutOperation.Unlock()
@@ -35,6 +39,7 @@ func (rm *rootManager) SetNewRootNode(newRoot node) {
 	rm.root = newRoot
 }
 
+// SetDataForRootChange sets the new root node, the old root hash and the old hashes
 func (rm *rootManager) SetDataForRootChange(newRoot node, oldRootHash []byte, oldHashes [][]byte) {
 	rm.mutOperation.Lock()
 	defer rm.mutOperation.Unlock()
@@ -46,6 +51,7 @@ func (rm *rootManager) SetDataForRootChange(newRoot node, oldRootHash []byte, ol
 	rm.oldHashes = append(rm.oldHashes, oldHashes...)
 }
 
+// ResetCollectedHashes resets the old root hash and the old hashes
 func (rm *rootManager) ResetCollectedHashes() {
 	rm.mutOperation.Lock()
 	defer rm.mutOperation.Unlock()
@@ -54,6 +60,7 @@ func (rm *rootManager) ResetCollectedHashes() {
 	rm.oldHashes = make([][]byte, 0)
 }
 
+// GetOldHashes returns the old hashes
 func (rm *rootManager) GetOldHashes() [][]byte {
 	rm.mutOperation.RLock()
 	defer rm.mutOperation.RUnlock()
@@ -63,6 +70,7 @@ func (rm *rootManager) GetOldHashes() [][]byte {
 	return oldHashes
 }
 
+// GetOldRootHash returns the old root hash
 func (rm *rootManager) GetOldRootHash() []byte {
 	rm.mutOperation.RLock()
 	defer rm.mutOperation.RUnlock()
