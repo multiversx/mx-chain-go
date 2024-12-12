@@ -214,17 +214,19 @@ func (bn *branchNode) commitDirty(
 
 		waitGroup.Add(1)
 		go func(childPos int) {
+			defer func() {
+				goRoutinesManager.EndGoRoutineProcessing()
+				waitGroup.Done()
+			}()
+
 			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
 			if !goRoutinesManager.ShouldContinueProcessing() {
-				waitGroup.Done()
 				return
 			}
 
 			bn.childrenMutexes[childPos].Lock()
 			bn.EncodedChildren[childPos] = child.getHash()
 			bn.childrenMutexes[childPos].Unlock()
-
-			waitGroup.Done()
 		}(i)
 
 	}
