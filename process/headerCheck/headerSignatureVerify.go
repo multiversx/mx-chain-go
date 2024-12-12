@@ -2,7 +2,6 @@ package headerCheck
 
 import (
 	"bytes"
-	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -126,35 +125,48 @@ func isIndexInBitmap(index uint16, bitmap []byte) error {
 	return nil
 }
 
-func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler, pubKeysBitmap []byte) ([][]byte, error) {
-	randSeed := header.GetPrevRandSeed()
+func (hsv *HeaderSigVerifier) getConsensusSigners(
+	randSeed []byte,
+	shardID uint32,
+	epoch uint32,
+	startOfEpochBlock bool,
+	round uint64,
+	prevHash []byte,
+	pubKeysBitmap []byte,
+) ([][]byte, error) {
 	if len(pubKeysBitmap) == 0 {
 		return nil, process.ErrNilPubKeysBitmap
 	}
 
-	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
 		if pubKeysBitmap[0]&1 == 0 {
 			return nil, process.ErrBlockProposerSignatureMissing
 		}
 	}
 
 	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
-	epochForConsensus := header.GetEpoch()
-	if header.IsStartOfEpochBlock() && epochForConsensus > 0 {
+	epochForConsensus := epoch
+	if startOfEpochBlock && epochForConsensus > 0 {
 		epochForConsensus = epochForConsensus - 1
 	}
 
 	_, consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		randSeed,
-		header.GetRound(),
-		header.GetShardID(),
+		round,
+		shardID,
 		epochForConsensus,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	err = hsv.verifyConsensusSize(consensusPubKeys, header, pubKeysBitmap)
+	err = hsv.verifyConsensusSize(
+		consensusPubKeys,
+		pubKeysBitmap,
+		shardID,
+		startOfEpochBlock,
+		round,
+		prevHash)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +232,16 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 		return err
 	}
 
-	pubKeysSigners, err := hsv.getConsensusSigners(header, pubkeysBitmap)
+	randSeed := header.GetPrevRandSeed()
+	pubKeysSigners, err := hsv.getConsensusSigners(
+		randSeed,
+		header.GetShardID(),
+		header.GetEpoch(),
+		header.IsStartOfEpochBlock(),
+		header.GetRound(),
+		header.GetPrevHash(),
+		pubkeysBitmap,
+	)
 	if err != nil {
 		return err
 	}
@@ -241,15 +262,12 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 
 // VerifyHeaderProof checks if the proof is correct for the header
 func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHandler) error {
-	err := hsv.verifyProofIntegrity(proofHandler)
-	if err != nil {
-		return err
-	}
-	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixedOrderInConsensusFlag, proofHandler.GetHeaderEpoch()) {
-		return fmt.Errorf("%w for %s", process.ErrFlagNotActive, common.FixedOrderInConsensusFlag)
+	if check.IfNilReflect(proofHandler) {
+		return process.ErrNilHeaderProof
 	}
 
-	consensusPubKeys, err := hsv.nodesCoordinator.GetAllEligibleValidatorsPublicKeysForShard(proofHandler.GetHeaderEpoch(), proofHandler.GetHeaderShardId())
+	// for the start of epoch block the consensus is taken from the previous epoch
+	header, err := hsv.headersPool.GetHeaderByHash(proofHandler.GetHeaderHash())
 	if err != nil {
 		return err
 	}
@@ -259,35 +277,29 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return err
 	}
 
-	pubKeysSigners := getPubKeySigners(consensusPubKeys, proofHandler.GetPubKeysBitmap())
+	// round, prevHash and prevRandSeed could be removed when we remove fallback validation and we don't need backwards compatibility
+	// (e.g new binary from epoch x forward)
+	consensusPubKeys, err := hsv.getConsensusSigners(
+		header.GetPrevRandSeed(),
+		proofHandler.GetHeaderShardId(),
+		proofHandler.GetHeaderEpoch(),
+		header.IsStartOfEpochBlock(),
+		header.GetRound(),
+		header.GetPrevHash(),
+		proofHandler.GetPubKeysBitmap(),
+	)
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
+	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
-// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
-func (hsv *HeaderSigVerifier) verifyProofIntegrity(proof data.HeaderProofHandler) error {
-	if check.IfNilReflect(proof) {
-		return process.ErrNilHeaderProof
-	}
-
-	hasProof := false
-	if proof != nil {
-		aggregatedSignature, proofBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
-		hasProof = len(aggregatedSignature) > 0 && len(proofBitmap) > 0
-	}
-
-	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proof.GetHeaderEpoch())
-	if isFlagEnabled && !hasProof {
-		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
-	}
-	if !isFlagEnabled && hasProof {
-		return fmt.Errorf("%w, received header with proof before flag activation", process.ErrInvalidHeader)
-	}
-
-	return nil
-}
-
-func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler, bitmap []byte) error {
+func (hsv *HeaderSigVerifier) verifyConsensusSize(
+	consensusPubKeys []string,
+	bitmap []byte,
+	shardID uint32,
+	startOfEpochBlock bool,
+	round uint64,
+	prevHash []byte,
+) error {
 	consensusSize := len(consensusPubKeys)
 
 	expectedBitmapSize := consensusSize / 8
@@ -307,7 +319,12 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, hea
 	}
 
 	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
-	if hsv.fallbackHeaderValidator.ShouldApplyFallbackValidation(header) {
+	if hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
+		shardID,
+		startOfEpochBlock,
+		round,
+		prevHash,
+	) {
 		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
 		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
 			"minimum number of signatures required", minNumRequiredSignatures,

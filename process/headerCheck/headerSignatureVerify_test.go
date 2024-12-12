@@ -8,10 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -646,95 +644,6 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 	err := hdrSigVerifier.VerifySignature(header)
 	require.Nil(t, err)
 	require.True(t, wasCalled)
-}
-
-func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
-	t.Parallel()
-
-	t.Run("flag enabled and nil proof should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return nil
-			},
-		}
-		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
-		assert.True(t, errors.Is(err, process.ErrNilHeaderProof))
-	})
-	t.Run("flag enabled and empty proof should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &dataBlock.HeaderProof{}
-			},
-		}
-		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
-		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-		assert.True(t, strings.Contains(err.Error(), "received header without proof after flag activation"))
-	})
-	t.Run("flag not enabled and proof should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &block.HeaderProof{
-					AggregatedSignature: []byte("sig"),
-					PubKeysBitmap:       []byte("bitmap"),
-				}
-			},
-		}
-		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
-		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-		assert.True(t, strings.Contains(err.Error(), "received header with proof before flag activation"))
-	})
-	t.Run("should work, flag enabled with proof", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &block.HeaderProof{
-					AggregatedSignature: []byte("sig"),
-					PubKeysBitmap:       []byte{1, 1, 1, 1},
-				}
-			},
-		}
-		err := hdrSigVerifier.verifyProofIntegrity(hdr.GetPreviousProof())
-		assert.Nil(t, err)
-	})
 }
 
 func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
