@@ -38,7 +38,7 @@ jobs:
       - name: Determine Target Branches
         id: target_branch
         run: |
-          echo "CURRENT_BRANCH=${{ env.BRANCH_NAME }}
+          echo "CURRENT_BRANCH=${{ env.BRANCH_NAME }} >> $GITHUB_ENV
           
 
           # Default target branches based on the PR base branch
