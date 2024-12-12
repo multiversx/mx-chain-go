@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	swVersionFactory "github.com/multiversx/mx-chain-go/common/statistics/softwareVersion/factory"
@@ -19,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type statusComponents struct {
@@ -45,6 +46,7 @@ type StatusComponentsFactoryArgs struct {
 	StateComponents      factory.StateComponentsHolder
 	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
+	IsSovereign          bool
 }
 
 type statusComponentsFactory struct {
@@ -61,6 +63,7 @@ type statusComponentsFactory struct {
 	stateComponents      factory.StateComponentsHolder
 	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
+	isSovereign          bool
 }
 
 var log = logger.GetOrCreate("factory")
@@ -105,6 +108,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
 		cryptoComponents:     args.CryptoComponents,
+		isSovereign:          args.IsSovereign,
 	}, nil
 }
 
@@ -229,6 +233,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
+		Sovereign:                scf.isSovereign,
 	}
 }
 

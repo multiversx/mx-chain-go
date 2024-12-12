@@ -1112,6 +1112,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		IsInImportMode:       isInImportMode,
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
+		IsSovereign:          false,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
