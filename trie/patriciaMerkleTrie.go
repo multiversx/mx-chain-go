@@ -256,7 +256,7 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 	}
 
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		return nil
 	}
 
@@ -675,7 +675,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
 	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		return nil, nil, ErrNilNode
 	}
 
