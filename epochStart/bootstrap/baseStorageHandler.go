@@ -187,9 +187,7 @@ func (bsh *baseStorageHandler) saveShardHdrToStorage(hdr data.HeaderHandler) ([]
 	}
 
 	nonceToByteSlice := bsh.uint64Converter.ToByteSlice(hdr.GetNonce())
-	shardId := hdr.GetShardID()
-	unitType := dataRetriever.UnitType(shardId)
-	shardHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.ShardHdrNonceHashDataUnit + unitType)
+	shardHdrNonceStorage, err := bsh.storageService.GetStorer(dataRetriever.GetHdrNonceHashDataUnit(hdr.GetShardID()))
 	if err != nil {
 		return nil, err
 	}

@@ -619,7 +619,7 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	epochStartShardHeaderSyncerArgs := updateSync.ArgsNewPendingEpochStartShardHeaderSyncer{
+	epochStartShardHeaderSyncerArgs := updateSync.ArgsPendingEpochStartShardHeaderSyncer{
 		HeadersPool:    e.dataPool.Headers(),
 		Marshalizer:    e.coreComponentsHolder.InternalMarshalizer(),
 		RequestHandler: e.requestHandler,
@@ -908,25 +908,34 @@ func (e *epochStartBootstrap) findSelfShardEpochStartData() (data.EpochStartShar
 	return epochStartData, epochStart.ErrEpochStartDataForShardNotFound
 }
 
-func (e *epochStartBootstrap) findPrevEpochLatestFinalizedBlockForShard() data.EpochStartShardDataHandler {
-	lastFinalizedHeaders := e.prevEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()
+func (e *epochStartBootstrap) findPrevEpochLatestFinalizedBlockForShard() (data.EpochStartShardDataHandler, error) {
+	if check.IfNil(e.prevEpochStartMeta) {
+		return nil, epochStart.ErrEpochStartDataForShardNotFound
+	}
+
+	epochStartHandler := e.prevEpochStartMeta.GetEpochStartHandler()
+	if epochStartHandler == nil {
+		return nil, epochStart.ErrEpochStartDataForShardNotFound
+	}
+
+	lastFinalizedHeaders := epochStartHandler.GetLastFinalizedHeaderHandlers()
 	for _, hdr := range lastFinalizedHeaders {
 		if hdr.GetShardID() == e.shardCoordinator.SelfId() {
-			return hdr
+			return hdr, nil
 		}
 	}
 
-	return nil
+	return nil, epochStart.ErrEpochStartDataForShardNotFound
 }
 
 func (e *epochStartBootstrap) syncLatestEpochStartShardBlock(targetEpoch uint32, ctx context.Context) (data.HeaderHandler, []byte, error) {
-	prevEpochLatestFinalizedBlock := e.findPrevEpochLatestFinalizedBlockForShard()
-	if prevEpochLatestFinalizedBlock == nil {
+	prevEpochLatestFinalizedBlock, err := e.findPrevEpochLatestFinalizedBlockForShard()
+	if err != nil || prevEpochLatestFinalizedBlock == nil {
 		return nil, nil, epochStart.ErrEpochStartDataForShardNotFound
 	}
 
 	e.epochStartShardHeaderSyncer.ClearFields()
-	err := e.epochStartShardHeaderSyncer.SyncEpochStartShardHeader(e.shardCoordinator.SelfId(), targetEpoch, prevEpochLatestFinalizedBlock.GetNonce(), ctx)
+	err = e.epochStartShardHeaderSyncer.SyncEpochStartShardHeader(e.shardCoordinator.SelfId(), targetEpoch, prevEpochLatestFinalizedBlock.GetNonce(), ctx)
 	if err != nil {
 		return nil, nil, err
 	}

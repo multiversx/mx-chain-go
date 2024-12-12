@@ -17,7 +17,7 @@ import (
 var _ update.PendingEpochStartShardHeaderSyncHandler = (*pendingEpochStartShardHeader)(nil)
 
 type pendingEpochStartShardHeader struct {
-	mutPending              sync.Mutex
+	mutPending              sync.RWMutex
 	epochStartHeader        data.HeaderHandler
 	epochStartHash          []byte
 	latestReceivedHeader    data.HeaderHandler
@@ -27,22 +27,22 @@ type pendingEpochStartShardHeader struct {
 	headersPool             dataRetriever.HeadersPool
 	chReceived              chan bool
 	chNew                   chan bool
-	marshalizer             marshal.Marshalizer
+	marshaller              marshal.Marshalizer
 	stopSyncing             bool
 	synced                  bool
 	requestHandler          process.RequestHandler
 	waitTimeBetweenRequests time.Duration
 }
 
-// ArgsNewPendingMiniBlocksSyncer defines the arguments needed for the sycner
-type ArgsNewPendingEpochStartShardHeaderSyncer struct {
+// ArgsPendingEpochStartShardHeaderSyncer defines the arguments needed for the sycner
+type ArgsPendingEpochStartShardHeaderSyncer struct {
 	HeadersPool    dataRetriever.HeadersPool
 	Marshalizer    marshal.Marshalizer
 	RequestHandler process.RequestHandler
 }
 
-// NewPendingMiniBlocksSyncer creates a syncer for all pending miniblocks
-func NewPendingEpochStartShardHeaderSyncer(args ArgsNewPendingEpochStartShardHeaderSyncer) (*pendingEpochStartShardHeader, error) {
+// NewPendingEpochStartShardHeaderSyncer creates a syncer for all pending miniblocks
+func NewPendingEpochStartShardHeaderSyncer(args ArgsPendingEpochStartShardHeaderSyncer) (*pendingEpochStartShardHeader, error) {
 	if check.IfNil(args.HeadersPool) {
 		return nil, update.ErrNilHeadersPool
 	}
@@ -54,7 +54,7 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsNewPendingEpochStartShardHea
 	}
 
 	p := &pendingEpochStartShardHeader{
-		mutPending:              sync.Mutex{},
+		mutPending:              sync.RWMutex{},
 		epochStartHeader:        nil,
 		epochStartHash:          nil,
 		targetEpoch:             0,
@@ -65,7 +65,7 @@ func NewPendingEpochStartShardHeaderSyncer(args ArgsNewPendingEpochStartShardHea
 		requestHandler:          args.RequestHandler,
 		stopSyncing:             true,
 		synced:                  false,
-		marshalizer:             args.Marshalizer,
+		marshaller:              args.Marshalizer,
 		waitTimeBetweenRequests: args.RequestHandler.RequestInterval(),
 	}
 
@@ -146,8 +146,8 @@ func (p *pendingEpochStartShardHeader) receivedHeader(header data.HeaderHandler,
 
 // GetEpochStartHeader returns the synced epoch start header
 func (p *pendingEpochStartShardHeader) GetEpochStartHeader() (data.HeaderHandler, []byte, error) {
-	p.mutPending.Lock()
-	defer p.mutPending.Unlock()
+	p.mutPending.RLock()
+	defer p.mutPending.RUnlock()
 
 	if !p.synced || p.epochStartHeader == nil || p.epochStartHash == nil {
 		return nil, nil, update.ErrNotSynced

@@ -180,11 +180,18 @@ func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNee
 
 func (ssh *shardStorageHandler) saveEpochStartShardHdrs(components *ComponentsNeededForBootstrap) error {
 	for _, hdr := range components.Headers {
-		if hdr.IsStartOfEpochBlock() && hdr.GetShardID() == ssh.shardCoordinator.SelfId() {
-			_, err := ssh.saveShardHdrToStorage(hdr)
-			if err != nil {
-				return err
-			}
+		if !hdr.IsStartOfEpochBlock() {
+			continue
+		}
+
+		isForCurrentShard := hdr.GetShardID() == ssh.shardCoordinator.SelfId()
+		if !isForCurrentShard {
+			continue
+		}
+
+		_, err := ssh.saveShardHdrToStorage(hdr)
+		if err != nil {
+			return err
 		}
 	}
 
