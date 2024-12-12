@@ -25,7 +25,7 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 // Selection tolerates concurrent transaction additions / removals.
 func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTransactions, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) (bunchOfTransactions, uint64) {
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
-	balancesTracker := newAccountsBalancesTracker()
+	sessionWrapper := newSelectionSessionWrapper(session)
 
 	// Items popped from the heap are added to "selectedTransactions".
 	transactionsHeap := newMaxTransactionsHeap(len(bunches))
@@ -33,7 +33,7 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 
 	// Initialize the heap with the first transaction of each bunch
 	for _, bunch := range bunches {
-		item, err := newTransactionsHeapItem(bunch, balancesTracker)
+		item, err := newTransactionsHeapItem(bunch)
 		if err != nil {
 			continue
 		}
@@ -64,24 +64,19 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 			}
 		}
 
-		err := item.requestAccountStateIfNecessary(session)
-		if err != nil {
-			// Skip this sender.
-			logSelect.Debug("TxCache.selectTransactionsFromBunches, could not retrieve account state", "sender", item.sender, "err", err)
-			continue
-		}
-
-		shouldSkipSender := detectSkippableSender(item)
+		shouldSkipSender := detectSkippableSender(sessionWrapper, item)
 		if shouldSkipSender {
 			// Item was popped from the heap, but not used downstream.
 			// Therefore, the sender is completely ignored (from now on) in the current selection session.
 			continue
 		}
 
-		shouldSkipTransaction := detectSkippableTransaction(session, item)
+		shouldSkipTransaction := detectSkippableTransaction(sessionWrapper, item)
 		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
-			selectedTransactions = append(selectedTransactions, item.selectCurrentTransaction())
+			selectedTransaction := item.selectCurrentTransaction()
+			selectedTransactions = append(selectedTransactions, selectedTransaction)
+			sessionWrapper.accumulateConsumedBalance(selectedTransaction)
 		}
 
 		// If there are more transactions in the same bunch (same sender as the popped item),
@@ -95,25 +90,29 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 	return selectedTransactions, accumulatedGas
 }
 
-func detectSkippableSender(item *transactionsHeapItem) bool {
-	if item.detectInitialGap() {
+func detectSkippableSender(sessionWrapper *selectionSessionWrapper, item *transactionsHeapItem) bool {
+	nonce := sessionWrapper.getNonce(item.sender)
+
+	if item.detectInitialGap(nonce) {
 		return true
 	}
 	if item.detectMiddleGap() {
 		return true
 	}
-	if item.detectWillFeeExceedBalance() {
+	if sessionWrapper.detectWillFeeExceedBalance(item.currentTransaction) {
 		return true
 	}
 
 	return false
 }
 
-func detectSkippableTransaction(session SelectionSession, item *transactionsHeapItem) bool {
-	if item.detectLowerNonce() {
+func detectSkippableTransaction(sessionWrapper *selectionSessionWrapper, item *transactionsHeapItem) bool {
+	nonce := sessionWrapper.getNonce(item.sender)
+
+	if item.detectLowerNonce(nonce) {
 		return true
 	}
-	if item.detectIncorrectlyGuarded(session) {
+	if item.detectIncorrectlyGuarded(sessionWrapper) {
 		return true
 	}
 	if item.detectNonceDuplicate() {
