@@ -45,7 +45,7 @@ type patriciaMerkleTrie struct {
 	enableEpochsHandler     common.EnableEpochsHandler
 	trieNodeVersionVerifier core.TrieNodeVersionVerifier
 	batchManager            common.TrieBatchManager
-	goroutinesThrottler     core.Throttler
+	goRoutinesManager       common.TrieGoroutinesManager
 	trieOperationInProgress *atomic.Flag
 	updateTrieMutex         sync.RWMutex
 
@@ -83,8 +83,14 @@ func NewTrie(
 		return nil, err
 	}
 
-	// TODO give this as an argument
+	// TODO give num goroutines from config as argument
 	trieThrottler, err := throttler.NewNumGoRoutinesThrottler(20)
+	if err != nil {
+		return nil, err
+	}
+
+	chanClose := make(chan struct{})
+	goRoutinesManager, err := NewGoroutinesManager(trieThrottler, errChan.NewErrChanWrapper(), chanClose)
 	if err != nil {
 		return nil, err
 	}
@@ -95,11 +101,11 @@ func NewTrie(
 		marshalizer:             msh,
 		hasher:                  hsh,
 		maxTrieLevelInMemory:    maxTrieLevelInMemory,
-		chanClose:               make(chan struct{}),
+		chanClose:               chanClose,
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
-		goroutinesThrottler:     trieThrottler,
+		goRoutinesManager:       goRoutinesManager,
 		trieOperationInProgress: &atomic.Flag{},
 	}, nil
 }
@@ -220,14 +226,15 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		oldRootHash = rootNode.getHash()
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
 
-	oldHashes := common.NewModifiedHashesSlice()
-	newRoot := rootNode.insert(sortedDataForInsertion, manager, oldHashes, tr.trieStorage)
-	err = manager.GetError()
+	initialSliceCapacity := len(sortedDataForInsertion) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
+	oldHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
+	newRoot := rootNode.insert(sortedDataForInsertion, tr.goRoutinesManager, oldHashes, tr.trieStorage)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
@@ -249,7 +256,7 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 	}
 
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		return nil
 	}
 
@@ -258,14 +265,15 @@ func (tr *patriciaMerkleTrie) deleteBatch(data []core.TrieData) error {
 		oldRootHash = rootNode.getHash()
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
 
-	modifiedHashes := common.NewModifiedHashesSlice()
-	_, newRoot := rootNode.delete(data, manager, modifiedHashes, tr.trieStorage)
-	err = manager.GetError()
+	initialSliceCapacity := len(data) * 2 // there are also intermediate nodes that are changed, so we need to collect more hashes
+	modifiedHashes := common.NewModifiedHashesSlice(initialSliceCapacity)
+	_, newRoot := rootNode.delete(data, tr.goRoutinesManager, modifiedHashes, tr.trieStorage)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
@@ -686,7 +694,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, [
 	}
 
 	rootNode := pmt.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		return nil, nil, ErrNilNode
 	}
 

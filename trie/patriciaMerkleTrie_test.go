@@ -1529,6 +1529,21 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	})
 }
 
+func TestPatriciaMerkleTrie_InsertOneValInNilTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	key := []byte("dog")
+	value := []byte("cat")
+	_ = tr.Update(key, value)
+	trie.ExecuteUpdatesFromBatch(tr)
+
+	val, depth, err := tr.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, value, val)
+	assert.Equal(t, uint32(0), depth)
+}
+
 func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 	t.Parallel()
 
@@ -1573,20 +1588,18 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
 		startedProcessing := atomic.Bool{}
-		throttler := &mock.ThrottlerStub{
-			CanProcessCalled: func() bool {
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
 				return true
 			},
-			StartProcessingCalled: func() {
-				startedProcessing.Store(true)
-			},
-			EndProcessingCalled: func() {
+			EndGoRoutineProcessingCalled: func() {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
 		}
-		trie.SetGoRoutinesThrottlerToTrie(tr, throttler)
+		trie.SetGoRoutinesManager(tr, grm)
 
 		firstBatchOperations := 1000
 		secondBatchOperations := 500
@@ -1640,20 +1653,18 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
 		startedProcessing := atomic.Bool{}
-		throttler := &mock.ThrottlerStub{
-			CanProcessCalled: func() bool {
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
 				return true
 			},
-			StartProcessingCalled: func() {
-				startedProcessing.Store(true)
-			},
-			EndProcessingCalled: func() {
+			EndGoRoutineProcessingCalled: func() {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
 		}
-		trie.SetGoRoutinesThrottlerToTrie(tr, throttler)
+		trie.SetGoRoutinesManager(tr, grm)
 
 		firstBatchOperations := 1000
 		secondBatchOperations := 500
@@ -1807,20 +1818,18 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
 		startedProcessing := atomic.Bool{}
-		throttler := &mock.ThrottlerStub{
-			CanProcessCalled: func() bool {
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
 				return true
 			},
-			StartProcessingCalled: func() {
-				startedProcessing.Store(true)
-			},
-			EndProcessingCalled: func() {
+			EndGoRoutineProcessingCalled: func() {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
 		}
-		trie.SetGoRoutinesThrottlerToTrie(tr, throttler)
+		trie.SetGoRoutinesManager(tr, grm)
 
 		numOperations := 1000
 		for i := 0; i < numOperations; i++ {

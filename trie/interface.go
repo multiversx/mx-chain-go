@@ -105,7 +105,7 @@ type IdleNodeProvider interface {
 	IsInterfaceNil() bool
 }
 
-// RootManager is used to manage the root node
+// RootManager is used to manage the root node and hashes related to it
 type RootManager interface {
 	GetRootNode() node
 	SetNewRootNode(newRoot node)
