@@ -22,9 +22,9 @@ type modifiedHashesSlice struct {
 }
 
 // NewModifiedHashesSlice is used to create a new instance of modifiedHashesSlice
-func NewModifiedHashesSlice() *modifiedHashesSlice {
+func NewModifiedHashesSlice(initialCapacity int) *modifiedHashesSlice {
 	return &modifiedHashesSlice{
-		hashes: make([][]byte, 0),
+		hashes: make([][]byte, 0, initialCapacity),
 	}
 }
 
@@ -44,12 +44,4 @@ func (mhs *modifiedHashesSlice) Get() [][]byte {
 	hashes := make([][]byte, len(mhs.hashes))
 	copy(hashes, mhs.hashes)
 	return hashes
-}
-
-// Reset is used to reset the slice
-func (mhs *modifiedHashesSlice) Reset() {
-	mhs.Lock()
-	defer mhs.Unlock()
-
-	mhs.hashes = nil
 }

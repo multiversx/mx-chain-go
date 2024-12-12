@@ -1512,6 +1512,394 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	})
 }
 
+func TestPatriciaMerkleTrie_InsertOneValInNilTrie(t *testing.T) {
+	t.Parallel()
+
+	tr := emptyTrie()
+	key := []byte("dog")
+	value := []byte("cat")
+	_ = tr.Update(key, value)
+	trie.ExecuteUpdatesFromBatch(tr)
+
+	val, depth, err := tr.Get(key)
+	assert.Nil(t, err)
+	assert.Equal(t, value, val)
+	assert.Equal(t, uint32(0), depth)
+}
+
+func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
+	t.Parallel()
+
+	t.Run("add different data to batch concurrently", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numOperations := 1000
+
+		wg := sync.WaitGroup{}
+		wg.Add(numOperations)
+		for i := 0; i < numOperations; i++ {
+
+			if i%2 != 0 {
+				go func(idx int) {
+					_ = tr.Update([]byte("dog"+strconv.Itoa(idx)), []byte("reindeer"))
+					wg.Done()
+				}(i)
+			} else {
+				go func(idx int) {
+					tr.Delete([]byte("dog" + strconv.Itoa(idx)))
+					wg.Done()
+				}(i)
+			}
+		}
+		wg.Wait()
+
+		bm := trie.GetBatchManager(tr)
+		for i := 0; i < numOperations; i++ {
+			key := trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i)))
+			val, present := bm.Get(key)
+			assert.True(t, present)
+			if i%2 == 0 {
+				assert.Nil(t, val)
+				continue
+			}
+			assert.Equal(t, []byte("reindeer"), val)
+		}
+	})
+	t.Run("add data to batch while commiting another batch to trie", func(t *testing.T) {
+		tr := emptyTrie()
+		waitForSignal := atomic.Bool{}
+		waitForSignal.Store(true)
+		startedProcessing := atomic.Bool{}
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
+				return true
+			},
+			EndGoRoutineProcessingCalled: func() {
+				for waitForSignal.Load() {
+					time.Sleep(time.Millisecond * 100)
+				}
+			},
+		}
+		trie.SetGoRoutinesManager(tr, grm)
+
+		firstBatchOperations := 1000
+		secondBatchOperations := 500
+		for i := 0; i < firstBatchOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			trie.ExecuteUpdatesFromBatch(tr)
+			wg.Done()
+		}()
+
+		// wait for start of processing of the first batch
+		for !startedProcessing.Load() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		for i := firstBatchOperations; i < firstBatchOperations+secondBatchOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		waitForSignal.Store(false)
+		// wait for end of processing of the first batch
+		wg.Wait()
+
+		bm := trie.GetBatchManager(tr)
+		for i := 0; i < firstBatchOperations; i++ {
+			val, _, err := tr.Get([]byte("dog" + strconv.Itoa(i)))
+			assert.Nil(t, err)
+			assert.Equal(t, []byte("reindeer"), val)
+
+			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			assert.False(t, found)
+			assert.Nil(t, val)
+		}
+
+		for i := firstBatchOperations; i < firstBatchOperations+secondBatchOperations; i++ {
+			val, _, err := tr.Get([]byte("dog" + strconv.Itoa(i)))
+			assert.Nil(t, err)
+			assert.Equal(t, []byte("reindeer"), val)
+
+			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			assert.True(t, found)
+			assert.Equal(t, []byte("reindeer"), val)
+		}
+	})
+	t.Run("commit batch to trie while commiting another batch to trie", func(t *testing.T) {
+		tr := emptyTrie()
+		waitForSignal := atomic.Bool{}
+		waitForSignal.Store(true)
+		startedProcessing := atomic.Bool{}
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
+				return true
+			},
+			EndGoRoutineProcessingCalled: func() {
+				for waitForSignal.Load() {
+					time.Sleep(time.Millisecond * 100)
+				}
+			},
+		}
+		trie.SetGoRoutinesManager(tr, grm)
+
+		firstBatchOperations := 1000
+		secondBatchOperations := 500
+		for i := 0; i < firstBatchOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			trie.ExecuteUpdatesFromBatch(tr)
+			wg.Done()
+		}()
+
+		// wait for start of processing of the first batch
+		for !startedProcessing.Load() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		for i := firstBatchOperations; i < firstBatchOperations+secondBatchOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		wg.Add(1)
+		go func() {
+			trie.ExecuteUpdatesFromBatch(tr)
+			wg.Done()
+		}()
+
+		waitForSignal.Store(false)
+		// wait for end of processing of both batches
+		wg.Wait()
+
+		bm := trie.GetBatchManager(tr)
+		for i := 0; i < firstBatchOperations+secondBatchOperations; i++ {
+			val, _, err := tr.Get([]byte("dog" + strconv.Itoa(i)))
+			assert.Nil(t, err)
+			assert.Equal(t, []byte("reindeer"), val)
+
+			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			assert.False(t, found)
+			assert.Nil(t, val)
+		}
+	})
+}
+
+func TestPatriciaMerkleTrie_Get(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get multiple values from trie in parallel", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numOperations := 1000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		wg := sync.WaitGroup{}
+		wg.Add(numOperations)
+		for i := 0; i < numOperations; i++ {
+			go func(idx int) {
+				val, _, err := tr.Get([]byte("dog" + strconv.Itoa(idx)))
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("reindeer"+strconv.Itoa(idx)), val)
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("get multiple values from trie and batch in parallel", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numTrieValues := 1000
+		numBatchValues := 500
+		for i := 0; i < numTrieValues; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+		}
+
+		// check some values are in the batch
+		bm := trie.GetBatchManager(tr)
+		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
+			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			assert.True(t, found)
+			assert.Equal(t, []byte("reindeer"+strconv.Itoa(i)), val)
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(numTrieValues + numBatchValues)
+		for i := 0; i < numTrieValues+numBatchValues; i++ {
+			go func(idx int) {
+				val, _, err := tr.Get([]byte("dog" + strconv.Itoa(idx)))
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("reindeer"+strconv.Itoa(idx)), val)
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("get multiple values from collapsed trie", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numTrieValues := 1000
+		numBatchValues := 500
+		for i := 0; i < numTrieValues; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+		}
+		_ = tr.Commit()
+
+		// collapse the trie
+		rootHash, _ := tr.RootHash()
+		tr, _ = tr.Recreate(rootHash)
+
+		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
+		}
+
+		// check some values are in the batch
+		bm := trie.GetBatchManager(tr)
+		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
+			val, found := bm.Get(trie.KeyBytesToHex([]byte("dog" + strconv.Itoa(i))))
+			assert.True(t, found)
+			assert.Equal(t, []byte("reindeer"+strconv.Itoa(i)), val)
+		}
+
+		// get from collapsed trie
+		wg := sync.WaitGroup{}
+		wg.Add(numTrieValues + numBatchValues)
+		for i := 0; i < numTrieValues+numBatchValues; i++ {
+			go func(idx int) {
+				val, _, err := tr.Get([]byte("dog" + strconv.Itoa(idx)))
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("reindeer"+strconv.Itoa(idx)), val)
+				wg.Done()
+			}(i)
+		}
+		wg.Wait()
+	})
+	t.Run("get value from batch that is currently being committed", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		waitForSignal := atomic.Bool{}
+		waitForSignal.Store(true)
+		startedProcessing := atomic.Bool{}
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedProcessing.Store(true)
+				return true
+			},
+			EndGoRoutineProcessingCalled: func() {
+				for waitForSignal.Load() {
+					time.Sleep(time.Millisecond * 100)
+				}
+			},
+		}
+		trie.SetGoRoutinesManager(tr, grm)
+
+		numOperations := 1000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			trie.ExecuteUpdatesFromBatch(tr)
+			wg.Done()
+		}()
+
+		// wait for start of processing of the first batch
+		for !startedProcessing.Load() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		for i := 0; i < numOperations; i++ {
+			val, _, err := tr.Get([]byte("dog" + strconv.Itoa(i)))
+			assert.Nil(t, err)
+			assert.Equal(t, []byte("reindeer"), val)
+		}
+
+		waitForSignal.Store(false)
+		// wait for end of processing of both batches
+		wg.Wait()
+	})
+}
+
+func TestPatricianMerkleTrie_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	t.Run("rootNode changes while retrieving from the trie, check consistency", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numValsPerBatch := 100
+		numBatches := 1000
+
+		keys := make([][]byte, numValsPerBatch*numBatches)
+
+		for i := 0; i < numValsPerBatch; i++ {
+			key := []byte("dog" + strconv.Itoa(i))
+			_ = tr.Update(key, []byte("reindeer"+strconv.Itoa(i)))
+			keys[i] = key
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		latestIndex := atomic.Int32{}
+		latestIndex.Store(int32(numValsPerBatch))
+		finishedProcessing := atomic.Bool{}
+		go func() {
+			for !finishedProcessing.Load() {
+				getIndex := rand.Intn(int(latestIndex.Load()))
+				val, _, err := tr.Get(keys[getIndex])
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("reindeer"+strconv.Itoa(getIndex)), val)
+			}
+		}()
+
+		for i := 1; i < numBatches; i++ {
+			for j := 0; j < numValsPerBatch; j++ {
+				keyIndex := i*numValsPerBatch + j
+				key := []byte("dog" + strconv.Itoa(keyIndex))
+				_ = tr.Update(key, []byte("reindeer"+strconv.Itoa(keyIndex)))
+				keys[keyIndex] = key
+			}
+			trie.ExecuteUpdatesFromBatch(tr)
+
+			latestIndex.Store(int32((i + 1) * numValsPerBatch))
+		}
+		finishedProcessing.Store(true)
+		rootHash1, err := tr.RootHash()
+		assert.Nil(t, err)
+
+		tr2 := emptyTrie()
+		for i, key := range keys {
+			_ = tr2.Update(key, []byte("reindeer"+strconv.Itoa(i)))
+		}
+		trie.ExecuteUpdatesFromBatch(tr2)
+		rootHash2, err := tr2.RootHash()
+		assert.Nil(t, err)
+		assert.Equal(t, rootHash1, rootHash2)
+	})
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()

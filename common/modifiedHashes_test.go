@@ -30,8 +30,8 @@ func TestModifiedHashes_Clone(t *testing.T) {
 func TestModifiedHashesSlice_Append(t *testing.T) {
 	t.Parallel()
 
-	mhs := NewModifiedHashesSlice()
 	numHashes := 100
+	mhs := NewModifiedHashesSlice(numHashes)
 	hashes := make([][]byte, numHashes)
 	for i := 0; i < numHashes; i++ {
 		hashes[i] = []byte{byte(i)}
@@ -61,23 +61,12 @@ func TestModifiedHashesSlice_Append(t *testing.T) {
 func TestModifiedHashesSlice_Get(t *testing.T) {
 	t.Parallel()
 
-	mhs := NewModifiedHashesSlice()
 	hashes := [][]byte{{1}, {2}, {3}}
+	mhs := NewModifiedHashesSlice(len(hashes))
 	mhs.Append(hashes)
 	retrievedHashes := mhs.Get()
 	assert.Equal(t, hashes, retrievedHashes)
 	retrievedHashes[0] = []byte{4}
 	newRetrievedHashes := mhs.Get()
 	assert.NotEqual(t, retrievedHashes, newRetrievedHashes)
-}
-
-func TestModifiedHashesSlice_Reset(t *testing.T) {
-	t.Parallel()
-
-	mhs := NewModifiedHashesSlice()
-	hashes := [][]byte{{1}, {2}, {3}}
-	mhs.Append(hashes)
-	assert.Equal(t, len(hashes), len(mhs.hashes))
-	mhs.Reset()
-	assert.Equal(t, 0, len(mhs.hashes))
 }

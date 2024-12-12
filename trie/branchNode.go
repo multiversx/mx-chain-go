@@ -102,39 +102,14 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 		}
 
 		if !goRoutinesManager.CanStartGoRoutine() {
-			bn.children[i].setHash(goRoutinesManager)
-			if !goRoutinesManager.ShouldContinueProcessing() {
-				return
-			}
-
-			childHash, err := encodeNodeAndGetHash(bn.children[i])
-			if err != nil {
-				goRoutinesManager.SetError(err)
-				return
-			}
-
-			bn.childrenMutexes[i].Lock()
-			bn.EncodedChildren[i] = childHash
-			bn.childrenMutexes[i].Unlock()
+			bn.setHashForChild(i, goRoutinesManager)
 			continue
 		}
 
 		waitGroup.Add(1)
 		go func(childPos int) {
-			bn.children[childPos].setHash(goRoutinesManager)
-			if !goRoutinesManager.ShouldContinueProcessing() {
-				waitGroup.Done()
-				return
-			}
-			childHash, err := encodeNodeAndGetHash(bn.children[childPos])
-			if err != nil {
-				goRoutinesManager.SetError(err)
-				waitGroup.Done()
-				return
-			}
-			bn.childrenMutexes[childPos].Lock()
-			bn.EncodedChildren[childPos] = childHash
-			bn.childrenMutexes[childPos].Unlock()
+			bn.setHashForChild(childPos, goRoutinesManager)
+			goRoutinesManager.EndGoRoutineProcessing()
 			waitGroup.Done()
 		}(i)
 	}
@@ -147,6 +122,23 @@ func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 		return
 	}
 	bn.hash = hash
+}
+
+func (bn *branchNode) setHashForChild(childPos int, goRoutinesManager common.TrieGoroutinesManager) {
+	bn.children[childPos].setHash(goRoutinesManager)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return
+	}
+
+	encChild, err := encodeNodeAndGetHash(bn.children[childPos])
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return
+	}
+
+	bn.childrenMutexes[childPos].Lock()
+	bn.EncodedChildren[childPos] = encChild
+	bn.childrenMutexes[childPos].Unlock()
 }
 
 func (bn *branchNode) shouldSetHashForChild(childPos int) bool {
@@ -464,6 +456,7 @@ func (bn *branchNode) updateNode(
 		go func(childPos int) {
 			updateFunc(data[childPos], childPos, goRoutinesManager, modifiedHashes, hasBeenModified, db)
 
+			goRoutinesManager.EndGoRoutineProcessing()
 			waitGroup.Done()
 		}(childPos)
 	}

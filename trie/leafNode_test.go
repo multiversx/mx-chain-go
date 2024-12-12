@@ -245,7 +245,7 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	data := []core.TrieData{getTrieDataWithDefaultVersion(key, expectedVal)}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	newNode := ln.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	newNode := ln.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
@@ -266,7 +266,7 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), string(nodeVal))}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	newNode := ln.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	newNode := ln.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
 
@@ -285,7 +285,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := ln.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -303,7 +303,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := ln.insert(data, goRoutinesManager, modifiedHashes, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -317,7 +317,7 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := ln.insert(data, goRoutinesManager, modifiedHashes, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -332,7 +332,7 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := ln.insert(data, goRoutinesManager, modifiedHashes, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -346,7 +346,7 @@ func TestLeafNode_deletePresent(t *testing.T) {
 	data := []core.TrieData{{Key: []byte("dog")}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newNode := ln.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	dirty, newNode := ln.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Nil(t, newNode)
@@ -362,7 +362,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	data := []core.TrieData{{Key: []byte("dog")}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	dirty, _ := ln.delete(data, goRoutinesManager, modifiedHashes, db)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -379,7 +379,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	data := []core.TrieData{{Key: wrongKey}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	dirty, _ := ln.delete(data, goRoutinesManager, modifiedHashes, db)
 	assert.False(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -393,7 +393,7 @@ func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
 	data := []core.TrieData{{Key: []byte("dog")}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	modifiedHashes := common.NewModifiedHashesSlice()
+	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	dirty, _ := ln.delete(data, goRoutinesManager, modifiedHashes, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -408,7 +408,7 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 	data := []core.TrieData{{Key: wrongKey}}
 
 	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newNode := ln.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(), nil)
+	dirty, newNode := ln.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.False(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Equal(t, ln, newNode)
@@ -715,7 +715,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.True(t, newNode.isDirty())
@@ -736,7 +736,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Nil(t, newNode)
@@ -761,7 +761,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Equal(t, [][]byte{originalHash}, modifiedHashes.Get())
@@ -792,7 +792,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		newNode := ln.insert(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Equal(t, [][]byte{originalHash}, modifiedHashes.Get())
@@ -824,7 +824,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := ln.delete(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.True(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -846,7 +846,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
 		assert.Nil(t, err)
 
-		modifiedHashes := common.NewModifiedHashesSlice()
+		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := ln.delete(newData, goRoutinesManager, modifiedHashes, nil)
 		assert.False(t, dirty)
 		assert.Nil(t, goRoutinesManager.GetError())

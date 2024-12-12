@@ -250,8 +250,7 @@ func (en *extensionNode) resolveIfCollapsed(db common.TrieStorageInteractor) (no
 	en.childMutex.Lock()
 	defer en.childMutex.Unlock()
 
-	isChildCollapsed := en.child == nil && len(en.EncodedChild) != 0
-	if !isChildCollapsed {
+	if !en.isCollapsed() {
 		handleStorageInteractorStats(db)
 		return en.child, nil
 	}
@@ -611,6 +610,9 @@ func (en *extensionNode) isEmptyOrNil() error {
 	if en == nil {
 		return ErrNilExtensionNode
 	}
+
+	en.childMutex.RLock()
+	defer en.childMutex.RUnlock()
 	if en.child == nil && len(en.EncodedChild) == 0 {
 		return ErrEmptyExtensionNode
 	}
