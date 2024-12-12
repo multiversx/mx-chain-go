@@ -38,7 +38,7 @@ jobs:
       - name: Determine Target Branches
         id: target_branch
         run: |
-          echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
+          echo "CURRENT_BRANCH=$(git symbolic-ref --short HEAD)" >> $GITHUB_ENV
 
           # Default target branches based on the PR base branch
           if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
