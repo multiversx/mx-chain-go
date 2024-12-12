@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -98,17 +97,7 @@ func TestWrappedTransaction_decideFeePayer(t *testing.T) {
 	})
 
 	t.Run("when relayer is fee payer", func(t *testing.T) {
-		tx := &WrappedTransaction{
-			Tx: &transaction.Transaction{
-				SndAddr:     []byte("a"),
-				Nonce:       7,
-				GasLimit:    1_000_000,
-				GasPrice:    oneBillion,
-				RelayerAddr: []byte("b"),
-			},
-			TxHash: []byte("abba"),
-		}
-
+		tx := createTx([]byte("a"), "a", 1).withRelayer([]byte("b")).withGasLimit(100_000)
 		tx.precomputeFields(host)
 
 		require.Nil(t, tx.TransferredValue)

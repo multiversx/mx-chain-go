@@ -192,6 +192,12 @@ func (wrappedTx *WrappedTransaction) withValue(value *big.Int) *WrappedTransacti
 	return wrappedTx
 }
 
+func (wrappedTx *WrappedTransaction) withRelayer(relayer []byte) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.RelayerAddr = relayer
+	return wrappedTx
+}
+
 func createFakeSenderAddress(senderTag int) []byte {
 	bytes := make([]byte, 32)
 	binary.LittleEndian.PutUint64(bytes, uint64(senderTag))
