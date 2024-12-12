@@ -35,6 +35,11 @@ jobs:
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
 
     steps:
+      - name: Clean worskpace and runner temp
+        run: |
+          rm -rf /home/runner/work/* || true
+          rm -rf $RUNNER_TEMP/* || true
+
       - name: Determine Target Branches
         id: target_branch
         run: |
