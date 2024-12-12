@@ -38,7 +38,7 @@ func runEsdtSetNewURIsTest(t *testing.T, tokenType string) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
-	testContext.BlockchainHook.(process.BlockChainHookHandler).SetCurrentHeader(&dataBlock.Header{Round: 7})
+	_ = testContext.BlockchainHook.(process.BlockChainHookHandler).SetCurrentHeader(&dataBlock.Header{Round: 7})
 
 	createAccWithBalance(t, testContext.Accounts, sndAddr, big.NewInt(100000000))
 	createAccWithBalance(t, testContext.Accounts, core.ESDTSCAddress, big.NewInt(100000000))

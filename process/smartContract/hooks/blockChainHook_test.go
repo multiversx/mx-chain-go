@@ -69,6 +69,8 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		GasSchedule:              testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 	return arguments
 }
@@ -1011,11 +1013,26 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	t.Parallel()
 
+	epoch := uint32(7)
+	randSeed := []byte("a")
+
+	epochStartNonce := uint64(30)
+	epochStartRound := uint64(3)
+	epochStartTimestamp := uint64(1000)
+
+	epochStartHdr := &block.Header{
+		Nonce:              epochStartNonce,
+		Round:              epochStartRound,
+		TimeStamp:          epochStartTimestamp,
+		RandSeed:           randSeed,
+		Epoch:              epoch,
+		EpochStartMetaHash: []byte("meta"),
+	}
+
 	nonce := uint64(37)
 	round := uint64(5)
 	timestamp := uint64(1234)
-	randSeed := []byte("a")
-	epoch := uint32(7)
+
 	hdr := &block.Header{
 		Nonce:     nonce,
 		Round:     round,
@@ -1027,19 +1044,23 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	args := createMockBlockChainHookArgs()
 	bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	bh.SetCurrentHeader(hdr)
+	err := bh.SetCurrentHeader(epochStartHdr)
+	require.Nil(t, err)
+
+	err = bh.SetCurrentHeader(hdr)
+	require.Nil(t, err)
 	assert.Equal(t, nonce, bh.CurrentNonce())
 	assert.Equal(t, round, bh.CurrentRound())
 	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
 	assert.Equal(t, epoch, bh.CurrentEpoch())
 	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
 
-	bh.SetCurrentHeader(nil)
-	assert.Equal(t, nonce, bh.CurrentNonce())
-	assert.Equal(t, round, bh.CurrentRound())
-	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
-	assert.Equal(t, epoch, bh.CurrentEpoch())
-	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
+	assert.Equal(t, epochStartNonce, bh.EpochStartBlockNonce())
+	assert.Equal(t, epochStartRound, bh.EpochStartBlockRound())
+	assert.Equal(t, epochStartTimestamp, bh.EpochStartBlockTimeStamp())
+
+	err = bh.SetCurrentHeader(nil)
+	require.Equal(t, hooks.ErrNilCurrentHeader, err)
 }
 
 func TestBlockChainHookImpl_SaveNFTMetaDataToSystemAccount(t *testing.T) {
