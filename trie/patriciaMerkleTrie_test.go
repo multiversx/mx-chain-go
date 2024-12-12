@@ -1763,7 +1763,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 		for i := 0; i < numTrieValues; i++ {
 			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
 		}
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		// collapse the trie
 		rootHash, _ := tr.RootHash()
