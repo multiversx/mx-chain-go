@@ -288,6 +288,9 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		header.GetPrevHash(),
 		proofHandler.GetPubKeysBitmap(),
 	)
+	if err != nil {
+		return err
+	}
 
 	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
