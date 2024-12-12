@@ -53,8 +53,7 @@ func (sessionWrapper *selectionSessionWrapper) getAccountRecord(address []byte) 
 }
 
 func (sessionWrapper *selectionSessionWrapper) getNonce(address []byte) uint64 {
-	record := sessionWrapper.getAccountRecord(address)
-	return record.initialNonce
+	return sessionWrapper.getAccountRecord(address).initialNonce
 }
 
 func (sessionWrapper *selectionSessionWrapper) accumulateConsumedBalance(tx *WrappedTransaction) {

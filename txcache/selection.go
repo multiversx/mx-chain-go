@@ -90,6 +90,8 @@ func selectTransactionsFromBunches(session SelectionSession, bunches []bunchOfTr
 	return selectedTransactions, accumulatedGas
 }
 
+// Note (future micro-optimization): we can merge "detectSkippableSender()" and "detectSkippableTransaction()" into a single function,
+// any share the result of "sessionWrapper.getNonce()".
 func detectSkippableSender(sessionWrapper *selectionSessionWrapper, item *transactionsHeapItem) bool {
 	nonce := sessionWrapper.getNonce(item.sender)
 
