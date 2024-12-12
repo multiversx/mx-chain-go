@@ -385,17 +385,10 @@ github.com/multiformats/go-varint v0.0.7 h1:sWSGR+f/eu5ABZA2ZpYKBILXTTs9JWpdEM/n
 github.com/multiformats/go-varint v0.0.7/go.mod h1:r8PUYw/fD/SjBCiKOoDlGF6QawOELpZAu9eioSos/OU=
 github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUYwbO0993uPI=
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
-<<<<<<< HEAD
-github.com/multiversx/mx-chain-communication-go v1.1.0 h1:J7bX6HoN3HiHY7cUeEjG8AJWgQDDPcY+OPDOsSUOkRE=
-github.com/multiversx/mx-chain-communication-go v1.1.0/go.mod h1:WK6bP4pGEHGDDna/AYRIMtl6G9OA0NByI1Lw8PmOnRM=
-github.com/multiversx/mx-chain-core-go v1.2.23-0.20240924120353-a1e60f8d53f0 h1:5Bm6Hg5jO+OuwtRfmwQc8XGmw0z7tQJHIcrZ8IaBtQ4=
-github.com/multiversx/mx-chain-core-go v1.2.23-0.20240924120353-a1e60f8d53f0/go.mod h1:B5zU4MFyJezmEzCsAHE9YNULmGCm2zbPHvl9hazNxmE=
-=======
 github.com/multiversx/mx-chain-communication-go v1.1.1 h1:y4DoQeQOJTaSUsRzczQFazf8JYQmInddypApqA3AkwM=
 github.com/multiversx/mx-chain-communication-go v1.1.1/go.mod h1:WK6bP4pGEHGDDna/AYRIMtl6G9OA0NByI1Lw8PmOnRM=
 github.com/multiversx/mx-chain-core-go v1.2.23 h1:8WlCGqJHR2HQ0vN4feJwb7W4VrCwBGIzPPHunOOg5Wc=
 github.com/multiversx/mx-chain-core-go v1.2.23/go.mod h1:B5zU4MFyJezmEzCsAHE9YNULmGCm2zbPHvl9hazNxmE=
->>>>>>> master
 github.com/multiversx/mx-chain-crypto-go v1.2.12 h1:zWip7rpUS4CGthJxfKn5MZfMfYPjVjIiCID6uX5BSOk=
 github.com/multiversx/mx-chain-crypto-go v1.2.12/go.mod h1:HzcPpCm1zanNct/6h2rIh+MFrlXbjA5C8+uMyXj3LI4=
 github.com/multiversx/mx-chain-es-indexer-go v1.7.10 h1:Umi7WN8h4BOXLw7CM3VgvaWkLGef7nXtaPIGbjBCT3U=
@@ -404,21 +397,12 @@ github.com/multiversx/mx-chain-logger-go v1.0.15 h1:HlNdK8etyJyL9NQ+6mIXyKPEBo+w
 github.com/multiversx/mx-chain-logger-go v1.0.15/go.mod h1:t3PRKaWB1M+i6gUfD27KXgzLJJC+mAQiN+FLlL1yoGQ=
 github.com/multiversx/mx-chain-scenario-go v1.4.4 h1:DVE2V+FPeyD/yWoC+KEfPK3jsFzHeruelESfpTlf460=
 github.com/multiversx/mx-chain-scenario-go v1.4.4/go.mod h1:kI+TWR3oIEgUkbwkHCPo2CQ3VjIge+ezGTibiSGwMxo=
-<<<<<<< HEAD
-github.com/multiversx/mx-chain-storage-go v1.0.17-0.20240909105906-39ad1daf2a4c h1:1Wmh5iblKtE6S5NBdyPcHcKmiR3C1oF+MNRBVOrmAcc=
-github.com/multiversx/mx-chain-storage-go v1.0.17-0.20240909105906-39ad1daf2a4c/go.mod h1:2VWMriwcI0s7kTnKHqJxFQnb0aMswc5KTbHp8MKw3Uk=
-github.com/multiversx/mx-chain-vm-common-go v1.5.14-0.20240812082318-afa839968da3 h1:RlHKl5enbGrleB0Aea9TinZLLymS4WvG0/xAt/iRb6E=
-github.com/multiversx/mx-chain-vm-common-go v1.5.14-0.20240812082318-afa839968da3/go.mod h1:OSvFbzdWThfRbLZbUsEr7bikBSaLrPJQ2iUm9jw9nXQ=
-github.com/multiversx/mx-chain-vm-go v1.5.32-0.20240812082514-1f3c25b3171e h1:BkZtPUAQ9JlATkENydCLxPZ819hjop6laZtmC7Wzqec=
-github.com/multiversx/mx-chain-vm-go v1.5.32-0.20240812082514-1f3c25b3171e/go.mod h1:j9FBeftA/BKfn0BbndKV7bNFJAzwCnYZuebsM/sufK0=
-=======
 github.com/multiversx/mx-chain-storage-go v1.0.18 h1:DA33o5COEjnCKclCeCvzXXI0zIgFp2QqZK32UTVvDes=
 github.com/multiversx/mx-chain-storage-go v1.0.18/go.mod h1:eFDEOrG7Wiyk5I/ObpwcN2eoBlOnnfeEMTvTer1cymk=
 github.com/multiversx/mx-chain-vm-common-go v1.5.16 h1:g1SqYjxl7K66Y1O/q6tvDJ37fzpzlxCSfRzSm/woQQY=
 github.com/multiversx/mx-chain-vm-common-go v1.5.16/go.mod h1:1rSkXreUZNXyPTTdhj47M+Fy62yjxbu3aAsXEtKN3UY=
 github.com/multiversx/mx-chain-vm-go v1.5.37 h1:Iy3KCvM+DOq1f9UPA7uYK/rI3ZbBOXc2CVNO2/vm5zw=
 github.com/multiversx/mx-chain-vm-go v1.5.37/go.mod h1:nzLrWeXvfxCIiwj5uNBZq3d7stkXyeY+Fktfr4tTaiY=
->>>>>>> master
 github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68 h1:L3GoAVFtLLzr9ya0rVv1YdTUzS3MyM7kQNBSAjCNO2g=
 github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68/go.mod h1:ixxwib+1pXwSDHG5Wa34v0SRScF+BwFzH4wFWY31saI=
 github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69 h1:G/PLsyfQV4bMLs2amGRvaLKZoW1DC7M+7ecVaLuaCNc=
