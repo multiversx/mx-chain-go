@@ -251,7 +251,7 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 			continue
 		}
 
-		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
+		if tokenTypeEquals(esdtToken.TokenType, tokenType) {
 			tokens = append(tokens, tokenName)
 		}
 	}
@@ -266,6 +266,19 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 	}
 
 	return tokens, nil
+}
+
+func tokenTypeEquals(tokenType []byte, providedTokenType string) bool {
+	if providedTokenType == core.NonFungibleESDTv2 ||
+		providedTokenType == core.NonFungibleESDT {
+		return bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) || bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) || bytes.Equal(tokenType, []byte(core.DynamicNFTESDT))
+	}
+
+	if providedTokenType == core.SemiFungibleESDT {
+		return bytes.Equal(tokenType, []byte(core.SemiFungibleESDT)) || bytes.Equal(tokenType, []byte(core.DynamicSFTESDT))
+	}
+
+	return bytes.Equal(tokenType, []byte(providedTokenType))
 }
 
 func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContracts.ESDTDataV2, bool) {
@@ -798,8 +811,6 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
-		n.coreComponents.EnableEpochsHandler(),
-		n.processComponents.RelayedTxV3Processor(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -893,33 +904,25 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:             txArgs.Nonce,
-		Value:             valAsBigInt,
-		RcvAddr:           receiverAddress,
-		RcvUserName:       txArgs.ReceiverUsername,
-		SndAddr:           senderAddress,
-		SndUserName:       txArgs.SenderUsername,
-		GasPrice:          txArgs.GasPrice,
-		GasLimit:          txArgs.GasLimit,
-		Data:              txArgs.DataField,
-		Signature:         signatureBytes,
-		ChainID:           []byte(txArgs.ChainID),
-		Version:           txArgs.Version,
-		Options:           txArgs.Options,
-		InnerTransactions: txArgs.InnerTransactions,
+		Nonce:       txArgs.Nonce,
+		Value:       valAsBigInt,
+		RcvAddr:     receiverAddress,
+		RcvUserName: txArgs.ReceiverUsername,
+		SndAddr:     senderAddress,
+		SndUserName: txArgs.SenderUsername,
+		GasPrice:    txArgs.GasPrice,
+		GasLimit:    txArgs.GasLimit,
+		Data:        txArgs.DataField,
+		Signature:   signatureBytes,
+		ChainID:     []byte(txArgs.ChainID),
+		Version:     txArgs.Version,
+		Options:     txArgs.Options,
 	}
 
 	if len(txArgs.Guardian) > 0 {
 		err = n.setTxGuardianData(txArgs.Guardian, txArgs.GuardianSigHex, tx)
 		if err != nil {
 			return nil, nil, err
-		}
-	}
-
-	if len(txArgs.Relayer) > 0 {
-		tx.RelayerAddr, err = addrPubKeyConverter.Decode(txArgs.Relayer)
-		if err != nil {
-			return nil, nil, errors.New("could not create relayer address from provided param")
 		}
 	}
 

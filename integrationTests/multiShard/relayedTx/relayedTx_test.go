@@ -33,36 +33,32 @@ type createAndSendRelayedAndUserTxFuncType = func(
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTx, false))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTx, false))
 	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV2, false))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTx, false))
 	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV2, false))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTx, false))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
-	relayedV3Test bool,
+	baseCostFixEnabled bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(baseCostFixEnabled)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -119,14 +115,14 @@ func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 
 func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
-	relayedV3Test bool,
+	baseCostFixEnabled bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(baseCostFixEnabled)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -192,7 +188,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 		}
 		time.Sleep(time.Second)
 
-		roundToPropagateMultiShard := int64(25)
+		roundToPropagateMultiShard := int64(40)
 		for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -204,7 +200,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 		finalBalance.Mul(finalBalance, sendValue)
 
 		checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
-		checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
+		checkSCBalance(t, ownerNode, scAddress, receiverAddress2, finalBalance)
 
 		checkPlayerBalances(t, nodes, players)
 
@@ -215,14 +211,14 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 
 func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
-	relayedV3Test bool,
+	baseCostFixEnabled bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(baseCostFixEnabled)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -440,7 +436,7 @@ func checkSCBalance(t *testing.T, node *integrationTests.TestProcessorNode, scAd
 	})
 	assert.Nil(t, err)
 	actualBalance := big.NewInt(0).SetBytes(vmOutput.ReturnData[0])
-	assert.Equal(t, 0, actualBalance.Cmp(balance))
+	assert.Equal(t, balance.String(), actualBalance.String())
 }
 
 func checkPlayerBalances(

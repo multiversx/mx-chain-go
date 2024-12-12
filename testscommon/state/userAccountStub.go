@@ -25,6 +25,7 @@ type UserAccountStub struct {
 	Address          []byte
 	CodeMetadata     []byte
 	CodeHash         []byte
+	Nonce            uint64
 
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker

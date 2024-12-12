@@ -142,7 +142,7 @@ func TestESDTTransfer(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	tx := utils.CreateESDTTransferTx(0, sndAddr, rcvAddr, token, big.NewInt(100), 0, 0)
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
@@ -170,7 +170,7 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)

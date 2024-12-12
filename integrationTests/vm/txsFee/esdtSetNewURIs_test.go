@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -64,7 +65,12 @@ func runEsdtSetNewURIsTest(t *testing.T, tokenType string) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	retrievedMetaData := getMetaDataFromAcc(t, testContext, core.SystemAccountAddress, key)
+	retrievedMetaData := &esdt.MetaData{}
+	if tokenType == core.DynamicNFTESDT {
+		retrievedMetaData = getMetaDataFromAcc(t, testContext, sndAddr, key)
+	} else {
+		retrievedMetaData = getMetaDataFromAcc(t, testContext, core.SystemAccountAddress, key)
+	}
 	require.Equal(t, [][]byte{[]byte("newUri1"), []byte("newUri2")}, retrievedMetaData.URIs)
 }
 

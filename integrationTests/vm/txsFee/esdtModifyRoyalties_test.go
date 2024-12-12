@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -63,7 +64,12 @@ func runEsdtModifyRoyaltiesTest(t *testing.T, tokenType string) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	retrievedMetaData := getMetaDataFromAcc(t, testContext, core.SystemAccountAddress, key)
+	retrievedMetaData := &esdt.MetaData{}
+	if tokenType == core.DynamicNFTESDT {
+		retrievedMetaData = getMetaDataFromAcc(t, testContext, creatorAddr, key)
+	} else {
+		retrievedMetaData = getMetaDataFromAcc(t, testContext, core.SystemAccountAddress, key)
+	}
 	require.Equal(t, uint32(big.NewInt(20).Uint64()), retrievedMetaData.Royalties)
 }
 
