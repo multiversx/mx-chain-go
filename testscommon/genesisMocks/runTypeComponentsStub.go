@@ -73,8 +73,6 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 // NewSovereignRunTypeComponentsStub -
 func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	runTypeComponents := NewRunTypeComponentsStub()
-
-	blockChainHookHandlerFactory, _ := hooks.NewSovereignBlockChainHookFactory(runTypeComponents.BlockChainHookHandlerFactory)
 	transactionCoordinatorFactory, _ := coordinator.NewSovereignTransactionCoordinatorFactory(runTypeComponents.TransactionCoordinatorFactory)
 	scResultsPreProcessorCreator, _ := preprocess.NewSovereignSmartContractResultPreProcessorFactory(runTypeComponents.SCResultsPreProcessorFactory)
 	scProcessorCreator, _ := processorV2.NewSovereignSCProcessFactory(runTypeComponents.SCProcessorFactory)
@@ -94,7 +92,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	sovHdrFactory, _ := block.NewSovereignShardHeaderFactory(createHeaderVersionHandler("S1"))
 
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
+		BlockChainHookHandlerFactory:              hooks.NewSovereignBlockChainHookFactory(),
 		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
 		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
 		SCProcessorFactory:                        scProcessorCreator,

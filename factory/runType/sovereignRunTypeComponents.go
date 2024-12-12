@@ -93,19 +93,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	if err != nil {
 		return nil, err
 	}
-
-	sovBlockChainHookHandlerFactory, err := hooks.NewSovereignBlockChainHookFactory(rtc.blockChainHookHandlerCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignBlockChainHookFactory failed: %w", err)
-	}
-
-	epochStartBootstrapperFactory, err := bootstrap.NewSovereignEpochStartBootstrapperFactory(rtc.epochStartBootstrapperCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignEpochStartBootstrapperFactory failed: %w", err)
-	}
-
-	bootstrapperFromStorageFactory := storageBootstrap.NewSovereignShardStorageBootstrapperFactory()
-
 	bootstrapperFactory, err := storageBootstrap.NewSovereignShardBootstrapFactory(rtc.bootstrapperCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignShardBootstrapFactory failed: %w", err)
@@ -234,9 +221,9 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            sovBlockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
+		blockChainHookHandlerCreator:            hooks.NewSovereignBlockChainHookFactory(),
+		epochStartBootstrapperCreator:           bootstrap.NewSovereignEpochStartBootstrapperFactory(),
+		bootstrapperFromStorageCreator:          storageBootstrap.NewSovereignShardStorageBootstrapperFactory(),
 		bootstrapperCreator:                     bootstrapperFactory,
 		blockProcessorCreator:                   blockProcessorFactory,
 		forkDetectorCreator:                     forkDetectorFactory,

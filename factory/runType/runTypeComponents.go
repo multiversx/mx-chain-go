@@ -158,25 +158,11 @@ func NewRunTypeComponentsFactory(args ArgsRunTypeComponents) (*runTypeComponents
 
 // Create creates the runType components
 func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
-	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
-	}
-
-	additionalStorageServiceCreator, err := storageFactory.NewShardAdditionalStorageServiceFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardAdditionalStorageServiceFactory failed: %w", err)
-	}
-
-	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
-
 	vmContextCreator := systemSmartContracts.NewVMContextCreator()
 	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(vmContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
-
-	vmContainerShardCreator := factoryVm.NewVmContainerShardFactory()
 
 	totalSupply, ok := big.NewInt(0).SetString(rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
@@ -233,13 +219,13 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		headerValidatorCreator:                  block.NewShardHeaderValidatorFactory(),
 		scheduledTxsExecutionCreator:            preprocess.NewShardScheduledTxsExecutionFactory(),
 		transactionCoordinatorCreator:           coordinator.NewShardTransactionCoordinatorFactory(),
-		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:         additionalStorageServiceCreator,
-		scProcessorCreator:                      scProcessorCreator,
+		validatorStatisticsProcessorCreator:     peer.NewValidatorStatisticsProcessorFactory(),
+		additionalStorageServiceCreator:         storageFactory.NewShardAdditionalStorageServiceFactory(),
+		scProcessorCreator:                      processProxy.NewSCProcessProxyFactory(),
 		scResultPreProcessorCreator:             preprocess.NewSmartContractResultPreProcessorFactory(),
 		consensusModel:                          consensus.ConsensusModelV1,
 		vmContainerMetaFactory:                  vmContainerMetaCreator,
-		vmContainerShardFactory:                 vmContainerShardCreator,
+		vmContainerShardFactory:                 factoryVm.NewVmContainerShardFactory(),
 		accountsParser:                          accountsParser,
 		accountsCreator:                         accountsCreator,
 		vmContextCreator:                        vmContextCreator,
