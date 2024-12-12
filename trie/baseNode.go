@@ -15,6 +15,9 @@ type baseNode struct {
 }
 
 func (bn *baseNode) getHash() []byte {
+	bn.mutex.RLock()
+	defer bn.mutex.RUnlock()
+
 	return bn.hash
 }
 
@@ -23,6 +26,9 @@ func (bn *baseNode) setGivenHash(hash []byte) {
 }
 
 func (bn *baseNode) isDirty() bool {
+	bn.mutex.RLock()
+	defer bn.mutex.RUnlock()
+
 	return bn.dirty
 }
 

@@ -313,13 +313,13 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 		return hash, nil
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return nil, err
 	}
 
-	rootNode.setHash(manager)
-	err = manager.GetError()
+	rootNode.setHash(tr.goRoutinesManager)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return nil, err
 	}
@@ -353,13 +353,13 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return nil
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
 
-	rootNode.setHash(manager)
-	err = manager.GetError()
+	rootNode.setHash(tr.goRoutinesManager)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
@@ -482,13 +482,13 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 		return nil, nil
 	}
 
-	manager, err := NewGoroutinesManager(tr.goroutinesThrottler, errChan.NewErrChanWrapper(), tr.chanClose)
+	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return nil, err
 	}
 
-	rootNode.setHash(manager)
-	err = manager.GetError()
+	rootNode.setHash(tr.goRoutinesManager)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return nil, err
 	}
