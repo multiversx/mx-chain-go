@@ -554,9 +554,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 }
 
 func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) ([]byte, error) {
-	log.Trace("accountsDB.saveAccountToTrie",
-		"address", hex.EncodeToString(accountHandler.AddressBytes()),
-	)
+	log.Trace("accountsDB.saveAccountToTrie", "address", accountHandler.AddressBytes())
 
 	// pass the reference to marshaller, otherwise it will fail marshalling balance
 	buff, err := adb.marshaller.Marshal(accountHandler)
@@ -686,9 +684,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 		return nil, fmt.Errorf("%w in LoadAccount", ErrNilAddress)
 	}
 
-	log.Trace("accountsDB.LoadAccount",
-		"address", hex.EncodeToString(address),
-	)
+	log.Trace("accountsDB.LoadAccount", "address", address)
 
 	mainTrie := adb.getMainTrie()
 	acnt, err := adb.getAccount(address, mainTrie)
@@ -747,9 +743,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		return nil, fmt.Errorf("%w in GetExistingAccount", ErrNilAddress)
 	}
 
-	log.Trace("accountsDB.GetExistingAccount",
-		"address", hex.EncodeToString(address),
-	)
+	log.Trace("accountsDB.GetExistingAccount", "address", address)
 
 	mainTrie := adb.getMainTrie()
 	acnt, err := adb.getAccount(address, mainTrie)

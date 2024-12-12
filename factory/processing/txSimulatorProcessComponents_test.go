@@ -8,8 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
@@ -25,30 +25,35 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 	t.Run("invalid VMOutputCacher config should error", func(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForShardID2)
 		processArgs.Config.VMOutputCacher.Type = "invalid"
-		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
+		pcf, err := processing.NewProcessComponentsFactory(processArgs)
+		require.Nil(t, err)
 
-		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{})
-		assert.NotNil(t, err)
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
+		require.NotNil(t, err)
 		assert.True(t, check.IfNil(apiTransactionEvaluator))
 		assert.True(t, check.IfNil(vmContainerFactory))
 		assert.Contains(t, err.Error(), "not supported cache type")
 	})
 	t.Run("should work for shard", func(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForShardID2)
-		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
+		pcf, err := processing.NewProcessComponentsFactory(processArgs)
+		require.Nil(t, err)
 
-		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{})
-		assert.Nil(t, err)
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
+		require.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
+		require.NoError(t, vmContainerFactory.Close())
 	})
 	t.Run("should work for metachain", func(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForMetachain)
-		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
+		pcf, err := processing.NewProcessComponentsFactory(processArgs)
+		require.Nil(t, err)
 
-		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{})
-		assert.Nil(t, err)
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
+		require.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
+		require.NoError(t, vmContainerFactory.Close())
 	})
 }

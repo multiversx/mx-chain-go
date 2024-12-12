@@ -201,7 +201,7 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
 	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
 	if isRelayedAfterFix {
-		fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
+		_, fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
 		tx.InitiallyPaidFee = fee.String()
 	}
 }
@@ -401,8 +401,11 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
 	if isGuardedTx {
 		fieldGetters[signatureField] = hex.EncodeToString(guardedTx.GetSignature())
-		fieldGetters[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
-		fieldGetters[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
+
+		if len(guardedTx.GetGuardianAddr()) > 0 {
+			fieldGetters[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
+			fieldGetters[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
+		}
 	}
 
 	return fieldGetters

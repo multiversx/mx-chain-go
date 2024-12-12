@@ -58,7 +58,6 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	require.NoError(t, err)
@@ -165,7 +164,8 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardC)
 
-	pcf, _ := processComp.NewProcessComponentsFactory(args)
+	pcf, err := processComp.NewProcessComponentsFactory(args)
+	require.NoError(t, err)
 	require.NotNil(t, pcf)
 
 	_, err = pcf.Create()
@@ -187,7 +187,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
-		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	require.NoError(t, err)

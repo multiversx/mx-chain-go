@@ -408,7 +408,6 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
 	require.NotNil(t, comp.EpochSystemSCProcessor())
-	require.NotNil(t, comp.RelayedTxV3Processor())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 
