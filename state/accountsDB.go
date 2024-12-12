@@ -553,7 +553,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 	return newValues, nil
 }
 
-func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) error {
+func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) ([]byte, error) {
 	log.Trace("accountsDB.saveAccountToTrie", "address", accountHandler.AddressBytes())
 
 	// pass the reference to marshaller, otherwise it will fail marshalling balance
