@@ -1,6 +1,7 @@
 package relayedTx
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
@@ -20,7 +21,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/vm"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,8 +58,10 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	t.Run("intra shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 0))
 	t.Run("cross shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 1))
 
-	t.Run("successful intra shard sc call with refunds", testRelayedV3ScCall(0, 0))
-	t.Run("successful cross shard sc call with refunds", testRelayedV3ScCall(0, 1))
+	t.Run("successful intra shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 0, true))
+	t.Run("successful intra shard sc call with refunds, new sender", testRelayedV3ScCall(0, 0, false))
+	t.Run("successful cross shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 1, true))
+	t.Run("successful cross shard sc call with refunds, new sender", testRelayedV3ScCall(0, 1, false))
 	t.Run("intra shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 0))
 	t.Run("cross shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 1))
 	t.Run("intra shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 0))
@@ -267,6 +272,7 @@ func testRelayedV3MoveInvalidGasLimit(
 func testRelayedV3ScCall(
 	relayerShard uint32,
 	ownerShard uint32,
+	existingSenderWithBalance bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
@@ -286,8 +292,7 @@ func testRelayedV3ScCall(
 		relayer, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
 		require.NoError(t, err)
 
-		sender, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
-		require.NoError(t, err)
+		sender, senderInitialBalance := prepareSender(t, cs, existingSenderWithBalance, relayerShard, initialBalance)
 
 		owner, err := cs.GenerateAndMintWalletAddress(ownerShard, initialBalance)
 		require.NoError(t, err)
@@ -330,7 +335,7 @@ func testRelayedV3ScCall(
 
 		// check sender balance
 		senderBalanceAfter := getBalance(t, cs, sender)
-		require.Equal(t, initialBalance.String(), senderBalanceAfter.String())
+		require.Equal(t, senderInitialBalance.String(), senderBalanceAfter.String())
 
 		// check owner balance
 		_, feeDeploy, _ := computeTxGasAndFeeBasedOnRefund(resultDeploy, refundDeploy, false, false)
@@ -344,6 +349,46 @@ func testRelayedV3ScCall(
 			checkSCRSucceeded(t, cs, scr)
 		}
 	}
+}
+
+func prepareSender(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	existingSenderWithBalance bool,
+	shard uint32,
+	initialBalance *big.Int,
+) (dtos.WalletAddress, *big.Int) {
+	if existingSenderWithBalance {
+		sender, err := cs.GenerateAndMintWalletAddress(shard, initialBalance)
+		require.NoError(t, err)
+
+		return sender, initialBalance
+	}
+
+	shardC := cs.GetNodeHandler(shard).GetShardCoordinator()
+	pkConv := cs.GetNodeHandler(shard).GetCoreComponents().AddressPubKeyConverter()
+	newAddress := generateAddressInShard(shardC, pkConv.Len())
+	return dtos.WalletAddress{
+		Bech32: pkConv.SilentEncode(newAddress, logger.GetOrCreate("tmp")),
+		Bytes:  newAddress,
+	}, big.NewInt(0)
+}
+
+func generateAddressInShard(shardCoordinator sharding.Coordinator, len int) []byte {
+	for {
+		buff := generateAddress(len)
+		shardID := shardCoordinator.ComputeId(buff)
+		if shardID == shardCoordinator.SelfId() {
+			return buff
+		}
+	}
+}
+
+func generateAddress(len int) []byte {
+	buff := make([]byte, len)
+	_, _ = rand.Read(buff)
+
+	return buff
 }
 
 func testRelayedV3ScCallInvalidGasLimit(
