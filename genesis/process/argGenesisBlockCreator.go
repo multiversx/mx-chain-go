@@ -65,6 +65,7 @@ type runTypeComponentsHandler interface {
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
+	VersionedHeaderFactory() genesis.VersionedHeaderFactory
 	IsInterfaceNil() bool
 }
 

@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/errors"
-	factoryBlock "github.com/multiversx/mx-chain-go/factory/block"
 	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
@@ -536,11 +535,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
 	newArgument := gbc.arg // copy the arguments
-	newArgument.versionedHeaderFactory, err = gbc.createVersionedHeaderFactory()
-	if err != nil {
-		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating a VersionedHeaderFactory instance for shard %d",
-			err, shardID)
-	}
+	newArgument.versionedHeaderFactory = gbc.arg.RunTypeComponents.VersionedHeaderFactory()
 
 	if isCurrentShard {
 		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
@@ -571,25 +566,6 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	// create copy of components handlers we need to change temporarily
 	newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 	return newArgument, err
-}
-
-func (gbc *genesisBlockCreator) createVersionedHeaderFactory() (genesis.VersionedHeaderFactory, error) {
-	cacheConfig := factory.GetCacherFromConfig(gbc.arg.HeaderVersionConfigs.Cache)
-	cache, err := storageunit.NewCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	headerVersionHandler, err := factoryBlock.NewHeaderVersionHandler(
-		gbc.arg.HeaderVersionConfigs.VersionsByEpochs,
-		gbc.arg.HeaderVersionConfigs.DefaultVersion,
-		cache,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return factoryBlock.NewShardHeaderFactory(headerVersionHandler)
 }
 
 func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) error {

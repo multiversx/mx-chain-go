@@ -21,6 +21,7 @@ import (
 	factoryCore "github.com/multiversx/mx-chain-go/factory/core"
 	factoryCrypto "github.com/multiversx/mx-chain-go/factory/crypto"
 	factoryData "github.com/multiversx/mx-chain-go/factory/data"
+	"github.com/multiversx/mx-chain-go/factory/disabled"
 	factoryNetwork "github.com/multiversx/mx-chain-go/factory/network"
 	factoryProcessing "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/factory/runType"
@@ -448,27 +449,28 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        pr.NodesCoordinator,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:          pr.Config.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		Data:                    pr.DataComponents,
-		CoreData:                pr.CoreComponents,
-		Crypto:                  pr.CryptoComponents,
-		State:                   pr.StateComponents,
-		Network:                 pr.NetworkComponents,
-		BootstrapComponents:     pr.BootstrapComponents,
-		StatusComponents:        pr.StatusComponents,
-		StatusCoreComponents:    pr.StatusCoreComponents,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		RunTypeComponents:       pr.RunTypeComponents,
-		EnableEpochsFactory:     pr.RunTypeCoreComponents.EnableEpochsFactoryCreator(),
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         pr.NodesCoordinator,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:           pr.Config.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		Data:                     pr.DataComponents,
+		CoreData:                 pr.CoreComponents,
+		Crypto:                   pr.CryptoComponents,
+		State:                    pr.StateComponents,
+		Network:                  pr.NetworkComponents,
+		BootstrapComponents:      pr.BootstrapComponents,
+		StatusComponents:         pr.StatusComponents,
+		StatusCoreComponents:     pr.StatusCoreComponents,
+		TxExecutionOrderHandler:  txExecutionOrderHandler,
+		RunTypeComponents:        pr.RunTypeComponents,
+		IncomingHeaderSubscriber: &disabled.IncomingHeaderProcessor{},
+		EnableEpochsFactory:      pr.RunTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

@@ -651,6 +651,7 @@ type RunTypeComponentsHolder interface {
 	DelegatedListFactoryHandler() trieIteratorsFactory.DelegatedListProcessorFactoryHandler
 	DirectStakedListFactoryHandler() trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 	TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
+	VersionedHeaderFactory() genesis.VersionedHeaderFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error
