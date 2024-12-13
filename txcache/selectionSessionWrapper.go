@@ -8,11 +8,11 @@ import (
 
 // After moving "mx-chain-storage-go/txcache" into "mx-chain-go", maybe merge this component into "SelectionSession".
 type selectionSessionWrapper struct {
-	session         SelectionSession
-	recordByAddress map[string]*accountBalanceRecord
+	session          SelectionSession
+	recordsByAddress map[string]*accountRecord
 }
 
-type accountBalanceRecord struct {
+type accountRecord struct {
 	initialNonce    uint64
 	initialBalance  *big.Int
 	consumedBalance *big.Int
@@ -20,13 +20,13 @@ type accountBalanceRecord struct {
 
 func newSelectionSessionWrapper(session SelectionSession) *selectionSessionWrapper {
 	return &selectionSessionWrapper{
-		session:         session,
-		recordByAddress: make(map[string]*accountBalanceRecord),
+		session:          session,
+		recordsByAddress: make(map[string]*accountRecord),
 	}
 }
 
-func (sessionWrapper *selectionSessionWrapper) getAccountRecord(address []byte) *accountBalanceRecord {
-	record, ok := sessionWrapper.recordByAddress[string(address)]
+func (sessionWrapper *selectionSessionWrapper) getAccountRecord(address []byte) *accountRecord {
+	record, ok := sessionWrapper.recordsByAddress[string(address)]
 	if ok {
 		return record
 	}
@@ -35,20 +35,20 @@ func (sessionWrapper *selectionSessionWrapper) getAccountRecord(address []byte) 
 	if err != nil {
 		logSelect.Debug("selectionSessionWrapper.getAccountRecord, could not retrieve account state", "address", address, "err", err)
 
-		record = &accountBalanceRecord{
+		record = &accountRecord{
 			initialNonce:    0,
 			initialBalance:  big.NewInt(0),
 			consumedBalance: big.NewInt(0),
 		}
 	} else {
-		record = &accountBalanceRecord{
+		record = &accountRecord{
 			initialNonce:    state.Nonce,
 			initialBalance:  state.Balance,
 			consumedBalance: big.NewInt(0),
 		}
 	}
 
-	sessionWrapper.recordByAddress[string(address)] = record
+	sessionWrapper.recordsByAddress[string(address)] = record
 	return record
 }
 
