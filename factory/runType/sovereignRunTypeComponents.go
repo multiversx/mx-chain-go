@@ -93,10 +93,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	if err != nil {
 		return nil, err
 	}
-	bootstrapperFactory, err := storageBootstrap.NewSovereignShardBootstrapFactory(rtc.bootstrapperCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignShardBootstrapFactory failed: %w", err)
-	}
 
 	blockProcessorFactory, err := block.NewSovereignBlockProcessorFactory(rtc.blockProcessorCreator)
 	if err != nil {
@@ -121,11 +117,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	headerValidatorFactory, err := block.NewSovereignHeaderValidatorFactory(rtc.headerValidatorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignHeaderValidatorFactory failed: %w", err)
-	}
-
-	scheduledTxsExecutionFactory, err := preprocess.NewSovereignScheduledTxsExecutionFactory()
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
 	}
 
 	transactionCoordinatorFactory, err := coordinator.NewSovereignTransactionCoordinatorFactory(rtc.transactionCoordinatorCreator)
@@ -224,13 +215,13 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		blockChainHookHandlerCreator:            hooks.NewSovereignBlockChainHookFactory(),
 		epochStartBootstrapperCreator:           bootstrap.NewSovereignEpochStartBootstrapperFactory(),
 		bootstrapperFromStorageCreator:          storageBootstrap.NewSovereignShardStorageBootstrapperFactory(),
-		bootstrapperCreator:                     bootstrapperFactory,
+		bootstrapperCreator:                     storageBootstrap.NewSovereignShardBootstrapFactory(),
 		blockProcessorCreator:                   blockProcessorFactory,
 		forkDetectorCreator:                     forkDetectorFactory,
 		blockTrackerCreator:                     blockTrackerFactory,
 		requestHandlerCreator:                   requestHandlerFactory,
 		headerValidatorCreator:                  headerValidatorFactory,
-		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
+		scheduledTxsExecutionCreator:            preprocess.NewSovereignScheduledTxsExecutionFactory(),
 		transactionCoordinatorCreator:           transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:         storageFactory.NewSovereignAdditionalStorageServiceFactory(),
