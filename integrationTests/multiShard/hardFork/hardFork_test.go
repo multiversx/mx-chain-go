@@ -12,7 +12,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -405,6 +405,12 @@ func hardForkImport(
 			return integrationTests.MinTransactionVersion
 		}
 
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
+		coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
+		coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
+		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+		runTypeComponents := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+
 		dataComponents := integrationTests.GetDefaultDataComponents()
 		dataComponents.Store = node.Storage
 		dataComponents.DataPool = node.DataPool
@@ -505,7 +511,7 @@ func hardForkImport(
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
+			RunTypeComponents:       runTypeComponents,
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)

@@ -7,17 +7,26 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/vm"
-	testFactory "github.com/multiversx/mx-chain-go/process/factory"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 )
+
+func createSovereignRunTypeComponents() runType.RunTypeComponentsHolder {
+	coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetSovereignRunTypeCoreComponents())
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+
+	return componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+}
 
 func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createSovereignRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 		require.Nil(t, err)
 		require.False(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -26,7 +35,7 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("nil vmContainerMetaFactory", func(t *testing.T) {
 		t.Parallel()
 
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createSovereignRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(nil, runTypeComponents.VmContainerShardFactoryCreator())
 		require.ErrorIs(t, err, vm.ErrNilVmContainerMetaCreator)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -35,7 +44,7 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("nil vmContainerShardFactory", func(t *testing.T) {
 		t.Parallel()
 
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createSovereignRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), nil)
 		require.ErrorIs(t, err, vm.ErrNilVmContainerShardCreator)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -48,7 +57,7 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 		t.Skip("skipping test on arm64")
 	}
 
-	runTypeComponents := componentsMock.GetRunTypeComponents()
+	runTypeComponents := createSovereignRunTypeComponents()
 	sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 	require.Nil(t, err)
 	require.False(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -86,12 +95,12 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 	require.Equal(t, "*shard.vmContainerFactory", fmt.Sprintf("%T", vmFactory))
 
 	require.Equal(t, 2, vmContainer.Len())
-	svm, err := vmContainer.Get(testFactory.SystemVirtualMachine)
+	svm, err := vmContainer.Get(processFactory.SystemVirtualMachine)
 	require.Nil(t, err)
 	require.NotNil(t, svm)
 	require.Equal(t, "*process.systemVM", fmt.Sprintf("%T", svm))
 
-	wasmvm, err := vmContainer.Get(testFactory.WasmVirtualMachine)
+	wasmvm, err := vmContainer.Get(processFactory.WasmVirtualMachine)
 	require.Nil(t, err)
 	require.NotNil(t, wasmvm)
 	require.Equal(t, "*hostCore.vmHost", fmt.Sprintf("%T", wasmvm))

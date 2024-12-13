@@ -7,17 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
-	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -48,6 +46,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/update"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1061,16 +1063,41 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 	})
 }
 
+func createConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
+	return createFactoryArgs(componentsMock.GetRunTypeCoreComponents, componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
+}
+
+func createSovereignConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
+	return createFactoryArgs(componentsMock.GetSovereignRunTypeCoreComponents, componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
+}
+
+func createFactoryArgs(
+	getRunTypeCoreComponents func() mainFactory.RunTypeCoreComponentsHolder,
+	getCoreComponents func(cfg config.Config, runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder) mainFactory.CoreComponentsHolder,
+	getRunTypeComponents func(coreComp mainFactory.CoreComponentsHolder, cryptoComp mainFactory.CryptoComponentsHolder) mainFactory.RunTypeComponentsHolder,
+) consensusComp.ConsensusComponentsFactoryArgs {
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := getCoreComponents(cfg, getRunTypeCoreComponents())
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
+	runTypeComp := getRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := componentsMock.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	processComp := componentsMock.GetProcessComponents(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+
+	return componentsMock.GetConsensusFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
+}
+
 func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldWork(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should create a shard storage and sync bootstrapper main chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
-
+		args := createConsensusFactoryArgs()
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
 
@@ -1083,21 +1110,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 	t.Run("should create a shard storage and sync bootstrapper sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
-
-		processArgs := componentsMock.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
-		processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
-		require.Nil(t, err)
-
-		managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
-		require.Nil(t, err)
-
-		err = managedProcessComponents.Create()
-		require.Nil(t, err)
-
-		args.ProcessComponents = managedProcessComponents
+		args := createSovereignConsensusFactoryArgs()
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
 

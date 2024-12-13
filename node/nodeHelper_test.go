@@ -7,13 +7,23 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
+	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/factoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 )
+
+func createRunTypeComponents() runType.RunTypeComponentsHolder {
+	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
+	coreArgs.NodesFilename = "../factory/mock/testdata/nodesSetupMock.json"
+	coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	return componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+}
 
 func TestCreateNode(t *testing.T) {
 	t.Parallel()
@@ -23,7 +33,7 @@ func TestCreateNode(t *testing.T) {
 
 		nodeHandler, err := node.CreateNode(
 			&config.Config{},
-			componentsMock.GetRunTypeComponents(),
+			createRunTypeComponents(),
 			&factory.StatusCoreComponentsStub{},
 			getDefaultBootstrapComponents(),
 			getDefaultCoreComponents(),
@@ -50,7 +60,7 @@ func TestCreateNode(t *testing.T) {
 
 		nodeHandler, err := node.CreateNode(
 			&config.Config{},
-			componentsMock.GetRunTypeComponents(),
+			createRunTypeComponents(),
 			&factory.StatusCoreComponentsStub{},
 			getDefaultBootstrapComponents(),
 			getDefaultCoreComponents(),

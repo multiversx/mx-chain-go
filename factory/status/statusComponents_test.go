@@ -68,6 +68,20 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 	}
 }
 
+func createStatusFactoryArgs() statusComp.StatusComponentsFactoryArgs {
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
+	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+
+	return componentsMock.GetStatusFactoryArgs(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+}
+
 func TestNewStatusComponentsFactory(t *testing.T) {
 	// no t.Parallel for these tests as they create real components
 
@@ -195,7 +209,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		shardCoordinator.SelfIDCalled = func() uint32 {
 			return core.MetachainShardId // coverage
 		}
-		args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
+		args := createStatusFactoryArgs()
+		args.ShardCoordinator = shardCoordinator
 		args.ExternalConfig.HostDriversConfig[0].Enabled = true // coverage
 		scf, err := statusComp.NewStatusComponentsFactory(args)
 		require.Nil(t, err)

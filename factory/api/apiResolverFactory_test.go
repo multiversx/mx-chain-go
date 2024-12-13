@@ -17,7 +17,6 @@ import (
 	errErd "github.com/multiversx/mx-chain-go/errors"
 	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
-	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -78,24 +77,22 @@ func (fs *failingSteps) reset() {
 }
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	coreComponents := componentsMock.GetCoreComponents()
+	cfg := testscommon.GetGeneralConfig()
+	coreComponents := componentsMock.GetCoreComponents(cfg, componentsMock.GetRunTypeCoreComponents())
+	statusCoreComponents := componentsMock.GetStatusCoreComponents(cfg, coreComponents)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
-	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, componentsMock.GetStatusCoreComponents())
-	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
-	argsB := componentsMock.GetBootStrapFactoryArgs()
-
-	bcf, _ := bootstrap.NewBootstrapComponentsFactory(argsB)
-	mbc, err := bootstrap.NewManagedBootstrapComponents(bcf)
-	require.Nil(t, err)
-	err = mbc.Create()
-	require.Nil(t, err)
+	runTypeComponents := componentsMock.GetRunTypeComponents(coreComponents, cryptoComponents)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	bootstrapComponents := componentsMock.GetBootstrapComponents(cfg, statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
+	componentsMock.SetShardCoordinator(t, bootstrapComponents, shardCoordinator)
+	dataComponents := componentsMock.GetDataComponents(cfg, statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
+	stateComponents := componentsMock.GetStateComponents(cfg, coreComponents, dataComponents, statusCoreComponents, runTypeComponents)
+	statusComponents := componentsMock.GetStatusComponents(cfg, statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, &shardingMocks.NodesCoordinatorMock{}, cryptoComponents)
+	processComponents := componentsMock.GetProcessComponents(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
 	economicsConfig := testscommon.GetEconomicsConfig()
-	cfg := componentsMock.GetGeneralConfig()
 
 	return &api.ApiResolverArgs{
 		Configs: &config.Configs{
@@ -110,10 +107,10 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		StateComponents:      stateComponents,
-		BootstrapComponents:  mbc,
+		BootstrapComponents:  bootstrapComponents,
 		CryptoComponents:     cryptoComponents,
 		ProcessComponents:    processComponents,
-		StatusCoreComponents: componentsMock.GetStatusCoreComponents(),
+		StatusCoreComponents: statusCoreComponents,
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			GasSchedule: gasSchedule,
 		},
@@ -122,7 +119,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 		StatusComponents: &mainFactoryMocks.StatusComponentsStub{
 			ManagedPeersMonitorField: &testscommon.ManagedPeersMonitorStub{},
 		},
-		RunTypeComponents: componentsMock.GetRunTypeComponents(),
+		RunTypeComponents: runTypeComponents,
 	}
 }
 
@@ -317,7 +314,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.DelegatedListFactoryField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -329,7 +326,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.DirectStakedListFactoryField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -341,7 +338,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.TotalStakedValueFactoryField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -353,7 +350,7 @@ func TestCreateApiResolver(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs(t)
-		runTypeComps := componentsMock.GetRunTypeComponents()
+		runTypeComps := componentsMock.GetRunTypeComponents(args.CoreComponents, args.CryptoComponents)
 		runTypeCompsStub := componentsMock.GetRunTypeComponentsStub(runTypeComps)
 		runTypeCompsStub.APIRewardsTxHandlerField = nil
 		args.RunTypeComponents = runTypeCompsStub
@@ -364,6 +361,8 @@ func TestCreateApiResolver(t *testing.T) {
 }
 
 func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
+	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetRunTypeCoreComponents())
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
 			Versions: config.VersionsConfig{
@@ -505,7 +504,7 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 		WorkingDir:            "",
 		Index:                 0,
 		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
-		RunTypeComponents:     componentsMock.GetRunTypeComponents(),
+		RunTypeComponents:     componentsMock.GetRunTypeComponents(coreComp, cryptoComp),
 	}
 }
 
@@ -620,8 +619,10 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 	t.Run("sovereign chain should add systemVM", func(t *testing.T) {
 		t.Parallel()
 
+		coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig(), componentsMock.GetSovereignRunTypeCoreComponents())
+		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 		args := createMockSCQueryElementArgs(0)
-		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
 		require.Nil(t, err)
