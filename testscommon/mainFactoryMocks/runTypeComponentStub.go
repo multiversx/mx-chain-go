@@ -177,7 +177,7 @@ func (r *RunTypeComponentsStub) CheckSubcomponents() error {
 	return nil
 }
 
-// BlockChainHookHandlerCreator -
+// String -
 func (r *RunTypeComponentsStub) String() string {
 	return ""
 }
