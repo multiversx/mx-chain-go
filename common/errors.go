@@ -10,3 +10,6 @@ var ErrNilWasmChangeLocker = errors.New("nil wasm change locker")
 
 // ErrNilStateSyncNotifierSubscriber signals that a nil state sync notifier subscriber has been provided
 var ErrNilStateSyncNotifierSubscriber = errors.New("nil state sync notifier subscriber")
+
+// ErrCannotConvertBytesToUint64 signals that byte array cannot be converted to uin64
+var ErrCannotConvertBytesToUint64 = errors.New("cannot convert bytes to uint64")

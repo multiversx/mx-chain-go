@@ -25,6 +25,7 @@ func TestConsensusMessage_NewConsensusMessageShouldWork(t *testing.T) {
 		nil,
 		"pid",
 		nil,
+		nil,
 	)
 
 	assert.NotNil(t, cnsMsg)

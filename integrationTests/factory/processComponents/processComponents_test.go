@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test TestProcessComponents --------------------
@@ -32,25 +33,29 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
-	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	managedRunTypeCoreComponents, err := nr.CreateManagedRunTypeCoreComponents()
 	require.Nil(t, err)
-	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents, managedCryptoComponents)
+	require.Nil(t, err)
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
+	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents, managedRunTypeComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
 	storer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	require.Nil(t, err)
-	nodesCoordinator, err := bootstrapComp.CreateNodesCoordinator(
+	nodesCoord, err := bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.PreferencesConfig.Preferences,
@@ -69,6 +74,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
+		managedRunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	require.Nil(t, err)
 	managedStatusComponents, err := nr.CreateManagedStatusComponents(
@@ -77,7 +83,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedNetworkComponents,
 		managedBootstrapComponents,
 		managedStateComponents,
-		nodesCoordinator,
+		nodesCoord,
 		false,
 		managedCryptoComponents,
 	)
@@ -99,8 +105,9 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedDataComponents,
 		managedStatusComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 		gasScheduleNotifier,
-		nodesCoordinator,
+		nodesCoord,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, managedProcessComponents)

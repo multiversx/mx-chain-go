@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -25,6 +27,7 @@ type vmContext struct {
 	systemContracts     vm.SystemSCContainer
 	inputParser         vm.ArgumentsParser
 	chanceComputer      nodesCoordinator.ChanceComputer
+	shardCoordinator    sharding.Coordinator
 	scAddress           []byte
 
 	storageUpdate  map[string]map[string][]byte
@@ -48,6 +51,7 @@ type VMContextArgs struct {
 	UserAccountsDB      state.AccountsAdapter
 	ChanceComputer      nodesCoordinator.ChanceComputer
 	EnableEpochsHandler common.EnableEpochsHandler
+	ShardCoordinator    sharding.Coordinator
 }
 
 // NewVMContext creates a context where smart contracts can run and write
@@ -73,6 +77,9 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, vm.ErrNilShardCoordinator
+	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.MultiClaimOnDelegationFlag,
 		common.SetSenderInEeiOutputTransferFlag,
@@ -90,6 +97,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 		userAccountsDB:      args.UserAccountsDB,
 		chanceComputer:      args.ChanceComputer,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		shardCoordinator:    args.ShardCoordinator,
 	}
 	vmc.CleanCache()
 
@@ -193,7 +201,11 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 }
 
 // SendGlobalSettingToAll handles sending the information to all the shards
-func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
+func (host *vmContext) SendGlobalSettingToAll(sender []byte, input []byte) error {
+	if host.shardCoordinator.SameShard(sender, core.SystemAccountAddress) {
+		return host.ProcessBuiltInFunction(core.SystemAccountAddress, sender, big.NewInt(0), input, 0)
+	}
+
 	outputTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0),
 		Data:     input,
@@ -217,6 +229,8 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
+
+	return nil
 }
 
 func (host *vmContext) transferValueOnly(
@@ -277,6 +291,79 @@ func (host *vmContext) Transfer(
 		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
+}
+
+// ProcessBuiltInFunction will execute process if sender and destination is same shard/sovereign
+func (host *vmContext) ProcessBuiltInFunction(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
+	host.Transfer(destination, sender, value, input, gasLimit)
+	if !host.shardCoordinator.SameShard(sender, destination) {
+		return nil
+	}
+
+	return host.processBuiltInFunction(destination, sender, value, input, gasLimit)
+}
+
+func (host *vmContext) processBuiltInFunction(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) error {
+	vmInput, err := host.createVMInputForBuiltInFunctionCall(destination, sender, value, input, gasLimit)
+	if err != nil {
+		return err
+	}
+
+	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
+	if err != nil {
+		return err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return errors.New(vmOutput.ReturnMessage)
+	}
+
+	for _, logEntry := range vmOutput.Logs {
+		host.AddLogEntry(logEntry)
+	}
+
+	return nil
+}
+
+func (host *vmContext) createVMInputForBuiltInFunctionCall(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+	input []byte,
+	gasLimit uint64,
+) (*vmcommon.ContractCallInput, error) {
+	function, arguments, err := host.inputParser.ParseData(string(input))
+	if err != nil {
+		return nil, err
+	}
+	if !host.blockChainHook.IsBuiltinFunctionName(function) {
+		return nil, err
+	}
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  sender,
+			Arguments:   arguments,
+			CallValue:   value,
+			GasProvided: gasLimit,
+			CallType:    vmData.ESDTTransferAndExecute,
+		},
+		RecipientAddr: destination,
+		Function:      function,
+	}
+
+	return vmInput, nil
 }
 
 // GetLogs returns the logs
@@ -433,10 +520,10 @@ func createDirectCallInput(
 	return input
 }
 
-func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
+func (host *vmContext) transferBeforeSCToSCExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) {
 	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
-		return nil
+		return
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
@@ -447,8 +534,6 @@ func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCa
 		Data:       vmcommon.FormatLogDataForCall(callType, callInput.Function, callInput.Arguments),
 	}
 	host.AddLogEntry(logEntry)
-
-	return nil
 }
 
 // DeploySystemSC will deploy a smart contract according to the input
@@ -469,10 +554,7 @@ func (host *vmContext) DeploySystemSC(
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 
-	err := host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
-	if err != nil {
-		return vmcommon.ExecutionFailed, err
-	}
+	host.transferBeforeSCToSCExec(callInput, host.scAddress, "DeploySmartContract")
 
 	contract, err := host.systemContracts.Get(baseContract)
 	if err != nil {
@@ -526,10 +608,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
-	if err != nil {
-		return nil, err
-	}
+	host.transferBeforeSCToSCExec(callInput, sender, "ExecuteOnDestContext")
 
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()
@@ -597,42 +676,6 @@ func (host *vmContext) GetReturnMessage() string {
 // AddLogEntry will add a log entry
 func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
 	host.logs = append(host.logs, entry)
-}
-
-// ProcessBuiltInFunction will process the given built in function and will merge the generated output accounts and logs
-func (host *vmContext) ProcessBuiltInFunction(
-	sender, destination []byte,
-	function string,
-	arguments [][]byte,
-) (*vmcommon.VMOutput, error) {
-	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
-	vmInput.GasProvided = host.GasLeft()
-	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
-	if err != nil {
-		return nil, err
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, errors.New(vmOutput.ReturnMessage)
-	}
-
-	for address, outAcc := range vmOutput.OutputAccounts {
-		if len(outAcc.OutputTransfers) > 0 {
-			leftAccount, exist := host.outputAccounts[address]
-			if !exist {
-				leftAccount = &vmcommon.OutputAccount{
-					Address: []byte(address),
-				}
-				host.outputAccounts[address] = leftAccount
-			}
-			leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, outAcc.OutputTransfers...)
-		}
-	}
-
-	for _, logEntry := range vmOutput.Logs {
-		host.AddLogEntry(logEntry)
-	}
-
-	return vmOutput, nil
 }
 
 // BlockChainHook returns the blockchain hook
@@ -710,8 +753,9 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 		for key, value := range updates {
 			storageUpdate := &vmcommon.StorageUpdate{
-				Offset: []byte(key),
-				Data:   value,
+				Offset:  []byte(key),
+				Data:    value,
+				Written: true,
 			}
 
 			outAccs[addr].StorageUpdates[key] = storageUpdate
@@ -786,17 +830,26 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 }
 
 // AddTxValueToSmartContract adds the input transaction value to the smart contract address
-func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
-	destAcc, exists := host.outputAccounts[string(scAddress)]
+func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInput) {
+	if host.isInShardSCToSCCall(input) {
+		host.transferBeforeSCToSCExec(input, input.CallerAddr, "ExecuteOnDestContext")
+		return
+	}
+
+	destAcc, exists := host.outputAccounts[string(input.RecipientAddr)]
 	if !exists {
 		destAcc = &vmcommon.OutputAccount{
-			Address:      scAddress,
+			Address:      input.RecipientAddr,
 			BalanceDelta: big.NewInt(0),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
-	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
+	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, input.CallValue)
+}
+
+func (host *vmContext) isInShardSCToSCCall(input *vmcommon.ContractCallInput) bool {
+	return host.shardCoordinator.SameShard(input.CallerAddr, input.RecipientAddr) && core.IsSmartContractAddress(input.CallerAddr)
 }
 
 // SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through

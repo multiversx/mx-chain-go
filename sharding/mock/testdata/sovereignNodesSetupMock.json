@@ -1,0 +1,22 @@
+{
+  "startTime": 1689935785,
+  "roundDuration": 5000,
+  "consensusGroupSize": 1,
+  "minNodesPerShard": 1,
+  "metaChainConsensusGroupSize": 0,
+  "metaChainMinNodes": 0,
+  "hysteresis": 0,
+  "adaptivity": false,
+  "initialNodes": [
+    {
+      "pubkey": "cbba7cf4ad9d443b8535b7dd94ee79e0ec7d17a2f8367983e7a1ab8e9ee66736be85e6ae0576194b2dafc2265ce2530d43421239a41fae8d75a1c6689d78089efce6a5f2883d7089da73448f3e9413f4e90023015474d681c15cdfe221733306",
+      "address": "9e95a4e46da335a96845b4316251fc1bb197e1b8136d96ecc62bf6604eca9e49",
+      "initialRating": 0
+    },
+    {
+      "pubkey": "c274c4aa1eb936f8e707f69eb865104fb6facb7e320229113fed709c5f6b533f6946aaa3943780b655382838b52fc20181120ef2893ab8aa0183f206a36b3812b92bac8636ed95c2bc40d9978f4b3ba06f77458823ece42e686fc4355e573396",
+      "address": "7a330039e77ca06bc127319fd707cc4911a80db489a39fcfb746283a05f61836",
+      "initialRating": 0
+    }
+  ]
+}

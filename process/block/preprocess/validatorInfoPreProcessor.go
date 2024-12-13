@@ -163,12 +163,8 @@ func (vip *validatorInfoPreprocessor) restoreValidatorsInfo(miniBlock *block.Min
 }
 
 // ProcessBlockTransactions does nothing
-func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
-	_ data.HeaderHandler,
-	_ *block.Body,
-	_ func() bool,
-) error {
-	return nil
+func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(_ data.HeaderHandler, _ *block.Body, _ func() bool) (block.MiniBlockSlice, error) {
+	return nil, nil
 }
 
 // SaveTxsToStorage saves validator info from body into storage

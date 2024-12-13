@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -18,12 +16,15 @@ import (
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -41,6 +42,7 @@ type BootstrapComponentsFactoryArgs struct {
 	CryptoComponents     factory.CryptoComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
@@ -53,6 +55,7 @@ type bootstrapComponentsFactory struct {
 	cryptoComponents     factory.CryptoComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
+	runTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponents struct {
@@ -64,7 +67,7 @@ type bootstrapComponents struct {
 	versionedHeaderFactory          nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier         nodeFactory.HeaderIntegrityVerifierHandler
 	guardedAccountHandler           process.GuardedAccountHandler
-	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	nodesCoordinatorRegistryFactory nodesCoord.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -93,6 +96,30 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.RunTypeComponents) {
+		return nil, errors.ErrNilRunTypeComponents
+	}
+	if check.IfNil(args.RunTypeComponents.EpochStartBootstrapperCreator()) {
+		return nil, errors.ErrNilEpochStartBootstrapperCreator
+	}
+	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
+		return nil, errors.ErrNilAdditionalStorageServiceCreator
+	}
+	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
+	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
+		return nil, errors.ErrNilNodesCoordinatorFactory
+	}
+	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
+		return nil, errors.ErrNilRequestHandlerCreator
+	}
+	if check.IfNil(args.RunTypeComponents.LatestDataProviderFactory()) {
+		return nil, errors.ErrNilLatestDataProviderFactory
+	}
+	if check.IfNil(args.RunTypeComponents.VersionedHeaderFactory()) {
+		return nil, process.ErrNilVersionedHeaderFactory
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,
@@ -104,6 +131,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		cryptoComponents:     args.CryptoComponents,
 		networkComponents:    args.NetworkComponents,
 		statusCoreComponents: args.StatusCoreComponents,
+		runTypeComponents:    args.RunTypeComponents,
 	}, nil
 }
 
@@ -141,6 +169,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bcf.cryptoComponents.PublicKey(),
 		bcf.prefConfig.Preferences,
 		log,
+		bcf.runTypeComponents.ShardCoordinatorCreator(),
 	)
 	if err != nil {
 		return nil, err
@@ -156,7 +185,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		common.DefaultDBPath,
 		bcf.coreComponents.ChainID())
 
-	latestStorageDataProvider, err := createLatestStorageDataProvider(
+	latestStorageDataProvider, err := bcf.createLatestStorageDataProvider(
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
@@ -190,7 +219,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+	nodesCoordinatorRegistryFactory, err := nodesCoord.NewNodesCoordinatorRegistryFactory(
 		bcf.coreComponents.InternalMarshalizer(),
 		bcf.coreComponents.EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag),
 	)
@@ -224,8 +253,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		NodeProcessingMode:              common.GetNodeProcessingMode(&bcf.importDbConfig),
 		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		RunTypeComponents:               bcf.runTypeComponents,
 	}
 
+	esbc := bcf.runTypeComponents.EpochStartBootstrapperCreator()
 	var epochStartBootstrapper factory.EpochStartBootstrapper
 	if bcf.importDbConfig.IsImportDBMode {
 		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
@@ -235,12 +266,13 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
 		}
 
-		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
+		epochStartBootstrapper, err = esbc.CreateStorageEpochStartBootstrapper(storageArg)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
 		}
 	} else {
-		epochStartBootstrapper, err = bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
+
+		epochStartBootstrapper, err = esbc.CreateEpochStartBootstrapper(epochStartBootstrapArgs)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
 		}
@@ -257,7 +289,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		"numShards", bootstrapParameters.NumOfShards,
 	)
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(
+	shardCoordinator, err := bcf.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(
 		bootstrapParameters.NumOfShards,
 		bootstrapParameters.SelfShardId)
 	if err != nil {
@@ -288,7 +320,7 @@ func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.H
 	if shardID == core.MetachainShardId {
 		return block.NewMetaHeaderFactory(handler)
 	}
-	return block.NewShardHeaderFactory(handler)
+	return bcf.runTypeComponents.VersionedHeaderFactory(), nil
 }
 
 // Close closes the bootstrap components, closing at the same time any running goroutines
@@ -327,7 +359,7 @@ func (bc *bootstrapComponents) HeaderIntegrityVerifier() nodeFactory.HeaderInteg
 }
 
 // createLatestStorageDataProvider will create the latest storage data provider handler
-func createLatestStorageDataProvider(
+func (bcf *bootstrapComponentsFactory) createLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	generalConfig config.Config,
 	parentDir string,
@@ -345,7 +377,7 @@ func createLatestStorageDataProvider(
 		DefaultShardString:    defaultShardString,
 	}
 
-	return latestData.NewLatestDataProvider(latestStorageDataArgs)
+	return bcf.runTypeComponents.LatestDataProviderFactory().CreateLatestDataProvider(latestStorageDataArgs)
 }
 
 // createUnitOpener will create a new unit opener handler

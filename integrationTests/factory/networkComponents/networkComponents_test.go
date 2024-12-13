@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test NetworkComponents --------------------
@@ -29,7 +30,9 @@ func TestNetworkComponents_Create_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
-	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	managedRunTypeCoreComponents, err := nr.CreateManagedRunTypeCoreComponents()
+	require.Nil(t, err)
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	require.Nil(t, err)
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)

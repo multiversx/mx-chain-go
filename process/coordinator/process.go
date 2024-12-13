@@ -428,13 +428,13 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	header data.HeaderHandler,
 	body *block.Body,
 	timeRemaining func() time.Duration,
-) error {
+) (block.MiniBlockSlice, error) {
 	if check.IfNil(body) {
-		return process.ErrNilBlockBody
+		return nil, process.ErrNilBlockBody
 	}
 
 	if tc.isMaxBlockSizeReached(body) {
-		return process.ErrMaxBlockSizeReached
+		return nil, process.ErrMaxBlockSizeReached
 	}
 
 	haveTime := func() bool {
@@ -444,41 +444,43 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	tc.doubleTransactionsDetector.ProcessBlockBody(body)
 
 	startTime := time.Now()
-	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
+	createdMbsToMe, mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksToMe",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if mbIndex == len(body.MiniBlocks) {
-		return nil
+		return createdMbsToMe, nil
 	}
 
 	miniBlocksFromMe := body.MiniBlocks[mbIndex:]
 	startTime = time.Now()
-	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
+	createdMbsFromMe, err := tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to processMiniBlocksFromMe",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	finalMiniBlocks := append(createdMbsToMe, createdMbsFromMe...)
+
+	return finalMiniBlocks, nil
 }
 
 func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-) error {
+) (block.MiniBlockSlice, error) {
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID != tc.shardCoordinator.SelfId() {
-			return process.ErrMiniBlocksInWrongOrder
+			return nil, process.ErrMiniBlocksInWrongOrder
 		}
 	}
 
@@ -494,6 +496,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 			"total gas penalized", tc.gasHandler.TotalGasPenalized())
 	}()
 
+	createdMBs := make(block.MiniBlockSlice, 0)
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	for _, blockType := range tc.keysTxPreProcs {
 		if separatedBodies[blockType] == nil {
@@ -502,25 +505,26 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 
 		preProc := tc.getPreProcessor(blockType)
 		if check.IfNil(preProc) {
-			return process.ErrMissingPreProcessor
+			return nil, process.ErrMissingPreProcessor
 		}
 
-		err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], haveTime)
+		miniBlocks, err := preProc.ProcessBlockTransactions(header, separatedBodies[blockType], haveTime)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
+		createdMBs = append(createdMBs, miniBlocks...)
 		numMiniBlocksProcessed += len(separatedBodies[blockType].MiniBlocks)
 	}
 
-	return nil
+	return createdMBs, nil
 }
 
 func (tc *transactionCoordinator) processMiniBlocksToMe(
 	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-) (int, error) {
+) (block.MiniBlockSlice, int, error) {
 	numMiniBlocksProcessed := 0
 
 	defer func() {
@@ -535,27 +539,29 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	// processing has to be done in order, as the order of different type of transactions over the same account is strict
 	// processing destination ME miniblocks first
 	mbIndex := 0
+	createdMBs := make(block.MiniBlockSlice, 0)
 	for mbIndex = 0; mbIndex < len(body.MiniBlocks); mbIndex++ {
 		miniBlock := body.MiniBlocks[mbIndex]
 		if miniBlock.SenderShardID == tc.shardCoordinator.SelfId() {
-			return mbIndex, nil
+			return createdMBs, mbIndex, nil
 		}
 
 		preProc := tc.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preProc) {
-			return mbIndex, process.ErrMissingPreProcessor
+			return nil, mbIndex, process.ErrMissingPreProcessor
 		}
 
 		log.Debug("processMiniBlocksToMe: miniblock", "type", miniBlock.Type)
-		err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
+		miniBlocks, err := preProc.ProcessBlockTransactions(header, &block.Body{MiniBlocks: []*block.MiniBlock{miniBlock}}, haveTime)
 		if err != nil {
-			return mbIndex, err
+			return nil, mbIndex, err
 		}
 
+		createdMBs = append(createdMBs, miniBlocks...)
 		numMiniBlocksProcessed++
 	}
 
-	return mbIndex, nil
+	return createdMBs, mbIndex, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe creates miniblocks and processes cross shard transaction

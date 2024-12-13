@@ -1158,7 +1158,7 @@ func testCreateMiniblockBackwardsCompatibility(t *testing.T, deterministFixEnabl
 	arguments.ValidatorInfoStorage = storer
 	vic, _ := NewValidatorInfoCreator(arguments)
 
-	mb, err := vic.createMiniBlock(validators.GetAllValidatorsInfo())
+	mb, err := vic.createMiniBlock(validators.GetAllValidatorsInfo(), core.AllShardId)
 	require.Nil(t, err)
 
 	// test all generated miniblock's "txhashes" are the same with the expected ones

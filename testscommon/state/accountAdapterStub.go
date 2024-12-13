@@ -166,7 +166,7 @@ func (aas *StateUserAccountHandlerStub) GetBalance() *big.Int {
 	if aas.GetBalanceCalled != nil {
 		return aas.GetBalanceCalled()
 	}
-	return nil
+	return big.NewInt(0)
 }
 
 // ClaimDeveloperRewards -
@@ -174,7 +174,7 @@ func (aas *StateUserAccountHandlerStub) ClaimDeveloperRewards(senderAddr []byte)
 	if aas.ClaimDeveloperRewardsCalled != nil {
 		return aas.ClaimDeveloperRewardsCalled(senderAddr)
 	}
-	return nil, nil
+	return big.NewInt(0), nil
 }
 
 // AddToDeveloperReward -

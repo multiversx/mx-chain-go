@@ -6,20 +6,21 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common/reflectcommon"
 	"github.com/multiversx/mx-chain-go/config"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
-	apiTomlFile            = "api.toml"
-	configTomlFile         = "config.toml"
-	economicsTomlFile      = "economics.toml"
-	enableEpochsTomlFile   = "enableEpochs.toml"
-	enableRoundsTomlFile   = "enableRounds.toml"
-	externalTomlFile       = "external.toml"
-	fullArchiveP2PTomlFile = "fullArchiveP2P.toml"
-	p2pTomlFile            = "p2p.toml"
-	ratingsTomlFile        = "ratings.toml"
-	systemSCTomlFile       = "systemSmartContractsConfig.toml"
+	apiTomlFile                  = "api.toml"
+	configTomlFile               = "config.toml"
+	economicsTomlFile            = "economics.toml"
+	enableEpochsTomlFile         = "enableEpochs.toml"
+	enableRoundsTomlFile         = "enableRounds.toml"
+	externalTomlFile             = "external.toml"
+	fullArchiveP2PTomlFile       = "fullArchiveP2P.toml"
+	p2pTomlFile                  = "p2p.toml"
+	ratingsTomlFile              = "ratings.toml"
+	systemSmartContractsTomlFile = "systemSmartContractsConfig.toml"
 )
 
 var (
@@ -33,7 +34,7 @@ var (
 		fullArchiveP2PTomlFile,
 		p2pTomlFile,
 		ratingsTomlFile,
-		systemSCTomlFile,
+		systemSmartContractsTomlFile,
 	}
 	log = logger.GetOrCreate("config")
 )
@@ -55,14 +56,14 @@ func OverrideConfigValues(newConfigs []config.OverridableConfig, configs *config
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.RoundConfig, newConfig.Path, newConfig.Value)
 		case externalTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.ExternalConfig, newConfig.Path, newConfig.Value)
+		case systemSmartContractsTomlFile:
+			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.SystemSCConfig, newConfig.Path, newConfig.Value)
 		case fullArchiveP2PTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.FullArchiveP2pConfig, newConfig.Path, newConfig.Value)
 		case p2pTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.MainP2pConfig, newConfig.Path, newConfig.Value)
 		case ratingsTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.RatingsConfig, newConfig.Path, newConfig.Value)
-		case systemSCTomlFile:
-			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.SystemSCConfig, newConfig.Path, newConfig.Value)
 
 		default:
 			err = fmt.Errorf("invalid config file <%s>. Available options are %s", newConfig.File, strings.Join(availableConfigFilesForOverriding, ","))

@@ -19,6 +19,6 @@ func Test_parseVMTypeFromContractAddress(t *testing.T) {
 func Test_parseVMTypeFromContractAddress_WhenAddressTooShort(t *testing.T) {
 	scAddress, _ := hex.DecodeString("0003a1")
 	vmType, err := vmcommon.ParseVMTypeFromContractAddress(scAddress)
-	require.Error(t, err, vmcommon.ErrInvalidVMType)
+	require.ErrorIs(t, err, vmcommon.ErrInvalidVMType)
 	require.Nil(t, vmType)
 }

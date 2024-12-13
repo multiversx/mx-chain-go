@@ -353,3 +353,11 @@ type ValidatorInfoHandler interface {
 	String() string
 	GoString() string
 }
+
+// ESDTAsBalanceHandler manages the ESDT as balance handler
+type ESDTAsBalanceHandler interface {
+	GetBalance(accountDataHandler vmcommon.AccountDataHandler) *big.Int
+	AddToBalance(accountDataHandler vmcommon.AccountDataHandler, value *big.Int) error
+	SubFromBalance(accountDataHandler vmcommon.AccountDataHandler, value *big.Int) error
+	IsInterfaceNil() bool
+}

@@ -116,7 +116,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateTrieNodesResolvers()
+	err = mrcf.generateAccountAndValidatorTrieNodesResolvers(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 		return nil, err
 	}
 
-	err = mrcf.generateValidatorInfoResolver()
+	err = mrcf.generateValidatorInfoResolver(common.ValidatorInfoTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -303,39 +303,6 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 	}
 
 	return resolver, nil
-}
-
-func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
-	keys := make([]string, 0)
-	resolversSlice := make([]dataRetriever.Resolver, 0)
-
-	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err := mrcf.createTrieNodesResolver(
-		identifierTrieNodes,
-		dataRetriever.UserAccountsUnit.String(),
-		core.MetachainShardId,
-	)
-	if err != nil {
-		return err
-	}
-
-	resolversSlice = append(resolversSlice, resolver)
-	keys = append(keys, identifierTrieNodes)
-
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	resolver, err = mrcf.createTrieNodesResolver(
-		identifierTrieNodes,
-		dataRetriever.PeerAccountsUnit.String(),
-		core.MetachainShardId,
-	)
-	if err != nil {
-		return err
-	}
-
-	resolversSlice = append(resolversSlice, resolver)
-	keys = append(keys, identifierTrieNodes)
-
-	return mrcf.container.AddMultiple(keys, resolversSlice)
 }
 
 func (mrcf *metaResolversContainerFactory) generateRewardsResolvers(

@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -17,6 +18,11 @@ func (txProc *TxProcessor) ProcessTransaction(_ *transaction.Transaction) (vmcom
 // VerifyTransaction does nothing as it is disabled
 func (txProc *TxProcessor) VerifyTransaction(_ *transaction.Transaction) error {
 	return nil
+}
+
+// GetSenderAndReceiverAccounts does nothing as it is disabled
+func (txProc *TxProcessor) GetSenderAndReceiverAccounts(_ *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	return nil, nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
