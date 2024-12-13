@@ -411,7 +411,15 @@ func (hsv *HeaderSigVerifier) IsInterfaceNil() bool {
 
 func (hsv *HeaderSigVerifier) verifyRandSeed(leaderPubKey crypto.PublicKey, header data.HeaderHandler) error {
 	prevRandSeed := header.GetPrevRandSeed()
+	if prevRandSeed == nil {
+		return process.ErrNilPrevRandSeed
+	}
+
 	randSeed := header.GetRandSeed()
+	if randSeed == nil {
+		return process.ErrNilRandSeed
+	}
+
 	return hsv.singleSigVerifier.Verify(leaderPubKey, prevRandSeed, randSeed)
 }
 

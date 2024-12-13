@@ -28,13 +28,23 @@ const defaultChancesSelection = 1
 var expectedErr = errors.New("expected error")
 
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
+	v1, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
+	v2, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
 	return &ArgsHeaderSigVerifier{
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &hashingMocks.HasherMock{},
-		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
-		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
-		SingleSigVerifier:       &mock.SignerMock{},
-		KeyGen:                  &mock.SingleSignKeyGenMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:      &hashingMocks.HasherMock{},
+		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validators []nodesCoordinator.Validator, err error) {
+				return v1, []nodesCoordinator.Validator{v1, v2}, nil
+			},
+		},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
+		SingleSigVerifier: &mock.SignerMock{},
+		KeyGen: &mock.SingleSignKeyGenMock{
+			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+				return &mock.SingleSignPublicKey{}, nil
+			},
+		},
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		HeadersPool:             &mock.HeadersCacherStub{},
@@ -223,10 +233,13 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureNilRandomnessShouldEr
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     nil,
+		PrevRandSeed: []byte("prev rand seed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
@@ -638,12 +651,23 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
-		PubKeysBitmap: []byte("C"),
+		PubKeysBitmap: []byte{15},
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
 	require.Nil(t, err)
 	require.True(t, wasCalled)
+}
+
+func getFilledHeader() data.HeaderHandler {
+	return &dataBlock.Header{
+		Nonce:           0,
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		PubKeysBitmap:   []byte{0xFF},
+		LeaderSignature: []byte("leader signature"),
+	}
 }
 
 func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
@@ -717,12 +741,17 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
-
+		headerHash := []byte("header hash")
 		wasVerifyAggregatedSigCalled := false
 		args := createHeaderSigVerifierArgs()
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return getFilledHeader(), nil
+			},
+		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag
+				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -738,7 +767,11 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		hdrSigVerifier, err := NewHeaderSigVerifier(args)
 		require.NoError(t, err)
 
-		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{0x3},
+			AggregatedSignature: make([]byte, 10),
+			HeaderHash:          headerHash,
+		})
 		require.NoError(t, err)
 		require.True(t, wasVerifyAggregatedSigCalled)
 	})
