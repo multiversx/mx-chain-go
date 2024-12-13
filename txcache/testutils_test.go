@@ -55,6 +55,12 @@ func (data *randomData) getItem(index int) []byte {
 	return data.randomBytes[start:end]
 }
 
+func (data *randomData) getTailItem(index int) []byte {
+	start := (data.numItems - 1 - index) * data.itemSize
+	end := start + data.itemSize
+	return data.randomBytes[start:end]
+}
+
 func (cache *TxCache) areInternalMapsConsistent() bool {
 	internalMapByHash := cache.txByHash
 	internalMapBySender := cache.txListBySender
