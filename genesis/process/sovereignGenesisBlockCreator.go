@@ -94,18 +94,35 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(gbc.arg)
 
-	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler, 1)
-	mapEmptyGenesisBlocks[core.SovereignChainShardId] = &block.SovereignChainHeader{
-		Header: &block.Header{
-			Round:     round,
-			Nonce:     nonce,
-			Epoch:     epoch,
-			TimeStamp: gbc.arg.GenesisTime,
-			ShardID:   core.SovereignChainShardId,
-		},
+	genesisEmptyBlock := gbc.arg.RunTypeComponents.VersionedHeaderFactory().Create(epoch)
+	err = gbc.setGenesisEmptyBlockData(genesisEmptyBlock, round, nonce)
+	if err != nil {
+		return nil, err
 	}
 
+	mapEmptyGenesisBlocks := make(map[uint32]data.HeaderHandler, 1)
+	mapEmptyGenesisBlocks[core.SovereignChainShardId] = genesisEmptyBlock
 	return mapEmptyGenesisBlocks, nil
+}
+
+func (gbc *sovereignGenesisBlockCreator) setGenesisEmptyBlockData(
+	genesisEmptyBlock data.HeaderHandler,
+	round uint64,
+	nonce uint64,
+) error {
+	err := genesisEmptyBlock.SetShardID(core.SovereignChainShardId)
+	if err != nil {
+		return err
+	}
+	err = genesisEmptyBlock.SetRound(round)
+	if err != nil {
+		return err
+	}
+	err = genesisEmptyBlock.SetNonce(nonce)
+	if err != nil {
+		return err
+	}
+	return genesisEmptyBlock.SetTimeStamp(gbc.arg.GenesisTime)
 }
 
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
@@ -168,37 +185,58 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, err
 	}
 
-	// TODO: MX-15667 Ugly fix, we need header versioning creator here to be integrated for sovereign chain
-	sovereignHeader := &block.SovereignChainHeader{
-		Header:                 genesisBlock.(*block.Header),
-		AccumulatedFeesInEpoch: big.NewInt(0),
-		DevFeesInEpoch:         big.NewInt(0),
-		ValidatorStatsRootHash: validatorRootHash,
-		IsStartOfEpoch:         true,
-	}
-	sovereignHeader.EpochStart.Economics = block.Economics{
-		TotalSupply:       big.NewInt(0).Set(gbc.arg.Economics.GenesisTotalSupply()),
-		TotalToDistribute: big.NewInt(0),
-		TotalNewlyMinted:  big.NewInt(0),
-		RewardsPerBlock:   big.NewInt(0),
-		NodePrice:         big.NewInt(0).Set(gbc.arg.GenesisNodePrice),
+	err = gbc.setInitialDataInSovereignHeader(genesisBlock, validatorRootHash)
+	if err != nil {
+		return nil, err
 	}
 
-	err = saveSovereignGenesisStorage(gbc.arg.Data.StorageService(), gbc.arg.Core.InternalMarshalizer(), sovereignHeader)
+	err = saveSovereignGenesisStorage(gbc.arg.Data.StorageService(), gbc.arg.Core.InternalMarshalizer(), genesisBlock)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Info("sovereignGenesisBlockCreator.createSovereignHeaders",
-		"shard", sovereignHeader.GetShardID(),
-		"nonce", sovereignHeader.GetNonce(),
-		"round", sovereignHeader.GetRound(),
-		"root hash", sovereignHeader.GetRootHash(),
+		"shard", genesisBlock.GetShardID(),
+		"nonce", genesisBlock.GetNonce(),
+		"round", genesisBlock.GetRound(),
+		"root hash", genesisBlock.GetRootHash(),
 	)
 
 	return map[uint32]data.HeaderHandler{
-		core.SovereignChainShardId: sovereignHeader,
+		core.SovereignChainShardId: genesisBlock,
 	}, nil
+}
+
+func (gbc *sovereignGenesisBlockCreator) setInitialDataInSovereignHeader(header data.HeaderHandler, validatorRootHash []byte) error {
+	sovereignHeader, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return process.ErrWrongTypeAssertion
+	}
+
+	zeroBI := big.NewInt(0)
+	err := sovereignHeader.SetAccumulatedFeesInEpoch(zeroBI)
+	if err != nil {
+		return err
+	}
+	err = sovereignHeader.SetDevFeesInEpoch(zeroBI)
+	if err != nil {
+		return err
+	}
+	err = sovereignHeader.SetValidatorStatsRootHash(validatorRootHash)
+	if err != nil {
+		return err
+	}
+	err = sovereignHeader.SetStartOfEpochHeader()
+	if err != nil {
+		return err
+	}
+	return sovereignHeader.GetEpochStartHandler().SetEconomics(&block.Economics{
+		TotalSupply:       big.NewInt(0).Set(gbc.arg.Economics.GenesisTotalSupply()),
+		TotalToDistribute: big.NewInt(0),
+		TotalNewlyMinted:  big.NewInt(0),
+		RewardsPerBlock:   big.NewInt(0),
+		NodePrice:         big.NewInt(0).Set(gbc.arg.GenesisNodePrice),
+	})
 }
 
 func saveSovereignGenesisStorage(
