@@ -1,8 +1,12 @@
 package epochStartTrigger
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -22,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -30,7 +35,7 @@ import (
 	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 )
 
-func createArgs() factory.ArgsEpochStartTrigger {
+func createArgs(shardID uint32) factory.ArgsEpochStartTrigger {
 	return factory.ArgsEpochStartTrigger{
 		RequestHandler: &testscommon.RequestHandlerStub{},
 		CoreData: &testsFactory.CoreComponentsHolderMock{
@@ -52,15 +57,22 @@ func createArgs() factory.ArgsEpochStartTrigger {
 			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
 				return &shardingMock.EnableEpochsHandlerMock{}
 			},
+			GenesisNodesSetupCalled: func() sharding.GenesisNodesSetupHandler {
+				return &genesisMocks.NodesSetupStub{}
+			},
 		},
 		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
 			ShardCoordinatorCalled: func() sharding.Coordinator {
 				return &testscommon.ShardsCoordinatorMock{
 					NoShards: 1,
+					SelfIDCalled: func() uint32 {
+						return shardID
+					},
 				}
 			},
 			BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
 			HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+			Bootstrapper:         &bootstrapMocks.EpochStartBootstrapperStub{},
 		},
 		DataComps: &nodeFactoryMock.DataComponentsMock{
 			DataPool: &dataRetriever.PoolsHolderStub{
@@ -82,12 +94,22 @@ func createArgs() factory.ArgsEpochStartTrigger {
 					return &storage.StorerStub{}, nil
 				},
 			},
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderCalled: func() data.HeaderHandler {
+					return &block.HeaderV2{}
+				},
+			},
 		},
 		StatusCoreComponentsHolder: &testsFactory.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
 		RunTypeComponentsHolder: mainFactoryMocks.NewRunTypeComponentsStub(),
-		Config:                  config.Config{},
+		Config: config.Config{
+			EpochStartConfig: config.EpochStartConfig{
+				RoundsPerEpoch:         22,
+				MinRoundsBetweenEpochs: 22,
+			},
+		},
 	}
 }
 
@@ -95,9 +117,18 @@ func TestNewEpochStartTriggerFactory(t *testing.T) {
 	t.Parallel()
 
 	f := NewEpochStartTriggerFactory()
+	require.False(t, f.IsInterfaceNil())
 
-	args := createArgs()
-	trigger, err := f.CreateEpochStartTrigger(args)
-	require.Nil(t, err)
-	require.NotNil(t, trigger)
+	t.Run("create for shard", func(t *testing.T) {
+		args := createArgs(0)
+		trigger, err := f.CreateEpochStartTrigger(args)
+		require.Nil(t, err)
+		require.Equal(t, "*shardchain.trigger", fmt.Sprintf("%T", trigger))
+	})
+	t.Run("create for meta", func(t *testing.T) {
+		args := createArgs(core.MetachainShardId)
+		trigger, err := f.CreateEpochStartTrigger(args)
+		require.Nil(t, err)
+		require.Equal(t, "*metachain.trigger", fmt.Sprintf("%T", trigger))
+	})
 }

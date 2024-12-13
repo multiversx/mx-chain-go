@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
@@ -14,8 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 )
-
-// TODO: MX-15632 Unit tests + fix import cycle
 
 type epochStartTriggerFactory struct {
 }
@@ -29,6 +28,11 @@ func NewEpochStartTriggerFactory() *epochStartTriggerFactory {
 
 // CreateEpochStartTrigger creates an epoch start trigger for normal run type
 func (f *epochStartTriggerFactory) CreateEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
+	err := checkNilArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	shardCoordinator := args.BootstrapComponents.ShardCoordinator()
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
