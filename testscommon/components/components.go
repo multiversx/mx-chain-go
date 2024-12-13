@@ -335,6 +335,7 @@ func createAccounts() []genesis.InitialAccountHandler {
 }
 
 func createArgsRunTypeComponents(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) runType.ArgsRunTypeComponents {
+	generalCfg := GetGeneralConfig()
 	return runType.ArgsRunTypeComponents{
 		CoreComponents:   coreComponents,
 		CryptoComponents: cryptoComponents,
@@ -345,6 +346,7 @@ func createArgsRunTypeComponents(coreComponents factory.CoreComponentsHolder, cr
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &generalCfg,
 		},
 		InitialAccounts: createAccounts(),
 	}
@@ -453,6 +455,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
 		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
 		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
+		VersionedHeaderFactoryField:                 rt.VersionedHeaderFactory(),
 	}
 }
 

@@ -365,6 +365,13 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
+			Versions: config.VersionsConfig{
+				VersionsByEpochs: []config.VersionByEpochs{
+					{
+						Version: "*",
+					},
+				},
+			},
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
 				MaxNumAddressesInTransferRole: 1,
 				AutomaticCrawlerAddresses:     []string{"addr1"},
