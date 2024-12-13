@@ -658,14 +658,12 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
 
-		expectedExtendedShardHeaderHashes := [][]byte{[]byte("extHeader")}
 		expectedSovHeader := &block.SovereignChainHeader{
 			Header: &block.Header{
 				Nonce: 37,
 				Round: 38,
 				Epoch: currentEpoch,
 			},
-			ExtendedShardHeaderHashes: expectedExtendedShardHeaderHashes,
 		}
 		doesHaveTime := func() bool {
 			return true
@@ -680,7 +678,5 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		require.Equal(t, expectedSovHeader, hdr)
 		require.Nil(t, err)
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
-		sovHdr, ok := hdr.(data.SovereignChainHeaderHandler)
-		require.Equal(t, expectedExtendedShardHeaderHashes, sovHdr.GetExtendedShardHeaderHashes())
 	})
 }
