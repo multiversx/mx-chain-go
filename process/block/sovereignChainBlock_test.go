@@ -1,6 +1,7 @@
 package block_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -19,6 +20,7 @@ import (
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -26,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -74,6 +77,16 @@ func createSovereignMockArguments(
 	)
 
 	arguments := CreateMockArguments(coreComp, dataComp, bootstrapComp, statusComp)
+	arguments.BootstrapComponents = &mock.BootstrapComponentsMock{
+		Coordinator:          mock.NewOneShardCoordinatorMock(),
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.SovereignChainHeader{Header: &block.Header{}}
+			},
+		},
+	}
+
 	arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
 	arguments.RequestHandler, _ = requestHandlers.NewSovereignResolverRequestHandler(rrh)
 
@@ -387,7 +400,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)
 }
 
-func TestSovereignShardProcessor_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *testing.T) {
+func TestSovereignShardProcessor_CreateNewBlockExpectCheckRoundCalled(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(4)
@@ -407,34 +420,17 @@ func TestSovereignShardProcessor_CreateNewBlockHeaderProcessHeaderExpectCheckRou
 	scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 	require.Nil(t, err)
 
-	header := &block.Header{Round: round}
-	bodyHandler, _, _ := scbp.CreateBlockBody(header, func() bool { return true })
-
 	headerHandler, err := scbp.CreateNewHeader(round, 1)
 	require.Nil(t, err)
+	require.NotNil(t, headerHandler)
 	require.Equal(t, int64(1), checkRoundCt.Get())
-
-	processHandler := arguments.CoreComponents.ProcessStatusHandler()
-	mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-	busyIdleCalled := make([]string, 0)
-	mockProcessHandler.SetIdleCalled = func() {
-		busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-	}
-	mockProcessHandler.SetBusyCalled = func(reason string) {
-		busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-	}
-
-	_, _, err = scbp.ProcessBlock(headerHandler, bodyHandler, func() time.Duration { return time.Second })
-	require.Nil(t, err)
-	require.Equal(t, int64(2), checkRoundCt.Get())
-	require.Equal(t, []string{busyIdentifier, idleIdentifier}, busyIdleCalled) // the order is important
 }
 
 func TestSovereignShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	t.Parallel()
 
 	round := uint64(7)
-	epoch := uint64(5)
+	nonce := uint64(5)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -442,12 +438,15 @@ func TestSovereignShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 	require.Nil(t, err)
 
-	h, err := scbp.CreateNewHeader(round, epoch)
+	h, err := scbp.CreateNewHeader(round, nonce)
 	require.Nil(t, err)
 	require.IsType(t, &block.SovereignChainHeader{}, h)
 	require.Equal(t, round, h.GetRound())
+	require.Equal(t, nonce, h.GetNonce())
 
 	zeroInt := big.NewInt(0)
+	require.Nil(t, h.GetValidatorStatsRootHash())
+	require.Nil(t, h.GetRootHash())
 	require.Equal(t, zeroInt, h.GetDeveloperFees())
 	require.Equal(t, zeroInt, h.GetAccumulatedFees())
 }
@@ -459,17 +458,6 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
-
-		processHandler := arguments.CoreComponents.ProcessStatusHandler()
-		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-		busyIdleCalled := make([]string, 0)
-		mockProcessHandler.SetIdleCalled = func() {
-			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
-			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-		}
-
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
 
@@ -481,23 +469,11 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		require.True(t, check.IfNil(body))
 		require.True(t, check.IfNil(hdr))
 		require.Equal(t, process.ErrNilBlockHeader, err)
-		require.Zero(t, len(busyIdleCalled))
 	})
-	t.Run("wrong block type should error", func(t *testing.T) {
+	t.Run("wrong header type should error", func(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
-
-		processHandler := arguments.CoreComponents.ProcessStatusHandler()
-		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-		busyIdleCalled := make([]string, 0)
-		mockProcessHandler.SetIdleCalled = func() {
-			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
-			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-		}
-
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
 
@@ -511,18 +487,17 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		require.True(t, check.IfNil(body))
 		require.True(t, check.IfNil(hdr))
 		require.ErrorContains(t, err, process.ErrWrongTypeAssertion.Error())
-		require.Zero(t, len(busyIdleCalled))
 	})
-	t.Run("should work with sovereign header", func(t *testing.T) {
-		currentEpoch := uint32(1)
+	t.Run("account state dirty should error", func(t *testing.T) {
+		journalLen := func() int { return 3 }
+		revToSnapshot := func(snapshot int) error { return nil }
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
-			EpochCalled: func() uint32 {
-				return currentEpoch
-			}}
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
-
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			JournalLenCalled:       journalLen,
+			RevertToSnapshotCalled: revToSnapshot,
+		}
 		processHandler := arguments.CoreComponents.ProcessStatusHandler()
 		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
 		busyIdleCalled := make([]string, 0)
@@ -532,8 +507,54 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		mockProcessHandler.SetBusyCalled = func(reason string) {
 			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
 		}
-
 		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+
+		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		doesHaveTime := func() bool {
+			return true
+		}
+		sovHeader := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce:         1,
+				PubKeysBitmap: []byte("0100101"),
+				PrevHash:      []byte(""),
+				PrevRandSeed:  []byte("rand seed"),
+				Signature:     []byte("signature"),
+				RootHash:      []byte("roothash"),
+			},
+		}
+
+		hdr, body, err := scbp.CreateBlock(sovHeader, doesHaveTime)
+		require.True(t, check.IfNil(body))
+		require.True(t, check.IfNil(hdr))
+		require.Equal(t, process.ErrAccountStateDirty, err)
+		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+	t.Run("create block started should error", func(t *testing.T) {
+		expectedErr := fmt.Errorf("createBlockStarted error")
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			AddIntermediateTransactionsCalled: func(_ map[block.Type][]data.TransactionHandler, _ []byte) error {
+				return expectedErr
+			},
+		}
+		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
 
@@ -545,27 +566,20 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 			Header: &block.Header{
 				Nonce: 37,
 				Round: 38,
-				Epoch: currentEpoch,
+				Epoch: 1,
 			},
 		}
 
-		// reset the slice, do not call these tests in parallel
-		busyIdleCalled = make([]string, 0)
 		hdr, bodyHandler, err := scbp.CreateBlock(expectedSovHeader, doesHaveTime)
-		require.False(t, check.IfNil(bodyHandler))
-		body, ok := bodyHandler.(*block.Body)
-		require.True(t, ok)
-
-		require.Zero(t, len(body.MiniBlocks))
-		require.False(t, check.IfNil(hdr))
-		require.Equal(t, expectedSovHeader, hdr)
-		require.Nil(t, err)
+		require.True(t, check.IfNil(bodyHandler))
+		require.True(t, check.IfNil(hdr))
+		require.Equal(t, expectedErr, err)
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
 	})
-
 	t.Run("should work with sovereign header and epoch start rewriting the epoch value", func(t *testing.T) {
 		currentEpoch := uint32(1)
 		nextEpoch := uint32(2)
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
@@ -577,12 +591,19 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 			},
 		}
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
-
-		doesHaveTime := func() bool {
-			return true
-		}
 
 		sovHeader := &block.SovereignChainHeader{
 			Header: &block.Header{
@@ -591,7 +612,6 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 				Epoch: currentEpoch,
 			},
 		}
-
 		expectedSovHeader := &block.SovereignChainHeader{
 			Header: &block.Header{
 				Nonce: 37,
@@ -600,19 +620,68 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 			},
 			IsStartOfEpoch: true,
 		}
+		doesHaveTime := func() bool {
+			return true
+		}
 
 		hdr, bodyHandler, err := scbp.CreateBlock(sovHeader, doesHaveTime)
 		require.False(t, check.IfNil(bodyHandler))
 		body, ok := bodyHandler.(*block.Body)
 		require.True(t, ok)
-
 		require.Zero(t, len(body.MiniBlocks))
 		require.False(t, check.IfNil(hdr))
 		require.Equal(t, expectedSovHeader, hdr)
 		require.Nil(t, err)
+		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+	t.Run("should work with sovereign header", func(t *testing.T) {
+		currentEpoch := uint32(1)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			EpochCalled: func() uint32 {
+				return currentEpoch
+			}}
+		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		processHandler := arguments.CoreComponents.ProcessStatusHandler()
+		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
+		busyIdleCalled := make([]string, 0)
+		mockProcessHandler.SetIdleCalled = func() {
+			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+		}
+		mockProcessHandler.SetBusyCalled = func(reason string) {
+			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+		}
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		expectedSovHeader := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce: 37,
+				Round: 38,
+				Epoch: currentEpoch,
+			},
+		}
+		doesHaveTime := func() bool {
+			return true
+		}
+
+		hdr, bodyHandler, err := scbp.CreateBlock(expectedSovHeader, doesHaveTime)
+		require.False(t, check.IfNil(bodyHandler))
+		body, ok := bodyHandler.(*block.Body)
+		require.True(t, ok)
+		require.Zero(t, len(body.MiniBlocks))
+		require.False(t, check.IfNil(hdr))
+		require.Equal(t, expectedSovHeader, hdr)
+		require.Nil(t, err)
+		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
 	})
 
-	// TODO test for createAllMiniBlocks
-	// TODO test for SetExtendedShardHeaderHashes
-	// TODO test for SetMiniBlockHeaderHandlers
+	// TODO test createAllMiniBlocks
+	// TODO test createMiniBlockHeaderHandlers
+	// TODO test SetExtendedShardHeaderHashes
+	// TODO test SetMiniBlockHeaderHandlers
 }
