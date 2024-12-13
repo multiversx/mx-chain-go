@@ -47,7 +47,11 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 		},
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		HeadersPool:             &mock.HeadersCacherStub{},
+		HeadersPool: &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &dataBlock.Header{}, nil
+			},
+		},
 	}
 }
 
@@ -153,10 +157,13 @@ func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T)
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		PrevRandSeed: nil,
+		RandSeed:     []byte("rand seed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
@@ -186,7 +193,10 @@ func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		PrevRandSeed: []byte("prev rand seed"),
+		RandSeed:     []byte("rand seed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
 	require.Nil(t, err)
@@ -221,7 +231,10 @@ func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testi
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
 	require.Equal(t, localError, err)
@@ -270,7 +283,10 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenVa
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
 	require.Equal(t, localErr, err)
@@ -310,6 +326,8 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShould
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
+		RandSeed:        []byte("randSeed"),
+		PrevRandSeed:    []byte("prevRandSeed"),
 		LeaderSignature: leaderSig,
 	}
 
@@ -345,22 +363,28 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
 	require.Nil(t, err)
 	require.Equal(t, 2, count)
 }
 
-func TestHeaderSigVerifier_VerifyLeaderSignatureNilRandomnessShouldErr(t *testing.T) {
+func TestHeaderSigVerifier_VerifyLeaderSignatureNilPrevRandomnessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("rand seed "),
+		PrevRandSeed: nil,
+	}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
@@ -391,7 +415,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFai
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
 	require.Equal(t, localErr, err)
@@ -431,6 +458,8 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyLeaderSigShouldErr(t *test
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
+		RandSeed:        []byte("randSeed"),
+		PrevRandSeed:    []byte("prevRandSeed"),
 		LeaderSignature: leaderSig,
 	}
 
@@ -466,7 +495,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
 	require.Nil(t, err)
@@ -503,6 +535,8 @@ func TestHeaderSigVerifier_VerifySignatureNilRandomnessShouldErr(t *testing.T) {
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
+		RandSeed:      nil,
+		PrevRandSeed:  []byte("prevRandSeed"),
 		PubKeysBitmap: []byte("1"),
 	}
 
@@ -661,7 +695,6 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 
 func getFilledHeader() data.HeaderHandler {
 	return &dataBlock.Header{
-		Nonce:           0,
 		PrevHash:        []byte("prev hash"),
 		PrevRandSeed:    []byte("prev rand seed"),
 		RandSeed:        []byte("rand seed"),

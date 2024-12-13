@@ -233,6 +233,9 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	}
 
 	randSeed := header.GetPrevRandSeed()
+	if randSeed == nil {
+		return process.ErrNilPrevRandSeed
+	}
 	pubKeysSigners, err := hsv.getConsensusSigners(
 		randSeed,
 		header.GetShardID(),
