@@ -357,6 +357,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		StateComponents:      pr.StateComponents,
 		CryptoComponents:     pr.CryptoComponents,
 		IsInImportMode:       false,
+		IsSovereign:          false,
 	}
 
 	statusFactory, err := factoryStatus.NewStatusComponentsFactory(argsStatus)
