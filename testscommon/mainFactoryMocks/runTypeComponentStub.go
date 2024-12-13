@@ -103,6 +103,7 @@ type RunTypeComponentsStub struct {
 	DelegatedListFactoryField                   trieIteratorsFactory.DelegatedListProcessorFactoryHandler
 	DirectStakedListFactoryField                trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
 	TotalStakedValueFactoryField                trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
+	VersionedHeaderFactoryField                 genesis.VersionedHeaderFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -157,6 +158,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ShardRequestersContainerCreatorHandlerField: &testFactory.ShardRequestersContainerCreatorMock{},
 		APIRewardsTxHandlerField:                    &apiTests.APIRewardsHandlerStub{},
 		OutportDataProviderFactoryField:             &testFactory.OutportDataProviderFactoryMock{},
+		VersionedHeaderFactoryField:                 &testscommon.VersionedHeaderFactoryStub{},
 	}
 }
 
@@ -443,6 +445,11 @@ func (r *RunTypeComponentsStub) DirectStakedListFactoryHandler() trieIteratorsFa
 // TotalStakedValueFactoryHandler -
 func (r *RunTypeComponentsStub) TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler {
 	return r.TotalStakedValueFactoryField
+}
+
+// VersionedHeaderFactory  -
+func (r *RunTypeComponentsStub) VersionedHeaderFactory() genesis.VersionedHeaderFactory {
+	return r.VersionedHeaderFactoryField
 }
 
 // IsInterfaceNil -

@@ -136,7 +136,7 @@ func TestNewSovereignGenesisBlockCreator(t *testing.T) {
 }
 
 func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.T) {
-	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	arg := createSovereignMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.StartEpochNum = 1
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
@@ -146,7 +146,8 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 	require.Equal(t, map[uint32]data.HeaderHandler{
 		core.SovereignChainShardId: &block.SovereignChainHeader{
 			Header: &block.Header{
-				ShardID: core.SovereignChainShardId,
+				ShardID:         core.SovereignChainShardId,
+				SoftwareVersion: process.SovereignHeaderVersion,
 			},
 		},
 	}, blocks)
