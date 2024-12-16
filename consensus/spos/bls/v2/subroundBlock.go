@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -110,7 +111,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	// todo: check again the block proof verification & leader signature verification
 	// block proof verification should be done over the header that contains the leader signature
 	leaderSignature, err := sr.signBlockHeader(header)
 	if err != nil {
@@ -177,7 +177,7 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) bool {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, _ string) bool {
 	marshalledBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
