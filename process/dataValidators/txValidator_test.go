@@ -324,10 +324,10 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 		adb.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
 			cnt++
 			if cnt == 1 {
-				require.True(t, bytes.Equal(providedSenderAddress, address))
-			} else {
-				require.True(t, bytes.Equal(providedRelayerAddress, address))
+				return nil, errors.New("sender not found")
 			}
+
+			require.True(t, bytes.Equal(providedRelayerAddress, address))
 
 			acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 			acc.Nonce = accountNonce
@@ -358,6 +358,7 @@ func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldRe
 				Signature:        []byte("address sig"),
 				RelayerAddr:      providedRelayerAddress,
 				RelayerSignature: []byte("relayer sig"),
+				Value:            big.NewInt(0),
 			}
 		}
 		result := txValidator.CheckTxValidity(txValidatorHandler)

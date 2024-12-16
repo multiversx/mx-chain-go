@@ -76,12 +76,25 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 		return nil
 	}
 
+	// for relayed v3, we allow sender accounts that do not exist
+	isRelayedV3 := common.IsRelayedTxV3(interceptedTx.Transaction())
+	hasValue := hasTxValue(interceptedTx)
+	shouldAllowMissingSenderAccount := isRelayedV3 && !hasValue
 	accountHandler, err := txv.getSenderAccount(interceptedTx)
-	if err != nil {
+	if err != nil && !shouldAllowMissingSenderAccount {
 		return err
 	}
 
 	return txv.checkAccount(interceptedTx, accountHandler)
+}
+
+func hasTxValue(interceptedTx process.InterceptedTransactionHandler) bool {
+	txValue := interceptedTx.Transaction().GetValue()
+	if check.IfNilReflect(txValue) {
+		return false
+	}
+
+	return txValue.Sign() > 0
 }
 
 func (txv *txValidator) checkAccount(
@@ -149,7 +162,11 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactio
 }
 
 func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTransactionHandler, accountHandler vmcommon.AccountHandler) error {
-	accountNonce := accountHandler.GetNonce()
+	accountNonce := uint64(0)
+	if !check.IfNil(accountHandler) {
+		accountNonce = accountHandler.GetNonce()
+	}
+
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
 	veryHighNonceInTx := txNonce > accountNonce+uint64(txv.maxNonceDeltaAllowed)
