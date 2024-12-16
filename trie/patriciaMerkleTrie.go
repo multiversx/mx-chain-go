@@ -206,7 +206,7 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 	}
 
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		newRoot, err := newLeafNode(sortedDataForInsertion[0], tr.marshalizer, tr.hasher)
 		if err != nil {
 			return err
