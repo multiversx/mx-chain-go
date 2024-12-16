@@ -2,7 +2,6 @@ package dataValidators
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -95,7 +94,7 @@ func hasTxValue(interceptedTx process.InterceptedTransactionHandler) bool {
 		return false
 	}
 
-	return big.NewInt(0).Cmp(txValue) < 0
+	return txValue.Sign() > 0
 }
 
 func (txv *txValidator) checkAccount(
