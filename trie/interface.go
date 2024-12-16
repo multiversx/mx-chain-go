@@ -13,7 +13,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-type node interface {
+type baseTrieNode interface {
 	getHash() []byte
 	setGivenHash([]byte)
 	setDirty(bool)
@@ -22,7 +22,10 @@ type node interface {
 	setMarshalizer(marshal.Marshalizer)
 	getHasher() hashing.Hasher
 	setHasher(hashing.Hasher)
+}
 
+type node interface {
+	baseTrieNode
 	setHash() error
 	setHashConcurrent(wg *sync.WaitGroup, c chan error)
 	setRootHash() error

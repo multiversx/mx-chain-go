@@ -532,6 +532,8 @@ func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error
 		return nil
 	}
 
+	// TODO find a method to remove the data trie and mark all the removed hashes for pruning.
+	// There can be a lot of hashes to be removed, so take into consideration the mem usage and the time needed to remove them.
 	return adb.removeCode(baseAcc)
 }
 
