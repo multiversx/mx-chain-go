@@ -207,11 +207,6 @@ func (c *collector) RevertToIndex(index int) error {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (c *collector) IsInterfaceNil() bool {
-	return c == nil
-}
-
 func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
@@ -270,4 +265,9 @@ func (c *collector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChan
 	}
 
 	return dataAnalysisStateChangesForTxs, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (c *collector) IsInterfaceNil() bool {
+	return c == nil
 }
