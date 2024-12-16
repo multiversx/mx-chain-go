@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -122,7 +123,7 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 // Store will store the collected state changes if it has been configured with a storer
 func (c *collector) Store() error {
 	// TODO: evaluate adding a more explicit field check here
-	if c.storer == nil {
+	if check.IfNil(c.storer) {
 		return nil
 	}
 
