@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -40,8 +41,8 @@ func (h *headerSigVerifier) VerifySignatureForHash(_ data.HeaderHandler, _ []byt
 	return nil
 }
 
-// VerifyPreviousBlockProof returns nil as it is disabled
-func (h *headerSigVerifier) VerifyPreviousBlockProof(_ data.HeaderHandler) error {
+// VerifyHeaderWithProof returns nil as it is disabled
+func (h *headerSigVerifier) VerifyHeaderWithProof(_ data.HeaderHandler) error {
 	return nil
 }
 

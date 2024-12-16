@@ -3140,7 +3140,10 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		arguments.NodesCoordinator = nodesCoordinatorInstance
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{
+			RandSeed:     []byte("randSeed"),
+			PrevRandSeed: []byte("prevRandSeed"),
+		})
 		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("should work with bitmap", func(t *testing.T) {
@@ -3164,6 +3167,8 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{
+			RandSeed:      []byte("randSeed"),
+			PrevRandSeed:  []byte("prevRandSeed"),
 			PubKeysBitmap: []byte{0b00000101},
 		})
 		assert.Nil(t, err)
