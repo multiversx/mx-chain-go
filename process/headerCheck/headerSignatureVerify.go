@@ -2,6 +2,7 @@ package headerCheck
 
 import (
 	"bytes"
+	"fmt"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -267,6 +268,10 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHandler) error {
 	if check.IfNilReflect(proofHandler) {
 		return process.ErrNilHeaderProof
+	}
+
+	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proofHandler.GetHeaderEpoch()) {
+		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
 	}
 
 	// for the start of epoch block the consensus is taken from the previous epoch

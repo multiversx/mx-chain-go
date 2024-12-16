@@ -49,7 +49,9 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		HeadersPool: &mock.HeadersCacherStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return &dataBlock.Header{}, nil
+				return &dataBlock.Header{
+					PrevRandSeed: []byte("prevRandSeed"),
+				}, nil
 			},
 		},
 	}
@@ -510,7 +512,11 @@ func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		PubKeysBitmap: nil,
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifySignature(header)
 	require.Equal(t, process.ErrNilPubKeysBitmap, err)
@@ -523,6 +529,8 @@ func TestHeaderSigVerifier_VerifySignatureBlockProposerSigMissingShouldErr(t *te
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("0"),
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -535,13 +543,12 @@ func TestHeaderSigVerifier_VerifySignatureNilRandomnessShouldErr(t *testing.T) {
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
-		RandSeed:      nil,
-		PrevRandSeed:  []byte("prevRandSeed"),
+		PrevRandSeed:  nil,
 		PubKeysBitmap: []byte("1"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T) {
@@ -560,6 +567,8 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("11"),
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -582,6 +591,8 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("A"),
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -611,6 +622,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("1"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -649,6 +661,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
 		PubKeysBitmap: []byte("C"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -686,6 +699,7 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
 		PubKeysBitmap: []byte{15},
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -723,29 +737,11 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		hdrSigVerifier, err := NewHeaderSigVerifier(createHeaderSigVerifierArgs())
 		require.NoError(t, err)
 
-		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap: []byte{3},
+		})
 		require.True(t, errors.Is(err, process.ErrFlagNotActive))
-		require.True(t, strings.Contains(err.Error(), string(common.FixedOrderInConsensusFlag)))
-	})
-	t.Run("GetAllEligibleValidatorsPublicKeysForShard error should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag
-			},
-		}
-		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
-				return nil, expectedErr
-			},
-		}
-		hdrSigVerifier, err := NewHeaderSigVerifier(args)
-		require.NoError(t, err)
-
-		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
-		require.Equal(t, expectedErr, err)
+		require.True(t, strings.Contains(err.Error(), string(common.EquivalentMessagesFlag)))
 	})
 	t.Run("GetMultiSigner error should error", func(t *testing.T) {
 		t.Parallel()
@@ -754,7 +750,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		args := createHeaderSigVerifierArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
