@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"math"
@@ -528,9 +527,6 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
-	randomBytes := make([]byte, math.MaxUint16*hashLength)
-	_, err := rand.Read(randomBytes)
-	require.Nil(t, err)
 
 	sw := core.NewStopWatch()
 
@@ -543,7 +539,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 		sw.Start(t.Name())
 
 		for i := 0; i < numTransactions; i++ {
-			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+			cache.AddTx(createTx(randomHashes.getItem(i), "alice", 42).withGasPrice(oneBillion + uint64(i)))
 		}
 
 		sw.Stop(t.Name())
@@ -560,7 +556,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 		sw.Start(t.Name())
 
 		for i := 0; i < numTransactions; i++ {
-			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+			cache.AddTx(createTx(randomHashes.getItem(i), "alice", 42).withGasPrice(oneBillion + uint64(i)))
 		}
 
 		sw.Stop(t.Name())
@@ -577,7 +573,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 		sw.Start(t.Name())
 
 		for i := 0; i < numTransactions; i++ {
-			cache.AddTx(createTx(randomBytes[i*hashLength:(i+1)*hashLength], "alice", 42).withGasPrice(oneBillion + uint64(i)))
+			cache.AddTx(createTx(randomHashes.getItem(i), "alice", 42).withGasPrice(oneBillion + uint64(i)))
 		}
 
 		sw.Stop(t.Name())
@@ -597,9 +593,9 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	//     Thread(s) per core:   2
 	//     Core(s) per socket:   4
 	//
-	// 0.000117s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_100)
-	// 0.003117s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_1000)
-	// 0.056481s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000)
+	// 0.000120s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_100_(worst_case))
+	// 0.002821s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_1000_(worst_case))
+	// 0.062260s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000_(worst_case))
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
