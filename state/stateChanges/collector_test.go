@@ -633,3 +633,47 @@ func TestDataAnalysisStateChangesCollector_Reset(t *testing.T) {
 	c.Reset()
 	require.Equal(t, 0, len(c.GetStateChanges()))
 }
+
+func TestDataAnalysisStateChangesCollector_Store(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with storer", func(t *testing.T) {
+		t.Parallel()
+
+		putCalled := false
+		storer := &mock.PersisterStub{
+			PutCalled: func(key, val []byte) error {
+				putCalled = true
+				return nil
+			},
+		}
+
+		c := NewCollector(WithCollectWrite(), WithStorer(storer))
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			c.AddStateChange(getWriteStateChange())
+		}
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+		err := c.Store()
+		require.Nil(t, err)
+
+		require.True(t, putCalled)
+	})
+
+	t.Run("without storer, should return nil directly", func(t *testing.T) {
+		t.Parallel()
+
+		c := NewCollector(WithCollectWrite())
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			c.AddStateChange(getWriteStateChange())
+		}
+		c.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+		err := c.Store()
+		require.Nil(t, err)
+	})
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -42,6 +43,11 @@ func NewCollector(opts ...CollectorOption) *collector {
 	if c.storer != nil {
 		c.cachedTxs = make(map[string]*transaction.Transaction)
 	}
+
+	log.Debug("created new state changes collector",
+		"withRead", c.collectRead,
+		"withWrite", c.collectWrite,
+	)
 
 	return c
 }
@@ -116,7 +122,8 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 
 // Store will store the collected state changes if it has been configured with a storer
 func (c *collector) Store() error {
-	if c.storer != nil {
+	// TODO: evaluate adding a more explicit field check here
+	if check.IfNil(c.storer) {
 		return nil
 	}
 
@@ -201,11 +208,6 @@ func (c *collector) RevertToIndex(index int) error {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (c *collector) IsInterfaceNil() bool {
-	return c == nil
-}
-
 func (c *collector) getStateChangesForTxs() ([]StateChangesForTx, error) {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
@@ -264,4 +266,9 @@ func (c *collector) getDataAnalysisStateChangesForTxs() ([]dataAnalysisStateChan
 	}
 
 	return dataAnalysisStateChangesForTxs, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (c *collector) IsInterfaceNil() bool {
+	return c == nil
 }
