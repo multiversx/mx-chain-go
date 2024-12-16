@@ -6,8 +6,8 @@ type shardTransactionCoordinatorFactory struct {
 }
 
 // NewShardTransactionCoordinatorFactory creates a new sovereign transaction coordinator factory
-func NewShardTransactionCoordinatorFactory() (*shardTransactionCoordinatorFactory, error) {
-	return &shardTransactionCoordinatorFactory{}, nil
+func NewShardTransactionCoordinatorFactory() *shardTransactionCoordinatorFactory {
+	return &shardTransactionCoordinatorFactory{}
 }
 
 // CreateTransactionCoordinator creates a new transaction coordinator for the chain run type normal

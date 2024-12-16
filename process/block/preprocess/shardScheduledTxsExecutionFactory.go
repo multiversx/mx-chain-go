@@ -3,6 +3,7 @@ package preprocess
 import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -24,8 +25,8 @@ type shardScheduledTxsExecutionFactory struct {
 }
 
 // NewShardScheduledTxsExecutionFactory creates a new shard scheduled txs execution factory
-func NewShardScheduledTxsExecutionFactory() (*shardScheduledTxsExecutionFactory, error) {
-	return &shardScheduledTxsExecutionFactory{}, nil
+func NewShardScheduledTxsExecutionFactory() *shardScheduledTxsExecutionFactory {
+	return &shardScheduledTxsExecutionFactory{}
 }
 
 // CreateScheduledTxsExecutionHandler creates a new scheduled txs execution handler for shard chain

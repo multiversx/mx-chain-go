@@ -1241,6 +1241,21 @@ func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolde
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &config.Config{
+				Versions: config.VersionsConfig{
+					VersionsByEpochs: []config.VersionByEpochs{
+						{
+							Version: "*",
+						},
+					},
+					Cache: config.CacheConfig{
+						Type:     "LRU",
+						Capacity: 10000,
+						Shards:   1,
+					},
+					DefaultVersion: "*",
+				},
+			},
 		},
 		InitialAccounts: createAccounts(),
 	}

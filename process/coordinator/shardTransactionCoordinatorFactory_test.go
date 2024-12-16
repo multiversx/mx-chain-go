@@ -9,9 +9,7 @@ import (
 func TestShardTransactionCoordinatorFactory_NewShardTransactionCoordinatorFactory(t *testing.T) {
 	t.Parallel()
 
-	tcf, err := NewShardTransactionCoordinatorFactory()
-
-	require.Nil(t, err)
+	tcf := NewShardTransactionCoordinatorFactory()
 	require.NotNil(t, tcf)
 	require.IsType(t, new(shardTransactionCoordinatorFactory), tcf)
 }
@@ -19,7 +17,7 @@ func TestShardTransactionCoordinatorFactory_NewShardTransactionCoordinatorFactor
 func TestShardTransactionCoordinatorFactory_CreateTransactionCoordinator(t *testing.T) {
 	t.Parallel()
 
-	tcf, _ := NewShardTransactionCoordinatorFactory()
+	tcf := NewShardTransactionCoordinatorFactory()
 	tc, err := tcf.CreateTransactionCoordinator(ArgTransactionCoordinator{})
 	require.NotNil(t, err)
 	require.Nil(t, tc)
@@ -33,6 +31,6 @@ func TestShardTransactionCoordinatorFactory_CreateTransactionCoordinator(t *test
 func TestShardTransactionCoordinatorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	tcf, _ := NewShardTransactionCoordinatorFactory()
+	tcf := NewShardTransactionCoordinatorFactory()
 	require.False(t, tcf.IsInterfaceNil())
 }
