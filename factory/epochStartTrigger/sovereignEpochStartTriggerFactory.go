@@ -57,14 +57,14 @@ func checkNilArgs(args factory.ArgsEpochStartTrigger) error {
 	if check.IfNil(args.DataComps.Datapool()) {
 		return process.ErrNilDataPoolHolder
 	}
+	if check.IfNil(args.DataComps.Blockchain()) {
+		return process.ErrNilBlockChain
+	}
 	if check.IfNil(args.DataComps.Datapool().MiniBlocks()) {
 		return dataRetriever.ErrNilMiniblocksPool
 	}
 	if check.IfNil(args.DataComps.Datapool().ValidatorsInfo()) {
 		return process.ErrNilValidatorInfoPool
-	}
-	if check.IfNil(args.DataComps.Blockchain()) {
-		return process.ErrNilBlockChain
 	}
 	if check.IfNil(args.BootstrapComponents) {
 		return process.ErrNilBootstrapComponentsHolder

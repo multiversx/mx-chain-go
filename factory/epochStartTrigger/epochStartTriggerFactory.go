@@ -1,7 +1,7 @@
 package epochStartTrigger
 
 import (
-	"errors"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -42,7 +42,7 @@ func (f *epochStartTriggerFactory) CreateEpochStartTrigger(args factory.ArgsEpoc
 		return createMetaEpochStartTrigger(args)
 	}
 
-	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
+	return nil, fmt.Errorf("error creating new start of epoch trigger, errror: %w", process.ErrInvalidShardId)
 }
 
 func createShardEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {

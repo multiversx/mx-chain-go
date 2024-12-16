@@ -18,6 +18,7 @@ import (
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	nodeFactoryMock "github.com/multiversx/mx-chain-go/node/mock/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	shardingMock "github.com/multiversx/mx-chain-go/sharding/mock"
@@ -61,45 +62,8 @@ func createArgs(shardID uint32) factory.ArgsEpochStartTrigger {
 				return &genesisMocks.NodesSetupStub{}
 			},
 		},
-		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
-			ShardCoordinatorCalled: func() sharding.Coordinator {
-				return &testscommon.ShardsCoordinatorMock{
-					NoShards: 1,
-					SelfIDCalled: func() uint32 {
-						return shardID
-					},
-				}
-			},
-			BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
-			HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
-			Bootstrapper:         &bootstrapMocks.EpochStartBootstrapperStub{},
-		},
-		DataComps: &nodeFactoryMock.DataComponentsMock{
-			DataPool: &dataRetriever.PoolsHolderStub{
-				MetaBlocksCalled: func() chainStorage.Cacher {
-					return &testscommon.CacherStub{}
-				},
-				HeadersCalled: func() retriever.HeadersPool {
-					return &pool.HeadersPoolStub{}
-				},
-				ValidatorsInfoCalled: func() retriever.ShardedDataCacherNotifier {
-					return &testscommon.ShardedDataCacheNotifierMock{}
-				},
-				CurrEpochValidatorInfoCalled: func() retriever.ValidatorInfoCacher {
-					return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
-				},
-			},
-			Store: &storage.ChainStorerStub{
-				GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
-					return &storage.StorerStub{}, nil
-				},
-			},
-			BlockChain: &testscommon.ChainHandlerStub{
-				GetGenesisHeaderCalled: func() data.HeaderHandler {
-					return &block.HeaderV2{}
-				},
-			},
-		},
+		BootstrapComponents: createBootstrapComps(shardID),
+		DataComps:           createDataCompsMock(),
 		StatusCoreComponentsHolder: &testsFactory.StatusCoreComponentsStub{
 			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 		},
@@ -109,6 +73,55 @@ func createArgs(shardID uint32) factory.ArgsEpochStartTrigger {
 				RoundsPerEpoch:         22,
 				MinRoundsBetweenEpochs: 22,
 			},
+		},
+	}
+}
+
+func createBootstrapComps(shardID uint32) *mainFactoryMocks.BootstrapComponentsStub {
+	return &mainFactoryMocks.BootstrapComponentsStub{
+		ShardCoordinatorCalled: func() sharding.Coordinator {
+			return &testscommon.ShardsCoordinatorMock{
+				NoShards: 1,
+				SelfIDCalled: func() uint32 {
+					return shardID
+				},
+			}
+		},
+		BootstrapParams:      &bootstrapMocks.BootstrapParamsHandlerMock{},
+		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		Bootstrapper:         &bootstrapMocks.EpochStartBootstrapperStub{},
+	}
+}
+
+func createDataCompsMock() *nodeFactoryMock.DataComponentsMock {
+	return &nodeFactoryMock.DataComponentsMock{
+		DataPool: createDataPoolMock(),
+		Store: &storage.ChainStorerStub{
+			GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
+				return &storage.StorerStub{}, nil
+			},
+		},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+		},
+	}
+}
+
+func createDataPoolMock() *dataRetriever.PoolsHolderStub {
+	return &dataRetriever.PoolsHolderStub{
+		MetaBlocksCalled: func() chainStorage.Cacher {
+			return &testscommon.CacherStub{}
+		},
+		HeadersCalled: func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{}
+		},
+		ValidatorsInfoCalled: func() retriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataCacheNotifierMock{}
+		},
+		CurrEpochValidatorInfoCalled: func() retriever.ValidatorInfoCacher {
+			return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 		},
 	}
 }
@@ -130,5 +143,11 @@ func TestNewEpochStartTriggerFactory(t *testing.T) {
 		trigger, err := f.CreateEpochStartTrigger(args)
 		require.Nil(t, err)
 		require.Equal(t, "*metachain.trigger", fmt.Sprintf("%T", trigger))
+	})
+	t.Run("invalid shard id", func(t *testing.T) {
+		args := createArgs(444)
+		trigger, err := f.CreateEpochStartTrigger(args)
+		require.ErrorIs(t, err, process.ErrInvalidShardId)
+		require.Nil(t, trigger)
 	})
 }
