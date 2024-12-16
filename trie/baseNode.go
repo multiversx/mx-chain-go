@@ -1,9 +1,10 @@
 package trie
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"sync"
 )
 
 type baseNode struct {
@@ -15,6 +16,8 @@ type baseNode struct {
 }
 
 func (bn *baseNode) getHash() []byte {
+	//TODO add mutex protection for all methods
+
 	bn.mutex.RLock()
 	defer bn.mutex.RUnlock()
 
