@@ -16,8 +16,6 @@ type baseNode struct {
 }
 
 func (bn *baseNode) getHash() []byte {
-	//TODO add mutex protection for all methods
-
 	bn.mutex.RLock()
 	defer bn.mutex.RUnlock()
 
@@ -25,6 +23,9 @@ func (bn *baseNode) getHash() []byte {
 }
 
 func (bn *baseNode) setGivenHash(hash []byte) {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	bn.hash = hash
 }
 
@@ -36,6 +37,9 @@ func (bn *baseNode) isDirty() bool {
 }
 
 func (bn *baseNode) setDirty(dirty bool) {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	bn.dirty = dirty
 }
 
