@@ -547,9 +547,9 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 
 func headerHasProof(headerHandler data.HeaderHandler) bool {
 	if check.IfNil(headerHandler) {
-		return true
+		return false
 	}
-	return headerHandler.GetPreviousProof() != nil
+	return !check.IfNilReflect(headerHandler.GetPreviousProof())
 }
 
 func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {
