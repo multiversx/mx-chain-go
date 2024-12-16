@@ -43,6 +43,11 @@ func NewCollector(opts ...CollectorOption) *collector {
 		c.cachedTxs = make(map[string]*transaction.Transaction)
 	}
 
+	log.Debug("created new state changes collector",
+		"withRead", c.collectRead,
+		"withWrite", c.collectWrite,
+	)
+
 	return c
 }
 
@@ -116,7 +121,8 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 
 // Store will store the collected state changes if it has been configured with a storer
 func (c *collector) Store() error {
-	if c.storer != nil {
+	// TODO: evaluate adding a more explicit field check here
+	if c.storer == nil {
 		return nil
 	}
 
