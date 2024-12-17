@@ -707,100 +707,6 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 	require.True(t, wasCalled)
 }
 
-<<<<<<< HEAD
-func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
-	t.Parallel()
-
-	t.Run("flag enabled and no proof should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return nil
-			},
-		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
-		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-		assert.True(t, strings.Contains(err.Error(), "received header without proof after flag activation"))
-	})
-	t.Run("flag not enabled and proof should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &block.HeaderProof{
-					AggregatedSignature: []byte("sig"),
-					PubKeysBitmap:       []byte("bitmap"),
-				}
-			},
-		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
-		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-		assert.True(t, strings.Contains(err.Error(), "received header with proof before flag activation"))
-	})
-	t.Run("flag enabled and no leader signature should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &block.HeaderProof{
-					AggregatedSignature: []byte("sig"),
-					PubKeysBitmap:       []byte{0, 1, 1, 1},
-				}
-			},
-		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
-		assert.True(t, errors.Is(err, process.ErrInvalidHeader))
-		assert.True(t, strings.Contains(err.Error(), "received header without leader signature after flag activation"))
-	})
-	t.Run("should work, flag enabled with proof", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag ||
-					flag == common.FixedOrderInConsensusFlag
-			},
-		}
-
-		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-
-		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousProofCalled: func() data.HeaderProofHandler {
-				return &block.HeaderProof{
-					AggregatedSignature: []byte("sig"),
-					PubKeysBitmap:       []byte{1, 1, 1, 1},
-				}
-			},
-		}
-		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
-		assert.Nil(t, err)
-	})
-=======
 func getFilledHeader() data.HeaderHandler {
 	return &dataBlock.Header{
 		PrevHash:        []byte("prev hash"),
@@ -809,7 +715,6 @@ func getFilledHeader() data.HeaderHandler {
 		PubKeysBitmap:   []byte{0xFF},
 		LeaderSignature: []byte("leader signature"),
 	}
->>>>>>> feat/equivalent-messages
 }
 
 func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {

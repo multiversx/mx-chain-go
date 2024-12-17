@@ -303,67 +303,6 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
-<<<<<<< HEAD
-func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, []byte, error) {
-	previousProof := currentHeader.GetPreviousProof()
-
-	var sig, bitmap []byte
-	if previousProof != nil {
-		sig, bitmap = previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
-	}
-
-	hash := currentHeader.GetPrevHash()
-	prevHeader, err := hsv.headersPool.GetHeaderByHash(hash)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	headerCopy, err := hsv.copyHeaderWithoutSig(prevHeader)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	hash, err = core.CalculateHash(hsv.marshalizer, hsv.hasher, headerCopy)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
-	return headerCopy, hash, sig, bitmap, nil
-}
-
-// VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag.
-// It also verifies previous block proof singature
-func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
-	previousProof := header.GetPreviousProof()
-
-	hasProof := false
-	hasLeaderSignature := false
-
-	if previousProof != nil {
-		previousAggregatedSignature, previousBitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
-		hasProof = len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
-
-		if len(previousBitmap) > 0 {
-			hasLeaderSignature = previousBitmap[0]&1 != 0
-		}
-	}
-
-	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
-	if isFlagEnabled && !hasProof {
-		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)
-	}
-	if !isFlagEnabled && hasProof {
-		return fmt.Errorf("%w, received header with proof before flag activation", process.ErrInvalidHeader)
-	}
-	if isFlagEnabled && !hasLeaderSignature {
-		return fmt.Errorf("%w, received header without leader signature after flag activation", process.ErrInvalidHeader)
-	}
-
-	return hsv.VerifyHeaderProof(previousProof)
-}
-
-func (hsv *HeaderSigVerifier) verifyConsensusSize(consensusPubKeys []string, header data.HeaderHandler, bitmap []byte) error {
-=======
 func (hsv *HeaderSigVerifier) verifyConsensusSize(
 	consensusPubKeys []string,
 	bitmap []byte,
@@ -372,7 +311,6 @@ func (hsv *HeaderSigVerifier) verifyConsensusSize(
 	round uint64,
 	prevHash []byte,
 ) error {
->>>>>>> feat/equivalent-messages
 	consensusSize := len(consensusPubKeys)
 
 	expectedBitmapSize := consensusSize / 8
