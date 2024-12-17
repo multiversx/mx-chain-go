@@ -18,6 +18,9 @@ func ComputeConsensusGroup(header data.HeaderHandler, nodesCoordinator nodesCoor
 	}
 
 	prevRandSeed := header.GetPrevRandSeed()
+	if prevRandSeed == nil {
+		return nil, nil, process.ErrNilPrevRandSeed
+	}
 
 	// TODO: change here with an activation flag if start of epoch block needs to be validated by the new epoch nodes
 	epoch := header.GetEpoch()

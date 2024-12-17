@@ -415,9 +415,14 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		return false
 	}
 
+	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	if headerHasProof(header) {
+		return false
+	}
+
 	sr.SetData(cnsDta.BlockHeaderHash)
 	sr.SetBody(sr.BlockProcessor().DecodeBlockBody(cnsDta.Body))
-	sr.SetHeader(sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header))
+	sr.SetHeader(header)
 
 	isInvalidData := check.IfNil(sr.GetBody()) || sr.isInvalidHeaderOrData()
 	if isInvalidData {
@@ -514,8 +519,13 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 		return false
 	}
 
+	header := sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header)
+	if headerHasProof(header) {
+		return false
+	}
+
 	sr.SetData(cnsDta.BlockHeaderHash)
-	sr.SetHeader(sr.BlockProcessor().DecodeBlockHeader(cnsDta.Header))
+	sr.SetHeader(header)
 
 	if sr.isInvalidHeaderOrData() {
 		return false
@@ -533,6 +543,13 @@ func (sr *subroundBlock) receivedBlockHeader(ctx context.Context, cnsDta *consen
 	)
 
 	return blockProcessedWithSuccess
+}
+
+func headerHasProof(headerHandler data.HeaderHandler) bool {
+	if check.IfNil(headerHandler) {
+		return false
+	}
+	return !check.IfNilReflect(headerHandler.GetPreviousProof())
 }
 
 func (sr *subroundBlock) processReceivedBlock(ctx context.Context, cnsDta *consensus.Message) bool {

@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -70,14 +71,15 @@ func checkMiniblockArgument(arg *ArgInterceptedMiniblock) error {
 }
 
 func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
-	// TODO[cleanup cns finality]: remove these checks
-	if len(hdr.GetPubKeysBitmap()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
+	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+
+	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
 	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if len(hdr.GetSignature()) == 0 && !enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
+	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
 	if len(hdr.GetRootHash()) == 0 {
@@ -90,7 +92,34 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 		return process.ErrNilPrevRandSeed
 	}
 
+	err := checkProofIntegrity(hdr, enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
 	return hdr.CheckFieldsForNil()
+}
+
+func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
+	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+
+	prevHeaderProof := hdr.GetPreviousProof()
+	nilPreviousProof := check.IfNilReflect(prevHeaderProof)
+	missingProof := nilPreviousProof && equivalentMessagesEnabled
+	unexpectedProof := !nilPreviousProof && !equivalentMessagesEnabled
+	hasProof := !nilPreviousProof && equivalentMessagesEnabled
+
+	if missingProof {
+		return process.ErrMissingHeaderProof
+	}
+	if unexpectedProof {
+		return process.ErrUnexpectedHeaderProof
+	}
+	if hasProof && isIncompleteProof(prevHeaderProof) {
+		return process.ErrInvalidHeaderProof
+	}
+
+	return nil
 }
 
 func checkMetaShardInfo(
@@ -99,7 +128,6 @@ func checkMetaShardInfo(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) error {
 	wgProofsVerification := sync.WaitGroup{}
-	wgProofsVerification.Add(len(shardInfo))
 	errChan := make(chan error, len(shardInfo))
 	for _, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
@@ -111,6 +139,7 @@ func checkMetaShardInfo(
 			return err
 		}
 
+		wgProofsVerification.Add(1)
 		checkProofAsync(sd.GetPreviousProof(), headerSigVerifier, &wgProofsVerification, errChan)
 	}
 

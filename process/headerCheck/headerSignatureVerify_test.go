@@ -8,10 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -30,16 +28,32 @@ const defaultChancesSelection = 1
 var expectedErr = errors.New("expected error")
 
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
+	v1, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
+	v2, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
 	return &ArgsHeaderSigVerifier{
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &hashingMocks.HasherMock{},
-		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
-		MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
-		SingleSigVerifier:       &mock.SignerMock{},
-		KeyGen:                  &mock.SingleSignKeyGenMock{},
+		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:      &hashingMocks.HasherMock{},
+		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validators []nodesCoordinator.Validator, err error) {
+				return v1, []nodesCoordinator.Validator{v1, v2}, nil
+			},
+		},
+		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
+		SingleSigVerifier: &mock.SignerMock{},
+		KeyGen: &mock.SingleSignKeyGenMock{
+			PublicKeyFromByteArrayCalled: func(b []byte) (key crypto.PublicKey, err error) {
+				return &mock.SingleSignPublicKey{}, nil
+			},
+		},
 		FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		HeadersPool:             &mock.HeadersCacherStub{},
+		HeadersPool: &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &dataBlock.Header{
+					PrevRandSeed: []byte("prevRandSeed"),
+				}, nil
+			},
+		},
 	}
 }
 
@@ -145,10 +159,13 @@ func TestHeaderSigVerifier_VerifySignatureNilPrevRandSeedShouldErr(t *testing.T)
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		PrevRandSeed: nil,
+		RandSeed:     []byte("rand seed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
@@ -178,7 +195,10 @@ func TestHeaderSigVerifier_VerifyRandSeedOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		PrevRandSeed: []byte("prev rand seed"),
+		RandSeed:     []byte("rand seed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
 	require.Nil(t, err)
@@ -213,7 +233,10 @@ func TestHeaderSigVerifier_VerifyRandSeedShouldErrWhenVerificationFails(t *testi
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeed(header)
 	require.Equal(t, localError, err)
@@ -225,10 +248,13 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureNilRandomnessShouldEr
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     nil,
+		PrevRandSeed: []byte("prev rand seed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
@@ -259,7 +285,10 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyShouldErrWhenVa
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
 	require.Equal(t, localErr, err)
@@ -299,6 +328,8 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureVerifyLeaderSigShould
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
+		RandSeed:        []byte("randSeed"),
+		PrevRandSeed:    []byte("prevRandSeed"),
 		LeaderSignature: leaderSig,
 	}
 
@@ -334,22 +365,28 @@ func TestHeaderSigVerifier_VerifyRandSeedAndLeaderSignatureOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyRandSeedAndLeaderSignature(header)
 	require.Nil(t, err)
 	require.Equal(t, 2, count)
 }
 
-func TestHeaderSigVerifier_VerifyLeaderSignatureNilRandomnessShouldErr(t *testing.T) {
+func TestHeaderSigVerifier_VerifyLeaderSignatureNilPrevRandomnessShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("rand seed "),
+		PrevRandSeed: nil,
+	}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFails(t *testing.T) {
@@ -380,7 +417,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyShouldErrWhenValidationFai
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
 	require.Equal(t, localErr, err)
@@ -420,6 +460,8 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureVerifyLeaderSigShouldErr(t *test
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
+		RandSeed:        []byte("randSeed"),
+		PrevRandSeed:    []byte("prevRandSeed"),
 		LeaderSignature: leaderSig,
 	}
 
@@ -455,7 +497,10 @@ func TestHeaderSigVerifier_VerifyLeaderSignatureOk(t *testing.T) {
 	}
 	args.NodesCoordinator = nc
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		RandSeed:     []byte("randSeed"),
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifyLeaderSignature(header)
 	require.Nil(t, err)
@@ -467,7 +512,11 @@ func TestHeaderSigVerifier_VerifySignatureNilBitmapShouldErr(t *testing.T) {
 
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
-	header := &dataBlock.Header{}
+	header := &dataBlock.Header{
+		PubKeysBitmap: nil,
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
+	}
 
 	err := hdrSigVerifier.VerifySignature(header)
 	require.Equal(t, process.ErrNilPubKeysBitmap, err)
@@ -480,6 +529,8 @@ func TestHeaderSigVerifier_VerifySignatureBlockProposerSigMissingShouldErr(t *te
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("0"),
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -492,11 +543,12 @@ func TestHeaderSigVerifier_VerifySignatureNilRandomnessShouldErr(t *testing.T) {
 	args := createHeaderSigVerifierArgs()
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
+		PrevRandSeed:  nil,
 		PubKeysBitmap: []byte("1"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
-	require.Equal(t, nodesCoordinator.ErrNilRandomness, err)
+	require.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
 func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T) {
@@ -515,6 +567,8 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("11"),
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -537,6 +591,8 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("A"),
+		RandSeed:      []byte("randSeed"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -566,6 +622,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.Header{
 		PubKeysBitmap: []byte("1"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -604,6 +661,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
 		PubKeysBitmap: []byte("C"),
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -640,7 +698,8 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 
 	hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 	header := &dataBlock.MetaBlock{
-		PubKeysBitmap: []byte("C"),
+		PubKeysBitmap: []byte{15},
+		PrevRandSeed:  []byte("prevRandSeed"),
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
@@ -648,6 +707,7 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 	require.True(t, wasCalled)
 }
 
+<<<<<<< HEAD
 func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 	t.Parallel()
 
@@ -740,6 +800,16 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
 		assert.Nil(t, err)
 	})
+=======
+func getFilledHeader() data.HeaderHandler {
+	return &dataBlock.Header{
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		PubKeysBitmap:   []byte{0xFF},
+		LeaderSignature: []byte("leader signature"),
+	}
+>>>>>>> feat/equivalent-messages
 }
 
 func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
@@ -762,29 +832,11 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		hdrSigVerifier, err := NewHeaderSigVerifier(createHeaderSigVerifierArgs())
 		require.NoError(t, err)
 
-		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap: []byte{3},
+		})
 		require.True(t, errors.Is(err, process.ErrFlagNotActive))
-		require.True(t, strings.Contains(err.Error(), string(common.FixedOrderInConsensusFlag)))
-	})
-	t.Run("GetAllEligibleValidatorsPublicKeysForShard error should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createHeaderSigVerifierArgs()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag
-			},
-		}
-		args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
-			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
-				return nil, expectedErr
-			},
-		}
-		hdrSigVerifier, err := NewHeaderSigVerifier(args)
-		require.NoError(t, err)
-
-		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
-		require.Equal(t, expectedErr, err)
+		require.True(t, strings.Contains(err.Error(), string(common.EquivalentMessagesFlag)))
 	})
 	t.Run("GetMultiSigner error should error", func(t *testing.T) {
 		t.Parallel()
@@ -793,7 +845,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		args := createHeaderSigVerifierArgs()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -813,12 +865,17 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
-
+		headerHash := []byte("header hash")
 		wasVerifyAggregatedSigCalled := false
 		args := createHeaderSigVerifierArgs()
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return getFilledHeader(), nil
+			},
+		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixedOrderInConsensusFlag
+				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
@@ -834,7 +891,11 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		hdrSigVerifier, err := NewHeaderSigVerifier(args)
 		require.NoError(t, err)
 
-		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{0x3},
+			AggregatedSignature: make([]byte, 10),
+			HeaderHash:          headerHash,
+		})
 		require.NoError(t, err)
 		require.True(t, wasVerifyAggregatedSigCalled)
 	})

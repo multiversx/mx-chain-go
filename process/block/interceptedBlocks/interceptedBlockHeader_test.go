@@ -90,7 +90,7 @@ func createMockShardHeader() *dataBlock.Header {
 	}
 }
 
-//------- TestNewInterceptedHeader
+// ------- TestNewInterceptedHeader
 
 func TestNewInterceptedHeader_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -174,7 +174,7 @@ func TestNewInterceptedHeader_MetachainForThisShardShouldWork(t *testing.T) {
 	assert.True(t, inHdr.IsForCurrentShard())
 }
 
-//------- Verify
+// ------- Verify
 
 func TestInterceptedHeader_CheckValidityNilPubKeyBitmapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -236,6 +236,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T
 func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWork(t *testing.T) {
 	t.Parallel()
 
+	headerHash := []byte("header hash")
 	arg := createDefaultShardArgumentWithV2Support()
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
@@ -264,6 +265,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 		PreviousHeaderProof: &block.HeaderProof{
 			PubKeysBitmap:       providedPrevBitmap,
 			AggregatedSignature: providedPrevSig,
+			HeaderHash:          headerHash,
 		},
 	}
 	buff, _ := marshaller.Marshal(hdr)
@@ -357,7 +359,7 @@ func TestInterceptedHeader_CheckAgainstFinalHeaderErrorsShouldErr(t *testing.T) 
 	assert.Equal(t, expectedErr, err)
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedHeader_Getters(t *testing.T) {
 	t.Parallel()
@@ -370,7 +372,7 @@ func TestInterceptedHeader_Getters(t *testing.T) {
 	assert.Equal(t, hash, inHdr.Hash())
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestInterceptedHeader_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
