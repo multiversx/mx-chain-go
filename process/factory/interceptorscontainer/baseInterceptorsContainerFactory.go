@@ -56,6 +56,7 @@ type baseInterceptorsContainerFactory struct {
 	hardforkTrigger                heartbeat.HardforkTrigger
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
+	enableEpochsHandler            common.EnableEpochsHandler
 }
 
 func checkBaseParams(
@@ -423,9 +424,10 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
-		Proofs:         bicf.dataPool.Proofs(),
+		Headers:             bicf.dataPool.Headers(),
+		BlockBlackList:      bicf.blockBlackList,
+		Proofs:              bicf.dataPool.Proofs(),
+		EnableEpochsHandler: bicf.enableEpochsHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -566,9 +568,10 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
-		Proofs:         bicf.dataPool.Proofs(),
+		Headers:             bicf.dataPool.Headers(),
+		BlockBlackList:      bicf.blockBlackList,
+		Proofs:              bicf.dataPool.Proofs(),
+		EnableEpochsHandler: bicf.enableEpochsHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
