@@ -42,7 +42,7 @@ func TestNewEquivalentProofsInterceptorProcessor(t *testing.T) {
 		args.EquivalentProofsPool = nil
 
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
-		require.Equal(t, process.ErrNilEquivalentProofsPool, err)
+		require.Equal(t, process.ErrNilProofsPool, err)
 		require.Nil(t, epip)
 	})
 	t.Run("nil Marshaller should error", func(t *testing.T) {
@@ -104,6 +104,7 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			Marshaller:        args.Marshaller,
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
+			Proofs:            &dataRetriever.ProofsPoolMock{},
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
 			PubKeysBitmap:       []byte("bitmap"),

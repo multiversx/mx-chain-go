@@ -1254,9 +1254,6 @@ var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration"
 // ErrInvalidHeader is raised when header is invalid
 var ErrInvalidHeader = errors.New("header is invalid")
 
-// ErrNilEquivalentProofsPool signals that a nil equivalent proofs pool has been provided
-var ErrNilEquivalentProofsPool = errors.New("nil equivalent proofs pool")
-
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 

@@ -34,7 +34,7 @@ func NewHdrInterceptorProcessor(argument *ArgHdrInterceptorProcessor) (*HdrInter
 		return nil, process.ErrNilCacher
 	}
 	if check.IfNil(argument.Proofs) {
-		return nil, process.ErrNilEquivalentProofsPool
+		return nil, process.ErrNilProofsPool
 	}
 	if check.IfNil(argument.BlockBlackList) {
 		return nil, process.ErrNilBlackListCacher

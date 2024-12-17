@@ -34,7 +34,7 @@ func NewEquivalentProofsInterceptorProcessor(args ArgEquivalentProofsInterceptor
 
 func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) error {
 	if check.IfNil(args.EquivalentProofsPool) {
-		return process.ErrNilEquivalentProofsPool
+		return process.ErrNilProofsPool
 	}
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer

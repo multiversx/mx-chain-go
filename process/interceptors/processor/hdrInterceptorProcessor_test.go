@@ -69,7 +69,7 @@ func TestNewHdrInterceptorProcessor_NilProofsPoolShouldErr(t *testing.T) {
 	hip, err := processor.NewHdrInterceptorProcessor(arg)
 
 	assert.Nil(t, hip)
-	assert.Equal(t, process.ErrNilEquivalentProofsPool, err)
+	assert.Equal(t, process.ErrNilProofsPool, err)
 }
 
 func TestNewHdrInterceptorProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {

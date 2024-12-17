@@ -41,7 +41,7 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
-		return fmt.Errorf("there was already a valid proof for header, headerHash: %s", hex.EncodeToString(headerHash))
+		return fmt.Errorf("%w, headerHash: %s", ErrAlreadyExistingEquivalentProof, hex.EncodeToString(headerHash))
 	}
 
 	pp.mutCache.Lock()

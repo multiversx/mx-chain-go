@@ -913,7 +913,7 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInterceptor(topic string) (process.Interceptor, error) {
-	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(*bicf.argInterceptorFactory)
+	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(*bicf.argInterceptorFactory, bicf.dataPool.Proofs())
 
 	marshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgEquivalentProofsInterceptorProcessor{
