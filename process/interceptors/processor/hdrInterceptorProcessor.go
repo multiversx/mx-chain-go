@@ -80,7 +80,7 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
-	if hip.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, interceptedHdr.HeaderHandler().GetEpoch()) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(interceptedHdr.HeaderHandler(), hip.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		err := hip.proofs.AddProof(interceptedHdr.HeaderHandler().GetPreviousProof())
 		if err != nil {
 			log.Error("failed to add proof", "error", err, "intercepted header hash", interceptedHdr.Hash(), "header type", reflect.TypeOf(interceptedHdr.HeaderHandler()))

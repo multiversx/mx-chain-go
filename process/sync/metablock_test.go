@@ -407,6 +407,34 @@ func TestNewMetaBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
 }
 
+func TestNewMetaBootstrap_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	args.EnableEpochsHandler = nil
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.True(t, errors.Is(err, process.ErrNilEnableEpochsHandler))
+}
+
+func TestNewMetaBootstrap_PoolsHolderRetNilOnProofsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateMetaBootstrapMockArguments()
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return nil
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewMetaBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilProofsPool, err)
+}
+
 func TestNewMetaBootstrap_MissingStorer(t *testing.T) {
 	t.Parallel()
 
@@ -1838,7 +1866,7 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 	prevHeaderHash1 := []byte("prevHeaderHash")
 	headerHash1 := []byte("headerHash")
 
-	t.Run("flag no activated, should return direclty", func(t *testing.T) {
+	t.Run("flag not activated, should return direclty", func(t *testing.T) {
 		t.Parallel()
 
 		header := &block.MetaBlock{
@@ -1892,7 +1920,7 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 					return prevHeader, nil
 				}
 
-				return prevHeader, nil
+				return nil, sync.ErrHeaderNotFound
 			}
 
 			return sds
@@ -1934,7 +1962,7 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 					return prevHeader, nil
 				}
 
-				return prevHeader, nil
+				return nil, sync.ErrHeaderNotFound
 			}
 
 			return sds
@@ -1960,18 +1988,21 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 	t.Run("should work, by checking for next header", func(t *testing.T) {
 		t.Parallel()
 
-		prevHeader := &block.MetaBlock{
+		headerHash1 := []byte("headerHash1")
+		headerHash2 := []byte("headerHash2")
+
+		header1 := &block.MetaBlock{
 			Nonce: 10,
 		}
 
-		header := &block.MetaBlock{
+		header2 := &block.MetaBlock{
 			Nonce:    11,
-			PrevHash: prevHeaderHash1,
+			PrevHash: headerHash1,
 		}
 
-		nextHeader := &block.MetaBlock{
+		header3 := &block.MetaBlock{
 			Nonce:    12,
-			PrevHash: prevHeaderHash1,
+			PrevHash: headerHash2,
 		}
 
 		args := CreateMetaBootstrapMockArguments()
@@ -1985,15 +2016,15 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
 			sds := &mock.HeadersCacherStub{}
 			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
-				if bytes.Equal(hash, prevHeaderHash1) {
-					return prevHeader, nil
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
 				}
 
-				return prevHeader, nil
+				return nil, sync.ErrHeaderNotFound
 			}
 			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-				if hdrNonce == header.GetNonce()+1 {
-					return []data.HeaderHandler{nextHeader}, [][]byte{prevHeaderHash1}, nil
+				if hdrNonce == header2.GetNonce()+1 {
+					return []data.HeaderHandler{header3}, [][]byte{headerHash2}, nil
 				}
 
 				return nil, nil, process.ErrMissingHeader
@@ -2021,7 +2052,7 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 		bs, err := sync.NewMetaBootstrap(args)
 		require.Nil(t, err)
 
-		err = bs.HandleEquivalentProof(header, headerHash1)
+		err = bs.HandleEquivalentProof(header2, headerHash2)
 		require.Nil(t, err)
 	})
 }

@@ -497,6 +497,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arguments.PoolsHolder.Proofs()) {
+		return process.ErrNilProofsPool
+	}
 
 	return nil
 }
@@ -772,6 +775,7 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 		return
 	}
 
+	// TODO: analyse fork detection by proofs
 	finalNonce := boot.forkDetector.GetHighestFinalBlockNonce()
 
 	err := boot.proofs.CleanupProofsBehindNonce(header.GetShardID(), finalNonce)

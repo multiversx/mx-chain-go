@@ -16,15 +16,15 @@ type proofsPool struct {
 	mutCache sync.RWMutex
 	cache    map[uint32]*proofsCache
 
-	mutAddedProofHandlers sync.RWMutex
-	addedProofHandlers    []func(headerProof data.HeaderProofHandler)
+	mutAddedProofSubscribers sync.RWMutex
+	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
 }
 
 // NewProofsPool creates a new proofs pool component
 func NewProofsPool() *proofsPool {
 	return &proofsPool{
-		cache:              make(map[uint32]*proofsCache),
-		addedProofHandlers: make([]func(headerProof data.HeaderProofHandler), 0),
+		cache:                 make(map[uint32]*proofsCache),
+		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
 	}
 }
 
@@ -63,16 +63,16 @@ func (pp *proofsPool) AddProof(
 
 	proofsPerShard.addProof(headerProof)
 
-	pp.callAddedProofHandlers(headerProof)
+	pp.callAddedProofSubscribers(headerProof)
 
 	return nil
 }
 
-func (pp *proofsPool) callAddedProofHandlers(headerProof data.HeaderProofHandler) {
-	pp.mutAddedProofHandlers.RLock()
-	defer pp.mutAddedProofHandlers.RUnlock()
+func (pp *proofsPool) callAddedProofSubscribers(headerProof data.HeaderProofHandler) {
+	pp.mutAddedProofSubscribers.RLock()
+	defer pp.mutAddedProofSubscribers.RUnlock()
 
-	for _, handler := range pp.addedProofHandlers {
+	for _, handler := range pp.addedProofSubscribers {
 		go handler(headerProof)
 	}
 }
@@ -142,9 +142,9 @@ func (pp *proofsPool) RegisterHandler(handler func(headerProof data.HeaderProofH
 		return
 	}
 
-	pp.mutAddedProofHandlers.Lock()
-	pp.addedProofHandlers = append(pp.addedProofHandlers, handler)
-	pp.mutAddedProofHandlers.Unlock()
+	pp.mutAddedProofSubscribers.Lock()
+	pp.addedProofSubscribers = append(pp.addedProofSubscribers, handler)
+	pp.mutAddedProofSubscribers.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
