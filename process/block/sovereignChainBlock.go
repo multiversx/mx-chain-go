@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"sort"
 	"time"
 
@@ -33,6 +34,7 @@ var rootHash = "uncomputed root hash"
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	IsGenesisLastCrossNotarizedHeader() bool
+	DeleteMainChainHeader(nonce uint64)
 }
 
 type extendedShardHeaderRequestHandler interface {
@@ -699,19 +701,31 @@ func (scbp *sovereignChainBlockProcessor) checkAndRequestIfMissingEpochStartExte
 		return 0
 	}
 
-	/*
-		ADD MALICIOUS CODE HERE TO CHECK THE MECHANISM WORKS
-		scbp.dataPool.Headers().RemoveHeaderByHash(lastCrossChainData.GetHeaderHash())
+	log.Error("checkAndRequestIfMissingEpochStartExtendedHeader started")
 
-	*/
+	if rand.Int31n(10) > 5 {
+		log.Error("ADDING CODE TO DELETE HDR")
+		scbp.dataPool.Headers().RemoveHeaderByHash(lastCrossChainData.GetHeaderHash())
+		scbp.extendedShardHeaderTracker.DeleteMainChainHeader(lastCrossChainData.GetNonce())
+	}
+
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	_, err := process.GetExtendedShardHeaderFromPool(
+	_, errMissingHdrPool := process.GetExtendedShardHeaderFromPool(
 		lastCrossChainData.GetHeaderHash(),
 		scbp.dataPool.Headers())
 
-	if err != nil {
+	_, lastNotarziedHdrHash, errTracker := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+
+	missingHeaderInTracker := errTracker != nil && !bytes.Equal(lastNotarziedHdrHash, lastCrossChainData.GetHeaderHash())
+	missingHeaderInPool := errMissingHdrPool != nil
+
+	log.Error("CHECKING EXTRA VALUES", "errTracker", errTracker, "lastNotarziedHdrHash", lastNotarziedHdrHash, "lastCrossChainData.GetHeaderHash()", lastCrossChainData.GetHeaderHash())
+
+	log.Error("CHECKING BOOL VALUES", "missingHeaderInTracker", missingHeaderInTracker, "missingHeaderInPool", missingHeaderInPool)
+
+	if missingHeaderInTracker || missingHeaderInPool {
 		scbp.hdrsForCurrBlock.missingHdrs++
 		scbp.hdrsForCurrBlock.hdrHashAndInfo[string(lastCrossChainData.GetHeaderHash())] = &hdrInfo{
 			hdr:         nil,

@@ -325,6 +325,20 @@ func (bbt *baseBlockTrack) cleanupTrackedHeadersBehindNonce(shardID uint32, nonc
 	}
 }
 
+func (bbt *baseBlockTrack) DeleteMainChainHeader(nonce uint64) {
+	bbt.mutHeaders.Lock()
+	defer bbt.mutHeaders.Unlock()
+
+	headersForMainShard, ok := bbt.headers[core.MainChainShardId]
+	if !ok {
+		log.Error("DeleteMainChainHeader NOT FOUND")
+		return
+	}
+
+	log.Error("DeleteMainChainHeader SUCCESS")
+	delete(headersForMainShard, nonce)
+}
+
 // ComputeLongestChain returns the longest valid chain for a given shard from a given header
 func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte) {
 	return bbt.blockProcessor.ComputeLongestChain(shardID, header)
