@@ -975,6 +975,10 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	if headerHandler.GetNonce() >= 21677684 {
+		return fmt.Errorf("stop here")
+	}
+
 	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err
