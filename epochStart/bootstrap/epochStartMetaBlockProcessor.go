@@ -37,7 +37,7 @@ type epochStartMetaBlockProcessor struct {
 	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers map[string][]core.PeerID
 
-	chanConsensusReached              chan bool
+	chanConfMetaBlockReached          chan bool
 	chanMetaBlockReached              chan bool
 	metaBlock                         data.MetaHeaderHandler
 	peerCountTarget                   int
@@ -92,7 +92,7 @@ func NewEpochStartMetaBlockProcessor(
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
-		chanConsensusReached:              make(chan bool, 1),
+		chanConfMetaBlockReached:          make(chan bool, 1),
 		chanMetaBlockReached:              make(chan bool, 1),
 	}
 
@@ -161,7 +161,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 
 	if e.isEpochStartConfirmationBlockWithEquivalentMessages(metaBlock) {
 		log.Debug("received epoch start confirmation meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
-		e.chanConsensusReached <- true
+		e.chanConfMetaBlockReached <- true
 
 		return nil
 	}
@@ -273,7 +273,7 @@ func (e *epochStartMetaBlockProcessor) waitForConfMetaBlock(ctx context.Context,
 
 	for {
 		select {
-		case <-e.chanConsensusReached:
+		case <-e.chanConfMetaBlockReached:
 			return nil
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
