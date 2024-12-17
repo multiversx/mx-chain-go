@@ -730,7 +730,6 @@ func (boot *baseBootstrap) handleEquivalentProof(
 
 	log.Trace("baseBootstrap.handleEquivalentProof: did not have proof for header, will try again", "headerHash", headerHash)
 
-	// TODO: evaluate adding a wait here, or request for next header if missing
 	_, _, err = boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
 	if err != nil {
 		return err
