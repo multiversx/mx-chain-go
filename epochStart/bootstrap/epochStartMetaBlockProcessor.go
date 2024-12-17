@@ -37,15 +37,8 @@ type epochStartMetaBlockProcessor struct {
 	mapReceivedMetaBlocks  map[string]data.MetaHeaderHandler
 	mapMetaBlocksFromPeers map[string][]core.PeerID
 
-	// TODO: refactor to use a separate component for meta block sync handling
-	//	for epoch start metablock and epoch start confirmation block
-	mutReceivedConfMetaBlocks  sync.RWMutex
-	mapReceivedConfMetaBlocks  map[string]data.MetaHeaderHandler
-	mapConfMetaBlocksFromPeers map[string][]core.PeerID
-
 	chanConsensusReached              chan bool
 	chanMetaBlockReached              chan bool
-	chanConfMetaBlockReached          chan bool
 	metaBlock                         data.MetaHeaderHandler
 	peerCountTarget                   int
 	minNumConnectedPeers              int
@@ -99,11 +92,8 @@ func NewEpochStartMetaBlockProcessor(
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
-		mapReceivedConfMetaBlocks:         make(map[string]data.MetaHeaderHandler),
-		mapConfMetaBlocksFromPeers:        make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 		chanMetaBlockReached:              make(chan bool, 1),
-		chanConfMetaBlockReached:          make(chan bool, 1),
 	}
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
@@ -169,12 +159,9 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	if e.isEpochStartConfirmationBlock(metaBlock) {
+	if e.isEpochStartConfirmationBlockWithEquivalentMessages(metaBlock) {
 		log.Debug("received epoch start confirmation meta", "epoch", metaBlock.GetEpoch(), "from peer", fromConnectedPeer.Pretty())
-		e.mutReceivedConfMetaBlocks.Lock()
-		e.mapReceivedConfMetaBlocks[string(mbHash)] = metaBlock
-		e.addToConfPeerList(string(mbHash), fromConnectedPeer)
-		e.mutReceivedConfMetaBlocks.Unlock()
+		e.chanConsensusReached <- true
 
 		return nil
 	}
@@ -184,7 +171,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 	return nil
 }
 
-func (e *epochStartMetaBlockProcessor) isEpochStartConfirmationBlock(metaBlock data.HeaderHandler) bool {
+func (e *epochStartMetaBlockProcessor) isEpochStartConfirmationBlockWithEquivalentMessages(metaBlock data.HeaderHandler) bool {
 	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
 		return false
 	}
@@ -212,16 +199,6 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 	e.mapMetaBlocksFromPeers[hash] = append(e.mapMetaBlocksFromPeers[hash], peer)
 }
 
-func (e *epochStartMetaBlockProcessor) addToConfPeerList(hash string, peer core.PeerID) {
-	peersListForHash := e.mapConfMetaBlocksFromPeers[hash]
-	for _, pid := range peersListForHash {
-		if pid == peer {
-			return
-		}
-	}
-	e.mapConfMetaBlocksFromPeers[hash] = append(e.mapConfMetaBlocksFromPeers[hash], peer)
-}
-
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
 func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
@@ -239,35 +216,25 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 		}
 	}()
 
-	err = e.waitForMetaBlock(ctx)
+	metaBlock, err := e.waitForMetaBlock(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	err = e.waitForConfMetaBlock(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	chanCheckMaps := time.After(durationBetweenChecks)
-
-	for {
-		select {
-		case <-e.chanConsensusReached:
-			return e.metaBlock, nil
-		case <-ctx.Done():
-			return e.getMostReceivedMetaBlock()
-		case <-chanCheckMaps:
-			e.checkMaps()
-			chanCheckMaps = time.After(durationBetweenChecks)
+	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaBlock.GetEpoch()) {
+		err = e.waitForConfMetaBlock(ctx, metaBlock)
+		if err != nil {
+			return nil, err
 		}
 	}
+
+	return metaBlock, nil
 }
 
-func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) error {
+func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
 	err := e.requestMetaBlock()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	chanRequests := time.After(durationBetweenReRequests)
@@ -276,13 +243,13 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) err
 	for {
 		select {
 		case <-e.chanMetaBlockReached:
-			return nil
+			return e.metaBlock, nil
 		case <-ctx.Done():
-			return epochStart.ErrTimeoutWaitingForMetaBlock
+			return e.getMostReceivedMetaBlock()
 		case <-chanRequests:
 			err = e.requestMetaBlock()
 			if err != nil {
-				return err
+				return nil, err
 			}
 			chanRequests = time.After(durationBetweenReRequests)
 		case <-chanCheckMaps:
@@ -292,38 +259,30 @@ func (e *epochStartMetaBlockProcessor) waitForMetaBlock(ctx context.Context) err
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) waitForConfMetaBlock(ctx context.Context) error {
-	if check.IfNil(e.metaBlock) {
+func (e *epochStartMetaBlockProcessor) waitForConfMetaBlock(ctx context.Context, metaBlock data.MetaHeaderHandler) error {
+	if check.IfNil(metaBlock) {
 		return epochStart.ErrNilMetaBlock
 	}
 
-	if !e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, e.metaBlock.GetEpoch()) {
-		return nil
-	}
-
-	err := e.requestConfirmationMetaBlock(e.metaBlock.GetNonce())
+	err := e.requestConfirmationMetaBlock(metaBlock.GetNonce())
 	if err != nil {
 		return err
 	}
 
 	chanRequests := time.After(durationBetweenReRequests)
-	chanCheckMaps := time.After(durationBetweenChecks)
 
 	for {
 		select {
-		case <-e.chanConfMetaBlockReached:
+		case <-e.chanConsensusReached:
 			return nil
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
-			err = e.requestConfirmationMetaBlock(e.metaBlock.GetNonce())
+			err = e.requestConfirmationMetaBlock(metaBlock.GetNonce())
 			if err != nil {
 				return err
 			}
 			chanRequests = time.After(durationBetweenReRequests)
-		case <-chanCheckMaps:
-			e.checkConfMetaBlockMaps()
-			chanCheckMaps = time.After(durationBetweenChecks)
 		}
 	}
 }
@@ -380,36 +339,6 @@ func (e *epochStartMetaBlockProcessor) checkMetaBlockMaps() {
 	if metaBlockFound {
 		e.metaBlock = e.mapReceivedMetaBlocks[hash]
 		e.chanMetaBlockReached <- true
-	}
-}
-
-func (e *epochStartMetaBlockProcessor) checkConfMetaBlockMaps() {
-	e.mutReceivedConfMetaBlocks.RLock()
-	defer e.mutReceivedConfMetaBlocks.RUnlock()
-
-	_, confMetaBlockFound := e.checkReceivedMetaBlock(e.mapConfMetaBlocksFromPeers)
-	if confMetaBlockFound {
-		e.chanConfMetaBlockReached <- true
-	}
-}
-
-func (e *epochStartMetaBlockProcessor) checkMaps() {
-	e.mutReceivedMetaBlocks.RLock()
-	_, metaBlockFound := e.checkReceivedMetaBlock(e.mapMetaBlocksFromPeers)
-	e.mutReceivedMetaBlocks.RUnlock()
-
-	consensusReached := metaBlockFound
-	if e.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, e.metaBlock.GetEpoch()) {
-		e.mutReceivedConfMetaBlocks.RLock()
-		_, confMetaBlockFound := e.checkReceivedMetaBlock(e.mapConfMetaBlocksFromPeers)
-		e.mutReceivedConfMetaBlocks.RUnlock()
-
-		consensusReached = metaBlockFound && confMetaBlockFound
-	}
-
-	// no need to check proof here since it is checked in interceptor
-	if consensusReached {
-		e.chanConsensusReached <- true
 	}
 }
 
