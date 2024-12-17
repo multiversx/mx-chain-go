@@ -497,9 +497,6 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(arguments.PoolsHolder.Proofs()) {
-		return process.ErrNilProofsPool
-	}
 
 	return nil
 }
