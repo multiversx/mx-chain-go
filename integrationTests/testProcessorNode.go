@@ -2808,6 +2808,27 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	return blockBody, blockHeader, txHashes
 }
 
+// ProposeEpochStartBlock proposes a new block
+func (tpn *TestProcessorNode) ProposeEpochStartBlock(round uint64, nonce uint64) (data.BodyHandler, data.HeaderHandler, [][]byte) {
+	body, header, txHashes := tpn.ProposeBlock(round, nonce)
+
+	metaBlock, ok := header.(*dataBlock.MetaBlock)
+	if !ok {
+		return nil, nil, nil
+	}
+
+	metaBlock.GetEpochStartHandler().SetLastFinalizedHeaders(
+		[]data.EpochStartShardDataHandler{
+			&dataBlock.EpochStartShardData{
+				ShardID: 0,
+				Epoch:   1,
+			},
+		},
+	)
+
+	return body, metaBlock, txHashes
+}
+
 // BroadcastBlock broadcasts the block and body to the connected peers
 func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.HeaderHandler, publicKey crypto.PublicKey) {
 	_ = tpn.BroadcastMessenger.BroadcastBlock(body, header)
