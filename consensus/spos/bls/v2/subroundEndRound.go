@@ -250,7 +250,6 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	}
 
 	proof, ok := sr.sendProof()
-
 	if !ok {
 		return false
 	}
