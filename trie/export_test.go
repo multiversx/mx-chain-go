@@ -101,7 +101,24 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	}
 }
 
+// ExecuteUpdatesFromBatch -
 func ExecuteUpdatesFromBatch(tr common.Trie) {
 	pmt, _ := tr.(*patriciaMerkleTrie)
 	_ = pmt.updateTrie()
+}
+
+// KeyBytesToHex -
+func KeyBytesToHex(str []byte) []byte {
+	return keyBytesToHex(str)
+}
+
+// GetBatchManager -
+func GetBatchManager(tr common.Trie) common.TrieBatchManager {
+	return tr.(*patriciaMerkleTrie).batchManager
+}
+
+// SetGoRoutinesManager -
+func SetGoRoutinesManager(tr common.Trie, gm common.TrieGoroutinesManager) {
+	pmt, _ := tr.(*patriciaMerkleTrie)
+	pmt.goRoutinesManager = gm
 }

@@ -608,6 +608,9 @@ func (en *extensionNode) isEmptyOrNil() error {
 	if en == nil {
 		return ErrNilExtensionNode
 	}
+
+	en.childMutex.RLock()
+	defer en.childMutex.RUnlock()
 	if en.child == nil && len(en.EncodedChild) == 0 {
 		return ErrEmptyExtensionNode
 	}
