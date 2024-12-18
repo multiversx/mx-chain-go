@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"sort"
 	"time"
 
@@ -684,13 +683,13 @@ func (scbp *sovereignChainBlockProcessor) requestExtendedShardHeaders(sovereignC
 
 	// todo: extra validity check: that there are no extended shard headers added to the epoch start block, only GetLastFinalizedCrossChainHeaderHandler
 	if len(sovereignChainHeader.GetExtendedShardHeaderHashes()) == 0 {
-		return scbp.checkAndRequestIfMissingEpochStartExtendedHeader(sovereignChainHeader)
+		return scbp.computeAndRequestEpochStartExtendedHeaderIfMissing(sovereignChainHeader)
 	}
 
-	return scbp.computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader.GetExtendedShardHeaderHashes())
+	return scbp.computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader)
 }
 
-func (scbp *sovereignChainBlockProcessor) checkAndRequestIfMissingEpochStartExtendedHeader(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
+func (scbp *sovereignChainBlockProcessor) computeAndRequestEpochStartExtendedHeaderIfMissing(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
 	if !sovereignChainHeader.IsStartOfEpochBlock() {
 		return 0
 	}
@@ -701,48 +700,45 @@ func (scbp *sovereignChainBlockProcessor) checkAndRequestIfMissingEpochStartExte
 		return 0
 	}
 
-	log.Error("checkAndRequestIfMissingEpochStartExtendedHeader started")
-
-	if rand.Int31n(10) > 5 {
-		log.Error("ADDING CODE TO DELETE HDR")
-		scbp.dataPool.Headers().RemoveHeaderByHash(lastCrossChainData.GetHeaderHash())
-		scbp.extendedShardHeaderTracker.DeleteMainChainHeader(lastCrossChainData.GetNonce())
-	}
-
-	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	defer scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+	lastCrossChainHash := lastCrossChainData.GetHeaderHash()
 
 	_, errMissingHdrPool := process.GetExtendedShardHeaderFromPool(
-		lastCrossChainData.GetHeaderHash(),
+		lastCrossChainHash,
 		scbp.dataPool.Headers())
+	_, lastNotarizedHdrHash, _ := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 
-	_, lastNotarziedHdrHash, errTracker := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
-
-	missingHeaderInTracker := errTracker != nil && !bytes.Equal(lastNotarziedHdrHash, lastCrossChainData.GetHeaderHash())
+	missingHeaderInTracker := !bytes.Equal(lastNotarizedHdrHash, lastCrossChainHash)
 	missingHeaderInPool := errMissingHdrPool != nil
+	shouldRequestLastCrossChainHeader := missingHeaderInTracker || missingHeaderInPool
 
-	log.Error("CHECKING EXTRA VALUES", "errTracker", errTracker, "lastNotarziedHdrHash", lastNotarziedHdrHash, "lastCrossChainData.GetHeaderHash()", lastCrossChainData.GetHeaderHash())
+	log.Debug("sovereignChainBlockProcessor.checkAndRequestIfMissingEpochStartExtendedHeader",
+		"missingHeaderInTracker", missingHeaderInTracker,
+		"missingHeaderInPool", missingHeaderInPool,
+		"shouldRequestLastCrossChainHeader", shouldRequestLastCrossChainHeader,
+	)
 
-	log.Error("CHECKING BOOL VALUES", "missingHeaderInTracker", missingHeaderInTracker, "missingHeaderInPool", missingHeaderInPool)
-
-	if missingHeaderInTracker || missingHeaderInPool {
-		scbp.hdrsForCurrBlock.missingHdrs++
-		scbp.hdrsForCurrBlock.hdrHashAndInfo[string(lastCrossChainData.GetHeaderHash())] = &hdrInfo{
-			hdr:         nil,
-			usedInBlock: false,
-		}
-		go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(lastCrossChainData.GetHeaderHash())
-
-		return 1
+	if !shouldRequestLastCrossChainHeader {
+		return 0
 	}
 
-	return 0
+	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	scbp.hdrsForCurrBlock.missingHdrs++
+	scbp.hdrsForCurrBlock.hdrHashAndInfo[string(lastCrossChainHash)] = &hdrInfo{
+		hdr:         nil,
+		usedInBlock: false,
+	}
+	scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(lastCrossChainHash)
+
+	return 1
 }
 
-func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtendedShardHeaders(extendedShardHeaderHashes [][]byte) uint32 {
+func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
+	extendedShardHeaderHashes := sovereignChainHeader.GetExtendedShardHeaderHashes()
 	for i := 0; i < len(extendedShardHeaderHashes); i++ {
 		hdr, err := process.GetExtendedShardHeaderFromPool(
 			extendedShardHeaderHashes[i],
@@ -1065,15 +1061,12 @@ func (scbp *sovereignChainBlockProcessor) createEpochStartDataCrossChain(sovHdr 
 		"lastCrossNotarizedHeaderNonce", lastCrossNotarizedHeader.GetNonce(),
 	)
 
-	// TODO: Make setter directly here in core
-	return sovHdr.GetEpochStartHandler().SetLastFinalizedHeaders([]data.EpochStartShardDataHandler{
-		&block.EpochStartCrossChainData{
-			ShardID:    core.MainChainShardId,
-			Epoch:      lastCrossNotarizedHeader.GetEpoch(),
-			Round:      lastCrossNotarizedHeader.GetRound(),
-			Nonce:      lastCrossNotarizedHeader.GetNonce(),
-			HeaderHash: lastCrossNotarizedHeaderHash,
-		},
+	return sovHdr.SetLastFinalizedCrossChainHeaderHandler(&block.EpochStartCrossChainData{
+		ShardID:    core.MainChainShardId,
+		Epoch:      lastCrossNotarizedHeader.GetEpoch(),
+		Round:      lastCrossNotarizedHeader.GetRound(),
+		Nonce:      lastCrossNotarizedHeader.GetNonce(),
+		HeaderHash: lastCrossNotarizedHeaderHash,
 	})
 }
 
