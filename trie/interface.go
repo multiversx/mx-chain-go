@@ -13,34 +13,38 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-type node interface {
+type baseTrieNode interface {
 	getHash() []byte
-	setHash() error
 	setGivenHash([]byte)
+	setDirty(bool)
+	isDirty() bool
+	getMarshalizer() marshal.Marshalizer
+	setMarshalizer(marshal.Marshalizer)
+	getHasher() hashing.Hasher
+	setHasher(hashing.Hasher)
+}
+
+type node interface {
+	baseTrieNode
+	setHash() error
 	setHashConcurrent(wg *sync.WaitGroup, c chan error)
 	setRootHash() error
 	getCollapsed() (node, error) // a collapsed node is a node that instead of the children holds the children hashes
-	isCollapsed() bool
-	isPosCollapsed(pos int) bool
-	isDirty() bool
 	getEncodedNode() ([]byte, error)
-	resolveCollapsed(pos byte, db common.TrieStorageInteractor) error
 	hashNode() ([]byte, error)
 	hashChildren() error
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) node
 	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) (bool, node)
-	reduceNode(pos int) (node, bool, error)
+	reduceNode(pos int, db common.TrieStorageInteractor) (node, bool, error)
 	isEmptyOrNil() error
 	print(writer io.Writer, index int, db common.TrieStorageInteractor)
 	getDirtyHashes(common.ModifiedHashes) error
 	getChildren(db common.TrieStorageInteractor) ([]node, error)
-	isValid() bool
-	setDirty(bool)
+
 	loadChildren(func([]byte) (node, error)) ([][]byte, []node, error)
 	getAllLeavesOnChannel(chan core.KeyValueHolder, common.KeyBuilder, common.TrieLeafParser, common.TrieStorageInteractor, marshal.Marshalizer, chan struct{}, context.Context) error
-	getAllHashes(db common.TrieStorageInteractor) ([][]byte, error)
 	getNextHashAndKey([]byte) (bool, []byte, []byte)
 	getValue() []byte
 	getVersion() (core.TrieNodeVersion, error)
@@ -49,10 +53,6 @@ type node interface {
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
 	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 
-	getMarshalizer() marshal.Marshalizer
-	setMarshalizer(marshal.Marshalizer)
-	getHasher() hashing.Hasher
-	setHasher(hashing.Hasher)
 	sizeInBytes() int
 	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error
 
@@ -109,4 +109,14 @@ type EpochNotifier interface {
 type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
+}
+
+// RootManager is used to manage the root node and hashes related to it
+type RootManager interface {
+	GetRootNode() node
+	SetNewRootNode(newRoot node)
+	SetDataForRootChange(newRoot node, oldRootHash []byte, oldHashes [][]byte)
+	ResetCollectedHashes()
+	GetOldHashes() [][]byte
+	GetOldRootHash() []byte
 }

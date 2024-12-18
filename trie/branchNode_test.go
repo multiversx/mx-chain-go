@@ -87,16 +87,16 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 	args := GetDefaultTrieStorageManagerParameters()
 	trieStorage, _ := NewTrieStorageManager(args)
 	tr := &patriciaMerkleTrie{
-		trieStorage:          trieStorage,
-		marshalizer:          args.Marshalizer,
-		hasher:               args.Hasher,
-		oldHashes:            make([][]byte, 0),
-		oldRoot:              make([]byte, 0),
-		maxTrieLevelInMemory: 5,
-		chanClose:            make(chan struct{}),
-		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		batchManager:         trieBatchManager.NewTrieBatchManager(),
-		goRoutinesManager:    getTestGoroutinesManager(),
+		trieStorage:             trieStorage,
+		marshalizer:             args.Marshalizer,
+		hasher:                  args.Hasher,
+		maxTrieLevelInMemory:    5,
+		chanClose:               make(chan struct{}),
+		enableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		batchManager:            trieBatchManager.NewTrieBatchManager(),
+		goRoutinesManager:       getTestGoroutinesManager(),
+		RootManager:             NewRootManager(),
+		trieOperationInProgress: &atomic.Flag{},
 	}
 
 	return tr, trieStorage
@@ -226,10 +226,12 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	ExecuteUpdatesFromBatch(tr1)
 	ExecuteUpdatesFromBatch(tr2)
 
-	err := tr1.root.setRootHash()
-	_ = tr2.root.setHash()
+	rootNode1 := tr1.GetRootNode()
+	rootNode2 := tr2.GetRootNode()
+	err := rootNode1.setRootHash()
+	_ = rootNode2.setHash()
 	assert.Nil(t, err)
-	assert.Equal(t, tr1.root.getHash(), tr2.root.getHash())
+	assert.Equal(t, rootNode1.getHash(), rootNode2.getHash())
 }
 
 func TestBranchNode_setRootHashCollapsedNode(t *testing.T) {
@@ -450,27 +452,10 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
 
-	err := collapsedBn.resolveCollapsed(childPos, db)
+	childNode, err := collapsedBn.resolveIfCollapsed(childPos, db)
 	assert.Nil(t, err)
 	assert.Equal(t, resolved, collapsedBn.children[childPos])
-}
-
-func TestBranchNode_resolveCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	bn := emptyDirtyBranchNode()
-
-	err := bn.resolveCollapsed(2, nil)
-	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
-}
-
-func TestBranchNode_resolveCollapsedENilNode(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-
-	err := bn.resolveCollapsed(2, nil)
-	assert.True(t, errors.Is(err, ErrNilBranchNode))
+	assert.Equal(t, resolved, childNode)
 }
 
 func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
@@ -478,8 +463,9 @@ func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	err := bn.resolveCollapsed(17, nil)
+	childNode, err := bn.resolveIfCollapsed(17, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
+	assert.Nil(t, childNode)
 }
 
 func TestBranchNode_isCollapsed(t *testing.T) {
@@ -559,32 +545,6 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	assert.Equal(t, []byte("dog"), val)
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(1), maxDepth)
-}
-
-func TestBranchNode_tryGetEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	bn := emptyDirtyBranchNode()
-	childPos := byte(2)
-	key := append([]byte{childPos}, []byte("dog")...)
-
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
-	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
-}
-
-func TestBranchNode_tryGetNilNode(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-	childPos := byte(2)
-	key := append([]byte{childPos}, []byte("dog")...)
-
-	val, maxDepth, err := bn.tryGet(key, 0, nil)
-	assert.True(t, errors.Is(err, ErrNilBranchNode))
-	assert.Nil(t, val)
-	assert.Equal(t, uint32(0), maxDepth)
 }
 
 func TestBranchNode_getNext(t *testing.T) {
@@ -797,19 +757,6 @@ func TestBranchNode_insertInDirtyBnOnExistingPos(t *testing.T) {
 	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
 }
 
-func TestBranchNode_insertInNilNode(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-
-	goRoutinesManager := getTestGoroutinesManager()
-	data := []core.TrieData{getTrieDataWithDefaultVersion("key", "dogs")}
-
-	newBn := bn.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
-	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilBranchNode))
-	assert.Nil(t, newBn)
-}
-
 func TestBranchNode_delete(t *testing.T) {
 	t.Parallel()
 
@@ -871,36 +818,6 @@ func TestBranchNode_deleteFromDirtyBn(t *testing.T) {
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())
 	assert.Equal(t, [][]byte{}, modifiedHashes.Get())
-}
-
-func TestBranchNode_deleteEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	bn := emptyDirtyBranchNode()
-	childPos := byte(2)
-	key := append([]byte{childPos}, []byte("dog")...)
-	data := []core.TrieData{{Key: key}}
-
-	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newBn := bn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
-	assert.False(t, dirty)
-	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrEmptyBranchNode))
-	assert.Nil(t, newBn)
-}
-
-func TestBranchNode_deleteNilNode(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-	childPos := byte(2)
-	key := append([]byte{childPos}, []byte("dog")...)
-	data := []core.TrieData{{Key: key}}
-
-	goRoutinesManager := getTestGoroutinesManager()
-	dirty, newBn := bn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
-	assert.False(t, dirty)
-	assert.True(t, errors.Is(goRoutinesManager.GetError(), ErrNilBranchNode))
-	assert.Nil(t, newBn)
 }
 
 func TestBranchNode_deleteNonexistentNodeFromChild(t *testing.T) {
@@ -990,7 +907,7 @@ func TestBranchNode_reduceNode(t *testing.T) {
 	key := append([]byte{childPos}, []byte("dog")...)
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string(key), "dog"), bn.marsh, bn.hasher)
 
-	n, newChildHash, err := bn.children[childPos].reduceNode(int(childPos))
+	n, newChildHash, err := bn.children[childPos].reduceNode(int(childPos), nil)
 	assert.Equal(t, ln, n)
 	assert.Nil(t, err)
 	assert.True(t, newChildHash)
@@ -1123,17 +1040,6 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 	assert.Equal(t, 3, len(children))
 }
 
-func TestBranchNode_isValid(t *testing.T) {
-	t.Parallel()
-
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	assert.True(t, bn.isValid())
-
-	bn.children[2] = nil
-	bn.children[6] = nil
-	assert.False(t, bn.isValid())
-}
-
 func TestBranchNode_setDirty(t *testing.T) {
 	t.Parallel()
 
@@ -1148,7 +1054,8 @@ func TestBranchNode_loadChildren(t *testing.T) {
 
 	marsh, hasher := getTestMarshalizerAndHasher()
 	tr := initTrie()
-	_ = tr.root.setRootHash()
+	rootNode := tr.GetRootNode()
+	_ = rootNode.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)
 	for i := range nodes {
@@ -1159,7 +1066,7 @@ func TestBranchNode_loadChildren(t *testing.T) {
 	firstChildIndex := 5
 	secondChildIndex := 7
 
-	bn := getCollapsedBn(t, tr.root)
+	bn := getCollapsedBn(t, rootNode)
 
 	getNode := func(hash []byte) (node, error) {
 		cacheData, _ := nodesCacher.Get(hash)
@@ -1192,16 +1099,15 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("zzz"), []byte("zzz"))
 	_ = tr.Commit()
 
-	tr.root, _ = tr.root.getCollapsed()
+	collapsedRoot, _ := tr.GetRootNode().getCollapsed()
 	tr.Delete([]byte("zzz"))
 	ExecuteUpdatesFromBatch(tr)
 
-	assert.True(t, tr.root.isDirty())
-	assert.True(t, tr.root.isCollapsed())
+	assert.True(t, collapsedRoot.isDirty())
 
 	_ = tr.Commit()
 
-	assert.False(t, tr.root.isDirty())
+	assert.False(t, collapsedRoot.isDirty())
 }
 
 func BenchmarkMarshallNodeJson(b *testing.B) {
@@ -1303,7 +1209,7 @@ func TestBranchNode_reduceNodeBnChild(t *testing.T) {
 	pos := 5
 	expectedNode, _ := newExtensionNode([]byte{byte(pos)}, en.child, marsh, hasher)
 
-	newNode, newChildHash, err := en.child.reduceNode(pos)
+	newNode, newChildHash, err := en.child.reduceNode(pos, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNode, newNode)
 	assert.False(t, newChildHash)
@@ -1337,29 +1243,6 @@ func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 	err := bn.getDirtyHashes(dirtyHashes)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(dirtyHashes))
-}
-
-func TestBranchNode_getAllHashes(t *testing.T) {
-	t.Parallel()
-
-	trieNodes := 4
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-
-	hashes, err := bn.getAllHashes(testscommon.NewMemDbMock())
-	assert.Nil(t, err)
-	assert.Equal(t, trieNodes, len(hashes))
-}
-
-func TestBranchNode_getAllHashesResolvesCollapsed(t *testing.T) {
-	t.Parallel()
-
-	db := testscommon.NewMemDbMock()
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-
-	hashes, err := collapsedBn.getAllHashes(db)
-	assert.Nil(t, err)
-	assert.Equal(t, 4, len(hashes))
 }
 
 func TestBranchNode_getNextHashAndKey(t *testing.T) {
@@ -1534,10 +1417,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 		bn.ChildrenVersion = make([]byte, nrOfChildren)
 		bn.ChildrenVersion[2] = byte(core.AutoBalanceEnabled)
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		childKey := []byte{2, 'd', 'o', 'g'}
 		data := core.TrieData{
 			Key:     childKey,
@@ -1559,10 +1439,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 		childKey := []byte{2, 'd', 'o', 'g'}
 		data := []core.TrieData{{Key: childKey}}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		_, newBn := bn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), &testscommon.MemDbMock{})
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.Nil(t, newBn.(*branchNode).ChildrenVersion)
@@ -1756,10 +1633,7 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 		var data []core.TrieData
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(data, 0, goRoutinesManager, modifiedHashes, bnModified, nil)
@@ -1786,11 +1660,7 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 			},
 		}
 		childPos := byte(0)
-
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1817,11 +1687,7 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 			},
 		}
 		childPos := byte(0)
-
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1851,11 +1717,7 @@ func TestBranchNode_insertOnNilChild(t *testing.T) {
 			},
 		}
 		childPos := byte(0)
-
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		bnModified := &atomic.Flag{}
 		bn.insertOnNilChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
@@ -1905,13 +1767,10 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		originalChildHash := bn.children[childPos].getHash()
 		assert.True(t, len(originalChildHash) > 0)
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, _ := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		bnModified := &atomic.Flag{}
-		bn.insertOnExistingChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
+		bn.insertOnChild(newData, int(childPos), goRoutinesManager, modifiedHashes, bnModified, db)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.True(t, bnModified.IsSet())
 		assert.True(t, bn.dirty)
@@ -1958,13 +1817,10 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, bn.dirty)
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		bnModified := &atomic.Flag{}
-		bn.insertOnExistingChild(newData, childPos, goRoutinesManager, modifiedHashes, bnModified, db)
+		bn.insertOnChild(newData, int(childPos), goRoutinesManager, modifiedHashes, bnModified, db)
 		assert.Nil(t, goRoutinesManager.GetError())
 		assert.False(t, bnModified.IsSet())
 		assert.False(t, bn.dirty)
@@ -2008,10 +1864,7 @@ func TestBranchNode_insertBatch(t *testing.T) {
 	assert.Nil(t, err)
 	assert.False(t, bn.dirty)
 
-	th, _ := throttler.NewNumGoRoutinesThrottler(5)
-	goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-	assert.Nil(t, err)
-
+	goRoutinesManager := getTestGoroutinesManager()
 	modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 	newNode := bn.insert(newData, goRoutinesManager, modifiedHashes, db)
 	assert.Nil(t, goRoutinesManager.GetError())
@@ -2067,10 +1920,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 			},
 		}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := bn.delete(data, goRoutinesManager, modifiedHashes, testscommon.NewMemDbMock())
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -2105,10 +1955,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 			},
 		}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := bn.delete(data, goRoutinesManager, modifiedHashes, testscommon.NewMemDbMock())
 		assert.Nil(t, goRoutinesManager.GetError())
@@ -2141,10 +1988,7 @@ func TestBranchNode_deleteBatch(t *testing.T) {
 			},
 		}
 
-		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
-		assert.Nil(t, err)
-
+		goRoutinesManager := getTestGoroutinesManager()
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
 		dirty, newNode := bn.delete(data, goRoutinesManager, modifiedHashes, testscommon.NewMemDbMock())
 		assert.Nil(t, goRoutinesManager.GetError())

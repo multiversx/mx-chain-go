@@ -24,7 +24,6 @@ type TrieStub struct {
 	GetObsoleteHashesCalled         func() [][]byte
 	AppendToOldHashesCalled         func([][]byte)
 	GetSerializedNodesCalled        func([]byte, uint64) ([][]byte, uint64, error)
-	GetAllHashesCalled              func() ([][]byte, error)
 	GetAllLeavesOnChannelCalled     func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, trieLeafParser common.TrieLeafParser) error
 	GetProofCalled                  func(key []byte) ([][]byte, []byte, error)
 	VerifyProofCalled               func(rootHash []byte, key []byte, proof [][]byte) (bool, error)
@@ -185,15 +184,6 @@ func (ts *TrieStub) GetDirtyHashes() (common.ModifiedHashes, error) {
 
 // SetNewHashes -
 func (ts *TrieStub) SetNewHashes(_ common.ModifiedHashes) {
-}
-
-// GetAllHashes -
-func (ts *TrieStub) GetAllHashes() ([][]byte, error) {
-	if ts.GetAllHashesCalled != nil {
-		return ts.GetAllHashesCalled()
-	}
-
-	return nil, nil
 }
 
 // GetSerializedNode -

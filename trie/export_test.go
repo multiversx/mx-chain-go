@@ -53,17 +53,6 @@ func CreateSmallTestTrieAndStorageManager() (*patriciaMerkleTrie, *trieStorageMa
 	return tr, trieStorage
 }
 
-// GetDirtyHashes -
-func GetDirtyHashes(tr common.Trie) common.ModifiedHashes {
-	hashes, _ := tr.GetAllHashes()
-	dirtyHashes := make(common.ModifiedHashes)
-	for _, hash := range hashes {
-		dirtyHashes[string(hash)] = struct{}{}
-	}
-
-	return dirtyHashes
-}
-
 // WriteInChanNonBlocking -
 func WriteInChanNonBlocking(errChan chan error, err error) {
 	select {

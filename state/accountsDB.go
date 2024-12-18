@@ -72,13 +72,12 @@ type snapshotInfo struct {
 
 // AccountsDB is the struct used for accessing accounts. This struct is concurrent safe.
 type AccountsDB struct {
-	mainTrie               common.Trie
-	hasher                 hashing.Hasher
-	marshaller             marshal.Marshalizer
-	accountFactory         AccountFactory
-	storagePruningManager  StoragePruningManager
-	obsoleteDataTrieHashes map[string][][]byte
-	snapshotsManger        SnapshotsManager
+	mainTrie              common.Trie
+	hasher                hashing.Hasher
+	marshaller            marshal.Marshalizer
+	accountFactory        AccountFactory
+	storagePruningManager StoragePruningManager
+	snapshotsManger       SnapshotsManager
 
 	lastRootHash []byte
 	dataTries    common.TriesHolder
@@ -116,15 +115,14 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 
 func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 	return &AccountsDB{
-		mainTrie:               args.Trie,
-		hasher:                 args.Hasher,
-		marshaller:             args.Marshaller,
-		accountFactory:         args.AccountFactory,
-		storagePruningManager:  args.StoragePruningManager,
-		entries:                make([]JournalEntry, 0),
-		mutOp:                  sync.RWMutex{},
-		dataTries:              NewDataTriesHolder(),
-		obsoleteDataTrieHashes: make(map[string][][]byte),
+		mainTrie:              args.Trie,
+		hasher:                args.Hasher,
+		marshaller:            args.Marshaller,
+		accountFactory:        args.AccountFactory,
+		storagePruningManager: args.StoragePruningManager,
+		entries:               make([]JournalEntry, 0),
+		mutOp:                 sync.RWMutex{},
+		dataTries:             NewDataTriesHolder(),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
@@ -534,44 +532,9 @@ func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error
 		return nil
 	}
 
-	err := adb.removeCode(baseAcc)
-	if err != nil {
-		return err
-	}
-
-	err = adb.removeDataTrie(baseAcc)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
-	rootHash := baseAcc.GetRootHash()
-	if len(rootHash) == 0 {
-		return nil
-	}
-
-	dataTrie, err := adb.mainTrie.Recreate(rootHash)
-	if err != nil {
-		return err
-	}
-
-	hashes, err := dataTrie.GetAllHashes()
-	if err != nil {
-		return err
-	}
-
-	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
-
-	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
-	if err != nil {
-		return err
-	}
-	adb.journalize(entry)
-
-	return nil
+	// TODO find a method to remove the data trie and mark all the removed hashes for pruning.
+	// There can be a lot of hashes to be removed, so take into consideration the mem usage and the time needed to remove them.
+	return adb.removeCode(baseAcc)
 }
 
 func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
@@ -848,7 +811,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	}
 
 	adb.lastRootHash = newRoot
-	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 
 	log.Trace("accountsDB.Commit ended", "root hash", newRoot)
 
@@ -865,12 +827,6 @@ func (adb *AccountsDB) markForEviction(
 ) error {
 	if !adb.mainTrie.GetStorageManager().IsPruningEnabled() {
 		return nil
-	}
-
-	for _, hashes := range adb.obsoleteDataTrieHashes {
-		for _, hash := range hashes {
-			oldHashes[string(hash)] = struct{}{}
-		}
 	}
 
 	return adb.storagePruningManager.MarkForEviction(oldRoot, newRoot, oldHashes, newHashes)
@@ -932,7 +888,6 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
-	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
 	newTrie, err := adb.mainTrie.RecreateFromEpoch(options)
