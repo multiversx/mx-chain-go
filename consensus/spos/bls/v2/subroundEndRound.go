@@ -101,6 +101,8 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
+	log.Error("receivedProof: PROOF", "proofHeader", proof.GetHeaderHash())
+
 	if sr.IsJobDone(sr.SelfPubKey(), sr.Current()) {
 		return
 	}
@@ -219,6 +221,9 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 		return false
 	}
 
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
+
 	return sr.doEndRoundJobByNode()
 }
 
@@ -240,14 +245,17 @@ func (sr *subroundEndRound) commitBlock() error {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByNode() bool {
-	if !sr.waitForSignalSync() {
-		return false
+	if sr.shouldSendProof() {
+		if !sr.waitForSignalSync() {
+			return false
+		}
 	}
 
-	sr.mutProcessingEndRound.Lock()
-	defer sr.mutProcessingEndRound.Unlock()
+	proof, ok := sr.sendProof()
 
-	proof := sr.sendProof()
+	if !ok {
+		return false
+	}
 
 	err := sr.commitBlock()
 	if err != nil {
@@ -268,6 +276,7 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	sr.worker.DisplayStatistics()
 
 	log.Debug("step 3: Body and Header have been committed")
+	log.Trace("step 3: Body and Header have been committed", "headerHash", sr.GetData())
 
 	msg := fmt.Sprintf("Added proposed block with nonce  %d  in blockchain", sr.GetHeader().GetNonce())
 	log.Debug(display.Headline(msg, sr.SyncTimer().FormattedCurrentTime(), "+"))
@@ -277,29 +286,31 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendProof() data.HeaderProofHandler {
+func (sr *subroundEndRound) sendProof() (data.HeaderProofHandler, bool) {
 	if !sr.shouldSendProof() {
-		return nil
+		log.Trace("sendProof: should not send proof")
+		return nil, true
 	}
 
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendProof.checkSignaturesValidity", "error", err.Error())
-		return nil
+		return nil, false
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return nil
+		return nil, false
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return nil
+		log.Error("sendProof: sheduled processor timeout")
+		return nil, false
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -307,7 +318,7 @@ func (sr *subroundEndRound) sendProof() data.HeaderProofHandler {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return nil
+		return nil, false
 	}
 
 	// broadcast header proof
@@ -519,7 +530,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) *block.HeaderProof {
+func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) (*block.HeaderProof, bool) {
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
@@ -531,14 +542,15 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))
 	if err != nil {
-		return nil
+		log.Error("failed to broadcast equivalent proof", "error", err)
+		return nil, false
 	}
 
 	log.Debug("step 3: block header proof has been sent",
 		"PubKeysBitmap", bitmap,
 		"AggregateSignature", signature)
 
-	return headerProof
+	return headerProof, true
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
@@ -710,7 +722,7 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 		case <-timerBetweenStatusChecks.C:
 			if sr.IsSubroundFinished(sr.Current()) {
 				log.Trace("subround already finished", "subround", sr.Name())
-				return false
+				return true
 			}
 
 			if sr.checkReceivedSignatures() {
@@ -828,6 +840,8 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 
 	isSelfJobDone := sr.IsSelfJobDone(bls.SrSignature)
 
+	// log.Error("checkReceivedSignatures", "isSelfJobDone", isSelfJobDone, "numSigs", numSigs, "consensusSize", sr.ConsensusGroupSize())
+
 	shouldStopWaitingSignatures := isSelfJobDone && isSignatureCollectionDone
 	if shouldStopWaitingSignatures {
 		log.Debug("step 2: signatures collection done",
@@ -855,6 +869,12 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 				"error", err.Error())
 			continue
 		}
+
+		// log.Error("getNumOfSignaturesCollected.JobDone",
+		// 	"node", node,
+		// 	"isSignJobDone", isSignJobDone,
+		// 	"subround", sr.Name(),
+		// )
 
 		if isSignJobDone {
 			n++
