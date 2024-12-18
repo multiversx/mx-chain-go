@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	factory2 "github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -104,6 +105,7 @@ func createMetaBlockProcessor(
 			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
+			StateChangesCollector:          disabled.NewDisabledStateChangesCollector(),
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

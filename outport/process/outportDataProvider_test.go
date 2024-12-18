@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -21,7 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/require"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
@@ -45,6 +47,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		ExecutionOrderHandler:    &commonMocks.TxExecutionOrderHandlerStub{},
 		Marshaller:               &marshallerMock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
+		StateChangesCollector:    &state.StateChangesCollectorStub{},
 	}
 }
 

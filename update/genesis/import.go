@@ -287,9 +287,10 @@ func newAccountCreator(
 	switch accType {
 	case UserAccount:
 		args := factory.ArgsAccountCreator{
-			Hasher:              hasher,
-			Marshaller:          marshaller,
-			EnableEpochsHandler: handler,
+			Hasher:                hasher,
+			Marshaller:            marshaller,
+			EnableEpochsHandler:   handler,
+			StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 		}
 		return factory.NewAccountCreator(args)
 	case ValidatorAccount:
@@ -420,6 +421,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 				StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 				AddressConverter:      si.addressConverter,
 				SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+				StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 			}
 			accountsDB, errCreate := state.NewAccountsDB(argsAccountDB)
 			if errCreate != nil {
@@ -443,6 +445,7 @@ func (si *stateImport) getAccountsDB(accType Type, shardID uint32, accountFactor
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      si.addressConverter,
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 	accountsDB, err = state.NewAccountsDB(argsAccountDB)
 	si.accountDBsMap[shardID] = accountsDB

@@ -6,12 +6,13 @@ import (
 	"os"
 	"runtime"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/urfave/cli"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/operationmodes"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/urfave/cli"
 )
 
 var (
@@ -408,6 +409,13 @@ var (
 		Name:  "p2p-prometheus-metrics",
 		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
 	}
+
+	// stateChangesTypesToCollect defines a flag for collecting specified types of state changes
+	// If enabled, it will override the configuration
+	stateChangesTypesToCollect = cli.StringSliceFlag{
+		Name:  "state-changes-types-to-collect",
+		Usage: "String slice option for enabling collecting specified state changes types. Can be (READ, WRITE)",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -470,6 +478,7 @@ func getFlags() []cli.Flag {
 		operationMode,
 		repopulateTokensSupplies,
 		p2pPrometheusMetrics,
+		stateChangesTypesToCollect,
 	}
 }
 

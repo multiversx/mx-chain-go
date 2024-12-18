@@ -763,6 +763,7 @@ func createAccountsDB(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb
@@ -778,9 +779,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshalizer,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	peerAccCreator := factory.NewPeerAccountCreator()

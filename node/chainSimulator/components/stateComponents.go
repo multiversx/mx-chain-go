@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 )
 
 // ArgsStateComponents will hold the components needed for state components
@@ -107,6 +108,10 @@ func (s *stateComponentsHolder) TrieStorageManagers() map[string]common.StorageM
 // MissingTrieNodesNotifier will return missing trie nodes notifier
 func (s *stateComponentsHolder) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
 	return s.missingTrieNodesNotifier
+}
+
+func (s *stateComponentsHolder) StateChangesCollector() state.StateChangesCollector {
+	return disabled.NewDisabledStateChangesCollector()
 }
 
 // Close will close the state components
