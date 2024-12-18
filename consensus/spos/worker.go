@@ -312,7 +312,12 @@ func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 
 // ReceivedProof process the received proof, calling each received proof handler registered in worker instance
 func (wrk *Worker) ReceivedProof(proofHandler consensus.ProofHandler) {
-	// TODO: add preliminary checks
+	if check.IfNilReflect(proofHandler) {
+		log.Trace("ReceivedProof: nil proof handler")
+		return
+	}
+
+	log.Trace("ReceivedProof:", "proof header", proofHandler.GetHeaderHash())
 
 	wrk.mutReceivedProofHandler.RLock()
 	for _, handler := range wrk.receivedProofHandlers {
