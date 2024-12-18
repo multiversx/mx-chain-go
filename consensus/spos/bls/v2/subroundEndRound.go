@@ -305,7 +305,6 @@ func (sr *subroundEndRound) sendProof() (data.HeaderProofHandler, bool) {
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		log.Error("sendProof: sheduled processor timeout")
 		return nil, false
 	}
 
@@ -539,7 +538,6 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))
 	if err != nil {
-		log.Error("failed to broadcast equivalent proof", "error", err)
 		return nil, err
 	}
 
@@ -719,7 +717,7 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 		case <-timerBetweenStatusChecks.C:
 			if sr.IsSubroundFinished(sr.Current()) {
 				log.Trace("subround already finished", "subround", sr.Name())
-				return false
+				return true
 			}
 
 			if sr.checkReceivedSignatures() {
