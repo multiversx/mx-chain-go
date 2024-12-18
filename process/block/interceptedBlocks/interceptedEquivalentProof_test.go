@@ -9,8 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
@@ -41,6 +43,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		Marshaller:        testMarshaller,
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
+		Proofs:            &dataRetriever.ProofsPoolMock{},
 	}
 }
 
@@ -93,6 +96,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, process.ErrNilHeaderSigVerifier, err)
 		require.Nil(t, iep)
 	})
+	t.Run("nil proofs pool should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Proofs = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilProofsPool, err)
+		require.Nil(t, iep)
+	})
 	t.Run("unmarshal error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -134,6 +146,24 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
 	})
+
+	t.Run("already exiting proof should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Proofs = &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, proofscache.ErrAlreadyExistingEquivalentProof, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

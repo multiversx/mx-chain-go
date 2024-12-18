@@ -28,17 +28,27 @@ func (fdm *ForkDetectorMock) RestoreToGenesis() {
 
 // AddHeader -
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if fdm.AddHeaderCalled != nil {
+		return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	}
+
+	return nil
 }
 
 // RemoveHeader -
 func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
-	fdm.RemoveHeaderCalled(nonce, hash)
+	if fdm.RemoveHeaderCalled != nil {
+		fdm.RemoveHeaderCalled(nonce, hash)
+	}
 }
 
 // CheckFork -
 func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
-	return fdm.CheckForkCalled()
+	if fdm.CheckForkCalled != nil {
+		return fdm.CheckForkCalled()
+	}
+
+	return nil
 }
 
 // GetHighestFinalBlockNonce -
@@ -51,12 +61,20 @@ func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
 
 // GetHighestFinalBlockHash -
 func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
-	return fdm.GetHighestFinalBlockHashCalled()
+	if fdm.GetHighestFinalBlockHashCalled != nil {
+		return fdm.GetHighestFinalBlockHashCalled()
+	}
+
+	return nil
 }
 
 // ProbableHighestNonce -
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return fdm.ProbableHighestNonceCalled()
+	if fdm.ProbableHighestNonceCalled != nil {
+		return fdm.ProbableHighestNonceCalled()
+	}
+
+	return 0
 }
 
 // SetRollBackNonce -
@@ -68,12 +86,18 @@ func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
 
 // ResetFork -
 func (fdm *ForkDetectorMock) ResetFork() {
-	fdm.ResetForkCalled()
+	if fdm.ResetForkCalled != nil {
+		fdm.ResetForkCalled()
+	}
 }
 
 // GetNotarizedHeaderHash -
 func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
-	return fdm.GetNotarizedHeaderHashCalled(nonce)
+	if fdm.GetNotarizedHeaderHashCalled != nil {
+		return fdm.GetNotarizedHeaderHashCalled(nonce)
+	}
+
+	return nil
 }
 
 // ResetProbableHighestNonce -

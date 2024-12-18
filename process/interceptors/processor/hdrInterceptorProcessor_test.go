@@ -4,19 +4,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
 	arg := &processor.ArgHdrInterceptorProcessor{
-		Headers:        &mock.HeadersCacherStub{},
-		BlockBlackList: &testscommon.TimeCacheStub{},
+		Headers:             &mock.HeadersCacherStub{},
+		Proofs:              &dataRetriever.ProofsPoolMock{},
+		BlockBlackList:      &testscommon.TimeCacheStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return arg
@@ -53,6 +59,28 @@ func TestNewHdrInterceptorProcessor_NilBlackListHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, hip)
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
+}
+
+func TestNewHdrInterceptorProcessor_NilProofsPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.Proofs = nil
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+
+	assert.Nil(t, hip)
+	assert.Equal(t, process.ErrNilProofsPool, err)
+}
+
+func TestNewHdrInterceptorProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockHdrArgument()
+	arg.EnableEpochsHandler = nil
+	hip, err := processor.NewHdrInterceptorProcessor(arg)
+
+	assert.Nil(t, hip)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
 func TestNewHdrInterceptorProcessor_ShouldWork(t *testing.T) {
@@ -165,6 +193,19 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 			wasAddedHeaders = true
 		},
 	}
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
+
+	wasAddedProofs := false
+	arg.Proofs = &dataRetriever.ProofsPoolMock{
+		AddProofCalled: func(headerProof data.HeaderProofHandler) error {
+			wasAddedProofs = true
+			return nil
+		},
+	}
 
 	hip, _ := processor.NewHdrInterceptorProcessor(arg)
 	chanCalled := make(chan struct{}, 1)
@@ -176,6 +217,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)
+	assert.True(t, wasAddedProofs)
 
 	timeout := time.Second * 2
 	select {

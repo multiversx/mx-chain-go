@@ -130,6 +130,7 @@ func NewMetaInterceptorsContainerFactory(
 		hardforkTrigger:                args.HardforkTrigger,
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
 	}
 
 	icf := &metaInterceptorsContainerFactory{
@@ -264,8 +265,10 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        micf.dataPool.Headers(),
-		BlockBlackList: micf.blockBlackList,
+		Headers:             micf.dataPool.Headers(),
+		BlockBlackList:      micf.blockBlackList,
+		Proofs:              micf.dataPool.Proofs(),
+		EnableEpochsHandler: micf.enableEpochsHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {

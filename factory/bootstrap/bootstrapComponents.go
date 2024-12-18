@@ -226,6 +226,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		NodeProcessingMode:              common.GetNodeProcessingMode(&bcf.importDbConfig),
 		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		EnableEpochsHandler:             bcf.coreComponents.EnableEpochsHandler(),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

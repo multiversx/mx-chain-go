@@ -1,6 +1,7 @@
 package proofscache
 
 import (
+	"encoding/hex"
 	"fmt"
 	"sync"
 
@@ -14,12 +15,16 @@ var log = logger.GetOrCreate("dataRetriever/proofscache")
 type proofsPool struct {
 	mutCache sync.RWMutex
 	cache    map[uint32]*proofsCache
+
+	mutAddedProofSubscribers sync.RWMutex
+	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
 }
 
 // NewProofsPool creates a new proofs pool component
 func NewProofsPool() *proofsPool {
 	return &proofsPool{
-		cache: make(map[uint32]*proofsCache),
+		cache:                 make(map[uint32]*proofsCache),
+		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
 	}
 }
 
@@ -36,8 +41,7 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
-		log.Trace("there was already a valid proof for header, headerHash: %s", headerHash)
-		return nil
+		return fmt.Errorf("%w, headerHash: %s", ErrAlreadyExistingEquivalentProof, hex.EncodeToString(headerHash))
 	}
 
 	pp.mutCache.Lock()
@@ -59,7 +63,18 @@ func (pp *proofsPool) AddProof(
 
 	proofsPerShard.addProof(headerProof)
 
+	pp.callAddedProofSubscribers(headerProof)
+
 	return nil
+}
+
+func (pp *proofsPool) callAddedProofSubscribers(headerProof data.HeaderProofHandler) {
+	pp.mutAddedProofSubscribers.RLock()
+	defer pp.mutAddedProofSubscribers.RUnlock()
+
+	for _, handler := range pp.addedProofSubscribers {
+		go handler(headerProof)
+	}
 }
 
 // CleanupProofsBehindNonce will cleanup proofs from pool based on nonce
@@ -118,6 +133,18 @@ func (pp *proofsPool) HasProof(
 ) bool {
 	_, err := pp.GetProof(shardID, headerHash)
 	return err == nil
+}
+
+// RegisterHandler registers a new handler to be called when a new data is added
+func (pp *proofsPool) RegisterHandler(handler func(headerProof data.HeaderProofHandler)) {
+	if handler == nil {
+		log.Error("attempt to register a nil handler to proofs pool")
+		return
+	}
+
+	pp.mutAddedProofSubscribers.Lock()
+	pp.addedProofSubscribers = append(pp.addedProofSubscribers, handler)
+	pp.mutAddedProofSubscribers.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

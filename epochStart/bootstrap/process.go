@@ -122,6 +122,8 @@ type epochStartBootstrap struct {
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          common.NodeOperation
 	stateStatsHandler          common.StateStatisticsHandler
+	enableEpochsHandler        common.EnableEpochsHandler
+
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -193,6 +195,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	EnableEpochsHandler             common.EnableEpochsHandler
 	InterceptedDataVerifierFactory  process.InterceptedDataVerifierFactory
 }
 
@@ -246,6 +249,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		stateStatsHandler:               args.StateStatsHandler,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 		interceptedDataVerifierFactory:  args.InterceptedDataVerifierFactory,
 	}
 
@@ -552,6 +556,7 @@ func (e *epochStartBootstrap) prepareComponentsToSyncFromNetwork() error {
 		thresholdForConsideringMetaBlockCorrect,
 		epochStartConfig.MinNumConnectedPeersToStart,
 		epochStartConfig.MinNumOfPeersToConsiderBlockValid,
+		e.enableEpochsHandler,
 	)
 	if err != nil {
 		return err
@@ -673,7 +678,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	return syncedHeaders, nil
 }
 
-// Bootstrap will handle requesting and receiving the needed information the node will bootstrap from
+// requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
 func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	var err error
 	e.baseData.numberOfShards = uint32(len(e.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))

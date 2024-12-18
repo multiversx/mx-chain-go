@@ -130,6 +130,7 @@ func NewShardInterceptorsContainerFactory(
 		hardforkTrigger:                args.HardforkTrigger,
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
 	}
 
 	icf := &shardInterceptorsContainerFactory{

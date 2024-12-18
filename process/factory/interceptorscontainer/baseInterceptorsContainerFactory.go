@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
 const (
@@ -57,6 +56,7 @@ type baseInterceptorsContainerFactory struct {
 	hardforkTrigger                heartbeat.HardforkTrigger
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
+	enableEpochsHandler            common.EnableEpochsHandler
 }
 
 func checkBaseParams(
@@ -424,8 +424,10 @@ func (bicf *baseInterceptorsContainerFactory) generateHeaderInterceptors() error
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
+		Headers:             bicf.dataPool.Headers(),
+		BlockBlackList:      bicf.blockBlackList,
+		Proofs:              bicf.dataPool.Proofs(),
+		EnableEpochsHandler: bicf.enableEpochsHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -566,8 +568,10 @@ func (bicf *baseInterceptorsContainerFactory) generateMetachainHeaderInterceptor
 	}
 
 	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        bicf.dataPool.Headers(),
-		BlockBlackList: bicf.blockBlackList,
+		Headers:             bicf.dataPool.Headers(),
+		BlockBlackList:      bicf.blockBlackList,
+		Proofs:              bicf.dataPool.Proofs(),
+		EnableEpochsHandler: bicf.enableEpochsHandler,
 	}
 	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -909,11 +913,11 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 }
 
 func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInterceptor(topic string) (process.Interceptor, error) {
-	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(*bicf.argInterceptorFactory)
+	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(*bicf.argInterceptorFactory, bicf.dataPool.Proofs())
 
 	marshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
 	argProcessor := processor.ArgEquivalentProofsInterceptorProcessor{
-		EquivalentProofsPool: &processMocks.EquivalentProofsPoolMock{}, // TODO: pass the real implementation when is done
+		EquivalentProofsPool: bicf.dataPool.Proofs(),
 		Marshaller:           marshaller,
 	}
 	equivalentProofsProcessor, err := processor.NewEquivalentProofsInterceptorProcessor(argProcessor)

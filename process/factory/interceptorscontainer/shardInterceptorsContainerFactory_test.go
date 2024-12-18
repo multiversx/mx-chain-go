@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -90,6 +91,10 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	pools.CurrBlockTxsCalled = func() dataRetriever.TransactionCacher {
 		return &mock.TxForCurrentBlockStub{}
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+
 	return pools
 }
 
@@ -581,10 +586,10 @@ func TestShardInterceptorsContainerFactory_CreateShouldWork(t *testing.T) {
 	icf, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	mainContainer, fullArchiveContainer, err := icf.Create()
+	require.Nil(t, err)
 
 	assert.NotNil(t, mainContainer)
 	assert.NotNil(t, fullArchiveContainer)
-	assert.Nil(t, err)
 }
 
 func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {

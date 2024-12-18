@@ -239,6 +239,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
+// ErrNilProofsPool signals that a nil proofs pool was used
+var ErrNilProofsPool = errors.New("nil proofs pool")
+
 // ErrNilTxProcessor signals that a nil transactions processor was used
 var ErrNilTxProcessor = errors.New("nil transactions processor")
 
@@ -1250,9 +1253,6 @@ var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration"
 
 // ErrInvalidHeader is raised when header is invalid
 var ErrInvalidHeader = errors.New("header is invalid")
-
-// ErrNilEquivalentProofsPool signals that a nil equivalent proofs pool has been provided
-var ErrNilEquivalentProofsPool = errors.New("nil equivalent proofs pool")
 
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")

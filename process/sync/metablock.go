@@ -31,6 +31,9 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	if check.IfNil(arguments.PoolsHolder.Headers()) {
 		return nil, process.ErrNilMetaBlocksPool
 	}
+	if check.IfNil(arguments.PoolsHolder.Proofs()) {
+		return nil, process.ErrNilProofsPool
+	}
 	if check.IfNil(arguments.EpochBootstrapper) {
 		return nil, process.ErrNilEpochStartTrigger
 	}
@@ -54,6 +57,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		blockProcessor:               arguments.BlockProcessor,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
+		proofs:                       arguments.PoolsHolder.Proofs(),
 		roundHandler:                 arguments.RoundHandler,
 		waitTime:                     arguments.WaitTime,
 		hasher:                       arguments.Hasher,
@@ -78,6 +82,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		enableEpochsHandler:          arguments.EnableEpochsHandler,
 	}
 
 	if base.isInImportMode {
@@ -243,8 +248,8 @@ func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
-func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
-	hdr, _, err := process.GetMetaHeaderFromPoolWithNonce(
+func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
+	hdr, hash, err := process.GetMetaHeaderFromPoolWithNonce(
 		nonce,
 		boot.headers)
 	if err != nil {
@@ -252,18 +257,18 @@ func (boot *MetaBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 		boot.requestHeaderWithNonce(nonce)
 		err = boot.waitForHeaderNonce()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		hdr, _, err = process.GetMetaHeaderFromPoolWithNonce(
+		hdr, hash, err = process.GetMetaHeaderFromPoolWithNonce(
 			nonce,
 			boot.headers)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	return hdr, nil
+	return hdr, hash, nil
 }
 
 // getHeaderWithHashRequestingIfMissing method gets the header with a given hash from pool. If it is not found there,

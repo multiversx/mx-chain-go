@@ -34,7 +34,7 @@ func NewEquivalentProofsInterceptorProcessor(args ArgEquivalentProofsInterceptor
 
 func checkArgsEquivalentProofs(args ArgEquivalentProofsInterceptorProcessor) error {
 	if check.IfNil(args.EquivalentProofsPool) {
-		return process.ErrNilEquivalentProofsPool
+		return process.ErrNilProofsPool
 	}
 	if check.IfNil(args.Marshaller) {
 		return process.ErrNilMarshalizer
@@ -56,9 +56,7 @@ func (epip *equivalentProofsInterceptorProcessor) Save(data process.InterceptedD
 		return process.ErrWrongTypeAssertion
 	}
 
-	epip.equivalentProofsPool.AddNotarizedProof(interceptedProof.GetProof())
-
-	return nil
+	return epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
 }
 
 // RegisterHandler registers a callback function to be notified of incoming equivalent proofs

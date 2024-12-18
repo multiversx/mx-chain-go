@@ -10,14 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
 )
 
 func createMockArgEquivalentProofsInterceptorProcessor() ArgEquivalentProofsInterceptorProcessor {
 	return ArgEquivalentProofsInterceptorProcessor{
-		EquivalentProofsPool: &processMocks.EquivalentProofsPoolMock{},
+		EquivalentProofsPool: &dataRetriever.ProofsPoolMock{},
 		Marshaller:           &marshallerMock.MarshalizerMock{},
 	}
 }
@@ -42,7 +42,7 @@ func TestNewEquivalentProofsInterceptorProcessor(t *testing.T) {
 		args.EquivalentProofsPool = nil
 
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
-		require.Equal(t, process.ErrNilEquivalentProofsPool, err)
+		require.Equal(t, process.ErrNilProofsPool, err)
 		require.Nil(t, epip)
 	})
 	t.Run("nil Marshaller should error", func(t *testing.T) {
@@ -91,9 +91,10 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 
 		wasCalled := false
 		args := createMockArgEquivalentProofsInterceptorProcessor()
-		args.EquivalentProofsPool = &processMocks.EquivalentProofsPoolMock{
-			AddNotarizedProofCalled: func(notarizedProof data.HeaderProofHandler) {
+		args.EquivalentProofsPool = &dataRetriever.ProofsPoolMock{
+			AddProofCalled: func(notarizedProof data.HeaderProofHandler) error {
 				wasCalled = true
+				return nil
 			},
 		}
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
@@ -103,6 +104,7 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			Marshaller:        args.Marshaller,
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
+			Proofs:            &dataRetriever.ProofsPoolMock{},
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
 			PubKeysBitmap:       []byte("bitmap"),
