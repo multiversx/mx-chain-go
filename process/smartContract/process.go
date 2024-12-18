@@ -955,7 +955,7 @@ func (sc *scProcessor) doExecuteBuiltInFunction(
 		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
 	}
 
-	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
+	_, txTypeOnDst, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	builtInFuncGasUsed, err := sc.computeBuiltInFuncGasUsed(txTypeOnDst, vmInput.Function, vmInput.GasProvided, vmOutput.GasRemaining, check.IfNil(acntSnd))
 	log.LogIfError(err, "function", "ExecuteBuiltInFunction.computeBuiltInFuncGasUsed")
 
@@ -1473,7 +1473,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 		Logs:          processIfErrorLogs,
 	}, 0)
 
-	txType, _ := sc.txTypeHandler.ComputeTransactionType(tx)
+	txType, _, _ := sc.txTypeHandler.ComputeTransactionType(tx)
 	isCrossShardMoveBalance := txType == process.MoveBalance && check.IfNil(acntSnd)
 	if isCrossShardMoveBalance && sc.enableEpochsHandler.IsFlagEnabled(common.SCDeployFlag) {
 		// move balance was already consumed in sender shard
@@ -2808,7 +2808,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 
 	gasLocked := sc.getGasLockedFromSCR(scr)
 
-	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
+	txType, _, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.MoveBalance:
 		err = sc.processSimpleSCR(scr, txHash, dstAcc)

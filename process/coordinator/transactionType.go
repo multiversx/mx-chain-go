@@ -77,59 +77,61 @@ func NewTxTypeHandler(
 }
 
 // ComputeTransactionType calculates the transaction type
-func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+func (tth *txTypeHandler) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
 	err := tth.checkTxValidity(tx)
 	if err != nil {
-		return process.InvalidTransaction, process.InvalidTransaction
+		return process.InvalidTransaction, process.InvalidTransaction, false
 	}
+
+	isRelayedV3 := common.IsRelayedTxV3(tx)
 
 	isEmptyAddress := tth.isDestAddressEmpty(tx)
 	if isEmptyAddress {
 		if len(tx.GetData()) > 0 {
-			return process.SCDeployment, process.SCDeployment
+			return process.SCDeployment, process.SCDeployment, isRelayedV3
 		}
-		return process.InvalidTransaction, process.InvalidTransaction
+		return process.InvalidTransaction, process.InvalidTransaction, isRelayedV3
 	}
 	if len(tx.GetData()) == 0 {
-		return process.MoveBalance, process.MoveBalance
+		return process.MoveBalance, process.MoveBalance, isRelayedV3
 	}
 
 	funcName, args := tth.getFunctionFromArguments(tx.GetData())
 	isBuiltInFunction := tth.isBuiltInFunctionCall(funcName)
 	if isBuiltInFunction {
 		if tth.isSCCallAfterBuiltIn(funcName, args, tx) {
-			return process.BuiltInFunctionCall, process.SCInvoking
+			return process.BuiltInFunctionCall, process.SCInvoking, isRelayedV3
 		}
 
-		return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		return process.BuiltInFunctionCall, process.BuiltInFunctionCall, isRelayedV3
 	}
 
 	if isCallOfType(tx, vm.AsynchronousCallBack) {
-		return process.SCInvoking, process.SCInvoking
+		return process.SCInvoking, process.SCInvoking, isRelayedV3
 	}
 
 	if len(funcName) == 0 {
-		return process.MoveBalance, process.MoveBalance
+		return process.MoveBalance, process.MoveBalance, isRelayedV3
 	}
 
 	if tth.isRelayedTransactionV1(funcName) {
-		return process.RelayedTx, process.RelayedTx
+		return process.RelayedTx, process.RelayedTx, isRelayedV3 // this should never be reached with both relayed v1 and relayed v3
 	}
 
 	if tth.isRelayedTransactionV2(funcName) {
-		return process.RelayedTxV2, process.RelayedTxV2
+		return process.RelayedTxV2, process.RelayedTxV2, isRelayedV3 // this should never be reached with both relayed v2 and relayed v3
 	}
 
 	isDestInSelfShard := tth.isDestAddressInSelfShard(tx.GetRcvAddr())
 	if isDestInSelfShard && core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		return process.SCInvoking, process.SCInvoking
+		return process.SCInvoking, process.SCInvoking, isRelayedV3
 	}
 
 	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		return process.MoveBalance, process.SCInvoking
+		return process.MoveBalance, process.SCInvoking, isRelayedV3
 	}
 
-	return process.MoveBalance, process.MoveBalance
+	return process.MoveBalance, process.MoveBalance, isRelayedV3
 }
 
 func isCallOfType(tx data.TransactionHandler, callType vm.CallType) bool {
