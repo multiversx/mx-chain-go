@@ -125,11 +125,7 @@ func concat(s1 []byte, s2 ...byte) []byte {
 
 func hasValidHash(n node) bool {
 	childHash := n.getHash()
-	if childHash == nil {
-		return false
-	}
-
-	return true
+	return len(childHash) != 0
 }
 
 func decodeNode(encNode []byte, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {

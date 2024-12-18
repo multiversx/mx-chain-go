@@ -13,11 +13,7 @@ func NewDisabledGoroutinesManager() *disabledGoroutinesManager {
 
 // ShouldContinueProcessing returns true if there is no error
 func (d *disabledGoroutinesManager) ShouldContinueProcessing() bool {
-	if d.err != nil {
-		return false
-	}
-
-	return true
+	return d.err != nil
 }
 
 // CanStartGoRoutine returns false
