@@ -28,8 +28,7 @@ jobs:
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
     env:
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-      TARGET_BRANCH: ""
+      BRANCH_NAME: ${{ github.ref_name }}
       MX_CHAIN_GO_TARGET_BRANCH: ""
       MX_CHAIN_SIMULATOR_TARGET_BRANCH: ""
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
@@ -38,7 +37,8 @@ jobs:
       - name: Determine Target Branches
         id: target_branch
         run: |
-          echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
+          echo "CURRENT_BRANCH=${{ env.BRANCH_NAME }}" >> $GITHUB_ENV
+          
 
           # Default target branches based on the PR base branch
           if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
