@@ -12,9 +12,14 @@ type baseIterator struct {
 }
 
 // newBaseIterator creates a new instance of trie iterator
-func newBaseIterator(trie common.Trie) (*baseIterator, error) {
+func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
+	}
+
+	trie, err := trie.Recreate(rootHash)
+	if err != nil {
+		return nil, err
 	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)
@@ -56,20 +61,10 @@ func (it *baseIterator) next() ([]node, error) {
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node
 func (it *baseIterator) MarshalizedNode() ([]byte, error) {
-	err := it.currentNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
 	return it.currentNode.getEncodedNode()
 }
 
 // GetHash returns the current node hash
-func (it *baseIterator) GetHash() ([]byte, error) {
-	err := it.currentNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return it.currentNode.getHash(), nil
+func (it *baseIterator) GetHash() []byte {
+	return it.currentNode.getHash()
 }

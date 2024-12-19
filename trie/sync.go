@@ -323,10 +323,6 @@ func getNodeFromCacheOrStorage(
 	if err != nil {
 		return nil, ErrNodeNotFound
 	}
-	err = existingNode.setHash()
-	if err != nil {
-		return nil, ErrNodeNotFound
-	}
 
 	return existingNode, nil
 }
@@ -361,7 +357,9 @@ func trieNode(
 		return nil, err
 	}
 
-	err = decodedNode.setHash()
+	manager := NewDisabledGoroutinesManager()
+	decodedNode.setHash(manager)
+	err = manager.GetError()
 	if err != nil {
 		return nil, err
 	}

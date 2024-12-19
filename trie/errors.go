@@ -135,3 +135,6 @@ var ErrNilChanClose = errors.New("nil chan close")
 
 // ErrInvalidTypeConversion signals that an invalid type conversion has been provided
 var ErrInvalidTypeConversion = errors.New("invalid type conversion")
+
+// ErrNodeHashIsNotSet signals that the node hash is not set
+var ErrNodeHashIsNotSet = errors.New("node hash is not set")

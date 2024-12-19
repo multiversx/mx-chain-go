@@ -14,8 +14,9 @@ func TestNewBaseIterator(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	rootHash, _ := tr.RootHash()
 
-	it, err := trie.NewBaseIterator(tr)
+	it, err := trie.NewBaseIterator(tr, rootHash)
 	assert.Nil(t, err)
 	assert.NotNil(t, it)
 }
@@ -25,7 +26,7 @@ func TestNewBaseIteratorNilTrieShouldErr(t *testing.T) {
 
 	var tr common.Trie
 
-	it, err := trie.NewBaseIterator(tr)
+	it, err := trie.NewBaseIterator(tr, nil)
 	assert.Nil(t, it)
 	assert.Equal(t, trie.ErrNilTrie, err)
 }
@@ -35,13 +36,15 @@ func TestBaseIterator_HasNext(t *testing.T) {
 
 	tr := emptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))
-	trie.ExecuteUpdatesFromBatch(tr)
-	it, _ := trie.NewBaseIterator(tr)
+	_ = tr.Commit()
+	rootHash, _ := tr.RootHash()
+	it, _ := trie.NewBaseIterator(tr, rootHash)
 	assert.False(t, it.HasNext())
 
 	_ = tr.Update([]byte("doe"), []byte("doe"))
-	trie.ExecuteUpdatesFromBatch(tr)
-	it, _ = trie.NewBaseIterator(tr)
+	_ = tr.Commit()
+	rootHash, _ = tr.RootHash()
+	it, _ = trie.NewBaseIterator(tr, rootHash)
 	assert.True(t, it.HasNext())
 }
 
@@ -49,7 +52,8 @@ func TestBaseIterator_GetMarshalizedNode(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	it, _ := trie.NewBaseIterator(tr)
+	rootHash, _ := tr.RootHash()
+	it, _ := trie.NewBaseIterator(tr, rootHash)
 
 	encNode, err := it.MarshalizedNode()
 	assert.Nil(t, err)
@@ -64,11 +68,11 @@ func TestBaseIterator_GetHash(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
-	it, _ := trie.NewBaseIterator(tr)
+	it, _ := trie.NewBaseIterator(tr, rootHash)
 
-	hash, err := it.GetHash()
-	assert.Nil(t, err)
+	hash := it.GetHash()
 	assert.Equal(t, rootHash, hash)
 }
 
@@ -80,7 +84,7 @@ func TestIterator_Search(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.Update([]byte("ddoge"), []byte("foo"))
-	trie.ExecuteUpdatesFromBatch(tr)
+	_ = tr.Commit()
 
 	expectedHashes := []string{
 		"ecc2304769996585131ad6276c1422265813a2b79d60392130c4baa19a9b4e06",
@@ -109,9 +113,9 @@ func TestIterator_Search(t *testing.T) {
 			expectedHashes[8],
 		}
 
-		it, _ := trie.NewDFSIterator(tr)
-		nodeHash, err := it.GetHash()
-		require.Nil(t, err)
+		rootHash, _ := tr.RootHash()
+		it, _ := trie.NewDFSIterator(tr, rootHash)
+		nodeHash := it.GetHash()
 
 		nodesHashes := make([]string, 0)
 		nodesHashes = append(nodesHashes, hex.EncodeToString(nodeHash))
@@ -120,8 +124,7 @@ func TestIterator_Search(t *testing.T) {
 			err := it.Next()
 			require.Nil(t, err)
 
-			nodeHash, err := it.GetHash()
-			require.Nil(t, err)
+			nodeHash := it.GetHash()
 
 			nodesHashes = append(nodesHashes, hex.EncodeToString(nodeHash))
 		}

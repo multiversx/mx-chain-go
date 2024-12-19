@@ -73,7 +73,7 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 func initTrie() common.Trie {
 	tr := emptyTrie()
 	addDefaultDataToTrie(tr)
-	trie.ExecuteUpdatesFromBatch(tr)
+	_ = tr.Commit()
 
 	return tr
 }
@@ -720,9 +720,10 @@ func TestPatriciaMerkleTree_Prove(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, value, err := tr.GetProof([]byte("dog"))
+	proof, value, err := tr.GetProof([]byte("dog"), rootHash)
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("puppy"), value)
 	ok, _ := tr.VerifyProof(rootHash, []byte("dog"), proof)
@@ -736,7 +737,7 @@ func TestPatriciaMerkleTree_ProveCollapsedTrie(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, _, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"), rootHash)
 	assert.Nil(t, err)
 	ok, _ := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
@@ -747,7 +748,7 @@ func TestPatriciaMerkleTree_ProveOnEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	proof, _, err := tr.GetProof([]byte("dog"))
+	proof, _, err := tr.GetProof([]byte("dog"), emptyTrieHash)
 	assert.Nil(t, proof)
 	assert.Equal(t, trie.ErrNilNode, err)
 }
@@ -756,10 +757,11 @@ func TestPatriciaMerkleTree_VerifyProof(t *testing.T) {
 	t.Parallel()
 
 	tr, val := initTrieMultipleValues(50)
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
 	for i := range val {
-		proof, _, _ := tr.GetProof(val[i])
+		proof, _, _ := tr.GetProof(val[i], rootHash)
 
 		ok, err := tr.VerifyProof(rootHash, val[i], proof)
 		assert.Nil(t, err)
@@ -778,9 +780,10 @@ func TestPatriciaMerkleTrie_VerifyProofBranchNodeWantHashShouldWork(t *testing.T
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("zebra"), []byte("horse"))
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, _, _ := tr.GetProof([]byte("dog"))
+	proof, _, _ := tr.GetProof([]byte("dog"), rootHash)
 	ok, err := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -793,9 +796,10 @@ func TestPatriciaMerkleTrie_VerifyProofExtensionNodeWantHashShouldWork(t *testin
 
 	_ = tr.Update([]byte("dog"), []byte("cat"))
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 
-	proof, _, _ := tr.GetProof([]byte("dog"))
+	proof, _, _ := tr.GetProof([]byte("dog"), rootHash)
 	ok, err := tr.VerifyProof(rootHash, []byte("dog"), proof)
 	assert.True(t, ok)
 	assert.Nil(t, err)
@@ -836,9 +840,11 @@ func TestPatriciaMerkleTrie_VerifyProofFromDifferentTrieShouldNotWork(t *testing
 	_ = tr2.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr2.Update([]byte("dog"), []byte("puppy"))
 	_ = tr2.Update([]byte("dogglesworth"), []byte("caterpillar"))
+	_ = tr2.Commit()
+	rootHash2, _ := tr2.RootHash()
 	rootHash, _ := tr1.RootHash()
 
-	proof, _, _ := tr2.GetProof([]byte("dogglesworth"))
+	proof, _, _ := tr2.GetProof([]byte("dogglesworth"), rootHash2)
 	ok, _ := tr1.VerifyProof(rootHash, []byte("dogglesworth"), proof)
 	assert.False(t, ok)
 }
@@ -860,10 +866,11 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 		_ = tr.Update(values[i], values[i])
 	}
 
+	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 	for i := 0; i < numRuns; i++ {
 		randNum := rand.Intn(nrLeaves)
-		proof, _, err := tr.GetProof(values[randNum])
+		proof, _, err := tr.GetProof(values[randNum], rootHash)
 		if err != nil {
 			dumpTrieContents(tr, values)
 			fmt.Printf("error getting proof for %v, err = %s\n", values[randNum], err.Error())
@@ -1015,7 +1022,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				)
 				assert.Nil(t, err)
 			case 13:
-				_, _, _ = tr.GetProof(initialRootHash) // this might error due to concurrent operations that change the roothash
+				_, _, _ = tr.GetProof(initialRootHash, initialRootHash) // this might error due to concurrent operations that change the roothash
 			case 14:
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
@@ -1591,6 +1598,9 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
+			},
 		}
 		trie.SetGoRoutinesManager(tr, grm)
 
@@ -1655,6 +1665,9 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
+			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
 			},
 		}
 		trie.SetGoRoutinesManager(tr, grm)
@@ -1821,6 +1834,9 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
+			},
 		}
 		trie.SetGoRoutinesManager(tr, grm)
 
@@ -1849,6 +1865,119 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 
 		waitForSignal.Store(false)
 		// wait for end of processing of both batches
+		wg.Wait()
+	})
+}
+
+func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set root hash with batched data commits batch", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numOperations := 1000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		rootHash, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.NotEqual(t, emptyTrieHash, rootHash)
+	})
+	t.Run("set root hash and update trie concurrently should serialize operations", func(t *testing.T) {
+		t.Parallel()
+
+		// create trie with some data
+		tr := emptyTrie()
+		numOperations := 1000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		// compute rootHash
+		waitForSignal := atomic.Bool{}
+		waitForSignal.Store(true)
+		startedComputingRootHash := atomic.Bool{}
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedComputingRootHash.Store(true)
+				return true
+			},
+			EndGoRoutineProcessingCalled: func() {
+				for waitForSignal.Load() {
+					time.Sleep(time.Millisecond * 100)
+				}
+			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
+			},
+		}
+		trie.SetGoRoutinesManager(tr, grm)
+
+		go func() {
+			rootHash1, err := tr.RootHash()
+			assert.Nil(t, err)
+			assert.NotEqual(t, emptyTrieHash, rootHash1)
+		}()
+
+		// wait for start of the computation of the root hash
+		for !startedComputingRootHash.Load() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		for i := numOperations; i < numOperations*2; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+		setNewErrChanCalled := atomic.Bool{}
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			grm.SetNewErrorChannelCalled = func(common.BufferedErrChan) error {
+				setNewErrChanCalled.Store(true)
+				return nil
+			}
+			trie.ExecuteUpdatesFromBatch(tr)
+			wg.Done()
+		}()
+
+		// commit batch to trie does not start until root hash is fully computed
+		time.Sleep(time.Millisecond * 500)
+		assert.False(t, setNewErrChanCalled.Load())
+
+		waitForSignal.Store(false)
+		wg.Wait()
+		assert.True(t, setNewErrChanCalled.Load())
+	})
+	t.Run("set root hash and get from trie concurrently", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numOperations := 100000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		setRootHashFinished := atomic.Bool{}
+		go func() {
+			for !setRootHashFinished.Load() {
+				index := rand.Intn(numOperations)
+				val, _, err := tr.Get([]byte("dog" + strconv.Itoa(index)))
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("reindeer"), val)
+			}
+			wg.Done()
+		}()
+
+		rootHash, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.NotEqual(t, emptyTrieHash, rootHash)
+
+		setRootHashFinished.Store(true)
 		wg.Wait()
 	})
 }

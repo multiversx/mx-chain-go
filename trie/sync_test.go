@@ -210,8 +210,9 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 	timeout := time.Second * 200
 	testMarshalizer, testHasher := getTestMarshalizerAndHasher()
 	bn, _ := getBnAndCollapsedBn(testMarshalizer, testHasher)
-	err := bn.setHash()
-	require.Nil(t, err)
+	manager := getTestGoroutinesManager()
+	bn.setHash(manager)
+	require.Nil(t, manager.GetError())
 	rootHash := bn.getHash()
 
 	_, trieStorage := newEmptyTrie()
@@ -223,7 +224,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
 	require.Nil(t, err)
 
 	leaves, err := bn.getChildren(db)

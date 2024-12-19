@@ -78,8 +78,8 @@ func IsTrieStorageManagerInEpoch(tsm common.StorageManager) bool {
 }
 
 // NewBaseIterator -
-func NewBaseIterator(trie common.Trie) (*baseIterator, error) {
-	return newBaseIterator(trie)
+func NewBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
+	return newBaseIterator(trie, rootHash)
 }
 
 // GetDefaultTrieStorageManagerParameters -
