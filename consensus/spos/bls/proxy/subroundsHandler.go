@@ -3,7 +3,6 @@ package proxy
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -57,6 +56,13 @@ type SubroundsHandler struct {
 	currentConsensusType consensusStateMachineType
 }
 
+func (s *SubroundsHandler) EpochConfirmed(epoch uint32, _ uint64) {
+	err := s.initSubroundsForEpoch(epoch)
+	if err != nil {
+		log.Error("SubroundsHandler.EpochStartAction: cannot initialize subrounds", "error", err)
+	}
+}
+
 const (
 	consensusNone consensusStateMachineType = iota
 	consensusV1
@@ -85,7 +91,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 		currentConsensusType: consensusNone,
 	}
 
-	subroundHandler.consensusCoreHandler.EpochStartRegistrationHandler().RegisterHandler(subroundHandler)
+	subroundHandler.consensusCoreHandler.EpochNotifier().RegisterNotifyHandler(subroundHandler)
 
 	return subroundHandler, nil
 }
@@ -187,28 +193,6 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 	s.chronology.StartRounds()
 	return nil
-}
-
-// EpochStartAction is called when the epoch starts
-func (s *SubroundsHandler) EpochStartAction(hdr data.HeaderHandler) {
-	if check.IfNil(hdr) {
-		log.Error("SubroundsHandler.EpochStartAction: nil header")
-		return
-	}
-
-	err := s.initSubroundsForEpoch(hdr.GetEpoch())
-	if err != nil {
-		log.Error("SubroundsHandler.EpochStartAction: cannot initialize subrounds", "error", err)
-	}
-}
-
-// EpochStartPrepare prepares the subrounds handler for the epoch start
-func (s *SubroundsHandler) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
-}
-
-// NotifyOrder returns the order of the subrounds handler
-func (s *SubroundsHandler) NotifyOrder() uint32 {
-	return common.ConsensusHandlerOrder
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
