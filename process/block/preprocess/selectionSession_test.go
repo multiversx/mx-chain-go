@@ -75,11 +75,11 @@ func TestSelectionSession_GetAccountState(t *testing.T) {
 
 	state, err := session.GetAccountState([]byte("alice"))
 	require.NoError(t, err)
-	require.Equal(t, uint64(42), state.Nonce)
+	require.Equal(t, uint64(42), state.GetNonce())
 
 	state, err = session.GetAccountState([]byte("bob"))
 	require.NoError(t, err)
-	require.Equal(t, uint64(7), state.Nonce)
+	require.Equal(t, uint64(7), state.GetNonce())
 
 	state, err = session.GetAccountState([]byte("carol"))
 	require.ErrorContains(t, err, "account not found: carol")
