@@ -33,7 +33,6 @@ var rootHash = "uncomputed root hash"
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	IsGenesisLastCrossNotarizedHeader() bool
-	DeleteMainChainHeader(nonce uint64)
 }
 
 type extendedShardHeaderRequestHandler interface {
@@ -681,7 +680,6 @@ func (scbp *sovereignChainBlockProcessor) requestIncomingTxsIfNeeded(extendedSha
 func (scbp *sovereignChainBlockProcessor) requestExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
 	_ = core.EmptyChannel(scbp.chRcvAllExtendedShardHdrs)
 
-	// todo: extra validity check: that there are no extended shard headers added to the epoch start block, only GetLastFinalizedCrossChainHeaderHandler
 	if len(sovereignChainHeader.GetExtendedShardHeaderHashes()) == 0 {
 		return scbp.computeAndRequestEpochStartExtendedHeaderIfMissing(sovereignChainHeader)
 	}
@@ -920,6 +918,7 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sove
 		return nil
 	}
 
+	// we should not have an epoch start block with main chain headers to be processed
 	if sovereignChainHeader.IsStartOfEpochBlock() {
 		return errors.ErrReceivedSovereignEpochStartBlockWithExtendedHeaders
 	}
