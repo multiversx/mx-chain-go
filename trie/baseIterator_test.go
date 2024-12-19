@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,13 +37,13 @@ func TestBaseIterator_HasNext(t *testing.T) {
 
 	tr := emptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	it, _ := trie.NewBaseIterator(tr, rootHash)
 	assert.False(t, it.HasNext())
 
 	_ = tr.Update([]byte("doe"), []byte("doe"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ = tr.RootHash()
 	it, _ = trie.NewBaseIterator(tr, rootHash)
 	assert.True(t, it.HasNext())
@@ -68,7 +69,7 @@ func TestBaseIterator_GetHash(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
 	it, _ := trie.NewBaseIterator(tr, rootHash)
 
@@ -84,7 +85,7 @@ func TestIterator_Search(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.Update([]byte("ddoge"), []byte("foo"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	expectedHashes := []string{
 		"ecc2304769996585131ad6276c1422265813a2b79d60392130c4baa19a9b4e06",

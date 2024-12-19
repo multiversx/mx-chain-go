@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -279,7 +280,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 
 	_ = tr1.Update(key, value)
 	h1, _ := tr1.RootHash()
-	err := tr1.Commit()
+	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	require.Nil(t, err)
 
 	tr2, err := tr1.Recreate(h1)
@@ -961,6 +962,11 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	integrationTests.PrintShardAccount(acntDest.(state.UserAccountHandler), "Destination")
 }
 
+type trieWithToString interface {
+	common.Trie
+	ToString() string
+}
+
 func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 	nrOfAccounts := 1000000
 	balance := 1500000
@@ -994,7 +1000,7 @@ func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 		core.ConvertBytes(rtm.Sys),
 	)
 
-	_ = tr.String()
+	_ = tr.(trieWithToString).ToString()
 }
 
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {

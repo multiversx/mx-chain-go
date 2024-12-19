@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	mathRand "math/rand"
@@ -26,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/parsers"
@@ -863,7 +865,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 	marshaller := &marshallerMock.MarshalizerMock{}
 	serializedAccount, _ := marshaller.Marshal(stateMock.AccountWrapMock{})
 	trieStub := trieMock.TrieStub{
-		CommitCalled: func() error {
+		CommitCalled: func(_ common.TrieHashesCollector) error {
 			commitCalled++
 
 			return nil
@@ -882,7 +884,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 				UpdateWithVersionCalled: func(key, value []byte, version core.TrieNodeVersion) error {
 					return nil
 				},
-				CommitCalled: func() error {
+				CommitCalled: func(_ common.TrieHashesCollector) error {
 					commitCalled++
 
 					return nil
@@ -1826,22 +1828,29 @@ func TestAccountsDB_TrieDatabasePruning(t *testing.T) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.Commit()
+	_, err := adb.Commit()
+	assert.Nil(t, err)
 
 	rootHash, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("dog"), []byte("doee"))
-	oldHashes := tr.GetObsoleteHashes()
-	assert.Equal(t, 4, len(oldHashes))
-	_, err := adb.Commit()
+	_, err = adb.Commit()
 	assert.Nil(t, err)
 
 	adb.CancelPrune(rootHash, state.NewRoot)
 	adb.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 	time.Sleep(trieDbOperationDelay)
 
-	for i := range oldHashes {
-		encNode, errGet := tr.GetStorageManager().Get(oldHashes[i])
+	oldHashes := []string{
+		"aa07e09a40ff7d332c2c50fa1619c751629f06babc3c1793ab3db8dd0c298345",
+		"a21e06e29734f85c99da88ae69d71b532f3929c2f96a43b95813e8c077151d11",
+		"d2b566879acfb873caa9a2282d48d196aefaa2a6168a84447298c472a1ba8f1c",
+		"7f20b853d6edc10f3e6840c7779fe842b7e87b2ad6488d4bb2465c0e389b7272",
+	}
+
+	for _, hexKey := range oldHashes {
+		key, _ := hex.DecodeString(hexKey)
+		encNode, errGet := tr.GetStorageManager().Get(key)
 		assert.Nil(t, encNode)
 		assert.NotNil(t, errGet)
 	}
@@ -1923,12 +1932,6 @@ func TestAccountsDB_Prune(t *testing.T) {
 	assert.Equal(t, trie.ErrKeyNotFound, err)
 }
 
-func mergeMaps(map1 common.ModifiedHashes, map2 common.ModifiedHashes) {
-	for key, val := range map2 {
-		map1[key] = val
-	}
-}
-
 func generateAccounts(t testing.TB, numAccounts int, adb state.AccountsAdapter) [][]byte {
 	accountsAddresses := make([][]byte, numAccounts)
 	for i := 0; i < numAccounts; i++ {
@@ -1951,23 +1954,18 @@ func generateRandomByteArray(size int) []byte {
 	return r
 }
 
-func modifyDataTries(t *testing.T, accountsAddresses [][]byte, adb *state.AccountsDB) common.ModifiedHashes {
+func modifyDataTries(t *testing.T, accountsAddresses [][]byte, adb *state.AccountsDB) {
 	acc, _ := adb.LoadAccount(accountsAddresses[0])
 	err := acc.(state.UserAccountHandler).SaveKeyValue([]byte("key1"), []byte("value1"))
 	assert.Nil(t, err)
 	err = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key2"), []byte("value2"))
 	assert.Nil(t, err)
 	_ = adb.SaveAccount(acc)
-	newHashes, _ := acc.(state.UserAccountHandler).DataTrie().(common.Trie).GetDirtyHashes()
 
 	acc, _ = adb.LoadAccount(accountsAddresses[1])
 	err = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key2"), []byte("value2"))
 	assert.Nil(t, err)
 	_ = adb.SaveAccount(acc)
-	newHashesDataTrie, _ := acc.(state.UserAccountHandler).DataTrie().(common.Trie).GetDirtyHashes()
-	mergeMaps(newHashes, newHashesDataTrie)
-
-	return newHashes
 }
 
 func TestAccountsDB_GetCode(t *testing.T) {
@@ -2112,7 +2110,7 @@ func TestAccountsDB_GetTrie(t *testing.T) {
 	_, adb := getDefaultTrieAndAccountsDb()
 
 	addresses := generateAccounts(t, 2, adb)
-	_ = modifyDataTries(t, addresses, adb)
+	modifyDataTries(t, addresses, adb)
 
 	_, _ = adb.Commit()
 
@@ -2693,10 +2691,10 @@ func prepareTrie(tr common.Trie, numKeys int) common.ModifiedHashes {
 		_ = tr.Update([]byte(key), []byte(val))
 	}
 
-	hashes, _ := tr.GetDirtyHashes()
-	_ = tr.Commit()
-
-	return hashes
+	hc := hashesCollector.NewDataTrieHashesCollector()
+	_ = tr.Commit(hc)
+	_, _, newHashes := hc.GetCollectedData()
+	return newHashes
 }
 
 func addDataTries(accountsAddresses [][]byte, adb *state.AccountsDB) {
@@ -2814,7 +2812,8 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	// check that the data trie was completely reverted. The rootHash of the user account should be present
 	// in both old and new hashes. This means that after the revert, the rootHash is the same as before
 	markForEvictionCalled := false
-	spm.MarkForEvictionCalled = func(_ []byte, _ []byte, oldHashes common.ModifiedHashes, newHashes common.ModifiedHashes) error {
+	spm.MarkForEvictionCalled = func(_ []byte, collector common.TrieHashesCollector) error {
+		_, oldHashes, newHashes := collector.GetCollectedData()
 		_, ok := oldHashes[string(userAccRootHash)]
 		require.True(t, ok)
 		_, ok = newHashes[string(userAccRootHash)]

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
@@ -28,7 +29,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	for i := 0; i < numLeavesToAdd; i++ {
 		_ = tr.Update([]byte(strconv.Itoa(i)), []byte(strconv.Itoa(i)))
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	time.Sleep(time.Second * 2) // allow the commit go routines to finish completely as to not alter the further counters
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)
@@ -70,7 +71,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("god"), []byte("puppy"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel1 = &common.TrieIteratorChannels{
@@ -91,7 +92,7 @@ func TestPatriciaMerkleTrie_Close(t *testing.T) {
 	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("eggod"), []byte("cat"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	rootHash, _ = tr.RootHash()
 	leavesChannel2 := &common.TrieIteratorChannels{
