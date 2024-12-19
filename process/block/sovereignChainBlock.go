@@ -701,7 +701,24 @@ func (scbp *sovereignChainBlockProcessor) computeAndRequestEpochStartExtendedHea
 	}
 
 	lastCrossChainHash := lastCrossChainData.GetHeaderHash()
+	if !scbp.shouldRequestEpochStartCrossChainHash(lastCrossChainHash) {
+		return 0
+	}
 
+	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	scbp.hdrsForCurrBlock.missingHdrs++
+	scbp.hdrsForCurrBlock.hdrHashAndInfo[string(lastCrossChainHash)] = &hdrInfo{
+		hdr:         nil,
+		usedInBlock: false,
+	}
+	scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(lastCrossChainHash)
+
+	return 1
+}
+
+func (scbp *sovereignChainBlockProcessor) shouldRequestEpochStartCrossChainHash(lastCrossChainHash []byte) bool {
 	_, errMissingHdrPool := process.GetExtendedShardHeaderFromPool(
 		lastCrossChainHash,
 		scbp.dataPool.Headers())
@@ -717,21 +734,7 @@ func (scbp *sovereignChainBlockProcessor) computeAndRequestEpochStartExtendedHea
 		"shouldRequestLastCrossChainHeader", shouldRequestLastCrossChainHeader,
 	)
 
-	if !shouldRequestLastCrossChainHeader {
-		return 0
-	}
-
-	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
-	scbp.hdrsForCurrBlock.missingHdrs++
-	scbp.hdrsForCurrBlock.hdrHashAndInfo[string(lastCrossChainHash)] = &hdrInfo{
-		hdr:         nil,
-		usedInBlock: false,
-	}
-	scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
-
-	go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(lastCrossChainHash)
-
-	return 1
+	return missingHeaderInTracker || missingHeaderInPool
 }
 
 func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
@@ -797,7 +800,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		"nonce", headerHandler.GetNonce(),
 	)
 
-	sovereignChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
+	sovChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -824,7 +827,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	scbp.blockChainHook.SetCurrentHeader(headerHandler)
 
 	scbp.txCoordinator.RequestBlockTransactions(body)
-	requestedExtendedShardHdrs := scbp.requestExtendedShardHeaders(sovereignChainHeader)
+	requestedExtendedShardHdrs := scbp.requestExtendedShardHeaders(sovChainHeader)
 
 	if haveTime() < 0 {
 		return nil, nil, process.ErrTimeIsOut
@@ -851,7 +854,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		go scbp.checkAndRequestIfExtendedShardHeadersMissing()
 	}()
 
-	err = scbp.checkExtendedShardHeadersValidity()
+	err = scbp.checkExtendedShardHeadersValidity(sovChainHeader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -892,7 +895,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	err = scbp.verifySovereignPostProcessBlock(headerHandler, newBody, sovereignChainHeader)
+	err = scbp.verifySovereignPostProcessBlock(headerHandler, newBody, sovChainHeader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -901,7 +904,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 }
 
 // checkExtendedShardHeadersValidity checks if used extended shard headers are valid as construction
-func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() error {
+func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sovereignChainHeader data.SovereignChainHeaderHandler) error {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 	if err != nil {
 		return err
@@ -915,6 +918,10 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 	extendedShardHdrs := scbp.sortExtendedShardHeadersForCurrentBlockByNonce()
 	if len(extendedShardHdrs) == 0 {
 		return nil
+	}
+
+	if sovereignChainHeader.IsStartOfEpochBlock() {
+		return errors.ErrReceivedSovereignEpochStartBlockWithExtendedHeaders
 	}
 
 	if scbp.isGenesisHeaderWithNoPreviousTracking(extendedShardHdrs[0]) {
