@@ -270,3 +270,6 @@ var ErrHeaderProofNotExpected = errors.New("header proof not expected")
 
 // ErrConsensusMessageNotExpected signals that a consensus message was not expected
 var ErrConsensusMessageNotExpected = errors.New("consensus message not expected")
+
+// ErrNilEpochNotifier signals that a nil epoch notifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier")

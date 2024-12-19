@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	epochstartmock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
@@ -217,6 +218,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	equivalentProofsPool := &dataRetriever.ProofsPoolMock{}
+	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 
 	container := &ConsensusCoreMock{
 		blockChain:              blockChain,
@@ -244,6 +246,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		signingHandler:          signingHandler,
 		enableEpochsHandler:     enableEpochsHandler,
 		equivalentProofsPool:    equivalentProofsPool,
+		epochNotifier:           epochNotifier,
 	}
 
 	return container
