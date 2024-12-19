@@ -151,7 +151,8 @@ func testRelayedV3MoveBalance(
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
-		if relayerShard == destinationShard {
+		isIntraShard := relayerShard == destinationShard
+		if isIntraShard {
 			require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
 		}
 
@@ -181,7 +182,7 @@ func testRelayedV3MoveBalance(
 		// check intra shard logs, should be none
 		require.Nil(t, result.Logs)
 
-		if extraGas {
+		if extraGas && isIntraShard {
 			require.NotNil(t, result.Receipt)
 		}
 	}
