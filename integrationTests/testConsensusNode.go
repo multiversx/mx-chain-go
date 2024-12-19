@@ -17,11 +17,16 @@ import (
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	epochStartDisabled "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -30,7 +35,14 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
+	disabledInterceptors "github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	interceptorsFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	syncFork "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/sharding"
 	chainShardingMocks "github.com/multiversx/mx-chain-go/sharding/mock"
@@ -44,6 +56,7 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -82,17 +95,20 @@ type ArgsTestConsensusNode struct {
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
 type TestConsensusNode struct {
-	Node                 *node.Node
-	MainMessenger        p2p.Messenger
-	FullArchiveMessenger p2p.Messenger
-	NodesCoordinator     nodesCoordinator.NodesCoordinator
-	ShardCoordinator     sharding.Coordinator
-	ChainHandler         data.ChainHandler
-	BlockProcessor       *mock.BlockProcessorMock
-	RequestersFinder     dataRetriever.RequestersFinder
-	AccountsDB           *state.AccountsDB
-	NodeKeys             *TestKeyPair
-	MultiSigner          *cryptoMocks.MultisignerMock
+	Node                      *node.Node
+	MainMessenger             p2p.Messenger
+	FullArchiveMessenger      p2p.Messenger
+	NodesCoordinator          nodesCoordinator.NodesCoordinator
+	ShardCoordinator          sharding.Coordinator
+	ChainHandler              data.ChainHandler
+	BlockProcessor            *mock.BlockProcessorMock
+	RequestersFinder          dataRetriever.RequestersFinder
+	AccountsDB                *state.AccountsDB
+	NodeKeys                  *TestKeyPair
+	MultiSigner               *cryptoMocks.MultisignerMock
+	MainInterceptorsContainer process.InterceptorsContainer
+	DataPool                  dataRetriever.PoolsHolder
+	RequestHandler            process.RequestHandler
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -184,6 +200,8 @@ func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.Mu
 }
 
 func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
+	var err error
+
 	testHasher := createHasher(args.ConsensusType)
 	epochStartRegistrationHandler := notifier.NewEpochStartSubscriptionHandler()
 	consensusCache, _ := cache.NewLRUCache(10000)
@@ -198,6 +216,13 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+
+	epochsConfig := GetDefaultEnableEpochsConfig()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
+
+	storage := CreateStore(tcn.ShardCoordinator.NumberOfShards())
+
 	roundHandler, _ := round.NewRound(
 		time.Unix(args.StartTime, 0),
 		syncer.CurrentTime(),
@@ -206,22 +231,63 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		0)
 
 	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
+	tcn.DataPool = dataPool
 
-	argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		GenesisTime:        time.Unix(args.StartTime, 0),
-		EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 1,
-			RoundsPerEpoch:         1000,
-		},
-		Epoch:            0,
-		Storage:          createTestStore(),
-		Marshalizer:      TestMarshalizer,
-		Hasher:           testHasher,
-		AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-		DataPool:         dataPool,
+	var epochTrigger TestEpochStartTrigger
+	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime:        time.Unix(args.StartTime, 0),
+			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1,
+				RoundsPerEpoch:         1000,
+			},
+			Epoch:            0,
+			Storage:          createTestStore(),
+			Marshalizer:      TestMarshalizer,
+			Hasher:           testHasher,
+			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:         dataPool,
+		}
+		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		epochTrigger = &metachain.TestTrigger{}
+		epochTrigger.SetTrigger(epochStartTrigger)
+	} else {
+		argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
+			MiniBlocksPool:     tcn.DataPool.MiniBlocks(),
+			ValidatorsInfoPool: tcn.DataPool.ValidatorsInfo(),
+			RequestHandler:     &testscommon.RequestHandlerStub{},
+		}
+		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
+
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tcn.DataPool,
+			Storage:              storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         roundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  enableEpochsHandler,
+		}
+		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		if err != nil {
+			fmt.Println("NewEpochStartTrigger shard")
+			fmt.Println(err.Error())
+		}
+		epochTrigger = &shardchain.TestTrigger{}
+		epochTrigger.SetTrigger(epochStartTrigger)
 	}
-	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
 		roundHandler,
@@ -259,6 +325,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			return uint32(args.ConsensusSize)
 		},
 	}
+	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
@@ -315,7 +382,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.NodesCoord = tcn.NodesCoordinator
 	processComponents.BlockProcess = tcn.BlockProcessor
 	processComponents.ReqFinder = tcn.RequestersFinder
-	processComponents.EpochTrigger = epochStartTrigger
+	processComponents.EpochTrigger = epochTrigger
 	processComponents.EpochNotifier = epochStartRegistrationHandler
 	processComponents.BlackListHdl = &testscommon.TimeCacheStub{}
 	processComponents.BootSore = &mock.BoostrapStorerMock{}
@@ -328,6 +395,9 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
+
+	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, storage, epochTrigger)
+	processComponents.IntContainer = tcn.MainInterceptorsContainer
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tcn.ChainHandler
@@ -342,7 +412,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
-	var err error
 	tcn.Node, err = node.NewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithStatusCoreComponents(statusCoreComponents),
@@ -361,6 +430,214 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
+}
+
+func (tcn *TestConsensusNode) initInterceptors(
+	coreComponents process.CoreComponentsHolder,
+	cryptoComponents process.CryptoComponentsHolder,
+	roundHandler consensus.RoundHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+	storage dataRetriever.StorageService,
+	epochStartTrigger TestEpochStartTrigger,
+) {
+	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Second * 10,
+		CacheExpiry: time.Second * 10,
+	}
+
+	accountsAdapter := epochStartDisabled.NewAccountsAdapter()
+
+	blockBlackListHandler := cache.NewTimeCache(TimeSpanForBadHeaders)
+
+	// argsNewEconomicsData := economics.ArgsNewEconomicsData{
+	// 	Economics:           &config.EconomicsConfig{},
+	// 	EpochNotifier:       genericEpochNotifier,
+	// 	EnableEpochsHandler: enableEpochsHandler,
+	// 	TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+	// }
+	// economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
+
+	genesisBlocks := make(map[uint32]data.HeaderHandler)
+	blockTracker := processMock.NewBlockTrackerMock(tcn.ShardCoordinator, genesisBlocks)
+
+	whiteLstHandler, _ := disabledInterceptors.NewDisabledWhiteListDataVerifier()
+
+	cacherVerifiedCfg := storageunit.CacheConfig{Capacity: 5000, Type: storageunit.LRUCache, Shards: 1}
+	cacheVerified, _ := storageunit.NewCache(cacherVerifiedCfg)
+	whiteListerVerifiedTxs, _ := interceptors.NewWhiteListDataVerifier(cacheVerified)
+
+	tcn.initRequesters()
+
+	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
+			CoreComponents:                 coreComponents,
+			CryptoComponents:               cryptoComponents,
+			Accounts:                       accountsAdapter,
+			ShardCoordinator:               tcn.ShardCoordinator,
+			NodesCoordinator:               tcn.NodesCoordinator,
+			MainMessenger:                  tcn.MainMessenger,
+			FullArchiveMessenger:           tcn.FullArchiveMessenger,
+			Store:                          storage,
+			DataPool:                       tcn.DataPool,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+			TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
+			BlockBlackList:                 blockBlackListHandler,
+			HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
+			HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
+			ValidityAttester:               blockTracker,
+			EpochStartTrigger:              epochStartTrigger,
+			WhiteListHandler:               whiteLstHandler,
+			WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
+			AntifloodHandler:               &mock.NilAntifloodHandler{},
+			ArgumentsParser:                smartContract.NewArgumentParser(),
+			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+			SizeCheckDelta:                 sizeCheckDelta,
+			RequestHandler:                 &testscommon.RequestHandlerStub{},
+			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
+			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
+			HeartbeatExpiryTimespanInSec:   30,
+			MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
+			FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
+			HardforkTrigger:                &testscommon.HardforkTriggerStub{},
+			NodeOperationMode:              common.NormalOperation,
+			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+		}
+		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		if err != nil {
+			log.Debug("interceptor container factory Create", "error", err.Error())
+		}
+	} else {
+		argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
+			MiniBlocksPool:     tcn.DataPool.MiniBlocks(),
+			ValidatorsInfoPool: tcn.DataPool.ValidatorsInfo(),
+			RequestHandler:     &testscommon.RequestHandlerStub{},
+		}
+		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tcn.DataPool,
+			Storage:              storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         roundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  enableEpochsHandler,
+		}
+		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
+
+		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
+			CoreComponents:                 coreComponents,
+			CryptoComponents:               cryptoComponents,
+			Accounts:                       accountsAdapter,
+			ShardCoordinator:               tcn.ShardCoordinator,
+			NodesCoordinator:               tcn.NodesCoordinator,
+			MainMessenger:                  tcn.MainMessenger,
+			FullArchiveMessenger:           tcn.FullArchiveMessenger,
+			Store:                          storage,
+			DataPool:                       tcn.DataPool,
+			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+			TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
+			BlockBlackList:                 blockBlackListHandler,
+			HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
+			HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
+			ValidityAttester:               blockTracker,
+			EpochStartTrigger:              epochStartTrigger,
+			WhiteListHandler:               whiteLstHandler,
+			WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
+			AntifloodHandler:               &mock.NilAntifloodHandler{},
+			ArgumentsParser:                smartContract.NewArgumentParser(),
+			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+			SizeCheckDelta:                 sizeCheckDelta,
+			RequestHandler:                 &testscommon.RequestHandlerStub{},
+			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
+			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
+			HeartbeatExpiryTimespanInSec:   30,
+			MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
+			FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
+			HardforkTrigger:                &testscommon.HardforkTriggerStub{},
+			NodeOperationMode:              common.NormalOperation,
+			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+		}
+
+		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		tcn.MainInterceptorsContainer, _, err = interceptorContainerFactory.Create()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		// interceptorsContainer := &testscommon.InterceptorsContainerStub{
+		// 	GetCalled: func(topic string) (process.Interceptor, error) {
+		// 		var hdl func(handler func(topic string, hash []byte, data interface{}))
+		// 		switch topic {
+		// 		case "shardBlocks_0_META":
+		// 			hdl = registerHandlerHeaders
+		// 		case "txBlockBodies_0_1":
+		// 		case "txBlockBodies_0_META":
+		// 			hdl = registerHandlerMiniblocks
+		// 		default:
+		// 			return nil, errors.New("unexpected topic")
+		// 		}
+
+		// 		return &testscommon.InterceptorStub{
+		// 			RegisterHandlerCalled: hdl,
+		// 		}, nil
+		// 	},
+		// }
+	}
+}
+
+func (tcn *TestConsensusNode) initRequesters() {
+	// whiteListHandler, _ := disabledInterceptors.NewDisabledWhiteListDataVerifier()
+
+	// requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
+	// 	RequesterConfig: config.RequesterConfig{
+	// 		NumCrossShardPeers:  2,
+	// 		NumTotalPeers:       3,
+	// 		NumFullHistoryPeers: 3,
+	// 	},
+	// 	ShardCoordinator:                tcn.ShardCoordinator,
+	// 	MainMessenger:                   tcn.MainMessenger,
+	// 	FullArchiveMessenger:            tcn.FullArchiveMessenger,
+	// 	Marshaller:                      TestMarshaller,
+	// 	Uint64ByteSliceConverter:        TestUint64Converter,
+	// 	OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+	// 	CurrentNetworkEpochProvider:     tcn.EpochProvider,
+	// 	MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
+	// 	FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
+	// 	PeersRatingHandler:              tpn.PeersRatingHandler,
+	// 	SizeCheckDelta:                  0,
+	// }
+
+	// if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+	// 	tpn.createMetaRequestersContainer(requestersContainerFactoryArgs)
+	// } else {
+	// 	tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
+	// }
+
+	// requestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
+	// tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+	// 	requestersFinder,
+	// 	cache.NewTimeCache(time.Second),
+	// 	whiteListHandler,
+	// 	100,
+	// 	tcn.ShardCoordinator.SelfId(),
+	// 	time.Second,
+	// )
 }
 
 func (tcn *TestConsensusNode) initNodesCoordinator(

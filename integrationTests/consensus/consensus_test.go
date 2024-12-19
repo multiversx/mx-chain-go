@@ -32,17 +32,30 @@ var (
 	log                    = logger.GetOrCreate("integrationtests/consensus")
 )
 
-func encodeAddress(address []byte) string {
-	return hex.EncodeToString(address)
-}
-
-func getPkEncoded(pubKey crypto.PublicKey) string {
-	pk, err := pubKey.ToByteArray()
-	if err != nil {
-		return err.Error()
+func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
-	return encodeAddress(pk)
+	logger.SetLogLevel("*:TRACE")
+
+	runFullConsensusTest(t, blsConsensusType, 1)
+}
+
+func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, 5)
+}
+
+func TestConsensusBLSNotEnoughValidators(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runConsensusWithNotEnoughValidators(t, blsConsensusType)
 }
 
 func initNodesAndTest(
@@ -219,9 +232,9 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 }
 
 func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
-	numMetaNodes := uint32(4)
-	numNodes := uint32(4)
-	consensusSize := uint32(4 * numKeysOnEachNode)
+	numMetaNodes := uint32(2)
+	numNodes := uint32(2)
+	consensusSize := uint32(2 * numKeysOnEachNode)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
@@ -233,8 +246,8 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = 0
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = 0
 	nodes := initNodesAndTest(
 		numMetaNodes,
 		numNodes,
@@ -285,22 +298,6 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	}
 }
 
-func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, blsConsensusType, 1)
-}
-
-func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, blsConsensusType, 5)
-}
-
 func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
@@ -343,14 +340,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSNotEnoughValidators(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runConsensusWithNotEnoughValidators(t, blsConsensusType)
-}
-
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
 	for _, n := range nodes {
 		skBuff, _ := n.NodeKeys.Sk.ToByteArray()
@@ -364,4 +353,17 @@ func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensu
 			encodedNodePkBuff,
 		)
 	}
+}
+
+func encodeAddress(address []byte) string {
+	return hex.EncodeToString(address)
+}
+
+func getPkEncoded(pubKey crypto.PublicKey) string {
+	pk, err := pubKey.ToByteArray()
+	if err != nil {
+		return err.Error()
+	}
+
+	return encodeAddress(pk)
 }
