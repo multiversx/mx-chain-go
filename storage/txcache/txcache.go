@@ -1,15 +1,12 @@
+// TODO: Remove this file in a future PR.
 package txcache
 
 import (
-	"github.com/multiversx/mx-chain-storage-go/txcache"
-	"github.com/multiversx/mx-chain-storage-go/types"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction = txcache.WrappedTransaction
-
-// AccountState represents the state of an account (as seen by the mempool)
-type AccountState = types.AccountState
 
 // MempoolHost provides blockchain information for mempool operations
 type MempoolHost = txcache.MempoolHost

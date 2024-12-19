@@ -6,7 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-// After moving "mx-chain-storage-go/txcache" into "mx-chain-go", maybe merge this component into "SelectionSession".
+// Maybe merge this component into "SelectionSession".
 type selectionSessionWrapper struct {
 	session          SelectionSession
 	recordsByAddress map[string]*accountRecord
@@ -42,8 +42,8 @@ func (sessionWrapper *selectionSessionWrapper) getAccountRecord(address []byte) 
 		}
 	} else {
 		record = &accountRecord{
-			initialNonce:    state.Nonce,
-			initialBalance:  state.Balance,
+			initialNonce:    state.GetNonce(),
+			initialBalance:  state.GetBalance(),
 			consumedBalance: big.NewInt(0),
 		}
 	}
