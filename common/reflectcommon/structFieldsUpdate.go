@@ -126,7 +126,7 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 	case reflect.Map:
 		mapValue := reflect.ValueOf(newValue)
 
-		return tryUpdateMapValue(value, mapValue)
+		return trySetMapValue(value, mapValue)
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value '%v' of type <%s>", valueKind, newValue, reflect.TypeOf(newValue))
 	}
@@ -141,7 +141,7 @@ func trySetSliceValue(value *reflect.Value, newValue interface{}) error {
 		item := sliceVal.Index(i)
 		newItem := reflect.New(value.Type().Elem()).Elem()
 
-		err := trySetStructValue(&newItem, item)
+		err := trySetTheNewValue(&newItem, item.Interface())
 		if err != nil {
 			return err
 		}
@@ -167,7 +167,7 @@ func trySetStructValue(value *reflect.Value, newValue reflect.Value) error {
 	}
 }
 
-func tryUpdateMapValue(value *reflect.Value, newValue reflect.Value) error {
+func trySetMapValue(value *reflect.Value, newValue reflect.Value) error {
 	if value.IsNil() {
 		value.Set(reflect.MakeMap(value.Type()))
 	}
