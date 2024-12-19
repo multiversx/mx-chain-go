@@ -21,10 +21,11 @@ import (
 )
 
 var (
-	oneEGLD               = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD      = big.NewInt(250000000000000000)
-	oneCentOfEGLD         = big.NewInt(10000000000000000)
-	durationWaitAfterSend = 500 * time.Millisecond
+	oneEGLD                   = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
+	oneCentOfEGLD             = big.NewInt(10000000000000000)
+	durationWaitAfterSendMany = 750 * time.Millisecond
+	durationWaitAfterSendSome = 10 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
@@ -130,8 +131,10 @@ func sendTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulator
 		require.NoError(t, err)
 		require.Equal(t, len(transactionsFromShard), int(numSent))
 	}
+}
 
-	time.Sleep(durationWaitAfterSend)
+func sendTransaction(t *testing.T, simulator testsChainSimulator.ChainSimulator, tx *transaction.Transaction) {
+	sendTransactions(t, simulator, []*transaction.Transaction{tx})
 }
 
 func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulator, shard int) ([]*txcache.WrappedTransaction, uint64) {
