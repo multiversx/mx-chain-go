@@ -180,6 +180,10 @@ func testRelayedV3MoveBalance(
 
 		// check intra shard logs, should be none
 		require.Nil(t, result.Logs)
+
+		if extraGas {
+			require.NotNil(t, result.Receipt)
+		}
 	}
 }
 
@@ -822,6 +826,37 @@ func TestRelayedTransactionFeeField(t *testing.T) {
 		require.Equal(t, expectedFee.String(), result.InitiallyPaidFee)
 		require.Equal(t, uint64(gasLimit), result.GasUsed)
 	})
+}
+
+func TestRegularMoveBalanceWithRefundReceipt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	// generate one block so the minting has effect
+	err = cs.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	senderNonce := uint64(0)
+
+	extraGas := uint64(minGasLimit)
+	gasLimit := minGasLimit + extraGas
+	tx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, oneEGLD, "", gasLimit)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	require.NotNil(t, result.Receipt)
+	expectedGasRefunded := core.SafeMul(extraGas, minGasPrice/deductionFactor)
+	require.Equal(t, expectedGasRefunded.String(), result.Receipt.Value.String())
 }
 
 func startChainSimulator(
