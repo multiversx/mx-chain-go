@@ -219,6 +219,9 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 		return false
 	}
 
+	sr.mutProcessingEndRound.Lock()
+	defer sr.mutProcessingEndRound.Unlock()
+
 	return sr.doEndRoundJobByNode()
 }
 
@@ -240,14 +243,16 @@ func (sr *subroundEndRound) commitBlock() error {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByNode() bool {
-	if !sr.waitForSignalSync() {
-		return false
+	if sr.shouldSendProof() {
+		if !sr.waitForSignalSync() {
+			return false
+		}
 	}
 
-	sr.mutProcessingEndRound.Lock()
-	defer sr.mutProcessingEndRound.Unlock()
-
-	proof := sr.sendProof()
+	proof, ok := sr.sendProof()
+	if !ok {
+		return false
+	}
 
 	err := sr.commitBlock()
 	if err != nil {
@@ -277,29 +282,29 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendProof() data.HeaderProofHandler {
+func (sr *subroundEndRound) sendProof() (data.HeaderProofHandler, bool) {
 	if !sr.shouldSendProof() {
-		return nil
+		return nil, true
 	}
 
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendProof.checkSignaturesValidity", "error", err.Error())
-		return nil
+		return nil, false
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return nil
+		return nil, false
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return nil
+		return nil, false
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -307,11 +312,12 @@ func (sr *subroundEndRound) sendProof() data.HeaderProofHandler {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return nil
+		return nil, false
 	}
 
 	// broadcast header proof
-	return sr.createAndBroadcastProof(sig, bitmap)
+	proof, err := sr.createAndBroadcastProof(sig, bitmap)
+	return proof, err == nil
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
@@ -519,7 +525,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) *block.HeaderProof {
+func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) (*block.HeaderProof, error) {
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
@@ -531,14 +537,14 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	log.Debug("step 3: block header proof has been sent",
 		"PubKeysBitmap", bitmap,
 		"AggregateSignature", signature)
 
-	return headerProof
+	return headerProof, nil
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
@@ -710,7 +716,7 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 		case <-timerBetweenStatusChecks.C:
 			if sr.IsSubroundFinished(sr.Current()) {
 				log.Trace("subround already finished", "subround", sr.Name())
-				return false
+				return true
 			}
 
 			if sr.checkReceivedSignatures() {
