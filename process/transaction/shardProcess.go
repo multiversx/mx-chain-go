@@ -549,7 +549,11 @@ func (txProc *txProcessor) processMoveBalance(
 		}
 	}
 
-	txHash := originalTxHash
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return err
+	}
+
 	err = txProc.createReceiptWithReturnedGas(txHash, tx, feePayer, moveBalanceCost, totalCost, destShardTxType, isUserTxOfRelayed)
 	if err != nil {
 		return err
