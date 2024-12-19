@@ -47,6 +47,7 @@ type ConsensusCoreHandler interface {
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
+	EpochNotifier() process.EpochNotifier
 	IsInterfaceNil() bool
 }
 

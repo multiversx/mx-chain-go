@@ -40,6 +40,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		SigningHandler:                consensusCoreMock.SigningHandler(),
 		EnableEpochsHandler:           consensusCoreMock.EnableEpochsHandler(),
 		EquivalentProofsPool:          consensusCoreMock.EquivalentProofsPool(),
+		EpochNotifier:                 consensusCoreMock.EpochNotifier(),
 	}
 	return args
 }

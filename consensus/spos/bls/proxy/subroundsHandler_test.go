@@ -8,7 +8,6 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/require"
 
-	chainCommon "github.com/multiversx/mx-chain-go/common"
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
@@ -384,18 +383,6 @@ func TestSubroundsHandler_Start(t *testing.T) {
 	})
 }
 
-func TestSubroundsHandler_NotifyOrder(t *testing.T) {
-	t.Parallel()
-
-	handlerArgs, _ := getDefaultArgumentsSubroundHandler()
-	sh, err := NewSubroundsHandler(handlerArgs)
-	require.Nil(t, err)
-	require.NotNil(t, sh)
-
-	order := sh.NotifyOrder()
-	require.Equal(t, uint32(chainCommon.ConsensusHandlerOrder), order)
-}
-
 func TestSubroundsHandler_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
@@ -417,7 +404,7 @@ func TestSubroundsHandler_IsInterfaceNil(t *testing.T) {
 	})
 }
 
-func TestSubroundsHandler_EpochStartAction(t *testing.T) {
+func TestSubroundsHandler_EpochConfirmed(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil handler does not panic", func(t *testing.T) {
@@ -431,7 +418,7 @@ func TestSubroundsHandler_EpochStartAction(t *testing.T) {
 		handlerArgs, _ := getDefaultArgumentsSubroundHandler()
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
-		sh.EpochStartAction(&testscommon.HeaderHandlerStub{})
+		sh.EpochConfirmed(0, 0)
 	})
 
 	// tested through initSubroundsForEpoch
@@ -460,7 +447,7 @@ func TestSubroundsHandler_EpochStartAction(t *testing.T) {
 		require.NotNil(t, sh)
 
 		sh.currentConsensusType = consensusNone
-		sh.EpochStartAction(&testscommon.HeaderHandlerStub{})
+		sh.EpochConfirmed(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
 		require.Equal(t, int32(1), startCalled.Load())
