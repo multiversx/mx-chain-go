@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"context"
 	"time"
 
@@ -334,6 +335,10 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
+		return nil, ErrEquivalentMessagesFlagEnabledWithConsensusV1
+	}
+
 	err = hdr.SetPrevHash(prevHash)
 	if err != nil {
 		return nil, err
@@ -489,6 +494,22 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 	)
 
 	return blockProcessedWithSuccess
+}
+
+func (sr *subroundBlock) receivedFullHeader(headerHandler data.HeaderHandler) {
+	if sr.ShardCoordinator().SelfId() != headerHandler.GetShardID() {
+		return
+	}
+
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		return
+	}
+
+	lastCommittedBlockHash := sr.Blockchain().GetCurrentBlockHeaderHash()
+	if bytes.Compare(lastCommittedBlockHash, headerHandler.GetPrevHash()) == 0 {
+		// Need to switch to consensus v2
+		sr.EpochNotifier().CheckEpoch(headerHandler)
+	}
 }
 
 // receivedBlockHeader method is called when a block header is received through the block header channel.
