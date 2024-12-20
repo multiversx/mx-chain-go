@@ -1,6 +1,7 @@
 package transactionAPI
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -541,7 +542,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
 	}
 
-	putMiniblockFieldsInTransaction(tx, miniblockMetadata)
+	atp.putMiniblockFieldsInTransaction(tx, miniblockMetadata)
 	tx.Timestamp = atp.computeTimestampForRound(tx.Round)
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
@@ -569,7 +570,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	return tx, nil
 }
 
-func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *dblookupext.MiniblockMetadata) *transaction.ApiTransactionResult {
+func (atp *apiTransactionProcessor) putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, miniblockMetadata *dblookupext.MiniblockMetadata) *transaction.ApiTransactionResult {
 	tx.Epoch = miniblockMetadata.Epoch
 	tx.Round = miniblockMetadata.Round
 
@@ -582,12 +583,61 @@ func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, minib
 	tx.BlockHash = hex.EncodeToString(miniblockMetadata.HeaderHash)
 	tx.NotarizedAtSourceInMetaNonce = miniblockMetadata.NotarizedAtSourceInMetaNonce
 	tx.NotarizedAtSourceInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtSourceInMetaHash)
-	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
-	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
 
-	// get miniblock from storage to set Notarized in Meta Nonce and Hash
+	err := atp.setNotarizationAtDestinationFields(tx, miniblockMetadata)
+	if err != nil {
+		log.Warn("atp.putMiniblockFieldsInTransaction: cannot add notarization on destination fields data", "error", err.Error())
+	}
 
 	return tx
+}
+
+func (atp *apiTransactionProcessor) setNotarizationAtDestinationFields(tx *transaction.ApiTransactionResult, miniblockMetadata *dblookupext.MiniblockMetadata) error {
+	if miniblockMetadata.NotarizedAtDestinationInMetaNonce > 0 {
+		tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
+		tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
+
+		return nil
+	}
+
+	if len(miniblockMetadata.PartialExecutionInfo) == 0 {
+		return nil
+	}
+
+	miniBlocksStorer, err := atp.storageService.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return err
+	}
+
+	miniblockBytes, err := miniBlocksStorer.GetFromEpoch(miniblockMetadata.MiniblockHash, miniblockMetadata.Epoch)
+	if err != nil {
+		return err
+	}
+
+	miniblock := &block.MiniBlock{}
+	err = atp.marshalizer.Unmarshal(miniblock, miniblockBytes)
+	if err != nil {
+		return err
+	}
+
+	decodedTxHash, _ := hex.DecodeString(tx.Hash)
+	txIndex := 0
+	for idx, txHash := range miniblock.TxHashes {
+		if bytes.Equal(txHash, decodedTxHash) {
+			txIndex = idx
+			break
+		}
+	}
+
+	for _, partialExecutionInfo := range miniblockMetadata.PartialExecutionInfo {
+		if int32(txIndex) <= partialExecutionInfo.LastProcessedTxIndex {
+			tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(partialExecutionInfo.NotarizedAtDestinationInMetaHash)
+			tx.NotarizedAtDestinationInMetaNonce = partialExecutionInfo.NotarizedAtDestinationMetaNonce
+			break
+		}
+	}
+
+	return nil
 }
 
 func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
