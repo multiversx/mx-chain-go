@@ -761,8 +761,9 @@ func TestNode_PutHistoryFieldsInTransaction(t *testing.T) {
 		NotarizedAtDestinationInMetaNonce: 4253,
 		NotarizedAtDestinationInMetaHash:  []byte{12},
 	}
+	n, _, _, _ := createAPITransactionProc(t, 42, true)
 
-	putMiniblockFieldsInTransaction(tx, metadata)
+	n.putMiniblockFieldsInTransaction(tx, metadata)
 
 	require.Equal(t, 42, int(tx.Epoch))
 	require.Equal(t, 4321, int(tx.Round))

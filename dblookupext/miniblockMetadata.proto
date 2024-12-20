@@ -22,5 +22,13 @@ message MiniblockMetadata {
     bytes NotarizedAtSourceInMetaHash           = 11;
     bytes NotarizedAtDestinationInMetaHash      = 12;
     int32 Type                                  = 13;
+    repeated PartialExecutionInfo PartialExecutionInfo = 14;
+}
+
+// PartialExecutionInfo is used to store information about partial executed miniblock
+message PartialExecutionInfo {
+    uint64  NotarizedAtDestinationMetaNonce = 1;
+    bytes  NotarizedAtDestinationInMetaHash = 2;
+    int32 LastProcessedTxIndex              = 3;
 }
 
