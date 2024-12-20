@@ -2,6 +2,7 @@ package stateChanges
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -100,7 +101,7 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 
 	stateChangesForTxs := make(map[string]*data.StateChanges)
 	for _, stateChange := range c.stateChanges {
-		txHash := string(stateChange.GetTxHash())
+		txHash := hex.EncodeToString(stateChange.GetTxHash())
 
 		st, ok := stateChange.(*data.StateChange)
 		if !ok {
