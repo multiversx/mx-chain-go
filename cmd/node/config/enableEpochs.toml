@@ -319,10 +319,10 @@
     CryptoOpcodesV2EnableEpoch = 4
 
     # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-    EquivalentMessagesEnableEpoch = 4
+    EquivalentMessagesEnableEpoch = 1
 
     # FixedOrderInConsensusEnableEpoch represents the epoch when the fixed order in consensus is enabled
-    FixedOrderInConsensusEnableEpoch = 4
+    FixedOrderInConsensusEnableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
@@ -332,13 +332,13 @@
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 48, NodesToShufflePerShard = 4 },  # 4 shuffled out keys / shard will not be reached normally
-        { EpochEnable = 1, MaxNumNodes = 64, NodesToShufflePerShard = 2 },
+        { EpochEnable = 0, MaxNumNodes = 48, NodesToShufflePerShard = 0 },  # 4 shuffled out keys / shard will not be reached normally
+        { EpochEnable = 1, MaxNumNodes = 64, NodesToShufflePerShard = 0 },
         # Staking v4 configuration, where:
         # - Enable epoch = StakingV4Step3EnableEpoch
         # - NodesToShufflePerShard = same as previous entry in MaxNodesChangeEnableEpoch
         # - MaxNumNodes = (MaxNumNodesFromPreviousEpochEnable - (numOfShards+1)*NodesToShufflePerShard)
-        { EpochEnable = 3, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
+        { EpochEnable = 3, MaxNumNodes = 56, NodesToShufflePerShard = 0 },
     ]
 
 [GasSchedule]

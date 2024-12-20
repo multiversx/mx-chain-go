@@ -505,8 +505,10 @@ func (sr *subroundBlock) receivedFullHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	log.Debug("subroundBlock.ReceivedFullHeader", "nonce", headerHandler.GetNonce(), "epoch", headerHandler.GetEpoch())
+
 	lastCommittedBlockHash := sr.Blockchain().GetCurrentBlockHeaderHash()
-	if bytes.Compare(lastCommittedBlockHash, headerHandler.GetPrevHash()) == 0 {
+	if bytes.Equal(lastCommittedBlockHash, headerHandler.GetPrevHash()) {
 		// Need to switch to consensus v2
 		sr.EpochNotifier().CheckEpoch(headerHandler)
 	}
