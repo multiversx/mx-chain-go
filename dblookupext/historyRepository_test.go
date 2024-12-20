@@ -2,13 +2,13 @@ package dblookupext
 
 import (
 	"errors"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common/mock"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	epochStartMocks "github.com/multiversx/mx-chain-go/epochStart/mock"
