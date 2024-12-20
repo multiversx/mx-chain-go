@@ -301,6 +301,11 @@ func (ccm *ConsensusCoreMock) EpochNotifier() process.EpochNotifier {
 	return ccm.epochNotifier
 }
 
+// SetEpochNotifier -
+func (ccm *ConsensusCoreMock) SetEpochNotifier(epochNotifier process.EpochNotifier) {
+	ccm.epochNotifier = epochNotifier
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ccm *ConsensusCoreMock) IsInterfaceNil() bool {
 	return ccm == nil

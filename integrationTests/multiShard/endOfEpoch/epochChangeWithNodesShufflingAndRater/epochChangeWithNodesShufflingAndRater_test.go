@@ -17,6 +17,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	_ = logger.SetDisplayByteSlice(logger.ToHexShort)
 
 	nodesPerShard := 1

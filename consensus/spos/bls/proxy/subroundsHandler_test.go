@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	mock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -28,6 +29,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.Con
 	epochsEnable := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 	epochStartNotifier := &mock.EpochStartNotifierStub{}
 	consensusState := &consensus.ConsensusStateMock{}
+	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 	worker := &consensus.SposWorkerMock{
 		RemoveAllReceivedMessagesCallsCalled: func() {},
 		GetConsensusStateChangedChannelsCalled: func() chan bool {
@@ -77,6 +79,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.Con
 	consensusCore.SetSigningHandler(&consensus.SigningHandlerStub{})
 	consensusCore.SetEnableEpochsHandler(epochsEnable)
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
+	consensusCore.SetEpochNotifier(epochNotifier)
 	handlerArgs.ConsensusCoreHandler = consensusCore
 
 	return handlerArgs, consensusCore
@@ -220,12 +223,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
-		require.Equal(t, int32(1), startCalled.Load())
+		require.Equal(t, int32(2), startCalled.Load())
 	})
 	t.Run("equivalent messages not enabled, with previous consensus type consensusV1", func(t *testing.T) {
 		t.Parallel()
@@ -250,12 +255,15 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV1
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
-		require.Equal(t, int32(0), startCalled.Load())
+		require.Equal(t, int32(1), startCalled.Load())
+
 	})
 	t.Run("equivalent messages enabled, with previous consensus type consensusNone", func(t *testing.T) {
 		t.Parallel()
@@ -279,12 +287,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
-		require.Equal(t, int32(1), startCalled.Load())
+		require.Equal(t, int32(2), startCalled.Load())
 	})
 	t.Run("equivalent messages enabled, with previous consensus type consensusV1", func(t *testing.T) {
 		t.Parallel()
@@ -308,12 +318,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV1
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
-		require.Equal(t, int32(1), startCalled.Load())
+		require.Equal(t, int32(2), startCalled.Load())
 	})
 	t.Run("equivalent messages enabled, with previous consensus type consensusV2", func(t *testing.T) {
 		t.Parallel()
@@ -338,12 +350,14 @@ func TestSubroundsHandler_initSubroundsForEpoch(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusV2
 
 		err = sh.initSubroundsForEpoch(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV2, sh.currentConsensusType)
-		require.Equal(t, int32(0), startCalled.Load())
+		require.Equal(t, int32(1), startCalled.Load())
 	})
 }
 
@@ -374,12 +388,14 @@ func TestSubroundsHandler_Start(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on init of EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 		sh.currentConsensusType = consensusNone
 
 		err = sh.Start(0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
-		require.Equal(t, int32(1), startCalled.Load())
+		require.Equal(t, int32(2), startCalled.Load())
 	})
 }
 
@@ -445,11 +461,13 @@ func TestSubroundsHandler_EpochConfirmed(t *testing.T) {
 		sh, err := NewSubroundsHandler(handlerArgs)
 		require.Nil(t, err)
 		require.NotNil(t, sh)
+		// first call on register to EpochNotifier
+		require.Equal(t, int32(1), startCalled.Load())
 
 		sh.currentConsensusType = consensusNone
 		sh.EpochConfirmed(0, 0)
 		require.Nil(t, err)
 		require.Equal(t, consensusV1, sh.currentConsensusType)
-		require.Equal(t, int32(1), startCalled.Load())
+		require.Equal(t, int32(2), startCalled.Load())
 	})
 }
