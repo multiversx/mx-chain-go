@@ -604,18 +604,7 @@ func (atp *apiTransactionProcessor) setNotarizationAtDestinationFields(tx *trans
 		return nil
 	}
 
-	miniBlocksStorer, err := atp.storageService.GetStorer(dataRetriever.MiniBlockUnit)
-	if err != nil {
-		return err
-	}
-
-	miniblockBytes, err := miniBlocksStorer.GetFromEpoch(miniblockMetadata.MiniblockHash, miniblockMetadata.Epoch)
-	if err != nil {
-		return err
-	}
-
-	miniblock := &block.MiniBlock{}
-	err = atp.marshalizer.Unmarshal(miniblock, miniblockBytes)
+	miniblock, err := atp.getMiniblock(miniblockMetadata.MiniblockHash, miniblockMetadata.Epoch)
 	if err != nil {
 		return err
 	}
@@ -638,6 +627,26 @@ func (atp *apiTransactionProcessor) setNotarizationAtDestinationFields(tx *trans
 	}
 
 	return nil
+}
+
+func (atp *apiTransactionProcessor) getMiniblock(hash []byte, epoch uint32) (*block.MiniBlock, error) {
+	miniBlocksStorer, err := atp.storageService.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblockBytes, err := miniBlocksStorer.GetFromEpoch(hash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	miniblock := &block.MiniBlock{}
+	err = atp.marshalizer.Unmarshal(miniblock, miniblockBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return miniblock, nil
 }
 
 func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*transaction.ApiTransactionResult, error) {
