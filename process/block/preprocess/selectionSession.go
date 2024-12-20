@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -43,7 +42,7 @@ func newSelectionSession(args argsSelectionSession) (*selectionSession, error) {
 
 // GetAccountState returns the state of an account.
 // Will be called by mempool during transaction selection.
-func (session *selectionSession) GetAccountState(address []byte) (*txcache.AccountState, error) {
+func (session *selectionSession) GetAccountState(address []byte) (state.UserAccountHandler, error) {
 	account, err := session.getExistingAccount(address)
 	if err != nil {
 		return nil, err
@@ -54,10 +53,7 @@ func (session *selectionSession) GetAccountState(address []byte) (*txcache.Accou
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return &txcache.AccountState{
-		Nonce:   userAccount.GetNonce(),
-		Balance: userAccount.GetBalance(),
-	}, nil
+	return userAccount, nil
 }
 
 func (session *selectionSession) getExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
