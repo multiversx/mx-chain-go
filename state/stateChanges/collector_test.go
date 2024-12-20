@@ -1,6 +1,7 @@
 package stateChanges
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -344,10 +345,10 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 1)
-		require.Len(t, stateChangesForTx["hash0"].StateChanges, 10)
+		require.Len(t, stateChangesForTx[hex.EncodeToString([]byte("hash0"))].StateChanges, 10)
 
 		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
-			"hash0": {
+			hex.EncodeToString([]byte("hash0")): {
 				StateChanges: []*data.StateChange{
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
@@ -391,10 +392,10 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 1)
-		require.Len(t, stateChangesForTx["hash1"].StateChanges, 10)
+		require.Len(t, stateChangesForTx[hex.EncodeToString([]byte("hash1"))].StateChanges, 10)
 
 		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
-			"hash1": {
+			hex.EncodeToString([]byte("hash1")): {
 				StateChanges: []*data.StateChange{
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
@@ -438,11 +439,11 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Len(t, stateChangesForTx, 2)
-		require.Len(t, stateChangesForTx["hash0"].StateChanges, 10)
-		require.Len(t, stateChangesForTx["hash1"].StateChanges, 10)
+		require.Len(t, stateChangesForTx[hex.EncodeToString([]byte("hash0"))].StateChanges, 10)
+		require.Len(t, stateChangesForTx[hex.EncodeToString([]byte("hash1"))].StateChanges, 10)
 
 		require.Equal(t, stateChangesForTx, map[string]*data.StateChanges{
-			"hash0": {
+			hex.EncodeToString([]byte("hash0")): {
 				StateChanges: []*data.StateChange{
 					{Type: data.Write, TxHash: []byte("hash0")},
 					{Type: data.Write, TxHash: []byte("hash0")},
@@ -456,7 +457,7 @@ func TestStateChangesCollector_Publish(t *testing.T) {
 					{Type: data.Write, TxHash: []byte("hash0")},
 				},
 			},
-			"hash1": {
+			hex.EncodeToString([]byte("hash1")): {
 				StateChanges: []*data.StateChange{
 					{Type: data.Read, TxHash: []byte("hash1")},
 					{Type: data.Read, TxHash: []byte("hash1")},
