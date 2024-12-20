@@ -2761,19 +2761,21 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	previousProof := &dataBlock.HeaderProof{
-		PubKeysBitmap:       []byte{1},
-		AggregatedSignature: sig,
-		HeaderHash:          currHdrHash,
-		HeaderEpoch:         currHdr.GetEpoch(),
-		HeaderNonce:         currHdr.GetNonce(),
-		HeaderShardId:       currHdr.GetShardID(),
+	if tpn.EnableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, blockHeader.GetEpoch()) {
+		previousProof := &dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{1},
+			AggregatedSignature: sig,
+			HeaderHash:          currHdrHash,
+			HeaderEpoch:         currHdr.GetEpoch(),
+			HeaderNonce:         currHdr.GetNonce(),
+			HeaderShardId:       currHdr.GetShardID(),
+		}
+		blockHeader.SetPreviousProof(previousProof)
+
+		_ = tpn.ProofsPool.AddProof(previousProof)
+
+		log.Error("added proof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 	}
-	blockHeader.SetPreviousProof(previousProof)
-
-	_ = tpn.ProofsPool.AddProof(previousProof)
-
-	log.Error("added proof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
 	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
@@ -3450,9 +3452,9 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainF
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32) string {
-			return "2"
-		},
+		// GetVersionCalled: func(epoch uint32) string {
+		// 	return "2"
+		// },
 	}
 	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)
 	if shardCoordinator.SelfId() == core.MetachainShardId {

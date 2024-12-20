@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
@@ -13,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -22,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const firstHeaderNonce = uint64(1)
@@ -202,7 +204,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err := mp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
-		if err == process.ErrBlockHashDoesNotMatch {
+		if errors.Is(err, process.ErrBlockHashDoesNotMatch) {
 			log.Debug("requested missing meta header",
 				"hash", headerHandler.GetPrevHash(),
 				"for shard", headerHandler.GetShardID(),
@@ -2463,6 +2465,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 	}
 
 	mp.roundNotifier.CheckRound(header)
+	mp.epochNotifier.CheckEpoch(header)
 
 	err = metaHeader.SetNonce(nonce)
 	if err != nil {
