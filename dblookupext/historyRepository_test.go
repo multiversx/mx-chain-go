@@ -2,6 +2,7 @@ package dblookupext
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"sync"
 	"testing"
 
@@ -259,9 +260,18 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 		ReceiverShardID: 13,
 		TxHashes:        [][]byte{[]byte("txC")},
 	}
+	partialExecutedMiniblock := &block.MiniBlock{
+		SenderShardID:   15,
+		ReceiverShardID: 13,
+		TxHashes:        [][]byte{[]byte("txD"), []byte("txE")},
+	}
+
 	miniblockHashA, _ := repo.computeMiniblockHash(miniblockA)
 	miniblockHashB, _ := repo.computeMiniblockHash(miniblockB)
 	miniblockHashC, _ := repo.computeMiniblockHash(miniblockC)
+	partialExecutedMbHash, _ := repo.computeMiniblockHash(partialExecutedMiniblock)
+
+	marshalizer := &marshal.GogoProtoMarshalizer{}
 
 	// Let's have a block committed
 	_ = repo.RecordBlock([]byte("fooblock"),
@@ -271,6 +281,7 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 				miniblockA,
 				miniblockB,
 				miniblockC,
+				partialExecutedMiniblock,
 			},
 		}, nil, nil, nil, nil,
 	)
@@ -308,7 +319,18 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 						ReceiverShardID: 14,
 						Hash:            miniblockHashB,
 					},
-				}},
+				},
+			},
+			{
+				ShardID: 15,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   15,
+						ReceiverShardID: 13,
+						Hash:            partialExecutedMbHash,
+					},
+				},
+			},
 		},
 	}
 
@@ -329,6 +351,20 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 0, int(metadata.NotarizedAtSourceInMetaNonce))
 	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+
+	metadata, err = repo.getMiniblockMetadataByMiniblockHash(partialExecutedMbHash)
+	require.Nil(t, err)
+	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+
+	mbhr := &block.MiniBlockHeaderReserved{
+		ExecutionType:           block.ProcessingType(0),
+		State:                   block.PartialExecuted,
+		IndexOfFirstTxProcessed: 0,
+		IndexOfLastTxProcessed:  0,
+	}
+	mbhrBytes, err := marshalizer.Marshal(mbhr)
+	require.Nil(t, err)
 
 	// Let's receive a metablock that notarized two shard blocks, with miniblocks B (at destination) and C (at source)
 	metablock = &block.MetaBlock{
@@ -354,6 +390,17 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 					},
 				},
 			},
+			{
+				ShardID: 13,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   15,
+						ReceiverShardID: 13,
+						Hash:            partialExecutedMbHash,
+						Reserved:        mbhrBytes,
+					},
+				},
+			},
 		},
 	}
 
@@ -375,6 +422,21 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
 	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
 
+	metadata, err = repo.getMiniblockMetadataByMiniblockHash(partialExecutedMbHash)
+	require.Nil(t, err)
+	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 4001, int(metadata.PartialExecutionInfo[0].NotarizedAtDestinationMetaNonce))
+
+	mbhr = &block.MiniBlockHeaderReserved{
+		ExecutionType:           block.ProcessingType(0),
+		State:                   block.PartialExecuted,
+		IndexOfFirstTxProcessed: 1,
+		IndexOfLastTxProcessed:  1,
+	}
+	mbhrBytes, err = marshalizer.Marshal(mbhr)
+	require.Nil(t, err)
+
 	// Let's receive a metablock that notarized one shard block, with miniblock C (at destination)
 	metablock = &block.MetaBlock{
 		Nonce: 4002,
@@ -386,6 +448,12 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 						SenderShardID:   15,
 						ReceiverShardID: 13,
 						Hash:            miniblockHashC,
+					},
+					{
+						SenderShardID:   15,
+						ReceiverShardID: 13,
+						Hash:            partialExecutedMbHash,
+						Reserved:        mbhrBytes,
 					},
 				},
 			},
@@ -409,6 +477,50 @@ func TestHistoryRepository_OnNotarizedBlocks(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4001, int(metadata.NotarizedAtSourceInMetaNonce))
 	require.Equal(t, 4002, int(metadata.NotarizedAtDestinationInMetaNonce))
+
+	metadata, err = repo.getMiniblockMetadataByMiniblockHash(partialExecutedMbHash)
+	require.Nil(t, err)
+	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Equal(t, 4001, int(metadata.PartialExecutionInfo[0].NotarizedAtDestinationMetaNonce))
+	require.Equal(t, 4002, int(metadata.PartialExecutionInfo[1].NotarizedAtDestinationMetaNonce))
+
+	// simulate a rollback and the partial executed miniblock will have a different order
+
+	mbhr = &block.MiniBlockHeaderReserved{
+		ExecutionType:           block.ProcessingType(0),
+		State:                   block.PartialExecuted,
+		IndexOfFirstTxProcessed: 0,
+		IndexOfLastTxProcessed:  1,
+	}
+	mbhrBytes, err = marshalizer.Marshal(mbhr)
+	require.Nil(t, err)
+
+	metablock = &block.MetaBlock{
+		Nonce: 4002,
+		ShardInfo: []block.ShardData{
+			{
+				ShardID: 13,
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						SenderShardID:   15,
+						ReceiverShardID: 13,
+						Hash:            partialExecutedMbHash,
+						Reserved:        mbhrBytes,
+					},
+				},
+			},
+		},
+	}
+
+	repo.OnNotarizedBlocks(core.MetachainShardId, []data.HeaderHandler{metablock}, [][]byte{[]byte("metablockZ")})
+
+	metadata, err = repo.getMiniblockMetadataByMiniblockHash(partialExecutedMbHash)
+	require.Nil(t, err)
+	require.Equal(t, 4000, int(metadata.NotarizedAtSourceInMetaNonce))
+	require.Equal(t, 0, int(metadata.NotarizedAtDestinationInMetaNonce))
+	require.Len(t, metadata.PartialExecutionInfo, 1)
+	require.Equal(t, 4002, int(metadata.PartialExecutionInfo[0].NotarizedAtDestinationMetaNonce))
 }
 
 func TestHistoryRepository_OnNotarizedBlocksAtSourceBeforeCommittingAtDestination(t *testing.T) {

@@ -585,6 +585,8 @@ func putMiniblockFieldsInTransaction(tx *transaction.ApiTransactionResult, minib
 	tx.NotarizedAtDestinationInMetaNonce = miniblockMetadata.NotarizedAtDestinationInMetaNonce
 	tx.NotarizedAtDestinationInMetaHash = hex.EncodeToString(miniblockMetadata.NotarizedAtDestinationInMetaHash)
 
+	// get miniblock from storage to set Notarized in Meta Nonce and Hash
+
 	return tx
 }
 

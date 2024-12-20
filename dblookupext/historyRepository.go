@@ -67,8 +67,11 @@ type historyRepository struct {
 }
 
 type notarizedNotification struct {
-	metaNonce uint64
-	metaHash  []byte
+	metaNonce         uint64
+	metaHash          []byte
+	isPartialExecuted bool
+	firstProcessed    int32
+	lastProcessed     int32
 }
 
 // NewHistoryRepository will create a new instance of HistoryRepository
@@ -379,9 +382,19 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 			metaHash:  metaBlockHash,
 		})
 	} else if isNotarizedAtDestination {
+		var firstProcessed, lastProcessed int32
+		isPartialExecuted := miniblockHeader.GetConstructionState() == int32(block.PartialExecuted)
+		if isPartialExecuted {
+			firstProcessed = miniblockHeader.GetIndexOfFirstTxProcessed()
+			lastProcessed = miniblockHeader.GetIndexOfLastTxProcessed()
+		}
+
 		hr.pendingNotarizedAtDestinationNotifications.Set(string(miniblockHash), &notarizedNotification{
-			metaNonce: metaBlockNonce,
-			metaHash:  metaBlockHash,
+			metaNonce:         metaBlockNonce,
+			metaHash:          metaBlockHash,
+			isPartialExecuted: isPartialExecuted,
+			firstProcessed:    firstProcessed,
+			lastProcessed:     lastProcessed,
 		})
 	} else {
 		log.Error("onNotarizedMiniblock(): unexpected condition, notification not understood")
@@ -411,10 +424,7 @@ func (hr *historyRepository) consumePendingNotificationsWithLock() {
 		metadata.NotarizedAtSourceInMetaHash = notification.metaHash
 	})
 
-	hr.consumePendingNotificationsNoLock(hr.pendingNotarizedAtDestinationNotifications, func(metadata *MiniblockMetadata, notification *notarizedNotification) {
-		metadata.NotarizedAtDestinationInMetaNonce = notification.metaNonce
-		metadata.NotarizedAtDestinationInMetaHash = notification.metaHash
-	})
+	hr.consumePendingNotificationsNoLock(hr.pendingNotarizedAtDestinationNotifications, updateMetadataPendingNotarizationOnDestination)
 
 	hr.consumePendingNotificationsNoLock(hr.pendingNotarizedAtBothNotifications, func(metadata *MiniblockMetadata, notification *notarizedNotification) {
 		metadata.NotarizedAtSourceInMetaNonce = notification.metaNonce
@@ -430,6 +440,44 @@ func (hr *historyRepository) consumePendingNotificationsWithLock() {
 	)
 }
 
+func updateMetadataPendingNotarizationOnDestination(metadata *MiniblockMetadata, notification *notarizedNotification) {
+	if !notification.isPartialExecuted {
+		metadata.NotarizedAtDestinationInMetaNonce = notification.metaNonce
+		metadata.NotarizedAtDestinationInMetaHash = notification.metaHash
+
+		return
+	}
+
+	if len(metadata.PartialExecutionInfo) == 0 {
+		metadata.PartialExecutionInfo = []*PartialExecutionInfo{
+			{
+				NotarizedAtDestinationInMetaHash: notification.metaHash,
+				NotarizedAtDestinationMetaNonce:  notification.metaNonce,
+				LastProcessedTxIndex:             notification.lastProcessed,
+			},
+		}
+
+		return
+	}
+
+	// check for rollbacks
+	for len(metadata.PartialExecutionInfo) > 0 {
+		lastElement := metadata.PartialExecutionInfo[len(metadata.PartialExecutionInfo)-1]
+		if notification.firstProcessed <= lastElement.LastProcessedTxIndex {
+			// it was a rollback we should remove the last element from array
+			metadata.PartialExecutionInfo = metadata.PartialExecutionInfo[:len(metadata.PartialExecutionInfo)-1]
+		} else {
+			break
+		}
+	}
+
+	metadata.PartialExecutionInfo = append(metadata.PartialExecutionInfo, &PartialExecutionInfo{
+		NotarizedAtDestinationInMetaHash: notification.metaHash,
+		NotarizedAtDestinationMetaNonce:  notification.metaNonce,
+		LastProcessedTxIndex:             notification.lastProcessed,
+	})
+}
+
 func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *container.MutexMap, patchMetadataFunc func(*MiniblockMetadata, *notarizedNotification)) {
 	for _, key := range pendingMap.Keys() {
 		notification, ok := pendingMap.Get(key)
@@ -442,7 +490,6 @@ func (hr *historyRepository) consumePendingNotificationsNoLock(pendingMap *conta
 			log.Error("consumePendingNotificationsNoLock(): bad key", "key", key)
 			continue
 		}
-
 		notificationTyped, ok := notification.(*notarizedNotification)
 		if !ok {
 			log.Error("consumePendingNotificationsNoLock(): bad value", "value", fmt.Sprintf("%T", notification))
