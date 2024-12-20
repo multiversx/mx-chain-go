@@ -23,7 +23,7 @@ import (
 
 const (
 	stakingV4JailUnJailStep1EnableEpoch = 5
-	defaultPathToInitialConfig          = "../../../config/"
+	defaultPathToInitialConfig          = "../../../../cmd/node/config/"
 	epochWhenNodeIsJailed               = 4
 )
 
