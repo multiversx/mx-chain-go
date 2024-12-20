@@ -50,17 +50,26 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.Fee = tx.InitiallyPaidFee
 	}
 
-	userTx, initialTotalFee, isRelayed := gfp.getFeeOfRelayed(tx)
-	isRelayedAfterFix := isRelayed && isFeeFixActive
+	userTx, initialTotalFee, isRelayedV1V2 := gfp.getFeeOfRelayedV1V2(tx)
+	isRelayedAfterFix := isRelayedV1V2 && isFeeFixActive
 	if isRelayedAfterFix {
 		tx.InitiallyPaidFee = initialTotalFee.String()
 		tx.Fee = initialTotalFee.String()
 		tx.GasUsed = big.NewInt(0).Div(initialTotalFee, big.NewInt(0).SetUint64(tx.GasPrice)).Uint64()
 	}
 
+	hasValidRelayer := len(tx.RelayerAddress) == len(tx.Sender) && len(tx.RelayerAddress) > 0
+	hasValidRelayerSignature := len(tx.RelayerSignature) == len(tx.Signature) && len(tx.RelayerSignature) > 0
+	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
 	hasRefundForSender := false
 	for _, scr := range tx.SmartContractResults {
-		if !scr.IsRefund || scr.RcvAddr != tx.Sender {
+		if !scr.IsRefund {
+			continue
+		}
+		if !isRelayedV3 && scr.RcvAddr != tx.Sender {
+			continue
+		}
+		if isRelayedV3 && scr.RcvAddr != tx.RelayerAddress {
 			continue
 		}
 
@@ -72,8 +81,15 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	gfp.prepareTxWithResultsBasedOnLogs(tx, userTx, hasRefundForSender)
 }
 
-func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayed(tx *transaction.ApiTransactionResult) (*transaction.ApiTransactionResult, *big.Int, bool) {
+func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayedV1V2(tx *transaction.ApiTransactionResult) (*transaction.ApiTransactionResult, *big.Int, bool) {
 	if !tx.IsRelayed {
+		return nil, nil, false
+	}
+
+	hasValidRelayer := len(tx.RelayerAddress) == len(tx.Sender) && len(tx.RelayerAddress) > 0
+	hasValidRelayerSignature := len(tx.RelayerSignature) == len(tx.Signature) && len(tx.RelayerSignature) > 0
+	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+	if isRelayedV3 {
 		return nil, nil, false
 	}
 
@@ -173,7 +189,10 @@ func (gfp *gasUsedAndFeeProcessor) setGasUsedAndFeeBaseOnRefundValue(
 	userTx *transaction.ApiTransactionResult,
 	refund *big.Int,
 ) {
-	if !check.IfNilReflect(userTx) && gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch) {
+	isRelayedV3 := len(tx.RelayerAddress) == len(tx.Sender) &&
+		len(tx.RelayerSignature) == len(tx.Signature)
+	isValidUserTxAfterBaseCostActivation := !check.IfNilReflect(userTx) && gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	if isValidUserTxAfterBaseCostActivation && !isRelayedV3 {
 		gasUsed, fee := gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, refund)
 		gasUsedRelayedTx := gfp.feeComputer.ComputeGasLimit(tx)
 		feeRelayedTx := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsedRelayedTx)

@@ -1,6 +1,7 @@
 package dataValidators_test
 
 import (
+	"bytes"
 	"errors"
 	"math/big"
 	"strconv"
@@ -269,31 +270,101 @@ func TestTxValidator_CheckTxValidityTxNonceIsTooHigh(t *testing.T) {
 func TestTxValidator_CheckTxValidityAccountBalanceIsLessThanTxTotalValueShouldReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	accountNonce := uint64(0)
-	txNonce := uint64(1)
-	fee := big.NewInt(1000)
-	accountBalance := big.NewInt(10)
+	t.Run("normal tx should return false for sender", func(t *testing.T) {
+		t.Parallel()
 
-	adb := getAccAdapter(accountNonce, accountBalance)
-	shardCoordinator := createMockCoordinator("_", 0)
-	maxNonceDeltaAllowed := 100
-	txValidator, err := dataValidators.NewTxValidator(
-		adb,
-		shardCoordinator,
-		&testscommon.WhiteListHandlerStub{},
-		testscommon.NewPubkeyConverterMock(32),
-		&testscommon.TxVersionCheckerStub{},
-		maxNonceDeltaAllowed,
-	)
-	assert.Nil(t, err)
+		accountNonce := uint64(0)
+		txNonce := uint64(1)
+		fee := big.NewInt(1000)
+		accountBalance := big.NewInt(10)
 
-	addressMock := []byte("address")
-	currentShard := uint32(0)
-	txValidatorHandler := getInterceptedTxHandler(currentShard, currentShard, txNonce, addressMock, fee)
+		providedSenderAddress := []byte("address")
+		adb := &stateMock.AccountsStub{}
+		adb.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			require.True(t, bytes.Equal(providedSenderAddress, address))
 
-	result := txValidator.CheckTxValidity(txValidatorHandler)
-	assert.NotNil(t, result)
-	assert.True(t, errors.Is(result, process.ErrInsufficientFunds))
+			acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
+			acc.Nonce = accountNonce
+			acc.Balance = accountBalance
+
+			return acc, nil
+		}
+
+		shardCoordinator := createMockCoordinator("_", 0)
+		maxNonceDeltaAllowed := 100
+		txValidator, err := dataValidators.NewTxValidator(
+			adb,
+			shardCoordinator,
+			&testscommon.WhiteListHandlerStub{},
+			testscommon.NewPubkeyConverterMock(32),
+			&testscommon.TxVersionCheckerStub{},
+			maxNonceDeltaAllowed,
+		)
+		assert.Nil(t, err)
+
+		currentShard := uint32(0)
+		txValidatorHandler := getInterceptedTxHandler(currentShard, currentShard, txNonce, providedSenderAddress, fee)
+
+		result := txValidator.CheckTxValidity(txValidatorHandler)
+		assert.NotNil(t, result)
+		assert.True(t, errors.Is(result, process.ErrInsufficientFunds))
+	})
+	t.Run("relayed tx v3 should return false for relayer", func(t *testing.T) {
+		t.Parallel()
+
+		accountNonce := uint64(0)
+		txNonce := uint64(1)
+		fee := big.NewInt(1000)
+		accountBalance := big.NewInt(10)
+
+		providedRelayerAddress := []byte("relayer")
+		providedSenderAddress := []byte("address")
+		adb := &stateMock.AccountsStub{}
+		cnt := 0
+		adb.GetExistingAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			cnt++
+			if cnt == 1 {
+				return nil, errors.New("sender not found")
+			}
+
+			require.True(t, bytes.Equal(providedRelayerAddress, address))
+
+			acc, _ := accounts.NewUserAccount(address, &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
+			acc.Nonce = accountNonce
+			acc.Balance = accountBalance
+
+			return acc, nil
+		}
+
+		shardCoordinator := createMockCoordinator("_", 0)
+		maxNonceDeltaAllowed := 100
+		txValidator, err := dataValidators.NewTxValidator(
+			adb,
+			shardCoordinator,
+			&testscommon.WhiteListHandlerStub{},
+			testscommon.NewPubkeyConverterMock(32),
+			&testscommon.TxVersionCheckerStub{},
+			maxNonceDeltaAllowed,
+		)
+		assert.Nil(t, err)
+
+		currentShard := uint32(0)
+		txValidatorHandler := getInterceptedTxHandler(currentShard, currentShard, txNonce, providedSenderAddress, fee)
+		txValidatorHandlerStub, ok := txValidatorHandler.(*mock.InterceptedTxHandlerStub)
+		require.True(t, ok)
+		txValidatorHandlerStub.TransactionCalled = func() data.TransactionHandler {
+			return &transaction.Transaction{
+				SndAddr:          providedSenderAddress,
+				Signature:        []byte("address sig"),
+				RelayerAddr:      providedRelayerAddress,
+				RelayerSignature: []byte("relayer sig"),
+				Value:            big.NewInt(0),
+			}
+		}
+		result := txValidator.CheckTxValidity(txValidatorHandler)
+		assert.NotNil(t, result)
+		assert.True(t, errors.Is(result, process.ErrInsufficientFunds))
+	})
 }
 
 func TestTxValidator_CheckTxValidityAccountNotExitsShouldReturnFalse(t *testing.T) {
