@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -350,17 +351,22 @@ func TestSyncEpochStartShardHeader_MultipleGoroutines(t *testing.T) {
 	require.Nil(t, err)
 
 	numGoroutines := 5
-	doneCh := make(chan struct{})
 
+	// Provide the correct epoch start header after a small delay.
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		syncer.receivedHeader(epochStartHeader, headerHash)
 	}()
 
+	// Use a wait group to wait for all noise goroutines to complete.
+	var wg sync.WaitGroup
+	wg.Add(numGoroutines)
+
 	// Goroutines sending noise headers
 	for i := 0; i < numGoroutines; i++ {
 		go func(i int) {
-			defer func() { doneCh <- struct{}{} }()
+			defer wg.Done()
+
 			localShardID := shardID
 			localEpoch := epoch
 			// Some headers might come from different shards
@@ -385,11 +391,7 @@ func TestSyncEpochStartShardHeader_MultipleGoroutines(t *testing.T) {
 	}
 
 	// Wait for all noise goroutines to finish
-	go func() {
-		for i := 0; i < numGoroutines; i++ {
-			<-doneCh
-		}
-	}()
+	wg.Wait()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
