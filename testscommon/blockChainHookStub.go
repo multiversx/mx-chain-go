@@ -45,7 +45,7 @@ type BlockChainHookStub struct {
 	GetSnapshotCalled                       func() int
 	RevertToSnapshotCalled                  func(snapshot int) error
 	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler) error
-	SetEpochStartHeaderCalled               func(hdr data.HeaderHandler)
+	SetEpochStartHeaderCalled               func(hdr data.HeaderHandler) error
 	DeleteCompiledCodeCalled                func(codeHash []byte)
 	SaveNFTMetaDataToSystemAccountCalled    func(tx data.TransactionHandler) error
 	CloseCalled                             func() error
@@ -332,10 +332,12 @@ func (stub *BlockChainHookStub) SetCurrentHeader(hdr data.HeaderHandler) error {
 }
 
 // SetEpochStartHeader -
-func (stub *BlockChainHookStub) SetEpochStartHeader(hdr data.HeaderHandler) {
+func (stub *BlockChainHookStub) SetEpochStartHeader(hdr data.HeaderHandler) error {
 	if stub.SetEpochStartHeaderCalled != nil {
-		stub.SetEpochStartHeaderCalled(hdr)
+		return stub.SetEpochStartHeaderCalled(hdr)
 	}
+
+	return nil
 }
 
 // SaveCompiledCode -

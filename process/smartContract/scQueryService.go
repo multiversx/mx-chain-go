@@ -216,7 +216,11 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		if err != nil {
 			return nil, nil, err
 		}
-		service.blockChainHook.SetEpochStartHeader(epochStartHdr)
+
+		err = service.blockChainHook.SetEpochStartHeader(epochStartHdr)
+		if err != nil {
+			return nil, nil, err
+		}
 
 		err = service.blockChainHook.SetCurrentHeader(blockHeader)
 		if err != nil {

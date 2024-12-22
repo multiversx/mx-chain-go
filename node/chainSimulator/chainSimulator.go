@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
@@ -155,6 +156,8 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		s.nodes[shardID] = node
 		s.handlers = append(s.handlers, chainHandler)
 
+		var epochStartBlockHeader data.HeaderHandler
+
 		if node.GetShardCoordinator().SelfId() == core.MetachainShardId {
 			currentRootHash, errRootHash := node.GetProcessComponents().ValidatorsStatistics().RootHash()
 			if errRootHash != nil {
@@ -179,15 +182,14 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 				return err
 			}
 
-			epochStartBlockHeader := &block.MetaBlock{
+			epochStartBlockHeader = &block.MetaBlock{
 				Nonce:     args.InitialNonce,
 				Epoch:     args.InitialEpoch,
 				Round:     uint64(args.InitialRound),
 				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 			}
-			node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
 		} else {
-			epochStartBlockHeader := &block.HeaderV2{
+			epochStartBlockHeader = &block.HeaderV2{
 				Header: &block.Header{
 					Nonce:     args.InitialNonce,
 					Epoch:     args.InitialEpoch,
@@ -195,7 +197,11 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 				},
 			}
-			node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
+		}
+
+		err = node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
+		if err != nil {
+			return err
 		}
 	}
 
