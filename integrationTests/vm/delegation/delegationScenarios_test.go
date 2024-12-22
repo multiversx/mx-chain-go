@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -19,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
@@ -365,6 +367,7 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(0))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal))
 
+	addEpochStartHeader(t, tpn, 1, 0)
 	err = tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 	assert.Nil(t, err)
 
@@ -431,6 +434,7 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 	verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", delegators[:numDelegators-2], delegationScAddress, big.NewInt(delegationVal/2))
 
+	addEpochStartHeader(t, tpn, 1, 0)
 	err = tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 	assert.Nil(t, err)
 
@@ -582,6 +586,7 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 		verifyDelegatorsStake(t, tpn, "getUserUnStakedValue", firstTwoDelegators, delegationScAddresses[i], big.NewInt(delegationVal))
 	}
 
+	addEpochStartHeader(t, tpn, 1, 0)
 	err = tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: 1})
 	assert.Nil(t, err)
 
@@ -1317,7 +1322,50 @@ func checkRewardData(
 	assert.Equal(t, expectedServiceFee.Bytes(), epoch0RewardData[2])
 }
 
+func addEpochStartHeader(t *testing.T, tpn *integrationTests.TestProcessorNode, epoch uint32, nonce uint64) {
+	shard := tpn.ShardCoordinator.SelfId()
+
+	var unit dataRetriever.UnitType
+	if shard == core.MetachainShardId {
+		unit = dataRetriever.MetaBlockUnit
+	} else {
+		unit = dataRetriever.BlockHeaderUnit
+	}
+
+	storage, err := tpn.Storage.GetStorer(unit)
+	assert.Nil(t, err)
+
+	var header data.HeaderHandler
+	if shard == core.MetachainShardId {
+		header = &block.MetaBlock{
+			Nonce: nonce,
+			Epoch: epoch,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						HeaderHash: []byte{0x01},
+					},
+				},
+			},
+		}
+	} else {
+		header = &block.Header{
+			Nonce:              nonce,
+			Epoch:              epoch,
+			EpochStartMetaHash: []byte{0x01},
+		}
+	}
+
+	bytes, err := integrationTests.TestMarshalizer.Marshal(header)
+	assert.Nil(t, err)
+
+	err = storage.Put([]byte(core.EpochStartIdentifier(epoch)), bytes)
+	assert.Nil(t, err)
+}
+
 func addRewardsToDelegation(t *testing.T, tpn *integrationTests.TestProcessorNode, recvAddr []byte, value *big.Int, epoch uint32, nonce uint64) {
+	addEpochStartHeader(t, tpn, epoch, 0)
+
 	err := tpn.BlockchainHook.SetCurrentHeader(&block.Header{Epoch: epoch, Nonce: nonce})
 	assert.Nil(t, err)
 
