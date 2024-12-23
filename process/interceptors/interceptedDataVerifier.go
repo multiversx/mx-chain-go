@@ -56,6 +56,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	err := interceptedData.CheckValidity()
 	if err != nil {
+		log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
 		idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
 		return process.ErrInvalidInterceptedData
 	}
