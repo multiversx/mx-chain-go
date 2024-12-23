@@ -37,9 +37,7 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	logger.SetLogLevel("*:TRACE")
-
-	runFullConsensusTest(t, blsConsensusType, 1)
+	runFullConsensusTest(t, blsConsensusType, 1, false)
 }
 
 func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
@@ -47,7 +45,18 @@ func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 5)
+	runFullConsensusTest(t, blsConsensusType, 5, false)
+}
+
+func TestConsensusBLSFullTestSingleKeys_WithEquivalentProofs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	logger.ToggleLoggerName(true)
+	logger.SetLogLevel("*:DEBUG,consensus:TRACE")
+
+	runFullConsensusTest(t, blsConsensusType, 1, true)
 }
 
 func TestConsensusBLSNotEnoughValidators(t *testing.T) {
@@ -231,10 +240,15 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
-	numMetaNodes := uint32(2)
-	numNodes := uint32(2)
-	consensusSize := uint32(2 * numKeysOnEachNode)
+func runFullConsensusTest(
+	t *testing.T,
+	consensusType string,
+	numKeysOnEachNode int,
+	withEquivalentProofs bool,
+) {
+	numMetaNodes := uint32(4)
+	numNodes := uint32(4)
+	consensusSize := uint32(3 * numKeysOnEachNode)
 	numInvalid := uint32(0)
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
@@ -246,8 +260,15 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = 0
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = 0
+
+	equivalentProodsActivationEpoch := integrationTests.UnreachableEpoch
+	if withEquivalentProofs {
+		equivalentProodsActivationEpoch = 0
+	}
+
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProodsActivationEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProodsActivationEpoch
+
 	nodes := initNodesAndTest(
 		numMetaNodes,
 		numNodes,
