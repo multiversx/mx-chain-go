@@ -22,7 +22,7 @@ type depositEventProc struct {
 	topicsChecker TopicsChecker
 }
 
-func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*eventsResult, error) {
+func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	topics := event.GetTopics()
 	err := dep.topicsChecker.CheckValidity(topics)
 	if err != nil {
@@ -55,11 +55,11 @@ func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*eventsResul
 		return nil, err
 	}
 
-	return &eventsResult{
-		scrs: []*scrInfo{{
+	return &EventResult{
+		SCR: &scrInfo{
 			scr:  scr,
 			hash: hash,
-		}},
+		},
 	}, nil
 }
 
@@ -159,4 +159,9 @@ func (dep *depositEventProc) getTokenDataBytes(tokenNonce []byte, tokenData []by
 	}
 
 	return dep.marshaller.Marshal(digitalToken)
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (dep *depositEventProc) IsInterfaceNil() bool {
+	return dep == nil
 }

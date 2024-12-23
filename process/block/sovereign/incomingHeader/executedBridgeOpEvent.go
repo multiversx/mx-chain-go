@@ -10,19 +10,18 @@ type executedEventPoc struct {
 	depositEventProc IncomingEventHandler
 }
 
-func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*eventsResult, error) {
+func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	topics := event.GetTopics()
 	if len(topics) == 0 {
 		return nil, fmt.Errorf("%w for event id: %s", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp)
 	}
 
-	var scr *scrInfo
+	var resDeposit *EventResult
 	var confirmedOp *confirmedBridgeOp
 	var err error
 	switch string(topics[0]) {
 	case topicIDDepositIncomingTransfer:
-		resDeposit, errDeposit := eep.depositEventProc.ProcessEvent(event)
-		scr, err = resDeposit.scrs[0], errDeposit
+		resDeposit, err = eep.depositEventProc.ProcessEvent(event)
 	case topicIDConfirmedOutGoingOperation:
 		confirmedOp, err = getConfirmedBridgeOperation(topics)
 	default:
@@ -33,9 +32,9 @@ func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*eventsResul
 		return nil, err
 	}
 
-	return &eventsResult{
-		scrs:               []*scrInfo{scr},
-		confirmedBridgeOps: []*confirmedBridgeOp{confirmedOp},
+	return &EventResult{
+		SCR:               resDeposit.SCR,
+		ConfirmedBridgeOp: confirmedOp,
 	}, nil
 }
 
@@ -48,4 +47,9 @@ func getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
 		hashOfHashes: topics[hashOfHashesIndex],
 		hash:         topics[hashOfOperationIndex],
 	}, nil
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (eep *executedEventPoc) IsInterfaceNil() bool {
+	return eep == nil
 }
