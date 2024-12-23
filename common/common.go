@@ -19,3 +19,8 @@ func IsFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsH
 	isEpochStartBlock := IsEpochChangeBlockForFlagActivation(header, enableEpochsHandler, flag)
 	return isFlagEnabled && !isEpochStartBlock
 }
+
+// ShouldBlockHavePrevProof returns true if the block should have a proof
+func ShouldBlockHavePrevProof(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
+	return IsFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, flag) && header.GetNonce() > 1
+}

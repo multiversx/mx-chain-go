@@ -205,12 +205,14 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 
 	_ = logger.SetLogLevel("*:DEBUG,process:TRACE,consensus:TRACE")
 
+	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
 	shardId := uint32(0)
 	numNodesPerShard := 3
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
 	enableEpochs.EquivalentMessagesEnableEpoch = uint32(0)
+	enableEpochs.FixedOrderInConsensusEnableEpoch = uint32(0)
 
 	nodes := make([]*integrationTests.TestProcessorNode, numNodesPerShard+1)
 	connectableNodes := make([]integrationTests.Connectable, 0)
@@ -230,6 +232,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		NodeShardId:          core.MetachainShardId,
 		TxSignPrivKeyShardId: shardId,
 		WithSync:             true,
+		EpochsConfig:         &enableEpochs,
 	})
 	idxProposerMeta := numNodesPerShard
 	nodes[idxProposerMeta] = metachainNode
