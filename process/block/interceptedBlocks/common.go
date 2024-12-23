@@ -102,12 +102,15 @@ func checkHeaderHandler(hdr data.HeaderHandler, enableEpochsHandler common.Enabl
 
 func checkProofIntegrity(hdr data.HeaderHandler, enableEpochsHandler common.EnableEpochsHandler) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+	epochChangeBlockForActivation := common.IsEpochChangeBlockForFlagActivation(hdr, enableEpochsHandler, common.EquivalentMessagesFlag)
 
+	prevHeaderNonce := hdr.GetNonce() - 1
 	prevHeaderProof := hdr.GetPreviousProof()
 	nilPreviousProof := check.IfNilReflect(prevHeaderProof)
-	missingProof := nilPreviousProof && equivalentMessagesEnabled
+	shouldConsiderPrevProof := prevHeaderNonce > 0 && !epochChangeBlockForActivation
+	missingProof := nilPreviousProof && equivalentMessagesEnabled && shouldConsiderPrevProof
 	unexpectedProof := !nilPreviousProof && !equivalentMessagesEnabled
-	hasProof := !nilPreviousProof && equivalentMessagesEnabled
+	hasProof := !nilPreviousProof && !missingProof
 
 	if missingProof {
 		return process.ErrMissingHeaderProof
