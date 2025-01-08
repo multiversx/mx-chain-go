@@ -58,7 +58,7 @@ func createSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 	return arguments
 }
 
-func createSovereignMockArguments(
+func createShardBlockProcessorArgsForSovereign(
 	coreComp *mock.CoreComponentsMock,
 	dataComp *mock.DataComponentsMock,
 	bootstrapComp *mock.BootstrapComponentsMock,
@@ -111,15 +111,19 @@ func createArgsSovereignChainBlockProcessor(baseArgs blproc.ArgShardProcessor) b
 	}
 }
 
+func createSovChainBlockProcessorArgs() blproc.ArgsSovereignChainBlockProcessor {
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	return createArgsSovereignChainBlockProcessor(arguments)
+}
+
 func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should error when shard processor is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.ShardProcessor = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -130,9 +134,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when validator statistics is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.ValidatorStatisticsProcessor = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -143,9 +145,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when outgoing operations formatter is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.OutgoingOperationsFormatter = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -156,9 +156,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when outgoing operation pool is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.OutGoingOperationsPool = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -169,9 +167,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when operations hasher is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.OperationsHasher = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -182,9 +178,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when epoch start data creator is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.EpochStartDataCreator = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -195,9 +189,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when epoch rewards creator is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.EpochRewardsCreator = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -208,9 +200,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when epoch validator infor creator is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.ValidatorInfoCreator = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -221,9 +211,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when epoch start system sc processor is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.EpochSystemSCProcessor = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -234,9 +222,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when epoch economics is nil", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.EpochEconomics = nil
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -250,9 +236,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		args := CreateMockArguments(createComponentHolderMocks())
 		sp, _ := blproc.NewShardProcessor(args)
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.ShardProcessor = sp
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -270,9 +254,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		args.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
 		sp, _ := blproc.NewShardProcessor(args)
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		sovArgs.ShardProcessor = sp
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
@@ -283,9 +265,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 
 		require.NotNil(t, scbp)
@@ -295,7 +275,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	expectedLogs := []*data.LogData{
 		{
@@ -415,14 +395,22 @@ func TestSovereignShardProcessor_CreateNewBlockExpectCheckRoundCalled(t *testing
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	coreComponents.RoundNotifierField = roundsNotifier
-	arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	sovArgs := createArgsSovereignChainBlockProcessor(arguments)
 	scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 	require.Nil(t, err)
 
 	headerHandler, err := scbp.CreateNewHeader(round, 1)
 	require.Nil(t, err)
-	require.NotNil(t, headerHandler)
+	require.Equal(t, &block.SovereignChainHeader{
+		Header: &block.Header{
+			Nonce:           1,
+			Round:           4,
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+		},
+		AccumulatedFeesInEpoch: big.NewInt(0),
+	}, headerHandler)
 	require.Equal(t, int64(1), checkRoundCt.Get())
 }
 
@@ -432,38 +420,36 @@ func TestSovereignShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	round := uint64(7)
 	nonce := uint64(5)
 
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+	sovArgs := createSovChainBlockProcessorArgs()
 	scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 	require.Nil(t, err)
 
 	h, err := scbp.CreateNewHeader(round, nonce)
 	require.Nil(t, err)
-	require.IsType(t, &block.SovereignChainHeader{}, h)
-	require.Equal(t, round, h.GetRound())
-	require.Equal(t, nonce, h.GetNonce())
-
-	zeroInt := big.NewInt(0)
+	require.Equal(t, &block.SovereignChainHeader{
+		Header: &block.Header{
+			Nonce:           5,
+			Round:           7,
+			AccumulatedFees: big.NewInt(0),
+			DeveloperFees:   big.NewInt(0),
+		},
+		AccumulatedFeesInEpoch: big.NewInt(0),
+	}, h)
 	require.Nil(t, h.GetValidatorStatsRootHash())
 	require.Nil(t, h.GetRootHash())
-	require.Equal(t, zeroInt, h.GetDeveloperFees())
-	require.Equal(t, zeroInt, h.GetAccumulatedFees())
 }
 
 func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 	t.Parallel()
 
+	doesHaveTime := func() bool {
+		return true
+	}
+
 	t.Run("nil block should error", func(t *testing.T) {
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
-
-		doesHaveTime := func() bool {
-			return true
-		}
 
 		hdr, body, err := scbp.CreateBlock(nil, doesHaveTime)
 		require.True(t, check.IfNil(body))
@@ -471,15 +457,9 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
 	t.Run("wrong header type should error", func(t *testing.T) {
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		sovArgs := createSovChainBlockProcessorArgs()
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
-
-		doesHaveTime := func() bool {
-			return true
-		}
 
 		meta := &block.MetaBlock{}
 
@@ -491,31 +471,28 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 	t.Run("account state dirty should error", func(t *testing.T) {
 		journalLen := func() int { return 3 }
 		revToSnapshot := func(snapshot int) error { return nil }
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
+		busyIdleCalled := make([]string, 0)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+			SetIdleCalled: func() {
+				busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+			},
+			SetBusyCalled: func(reason string) {
+				busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			},
+		}
+		arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 			JournalLenCalled:       journalLen,
 			RevertToSnapshotCalled: revToSnapshot,
 		}
-		processHandler := arguments.CoreComponents.ProcessStatusHandler()
-		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-		busyIdleCalled := make([]string, 0)
-		mockProcessHandler.SetIdleCalled = func() {
-			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
-			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-		}
-		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
 
-		doesHaveTime := func() bool {
-			return true
-		}
 		sovHeader := &block.SovereignChainHeader{
 			Header: &block.Header{
 				Nonce:         1,
@@ -533,34 +510,30 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		require.Equal(t, process.ErrAccountStateDirty, err)
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
 	})
-	t.Run("create block started should error", func(t *testing.T) {
+	t.Run("create block started should error because add intermediate txs in tx coordinator returns error", func(t *testing.T) {
 		expectedErr := fmt.Errorf("createBlockStarted error")
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
+		busyIdleCalled := make([]string, 0)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+			SetIdleCalled: func() {
+				busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+			},
+			SetBusyCalled: func(reason string) {
+				busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			},
+		}
+		arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			AddIntermediateTransactionsCalled: func(_ map[block.Type][]data.TransactionHandler, _ []byte) error {
 				return expectedErr
 			},
 		}
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
-		processHandler := arguments.CoreComponents.ProcessStatusHandler()
-		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-		busyIdleCalled := make([]string, 0)
-		mockProcessHandler.SetIdleCalled = func() {
-			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
-			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-		}
-		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
-
-		doesHaveTime := func() bool {
-			return true
-		}
 
 		expectedSovHeader := &block.SovereignChainHeader{
 			Header: &block.Header{
@@ -576,12 +549,22 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
 	})
-	t.Run("should work with sovereign header and epoch start rewriting the epoch value", func(t *testing.T) {
+	t.Run("should work with sovereign header and will change epoch", func(t *testing.T) {
 		currentEpoch := uint32(1)
 		nextEpoch := uint32(2)
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
+		busyIdleCalled := make([]string, 0)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+			SetIdleCalled: func() {
+				busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+			},
+			SetBusyCalled: func(reason string) {
+				busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			},
+		}
+		arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
 			IsEpochStartCalled: func() bool {
 				return true
@@ -591,16 +574,6 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 			},
 		}
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
-		processHandler := arguments.CoreComponents.ProcessStatusHandler()
-		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-		busyIdleCalled := make([]string, 0)
-		mockProcessHandler.SetIdleCalled = func() {
-			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
-			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-		}
-		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
@@ -620,40 +593,36 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 			},
 			IsStartOfEpoch: true,
 		}
-		doesHaveTime := func() bool {
-			return true
-		}
 
 		hdr, bodyHandler, err := scbp.CreateBlock(sovHeader, doesHaveTime)
 		require.False(t, check.IfNil(bodyHandler))
 		body, ok := bodyHandler.(*block.Body)
 		require.True(t, ok)
 		require.Zero(t, len(body.MiniBlocks))
-		require.False(t, check.IfNil(hdr))
 		require.Equal(t, expectedSovHeader, hdr)
 		require.Nil(t, err)
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
 	})
 	t.Run("should work with sovereign header", func(t *testing.T) {
 		currentEpoch := uint32(1)
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
+		busyIdleCalled := make([]string, 0)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		arguments := createSovereignMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+			SetIdleCalled: func() {
+				busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+			},
+			SetBusyCalled: func(reason string) {
+				busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			},
+		}
+		arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
 			EpochCalled: func() uint32 {
 				return currentEpoch
 			}}
 		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
-		processHandler := arguments.CoreComponents.ProcessStatusHandler()
-		mockProcessHandler := processHandler.(*testscommon.ProcessStatusHandlerStub)
-		busyIdleCalled := make([]string, 0)
-		mockProcessHandler.SetIdleCalled = func() {
-			busyIdleCalled = append(busyIdleCalled, idleIdentifier)
-		}
-		mockProcessHandler.SetBusyCalled = func(reason string) {
-			busyIdleCalled = append(busyIdleCalled, busyIdentifier)
-		}
-		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
 		require.Nil(t, err)
@@ -665,16 +634,11 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 				Epoch: currentEpoch,
 			},
 		}
-		doesHaveTime := func() bool {
-			return true
-		}
-
 		hdr, bodyHandler, err := scbp.CreateBlock(expectedSovHeader, doesHaveTime)
 		require.False(t, check.IfNil(bodyHandler))
 		body, ok := bodyHandler.(*block.Body)
 		require.True(t, ok)
 		require.Zero(t, len(body.MiniBlocks))
-		require.False(t, check.IfNil(hdr))
 		require.Equal(t, expectedSovHeader, hdr)
 		require.Nil(t, err)
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
