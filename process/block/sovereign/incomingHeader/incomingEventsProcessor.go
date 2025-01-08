@@ -8,12 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type eventData struct {
-	nonce                uint64
-	functionCallWithArgs []byte
-	gasLimit             uint64
-}
-
 type eventsResult struct {
 	scrs               []*SCRInfo
 	confirmedBridgeOps []*ConfirmedBridgeOp
@@ -35,7 +29,6 @@ func (iep *incomingEventsProcessor) registerProcessor(event string, proc Incomin
 	return nil
 }
 
-// TODO refactor this to work with processors that assign tasks based on event id
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
 	scrs := make([]*SCRInfo, 0, len(events))
 	confirmedBridgeOps := make([]*ConfirmedBridgeOp, 0, len(events))

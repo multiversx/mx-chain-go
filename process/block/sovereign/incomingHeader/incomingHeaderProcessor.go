@@ -176,6 +176,12 @@ func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.Incomi
 	return createExtendedHeader(header, res.scrs)
 }
 
+// RegisterEventHandler will register an extra incoming event processor. For the registered processor, a subscription
+// should be added to NotifierConfig.SubscribedEvents from sovereignConfig.toml
+func (ihp *incomingHeaderProcessor) RegisterEventHandler(event string, proc IncomingEventHandler) error {
+	return ihp.eventsProc.registerProcessor(event, proc)
+}
+
 // IsInterfaceNil checks if the underlying pointer is nil
 func (ihp *incomingHeaderProcessor) IsInterfaceNil() bool {
 	return ihp == nil

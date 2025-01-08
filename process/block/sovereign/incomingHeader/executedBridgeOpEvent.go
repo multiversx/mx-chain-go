@@ -10,6 +10,7 @@ type executedBridgeOpEventProc struct {
 	depositEventProc IncomingEventHandler
 }
 
+// ProcessEvent will process events related to confirmed outgoing bridge operations to main chain
 func (eep *executedBridgeOpEventProc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	topics := event.GetTopics()
 	if len(topics) == 0 {

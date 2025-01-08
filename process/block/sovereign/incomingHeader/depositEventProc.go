@@ -15,6 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+type eventData struct {
+	nonce                uint64
+	functionCallWithArgs []byte
+	gasLimit             uint64
+}
+
 type depositEventProc struct {
 	marshaller    marshal.Marshalizer
 	hasher        hashing.Hasher
@@ -22,6 +28,7 @@ type depositEventProc struct {
 	topicsChecker TopicsChecker
 }
 
+// ProcessEvent will process incoming token deposit events and return an incoming scr info
 func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	topics := event.GetTopics()
 	err := dep.topicsChecker.CheckValidity(topics)
