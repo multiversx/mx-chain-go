@@ -6,17 +6,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type executedEventPoc struct {
+type executedBridgeOpEventProc struct {
 	depositEventProc IncomingEventHandler
 }
 
-func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
+func (eep *executedBridgeOpEventProc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	topics := event.GetTopics()
 	if len(topics) == 0 {
 		return nil, fmt.Errorf("%w for event id: %s", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp)
 	}
 
-	var confirmedOp *confirmedBridgeOp
+	var confirmedOp *ConfirmedBridgeOp
 	var err error
 	switch string(topics[0]) {
 	case topicIDDepositIncomingTransfer:
@@ -36,18 +36,18 @@ func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*EventResult
 	}, nil
 }
 
-func getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
+func getConfirmedBridgeOperation(topics [][]byte) (*ConfirmedBridgeOp, error) {
 	if len(topics) != numExecutedBridgeOpTopics {
 		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp, len(topics))
 	}
 
-	return &confirmedBridgeOp{
-		hashOfHashes: topics[hashOfHashesIndex],
-		hash:         topics[hashOfOperationIndex],
+	return &ConfirmedBridgeOp{
+		HashOfHashes: topics[hashOfHashesIndex],
+		Hash:         topics[hashOfOperationIndex],
 	}, nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (eep *executedEventPoc) IsInterfaceNil() bool {
+func (eep *executedBridgeOpEventProc) IsInterfaceNil() bool {
 	return eep == nil
 }

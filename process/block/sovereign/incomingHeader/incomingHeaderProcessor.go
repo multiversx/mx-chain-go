@@ -70,19 +70,18 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		topicsChecker: args.TopicsChecker,
 	}
 
-	executedOpProc := &executedEventPoc{
+	executedOpProc := &executedBridgeOpEventProc{
 		depositEventProc: depositProc,
 	}
 
 	eventsProc := &incomingEventsProcessor{
 		handlers: make(map[string]IncomingEventHandler),
 	}
-
-	err := eventsProc.RegisterProcessor(eventIDDepositIncomingTransfer, depositProc)
+	err := eventsProc.registerProcessor(eventIDDepositIncomingTransfer, depositProc)
 	if err != nil {
 		return nil, nil
 	}
-	err = eventsProc.RegisterProcessor(eventIDExecutedOutGoingBridgeOp, executedOpProc)
+	err = eventsProc.registerProcessor(eventIDExecutedOutGoingBridgeOp, executedOpProc)
 	if err != nil {
 		return nil, nil
 	}
@@ -151,17 +150,17 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	return nil
 }
 
-func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) {
+func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*ConfirmedBridgeOp) {
 	for _, op := range ops {
 		// This is not a critical error. This might just happen when a leader tries to re-send unconfirmed confirmation
 		// that have been already executed, but the confirmation from notifier comes too late, and we receive a double
 		// confirmation.
-		err := ihp.outGoingPool.ConfirmOperation(op.hashOfHashes, op.hash)
+		err := ihp.outGoingPool.ConfirmOperation(op.HashOfHashes, op.Hash)
 		if err != nil {
 			log.Debug("incomingHeaderProcessor.AddHeader.addConfirmedBridgeOpsToPool",
 				"error", err,
-				"hashOfHashes", hex.EncodeToString(op.hashOfHashes),
-				"hash", hex.EncodeToString(op.hash),
+				"hashOfHashes", hex.EncodeToString(op.HashOfHashes),
+				"hash", hex.EncodeToString(op.Hash),
 			)
 		}
 	}

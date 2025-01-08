@@ -56,9 +56,9 @@ func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*EventResult
 	}
 
 	return &EventResult{
-		SCR: &scrInfo{
-			scr:  scr,
-			hash: hash,
+		SCR: &SCRInfo{
+			SCR:  scr,
+			Hash: hash,
 		},
 	}, nil
 }

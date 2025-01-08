@@ -1,35 +1,12 @@
 package incomingHeader
 
 import (
-	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 )
-
-const (
-	minTopicsInTransferEvent  = 5
-	numTransferTopics         = 3
-	numExecutedBridgeOpTopics = 3
-	tokensIndex               = 2
-	hashOfHashesIndex         = 1
-	hashOfOperationIndex      = 2
-)
-
-const (
-	eventIDExecutedOutGoingBridgeOp = "execute"
-	eventIDDepositIncomingTransfer  = "deposit"
-
-	topicIDConfirmedOutGoingOperation = "executedBridgeOp"
-	topicIDDepositIncomingTransfer    = "deposit"
-)
-
-type confirmedBridgeOp struct {
-	hashOfHashes []byte
-	hash         []byte
-}
 
 type eventData struct {
 	nonce                uint64
@@ -37,41 +14,36 @@ type eventData struct {
 	gasLimit             uint64
 }
 
-type EventResult struct {
-	SCR               *scrInfo
-	ConfirmedBridgeOp *confirmedBridgeOp
-}
-
-type scrInfo struct {
-	scr  *smartContractResult.SmartContractResult
-	hash []byte
-}
-
 type eventsResult struct {
-	scrs               []*scrInfo
-	confirmedBridgeOps []*confirmedBridgeOp
+	scrs               []*SCRInfo
+	confirmedBridgeOps []*ConfirmedBridgeOp
 }
 
 type incomingEventsProcessor struct {
+	mut      sync.RWMutex
 	handlers map[string]IncomingEventHandler
 }
 
-func (iep *incomingEventsProcessor) RegisterProcessor(event string, proc IncomingEventHandler) error {
+func (iep *incomingEventsProcessor) registerProcessor(event string, proc IncomingEventHandler) error {
 	if check.IfNil(proc) {
-		return errors.New("dsada")
+		return errNilIncomingEventHandler
 	}
 
+	iep.mut.Lock()
 	iep.handlers[event] = proc
+	iep.mut.Unlock()
 	return nil
 }
 
 // TODO refactor this to work with processors that assign tasks based on event id
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
-	scrs := make([]*scrInfo, 0, len(events))
-	confirmedBridgeOps := make([]*confirmedBridgeOp, 0, len(events))
+	scrs := make([]*SCRInfo, 0, len(events))
+	confirmedBridgeOps := make([]*ConfirmedBridgeOp, 0, len(events))
 
 	for idx, event := range events {
+		iep.mut.RLock()
 		handler, found := iep.handlers[string(event.GetIdentifier())]
+		iep.mut.RUnlock()
 		if !found {
 			return nil, errInvalidIncomingEventIdentifier
 		}
