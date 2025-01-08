@@ -1002,7 +1002,8 @@ func computeTxGasAndFeeBasedOnRefund(
 		gasForFullPrice += extraGasLimitForGuarded
 	}
 
-	if result.ProcessingTypeOnSource == process.RelayedTxV3.String() {
+	isRelayedV3 := len(result.RelayerAddress) > 0
+	if isRelayedV3 {
 		gasForFullPrice += uint64(minGasLimit) // relayer fee
 	}
 	gasForDeductedPrice := initialTx.GetGasLimit() - gasForFullPrice
