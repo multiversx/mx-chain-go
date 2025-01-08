@@ -16,12 +16,11 @@ func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*EventResult
 		return nil, fmt.Errorf("%w for event id: %s", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp)
 	}
 
-	var resDeposit *EventResult
 	var confirmedOp *confirmedBridgeOp
 	var err error
 	switch string(topics[0]) {
 	case topicIDDepositIncomingTransfer:
-		resDeposit, err = eep.depositEventProc.ProcessEvent(event)
+		return eep.depositEventProc.ProcessEvent(event)
 	case topicIDConfirmedOutGoingOperation:
 		confirmedOp, err = getConfirmedBridgeOperation(topics)
 	default:
@@ -33,7 +32,6 @@ func (eep *executedEventPoc) ProcessEvent(event data.EventHandler) (*EventResult
 	}
 
 	return &EventResult{
-		SCR:               resDeposit.SCR,
 		ConfirmedBridgeOp: confirmedOp,
 	}, nil
 }

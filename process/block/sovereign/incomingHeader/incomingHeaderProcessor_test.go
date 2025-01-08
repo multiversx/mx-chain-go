@@ -323,7 +323,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 
 		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID")}, Identifier: []byte(eventIDExecutedOutGoingBridgeOp)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
-		require.Equal(t, errInvalidIncomingTopicIdentifier, err)
+		require.True(t, strings.Contains(err.Error(), errInvalidIncomingTopicIdentifier.Error()))
 	})
 
 	t.Run("invalid event id, should return error", func(t *testing.T) {
@@ -462,9 +462,15 @@ func TestIncomingHeaderProcessor_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler, _ := NewIncomingHeaderProcessor(args)
+		// TODO: REPLACE WITH CONSTRUCTOR
+		handler := &depositEventProc{
+			marshaller:    args.Marshaller,
+			hasher:        args.Hasher,
+			dataCodec:     args.DataCodec,
+			topicsChecker: args.TopicsChecker,
+		}
 
-		ret, err := handler.eventsProc.createEventData(inputEventData)
+		ret, err := handler.createEventData(inputEventData)
 		require.Nil(t, err)
 		require.Equal(t, &eventData{
 			functionCallWithArgs: make([]byte, 0),
@@ -486,9 +492,15 @@ func TestIncomingHeaderProcessor_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler, _ := NewIncomingHeaderProcessor(args)
+		// TODO: REPLACE WITH CONSTRUCTOR
+		handler := &depositEventProc{
+			marshaller:    args.Marshaller,
+			hasher:        args.Hasher,
+			dataCodec:     args.DataCodec,
+			topicsChecker: args.TopicsChecker,
+		}
 
-		ret, err := handler.eventsProc.createEventData([]byte(""))
+		ret, err := handler.createEventData([]byte(""))
 		require.Nil(t, err)
 
 		expectedArgs := append([]byte("@"), hex.EncodeToString(func1)...)
@@ -515,9 +527,15 @@ func TestIncomingHeaderProcessor_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler, _ := NewIncomingHeaderProcessor(args)
+		// TODO: REPLACE WITH CONSTRUCTOR
+		handler := &depositEventProc{
+			marshaller:    args.Marshaller,
+			hasher:        args.Hasher,
+			dataCodec:     args.DataCodec,
+			topicsChecker: args.TopicsChecker,
+		}
 
-		ret, err := handler.eventsProc.createEventData([]byte(""))
+		ret, err := handler.createEventData([]byte(""))
 		require.Nil(t, err)
 
 		expectedArgs := append([]byte("@"), hex.EncodeToString(func1)...)
@@ -560,9 +578,15 @@ func TestIncomingHeaderProcessor_createSCRData(t *testing.T) {
 			return nftData, nil
 		},
 	}
-	handler, _ := NewIncomingHeaderProcessor(args)
+	// TODO: REPLACE WITH CONSTRUCTOR
+	handler := &depositEventProc{
+		marshaller:    args.Marshaller,
+		hasher:        args.Hasher,
+		dataCodec:     args.DataCodec,
+		topicsChecker: args.TopicsChecker,
+	}
 
-	ret, err := handler.eventsProc.createSCRData(topics)
+	ret, err := handler.createSCRData(topics)
 	require.Nil(t, err)
 
 	expectedSCR := []byte(core.BuiltInFunctionMultiESDTNFTTransfer + "@01")

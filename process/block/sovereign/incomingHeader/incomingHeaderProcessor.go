@@ -63,11 +63,28 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, errors.ErrNilTopicsChecker
 	}
 
-	eventsProc := &incomingEventsProcessor{
+	depositProc := &depositEventProc{
 		marshaller:    args.Marshaller,
 		hasher:        args.Hasher,
 		dataCodec:     args.DataCodec,
 		topicsChecker: args.TopicsChecker,
+	}
+
+	executedOpProc := &executedEventPoc{
+		depositEventProc: depositProc,
+	}
+
+	eventsProc := &incomingEventsProcessor{
+		handlers: make(map[string]IncomingEventHandler),
+	}
+
+	err := eventsProc.RegisterProcessor(eventIDDepositIncomingTransfer, depositProc)
+	if err != nil {
+		return nil, nil
+	}
+	err = eventsProc.RegisterProcessor(eventIDExecutedOutGoingBridgeOp, executedOpProc)
+	if err != nil {
+		return nil, nil
 	}
 
 	extendedHearProc := &extendedHeaderProcessor{
