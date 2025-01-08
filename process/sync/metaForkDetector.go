@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ForkDetector = (*metaForkDetector)(nil)
@@ -19,6 +20,7 @@ type metaForkDetector struct {
 
 // NewMetaForkDetector method creates a new metaForkDetector object
 func NewMetaForkDetector(
+	log logger.Logger,
 	roundHandler consensus.RoundHandler,
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
@@ -40,7 +42,12 @@ func NewMetaForkDetector(
 		return nil, err
 	}
 
+	if log == nil {
+		log = logger.GetOrCreate("process/sync")
+	}
+
 	bfd := &baseForkDetector{
+		log:              log,
 		roundHandler:     roundHandler,
 		blackListHandler: blackListHandler,
 		genesisTime:      genesisTime,

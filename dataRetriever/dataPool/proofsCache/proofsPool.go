@@ -110,6 +110,8 @@ func (pp *proofsPool) GetProof(
 		return nil, fmt.Errorf("nil header hash")
 	}
 
+	// fmt.Println(string(debug.Stack()))
+
 	pp.mutCache.RLock()
 	defer pp.mutCache.RUnlock()
 

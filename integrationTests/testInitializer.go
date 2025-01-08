@@ -193,7 +193,7 @@ func CreateMessengerWithKadDht(initialAddr string) p2p.Messenger {
 }
 
 // CreateMessengerFromConfig creates a new libp2p messenger with provided configuration
-func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
+func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig, logID string) p2p.Messenger {
 	arg := p2pFactory.ArgsNetworkMessenger{
 		Marshaller:            TestMarshalizer,
 		P2pConfig:             p2pConfig,
@@ -204,7 +204,7 @@ func CreateMessengerFromConfig(p2pConfig p2pConfig.P2PConfig) p2p.Messenger {
 		P2pPrivateKey:         mock.NewPrivateKeyMock(),
 		P2pSingleSigner:       &mock.SignerMock{},
 		P2pKeyGenerator:       &mock.KeyGenMock{},
-		Logger:                logger.GetOrCreate("tests/p2p"),
+		Logger:                logger.GetOrCreate(fmt.Sprintf("tests/p2p/%s", logID)),
 	}
 
 	libP2PMes, err := p2pFactory.NewNetworkMessenger(arg)
@@ -258,10 +258,10 @@ func CreateP2PConfigWithNoDiscovery() p2pConfig.P2PConfig {
 }
 
 // CreateMessengerWithNoDiscovery creates a new libp2p messenger with no peer discovery
-func CreateMessengerWithNoDiscovery() p2p.Messenger {
+func CreateMessengerWithNoDiscovery(logID string) p2p.Messenger {
 	p2pCfg := CreateP2PConfigWithNoDiscovery()
 
-	return CreateMessengerFromConfig(p2pCfg)
+	return CreateMessengerFromConfig(p2pCfg, logID)
 }
 
 // CreateMessengerWithNoDiscoveryAndPeersRatingHandler creates a new libp2p messenger with no peer discovery
@@ -345,7 +345,7 @@ func createMessengersWithNoDiscovery(numPeers int) []p2p.Messenger {
 	peers := make([]p2p.Messenger, numPeers)
 
 	for i := 0; i < numPeers; i++ {
-		peers[i] = CreateMessengerWithNoDiscovery()
+		peers[i] = CreateMessengerWithNoDiscovery("")
 	}
 
 	return peers

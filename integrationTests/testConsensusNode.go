@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -56,6 +57,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -193,7 +195,10 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
-	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
+
+	logID := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
+
+	tcn.MainMessenger = CreateMessengerWithNoDiscovery(logID)
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
@@ -226,7 +231,12 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
+	id := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
 	forkDetector, _ := syncFork.NewShardForkDetector(
+		log,
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
