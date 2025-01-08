@@ -683,19 +683,15 @@ func logMapWithTrace(message string, paramName string, hashes common.ModifiedHas
 
 // GetProof computes a Merkle proof for the node that is present at the given key
 func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, []byte, error) {
-	trie, err := tr.Recreate(rootHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pmt, ok := trie.(*patriciaMerkleTrie)
-	if !ok {
-		return nil, nil, ErrWrongTypeAssertion
-	}
-
-	rootNode := pmt.GetRootNode()
-	if check.IfNil(rootNode) {
+	//TODO refactor this function to avoid encoding the node after it is retrieved from the DB.
+	// The encoded node is actually the value from db, thus we can use the retrieved value directly
+	if len(key) == 0 || bytes.Equal(rootHash, common.EmptyTrieHash) {
 		return nil, nil, ErrNilNode
+	}
+
+	rootNode, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trie get proof error: %w", err)
 	}
 
 	var proof [][]byte
