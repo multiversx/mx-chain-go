@@ -233,19 +233,8 @@ func (bn *branchNode) commitDirty(
 
 	waitGroup.Wait()
 
-	bn.dirty = false
-	encNode, err := bn.getEncodedNode()
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return
-	}
-	hash := bn.hasher.Compute(string(encNode))
-	bn.hash = hash
-	hashesCollector.AddDirtyHash(hash)
-
-	err = targetDb.Put(hash, encNode)
-	if err != nil {
-		goRoutinesManager.SetError(err)
+	ok := saveDirtyNodeToStorage(bn, goRoutinesManager, hashesCollector, targetDb, bn.hasher)
+	if !ok {
 		return
 	}
 

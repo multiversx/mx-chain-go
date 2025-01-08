@@ -413,4 +413,5 @@ type TrieHashesCollector interface {
 	GetDirtyHashes() ModifiedHashes
 	AddObsoleteHashes(oldRootHash []byte, oldHashes [][]byte)
 	GetCollectedData() ([]byte, ModifiedHashes, ModifiedHashes)
+	IsInterfaceNil() bool
 }

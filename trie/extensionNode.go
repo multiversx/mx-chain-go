@@ -158,19 +158,8 @@ func (en *extensionNode) commitDirty(
 		en.EncodedChild = child.getHash()
 	}
 
-	en.dirty = false
-	encNode, err := en.getEncodedNode()
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return
-	}
-	hash := en.hasher.Compute(string(encNode))
-	en.hash = hash
-	hashesCollector.AddDirtyHash(hash)
-
-	err = targetDb.Put(hash, encNode)
-	if err != nil {
-		goRoutinesManager.SetError(err)
+	ok := saveDirtyNodeToStorage(en, goRoutinesManager, hashesCollector, targetDb, en.hasher)
+	if !ok {
 		return
 	}
 

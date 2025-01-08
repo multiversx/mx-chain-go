@@ -27,3 +27,8 @@ func (hc *disabledHashesCollector) AddObsoleteHashes(_ []byte, _ [][]byte) {
 func (hc *disabledHashesCollector) GetCollectedData() ([]byte, common.ModifiedHashes, common.ModifiedHashes) {
 	return nil, nil, nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hc *disabledHashesCollector) IsInterfaceNil() bool {
+	return hc == nil
+}

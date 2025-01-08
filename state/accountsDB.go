@@ -797,7 +797,11 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	// Step 2. commit main trie
 	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
-		hc = hashesCollector.NewHashesCollector(hc)
+		wrappedHc, err := hashesCollector.NewHashesCollector(hc)
+		if err != nil {
+			return nil, err
+		}
+		hc = wrappedHc
 	}
 	err := adb.mainTrie.Commit(hc)
 	if err != nil {

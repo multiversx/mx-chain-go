@@ -80,20 +80,7 @@ func (ln *leafNode) commitDirty(
 		return
 	}
 
-	ln.dirty = false
-	encNode, err := ln.getEncodedNode()
-	if err != nil {
-		goRoutinesManager.SetError(err)
-		return
-	}
-	hash := ln.hasher.Compute(string(encNode))
-	ln.hash = hash
-	hashesCollector.AddDirtyHash(hash)
-
-	err = targetDb.Put(hash, encNode)
-	if err != nil {
-		goRoutinesManager.SetError(err)
-	}
+	saveDirtyNodeToStorage(ln, goRoutinesManager, hashesCollector, targetDb, ln.hasher)
 }
 
 func (ln *leafNode) commitSnapshot(

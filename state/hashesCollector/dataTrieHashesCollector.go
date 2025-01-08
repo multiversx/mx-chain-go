@@ -55,3 +55,8 @@ func (hc *dataTrieHashesCollector) GetCollectedData() ([]byte, common.ModifiedHa
 
 	return nil, hc.oldHashes, hc.newHashes
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (hc *dataTrieHashesCollector) IsInterfaceNil() bool {
+	return hc == nil
+}
