@@ -1347,7 +1347,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 
 	t.Run("IsRefund (false)", func(t *testing.T) {
 		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
-		dataPool.UnsignedTransactions().AddData([]byte{0, 3}, scr, 42, "foo")
+		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
 		tx, err := processor.GetTransaction("0004", true)
 
 		require.Nil(t, err)
