@@ -1337,7 +1337,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 			return process.MoveBalance, process.SCDeployment, true
 		}
 
-		dataPool.Transactions().AddData([]byte{0, 2}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		dataPool.Transactions().AddData([]byte{0, 3}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
 		tx, err := processor.GetTransaction("0003", true)
 
 		require.Nil(t, err)
