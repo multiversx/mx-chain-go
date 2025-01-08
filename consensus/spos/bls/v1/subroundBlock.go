@@ -513,7 +513,7 @@ func (sr *subroundBlock) receivedFullHeader(headerHandler data.HeaderHandler) {
 	if bytes.Equal(lastCommittedBlockHash, headerHandler.GetPrevHash()) {
 		// Need to switch to consensus v2
 		log.Debug("subroundBlock.ReceivedFullHeader switching epoch")
-		sr.EpochNotifier().CheckEpoch(headerHandler)
+		go sr.EpochNotifier().CheckEpoch(headerHandler)
 	}
 }
 
