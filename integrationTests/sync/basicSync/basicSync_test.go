@@ -204,6 +204,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	}
 
 	_ = logger.SetLogLevel("*:DEBUG,process:TRACE,consensus:TRACE")
+	logger.ToggleLoggerName(true)
 
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)

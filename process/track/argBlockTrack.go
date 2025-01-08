@@ -8,11 +8,13 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // ArgBaseTracker holds all dependencies required by the process data factory in order to create
 // new instances of shard/meta block tracker
 type ArgBaseTracker struct {
+	Logger              logger.Logger
 	Hasher              hashing.Hasher
 	HeaderValidator     process.HeaderConstructionValidator
 	Marshalizer         marshal.Marshalizer

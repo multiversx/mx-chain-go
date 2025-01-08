@@ -3,7 +3,6 @@ package interceptedBlocks
 import (
 	"fmt"
 
-	"github.com/google/martian/log"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"

@@ -3105,7 +3105,15 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {
+	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/track/%s", id))
+
 	argBaseTracker := track.ArgBaseTracker{
+		Logger:              log,
 		Hasher:              TestHasher,
 		HeaderValidator:     tpn.HeaderValidator,
 		Marshalizer:         TestMarshalizer,

@@ -1,10 +1,12 @@
 package integrationTests
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -147,7 +149,15 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
+	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	logger := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       logger,
 		PoolsHolder:                  tpn.DataPool,
 		Store:                        tpn.Storage,
 		ChainHandler:                 tpn.BlockChain,
@@ -194,7 +204,15 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 }
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
+	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	logger := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       logger,
 		PoolsHolder:                  tpn.DataPool,
 		Store:                        tpn.Storage,
 		ChainHandler:                 tpn.BlockChain,
