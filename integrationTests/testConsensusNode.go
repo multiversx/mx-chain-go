@@ -226,13 +226,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
-	forkDetector, _ := syncFork.NewShardForkDetector(
-		roundHandler,
-		cache.NewTimeCache(time.Second),
-		&mock.BlockTrackerStub{},
-		args.StartTime,
-	)
-
 	tcn.initRequestersFinder()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
@@ -314,6 +307,20 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	cryptoComponents.SigHandler = sigHandler
 	cryptoComponents.KeysHandlerField = keysHandler
 
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.BlockChain = tcn.ChainHandler
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = createTestStore()
+
+	forkDetector, _ := syncFork.NewShardForkDetector(
+		roundHandler,
+		cache.NewTimeCache(time.Second),
+		&mock.BlockTrackerStub{},
+		args.StartTime,
+		enableEpochsHandler,
+		dataPool.Proofs(),
+	)
+
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
 	processComponents.ShardCoord = tcn.ShardCoordinator
@@ -333,11 +340,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
-
-	dataComponents := GetDefaultDataComponents()
-	dataComponents.BlockChain = tcn.ChainHandler
-	dataComponents.DataPool = dataPool
-	dataComponents.Store = createTestStore()
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB
