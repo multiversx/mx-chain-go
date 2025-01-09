@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -1002,7 +1003,7 @@ func computeTxGasAndFeeBasedOnRefund(
 		gasForFullPrice += extraGasLimitForGuarded
 	}
 
-	if result.ProcessingTypeOnSource == process.RelayedTxV3.String() {
+	if common.IsRelayedTxV3(initialTx) {
 		gasForFullPrice += uint64(minGasLimit) // relayer fee
 	}
 	gasForDeductedPrice := initialTx.GetGasLimit() - gasForFullPrice
