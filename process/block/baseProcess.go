@@ -64,6 +64,7 @@ type hdrInfo struct {
 }
 
 type baseProcessor struct {
+	log                     logger.Logger
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
 	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
@@ -171,14 +172,14 @@ func (bp *baseProcessor) checkBlockValidity(
 				return nil
 			}
 
-			log.Debug("hash does not match",
+			bp.log.Debug("hash does not match",
 				"local block hash", bp.blockChain.GetGenesisHeaderHash(),
 				"received previous hash", headerHandler.GetPrevHash())
 
 			return process.ErrBlockHashDoesNotMatch
 		}
 
-		log.Debug("nonce does not match",
+		bp.log.Debug("nonce does not match",
 			"local block nonce", 0,
 			"received nonce", headerHandler.GetNonce())
 
@@ -186,7 +187,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	}
 
 	if headerHandler.GetRound() <= currentBlockHeader.GetRound() {
-		log.Debug("round does not match",
+		bp.log.Debug("round does not match",
 			"local block round", currentBlockHeader.GetRound(),
 			"received block round", headerHandler.GetRound())
 
@@ -194,7 +195,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	}
 
 	if headerHandler.GetNonce() != currentBlockHeader.GetNonce()+1 {
-		log.Debug("nonce does not match",
+		bp.log.Debug("nonce does not match",
 			"local block nonce", currentBlockHeader.GetNonce(),
 			"received nonce", headerHandler.GetNonce())
 
@@ -202,7 +203,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetCurrentBlockHeaderHash()) {
-		log.Debug("hash does not match",
+		bp.log.Debug("hash does not match",
 			"local block hash", bp.blockChain.GetCurrentBlockHeaderHash(),
 			"received previous hash", headerHandler.GetPrevHash())
 
@@ -210,7 +211,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	}
 
 	if !bytes.Equal(headerHandler.GetPrevRandSeed(), currentBlockHeader.GetRandSeed()) {
-		log.Debug("random seed does not match",
+		bp.log.Debug("random seed does not match",
 			"local random seed", currentBlockHeader.GetRandSeed(),
 			"received previous random seed", headerHandler.GetPrevRandSeed())
 
@@ -241,7 +242,7 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 	}
 
 	if !bytes.Equal(additionalData.GetScheduledRootHash(), bp.getRootHash()) {
-		log.Debug("scheduled root hash does not match",
+		bp.log.Debug("scheduled root hash does not match",
 			"current root hash", bp.getRootHash(),
 			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
@@ -255,7 +256,7 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 	trieRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
-		log.Debug("verify account.RootHash", "error", err.Error())
+		bp.log.Debug("verify account.RootHash", "error", err.Error())
 	}
 
 	return bytes.Equal(trieRootHash, rootHash)
@@ -265,7 +266,7 @@ func (bp *baseProcessor) verifyStateRoot(rootHash []byte) bool {
 func (bp *baseProcessor) getRootHash() []byte {
 	rootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
-		log.Trace("get account.RootHash", "error", err.Error())
+		bp.log.Trace("get account.RootHash", "error", err.Error())
 	}
 
 	return rootHash
@@ -906,7 +907,7 @@ func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.Hea
 
 	scheduledMiniBlocks := bp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 	if len(scheduledMiniBlocks) > len(headerHandler.GetMiniBlockHeadersHashes()) {
-		log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "num mbs scheduled", len(scheduledMiniBlocks), "num mbs received", len(headerHandler.GetMiniBlockHeadersHashes()))
+		bp.log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "num mbs scheduled", len(scheduledMiniBlocks), "num mbs received", len(headerHandler.GetMiniBlockHeadersHashes()))
 		return process.ErrScheduledMiniBlocksMismatch
 	}
 
@@ -917,7 +918,7 @@ func (bp *baseProcessor) checkScheduledMiniBlocksValidity(headerHandler data.Hea
 		}
 
 		if !bytes.Equal(scheduledMiniBlockHash, headerHandler.GetMiniBlockHeadersHashes()[index]) {
-			log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "index", index, "scheduled mb hash", scheduledMiniBlockHash, "received mb hash", headerHandler.GetMiniBlockHeadersHashes()[index])
+			bp.log.Debug("baseProcessor.checkScheduledMiniBlocksValidity", "index", index, "scheduled mb hash", scheduledMiniBlockHash, "received mb hash", headerHandler.GetMiniBlockHeadersHashes()[index])
 			return process.ErrScheduledMiniBlocksMismatch
 		}
 	}
@@ -961,7 +962,7 @@ func (bp *baseProcessor) requestMissingFinalityAttestingHeaders(
 	}
 
 	if requestedHeaders > 0 {
-		log.Debug("requested missing finality attesting headers",
+		bp.log.Debug("requested missing finality attesting headers",
 			"num headers", requestedHeaders,
 			"shard", shardID)
 	}
@@ -995,7 +996,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
 		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 		if err != nil {
-			log.Warn("failed to cleanup notarized proofs behind nonce",
+			bp.log.Warn("failed to cleanup notarized proofs behind nonce",
 				"nonce", noncesToPrevFinal,
 				"shardID", bp.shardCoordinator.SelfId(),
 				"error", err)
@@ -1018,7 +1019,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 ) {
 	crossNotarizedHeader, _, err := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 	if err != nil {
-		displayCleanupErrorMessage("cleanupPoolsForCrossShard",
+		bp.displayCleanupErrorMessage("cleanupPoolsForCrossShard",
 			shardID,
 			noncesToPrevFinal,
 			err)
@@ -1034,7 +1035,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, crossNotarizedHeader.GetEpoch()) {
 		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
-			log.Warn("failed to cleanup notarized proofs behind nonce",
+			bp.log.Warn("failed to cleanup notarized proofs behind nonce",
 				"nonce", noncesToPrevFinal,
 				"shardID", shardID,
 				"error", err)
@@ -1076,7 +1077,7 @@ func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
 	for _, header := range headers {
 		errNotCritical := bp.removeBlockBodyOfHeader(header)
 		if errNotCritical != nil {
-			log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
+			bp.log.Debug("RemoveBlockDataFromPool", "error", errNotCritical.Error())
 		}
 	}
 }
@@ -1126,14 +1127,14 @@ func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *blo
 	var miniBlocks block.MiniBlockSlice
 
 	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
-		log.Warn("baseProcessor.getFinalMiniBlocks: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
+		bp.log.Warn("baseProcessor.getFinalMiniBlocks: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
 		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
 	}
 
 	for index, miniBlock := range body.MiniBlocks {
 		miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
 		if !miniBlockHeader.IsFinal() {
-			log.Debug("shardProcessor.getFinalMiniBlocks: do not remove from pool / broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			bp.log.Debug("shardProcessor.getFinalMiniBlocks: do not remove from pool / broadcast mini block which is not final", "mb hash", miniBlockHeader.GetHash())
 			continue
 		}
 
@@ -1158,7 +1159,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
 	selfNotarizedHeader, _, errSelfNotarized := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
 	if errSelfNotarized != nil {
-		displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
+		bp.displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetSelfNotarizedHeader",
 			shardID,
 			noncesToPrevFinal,
 			errSelfNotarized)
@@ -1171,7 +1172,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 	if shardID != bp.shardCoordinator.SelfId() {
 		crossNotarizedHeader, _, errCrossNotarized := bp.blockTracker.GetCrossNotarizedHeader(shardID, noncesToPrevFinal)
 		if errCrossNotarized != nil {
-			displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
+			bp.displayCleanupErrorMessage("cleanupBlockTrackerPoolsForShard.GetCrossNotarizedHeader",
 				shardID,
 				noncesToPrevFinal,
 				errCrossNotarized)
@@ -1187,7 +1188,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 		crossNotarizedNonce,
 	)
 
-	log.Trace("cleanupBlockTrackerPoolsForShard.CleanupHeadersBehindNonce",
+	bp.log.Trace("cleanupBlockTrackerPoolsForShard.CleanupHeadersBehindNonce",
 		"shard", shardID,
 		"self notarized nonce", selfNotarizedNonce,
 		"cross notarized nonce", crossNotarizedNonce,
@@ -1219,7 +1220,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
-		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
+		bp.log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
 
@@ -1248,7 +1249,7 @@ func (bp *baseProcessor) getLastCrossNotarizedHeaders() []bootstrapStorage.Boots
 func (bp *baseProcessor) getLastCrossNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
 	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := bp.blockTracker.GetLastCrossNotarizedHeader(shardID)
 	if err != nil {
-		log.Warn("getLastCrossNotarizedHeadersForShard",
+		bp.log.Warn("getLastCrossNotarizedHeadersForShard",
 			"shard", shardID,
 			"error", err.Error())
 		return nil
@@ -1292,7 +1293,7 @@ func (bp *baseProcessor) getLastSelfNotarizedHeaders() []bootstrapStorage.Bootst
 func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bootstrapStorage.BootstrapHeaderInfo {
 	lastSelfNotarizedHeader, lastSelfNotarizedHeaderHash, err := bp.blockTracker.GetLastSelfNotarizedHeader(shardID)
 	if err != nil {
-		log.Warn("getLastSelfNotarizedHeadersForShard",
+		bp.log.Warn("getLastSelfNotarizedHeadersForShard",
 			"shard", shardID,
 			"error", err.Error())
 		return nil
@@ -1350,7 +1351,7 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 	err := bp.marshalizer.Unmarshal(body, dta)
 	if err != nil {
-		log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
+		bp.log.Debug("DecodeBlockBody.Unmarshal", "error", err.Error())
 		return nil
 	}
 
@@ -1361,14 +1362,14 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 	startTime := time.Now()
 
 	bp.txCoordinator.SaveTxsToStorage(body)
-	log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
+	bp.log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
 
 	var errNotCritical error
 	var marshalizedMiniBlock []byte
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		marshalizedMiniBlock, errNotCritical = bp.marshalizer.Marshal(body.MiniBlocks[i])
 		if errNotCritical != nil {
-			log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
+			bp.log.Warn("saveBody.Marshal", "error", errNotCritical.Error())
 			continue
 		}
 
@@ -1379,7 +1380,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 				"saveBody.Put -> MiniBlockUnit",
 				"err", errNotCritical)
 		}
-		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
+		bp.log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
 
 	receiptsHolder := holders.NewReceiptsHolder(bp.txCoordinator.GetCreatedInShardMiniBlocks())
@@ -1394,7 +1395,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
-		log.Warn("saveBody", "elapsed time", elapsedTime)
+		bp.log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
 
@@ -1420,7 +1421,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
-		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
+		bp.log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
 
@@ -1445,7 +1446,7 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 
 	elapsedTime := time.Since(startTime)
 	if elapsedTime >= common.PutInStorerMaxTime {
-		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
+		bp.log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
 }
 
@@ -1461,7 +1462,7 @@ func getLastSelfNotarizedHeaderByItself(chainHandler data.ChainHandler) (data.He
 }
 
 func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
-	log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
+	bp.log.Debug("baseProcessor.setFinalizedHeaderHashInIndexer", "finalized header hash", hdrHash)
 
 	bp.outportHandler.FinalizedBlock(&outportcore.FinalizedBlock{ShardID: bp.shardCoordinator.SelfId(), HeaderHash: hdrHash})
 }
@@ -1494,7 +1495,7 @@ func (bp *baseProcessor) revertAccountState() {
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(0)
 		if err != nil {
-			log.Debug("RevertToSnapshot", "error", err.Error())
+			bp.log.Debug("RevertToSnapshot", "error", err.Error())
 		}
 	}
 }
@@ -1503,7 +1504,7 @@ func (bp *baseProcessor) revertScheduledInfo() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
-		log.Trace("baseProcessor.revertScheduledInfo", "error", err.Error())
+		bp.log.Trace("baseProcessor.revertScheduledInfo", "error", err.Error())
 		scheduledInfo := &process.ScheduledInfo{
 			RootHash:        header.GetRootHash(),
 			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
@@ -1540,7 +1541,7 @@ func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.A
 	for key := range bp.accountsDB {
 		err := bp.accountsDB[key].RevertToSnapshot(accountsSnapshot[key])
 		if err != nil {
-			log.Debug("RevertAccountsDBToSnapshot", "error", err.Error())
+			bp.log.Debug("RevertAccountsDBToSnapshot", "error", err.Error())
 		}
 	}
 }
@@ -1623,7 +1624,7 @@ func (bp *baseProcessor) PruneStateOnRollback(currHeader data.HeaderHandler, cur
 
 func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
 	if finalHeaderNonce-bp.lastRestartNonce <= uint64(bp.pruningDelay) {
-		log.Debug("will skip pruning",
+		bp.log.Debug("will skip pruning",
 			"finalHeaderNonce", finalHeaderNonce,
 			"last restart nonce", bp.lastRestartNonce,
 			"num blocks for pruning delay", bp.pruningDelay,
@@ -1659,17 +1660,17 @@ func (bp *baseProcessor) displayMiniBlocksPool() {
 	for _, hash := range miniBlocksPool.Keys() {
 		value, ok := miniBlocksPool.Get(hash)
 		if !ok {
-			log.Debug("displayMiniBlocksPool: mini block not found", "hash", logger.DisplayByteSlice(hash))
+			bp.log.Debug("displayMiniBlocksPool: mini block not found", "hash", logger.DisplayByteSlice(hash))
 			continue
 		}
 
 		miniBlock, ok := value.(*block.MiniBlock)
 		if !ok {
-			log.Debug("displayMiniBlocksPool: wrong type assertion", "hash", logger.DisplayByteSlice(hash))
+			bp.log.Debug("displayMiniBlocksPool: wrong type assertion", "hash", logger.DisplayByteSlice(hash))
 			continue
 		}
 
-		log.Trace("mini block in pool",
+		bp.log.Trace("mini block in pool",
 			"hash", logger.DisplayByteSlice(hash),
 			"type", miniBlock.Type,
 			"sender", miniBlock.SenderShardID,
@@ -1690,19 +1691,19 @@ func trimSliceBootstrapHeaderInfo(in []bootstrapStorage.BootstrapHeaderInfo) []b
 
 func (bp *baseProcessor) restoreBlockBody(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) {
 	if check.IfNil(bodyHandler) {
-		log.Debug("restoreMiniblocks nil bodyHandler")
+		bp.log.Debug("restoreMiniblocks nil bodyHandler")
 		return
 	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
-		log.Debug("restoreMiniblocks wrong type assertion for bodyHandler")
+		bp.log.Debug("restoreMiniblocks wrong type assertion for bodyHandler")
 		return
 	}
 
 	_, errNotCritical := bp.txCoordinator.RestoreBlockDataFromStorage(body)
 	if errNotCritical != nil {
-		log.Debug("restoreBlockBody RestoreBlockDataFromStorage", "error", errNotCritical.Error())
+		bp.log.Debug("restoreBlockBody RestoreBlockDataFromStorage", "error", errNotCritical.Error())
 	}
 
 	go bp.txCounter.headerReverted(headerHandler)
@@ -1730,7 +1731,7 @@ func (bp *baseProcessor) RestoreBlockBodyIntoPools(bodyHandler data.BodyHandler)
 func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHandler) {
 	lastCrossNotarizedHeader, _, err := bp.blockTracker.GetLastCrossNotarizedHeader(headerHandler.GetShardID())
 	if err != nil {
-		log.Debug("requestMiniBlocksIfNeeded.GetLastCrossNotarizedHeader",
+		bp.log.Debug("requestMiniBlocksIfNeeded.GetLastCrossNotarizedHeader",
 			"shard", headerHandler.GetShardID(),
 			"error", err.Error())
 		return
@@ -1765,7 +1766,7 @@ func (bp *baseProcessor) recordBlockInHistory(blockHeaderHash []byte, blockHeade
 		if core.IsClosingError(err) {
 			logLevel = logger.LogDebug
 		}
-		log.Log(logLevel, "historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
+		bp.log.Log(logLevel, "historyRepo.RecordBlock()", "blockHeaderHash", blockHeaderHash, "error", err.Error())
 	}
 }
 
@@ -1773,7 +1774,7 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	headersPool := bp.dataPool.Headers()
 	headers, hashes, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
 	if err != nil {
-		log.Trace("baseProcessor.addHeaderIntoTrackerPool", "error", err.Error())
+		bp.log.Trace("baseProcessor.addHeaderIntoTrackerPool", "error", err.Error())
 		return
 	}
 
@@ -1841,7 +1842,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		if errUnmarshal != nil {
 			numCodeLeaves++
 			totalSizeCodeLeaves += len(leaf.Value())
-			log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
+			bp.log.Trace("cannot unmarshal user account. it may be a code leaf", "error", errUnmarshal)
 			continue
 		}
 
@@ -1902,7 +1903,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 			"from which totalSizeAccountsDataTries", totalSizeAccountsDataTries}...)
 	}
 
-	log.Debug("sum of addresses in shard at epoch start", stats...)
+	bp.log.Debug("sum of addresses in shard at epoch start", stats...)
 
 	return nil
 }
@@ -1958,7 +1959,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 		bp.processStatusHandler.SetIdle()
 	}()
 
-	scheduledMiniBlocksFromMe, err := getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
+	scheduledMiniBlocksFromMe, err := bp.getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
 	if err != nil {
 		return err
 	}
@@ -1970,7 +1971,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	startTime := time.Now()
 	err = bp.scheduledTxsExecutionHandler.ExecuteAll(haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to execute all scheduled transactions",
+	bp.log.Debug("elapsed time to execute all scheduled transactions",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -1986,21 +1987,21 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 
 	finalProcessingGasAndFees := bp.getGasAndFeesWithScheduled()
 
-	scheduledProcessingGasAndFees := gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
+	scheduledProcessingGasAndFees := bp.gasAndFeesDelta(normalProcessingGasAndFees, finalProcessingGasAndFees)
 	bp.scheduledTxsExecutionHandler.SetScheduledRootHash(rootHash)
 	bp.scheduledTxsExecutionHandler.SetScheduledGasAndFees(scheduledProcessingGasAndFees)
 
 	return nil
 }
 
-func getScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
+func (bp *baseProcessor) getScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
 	if len(body.MiniBlocks) != len(headerHandler.GetMiniBlockHeaderHandlers()) {
-		log.Warn("getScheduledMiniBlocksFromMe: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(headerHandler.GetMiniBlockHeaderHandlers()))
+		bp.log.Warn("getScheduledMiniBlocksFromMe: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(headerHandler.GetMiniBlockHeaderHandlers()))
 		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
 	}
 
@@ -2033,13 +2034,13 @@ func (bp *baseProcessor) getGasAndFeesWithScheduled() scheduled.GasAndFees {
 	return gasAndFees
 }
 
-func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
+func (bp *baseProcessor) gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
 	zero := big.NewInt(0)
 	result := process.GetZeroGasAndFees()
 
 	deltaAccumulatedFees := big.NewInt(0).Sub(finalGasAndFees.AccumulatedFees, initialGasAndFees.AccumulatedFees)
 	if deltaAccumulatedFees.Cmp(zero) < 0 {
-		log.Error("gasAndFeesDelta",
+		bp.log.Error("gasAndFeesDelta",
 			"initial accumulatedFees", initialGasAndFees.AccumulatedFees.String(),
 			"final accumulatedFees", finalGasAndFees.AccumulatedFees.String(),
 			"error", process.ErrNegativeValue)
@@ -2048,7 +2049,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 
 	deltaDevFees := big.NewInt(0).Sub(finalGasAndFees.DeveloperFees, initialGasAndFees.DeveloperFees)
 	if deltaDevFees.Cmp(zero) < 0 {
-		log.Error("gasAndFeesDelta",
+		bp.log.Error("gasAndFeesDelta",
 			"initial devFees", initialGasAndFees.DeveloperFees.String(),
 			"final devFees", finalGasAndFees.DeveloperFees.String(),
 			"error", process.ErrNegativeValue)
@@ -2057,7 +2058,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 
 	deltaGasProvided := int64(finalGasAndFees.GasProvided) - int64(initialGasAndFees.GasProvided)
 	if deltaGasProvided < 0 {
-		log.Error("gasAndFeesDelta",
+		bp.log.Error("gasAndFeesDelta",
 			"initial gasProvided", initialGasAndFees.GasProvided,
 			"final gasProvided", finalGasAndFees.GasProvided,
 			"error", process.ErrNegativeValue)
@@ -2066,7 +2067,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 
 	deltaGasPenalized := int64(finalGasAndFees.GasPenalized) - int64(initialGasAndFees.GasPenalized)
 	if deltaGasPenalized < 0 {
-		log.Error("gasAndFeesDelta",
+		bp.log.Error("gasAndFeesDelta",
 			"initial gasPenalized", initialGasAndFees.GasPenalized,
 			"final gasPenalized", finalGasAndFees.GasPenalized,
 			"error", process.ErrNegativeValue)
@@ -2075,7 +2076,7 @@ func gasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) sc
 
 	deltaGasRefunded := int64(finalGasAndFees.GasRefunded) - int64(initialGasAndFees.GasRefunded)
 	if deltaGasRefunded < 0 {
-		log.Error("gasAndFeesDelta",
+		bp.log.Error("gasAndFeesDelta",
 			"initial gasRefunded", initialGasAndFees.GasRefunded,
 			"final gasRefunded", finalGasAndFees.GasRefunded,
 			"error", process.ErrNegativeValue)
@@ -2098,7 +2099,7 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 
 	for index, miniBlockHeaderHandler := range header.GetMiniBlockHeaderHandlers() {
 		if miniBlockHeaderHandler.GetProcessingType() == int32(block.Processed) {
-			log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
+			bp.log.Debug("baseProcessor.getIndexOfFirstMiniBlockToBeExecuted: mini block is already executed",
 				"mb hash", miniBlockHeaderHandler.GetHash(),
 				"mb index", index)
 			continue
@@ -2110,7 +2111,7 @@ func (bp *baseProcessor) getIndexOfFirstMiniBlockToBeExecuted(header data.Header
 	return len(header.GetMiniBlockHeaderHandlers())
 }
 
-func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
+func (bp *baseProcessor) displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFinal uint64, err error) {
 	// 2 blocks on shard + 2 blocks on meta + 1 block to previous final
 	maxNoncesToPrevFinalWithoutWarn := uint64(process.BlockFinality+1)*2 + 1
 	level := logger.LogWarning
@@ -2118,7 +2119,7 @@ func displayCleanupErrorMessage(message string, shardID uint32, noncesToPrevFina
 		level = logger.LogDebug
 	}
 
-	log.Log(level, message,
+	bp.log.Log(level, message,
 		"shard", shardID,
 		"nonces to previous final", noncesToPrevFinal,
 		"error", err.Error())
