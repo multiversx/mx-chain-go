@@ -6,10 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("common/enablers")
@@ -713,11 +714,11 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
 		},
-		common.StakingQueueFlag: {
+		common.CleanupAuctionOnLowWaitingListFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+				return epoch >= handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch,
 		},
 		common.StakingV4StartedFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -731,11 +732,53 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
 		},
+		common.UseGasBoundedShouldFailExecutionFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch,
+		},
 		common.DynamicESDTFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.DynamicESDTEnableEpoch,
+		},
+		common.EGLDInESDTMultiTransferFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch,
+		},
+		common.CryptoOpcodesV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
+		},
+		common.UnJailCleanupFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UnJailCleanupEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
+		},
+		common.FixRelayedBaseCostFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
+		},
+		common.MultiESDTNFTTransferAndExecuteByUserFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch,
+		},
+		common.FixRelayedMoveBalanceToNonPayableSCFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch,
 		},
 	}
 }

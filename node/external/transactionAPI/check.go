@@ -1,6 +1,8 @@
 package transactionAPI
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -41,6 +43,12 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	}
 	if check.IfNilReflect(arg.DataFieldParser) {
 		return ErrNilDataFieldParser
+	}
+	if check.IfNil(arg.TxMarshaller) {
+		return fmt.Errorf("%w for tx marshaller", process.ErrNilMarshalizer)
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil

@@ -304,6 +304,11 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
+// GetSCRsByTxHash will return a list of smart contract results based on a provided tx hash and smart contract result hash
+func (nf *nodeFacade) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	return nf.apiResolver.GetSCRsByTxHash(txHash, scrHash)
+}
+
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
 func (nf *nodeFacade) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	return nf.apiResolver.GetTransactionsPool(fields)
@@ -336,7 +341,19 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 
 // GetAccount returns a response containing information about the account correlated with provided address
 func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
-	accountResponse, blockInfo, err := nf.node.GetAccount(address, options)
+	var accountResponse apiData.AccountResponse
+	var blockInfo apiData.BlockInfo
+	var err error
+
+	if options.WithKeys {
+		ctx, cancel := nf.getContextForApiTrieRangeOperations()
+		defer cancel()
+
+		accountResponse, blockInfo, err = nf.node.GetAccountWithKeys(address, options, ctx)
+	} else {
+		accountResponse, blockInfo, err = nf.node.GetAccount(address, options)
+	}
+
 	if err != nil {
 		return apiData.AccountResponse{}, apiData.BlockInfo{}, err
 	}
@@ -359,13 +376,19 @@ func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQue
 	response := make(map[string]*apiData.AccountResponse)
 	var blockInfo apiData.BlockInfo
 
-	for _, address := range addresses {
+	for i, address := range addresses {
 		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
 		if err != nil {
 			return nil, apiData.BlockInfo{}, err
 		}
-
-		blockInfo = blockInfoForAccount
+		// Use the first block info as the block info for the whole bulk
+		if i == 0 {
+			blockInfo = blockInfoForAccount
+			blockRootHash, errBlockRootHash := hex.DecodeString(blockInfoForAccount.RootHash)
+			if errBlockRootHash == nil {
+				options.BlockRootHash = blockRootHash
+			}
+		}
 
 		codeHash := accountResponse.CodeHash
 		code, _ := nf.node.GetCode(codeHash, options)

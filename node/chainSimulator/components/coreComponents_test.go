@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
@@ -72,6 +73,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						MaxGasLimitPerTx:            "10000000000",
 						MinGasLimit:                 "10",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPriceModifier:       0.01,
@@ -124,15 +126,17 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				},
 			},
 		},
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
-		InitialRound:        0,
-		NodesSetupPath:      "../../../sharding/mock/testdata/nodesSetupMock.json",
-		GasScheduleFilename: "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
-		NumShards:           3,
-		WorkingDir:          ".",
-		MinNodesPerShard:    1,
-		MinNodesMeta:        1,
-		RoundDurationInMs:   6000,
+		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
+		InitialRound:                0,
+		NodesSetupPath:              "../../../sharding/mock/testdata/nodesSetupMock.json",
+		GasScheduleFilename:         "../../../cmd/node/config/gasSchedules/gasScheduleV8.toml",
+		NumShards:                   3,
+		WorkingDir:                  ".",
+		MinNodesPerShard:            1,
+		MinNodesMeta:                1,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		RoundDurationInMs:           6000,
 	}
 }
 

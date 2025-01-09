@@ -26,6 +26,7 @@ type gasConfig struct {
 	maxGasLimitPerTx            uint64
 	minGasLimit                 uint64
 	extraGasLimitGuardedTx      uint64
+	maxGasHigherFactorAccepted  uint64
 }
 
 type gasConfigHandler struct {
@@ -111,6 +112,12 @@ func (handler *gasConfigHandler) getMaxGasLimitPerMetaMiniBlock(epoch uint32) ui
 func (handler *gasConfigHandler) getMaxGasLimitPerMiniBlock(epoch uint32) uint64 {
 	gc := handler.getGasConfigForEpoch(epoch)
 	return gc.maxGasLimitPerMiniBlock
+}
+
+// getMaxGasLimitPerMiniBlock returns max gas limit per mini block in a specific epoch
+func (handler *gasConfigHandler) getGasHigherFactorAccepted(epoch uint32) uint64 {
+	gc := handler.getGasConfigForEpoch(epoch)
+	return gc.maxGasHigherFactorAccepted
 }
 
 // getMaxGasLimitPerBlockForSafeCrossShard returns maximum gas limit per block for safe cross shard in a specific epoch
@@ -225,6 +232,11 @@ func checkAndParseGasLimitSettings(gasLimitSetting config.GasLimitSetting) (*gas
 		return nil, fmt.Errorf("%w for epoch %d", process.ErrInvalidExtraGasLimitGuardedTx, gasLimitSetting.EnableEpoch)
 	}
 
+	gc.maxGasHigherFactorAccepted, err = strconv.ParseUint(gasLimitSetting.MaxGasHigherFactorAccepted, conversionBase, bitConversionSize)
+	if err != nil {
+		return nil, fmt.Errorf("%w for epoch %d", process.ErrInvalidMaxGasHigherFactorAccepted, gasLimitSetting.EnableEpoch)
+	}
+
 	if gc.maxGasLimitPerBlock < gc.minGasLimit {
 		return nil, fmt.Errorf("%w: maxGasLimitPerBlock = %d minGasLimit = %d in epoch %d", process.ErrInvalidMaxGasLimitPerBlock, gc.maxGasLimitPerBlock, gc.minGasLimit, gasLimitSetting.EnableEpoch)
 	}
@@ -239,6 +251,9 @@ func checkAndParseGasLimitSettings(gasLimitSetting config.GasLimitSetting) (*gas
 	}
 	if gc.maxGasLimitPerTx < gc.minGasLimit {
 		return nil, fmt.Errorf("%w: maxGasLimitPerTx = %d minGasLimit = %d in epoch %d", process.ErrInvalidMaxGasLimitPerTx, gc.maxGasLimitPerTx, gc.minGasLimit, gasLimitSetting.EnableEpoch)
+	}
+	if gc.maxGasHigherFactorAccepted < 1 {
+		return nil, fmt.Errorf("%w for epoch %d, it is set to 0", process.ErrInvalidMaxGasHigherFactorAccepted, gasLimitSetting.EnableEpoch)
 	}
 
 	return gc, nil
