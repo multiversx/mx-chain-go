@@ -202,6 +202,20 @@ func TestLeavesRetriever_GetLeaves(t *testing.T) {
 		assert.Equal(t, 0, len(id))
 		assert.Equal(t, leavesRetriever.ErrIteratorNotFound, err)
 	})
+	t.Run("max size reached on the first iteration", func(t *testing.T) {
+		t.Parallel()
+
+		tr := trieTest.GetTrieWithData()
+		rootHash, _ := tr.RootHash()
+		maxSize := uint64(100)
+
+		lr, _ := leavesRetriever.NewLeavesRetriever(tr.GetStorageManager(), &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{}, maxSize)
+		leaves, id1, err := lr.GetLeaves(10, rootHash, []byte(""), context.Background())
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(leaves))
+		assert.Equal(t, 0, len(id1))
+		assert.Equal(t, 0, len(lr.GetIterators()))
+	})
 }
 
 func TestLeavesRetriever_Concurrency(t *testing.T) {

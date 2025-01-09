@@ -385,7 +385,7 @@ type TrieNodeData interface {
 
 // DfsIterator is used to iterate the trie nodes in a depth-first search manner
 type DfsIterator interface {
-	GetLeaves(numLeaves int, ctx context.Context) (map[string]string, error)
+	GetLeaves(numLeaves int, maxSize uint64, ctx context.Context) (map[string]string, error)
 	GetIteratorId() []byte
 	Clone() DfsIterator
 	FinishedIteration() bool

@@ -53,11 +53,14 @@ func NewIterator(rootHash []byte, db common.TrieStorageInteractor, marshaller ma
 }
 
 // GetLeaves retrieves leaves from the trie. It stops either when the number of leaves is reached or the context is done.
-// TODO add a maxSize that will stop the iteration when the size is reached
-func (it *dfsIterator) GetLeaves(numLeaves int, ctx context.Context) (map[string]string, error) {
+func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Context) (map[string]string, error) {
 	retrievedLeaves := make(map[string]string)
 	for {
 		nextNodes := make([]common.TrieNodeData, 0)
+		if it.size >= maxSize {
+			return retrievedLeaves, nil
+		}
+
 		if len(retrievedLeaves) >= numLeaves {
 			return retrievedLeaves, nil
 		}
@@ -140,7 +143,6 @@ func (it *dfsIterator) IsInterfaceNil() bool {
 	return it == nil
 }
 
-// TODO add context nil test
 func checkContextDone(ctx context.Context) bool {
 	if ctx == nil {
 		return false

@@ -53,3 +53,19 @@ func AddDataToTrie(tr common.Trie, numLeaves int) {
 	}
 	_ = tr.Commit()
 }
+
+// GetTrieWithData returns a trie with some data.
+// The added data builds a rootNode that is a branch with 2 leaves and 1 extension node which will have 4 leaves when traversed;
+// this way the size of the iterator will be highest when the extension node is reached but 2 leaves will
+// have already been retrieved
+func GetTrieWithData() common.Trie {
+	tr := GetNewTrie()
+	_ = tr.Update([]byte("key1"), []byte("value1"))
+	_ = tr.Update([]byte("key2"), []byte("value2"))
+	_ = tr.Update([]byte("key13"), []byte("value3"))
+	_ = tr.Update([]byte("key23"), []byte("value4"))
+	_ = tr.Update([]byte("key33"), []byte("value4"))
+	_ = tr.Update([]byte("key43"), []byte("value4"))
+	_ = tr.Commit()
+	return tr
+}

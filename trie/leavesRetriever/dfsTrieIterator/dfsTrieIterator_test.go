@@ -3,6 +3,7 @@ package dfsTrieIterator
 import (
 	"context"
 	"fmt"
+	"math"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -13,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 )
+
+var maxSize = uint64(math.MaxUint64)
 
 func TestNewIterator(t *testing.T) {
 	t.Parallel()
@@ -94,7 +97,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator(rootHash, dbWrapper, marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(numLeaves, ctx)
+		trieData, err := iterator.GetLeaves(numLeaves, maxSize, ctx)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedNumLeaves, len(trieData))
 	})
@@ -109,7 +112,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator(rootHash, tr.GetStorageManager(), marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(numLeaves, context.Background())
+		trieData, err := iterator.GetLeaves(numLeaves, maxSize, context.Background())
 		assert.Nil(t, err)
 		assert.Equal(t, numLeaves, len(trieData))
 	})
@@ -125,7 +128,22 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator(rootHash, tr.GetStorageManager(), marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(17, context.Background())
+		trieData, err := iterator.GetLeaves(17, maxSize, context.Background())
+		assert.Nil(t, err)
+		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
+	})
+	t.Run("max size reached returns retrieved leaves and saves iterator context", func(t *testing.T) {
+		t.Parallel()
+
+		tr := trieTest.GetTrieWithData()
+		expectedNumRetrievedLeaves := 2
+		rootHash, _ := tr.RootHash()
+
+		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
+		iterator, _ := NewIterator(rootHash, tr.GetStorageManager(), marshaller, hasher)
+
+		iteratorMaxSize := uint64(100)
+		trieData, err := iterator.GetLeaves(5, iteratorMaxSize, context.Background())
 		assert.Nil(t, err)
 		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
 	})
@@ -142,7 +160,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		numRetrievedLeaves := 0
 		numIterations := 0
 		for numRetrievedLeaves < numLeaves {
-			trieData, err := iterator.GetLeaves(5, context.Background())
+			trieData, err := iterator.GetLeaves(5, maxSize, context.Background())
 			assert.Nil(t, err)
 
 			numRetrievedLeaves += len(trieData)
@@ -151,6 +169,22 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 
 		assert.Equal(t, numLeaves, numRetrievedLeaves)
 		assert.Equal(t, 5, numIterations)
+	})
+	t.Run("retrieve leaves with nil iterator does not panic", func(t *testing.T) {
+		t.Parallel()
+
+		tr := trieTest.GetNewTrie()
+		numLeaves := 25
+		expectedNumRetrievedLeaves := 25
+		trieTest.AddDataToTrie(tr, numLeaves)
+		rootHash, _ := tr.RootHash()
+
+		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
+		iterator, _ := NewIterator(rootHash, tr.GetStorageManager(), marshaller, hasher)
+
+		trieData, err := iterator.GetLeaves(numLeaves, maxSize, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
 	})
 }
 
@@ -169,7 +203,7 @@ func TestDfsIterator_GetIteratorId(t *testing.T) {
 		iteratorId := hasher.Compute(string(append(rootHash, iterator.nextNodes[0].GetData()...)))
 		assert.Equal(t, iteratorId, iterator.GetIteratorId())
 
-		trieData, err := iterator.GetLeaves(5, context.Background())
+		trieData, err := iterator.GetLeaves(5, maxSize, context.Background())
 		assert.Nil(t, err)
 
 		numRetrievedLeaves += len(trieData)
@@ -211,7 +245,7 @@ func TestDfsIterator_FinishedIteration(t *testing.T) {
 	numRetrievedLeaves := 0
 	for numRetrievedLeaves < numLeaves {
 		assert.False(t, iterator.FinishedIteration())
-		trieData, err := iterator.GetLeaves(5, context.Background())
+		trieData, err := iterator.GetLeaves(5, maxSize, context.Background())
 		assert.Nil(t, err)
 
 		numRetrievedLeaves += len(trieData)
@@ -237,23 +271,23 @@ func TestDfsIterator_Size(t *testing.T) {
 	iterator, _ := NewIterator(rootHash, tr.GetStorageManager(), marshaller, hasher)
 	assert.Equal(t, uint64(362), iterator.Size()) // 10 branch nodes + 1 root hash
 
-	_, err := iterator.GetLeaves(5, context.Background())
+	_, err := iterator.GetLeaves(5, maxSize, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(331), iterator.Size()) // 8 branch nodes + 1 leaf node + 1 root hash
 
-	_, err = iterator.GetLeaves(5, context.Background())
+	_, err = iterator.GetLeaves(5, maxSize, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(300), iterator.Size()) // 6 branch nodes + 2 leaf node + 1 root hash
 
-	_, err = iterator.GetLeaves(5, context.Background())
+	_, err = iterator.GetLeaves(5, maxSize, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(197), iterator.Size()) // 5 branch nodes  + 1 root hash
 
-	_, err = iterator.GetLeaves(5, context.Background())
+	_, err = iterator.GetLeaves(5, maxSize, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(133), iterator.Size()) // 2 branch nodes  + 1 leaf node + 1 root hash
 
-	_, err = iterator.GetLeaves(5, context.Background())
+	_, err = iterator.GetLeaves(5, maxSize, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, uint64(32), iterator.Size()) // 1 root hash
 }

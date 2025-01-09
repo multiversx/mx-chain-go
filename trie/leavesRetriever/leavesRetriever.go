@@ -78,7 +78,7 @@ func (lr *leavesRetriever) getLeavesFromCheckpoint(numLeaves int, iterator commo
 }
 
 func (lr *leavesRetriever) getLeavesFromIterator(iterator common.DfsIterator, numLeaves int, ctx context.Context) (map[string]string, []byte, error) {
-	leaves, err := iterator.GetLeaves(numLeaves, ctx)
+	leaves, err := iterator.GetLeaves(numLeaves, lr.maxSize, ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -92,27 +92,39 @@ func (lr *leavesRetriever) getLeavesFromIterator(iterator common.DfsIterator, nu
 		return leaves, nil, nil
 	}
 
-	lr.manageIterators(iteratorId, iterator)
+	shouldReturnId := lr.manageIterators(iteratorId, iterator)
+	if !shouldReturnId {
+		return leaves, nil, nil
+	}
 	return leaves, iteratorId, nil
 }
 
-func (lr *leavesRetriever) manageIterators(iteratorId []byte, iterator common.DfsIterator) {
+func (lr *leavesRetriever) manageIterators(iteratorId []byte, iterator common.DfsIterator) bool {
 	lr.mutex.Lock()
 	defer lr.mutex.Unlock()
 
-	lr.saveIterator(iteratorId, iterator)
+	newIteratorPresent := lr.saveIterator(iteratorId, iterator)
+	if !newIteratorPresent {
+		return false
+	}
 	lr.removeIteratorsIfMaxSizeIsExceeded()
+	return true
 }
 
-func (lr *leavesRetriever) saveIterator(iteratorId []byte, iterator common.DfsIterator) {
+func (lr *leavesRetriever) saveIterator(iteratorId []byte, iterator common.DfsIterator) bool {
 	_, isPresent := lr.iterators[string(iteratorId)]
 	if isPresent {
-		return
+		return true
+	}
+
+	if iterator.Size() >= lr.maxSize {
+		return false
 	}
 
 	lr.lruIteratorIDs = append(lr.lruIteratorIDs, iteratorId)
 	lr.iterators[string(iteratorId)] = iterator
 	lr.size += iterator.Size() + uint64(len(iteratorId))
+	return true
 }
 
 func (lr *leavesRetriever) markIteratorAsRecentlyUsed(iteratorId []byte) {
