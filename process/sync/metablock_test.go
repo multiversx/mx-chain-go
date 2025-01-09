@@ -1887,7 +1887,7 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("should return nil if first block after activation", func(t *testing.T) {
+	t.Run("should fail if first block after activation and no proof for it", func(t *testing.T) {
 		t.Parallel()
 
 		prevHeader := &block.MetaBlock{
@@ -1932,7 +1932,7 @@ func TestMetaBootstrap_HandleEquivalentProof(t *testing.T) {
 		require.Nil(t, err)
 
 		err = bs.HandleEquivalentProof(header, headerHash1)
-		require.Nil(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("should work, proof already in pool", func(t *testing.T) {

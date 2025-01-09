@@ -716,17 +716,6 @@ func (boot *baseBootstrap) handleEquivalentProof(
 		return nil
 	}
 
-	prevHeader, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(header.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevHeader.GetEpoch()) {
-		// no need to check proof for first block after activation
-		log.Info("handleEquivalentProof: no need to check equivalent proof for first activation block")
-		return nil
-	}
-
 	// process block only if there is a proof for it
 	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
 	if hasProof {
@@ -735,7 +724,7 @@ func (boot *baseBootstrap) handleEquivalentProof(
 
 	log.Trace("baseBootstrap.handleEquivalentProof: did not have proof for header, will try again", "headerHash", headerHash)
 
-	_, _, err = boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
+	_, _, err := boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
 	if err != nil {
 		return err
 	}
