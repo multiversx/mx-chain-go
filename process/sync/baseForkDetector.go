@@ -714,7 +714,7 @@ func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler)
 	hInfo := &headerInfo{
 		epoch:    proof.GetHeaderEpoch(),
 		nonce:    proof.GetHeaderNonce(),
-		round:    0, // TODO: add the round on the proof as well
+		round:    proof.GetHeaderRound(),
 		hash:     proof.GetHeaderHash(),
 		state:    process.BHReceived,
 		hasProof: true,
