@@ -76,6 +76,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+	blockProcessorLogger := logger.GetOrCreate(fmt.Sprintf("p/b/%s", id))
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -107,10 +115,11 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		Logger:                       blockProcessorLogger,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(nil, tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewMetaForkDetector(log, tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -131,7 +140,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(nil, tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
+		tpn.ForkDetector, _ = sync.NewShardForkDetector(log, tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, 0)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -149,7 +158,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
-	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
 	if len(id) > 8 {
 		id = id[0:8]
 	}
@@ -204,7 +213,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 }
 
 func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, error) {
-	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
 	if len(id) > 8 {
 		id = id[0:8]
 	}

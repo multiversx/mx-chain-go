@@ -2174,7 +2174,10 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
-	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())[0:8]
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
 
 	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
 
@@ -2216,6 +2219,13 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	id = hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	logger := logger.GetOrCreate(fmt.Sprintf("p/b/%s", id))
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -2246,6 +2256,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		Logger:                       logger,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -3105,7 +3116,7 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {
-	id := hex.EncodeToString(tpn.NodesCoordinator.GetOwnPublicKey())
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
 	if len(id) > 8 {
 		id = id[0:8]
 	}
