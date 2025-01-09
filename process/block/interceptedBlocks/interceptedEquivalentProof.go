@@ -86,6 +86,7 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 		"header shard", headerProof.HeaderShardId,
 		"header epoch", headerProof.HeaderEpoch,
 		"header nonce", headerProof.HeaderNonce,
+		"header round", headerProof.HeaderRound,
 		"bitmap", logger.DisplayByteSlice(headerProof.PubKeysBitmap),
 		"signature", logger.DisplayByteSlice(headerProof.AggregatedSignature),
 	)
