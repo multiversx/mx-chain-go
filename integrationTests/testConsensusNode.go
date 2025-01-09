@@ -449,14 +449,6 @@ func (tcn *TestConsensusNode) initInterceptors(
 
 	blockBlackListHandler := cache.NewTimeCache(TimeSpanForBadHeaders)
 
-	// argsNewEconomicsData := economics.ArgsNewEconomicsData{
-	// 	Economics:           &config.EconomicsConfig{},
-	// 	EpochNotifier:       genericEpochNotifier,
-	// 	EnableEpochsHandler: enableEpochsHandler,
-	// 	TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-	// }
-	// economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
-
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	blockTracker := processMock.NewBlockTrackerMock(tcn.ShardCoordinator, genesisBlocks)
 
@@ -465,8 +457,6 @@ func (tcn *TestConsensusNode) initInterceptors(
 	cacherVerifiedCfg := storageunit.CacheConfig{Capacity: 5000, Type: storageunit.LRUCache, Shards: 1}
 	cacheVerified, _ := storageunit.NewCache(cacherVerifiedCfg)
 	whiteListerVerifiedTxs, _ := interceptors.NewWhiteListDataVerifier(cacheVerified)
-
-	tcn.initRequesters()
 
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
@@ -580,64 +570,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		// interceptorsContainer := &testscommon.InterceptorsContainerStub{
-		// 	GetCalled: func(topic string) (process.Interceptor, error) {
-		// 		var hdl func(handler func(topic string, hash []byte, data interface{}))
-		// 		switch topic {
-		// 		case "shardBlocks_0_META":
-		// 			hdl = registerHandlerHeaders
-		// 		case "txBlockBodies_0_1":
-		// 		case "txBlockBodies_0_META":
-		// 			hdl = registerHandlerMiniblocks
-		// 		default:
-		// 			return nil, errors.New("unexpected topic")
-		// 		}
-
-		// 		return &testscommon.InterceptorStub{
-		// 			RegisterHandlerCalled: hdl,
-		// 		}, nil
-		// 	},
-		// }
 	}
-}
-
-func (tcn *TestConsensusNode) initRequesters() {
-	// whiteListHandler, _ := disabledInterceptors.NewDisabledWhiteListDataVerifier()
-
-	// requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
-	// 	RequesterConfig: config.RequesterConfig{
-	// 		NumCrossShardPeers:  2,
-	// 		NumTotalPeers:       3,
-	// 		NumFullHistoryPeers: 3,
-	// 	},
-	// 	ShardCoordinator:                tcn.ShardCoordinator,
-	// 	MainMessenger:                   tcn.MainMessenger,
-	// 	FullArchiveMessenger:            tcn.FullArchiveMessenger,
-	// 	Marshaller:                      TestMarshaller,
-	// 	Uint64ByteSliceConverter:        TestUint64Converter,
-	// 	OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
-	// 	CurrentNetworkEpochProvider:     tcn.EpochProvider,
-	// 	MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-	// 	FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-	// 	PeersRatingHandler:              tpn.PeersRatingHandler,
-	// 	SizeCheckDelta:                  0,
-	// }
-
-	// if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-	// 	tpn.createMetaRequestersContainer(requestersContainerFactoryArgs)
-	// } else {
-	// 	tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
-	// }
-
-	// requestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
-	// tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-	// 	requestersFinder,
-	// 	cache.NewTimeCache(time.Second),
-	// 	whiteListHandler,
-	// 	100,
-	// 	tcn.ShardCoordinator.SelfId(),
-	// 	time.Second,
-	// )
 }
 
 func (tcn *TestConsensusNode) initNodesCoordinator(

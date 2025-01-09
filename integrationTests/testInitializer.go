@@ -1161,26 +1161,6 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
 }
 
-// ProposeEpochStartBlock proposes a block for every shard
-func ProposeEpochStartBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, round uint64, nonce uint64) {
-	log.Info("All shards propose blocks...")
-
-	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
-
-	for _, n := range leaders {
-		body, header, _ := n.ProposeEpochStartBlock(round, nonce)
-
-		n.WhiteListBody(nodes, body)
-		pk := n.NodeKeys.MainKey.Pk
-		n.BroadcastBlock(body, header, pk)
-		n.CommitBlock(body, header)
-	}
-
-	log.Info("Delaying for disseminating headers and miniblocks...")
-	time.Sleep(stepDelayAdjustment)
-	log.Info("Proposed block\n" + MakeDisplayTable(nodes))
-}
-
 // SyncBlock synchronizes the proposed block in all the other shard nodes
 func SyncBlock(
 	t *testing.T,
