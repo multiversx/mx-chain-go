@@ -4,16 +4,20 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -21,6 +25,9 @@ import (
 var (
 	expectedErr    = errors.New("expected error")
 	testMarshaller = &marshallerMock.MarshalizerMock{}
+	providedEpoch  = uint32(123)
+	providedNonce  = uint64(345)
+	providedShard  = uint32(0)
 )
 
 func createMockDataBuff() []byte {
@@ -28,9 +35,9 @@ func createMockDataBuff() []byte {
 		PubKeysBitmap:       []byte("bitmap"),
 		AggregatedSignature: []byte("sig"),
 		HeaderHash:          []byte("hash"),
-		HeaderEpoch:         123,
-		HeaderNonce:         345,
-		HeaderShardId:       0,
+		HeaderEpoch:         providedEpoch,
+		HeaderNonce:         providedNonce,
+		HeaderShardId:       providedShard,
 	}
 
 	dataBuff, _ := testMarshaller.Marshal(proof)
@@ -44,6 +51,19 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		Proofs:            &dataRetriever.ProofsPoolMock{},
+		Headers: &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					EpochField: providedEpoch,
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+				}, nil
+			},
+		},
 	}
 }
 
@@ -105,6 +125,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, process.ErrNilProofsPool, err)
 		require.Nil(t, iep)
 	})
+	t.Run("nil headers pool should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Headers = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilHeadersDataPool, err)
+		require.Nil(t, iep)
+	})
 	t.Run("unmarshal error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -162,6 +191,97 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 
 		err = iep.CheckValidity()
 		require.Equal(t, proofscache.ErrAlreadyExistingEquivalentProof, err)
+	})
+
+	t.Run("missing header for proof hash should error", func(t *testing.T) {
+		t.Parallel()
+
+		providedErr := errors.New("missing header")
+		args := createMockArgInterceptedEquivalentProof()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, providedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, providedErr))
+	})
+
+	t.Run("nonce mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce + 1
+					},
+				}, nil
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, strings.Contains(err.Error(), "nonce mismatch"))
+	})
+
+	t.Run("shard id mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard + 1
+					},
+				}, nil
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, strings.Contains(err.Error(), "shard id mismatch"))
+	})
+
+	t.Run("epoch mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch + 1,
+				}, nil
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, strings.Contains(err.Error(), "epoch mismatch"))
 	})
 
 	t.Run("should work", func(t *testing.T) {

@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -25,6 +26,7 @@ type ArgInterceptedEquivalentProof struct {
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
+	Headers           dataRetriever.HeadersPool
 }
 
 type interceptedEquivalentProof struct {
@@ -32,6 +34,7 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -51,6 +54,7 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.Proofs,
+		headersPool:       args.Headers,
 	}, nil
 }
 
@@ -69,6 +73,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
+	}
+	if check.IfNil(args.Headers) {
+		return process.ErrNilHeadersDataPool
 	}
 
 	return nil
@@ -115,7 +122,31 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return proofscache.ErrAlreadyExistingEquivalentProof
 	}
 
+	err = iep.checkHeaderParamsFromProof()
+	if err != nil {
+		return err
+	}
+
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
+}
+
+func (iep *interceptedEquivalentProof) checkHeaderParamsFromProof() error {
+	header, err := iep.headersPool.GetHeaderByHash(iep.proof.GetHeaderHash())
+	if err != nil {
+		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(iep.proof.GetHeaderHash()))
+	}
+
+	if iep.proof.GetHeaderNonce() != header.GetNonce() {
+		return fmt.Errorf("%w, nonce mismatch", ErrInvalidProof)
+	}
+	if iep.proof.GetHeaderShardId() != header.GetShardID() {
+		return fmt.Errorf("%w, shard id mismatch", ErrInvalidProof)
+	}
+	if iep.proof.GetHeaderEpoch() != header.GetEpoch() {
+		return fmt.Errorf("%w, epoch mismatch", ErrInvalidProof)
+	}
+
+	return nil
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {

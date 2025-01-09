@@ -222,6 +222,35 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
+	return bp.checkPrevProofValidity(headerHandler)
+}
+
+func (bp *baseProcessor) checkPrevProofValidity(headerHandler data.HeaderHandler) error {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		return nil
+	}
+
+	prevProof := headerHandler.GetPreviousProof()
+	if check.IfNilReflect(prevProof) {
+		return process.ErrMissingHeaderProof
+	}
+
+	headersPool := bp.dataPool.Headers()
+	prevHeader, err := headersPool.GetHeaderByHash(prevProof.GetHeaderHash())
+	if err != nil {
+		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(prevProof.GetHeaderHash()))
+	}
+
+	if prevProof.GetHeaderNonce() != prevHeader.GetNonce() {
+		return fmt.Errorf("%w, nonce mismatch", process.ErrInvalidHeaderProof)
+	}
+	if prevProof.GetHeaderShardId() != prevHeader.GetShardID() {
+		return fmt.Errorf("%w, shard id mismatch", process.ErrInvalidHeaderProof)
+	}
+	if prevProof.GetHeaderEpoch() != prevHeader.GetEpoch() {
+		return fmt.Errorf("%w, epoch mismatch", process.ErrInvalidHeaderProof)
+	}
+
 	return nil
 }
 

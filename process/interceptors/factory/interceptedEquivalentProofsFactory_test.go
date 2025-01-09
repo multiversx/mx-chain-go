@@ -9,16 +9,21 @@ import (
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgInterceptedDataFactory() ArgInterceptedDataFactory {
-	return ArgInterceptedDataFactory{
-		CoreComponents: &processMock.CoreComponentsMock{
-			IntMarsh: &mock.MarshalizerMock{},
+func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentProofsFactory {
+	return ArgInterceptedEquivalentProofsFactory{
+		ArgInterceptedDataFactory: ArgInterceptedDataFactory{
+			CoreComponents: &processMock.CoreComponentsMock{
+				IntMarsh: &mock.MarshalizerMock{},
+			},
+			ShardCoordinator:  &mock.ShardCoordinatorMock{},
+			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		},
-		ShardCoordinator:  &mock.ShardCoordinatorMock{},
-		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
+		ProofsPool:  &dataRetriever.ProofsPoolMock{},
+		HeadersPool: &pool.HeadersPoolStub{},
 	}
 }
 
@@ -28,22 +33,22 @@ func TestInterceptedEquivalentProofsFactory_IsInterfaceNil(t *testing.T) {
 	var factory *interceptedEquivalentProofsFactory
 	require.True(t, factory.IsInterfaceNil())
 
-	factory = NewInterceptedEquivalentProofsFactory(createMockArgInterceptedDataFactory(), &dataRetriever.ProofsPoolMock{})
+	factory = NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
 	require.False(t, factory.IsInterfaceNil())
 }
 
 func TestNewInterceptedEquivalentProofsFactory(t *testing.T) {
 	t.Parallel()
 
-	factory := NewInterceptedEquivalentProofsFactory(createMockArgInterceptedDataFactory(), &dataRetriever.ProofsPoolMock{})
+	factory := NewInterceptedEquivalentProofsFactory(createMockArgInterceptedEquivalentProofsFactory())
 	require.NotNil(t, factory)
 }
 
 func TestInterceptedEquivalentProofsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgInterceptedDataFactory()
-	factory := NewInterceptedEquivalentProofsFactory(args, &dataRetriever.ProofsPoolMock{})
+	args := createMockArgInterceptedEquivalentProofsFactory()
+	factory := NewInterceptedEquivalentProofsFactory(args)
 	require.NotNil(t, factory)
 
 	providedProof := &block.HeaderProof{
