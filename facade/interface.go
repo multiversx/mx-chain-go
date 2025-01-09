@@ -41,6 +41,9 @@ type NodeHandler interface {
 	// GetKeyValuePairs returns the key-value pairs under a given address
 	GetKeyValuePairs(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
 
+	// GetKeyValuePairsWithCheckpoint returns the key-value pairs under a given address with a checkpoint
+	GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, string, error)
+
 	// GetAllIssuedESDTs returns all the issued esdt tokens from esdt system smart contract
 	GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error)
 

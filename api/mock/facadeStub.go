@@ -49,6 +49,7 @@ type FacadeStub struct {
 	GetUsernameCalled                           func(address string, options api.AccountQueryOptions) (string, api.BlockInfo, error)
 	GetCodeHashCalled                           func(address string, options api.AccountQueryOptions) ([]byte, api.BlockInfo, error)
 	GetKeyValuePairsCalled                      func(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetKeyValuePairsWithCheckpointCalled        func(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error)
 	SimulateTransactionExecutionHandler         func(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetESDTDataCalled                           func(address string, key string, nonce uint64, options api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetAllESDTTokensCalled                      func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
@@ -239,6 +240,15 @@ func (f *FacadeStub) GetKeyValuePairs(address string, options api.AccountQueryOp
 	}
 
 	return nil, api.BlockInfo{}, nil
+}
+
+// GetKeyValuePairsWithCheckpoint -
+func (f *FacadeStub) GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error) {
+	if f.GetKeyValuePairsWithCheckpointCalled != nil {
+		return f.GetKeyValuePairsWithCheckpointCalled(address, checkpointId, numLeaves, options)
+	}
+
+	return nil, api.BlockInfo{}, "", nil
 }
 
 // GetGuardianData -

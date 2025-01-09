@@ -308,6 +308,40 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	return mapToReturn, blockInfo, nil
 }
 
+// GetKeyValuePairsWithCheckpoint  returns the given number of key-value pairs under the provided address.
+// The iteration starts from the given checkpoint, and returns a new checkpoint for the next iteration.
+func (n *Node) GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, string, error) {
+	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
+			return make(map[string]string), adaptedBlockInfo, "", nil
+		}
+
+		return nil, api.BlockInfo{}, "", err
+	}
+
+	if check.IfNil(userAccount.DataTrie()) {
+		return map[string]string{}, blockInfo, "", nil
+	}
+
+	checkpointIdBytes, err := hex.DecodeString(checkpointId)
+	if err != nil {
+		return nil, api.BlockInfo{}, "", fmt.Errorf("invalid checkpointId: %w", err)
+	}
+
+	mapToReturn, newCheckpoint, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(numLeaves, userAccount.GetRootHash(), checkpointIdBytes, ctx)
+	if err != nil {
+		return nil, api.BlockInfo{}, "", err
+	}
+
+	if common.IsContextDone(ctx) {
+		return nil, api.BlockInfo{}, "", ErrTrieOperationsTimeout
+	}
+
+	return mapToReturn, blockInfo, hex.EncodeToString(newCheckpoint), nil
+}
+
 func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {
 	chLeaves := &common.TrieIteratorChannels{
 		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),

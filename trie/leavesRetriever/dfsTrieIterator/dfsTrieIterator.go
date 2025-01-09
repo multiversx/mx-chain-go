@@ -2,6 +2,7 @@ package dfsTrieIterator
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -88,7 +89,7 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Cont
 					return nil, err
 				}
 
-				retrievedLeaves[string(key)] = string(childNode.GetData())
+				retrievedLeaves[hex.EncodeToString(key)] = hex.EncodeToString(childNode.GetData())
 				continue
 			}
 

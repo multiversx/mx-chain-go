@@ -346,6 +346,11 @@ func (inf *initialNodeFacade) GetKeyValuePairs(_ string, _ api.AccountQueryOptio
 	return nil, api.BlockInfo{}, errNodeStarting
 }
 
+// GetKeyValuePairsWithCheckpoint returns error
+func (inf *initialNodeFacade) GetKeyValuePairsWithCheckpoint(_ string, _ string, _ int, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error) {
+	return nil, api.BlockInfo{}, "", errNodeStarting
+}
+
 // GetGuardianData returns error
 func (inf *initialNodeFacade) GetGuardianData(_ string, _ api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
 	return api.GuardianData{}, api.BlockInfo{}, errNodeStarting

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,7 @@ const (
 	getUsernamePath                = "/:address/username"
 	getCodeHashPath                = "/:address/code-hash"
 	getKeysPath                    = "/:address/keys"
+	getKeysWithCheckpointPath      = "/:address/num-keys/:numKeys/checkpoint-id/:checkpointId"
 	getKeyPath                     = "/:address/key/:key"
 	getDataTrieMigrationStatusPath = "/:address/is-data-trie-migrated"
 	getESDTTokensPath              = "/:address/esdt"
@@ -55,6 +57,7 @@ type addressFacadeHandler interface {
 	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
+	GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
@@ -133,6 +136,11 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Path:    getKeysPath,
 			Method:  http.MethodGet,
 			Handler: ag.getKeyValuePairs,
+		},
+		{
+			Path:    getKeysWithCheckpointPath,
+			Method:  http.MethodGet,
+			Handler: ag.getKeyValuePairsWithCheckpoint,
 		},
 		{
 			Path:    getESDTBalancePath,
@@ -327,7 +335,7 @@ func (ag *addressGroup) getGuardianData(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"guardianData": guardianData, "blockInfo": blockInfo})
 }
 
-// addressGroup returns all the key-value pairs for the given address
+// getKeyValuePairs returns all the key-value pairs for the given address
 func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 	addr, options, err := extractBaseParams(c)
 	if err != nil {
@@ -342,6 +350,47 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 	}
 
 	shared.RespondWithSuccess(c, gin.H{"pairs": value, "blockInfo": blockInfo})
+}
+
+// getKeysWithCheckpoint returns all the key-value pairs for the given address
+func (ag *addressGroup) getKeyValuePairsWithCheckpoint(c *gin.Context) {
+	addr := c.Param("address")
+	if addr == "" {
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyAddress)
+		return
+	}
+
+	options, err := extractAccountQueryOptions(c)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
+		return
+	}
+
+	numLeavesAsString := c.Param("num-keys")
+	if numLeavesAsString == "" {
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyNumKeys)
+		return
+	}
+
+	numLeaves, err := strconv.Atoi(numLeavesAsString)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
+		return
+	}
+
+	checkpointId := c.Param("checkpoint-id")
+	if checkpointId == "" {
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyCheckpointId)
+		return
+	}
+
+	value, blockInfo, newCheckpointId, err := ag.getFacade().GetKeyValuePairsWithCheckpoint(addr, checkpointId, numLeaves, options)
+	if err != nil {
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairs, err)
+		return
+	}
+
+	shared.RespondWithSuccess(c, gin.H{"pairs": value, "newCheckpointId": newCheckpointId, "blockInfo": blockInfo})
 }
 
 // getESDTBalance returns the balance for the given address and esdt token
