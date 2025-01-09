@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/sync")
@@ -159,6 +160,10 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 	boot.mutHeader.RLock()
 	defer boot.mutHeader.RUnlock()
 	return boot.headerhash
+}
+
+func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHandler) {
+
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
@@ -1220,6 +1225,7 @@ func (boot *baseBootstrap) init() {
 
 	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
+	boot.proofs.RegisterHandler(boot.processReceivedProof)
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}
