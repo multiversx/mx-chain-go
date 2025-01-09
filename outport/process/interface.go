@@ -17,7 +17,7 @@ type AlteredAccountsProviderHandler interface {
 
 // TransactionsFeeHandler defines the functionality needed for computation of the transaction fee and gas used
 type TransactionsFeeHandler interface {
-	PutFeeAndGasUsed(pool *outport.TransactionPool) error
+	PutFeeAndGasUsed(pool *outport.TransactionPool, epoch uint32) error
 	IsInterfaceNil() bool
 }
 

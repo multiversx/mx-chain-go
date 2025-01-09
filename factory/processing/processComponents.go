@@ -16,6 +16,9 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -76,8 +79,6 @@ import (
 	updateDisabled "github.com/multiversx/mx-chain-go/update/disabled"
 	updateFactory "github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 // timeSpanForBadHeaders is the expiry time for an added block header hash
@@ -131,6 +132,7 @@ type processComponents struct {
 	accountsParser                   genesis.AccountsParser
 	receiptsRepository               mainFactory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
+	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -751,6 +753,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		currentEpochProvider:             currentEpochProvider,
 		vmFactoryForTxSimulator:          vmFactoryForTxSimulate,
 		vmFactoryForProcessing:           blockProcessorComponents.vmFactoryForProcessing,
+		epochSystemSCProcessor:           blockProcessorComponents.epochSystemSCProcessor,
 		scheduledTxsExecutionHandler:     scheduledTxsExecutionHandler,
 		txsSender:                        txsSenderWithAccumulator,
 		hardforkTrigger:                  hardforkTrigger,

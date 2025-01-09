@@ -413,6 +413,7 @@ type VirtualMachineConfig struct {
 	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
+	TransferAndExecuteByUserAddresses   []string
 }
 
 // WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch

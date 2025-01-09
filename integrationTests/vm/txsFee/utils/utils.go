@@ -37,8 +37,11 @@ func DoDeploy(
 	t *testing.T,
 	testContext *vm.VMTestContext,
 	pathToContract string,
+	expectedBalance,
+	expectedAccFees,
+	expectedDevFees int64,
 ) (scAddr []byte, owner []byte) {
-	return doDeployInternal(t, testContext, pathToContract, 88100, 11900, 399)
+	return doDeployInternal(t, testContext, pathToContract, expectedBalance, expectedAccFees, expectedDevFees)
 }
 
 // DoDeployOldCounter -
@@ -47,7 +50,7 @@ func DoDeployOldCounter(
 	testContext *vm.VMTestContext,
 	pathToContract string,
 ) (scAddr []byte, owner []byte) {
-	return doDeployInternal(t, testContext, pathToContract, 89030, 10970, 368)
+	return doDeployInternal(t, testContext, pathToContract, 9989030, 10970, 368)
 }
 
 func doDeployInternal(
@@ -58,7 +61,7 @@ func doDeployInternal(
 ) (scAddr []byte, owner []byte) {
 	owner = []byte("12345678901234567890123456789011")
 	senderNonce := uint64(0)
-	senderBalance := big.NewInt(100000)
+	senderBalance := big.NewInt(10000000)
 	gasPrice := uint64(10)
 	gasLimit := uint64(2000)
 

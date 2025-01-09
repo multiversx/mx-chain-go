@@ -534,6 +534,9 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrInvalidMaxGasHigherFactorAccepted signals that an invalid gas factor has been provided in the config file
+var ErrInvalidMaxGasHigherFactorAccepted = errors.New("invalid gas higher factor accepted")
+
 // ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
 var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
 
@@ -1226,3 +1229,6 @@ var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/ca
 
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
+var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")

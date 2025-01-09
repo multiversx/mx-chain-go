@@ -144,16 +144,12 @@ func (host *vmContext) GetStorageFromAddress(address []byte, key []byte) []byte 
 		if value, isInMap := storageAdrMap[string(key)]; isInMap {
 			return value
 		}
-	} else {
-		storageAdrMap = make(map[string][]byte)
 	}
 
 	data, _, err := host.blockChainHook.GetStorageData(address, key)
 	if err != nil {
 		return nil
 	}
-
-	storageAdrMap[string(key)] = data
 
 	return data
 }
