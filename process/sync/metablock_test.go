@@ -968,6 +968,8 @@ func TestMetaBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetected
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetrieverMock.ProofsPoolMock{},
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)
@@ -1033,6 +1035,8 @@ func TestMetaBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAnd
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetrieverMock.ProofsPoolMock{},
 	)
 
 	bs, _ := sync.NewMetaBootstrap(args)

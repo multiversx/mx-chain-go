@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -911,6 +912,7 @@ func TestBasicForkDetector_GetHighestFinalBlockNonce(t *testing.T) {
 	assert.Equal(t, uint64(3), bfd.GetHighestFinalBlockNonce())
 }
 
+// TODO: add specific tests for equivalent proofs
 func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 	t.Parallel()
 
@@ -920,7 +922,14 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if flag == common.EquivalentMessagesFlag {
+					return false
+				}
+				return true
+			},
+		},
 		&dataRetriever.ProofsPoolMock{},
 	)
 
