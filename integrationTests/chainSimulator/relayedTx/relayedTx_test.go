@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -151,7 +152,8 @@ func testRelayedV3MoveBalance(
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
-		if relayerShard == destinationShard {
+		isIntraShard := relayerShard == destinationShard
+		if isIntraShard {
 			require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
 		}
 
@@ -180,6 +182,10 @@ func testRelayedV3MoveBalance(
 
 		// check intra shard logs, should be none
 		require.Nil(t, result.Logs)
+
+		if extraGas && isIntraShard {
+			require.NotNil(t, result.Receipt)
+		}
 	}
 }
 
@@ -824,6 +830,37 @@ func TestRelayedTransactionFeeField(t *testing.T) {
 	})
 }
 
+func TestRegularMoveBalanceWithRefundReceipt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	// generate one block so the minting has effect
+	err = cs.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	senderNonce := uint64(0)
+
+	extraGas := uint64(minGasLimit)
+	gasLimit := minGasLimit + extraGas
+	tx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, oneEGLD, "", gasLimit)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	require.NotNil(t, result.Receipt)
+	expectedGasRefunded := core.SafeMul(extraGas, minGasPrice/deductionFactor)
+	require.Equal(t, expectedGasRefunded.String(), result.Receipt.Value.String())
+}
+
 func startChainSimulator(
 	t *testing.T,
 	alterConfigsFunction func(cfg *config.Configs),
@@ -966,7 +1003,7 @@ func computeTxGasAndFeeBasedOnRefund(
 		gasForFullPrice += extraGasLimitForGuarded
 	}
 
-	if result.ProcessingTypeOnSource == process.RelayedTxV3.String() {
+	if common.IsRelayedTxV3(initialTx) {
 		gasForFullPrice += uint64(minGasLimit) // relayer fee
 	}
 	gasForDeductedPrice := initialTx.GetGasLimit() - gasForFullPrice

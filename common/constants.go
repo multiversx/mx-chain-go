@@ -340,6 +340,9 @@ const MetricMinGasLimit = "erd_min_gas_limit"
 // MetricExtraGasLimitGuardedTx specifies the extra gas limit required for guarded transactions
 const MetricExtraGasLimitGuardedTx = "erd_extra_gas_limit_guarded_tx"
 
+// MetricExtraGasLimitRelayedTx specifies the extra gas limit required for relayed v3 transactions
+const MetricExtraGasLimitRelayedTx = "erd_extra_gas_limit_relayed_tx"
+
 // MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
 const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 
