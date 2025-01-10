@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
@@ -136,20 +137,7 @@ func (iep *interceptedEquivalentProof) checkHeaderParamsFromProof() error {
 		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(iep.proof.GetHeaderHash()))
 	}
 
-	if iep.proof.GetHeaderNonce() != header.GetNonce() {
-		return fmt.Errorf("%w, nonce mismatch", ErrInvalidProof)
-	}
-	if iep.proof.GetHeaderShardId() != header.GetShardID() {
-		return fmt.Errorf("%w, shard id mismatch", ErrInvalidProof)
-	}
-	if iep.proof.GetHeaderEpoch() != header.GetEpoch() {
-		return fmt.Errorf("%w, epoch mismatch", ErrInvalidProof)
-	}
-	if iep.proof.GetHeaderRound() != header.GetRound() {
-		return fmt.Errorf("%w, round mismatch", ErrInvalidProof)
-	}
-
-	return nil
+	return common.VerifyProofAgainstHeader(iep.proof, header)
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {

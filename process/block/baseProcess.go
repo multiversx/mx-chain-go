@@ -231,28 +231,7 @@ func (bp *baseProcessor) checkPrevProofValidity(prevHeader, headerHandler data.H
 	}
 
 	prevProof := headerHandler.GetPreviousProof()
-	return bp.verifyProofAgainstHeader(prevProof, prevHeader)
-}
-
-func (bp *baseProcessor) verifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderHandler) error {
-	if check.IfNilReflect(proof) {
-		return process.ErrMissingHeaderProof
-	}
-
-	if proof.GetHeaderNonce() != header.GetNonce() {
-		return fmt.Errorf("%w, nonce mismatch", process.ErrInvalidHeaderProof)
-	}
-	if proof.GetHeaderShardId() != header.GetShardID() {
-		return fmt.Errorf("%w, shard id mismatch", process.ErrInvalidHeaderProof)
-	}
-	if proof.GetHeaderEpoch() != header.GetEpoch() {
-		return fmt.Errorf("%w, epoch mismatch", process.ErrInvalidHeaderProof)
-	}
-	if proof.GetHeaderRound() != header.GetRound() {
-		return fmt.Errorf("%w, round mismatch", process.ErrInvalidHeaderProof)
-	}
-
-	return nil
+	return common.VerifyProofAgainstHeader(prevProof, prevHeader)
 }
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
@@ -232,7 +233,7 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
 		require.True(t, strings.Contains(err.Error(), "nonce mismatch"))
 	})
 
@@ -257,7 +258,7 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
 		require.True(t, strings.Contains(err.Error(), "shard id mismatch"))
 	})
 
@@ -283,7 +284,7 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
 		require.True(t, strings.Contains(err.Error(), "epoch mismatch"))
 	})
 
@@ -310,7 +311,7 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
 		require.True(t, strings.Contains(err.Error(), "round mismatch"))
 	})
 

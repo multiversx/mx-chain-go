@@ -438,7 +438,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			return err
 		}
 
-		err = mp.verifyProofAgainstHeader(prevProof, prevHeader)
+		err = common.VerifyProofAgainstHeader(prevProof, prevHeader)
 		if err != nil {
 			return err
 		}
