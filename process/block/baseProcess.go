@@ -222,33 +222,34 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	return bp.checkPrevProofValidity(headerHandler)
+	return bp.checkPrevProofValidity(currentBlockHeader, headerHandler)
 }
 
-func (bp *baseProcessor) checkPrevProofValidity(headerHandler data.HeaderHandler) error {
-	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+func (bp *baseProcessor) checkPrevProofValidity(prevHeader, headerHandler data.HeaderHandler) error {
+	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		return nil
 	}
 
 	prevProof := headerHandler.GetPreviousProof()
-	if check.IfNilReflect(prevProof) {
+	return bp.verifyProofAgainstHeader(prevProof, prevHeader)
+}
+
+func (bp *baseProcessor) verifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderHandler) error {
+	if check.IfNilReflect(proof) {
 		return process.ErrMissingHeaderProof
 	}
 
-	headersPool := bp.dataPool.Headers()
-	prevHeader, err := headersPool.GetHeaderByHash(prevProof.GetHeaderHash())
-	if err != nil {
-		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(prevProof.GetHeaderHash()))
-	}
-
-	if prevProof.GetHeaderNonce() != prevHeader.GetNonce() {
+	if proof.GetHeaderNonce() != header.GetNonce() {
 		return fmt.Errorf("%w, nonce mismatch", process.ErrInvalidHeaderProof)
 	}
-	if prevProof.GetHeaderShardId() != prevHeader.GetShardID() {
+	if proof.GetHeaderShardId() != header.GetShardID() {
 		return fmt.Errorf("%w, shard id mismatch", process.ErrInvalidHeaderProof)
 	}
-	if prevProof.GetHeaderEpoch() != prevHeader.GetEpoch() {
+	if proof.GetHeaderEpoch() != header.GetEpoch() {
 		return fmt.Errorf("%w, epoch mismatch", process.ErrInvalidHeaderProof)
+	}
+	if proof.GetHeaderRound() != header.GetRound() {
+		return fmt.Errorf("%w, round mismatch", process.ErrInvalidHeaderProof)
 	}
 
 	return nil

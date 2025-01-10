@@ -430,6 +430,18 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
 		}
+
+		prevProof := shardData.GetPreviousProof()
+		headersPool := mp.dataPool.Headers()
+		prevHeader, err := headersPool.GetHeaderByHash(prevProof.GetHeaderHash())
+		if err != nil {
+			return err
+		}
+
+		err = mp.verifyProofAgainstHeader(prevProof, prevHeader)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

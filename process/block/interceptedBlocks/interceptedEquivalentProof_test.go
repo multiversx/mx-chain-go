@@ -28,6 +28,7 @@ var (
 	providedEpoch  = uint32(123)
 	providedNonce  = uint64(345)
 	providedShard  = uint32(0)
+	providedRound  = uint64(123456)
 )
 
 func createMockDataBuff() []byte {
@@ -38,6 +39,7 @@ func createMockDataBuff() []byte {
 		HeaderEpoch:         providedEpoch,
 		HeaderNonce:         providedNonce,
 		HeaderShardId:       providedShard,
+		HeaderRound:         providedRound,
 	}
 
 	dataBuff, _ := testMarshaller.Marshal(proof)
@@ -55,6 +57,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
 					EpochField: providedEpoch,
+					RoundField: providedRound,
 					GetNonceCalled: func() uint64 {
 						return providedNonce
 					},
@@ -282,6 +285,33 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		err = iep.CheckValidity()
 		require.True(t, errors.Is(err, ErrInvalidProof))
 		require.True(t, strings.Contains(err.Error(), "epoch mismatch"))
+	})
+
+	t.Run("round mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return providedNonce
+					},
+					GetShardIDCalled: func() uint32 {
+						return providedShard
+					},
+					EpochField: providedEpoch,
+					RoundField: providedRound + 1,
+				}, nil
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.True(t, errors.Is(err, ErrInvalidProof))
+		require.True(t, strings.Contains(err.Error(), "round mismatch"))
 	})
 
 	t.Run("should work", func(t *testing.T) {

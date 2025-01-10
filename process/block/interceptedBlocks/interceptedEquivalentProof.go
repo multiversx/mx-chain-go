@@ -145,6 +145,9 @@ func (iep *interceptedEquivalentProof) checkHeaderParamsFromProof() error {
 	if iep.proof.GetHeaderEpoch() != header.GetEpoch() {
 		return fmt.Errorf("%w, epoch mismatch", ErrInvalidProof)
 	}
+	if iep.proof.GetHeaderRound() != header.GetRound() {
+		return fmt.Errorf("%w, round mismatch", ErrInvalidProof)
+	}
 
 	return nil
 }
