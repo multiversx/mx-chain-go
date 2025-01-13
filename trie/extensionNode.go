@@ -5,14 +5,15 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"math"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"io"
-	"math"
 )
 
 var _ = node(&extensionNode{})
