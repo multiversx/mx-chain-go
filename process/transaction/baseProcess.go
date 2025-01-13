@@ -246,12 +246,12 @@ func (txProc *baseTxProcessor) getFeePayer(
 		return senderAccount, false, nil
 	}
 
-	relayerIsSender := bytes.Compare(tx.RelayerAddr, tx.SndAddr) == 0
+	relayerIsSender := bytes.Equal(tx.RelayerAddr, tx.SndAddr)
 	if relayerIsSender {
 		return senderAccount, true, nil // do not load the same account twice
 	}
 
-	relayerIsDestination := bytes.Compare(tx.RelayerAddr, tx.RcvAddr) == 0
+	relayerIsDestination := bytes.Equal(tx.RelayerAddr, tx.RcvAddr)
 	if relayerIsDestination {
 		return destinationAccount, true, nil // do not load the same account twice
 	}

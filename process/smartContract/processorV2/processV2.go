@@ -1973,7 +1973,7 @@ func (sc *scProcessor) getFeePayer(tx data.TransactionHandler, acntSnd state.Use
 		return acntSnd, nil
 	}
 
-	relayerIsSender := bytes.Compare(relayedTx.GetRelayerAddr(), tx.GetSndAddr()) == 0
+	relayerIsSender := bytes.Equal(relayedTx.GetRelayerAddr(), tx.GetSndAddr())
 	if relayerIsSender {
 		return acntSnd, nil // do not load the same account twice
 	}
