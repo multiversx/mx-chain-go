@@ -52,7 +52,7 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	return nil
 }
 
-// GetHeader tries to get the header from pool first and if not founded, searches for it through storer
+// GetHeader tries to get the header from pool first and if not found, searches for it through storer
 func GetHeader(
 	headerHash []byte,
 	headersPool HeadersPool,
