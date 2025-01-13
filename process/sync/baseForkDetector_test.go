@@ -924,10 +924,7 @@ func TestBasicForkDetector_ProbableHighestNonce(t *testing.T) {
 		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				if flag == common.EquivalentMessagesFlag {
-					return false
-				}
-				return true
+				return flag != common.EquivalentMessagesFlag
 			},
 		},
 		&dataRetriever.ProofsPoolMock{},
