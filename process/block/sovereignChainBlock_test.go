@@ -658,6 +658,22 @@ func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
 func TestSovereignShardProcessor_ProcessBlock(t *testing.T) {
 	t.Parallel()
 
+	t.Run("nil header handler should error", func(t *testing.T) {
+		sovArgs := createSovChainBlockProcessorArgs()
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		_, _, err = scbp.ProcessBlock(nil, &block.Body{}, haveTime)
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+	t.Run("nil body handler should error", func(t *testing.T) {
+		sovArgs := createSovChainBlockProcessorArgs()
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		_, _, err = scbp.ProcessBlock(&block.SovereignChainHeader{}, nil, haveTime)
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
 	t.Run("not enough time should error", func(t *testing.T) {
 		sovArgs := createSovChainBlockProcessorArgs()
 		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
@@ -844,6 +860,7 @@ func TestSovereignShardProcessor_ProcessBlock(t *testing.T) {
 	t.Run("process block start of epoch should work", func(t *testing.T) {
 		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
 		randSeed := []byte("rand seed")
+		blockHash := []byte("block hash")
 		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
 		_ = blkc.SetCurrentBlockHeaderAndRootHash(
 			&block.SovereignChainHeader{
@@ -861,7 +878,7 @@ func TestSovereignShardProcessor_ProcessBlock(t *testing.T) {
 			[]byte("root hash"),
 		)
 		_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
-		blkc.SetCurrentBlockHeaderHash([]byte("zzz"))
+		blkc.SetCurrentBlockHeaderHash(blockHash)
 
 		busyIdleCalled := make([]string, 0)
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -885,7 +902,7 @@ func TestSovereignShardProcessor_ProcessBlock(t *testing.T) {
 				Round:           5,
 				Epoch:           0,
 				PubKeysBitmap:   []byte("0100101"),
-				PrevHash:        []byte("zzz"),
+				PrevHash:        blockHash,
 				PrevRandSeed:    randSeed,
 				Signature:       []byte("signature"),
 				RootHash:        []byte("root hash"),
