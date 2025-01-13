@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -30,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ closing.Closer = (*baseBootstrap)(nil)
@@ -158,6 +159,10 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 	boot.mutHeader.RLock()
 	defer boot.mutHeader.RUnlock()
 	return boot.headerhash
+}
+
+func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHandler) {
+	boot.forkDetector.ReceivedProof(headerProof)
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
@@ -710,17 +715,6 @@ func (boot *baseBootstrap) handleEquivalentProof(
 		return nil
 	}
 
-	prevHeader, err := boot.blockBootstrapper.getHeaderWithHashRequestingIfMissing(header.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
-	if !boot.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, prevHeader.GetEpoch()) {
-		// no need to check proof for first block after activation
-		boot.log.Info("handleEquivalentProof: no need to check equivalent proof for first activation block")
-		return nil
-	}
-
 	// process block only if there is a proof for it
 	hasProof := boot.proofs.HasProof(header.GetShardID(), headerHash)
 	if hasProof {
@@ -729,7 +723,7 @@ func (boot *baseBootstrap) handleEquivalentProof(
 
 	boot.log.Trace("baseBootstrap.handleEquivalentProof: did not have proof for header, will try again", "headerHash", headerHash)
 
-	_, _, err = boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
+	_, _, err := boot.blockBootstrapper.getHeaderWithNonceRequestingIfMissing(header.GetNonce() + 1)
 	if err != nil {
 		return err
 	}
@@ -1219,6 +1213,7 @@ func (boot *baseBootstrap) init() {
 
 	boot.poolsHolder.MiniBlocks().RegisterHandler(boot.receivedMiniblock, core.UniqueIdentifier())
 	boot.headers.RegisterHandler(boot.processReceivedHeader)
+	boot.proofs.RegisterHandler(boot.processReceivedProof)
 
 	boot.syncStateListeners = make([]func(bool), 0)
 	boot.requestedHashes = process.RequiredDataPool{}

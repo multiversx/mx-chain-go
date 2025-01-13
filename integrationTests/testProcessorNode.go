@@ -2197,12 +2197,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
 
-	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.ForkDetector, _ = processSync.NewShardForkDetector(log, tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
-	} else {
-		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(log, tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
-	}
-
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
@@ -2225,6 +2219,26 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	dataComponents.Store = tpn.Storage
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
+
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		tpn.ForkDetector, _ = processSync.NewShardForkDetector(
+			log,
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			tpn.NodesSetup.GetStartTime(),
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Proofs())
+	} else {
+		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
+			log,
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			tpn.NodesSetup.GetStartTime(),
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Proofs())
+	}
 
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier

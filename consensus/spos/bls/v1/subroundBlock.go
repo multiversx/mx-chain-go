@@ -498,10 +498,12 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 
 func (sr *subroundBlock) receivedFullHeader(headerHandler data.HeaderHandler) {
 	if sr.ShardCoordinator().SelfId() != headerHandler.GetShardID() {
+		log.Debug("subroundBlock.ReceivedFullHeader early exit", "headerShardID", headerHandler.GetShardID(), "selfShardID", sr.ShardCoordinator().SelfId())
 		return
 	}
 
 	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		log.Debug("subroundBlock.ReceivedFullHeader early exit", "flagNotEnabled in header epoch", headerHandler.GetEpoch())
 		return
 	}
 
@@ -510,7 +512,8 @@ func (sr *subroundBlock) receivedFullHeader(headerHandler data.HeaderHandler) {
 	lastCommittedBlockHash := sr.Blockchain().GetCurrentBlockHeaderHash()
 	if bytes.Equal(lastCommittedBlockHash, headerHandler.GetPrevHash()) {
 		// Need to switch to consensus v2
-		sr.EpochNotifier().CheckEpoch(headerHandler)
+		log.Debug("subroundBlock.ReceivedFullHeader switching epoch")
+		go sr.EpochNotifier().CheckEpoch(headerHandler)
 	}
 }
 

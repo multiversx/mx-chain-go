@@ -58,6 +58,7 @@ type SubroundsHandler struct {
 	currentConsensusType consensusStateMachineType
 }
 
+// EpochConfirmed is called when the epoch is confirmed (this is registered as callback)
 func (s *SubroundsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	err := s.initSubroundsForEpoch(epoch)
 	if err != nil {

@@ -1789,10 +1789,24 @@ func (pcf *processComponentsFactory) newForkDetector(
 
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(logger, pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewShardForkDetector(
+			logger,
+			pcf.coreData.RoundHandler(),
+			headerBlackList,
+			blockTracker,
+			pcf.coreData.GenesisNodesSetup().GetStartTime(),
+			pcf.coreData.EnableEpochsHandler(),
+			pcf.data.Datapool().Proofs())
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(logger, pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewMetaForkDetector(
+			logger,
+			pcf.coreData.RoundHandler(),
+			headerBlackList,
+			blockTracker,
+			pcf.coreData.GenesisNodesSetup().GetStartTime(),
+			pcf.coreData.EnableEpochsHandler(),
+			pcf.data.Datapool().Proofs())
 	}
 
 	return nil, errors.New("could not create fork detector")

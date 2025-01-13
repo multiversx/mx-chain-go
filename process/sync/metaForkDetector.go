@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -25,6 +27,8 @@ func NewMetaForkDetector(
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
 	genesisTime int64,
+	enableEpochsHandler common.EnableEpochsHandler,
+	proofsPool process.ProofsPool,
 ) (*metaForkDetector, error) {
 
 	if check.IfNil(roundHandler) {
@@ -35,6 +39,12 @@ func NewMetaForkDetector(
 	}
 	if check.IfNil(blockTracker) {
 		return nil, process.ErrNilBlockTracker
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(proofsPool) {
+		return nil, process.ErrNilProofsPool
 	}
 
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
@@ -47,14 +57,16 @@ func NewMetaForkDetector(
 	}
 
 	bfd := &baseForkDetector{
-		log:              log,
-		roundHandler:     roundHandler,
-		blackListHandler: blackListHandler,
-		genesisTime:      genesisTime,
-		blockTracker:     blockTracker,
-		genesisNonce:     genesisHdr.GetNonce(),
-		genesisRound:     genesisHdr.GetRound(),
-		genesisEpoch:     genesisHdr.GetEpoch(),
+		log:                 log,
+		roundHandler:        roundHandler,
+		blackListHandler:    blackListHandler,
+		genesisTime:         genesisTime,
+		blockTracker:        blockTracker,
+		genesisNonce:        genesisHdr.GetNonce(),
+		genesisRound:        genesisHdr.GetRound(),
+		genesisEpoch:        genesisHdr.GetEpoch(),
+		enableEpochsHandler: enableEpochsHandler,
+		proofsPool:          proofsPool,
 	}
 
 	bfd.headers = make(map[uint64][]*headerInfo)

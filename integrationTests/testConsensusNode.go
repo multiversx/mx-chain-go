@@ -231,17 +231,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	}
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 
-	id := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
-
-	forkDetector, _ := syncFork.NewShardForkDetector(
-		log,
-		roundHandler,
-		cache.NewTimeCache(time.Second),
-		&mock.BlockTrackerStub{},
-		args.StartTime,
-	)
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, genericEpochNotifier)
 
 	tcn.initRequestersFinder()
 
@@ -254,8 +245,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, genericEpochNotifier)
 	coreComponents := GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
@@ -324,6 +313,25 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	cryptoComponents.SigHandler = sigHandler
 	cryptoComponents.KeysHandlerField = keysHandler
 
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.BlockChain = tcn.ChainHandler
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = createTestStore()
+
+	id := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
+	forkDetector, _ := syncFork.NewShardForkDetector(
+		log,
+		roundHandler,
+		cache.NewTimeCache(time.Second),
+		&mock.BlockTrackerStub{},
+		args.StartTime,
+		enableEpochsHandler,
+		dataPool.Proofs(),
+	)
+
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector
 	processComponents.ShardCoord = tcn.ShardCoordinator
@@ -343,11 +351,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
-
-	dataComponents := GetDefaultDataComponents()
-	dataComponents.BlockChain = tcn.ChainHandler
-	dataComponents.DataPool = dataPool
-	dataComponents.Store = createTestStore()
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB
