@@ -125,6 +125,16 @@ type keyValuePairsResponse struct {
 	Code  string
 }
 
+type keyValuePairsWithCheckpointResponseData struct {
+	Pairs           map[string]string `json:"pairs"`
+	NewCheckpointId string            `json:"newCheckpointId"`
+}
+type keyValuePairsWithCheckpointResponse struct {
+	Data  keyValuePairsWithCheckpointResponseData `json:"data"`
+	Error string                                  `json:"error"`
+	Code  string
+}
+
 type esdtRolesResponseData struct {
 	Roles map[string][]string `json:"roles"`
 }
@@ -662,6 +672,73 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 	})
 }
 
+func TestAddressGroup_getKeyValuePairsWithCheckpoint(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty address should error",
+		testErrorScenario("/address//num-keys/10/checkpoint-id/abc", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, apiErrors.ErrEmptyAddress)))
+	t.Run("invalid query options should error",
+		testErrorScenario("/address/erd1alice/num-keys/10/checkpoint-id/abc?blockNonce=not-uint64", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, apiErrors.ErrBadUrlParams)))
+	t.Run("empty num-keys should error",
+		testErrorScenario("/address/erd1alice/num-keys//checkpoint-id/abc", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, apiErrors.ErrEmptyNumKeys)))
+	t.Run("invalid num-keys should error",
+		testErrorScenario("/address/erd1alice/num-keys/not-uint64/checkpoint-id/abc", "GET", nil,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, errors.New("strconv.Atoi: parsing \"not-uint64\": invalid syntax"))))
+	t.Run("with node fail should err", func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			GetKeyValuePairsWithCheckpointCalled: func(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error) {
+				return nil, api.BlockInfo{}, "", expectedErr
+			},
+		}
+		testAddressGroup(
+			t,
+			facade,
+			"/address/erd1alice/num-keys/10/checkpoint-id/abc",
+			"GET",
+			nil,
+			http.StatusInternalServerError,
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, expectedErr),
+		)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		pairs := map[string]string{
+			"k1": "v1",
+			"k2": "v2",
+		}
+		originalCheckpointId := "abc"
+		newCheckpointId := "def"
+		numKeys := "10"
+		addr := "erd1alice"
+		facade := &mock.FacadeStub{
+			GetKeyValuePairsWithCheckpointCalled: func(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error) {
+				assert.Equal(t, addr, address)
+				assert.Equal(t, 10, numLeaves)
+				assert.Equal(t, originalCheckpointId, checkpointId)
+				return pairs, api.BlockInfo{}, newCheckpointId, nil
+			},
+		}
+
+		response := &keyValuePairsWithCheckpointResponse{}
+		loadAddressGroupResponse(
+			t,
+			facade,
+			"/address/"+addr+"/num-keys/"+numKeys+"/checkpoint-id/"+originalCheckpointId,
+			"GET",
+			nil,
+			response,
+		)
+		assert.Equal(t, pairs, response.Data.Pairs)
+		assert.Equal(t, newCheckpointId, response.Data.NewCheckpointId)
+	})
+}
+
 func TestAddressGroup_getESDTBalance(t *testing.T) {
 	t.Parallel()
 
@@ -1143,6 +1220,7 @@ func getAddressRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/code-hash", Open: true},
 					{Name: "/:address/keys", Open: true},
+					{Name: "/:address/num-keys/:numKeys/checkpoint-id/:checkpointId", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdts/roles", Open: true},

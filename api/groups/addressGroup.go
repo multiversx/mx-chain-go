@@ -356,37 +356,32 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 func (ag *addressGroup) getKeyValuePairsWithCheckpoint(c *gin.Context) {
 	addr := c.Param("address")
 	if addr == "" {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyAddress)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyAddress)
 		return
 	}
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
 		return
 	}
 
-	numLeavesAsString := c.Param("num-keys")
+	numLeavesAsString := c.Param("numKeys")
 	if numLeavesAsString == "" {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyNumKeys)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyNumKeys)
 		return
 	}
 
 	numLeaves, err := strconv.Atoi(numLeavesAsString)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
+		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
 		return
 	}
 
-	checkpointId := c.Param("checkpoint-id")
-	if checkpointId == "" {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyCheckpointId)
-		return
-	}
-
+	checkpointId := c.Param("checkpointId")
 	value, blockInfo, newCheckpointId, err := ag.getFacade().GetKeyValuePairsWithCheckpoint(addr, checkpointId, numLeaves, options)
 	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairs, err)
+		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
 		return
 	}
 
