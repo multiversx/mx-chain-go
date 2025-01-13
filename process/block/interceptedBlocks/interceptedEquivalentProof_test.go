@@ -14,9 +14,11 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -67,6 +69,10 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 					},
 				}, nil
 			},
+		},
+		Storage: &genericMocks.ChainStorerMock{
+			BlockHeaders: genericMocks.NewStorerMock(),
+			Metablocks:   genericMocks.NewStorerMock(),
 		},
 	}
 }
@@ -151,6 +157,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, iep)
 	})
+	t.Run("nil storage should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Storage = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilStore, err)
+		require.Nil(t, iep)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -207,12 +222,15 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 				return nil, providedErr
 			},
 		}
+		args.Storage = &genericMocks.ChainStorerMock{
+			BlockHeaders: genericMocks.NewStorerMockWithErrKeyNotFound(0),
+		}
 
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, providedErr))
+		require.True(t, errors.Is(err, storage.ErrKeyNotFound))
 	})
 
 	t.Run("nonce mismatch should error", func(t *testing.T) {

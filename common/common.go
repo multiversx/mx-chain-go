@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 )
 
 // IsEpochChangeBlockForFlagActivation returns true if the provided header is the first one after the specified flag's activation
@@ -48,4 +50,29 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 
 	return nil
+}
+
+// GetHeader tries to get the header from pool first and if not founded, searches for it through storer
+func GetHeader(
+	headerHash []byte,
+	headersPool HeadersPool,
+	headersStorer storage.Storer,
+	marshaller marshaling.Marshalizer,
+) (data.HeaderHandler, error) {
+	header, err := headersPool.GetHeaderByHash(headerHash)
+	if err == nil {
+		return header, nil
+	}
+
+	headerBytes, err := headersStorer.SearchFirst(headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = marshaller.Unmarshal(header, headerBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }

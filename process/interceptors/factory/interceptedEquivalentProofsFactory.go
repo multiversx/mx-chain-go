@@ -14,6 +14,7 @@ type ArgInterceptedEquivalentProofsFactory struct {
 	ArgInterceptedDataFactory
 	ProofsPool  dataRetriever.ProofsPool
 	HeadersPool dataRetriever.HeadersPool
+	Storage     dataRetriever.StorageService
 }
 
 type interceptedEquivalentProofsFactory struct {
@@ -22,6 +23,7 @@ type interceptedEquivalentProofsFactory struct {
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
 	headersPool       dataRetriever.HeadersPool
+	storage           dataRetriever.StorageService
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
@@ -32,6 +34,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.ProofsPool,
 		headersPool:       args.HeadersPool,
+		storage:           args.Storage,
 	}
 }
 
@@ -44,6 +47,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.
 		HeaderSigVerifier: factory.headerSigVerifier,
 		Proofs:            factory.proofsPool,
 		Headers:           factory.headersPool,
+		Storage:           factory.storage,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

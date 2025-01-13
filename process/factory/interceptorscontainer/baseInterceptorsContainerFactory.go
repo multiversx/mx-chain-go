@@ -917,6 +917,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneShardEquivalentProofsInte
 		ArgInterceptedDataFactory: *bicf.argInterceptorFactory,
 		ProofsPool:                bicf.dataPool.Proofs(),
 		HeadersPool:               bicf.dataPool.Headers(),
+		Storage:                   bicf.store,
 	}
 	equivalentProofsFactory := interceptorFactory.NewInterceptedEquivalentProofsFactory(args)
 
