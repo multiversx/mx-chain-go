@@ -163,7 +163,7 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHandler) {
-
+	boot.forkDetector.ReceivedProof(headerProof)
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {

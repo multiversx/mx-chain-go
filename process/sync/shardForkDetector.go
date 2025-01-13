@@ -148,11 +148,13 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			continue
 		}
 
+		hasProof := sfd.proofsPool.HasProof(selfNotarizedHeaders[i].GetShardID(), selfNotarizedHeadersHashes[i])
 		appended := sfd.append(&headerInfo{
-			nonce: selfNotarizedHeaders[i].GetNonce(),
-			round: selfNotarizedHeaders[i].GetRound(),
-			hash:  selfNotarizedHeadersHashes[i],
-			state: process.BHNotarized,
+			nonce:    selfNotarizedHeaders[i].GetNonce(),
+			round:    selfNotarizedHeaders[i].GetRound(),
+			hash:     selfNotarizedHeadersHashes[i],
+			state:    process.BHNotarized,
+			hasProof: hasProof,
 		})
 		if appended {
 			log.Debug("added self notarized header in fork detector",

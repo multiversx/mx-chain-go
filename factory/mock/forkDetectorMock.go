@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -19,6 +20,7 @@ type ForkDetectorMock struct {
 	RestoreToGenesisCalled          func()
 	ResetProbableHighestNonceCalled func()
 	SetFinalToLastCheckpointCalled  func()
+	ReceivedProofCalled             func(proof data.HeaderProofHandler)
 }
 
 // RestoreToGenesis -
@@ -108,6 +110,13 @@ func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 func (fdm *ForkDetectorMock) SetFinalToLastCheckpoint() {
 	if fdm.SetFinalToLastCheckpointCalled != nil {
 		fdm.SetFinalToLastCheckpointCalled()
+	}
+}
+
+// ReceivedProof -
+func (fdm *ForkDetectorMock) ReceivedProof(proof data.HeaderProofHandler) {
+	if fdm.ReceivedProofCalled != nil {
+		fdm.ReceivedProofCalled(proof)
 	}
 }
 

@@ -65,6 +65,11 @@ func (bfd *baseForkDetector) SetRollBackNonce(nonce uint64) {
 	bfd.mutFork.Unlock()
 }
 
+// ReceivedProof is called when a proof is received
+func (bfd *baseForkDetector) ReceivedProof(proof data.HeaderProofHandler) {
+	bfd.processReceivedProof(proof)
+}
+
 func (bfd *baseForkDetector) getRollBackNonce() uint64 {
 	bfd.mutFork.RLock()
 	nonce := bfd.fork.rollBackNonce
@@ -207,8 +212,9 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 			continue
 		}
 
-		for _, hInfo := range bfd.headers[nonce] {
-			if !hInfo.hasProof {
+		hdrs := bfd.headers[nonce]
+		for _, hInfo := range hdrs {
+			if !hInfo.hasProof || hInfo.state == process.BHProposed {
 				continue
 			}
 			probableHighestNonce = nonce
@@ -297,27 +303,28 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 		return true
 	}
 
+	bfd.adjustHeadersWithInfo(hdrInfo)
+
 	for _, hdrInfoStored := range hdrInfos {
-		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) && hdrInfoStored.state == hdrInfo.state && hdrInfoStored.hasProof == hdrInfo.hasProof {
+		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) && hdrInfoStored.state == hdrInfo.state {
 			return false
 		}
 	}
 
-	bfd.adjustHeadersWithInfo(hdrInfo)
+	bfd.headers[hdrInfo.nonce] = append(bfd.headers[hdrInfo.nonce], hdrInfo)
 	return true
 }
 
 func (bfd *baseForkDetector) adjustHeadersWithInfo(hInfo *headerInfo) {
-	bfd.headers[hInfo.nonce] = append(bfd.headers[hInfo.nonce], hInfo)
 	if !bfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.epoch) {
 		return
 	}
 
 	if hInfo.hasProof {
 		hdrInfos := bfd.headers[hInfo.nonce]
-		for _, hdrInfoStored := range hdrInfos {
-			if bytes.Equal(hdrInfoStored.hash, hInfo.hash) {
-				hdrInfoStored.hasProof = true
+		for i := range hdrInfos {
+			if bytes.Equal(hdrInfos[i].hash, hInfo.hash) {
+				hdrInfos[i].hasProof = true
 			}
 		}
 	}

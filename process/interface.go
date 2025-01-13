@@ -384,7 +384,7 @@ type ForkDetector interface {
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	ResetProbableHighestNonce()
 	SetFinalToLastCheckpoint()
-	// ReceivedProof()
+	ReceivedProof(proof data.HeaderProofHandler)
 	IsInterfaceNil() bool
 }
 
