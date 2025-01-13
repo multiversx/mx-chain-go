@@ -61,10 +61,12 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	t.Run("intra shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 0))
 	t.Run("cross shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 1))
 
-	t.Run("successful intra shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 0, true))
-	t.Run("successful intra shard sc call with refunds, new sender", testRelayedV3ScCall(0, 0, false))
-	t.Run("successful cross shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 1, true))
-	t.Run("successful cross shard sc call with refunds, new sender", testRelayedV3ScCall(0, 1, false))
+	t.Run("successful intra shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 0, true, false))
+	t.Run("successful intra shard sc call with refunds, existing sender, relayed by sender", testRelayedV3ScCall(0, 0, true, true))
+	t.Run("successful intra shard sc call with refunds, new sender", testRelayedV3ScCall(0, 0, false, false))
+	t.Run("successful cross shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 1, true, false))
+	t.Run("successful cross shard sc call with refunds, existing sender, relayed by sender", testRelayedV3ScCall(0, 1, true, true))
+	t.Run("successful cross shard sc call with refunds, new sender", testRelayedV3ScCall(0, 1, false, false))
 	t.Run("intra shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 0))
 	t.Run("cross shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 1))
 	t.Run("intra shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 0))
@@ -281,6 +283,7 @@ func testRelayedV3ScCall(
 	relayerShard uint32,
 	ownerShard uint32,
 	existingSenderWithBalance bool,
+	relayedBySender bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
@@ -299,8 +302,13 @@ func testRelayedV3ScCall(
 		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
 		relayer, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
 		require.NoError(t, err)
+		relayerInitialBalance := initialBalance
 
 		sender, senderInitialBalance := prepareSender(t, cs, existingSenderWithBalance, relayerShard, initialBalance)
+		if relayedBySender {
+			relayer = sender
+			relayerInitialBalance = senderInitialBalance
+		}
 
 		owner, err := cs.GenerateAndMintWalletAddress(ownerShard, initialBalance)
 		require.NoError(t, err)
@@ -338,12 +346,14 @@ func testRelayedV3ScCall(
 
 		// check relayer balance
 		relayerBalanceAfter := getBalance(t, cs, relayer)
-		relayerFee := big.NewInt(0).Sub(initialBalance, relayerBalanceAfter)
+		relayerFee := big.NewInt(0).Sub(relayerInitialBalance, relayerBalanceAfter)
 		require.Equal(t, fee.String(), relayerFee.String())
 
-		// check sender balance
-		senderBalanceAfter := getBalance(t, cs, sender)
-		require.Equal(t, senderInitialBalance.String(), senderBalanceAfter.String())
+		// check sender balance, only if the tx was not relayed by sender
+		if !relayedBySender {
+			senderBalanceAfter := getBalance(t, cs, sender)
+			require.Equal(t, senderInitialBalance.String(), senderBalanceAfter.String())
+		}
 
 		// check owner balance
 		_, feeDeploy, _ := computeTxGasAndFeeBasedOnRefund(resultDeploy, refundDeploy, false, false)

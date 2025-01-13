@@ -1943,14 +1943,16 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	}
 
 	fee := sc.economicsFee.ComputeTxFee(tx)
-	err = feePayer.SubFromBalance(fee)
-	if err != nil {
-		return err
-	}
+	if !check.IfNil(feePayer) {
+		err = feePayer.SubFromBalance(fee)
+		if err != nil {
+			return err
+		}
 
-	err = sc.saveAccount(feePayer)
-	if err != nil {
-		return err
+		err = sc.saveAccount(feePayer)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = acntSnd.SubFromBalance(tx.GetValue())
@@ -1969,6 +1971,11 @@ func (sc *scProcessor) getFeePayer(tx data.TransactionHandler, acntSnd state.Use
 	relayedTx, ok := tx.(data.RelayedTransactionHandler)
 	if !ok {
 		return acntSnd, nil
+	}
+
+	relayerIsSender := bytes.Compare(relayedTx.GetRelayerAddr(), tx.GetSndAddr()) == 0
+	if relayerIsSender {
+		return acntSnd, nil // do not load the same account twice
 	}
 
 	account, err := sc.getAccountFromAddress(relayedTx.GetRelayerAddr())
