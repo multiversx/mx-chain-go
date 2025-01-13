@@ -9,20 +9,32 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
+// ArgInterceptedEquivalentProofsFactory is the DTO used to create a new instance of interceptedEquivalentProofsFactory
+type ArgInterceptedEquivalentProofsFactory struct {
+	ArgInterceptedDataFactory
+	ProofsPool  dataRetriever.ProofsPool
+	HeadersPool dataRetriever.HeadersPool
+	Storage     dataRetriever.StorageService
+}
+
 type interceptedEquivalentProofsFactory struct {
 	marshaller        marshal.Marshalizer
 	shardCoordinator  sharding.Coordinator
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
+	storage           dataRetriever.StorageService
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
-func NewInterceptedEquivalentProofsFactory(args ArgInterceptedDataFactory, proofsPool dataRetriever.ProofsPool) *interceptedEquivalentProofsFactory {
+func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFactory) *interceptedEquivalentProofsFactory {
 	return &interceptedEquivalentProofsFactory{
 		marshaller:        args.CoreComponents.InternalMarshalizer(),
 		shardCoordinator:  args.ShardCoordinator,
 		headerSigVerifier: args.HeaderSigVerifier,
-		proofsPool:        proofsPool,
+		proofsPool:        args.ProofsPool,
+		headersPool:       args.HeadersPool,
+		storage:           args.Storage,
 	}
 }
 
@@ -34,6 +46,8 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.
 		ShardCoordinator:  factory.shardCoordinator,
 		HeaderSigVerifier: factory.headerSigVerifier,
 		Proofs:            factory.proofsPool,
+		Headers:           factory.headersPool,
+		Storage:           factory.storage,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

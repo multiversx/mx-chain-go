@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -8,12 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 )
 
 const interceptedEquivalentProofType = "intercepted equivalent proof"
@@ -25,6 +29,8 @@ type ArgInterceptedEquivalentProof struct {
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
+	Headers           dataRetriever.HeadersPool
+	Storage           dataRetriever.StorageService
 }
 
 type interceptedEquivalentProof struct {
@@ -32,6 +38,9 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
+	storage           dataRetriever.StorageService
+	marshaller        marshaling.Marshalizer
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -51,6 +60,9 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.Proofs,
+		headersPool:       args.Headers,
+		marshaller:        args.Marshaller,
+		storage:           args.Storage,
 	}, nil
 }
 
@@ -69,6 +81,12 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
+	}
+	if check.IfNil(args.Headers) {
+		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(args.Storage) {
+		return process.ErrNilStore
 	}
 
 	return nil
@@ -115,7 +133,26 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return proofscache.ErrAlreadyExistingEquivalentProof
 	}
 
+	err = iep.checkHeaderParamsFromProof()
+	if err != nil {
+		return err
+	}
+
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
+}
+
+func (iep *interceptedEquivalentProof) checkHeaderParamsFromProof() error {
+	headersStorer, err := iep.getHeadersStorer(iep.proof.GetHeaderShardId())
+	if err != nil {
+		return err
+	}
+
+	header, err := common.GetHeader(iep.proof.GetHeaderHash(), iep.headersPool, headersStorer, iep.marshaller)
+	if err != nil {
+		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(iep.proof.GetHeaderHash()))
+	}
+
+	return common.VerifyProofAgainstHeader(iep.proof, header)
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {
@@ -127,6 +164,14 @@ func (iep *interceptedEquivalentProof) integrity() error {
 	}
 
 	return nil
+}
+
+func (iep *interceptedEquivalentProof) getHeadersStorer(shardID uint32) (storage.Storer, error) {
+	if shardID == core.MetachainShardId {
+		return iep.storage.GetStorer(dataRetriever.MetaBlockUnit)
+	}
+
+	return iep.storage.GetStorer(dataRetriever.BlockHeaderUnit)
 }
 
 // GetProof returns the underlying intercepted header proof
