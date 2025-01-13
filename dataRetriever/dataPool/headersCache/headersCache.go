@@ -7,9 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type headersCache struct {
+	log               logger.Logger
 	headersNonceCache map[uint32]listOfHeadersByNonces
 
 	headersByHash  headersByHashMap
@@ -19,8 +21,13 @@ type headersCache struct {
 	maxHeadersPerShard int
 }
 
-func newHeadersCache(numMaxHeaderPerShard int, numHeadersToRemove int) *headersCache {
+func newHeadersCache(
+	log logger.Logger,
+	numMaxHeaderPerShard int,
+	numHeadersToRemove int,
+) *headersCache {
 	return &headersCache{
+		log:                log,
 		headersNonceCache:  make(map[uint32]listOfHeadersByNonces),
 		headersCounter:     make(numHeadersByShard),
 		headersByHash:      make(headersByHashMap),
@@ -105,7 +112,7 @@ func (cache *headersCache) removeHeaderByNonceAndShardId(headerNonce uint64, sha
 	headersHashes := headers.getHashes()
 
 	for _, hash := range headersHashes {
-		log.Trace("removeHeaderByNonceAndShardId",
+		cache.log.Trace("removeHeaderByNonceAndShardId",
 			"shard", shardId,
 			"nonce", headerNonce,
 			"hash", hash,
@@ -132,7 +139,7 @@ func (cache *headersCache) removeHeaderByHash(hash []byte) {
 		return
 	}
 
-	log.Trace("removeHeaderByHash",
+	cache.log.Trace("removeHeaderByHash",
 		"shard", info.headerShardId,
 		"nonce", info.headerNonce,
 		"hash", hash,

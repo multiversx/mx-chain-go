@@ -344,6 +344,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	requestHandler, err := requestHandlers.NewResolverRequestHandler(
+		nil,
 		requestersFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,

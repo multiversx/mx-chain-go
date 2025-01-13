@@ -1092,7 +1092,15 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 
 func (tpn *TestProcessorNode) initDataPools() {
 	tpn.ProofsPool = proofscache.NewProofsPool()
-	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
+
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("dtr/hc/%s", id))
+
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(log, 1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
@@ -1540,8 +1548,16 @@ func (tpn *TestProcessorNode) initRequesters() {
 		tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
 	}
 
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("dtr/rh/%s", id))
+
 	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
 	tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		log,
 		tpn.RequestersFinder,
 		tpn.RequestedItemsHandler,
 		tpn.WhiteListHandler,

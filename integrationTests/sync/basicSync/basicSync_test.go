@@ -263,7 +263,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	integrationTests.UpdateRound(nodes, round)
 	nonce++
 
-	numRoundsToTest := 5
+	numRoundsToTest := 10
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 

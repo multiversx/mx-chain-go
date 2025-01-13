@@ -615,6 +615,7 @@ func (thn *TestHeartbeatNode) createShardRequestersContainer(args requesterscont
 func (thn *TestHeartbeatNode) createRequestHandler() {
 	thn.RequestersFinder, _ = containers.NewRequestersFinder(thn.RequestersContainer, thn.ShardCoordinator)
 	thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		nil,
 		thn.RequestersFinder,
 		thn.RequestedItemsHandler,
 		thn.WhiteListHandler,

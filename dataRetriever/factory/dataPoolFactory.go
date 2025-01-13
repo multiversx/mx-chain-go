@@ -80,7 +80,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the rewards", err)
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
+	hdrPool, err := headersCache.NewHeadersPool(log, mainConfig.HeadersPoolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the headers", err)
 	}
