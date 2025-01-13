@@ -9,7 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/dfsTrieIterator"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("trie/leavesRetriever")
 
 type leavesRetriever struct {
 	iterators      map[string]common.DfsIterator
@@ -47,6 +50,7 @@ func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Mars
 
 // GetLeaves retrieves the leaves from the trie. If there is a saved checkpoint for the iterator id, it will continue to iterate from the checkpoint.
 func (lr *leavesRetriever) GetLeaves(numLeaves int, rootHash []byte, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
+	defer log.Trace("leaves retriever stats", "size", lr.size, "numIterators", len(lr.iterators))
 	if len(iteratorID) == 0 {
 		return lr.getLeavesFromNewInstance(numLeaves, rootHash, ctx)
 	}
@@ -62,6 +66,7 @@ func (lr *leavesRetriever) GetLeaves(numLeaves int, rootHash []byte, iteratorID 
 }
 
 func (lr *leavesRetriever) getLeavesFromNewInstance(numLeaves int, rootHash []byte, ctx context.Context) (map[string]string, []byte, error) {
+	log.Trace("get leaves from new instance", "numLeaves", numLeaves, "rootHash", rootHash)
 	iterator, err := dfsTrieIterator.NewIterator(rootHash, lr.db, lr.marshaller, lr.hasher)
 	if err != nil {
 		return nil, nil, err
@@ -71,6 +76,7 @@ func (lr *leavesRetriever) getLeavesFromNewInstance(numLeaves int, rootHash []by
 }
 
 func (lr *leavesRetriever) getLeavesFromCheckpoint(numLeaves int, iterator common.DfsIterator, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
+	log.Trace("get leaves from checkpoint", "numLeaves", numLeaves, "iteratorID", iteratorID)
 	lr.markIteratorAsRecentlyUsed(iteratorID)
 	clonedIterator := iterator.Clone()
 

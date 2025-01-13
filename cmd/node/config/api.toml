@@ -79,6 +79,9 @@
         # /address/:address/keys will return all the key-value pairs of a given account
         { Name = "/:address/keys", Open = true },
 
+        # address/:address/num-keys/:numKeys/checkpoint-id/:checkpointId will return the given num of key-value pairs for the given account
+        { Name = "/:address/num-keys/:numKeys/checkpoint-id/:checkpointId", Open = true },
+
         # /address/:address/key/:key will return the value of a key for a given account
         { Name = "/:address/key/:key", Open = true },
 
