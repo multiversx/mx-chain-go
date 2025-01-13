@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -41,6 +42,8 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 		return nil
 	}
 
+	// also check here?
+
 	return multiSigVerifier.VerifyAggregatedSig(
 		pubKeysSigners,
 		outGoingMb.GetOutGoingOperationsHash(),
@@ -67,6 +70,8 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 		outGoingMb.GetOutGoingOperationsHash(),
 		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
 
+	// also check here bitmap
+
 	return hsv.singleSigVerifier.Verify(
 		leaderPubKey,
 		leaderMsgToSign,
@@ -89,7 +94,7 @@ func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderH
 	if err != nil {
 		return err
 	}
-
+	// here ?
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
@@ -114,7 +119,7 @@ func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHan
 	if err != nil {
 		return err
 	}
-
+	// don t think here...
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 

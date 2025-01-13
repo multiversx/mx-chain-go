@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -38,6 +39,8 @@ func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap 
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
+
+	// i don't think here
 
 	return sr.signingHandler.Verify(outGoingMb.GetOutGoingOperationsHash(), bitmap, header.GetEpoch())
 }
@@ -103,6 +106,8 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header d
 		outGoingMb.GetOutGoingOperationsHash(),
 		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
 
+	// also here
+
 	leaderSig, err := sr.signingHandler.CreateSignatureForPublicKey(leaderMsgToSign, leaderPubKey)
 	if err != nil {
 		return err
@@ -137,6 +142,8 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SetConsensusDataInHeader(header da
 		return err
 	}
 
+	// add here bitmap
+
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
@@ -154,6 +161,8 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(h
 
 	cnsMsg.AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
 	cnsMsg.LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()
+
+	//i don't think it is needed here
 
 	log.Debug("sovereignSubRoundEndOutGoingTxData.AddLeaderAndAggregatedSignatures",
 		"AggregatedSignatureOutGoingTxData", cnsMsg.AggregatedSignatureOutGoingTxData,

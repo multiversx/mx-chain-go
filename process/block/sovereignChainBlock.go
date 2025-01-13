@@ -1428,6 +1428,8 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
 		Hash:               outGoingOperationsHash,
 		OutGoingOperations: outGoingOperationsData,
+		// check here also to add bitmap?
+		// Also, maybe also add epoch ???
 	})
 
 	return &block.MiniBlock{

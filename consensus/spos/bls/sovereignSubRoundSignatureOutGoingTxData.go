@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -40,6 +41,8 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 	if check.IfNil(outGoingMBHeader) {
 		return make([]byte, 0), nil
 	}
+
+	// i don't think here if everyone verifies that signature is on the right bitmap???
 
 	return sr.signingHandler.CreateSignatureShareForPublicKey(
 		outGoingMBHeader.GetOutGoingOperationsHash(),
