@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -21,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/update"

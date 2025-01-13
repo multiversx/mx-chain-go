@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+const initialHashesCapacity = 10000 // 32B * 10000 = 320KB
+
 type dataTrieHashesCollector struct {
 	oldHashes common.ModifiedHashes
 	newHashes common.ModifiedHashes
@@ -17,8 +19,8 @@ type dataTrieHashesCollector struct {
 // This collector is used to collect hashes related to the data trie.
 func NewDataTrieHashesCollector() *dataTrieHashesCollector {
 	return &dataTrieHashesCollector{
-		oldHashes: make(common.ModifiedHashes),
-		newHashes: make(common.ModifiedHashes),
+		oldHashes: make(common.ModifiedHashes, initialHashesCapacity),
+		newHashes: make(common.ModifiedHashes, initialHashesCapacity),
 	}
 }
 
@@ -54,6 +56,15 @@ func (hc *dataTrieHashesCollector) GetCollectedData() ([]byte, common.ModifiedHa
 	defer hc.RUnlock()
 
 	return nil, hc.oldHashes, hc.newHashes
+}
+
+// Clean initializes the old and new hashes collectors.
+func (hc *dataTrieHashesCollector) Clean() {
+	hc.Lock()
+	defer hc.Unlock()
+
+	hc.oldHashes = make(common.ModifiedHashes, initialHashesCapacity)
+	hc.newHashes = make(common.ModifiedHashes, initialHashesCapacity)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

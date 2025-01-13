@@ -8,6 +8,7 @@ type TrieHashesCollectorStub struct {
 	GetDirtyHashesCalled    func() common.ModifiedHashes
 	AddObsoleteHashesCalled func(oldRootHash []byte, oldHashes [][]byte)
 	GetCollectedDataCalled  func() ([]byte, common.ModifiedHashes, common.ModifiedHashes)
+	CleanCalled             func()
 }
 
 // AddDirtyHash -
@@ -38,6 +39,13 @@ func (h *TrieHashesCollectorStub) GetCollectedData() ([]byte, common.ModifiedHas
 		return h.GetCollectedDataCalled()
 	}
 	return nil, nil, nil
+}
+
+// Clean -
+func (h *TrieHashesCollectorStub) Clean() {
+	if h.CleanCalled != nil {
+		h.CleanCalled()
+	}
 }
 
 // IsInterfaceNil -

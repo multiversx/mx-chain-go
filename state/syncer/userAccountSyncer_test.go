@@ -1,11 +1,11 @@
 package syncer
 
 import (
-	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"

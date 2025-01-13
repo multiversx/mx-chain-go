@@ -80,9 +80,10 @@ type AccountsDB struct {
 	storagePruningManager StoragePruningManager
 	snapshotsManger       SnapshotsManager
 
-	lastRootHash []byte
-	dataTries    common.TriesHolder
-	entries      []JournalEntry
+	lastRootHash    []byte
+	dataTries       common.TriesHolder
+	entries         []JournalEntry
+	hashesCollector common.TrieHashesCollector
 
 	mutOp                sync.RWMutex
 	loadCodeMeasurements *loadingMeasurements
@@ -129,7 +130,16 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		},
 		addressConverter: args.AddressConverter,
 		snapshotsManger:  args.SnapshotsManager,
+		hashesCollector:  createTheHashesCollector(args.Trie),
 	}
+}
+
+func createTheHashesCollector(mainTrie common.Trie) common.TrieHashesCollector {
+	if mainTrie.GetStorageManager().IsPruningEnabled() {
+		return hashesCollector.NewDataTrieHashesCollector()
+	}
+
+	return hashesCollector.NewDisabledHashesCollector()
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {
@@ -777,18 +787,14 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 }
 
 func (adb *AccountsDB) commit() ([]byte, error) {
+	defer adb.hashesCollector.Clean()
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
-
-	hc := hashesCollector.NewDisabledHashesCollector()
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
-		hc = hashesCollector.NewDataTrieHashesCollector()
-	}
 
 	// Step 1. commit all data tries
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
-		err := dataTries[i].Commit(hc)
+		err := dataTries[i].Commit(adb.hashesCollector)
 		if err != nil {
 			return nil, err
 		}
@@ -796,14 +802,12 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	adb.dataTries.Reset()
 
 	// Step 2. commit main trie
-	if adb.mainTrie.GetStorageManager().IsPruningEnabled() {
-		wrappedHc, err := hashesCollector.NewHashesCollector(hc)
-		if err != nil {
-			return nil, err
-		}
-		hc = wrappedHc
+	hc, err := hashesCollector.NewHashesCollector(adb.hashesCollector)
+	if err != nil {
+		return nil, err
 	}
-	err := adb.mainTrie.Commit(hc)
+
+	err = adb.mainTrie.Commit(hc)
 	if err != nil {
 		return nil, err
 	}

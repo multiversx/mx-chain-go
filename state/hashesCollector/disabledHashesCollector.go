@@ -28,6 +28,10 @@ func (hc *disabledHashesCollector) GetCollectedData() ([]byte, common.ModifiedHa
 	return nil, nil, nil
 }
 
+// Clean does nothing.
+func (hc *disabledHashesCollector) Clean() {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (hc *disabledHashesCollector) IsInterfaceNil() bool {
 	return hc == nil

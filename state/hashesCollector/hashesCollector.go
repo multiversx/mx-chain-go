@@ -2,7 +2,7 @@ package hashesCollector
 
 import (
 	"errors"
-	
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
@@ -38,6 +38,12 @@ func (hc *hashesCollector) AddObsoleteHashes(oldRootHash []byte, oldHashes [][]b
 func (hc *hashesCollector) GetCollectedData() ([]byte, common.ModifiedHashes, common.ModifiedHashes) {
 	_, oldHashes, newHashes := hc.TrieHashesCollector.GetCollectedData()
 	return hc.oldRootHash, oldHashes, newHashes
+}
+
+// Clean initializes the old root hash and the old and new hashes collectors.
+func (hc *hashesCollector) Clean() {
+	hc.TrieHashesCollector.Clean()
+	hc.oldRootHash = nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
