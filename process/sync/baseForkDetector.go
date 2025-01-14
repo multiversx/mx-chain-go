@@ -300,7 +300,7 @@ func (bfd *baseForkDetector) append(hdrInfo *headerInfo) bool {
 	bfd.adjustHeadersWithInfo(hdrInfo)
 
 	for _, hdrInfoStored := range hdrInfos {
-		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) && hdrInfoStored.hasProof == hdrInfo.hasProof {
+		if bytes.Equal(hdrInfoStored.hash, hdrInfo.hash) && hdrInfoStored.state == hdrInfo.state && hdrInfoStored.hasProof == hdrInfo.hasProof {
 			return false
 		}
 	}
