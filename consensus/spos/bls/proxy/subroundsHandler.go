@@ -60,7 +60,7 @@ type SubroundsHandler struct {
 func (s *SubroundsHandler) EpochConfirmed(epoch uint32, _ uint64) {
 	err := s.initSubroundsForEpoch(epoch)
 	if err != nil {
-		log.Error("SubroundsHandler.EpochStartAction: cannot initialize subrounds", "error", err)
+		log.Error("SubroundsHandler.EpochConfirmed: cannot initialize subrounds", "error", err)
 	}
 }
 

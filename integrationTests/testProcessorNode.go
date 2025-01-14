@@ -2822,14 +2822,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		return err
 	}
 
-	if tpn.EnableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, blockHeader.GetEpoch()) {
-
-		// first block after genesis does not have the previous proof, as well as first block after epoch change where the flag gets activated
-		shouldAddProof := blockHeader.GetNonce() > 1 && !common.IsEpochChangeBlockForFlagActivation(blockHeader, tpn.EnableEpochsHandler, common.EquivalentMessagesFlag)
-		if !shouldAddProof {
-			return nil
-		}
-
+	if common.ShouldBlockHavePrevProof(blockHeader, tpn.EnableEpochsHandler, common.EquivalentMessagesFlag) {
 		previousProof := &dataBlock.HeaderProof{
 			PubKeysBitmap:       pubKeysBitmap,
 			AggregatedSignature: sig,

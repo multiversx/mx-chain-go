@@ -406,10 +406,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 	err = sr.EquivalentProofsPool().AddProof(proof)
 	if err != nil {
 		log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err)
-		return
 	}
-
-	return
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel

@@ -747,7 +747,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	}
 	bfd.setHighestNonceReceived(header.GetNonce())
 
-	if state == process.BHProposed || hasProof == false {
+	if state == process.BHProposed || !hasProof {
 		return
 	}
 
