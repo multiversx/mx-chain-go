@@ -58,9 +58,7 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.GasUsed = big.NewInt(0).Div(initialTotalFee, big.NewInt(0).SetUint64(tx.GasPrice)).Uint64()
 	}
 
-	hasValidRelayer := len(tx.RelayerAddress) == len(tx.Sender) && len(tx.RelayerAddress) > 0
-	hasValidRelayerSignature := len(tx.RelayerSignature) == len(tx.Signature) && len(tx.RelayerSignature) > 0
-	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+	isRelayedV3 := common.IsValidRelayedTxV3(tx.Tx)
 	hasRefundForSender := false
 	for _, scr := range tx.SmartContractResults {
 		if !scr.IsRefund {
@@ -86,9 +84,7 @@ func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayedV1V2(tx *transaction.ApiTransa
 		return nil, nil, false
 	}
 
-	hasValidRelayer := len(tx.RelayerAddress) == len(tx.Sender) && len(tx.RelayerAddress) > 0
-	hasValidRelayerSignature := len(tx.RelayerSignature) == len(tx.Signature) && len(tx.RelayerSignature) > 0
-	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+	isRelayedV3 := common.IsValidRelayedTxV3(tx.Tx)
 	if isRelayedV3 {
 		return nil, nil, false
 	}
