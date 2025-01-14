@@ -5,12 +5,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentProofsFactory {
@@ -18,12 +21,14 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 		ArgInterceptedDataFactory: ArgInterceptedDataFactory{
 			CoreComponents: &processMock.CoreComponentsMock{
 				IntMarsh: &mock.MarshalizerMock{},
+				Hash:     &hashingMocks.HasherMock{},
 			},
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		},
 		ProofsPool:  &dataRetriever.ProofsPoolMock{},
 		HeadersPool: &pool.HeadersPoolStub{},
+		Storage:     &genericMocks.ChainStorerMock{},
 	}
 }
 

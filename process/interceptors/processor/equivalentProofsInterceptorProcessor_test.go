@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
@@ -12,9 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgEquivalentProofsInterceptorProcessor() ArgEquivalentProofsInterceptorProcessor {
@@ -109,6 +111,7 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			Proofs:            &dataRetriever.ProofsPoolMock{},
 			Headers:           &pool.HeadersPoolStub{},
 			Storage:           &genericMocks.ChainStorerMock{},
+			Hasher:            &hashingMocks.HasherMock{},
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{
 			PubKeysBitmap:       []byte("bitmap"),

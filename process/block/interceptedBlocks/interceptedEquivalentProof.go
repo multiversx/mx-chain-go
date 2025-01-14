@@ -8,7 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -16,8 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 )
 
 const interceptedEquivalentProofType = "intercepted equivalent proof"
@@ -26,6 +28,7 @@ const interceptedEquivalentProofType = "intercepted equivalent proof"
 type ArgInterceptedEquivalentProof struct {
 	DataBuff          []byte
 	Marshaller        marshal.Marshalizer
+	Hasher            hashing.Hasher
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
@@ -41,6 +44,8 @@ type interceptedEquivalentProof struct {
 	headersPool       dataRetriever.HeadersPool
 	storage           dataRetriever.StorageService
 	marshaller        marshaling.Marshalizer
+	hasher            hashing.Hasher
+	hash              []byte
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -55,6 +60,8 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		return nil, err
 	}
 
+	hash := args.Hasher.Compute(string(args.DataBuff))
+
 	return &interceptedEquivalentProof{
 		proof:             equivalentProof,
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
@@ -63,6 +70,8 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		headersPool:       args.Headers,
 		marshaller:        args.Marshaller,
 		storage:           args.Storage,
+		hasher:            args.Hasher,
+		hash:              hash,
 	}, nil
 }
 
@@ -87,6 +96,9 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Storage) {
 		return process.ErrNilStore
+	}
+	if check.IfNil(args.Hasher) {
+		return process.ErrNilHasher
 	}
 
 	return nil
@@ -186,7 +198,7 @@ func (iep *interceptedEquivalentProof) IsForCurrentShard() bool {
 
 // Hash returns the header hash the proof belongs to
 func (iep *interceptedEquivalentProof) Hash() []byte {
-	return iep.proof.HeaderHash
+	return iep.hash
 }
 
 // Type returns the type of this intercepted data

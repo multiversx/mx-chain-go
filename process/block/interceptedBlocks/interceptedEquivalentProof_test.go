@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
@@ -19,10 +21,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -56,6 +57,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		ShardCoordinator:  &mock.ShardCoordinatorMock{},
 		HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 		Proofs:            &dataRetriever.ProofsPoolMock{},
+		Hasher:            &hashingMocks.HasherMock{},
 		Headers: &pool.HeadersPoolStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{
@@ -142,6 +144,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		args.Headers = nil
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.Equal(t, process.ErrNilHeadersDataPool, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil Hasher should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.Hasher = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilHasher, err)
 		require.Nil(t, iep)
 	})
 	t.Run("unmarshal error should error", func(t *testing.T) {
@@ -414,11 +425,12 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 	}
 	args := createMockArgInterceptedEquivalentProof()
 	args.DataBuff, _ = args.Marshaller.Marshal(proof)
+	hash := args.Hasher.Compute(string(args.DataBuff))
 	iep, err := NewInterceptedEquivalentProof(args)
 	require.NoError(t, err)
 
 	require.Equal(t, proof, iep.GetProof()) // pointer testing
-	require.True(t, bytes.Equal(proof.HeaderHash, iep.Hash()))
+	require.Equal(t, hash, iep.Hash())
 	require.Equal(t, [][]byte{proof.HeaderHash}, iep.Identifiers())
 	require.Equal(t, interceptedEquivalentProofType, iep.Type())
 	expectedStr := fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=123, shard=0, nonce=345",
