@@ -81,8 +81,6 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		return err
 	}
 
-	// update here
-
 	log.Debug("step 3.1: block header final info has been received with outgoing mb",
 		"LeaderSignatureOutGoingTxData", cnsDta.LeaderSignatureOutGoingTxData,
 		"AggregatedSignatureOutGoingTxData", cnsDta.AggregatedSignatureOutGoingTxData,
@@ -157,8 +155,7 @@ func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
 
 	currBridgeData.LeaderSignature = outGoingMBHeader.GetLeaderSignatureOutGoingOperations()
 	currBridgeData.AggregatedSignature = outGoingMBHeader.GetAggregatedSignatureOutGoingOperations()
-
-	// also, check curr bridge data to add bitmap
+	currBridgeData.PubKeysBitmap = sr.Header.GetPubKeysBitmap()
 
 	sr.outGoingOperationsPool.Delete(hash)
 	sr.outGoingOperationsPool.Add(currBridgeData)
