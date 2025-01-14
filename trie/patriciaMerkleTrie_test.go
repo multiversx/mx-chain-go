@@ -1581,6 +1581,9 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
+			},
 		}
 		trie.SetGoRoutinesManager(tr, grm)
 
@@ -1645,6 +1648,9 @@ func TestPatriciaMerkleTrie_AddBatchedDataToTrie(t *testing.T) {
 				for waitForSignal.Load() {
 					time.Sleep(time.Millisecond * 100)
 				}
+			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
 			},
 		}
 		trie.SetGoRoutinesManager(tr, grm)
@@ -1811,6 +1817,9 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 					time.Sleep(time.Millisecond * 100)
 				}
 			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
+			},
 		}
 		trie.SetGoRoutinesManager(tr, grm)
 
@@ -1839,6 +1848,119 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 
 		waitForSignal.Store(false)
 		// wait for end of processing of both batches
+		wg.Wait()
+	})
+}
+
+func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set root hash with batched data commits batch", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numOperations := 1000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+
+		rootHash, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.NotEqual(t, emptyTrieHash, rootHash)
+	})
+	t.Run("set root hash and update trie concurrently should serialize operations", func(t *testing.T) {
+		t.Parallel()
+
+		// create trie with some data
+		tr := emptyTrie()
+		numOperations := 1000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		// compute rootHash
+		waitForSignal := atomic.Bool{}
+		waitForSignal.Store(true)
+		startedComputingRootHash := atomic.Bool{}
+		grm := &mock.GoroutinesManagerStub{
+			CanStartGoRoutineCalled: func() bool {
+				startedComputingRootHash.Store(true)
+				return true
+			},
+			EndGoRoutineProcessingCalled: func() {
+				for waitForSignal.Load() {
+					time.Sleep(time.Millisecond * 100)
+				}
+			},
+			SetErrorCalled: func(err error) {
+				assert.Fail(t, "should not have called this function")
+			},
+		}
+		trie.SetGoRoutinesManager(tr, grm)
+
+		go func() {
+			rootHash1, err := tr.RootHash()
+			assert.Nil(t, err)
+			assert.NotEqual(t, emptyTrieHash, rootHash1)
+		}()
+
+		// wait for start of the computation of the root hash
+		for !startedComputingRootHash.Load() {
+			time.Sleep(time.Millisecond * 100)
+		}
+
+		for i := numOperations; i < numOperations*2; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+		setNewErrChanCalled := atomic.Bool{}
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		go func() {
+			grm.SetNewErrorChannelCalled = func(common.BufferedErrChan) error {
+				setNewErrChanCalled.Store(true)
+				return nil
+			}
+			trie.ExecuteUpdatesFromBatch(tr)
+			wg.Done()
+		}()
+
+		// commit batch to trie does not start until root hash is fully computed
+		time.Sleep(time.Millisecond * 500)
+		assert.False(t, setNewErrChanCalled.Load())
+
+		waitForSignal.Store(false)
+		wg.Wait()
+		assert.True(t, setNewErrChanCalled.Load())
+	})
+	t.Run("set root hash and get from trie concurrently", func(t *testing.T) {
+		t.Parallel()
+
+		tr := emptyTrie()
+		numOperations := 100000
+		for i := 0; i < numOperations; i++ {
+			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+		}
+		trie.ExecuteUpdatesFromBatch(tr)
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		setRootHashFinished := atomic.Bool{}
+		go func() {
+			for !setRootHashFinished.Load() {
+				index := rand.Intn(numOperations)
+				val, _, err := tr.Get([]byte("dog" + strconv.Itoa(index)))
+				assert.Nil(t, err)
+				assert.Equal(t, []byte("reindeer"), val)
+			}
+			wg.Done()
+		}()
+
+		rootHash, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.NotEqual(t, emptyTrieHash, rootHash)
+
+		setRootHashFinished.Store(true)
 		wg.Wait()
 	})
 }
