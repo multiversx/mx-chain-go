@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -50,36 +49,16 @@ func (ln *leafNode) getCollapsed() (node, error) {
 	return ln, nil
 }
 
-func (ln *leafNode) setHash() error {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("setHash error %w", err)
+func (ln *leafNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
+	if len(ln.hash) != 0 {
+		return
 	}
-	if ln.getHash() != nil {
-		return nil
-	}
-	hash, err := hashChildrenAndNode(ln)
+	hash, err := encodeNodeAndGetHash(ln)
 	if err != nil {
-		return err
+		goRoutinesManager.SetError(err)
+		return
 	}
 	ln.hash = hash
-	return nil
-}
-
-func (ln *leafNode) setHashConcurrent(wg *sync.WaitGroup, c chan error) {
-	err := ln.setHash()
-	if err != nil {
-		c <- err
-	}
-	wg.Done()
-}
-
-func (ln *leafNode) setRootHash() error {
-	return ln.setHash()
-}
-
-func (ln *leafNode) hashChildren() error {
-	return nil
 }
 
 func (ln *leafNode) hashNode() ([]byte, error) {
@@ -149,12 +128,11 @@ func writeNodeOnChannel(ln *leafNode, leavesChan chan core.KeyValueHolder) error
 		return nil
 	}
 
-	leafHash, err := computeAndSetNodeHash(ln)
-	if err != nil {
-		return err
+	if len(ln.hash) == 0 {
+		return ErrNodeHashIsNotSet
 	}
 
-	trieLeaf := keyValStorage.NewKeyValStorage(leafHash, ln.Value)
+	trieLeaf := keyValStorage.NewKeyValStorage(ln.hash, ln.Value)
 	leavesChan <- trieLeaf
 
 	return nil

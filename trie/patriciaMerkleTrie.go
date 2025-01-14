@@ -312,10 +312,18 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	if hash != nil {
 		return hash, nil
 	}
-	err := rootNode.setRootHash()
+
+	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return nil, err
 	}
+
+	rootNode.setHash(tr.goRoutinesManager)
+	err = tr.goRoutinesManager.GetError()
+	if err != nil {
+		return nil, err
+	}
+
 	return rootNode.getHash(), nil
 }
 
@@ -344,7 +352,14 @@ func (tr *patriciaMerkleTrie) Commit() error {
 
 		return nil
 	}
-	err = rootNode.setRootHash()
+
+	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
+	if err != nil {
+		return err
+	}
+
+	rootNode.setHash(tr.goRoutinesManager)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
@@ -467,7 +482,13 @@ func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
 		return nil, nil
 	}
 
-	err = rootNode.setRootHash()
+	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
+	if err != nil {
+		return nil, err
+	}
+
+	rootNode.setHash(tr.goRoutinesManager)
+	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +521,6 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		return nil, nil, err
 	}
 
-	newRoot.setGivenHash(rootHash)
 	newTr.SetNewRootNode(newRoot)
 
 	return newTr, newRoot, nil
@@ -543,12 +563,7 @@ func (tr *patriciaMerkleTrie) GetSerializedNodes(rootHash []byte, maxBuffToSend 
 	log.Trace("GetSerializedNodes", "rootHash", rootHash)
 	size := uint64(0)
 
-	newTr, _, err := tr.recreateFromDb(rootHash, tr.trieStorage)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	it, err := NewDFSIterator(newTr)
+	it, err := NewDFSIterator(tr, rootHash)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -667,26 +682,21 @@ func logMapWithTrace(message string, paramName string, hashes common.ModifiedHas
 }
 
 // GetProof computes a Merkle proof for the node that is present at the given key
-func (tr *patriciaMerkleTrie) GetProof(key []byte) ([][]byte, []byte, error) {
-	tr.trieOperationInProgress.SetValue(true)
-	defer tr.trieOperationInProgress.Reset()
-
-	tr.updateTrieMutex.Lock()
-	defer tr.updateTrieMutex.Unlock()
-
-	rootNode := tr.GetRootNode()
-	if check.IfNil(rootNode) {
+func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, []byte, error) {
+	//TODO refactor this function to avoid encoding the node after it is retrieved from the DB.
+	// The encoded node is actually the value from db, thus we can use the retrieved value directly
+	if len(key) == 0 || bytes.Equal(rootHash, common.EmptyTrieHash) {
 		return nil, nil, ErrNilNode
+	}
+
+	rootNode, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
+	if err != nil {
+		return nil, nil, fmt.Errorf("trie get proof error: %w", err)
 	}
 
 	var proof [][]byte
 	hexKey := keyBytesToHex(key)
 	currentNode := rootNode
-
-	err := currentNode.setRootHash()
-	if err != nil {
-		return nil, nil, err
-	}
 
 	for {
 		encodedNode, errGet := currentNode.getEncodedNode()

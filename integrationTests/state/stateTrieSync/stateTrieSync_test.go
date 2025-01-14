@@ -513,18 +513,16 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 }
 
 func GetAllHashes(t *testing.T, tr common.Trie, rootHash []byte) [][]byte {
-	iterator, err := trie.NewDFSIterator(tr)
+	iterator, err := trie.NewDFSIterator(tr, rootHash)
 	require.Nil(t, err)
 
 	hashes := make([][]byte, 0)
-	hash, _ := iterator.GetHash()
-	hashes = append(hashes, hash)
+	hashes = append(hashes, iterator.GetHash())
 	for iterator.HasNext() {
 		err = iterator.Next()
 		require.Nil(t, err)
 
-		h, _ := iterator.GetHash()
-		hashes = append(hashes, h)
+		hashes = append(hashes, iterator.GetHash())
 	}
 
 	return hashes
@@ -550,7 +548,6 @@ func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTest
 		err = destStorage.Put(hash, val)
 		assert.Nil(t, err)
 	}
-
 }
 
 func getDataTriesHashes(t *testing.T, tr common.Trie, dataTriesRootHashes [][]byte) [][]byte {
@@ -560,7 +557,6 @@ func getDataTriesHashes(t *testing.T, tr common.Trie, dataTriesRootHashes [][]by
 		assert.Nil(t, err)
 
 		dtHashes := GetAllHashes(t, dt, rh)
-		assert.Nil(t, err)
 
 		hashes = append(hashes, dtHashes...)
 	}

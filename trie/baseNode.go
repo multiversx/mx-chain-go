@@ -2,7 +2,7 @@ package trie
 
 import (
 	"sync"
-	
+
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 )
@@ -16,20 +16,30 @@ type baseNode struct {
 }
 
 func (bn *baseNode) getHash() []byte {
-	//TODO add mutex protection for all methods
+	bn.mutex.RLock()
+	defer bn.mutex.RUnlock()
 
 	return bn.hash
 }
 
 func (bn *baseNode) setGivenHash(hash []byte) {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	bn.hash = hash
 }
 
 func (bn *baseNode) isDirty() bool {
+	bn.mutex.RLock()
+	defer bn.mutex.RUnlock()
+
 	return bn.dirty
 }
 
 func (bn *baseNode) setDirty(dirty bool) {
+	bn.mutex.Lock()
+	defer bn.mutex.Unlock()
+
 	bn.dirty = dirty
 }
 
