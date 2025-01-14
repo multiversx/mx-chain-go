@@ -126,6 +126,10 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 
 func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentProof *block.HeaderProof) bool {
 	proofShardId := equivalentProof.GetHeaderShardId()
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		return true
+	}
+
 	if proofShardId == core.MetachainShardId {
 		return true
 	}
