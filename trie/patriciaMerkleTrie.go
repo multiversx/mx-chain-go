@@ -107,6 +107,7 @@ func NewTrie(
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
 		goRoutinesManager:       goRoutinesManager,
 		trieOperationInProgress: &atomic.Flag{},
+		updateTrieMutex:         sync.RWMutex{},
 	}, nil
 }
 
@@ -328,7 +329,7 @@ func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 }
 
 // Commit adds all the dirty nodes to the database
-func (tr *patriciaMerkleTrie) Commit() error {
+func (tr *patriciaMerkleTrie) Commit(hashesCollector common.TrieHashesCollector) error {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
@@ -341,7 +342,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	defer tr.updateTrieMutex.Unlock()
 
 	rootNode := tr.GetRootNode()
-	if rootNode == nil {
+	if check.IfNil(rootNode) {
 		log.Trace("trying to commit empty trie")
 		return nil
 	}
@@ -353,23 +354,30 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return nil
 	}
 
+	oldRootHash := tr.GetOldRootHash()
+	if log.GetLevel() == logger.LogTrace {
+		log.Trace("started committing trie", "trie", rootNode.getHash())
+	}
+
 	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
 	if err != nil {
 		return err
 	}
 
-	rootNode.setHash(tr.goRoutinesManager)
+	rootNode.commitDirty(0, tr.maxTrieLevelInMemory, tr.goRoutinesManager, hashesCollector, tr.trieStorage, tr.trieStorage)
 	err = tr.goRoutinesManager.GetError()
 	if err != nil {
 		return err
 	}
 
-	tr.ResetCollectedHashes()
-	if log.GetLevel() == logger.LogTrace {
-		log.Trace("started committing trie", "trie", rootNode.getHash())
-	}
+	oldHashes := tr.GetOldHashes()
+	hashesCollector.AddObsoleteHashes(oldRootHash, oldHashes)
 
-	return rootNode.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
+	logArrayWithTrace("old trie hash", "hash", oldHashes)
+	logMapWithTrace("new trie hash", "hash", hashesCollector.GetDirtyHashes())
+
+	tr.ResetCollectedHashes()
+	return nil
 }
 
 // Recreate returns a new trie that has the given root hash and database
@@ -420,8 +428,8 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 	return newTr, nil
 }
 
-// String outputs a graphical view of the trie. Mainly used in tests/debugging
-func (tr *patriciaMerkleTrie) String() string {
+// ToString outputs a graphical view of the trie. Mainly used in tests/debugging
+func (tr *patriciaMerkleTrie) ToString() string {
 	tr.trieOperationInProgress.SetValue(true)
 	defer tr.trieOperationInProgress.Reset()
 
@@ -443,65 +451,6 @@ func (tr *patriciaMerkleTrie) String() string {
 // IsInterfaceNil returns true if there is no value under the interface
 func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	return tr == nil
-}
-
-// GetObsoleteHashes resets the oldHashes and oldRoot variables and returns the old hashes
-func (tr *patriciaMerkleTrie) GetObsoleteHashes() [][]byte {
-	tr.trieOperationInProgress.SetValue(true)
-	defer tr.trieOperationInProgress.Reset()
-
-	err := tr.updateTrie()
-	if err != nil {
-		log.Warn("get obsolete hashes - could not save batched changes", "error", err)
-	}
-
-	tr.updateTrieMutex.Lock()
-	defer tr.updateTrieMutex.Unlock()
-
-	oldHashes := tr.GetOldHashes()
-	logArrayWithTrace("old trie hash", "hash", oldHashes)
-
-	return oldHashes
-}
-
-// GetDirtyHashes returns all the dirty hashes from the trie
-func (tr *patriciaMerkleTrie) GetDirtyHashes() (common.ModifiedHashes, error) {
-	tr.trieOperationInProgress.SetValue(true)
-	defer tr.trieOperationInProgress.Reset()
-
-	err := tr.updateTrie()
-	if err != nil {
-		return nil, err
-	}
-
-	tr.updateTrieMutex.Lock()
-	defer tr.updateTrieMutex.Unlock()
-
-	rootNode := tr.GetRootNode()
-	if rootNode == nil {
-		return nil, nil
-	}
-
-	err = tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
-	if err != nil {
-		return nil, err
-	}
-
-	rootNode.setHash(tr.goRoutinesManager)
-	err = tr.goRoutinesManager.GetError()
-	if err != nil {
-		return nil, err
-	}
-
-	dirtyHashes := make(common.ModifiedHashes)
-	err = rootNode.getDirtyHashes(dirtyHashes)
-	if err != nil {
-		return nil, err
-	}
-
-	logMapWithTrace("new trie hash", "hash", dirtyHashes)
-
-	return dirtyHashes, nil
 }
 
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
@@ -761,11 +710,6 @@ func (tr *patriciaMerkleTrie) verifyProof(rootHash []byte, key []byte, proof [][
 // GetStorageManager returns the storage manager for the trie
 func (tr *patriciaMerkleTrie) GetStorageManager() common.StorageManager {
 	return tr.trieStorage
-}
-
-// GetOldRoot returns the rootHash of the trie before the latest changes
-func (tr *patriciaMerkleTrie) GetOldRoot() []byte {
-	return tr.GetOldRootHash()
 }
 
 // GetTrieStats will collect and return the statistics for the given rootHash

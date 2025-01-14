@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -111,7 +112,7 @@ func getSerializedTrieNode(
 
 	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
 	_ = tr.Update(key, []byte("value"))
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	return serializedLeafNode
 }
@@ -248,7 +249,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		_ = tr.Update([]byte("doe"), []byte("reindeer"))
 		_ = tr.Update([]byte("dog"), []byte("puppy"))
 		_ = tr.Update([]byte("ddog"), accountBytes)
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		leavesChannels := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
@@ -305,7 +306,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		_ = tr.Update([]byte("doe"), []byte("reindeer"))
 		_ = tr.Update([]byte("dog"), []byte("puppy"))
 		_ = tr.Update([]byte("ddog"), accountBytes)
-		_ = tr.Commit()
+		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		leavesChannels := &common.TrieIteratorChannels{
 			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
@@ -364,7 +365,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 	value := []byte("value")
 	_ = tr.Update(key, value)
 	rootHash, _ := tr.RootHash()
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	args.Cacher = &testscommon.CacherStub{
 		GetCalled: func(key []byte) (value interface{}, ok bool) {

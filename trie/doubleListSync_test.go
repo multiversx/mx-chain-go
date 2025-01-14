@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -151,7 +152,7 @@ func TestDoubleListTrieSyncer_StartSyncingCanTimeout(t *testing.T) {
 	numKeysValues := 10
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -169,7 +170,7 @@ func TestDoubleListTrieSyncer_StartSyncingTimeoutNoNodesReceived(t *testing.T) {
 	numKeysValues := 10
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -185,7 +186,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	numKeysValues := 100
 	trSource, _ := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 
@@ -246,7 +247,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	numKeysValues := 100
 	trSource, memUnitSource := createInMemoryTrie()
 	addDataToTrie(numKeysValues, trSource)
-	_ = trSource.Commit()
+	_ = trSource.Commit(hashesCollector.NewDisabledHashesCollector())
 	roothash, _ := trSource.RootHash()
 	log.Info("source trie", "root hash", roothash)
 

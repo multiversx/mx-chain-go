@@ -44,11 +44,10 @@ func NewStoragePruningManager(
 
 // MarkForEviction adds the given hashes to the underlying evictionWaitingList
 func (spm *storagePruningManager) MarkForEviction(
-	oldRoot []byte,
 	newRoot []byte,
-	oldHashes common.ModifiedHashes,
-	newHashes common.ModifiedHashes,
+	collector common.TrieHashesCollector,
 ) error {
+	oldRoot, oldHashes, newHashes := collector.GetCollectedData()
 	if bytes.Equal(newRoot, oldRoot) {
 		log.Trace("old root and new root are identical", "rootHash", newRoot)
 		return nil

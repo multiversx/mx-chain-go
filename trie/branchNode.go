@@ -170,44 +170,83 @@ func (bn *branchNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(bn)
 }
 
-func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
+func (bn *branchNode) commitDirty(
+	level byte,
+	maxTrieLevelInMemory uint,
+	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
+	originDb common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
+) {
 	level++
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit error %w", err)
-	}
 
 	if !bn.dirty {
-		return nil
+		return
 	}
 
-	for i := range bn.children {
-		if bn.children[i] == nil {
+	waitGroup := sync.WaitGroup{}
+
+	for i := 0; i < nrOfChildren; i++ {
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return
+		}
+
+		bn.childrenMutexes[i].RLock()
+		child := bn.children[i]
+		bn.childrenMutexes[i].RUnlock()
+
+		if child == nil {
 			continue
 		}
 
-		err = bn.children[i].commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
-		if err != nil {
-			return err
+		if !goRoutinesManager.CanStartGoRoutine() {
+			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
+			if !goRoutinesManager.ShouldContinueProcessing() {
+				return
+			}
+
+			bn.childrenMutexes[i].Lock()
+			bn.EncodedChildren[i] = child.getHash()
+			bn.childrenMutexes[i].Unlock()
+
+			continue
 		}
+
+		waitGroup.Add(1)
+		go func(childPos int) {
+			defer func() {
+				goRoutinesManager.EndGoRoutineProcessing()
+				waitGroup.Done()
+			}()
+
+			child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
+			if !goRoutinesManager.ShouldContinueProcessing() {
+				return
+			}
+
+			bn.childrenMutexes[childPos].Lock()
+			bn.EncodedChildren[childPos] = child.getHash()
+			bn.childrenMutexes[childPos].Unlock()
+		}(i)
+
 	}
-	bn.dirty = false
-	_, err = encodeNodeAndCommitToDB(bn, targetDb)
-	if err != nil {
-		return err
+
+	waitGroup.Wait()
+
+	ok := saveDirtyNodeToStorage(bn, goRoutinesManager, hashesCollector, targetDb, bn.hasher)
+	if !ok {
+		return
 	}
+
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse branch node on commit")
 
-		var collapsedBn *branchNode
-		collapsedBn, err = bn.getCollapsedBn()
-		if err != nil {
-			return err
+		for i := range bn.children {
+			bn.childrenMutexes[i].Lock()
+			bn.children[i] = nil
+			bn.childrenMutexes[i].Unlock()
 		}
-
-		*bn = *collapsedBn
 	}
-	return nil
 }
 
 func (bn *branchNode) commitSnapshot(
@@ -747,31 +786,6 @@ func (bn *branchNode) print(writer io.Writer, index int, db common.TrieStorageIn
 		childIndex := index + len(str) - 1 + len(str2)
 		child.print(writer, childIndex, db)
 	}
-}
-
-func (bn *branchNode) getDirtyHashes(hashes common.ModifiedHashes) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getDirtyHashes error %w", err)
-	}
-
-	if !bn.isDirty() {
-		return nil
-	}
-
-	for i := range bn.children {
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].getDirtyHashes(hashes)
-		if err != nil {
-			return err
-		}
-	}
-
-	hashes[string(bn.getHash())] = struct{}{}
-	return nil
 }
 
 func (bn *branchNode) getChildren(db common.TrieStorageInteractor) ([]node, error) {

@@ -128,41 +128,49 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
+func (en *extensionNode) commitDirty(
+	level byte,
+	maxTrieLevelInMemory uint,
+	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
+	originDb common.TrieStorageInteractor,
+	targetDb common.BaseStorer,
+) {
 	level++
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit error %w", err)
-	}
 
 	if !en.dirty {
-		return nil
+		return
 	}
 
-	if en.child != nil {
-		err = en.child.commitDirty(level, maxTrieLevelInMemory, originDb, targetDb)
-		if err != nil {
-			return err
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return
+	}
+
+	en.childMutex.RLock()
+	child := en.child
+	en.childMutex.RUnlock()
+
+	if child != nil {
+		child.commitDirty(level, maxTrieLevelInMemory, goRoutinesManager, hashesCollector, originDb, targetDb)
+		if !goRoutinesManager.ShouldContinueProcessing() {
+			return
 		}
+
+		en.EncodedChild = child.getHash()
 	}
 
-	en.dirty = false
-	_, err = encodeNodeAndCommitToDB(en, targetDb)
-	if err != nil {
-		return err
+	ok := saveDirtyNodeToStorage(en, goRoutinesManager, hashesCollector, targetDb, en.hasher)
+	if !ok {
+		return
 	}
+
 	if uint(level) == maxTrieLevelInMemory {
 		log.Trace("collapse extension node on commit")
 
-		var collapsedEn *extensionNode
-		collapsedEn, err = en.getCollapsedEn()
-		if err != nil {
-			return err
-		}
-
-		*en = *collapsedEn
+		en.childMutex.Lock()
+		en.child = nil
+		en.childMutex.Unlock()
 	}
-	return nil
 }
 
 func (en *extensionNode) commitSnapshot(
@@ -623,29 +631,6 @@ func (en *extensionNode) print(writer io.Writer, index int, db common.TrieStorag
 		return
 	}
 	en.child.print(writer, index+len(str), db)
-}
-
-func (en *extensionNode) getDirtyHashes(hashes common.ModifiedHashes) error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("getDirtyHashes error %w", err)
-	}
-
-	if !en.isDirty() {
-		return nil
-	}
-
-	if en.child == nil {
-		return nil
-	}
-
-	err = en.child.getDirtyHashes(hashes)
-	if err != nil {
-		return err
-	}
-	hashes[string(en.getHash())] = struct{}{}
-
-	return nil
 }
 
 func (en *extensionNode) getChildren(db common.TrieStorageInteractor) ([]node, error) {

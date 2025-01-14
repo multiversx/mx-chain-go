@@ -257,3 +257,28 @@ func shouldMigrateCurrentNode(
 
 	return true, nil
 }
+
+func saveDirtyNodeToStorage(
+	n node,
+	goRoutinesManager common.TrieGoroutinesManager,
+	hashesCollector common.TrieHashesCollector,
+	targetDb common.BaseStorer,
+	hasher hashing.Hasher,
+) bool {
+	n.setDirty(false)
+	encNode, err := n.getEncodedNode()
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false
+	}
+	hash := hasher.Compute(string(encNode))
+	n.setGivenHash(hash)
+	hashesCollector.AddDirtyHash(hash)
+
+	err = targetDb.Put(hash, encNode)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return false
+	}
+	return true
+}

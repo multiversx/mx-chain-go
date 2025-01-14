@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/update"
@@ -352,7 +353,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 	}
 
 	if common.IsEmptyTrie(originalRootHash) {
-		err = dataTrie.Commit()
+		err = dataTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 		if err != nil {
 			return err
 		}
@@ -386,7 +387,7 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w identifier: %s", err, identifier)
 	}
 
-	err = dataTrie.Commit()
+	err = dataTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	if err != nil {
 		return err
 	}

@@ -67,9 +67,7 @@ func (rm *rootManager) GetOldHashes() [][]byte {
 	rm.mutOperation.RLock()
 	defer rm.mutOperation.RUnlock()
 
-	oldHashes := make([][]byte, len(rm.oldHashes))
-	copy(oldHashes, rm.oldHashes)
-	return oldHashes
+	return rm.oldHashes
 }
 
 // GetOldRootHash returns the old root hash
