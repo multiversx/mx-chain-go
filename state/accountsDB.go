@@ -130,11 +130,11 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		},
 		addressConverter: args.AddressConverter,
 		snapshotsManger:  args.SnapshotsManager,
-		hashesCollector:  createTheHashesCollector(args.Trie),
+		hashesCollector:  createTrieHashesCollector(args.Trie),
 	}
 }
 
-func createTheHashesCollector(mainTrie common.Trie) common.TrieHashesCollector {
+func createTrieHashesCollector(mainTrie common.Trie) common.TrieHashesCollector {
 	if mainTrie.GetStorageManager().IsPruningEnabled() {
 		return hashesCollector.NewDataTrieHashesCollector()
 	}
