@@ -40,6 +40,7 @@ type HeaderHandlerStub struct {
 	SetLeaderSignatureCalled               func(signature []byte) error
 	GetPreviousProofCalled                 func() data.HeaderProofHandler
 	SetPreviousProofCalled                 func(proof data.HeaderProofHandler)
+	GetShardIDCalled                       func() uint32
 }
 
 // GetAccumulatedFees -
@@ -91,6 +92,9 @@ func (hhs *HeaderHandlerStub) ShallowClone() data.HeaderHandler {
 
 // GetShardID -
 func (hhs *HeaderHandlerStub) GetShardID() uint32 {
+	if hhs.GetShardIDCalled != nil {
+		return hhs.GetShardIDCalled()
+	}
 	return 1
 }
 
