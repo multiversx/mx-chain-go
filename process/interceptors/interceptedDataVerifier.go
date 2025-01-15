@@ -13,7 +13,6 @@ type interceptedDataStatus int8
 const (
 	validInterceptedData interceptedDataStatus = iota
 	invalidInterceptedData
-
 	interceptedDataStatusBytesSize = 8
 )
 

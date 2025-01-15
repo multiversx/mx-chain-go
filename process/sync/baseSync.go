@@ -162,6 +162,10 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedProof(headerProof data.HeaderProofHandler) {
+	if boot.shardCoordinator.SelfId() != headerProof.GetHeaderShardId() {
+		return
+	}
+
 	boot.forkDetector.ReceivedProof(headerProof)
 }
 

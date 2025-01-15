@@ -2,7 +2,6 @@ package headersCache
 
 import (
 	"fmt"
-	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -75,8 +74,6 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 	if added {
 		pool.log.Debug("TOREMOVE - added header to pool", "cache ptr", fmt.Sprintf("%p", pool.cache), "header shard", header.GetShardID(), "header nonce", header.GetNonce())
 		pool.callAddedDataHandlers(header, headerHash)
-
-		debug.PrintStack()
 	}
 }
 

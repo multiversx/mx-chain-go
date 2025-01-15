@@ -2856,14 +2856,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		return err
 	}
 
-	if tpn.EnableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, blockHeader.GetEpoch()) {
-
-		// first block after genesis does not have the previous proof, as well as first block after epoch change where the flag gets activated
-		shouldAddProof := blockHeader.GetNonce() > 1 && !common.IsEpochChangeBlockForFlagActivation(blockHeader, tpn.EnableEpochsHandler, common.EquivalentMessagesFlag)
-		if !shouldAddProof {
-			return nil
-		}
-
+	if common.ShouldBlockHavePrevProof(blockHeader, tpn.EnableEpochsHandler, common.EquivalentMessagesFlag) {
 		previousProof := &dataBlock.HeaderProof{
 			PubKeysBitmap:       pubKeysBitmap,
 			AggregatedSignature: sig,
@@ -2871,6 +2864,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 			HeaderEpoch:         currHdr.GetEpoch(),
 			HeaderNonce:         currHdr.GetNonce(),
 			HeaderShardId:       currHdr.GetShardID(),
+			HeaderRound:         currHdr.GetRound(),
 		}
 		blockHeader.SetPreviousProof(previousProof)
 
@@ -2878,7 +2872,6 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		if err != nil {
 			log.Warn("ProofsPool.AddProof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address, "err", err.Error())
 		}
-		return err
 	}
 
 	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
@@ -2937,7 +2930,10 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 
 // CommitBlock commits the block and body
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(header, body)
+	err := tpn.BlockProcessor.CommitBlock(header, body)
+	if err != nil {
+		log.Error("CommitBlock", "error", err)
+	}
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter

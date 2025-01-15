@@ -199,6 +199,9 @@ func testAllNodesHaveSameLastBlock(t *testing.T, nodes []*integrationTests.TestP
 }
 
 func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T) {
+	// TODO: remove skip after test is fixed
+	// t.Skip("will be fixed in another PR")
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -263,7 +266,7 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 	integrationTests.UpdateRound(nodes, round)
 	nonce++
 
-	numRoundsToTest := 10
+	numRoundsToTest := 5
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 

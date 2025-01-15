@@ -402,7 +402,7 @@ func isProofEmpty(proof data.HeaderProofHandler) bool {
 		len(proof.GetHeaderHash()) == 0
 }
 
-func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler) {
+func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
 		sr.Log.Debug("saverroofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
@@ -410,12 +410,13 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 	}
 
 	proof := header.GetPreviousProof()
-	if proof == nil {
-		sr.Log.Error("nil previous proof")
+	err := common.VerifyProofAgainstHeader(proof, prevHeader)
+	if err != nil {
+		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof, %w", err)
 		return
 	}
 
-	err := sr.EquivalentProofsPool().AddProof(proof)
+	err = sr.EquivalentProofsPool().AddProof(proof)
 	if err != nil {
 		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err.Error())
 		return
@@ -466,33 +467,30 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 	return blockProcessedWithSuccess
 }
 
-func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) bool {
+func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) (bool, data.HeaderHandler) {
 	if check.IfNil(header) {
-		return false
+		return false, nil
 	}
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
-		return false
+		return false, nil
 	}
 	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
-		sr.Log.Error("isHeaderForCurrentConsensus: round")
-		return false
+		return false, nil
 	}
 
 	prevHeader, prevHash := sr.getPrevHeaderAndHash()
 	if check.IfNil(prevHeader) {
-		return false
+		return false, nil
 	}
 	if !bytes.Equal(header.GetPrevHash(), prevHash) {
-		sr.Log.Error("isHeaderForCurrentConsensus: prevHash")
-		return false
+		return false, nil
 	}
 	if header.GetNonce() != prevHeader.GetNonce()+1 {
-		sr.Log.Error("isHeaderForCurrentConsensus: nonce")
-		return false
+		return false, nil
 	}
 	prevRandSeed := prevHeader.GetRandSeed()
 
-	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
+	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed), prevHeader
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -523,8 +521,8 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	if !sr.isHeaderForCurrentConsensus(headerHandler) {
-		sr.Log.Error("receivedBlockHeader: header not for current consensus")
+	isHeaderForCurrentConsensus, prevHeader := sr.isHeaderForCurrentConsensus(headerHandler)
+	if !isHeaderForCurrentConsensus {
 		return
 	}
 
@@ -574,7 +572,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	sr.SetData(sr.Hasher().Compute(string(marshalledHeader)))
 	sr.SetHeader(headerHandler)
 
-	sr.saveProofForPreviousHeaderIfNeeded(headerHandler)
+	sr.saveProofForPreviousHeaderIfNeeded(headerHandler, prevHeader)
 
 	sr.Log.Debug("step 1: block header has been received",
 		"nonce", sr.GetHeader().GetNonce(),
