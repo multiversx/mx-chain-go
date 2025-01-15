@@ -296,6 +296,15 @@ func (sp *shardProcessor) ProcessBlock(
 	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		// check proofs for cross notarized metablocks
 		for _, metaBlockHash := range header.GetMetaBlockHashes() {
+			hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+			if !ok {
+				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
+			}
+
+			if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
+				continue
+			}
+
 			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
 			}
@@ -1441,6 +1450,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	}
 
 	sp.roundNotifier.CheckRound(header)
+	sp.epochNotifier.CheckEpoch(header)
 
 	err = shardHeader.SetNonce(nonce)
 	if err != nil {

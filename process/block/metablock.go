@@ -427,6 +427,16 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 		// TODO: consider the validation of the proof:
 		//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
 		//	if they are different, verify the proof received on header
+
+		shardHeader, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		if !ok {
+			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(shardData.HeaderHash))
+		}
+
+		if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHeader.hdr.GetEpoch()) {
+			continue
+		}
+
 		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
 		}
@@ -2186,11 +2196,11 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			continue
 		}
 
-		isBlockAfterEquivalentMessagesFlag := check.IfNil(headerInfo.hdr) &&
+		isBlockAfterEquivalentMessagesFlag := !check.IfNil(headerInfo.hdr) &&
 			mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
 		hasMissingShardHdrProof := isBlockAfterEquivalentMessagesFlag && !mp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 		if hasMissingShardHdrProof {
-			return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hdrHash)
+			return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
 		shardHdr, ok := headerInfo.hdr.(data.ShardHeaderHandler)
