@@ -103,7 +103,7 @@ func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.Transact
 	txsWithResultsMap := prepareTransactionsAndScrs(pool)
 	tep.prepareNormalTxs(txsWithResultsMap, epoch)
 
-	return tep.prepareScrsNoTx(txsWithResultsMap)
+	return tep.prepareScrsNoTx(txsWithResultsMap, epoch)
 }
 
 func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.TransactionPool) {
@@ -155,6 +155,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 	epoch uint32,
 ) {
 	hasRefund := false
+	totalRefunds := big.NewInt(0)
 	for _, scrHandler := range txWithResults.scrs {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -162,10 +163,15 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 		}
 
 		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
-			tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, scr.Value, epoch)
 			hasRefund = true
+			totalRefunds.Add(totalRefunds, scr.Value)
 			break
 		}
+	}
+
+	if totalRefunds.Cmp(big.NewInt(0)) > 0 {
+		tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, totalRefunds, epoch)
+
 	}
 
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, userTx, hasRefund, epoch)
@@ -293,7 +299,7 @@ func (tep *transactionsFeeProcessor) setGasUsedAndFeeBasedOnRefundValue(
 	txWithResults.GetFeeInfo().SetFee(fee)
 }
 
-func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder) error {
+func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transactionsAndScrsHolder, epoch uint32) error {
 	for _, scrHandler := range transactionsAndScrs.scrsNoTx {
 		scr, ok := scrHandler.GetTxHandler().(*smartContractResult.SmartContractResult)
 		if !ok {
@@ -326,11 +332,19 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 
 		userTx := tep.getUserTxOfRelayed(txFromStorage)
 		if check.IfNil(userTx) {
+			// relayed v3 and other txs
+			if isRelayedV3 {
+				gasUnits := tep.txFeeCalculator.ComputeGasUnitsFromRefundValue(txFromStorage, scr.Value, epoch)
+				scrHandler.GetFeeInfo().SetGasRefunded(gasUnits)
+				scrHandler.GetFeeInfo().SetFee(scr.Value)
+			}
+
 			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
 
 			scrHandler.GetFeeInfo().SetGasUsed(gasUsed)
 			scrHandler.GetFeeInfo().SetFee(fee)
 		} else {
+			// relayed v1 and v2
 			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, scr.Value)
 
 			gasUsedRelayedTx := tep.txFeeCalculator.ComputeGasLimit(txFromStorage)
