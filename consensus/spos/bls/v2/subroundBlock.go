@@ -3,7 +3,6 @@ package v2
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -373,12 +372,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
-	if err != nil {
-		hash = []byte("")
-	}
-
-	log.Debug("addProofOnHeader: no proof found", "header hash", hex.EncodeToString(hash))
+	log.Debug("addProofOnHeader: no proof found", "header hash", header.GetPrevHash())
 
 	return false
 }
@@ -478,11 +472,19 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
 	nc := sr.NodesCoordinator()
+
+	prevBlockEpoch := sr.Blockchain().GetCurrentBlockHeader().GetEpoch()
+	// TODO: remove this if first block in new epoch will be validated by epoch validators
+	// first block in epoch is validated by previous epoch validators
+	selectionEpoch := headerHandler.GetEpoch()
+	if selectionEpoch != prevBlockEpoch {
+		selectionEpoch = prevBlockEpoch
+	}
 	leader, _, err := nc.ComputeConsensusGroup(
 		headerHandler.GetPrevRandSeed(),
 		headerHandler.GetRound(),
 		headerHandler.GetShardID(),
-		headerHandler.GetEpoch(),
+		selectionEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -496,26 +498,31 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
 		return
 	}
 
 	isHeaderForCurrentConsensus, prevHeader := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
+		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
 		return
 	}
 
 	isLeader := sr.IsSelfLeader()
 	if sr.ConsensusGroup() == nil || isLeader {
+		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
 		return
 	}
 
 	if sr.IsConsensusDataSet() {
+		log.Debug("subroundBlock.receivedBlockHeader - consensus data is set")
 		return
 	}
 
 	headerLeader, err := sr.getLeaderForHeader(headerHandler)
 	if err != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - error", err.Error())
 		return
 	}
 
@@ -526,19 +533,23 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
 
+		log.Debug("subroundBlock.receivedBlockHeader - leader is not the leader in current round")
 		return
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
+		log.Debug("subroundBlock.receivedBlockHeader - header is already received")
 		return
 	}
 
 	if !sr.CanProcessReceivedHeader(string(headerLeader)) {
+		log.Debug("subroundBlock.receivedBlockHeader - can not process received header")
 		return
 	}
 
 	marshalledHeader, err := sr.Marshalizer().Marshal(headerHandler)
 	if err != nil {
+		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
 		return
 	}
 

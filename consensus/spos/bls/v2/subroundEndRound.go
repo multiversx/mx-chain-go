@@ -264,7 +264,6 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		err = sr.EquivalentProofsPool().AddProof(proof)
 		if err != nil {
 			log.Debug("doEndRoundJobByNode.AddProof", "error", err)
-			return false
 		}
 	}
 
