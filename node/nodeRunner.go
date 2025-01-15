@@ -69,7 +69,7 @@ type nextOperationForNode int
 const (
 	// TODO: remove this after better handling VM versions switching
 	// defaultDelayBeforeScQueriesStartInSec represents the default delay before the sc query processor should start to allow external queries
-	defaultDelayBeforeScQueriesStartInSec = 120
+	defaultDelayBeforeScQueriesStartInSec = 10
 
 	maxTimeToClose = 10 * time.Second
 	// SoftRestartMessage is the custom message used when the node does a soft restart operation
