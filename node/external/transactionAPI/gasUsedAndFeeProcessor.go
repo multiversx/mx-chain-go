@@ -60,6 +60,7 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 
 	isRelayedV3 := common.IsValidRelayedTxV3(tx.Tx)
 	hasRefundForSender := false
+	totalRefunds := big.NewInt(0)
 	for _, scr := range tx.SmartContractResults {
 		if !scr.IsRefund {
 			continue
@@ -71,9 +72,12 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 			continue
 		}
 
-		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, userTx, scr.Value)
 		hasRefundForSender = true
-		break
+		totalRefunds.Add(totalRefunds, scr.Value)
+	}
+
+	if totalRefunds.Cmp(big.NewInt(0)) > 0 {
+		gfp.setGasUsedAndFeeBaseOnRefundValue(tx, userTx, totalRefunds)
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, userTx, hasRefundForSender)
