@@ -9,7 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type transactionCountersProvider interface {
@@ -19,6 +19,7 @@ type transactionCountersProvider interface {
 }
 
 type headersCounter struct {
+	log                                 logger.Logger
 	shardMBHeaderCounterMutex           sync.RWMutex
 	shardMBHeadersCurrentBlockProcessed uint64
 	shardMBHeadersTotalProcessed        uint64
@@ -26,8 +27,9 @@ type headersCounter struct {
 
 // NewHeaderCounter returns a new object that keeps track of how many headers
 // were processed in total, and in the current block
-func NewHeaderCounter() *headersCounter {
+func NewHeaderCounter(log logger.Logger) *headersCounter {
 	return &headersCounter{
+		log:                                 log,
 		shardMBHeaderCounterMutex:           sync.RWMutex{},
 		shardMBHeadersCurrentBlockProcessed: 0,
 		shardMBHeadersTotalProcessed:        0,
@@ -72,7 +74,7 @@ func (hc *headersCounter) displayLogInfo(
 	blockTracker process.BlockTracker,
 ) {
 	if check.IfNil(countersProvider) {
-		log.Warn("programming error in headersCounter.displayLogInfo - nil countersProvider")
+		hc.log.Warn("programming error in headersCounter.displayLogInfo - nil countersProvider")
 		return
 	}
 
@@ -83,7 +85,7 @@ func (hc *headersCounter) displayLogInfo(
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
-		log.Debug("CreateTableString", "error", err.Error())
+		hc.log.Debug("CreateTableString", "error", err.Error())
 		return
 	}
 
@@ -96,9 +98,9 @@ func (hc *headersCounter) displayLogInfo(
 	}
 	hc.shardMBHeaderCounterMutex.RUnlock()
 
-	log.Debug(message, arguments...)
+	hc.log.Debug(message, arguments...)
 
-	log.Debug("metablock metrics info",
+	hc.log.Debug("metablock metrics info",
 		"total txs processed", countersProvider.TotalTxs(),
 		"block txs processed", countersProvider.CurrentBlockTxs(),
 		"hash", headerHash,

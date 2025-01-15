@@ -1311,6 +1311,7 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
+		nil,
 		finder,
 		requestedItemsHandler,
 		e.whiteListHandler,

@@ -20,6 +20,7 @@ import (
 )
 
 type transactionCounter struct {
+	log              logger.Logger
 	mutex            sync.RWMutex
 	currentBlockTxs  uint64
 	totalTxs         uint64
@@ -31,6 +32,7 @@ type transactionCounter struct {
 
 // ArgsTransactionCounter represents the arguments needed to create a new transaction counter
 type ArgsTransactionCounter struct {
+	Logger           logger.Logger
 	AppStatusHandler core.AppStatusHandler
 	Hasher           hashing.Hasher
 	Marshalizer      marshal.Marshalizer
@@ -50,7 +52,14 @@ func NewTransactionCounter(args ArgsTransactionCounter) (*transactionCounter, er
 		return nil, process.ErrNilMarshalizer
 	}
 
+	var log logger.Logger
+	log = logger.GetOrCreate("process/block")
+	if args.Logger != nil {
+		log = args.Logger
+	}
+
 	return &transactionCounter{
+		log:              log,
 		mutex:            sync.RWMutex{},
 		appStatusHandler: args.AppStatusHandler,
 		currentBlockTxs:  0,
@@ -71,7 +80,7 @@ func (txc *transactionCounter) getPoolCounts(poolsHolder dataRetriever.PoolsHold
 // headerReverted updates the total processed txs in case of restore. It also sets the current block txs to 0
 func (txc *transactionCounter) headerReverted(hdr data.HeaderHandler) {
 	if check.IfNil(hdr) {
-		log.Warn("programming error: nil header in transactionCounter.headerReverted function")
+		txc.log.Warn("programming error: nil header in transactionCounter.headerReverted function")
 		return
 	}
 
@@ -95,7 +104,7 @@ func (txc *transactionCounter) safeSubtractTotalTxs(delta uint64) {
 
 func (txc *transactionCounter) headerExecuted(hdr data.HeaderHandler) {
 	if check.IfNil(hdr) {
-		log.Warn("programming error: nil header in transactionCounter.headerExecuted function")
+		txc.log.Warn("programming error: nil header in transactionCounter.headerExecuted function")
 		return
 	}
 
@@ -141,7 +150,7 @@ func (txc *transactionCounter) displayLogInfo(
 
 	tblString, err := display.CreateTableString(dispHeader, dispLines)
 	if err != nil {
-		log.Debug("CreateTableString", "error", err.Error())
+		txc.log.Debug("CreateTableString", "error", err.Error())
 		return
 	}
 
@@ -154,7 +163,7 @@ func (txc *transactionCounter) displayLogInfo(
 		"shard", selfId,
 	}
 	txc.mutex.RUnlock()
-	log.Debug(message, arguments...)
+	txc.log.Debug(message, arguments...)
 
 	blockTracker.DisplayTrackedHeaders()
 }
@@ -330,6 +339,7 @@ func getConstructionStateAsString(miniBlockHeader data.MiniBlockHeaderHandler) s
 
 // DisplayLastNotarized will display information about last notarized block
 func DisplayLastNotarized(
+	log logger.Logger,
 	marshalizer marshal.Marshalizer,
 	hasher hashing.Hasher,
 	lastNotarizedHdrForShard data.HeaderHandler,

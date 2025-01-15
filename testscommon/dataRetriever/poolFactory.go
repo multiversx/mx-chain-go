@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var peerAuthDuration = 10 * time.Second
@@ -51,7 +52,10 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 	)
 }
 
-func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolArgs {
+func createPoolHolderArgs(
+	log logger.Logger,
+	numShards uint32, selfShard uint32,
+) dataPool.DataPoolArgs {
 	var err error
 
 	txPool, err := CreateTxPool(numShards, selfShard)
@@ -71,7 +75,7 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 	})
 	panicIfError("CreatePoolsHolder", err)
 
-	headersPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig{
+	headersPool, err := headersCache.NewHeadersPool(log, config.HeadersPoolConfig{
 		MaxHeadersPerShard:            1000,
 		NumElementsToRemoveOnEviction: 100,
 	})
@@ -163,10 +167,25 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 	return dataPoolArgs
 }
 
+// CreatePoolsHolderWithLog -
+func CreatePoolsHolderWithLog(
+	log logger.Logger,
+	numShards uint32, selfShard uint32,
+) dataRetriever.PoolsHolder {
+	return createPoolsHolder(log, numShards, selfShard)
+}
+
 // CreatePoolsHolder -
 func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHolder {
+	return createPoolsHolder(nil, numShards, selfShard)
+}
 
-	dataPoolArgs := createPoolHolderArgs(numShards, selfShard)
+func createPoolsHolder(
+	log logger.Logger,
+	numShards uint32, selfShard uint32,
+) dataRetriever.PoolsHolder {
+
+	dataPoolArgs := createPoolHolderArgs(log, numShards, selfShard)
 
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)
@@ -176,10 +195,11 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 
 // CreatePoolsHolderWithProofsPool -
 func CreatePoolsHolderWithProofsPool(
+	log logger.Logger,
 	numShards uint32, selfShard uint32,
 	proofsPool dataRetriever.ProofsPool,
 ) dataRetriever.PoolsHolder {
-	dataPoolArgs := createPoolHolderArgs(numShards, selfShard)
+	dataPoolArgs := createPoolHolderArgs(log, numShards, selfShard)
 	dataPoolArgs.Proofs = proofsPool
 
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
@@ -206,7 +226,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	})
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	headersPool, err := headersCache.NewHeadersPool(config.HeadersPoolConfig{
+	headersPool, err := headersCache.NewHeadersPool(nil, config.HeadersPoolConfig{
 		MaxHeadersPerShard:            1000,
 		NumElementsToRemoveOnEviction: 100,
 	})

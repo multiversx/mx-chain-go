@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
@@ -35,6 +35,7 @@ const uniqueValidatorInfoSuffix = "vi"
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
 type resolverRequestHandler struct {
+	log                   logger.Logger
 	mutEpoch              sync.RWMutex
 	epoch                 uint32
 	shardID               uint32
@@ -53,6 +54,7 @@ type resolverRequestHandler struct {
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
 func NewResolverRequestHandler(
+	log logger.Logger,
 	finder dataRetriever.RequestersFinder,
 	requestedItemsHandler dataRetriever.RequestedItemsHandler,
 	whiteList dataRetriever.WhiteListHandler,
@@ -77,7 +79,12 @@ func NewResolverRequestHandler(
 		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
 	}
 
+	if log == nil {
+		log = logger.GetOrCreate("dataretriever/requesthandlers")
+	}
+
 	rrh := &resolverRequestHandler{
+		log:                   log,
 		requestersFinder:      finder,
 		requestedItemsHandler: requestedItemsHandler,
 		epoch:                 uint32(0), // will be updated after creation of the request handler
@@ -97,7 +104,7 @@ func NewResolverRequestHandler(
 func (rrh *resolverRequestHandler) SetEpoch(epoch uint32) {
 	rrh.mutEpoch.Lock()
 	if rrh.epoch != epoch {
-		log.Debug("resolverRequestHandler.SetEpoch", "old epoch", rrh.epoch, "new epoch", epoch)
+		rrh.log.Debug("resolverRequestHandler.SetEpoch", "old epoch", rrh.epoch, "new epoch", epoch)
 	}
 	rrh.epoch = epoch
 	rrh.mutEpoch.Unlock()
@@ -121,14 +128,14 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Debug("requesting transactions from network",
+	rrh.log.Debug("requesting transactions from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
 	)
 	requester, err := rrh.requestersFinder.CrossShardRequester(topic, destShardID)
 	if err != nil {
-		log.Error("requestByHashes.CrossShardRequester",
+		rrh.log.Error("requestByHashes.CrossShardRequester",
 			"error", err.Error(),
 			"topic", topic,
 			"shard", destShardID,
@@ -138,12 +145,12 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	txRequester, ok := requester.(HashSliceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating transaction requester")
+		rrh.log.Warn("wrong assertion type when creating transaction requester")
 		return
 	}
 
 	for _, txHash := range hashes {
-		log.Trace("requestByHashes", "hash", txHash, "topic", topic,
+		rrh.log.Trace("requestByHashes", "hash", txHash, "topic", topic,
 			"shard", destShardID,
 			"num txs", len(unrequestedHashes),
 			"stack", string(debug.Stack()))
@@ -163,7 +170,7 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	dataSplit := &partitioning.DataSplit{}
 	sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
 	if err != nil {
-		log.Debug("requestByHashes.SplitDataInChunks",
+		rrh.log.Debug("requestByHashes.SplitDataInChunks",
 			"error", err.Error(),
 			"num txs", len(unrequestedHashes),
 			"max txs to request", rrh.maxTxsToRequest,
@@ -174,7 +181,7 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	for _, batch := range sliceBatches {
 		err = requester.RequestDataFromHashArray(batch, epoch)
 		if err != nil {
-			log.Debug("requestByHashes.RequestDataFromHashArray",
+			rrh.log.Debug("requestByHashes.RequestDataFromHashArray",
 				"error", err.Error(),
 				"epoch", epoch,
 				"batch size", len(batch),
@@ -190,7 +197,7 @@ func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
 ) {
 	err := requester.RequestDataFromReferenceAndChunk(reference, chunkIndex)
 	if err != nil {
-		log.Debug("requestByHashes.requestReferenceWithChunkIndex",
+		rrh.log.Debug("requestByHashes.requestReferenceWithChunkIndex",
 			"error", err.Error(),
 			"reference", reference,
 			"chunk index", chunkIndex,
@@ -215,7 +222,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		return
 	}
 
-	log.Debug("requesting miniblock from network",
+	rrh.log.Debug("requesting miniblock from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"hash", miniblockHash,
@@ -223,7 +230,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
 	if err != nil {
-		log.Error("RequestMiniBlock.CrossShardRequester",
+		rrh.log.Error("RequestMiniBlock.CrossShardRequester",
 			"error", err.Error(),
 			"topic", factory.MiniBlocksTopic,
 			"shard", destShardID,
@@ -236,7 +243,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 	epoch := rrh.getEpoch()
 	err = requester.RequestDataFromHash(miniblockHash, epoch)
 	if err != nil {
-		log.Debug("RequestMiniBlock.RequestDataFromHash",
+		rrh.log.Debug("RequestMiniBlock.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", miniblockHash,
@@ -254,7 +261,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-	log.Debug("requesting miniblocks from network",
+	rrh.log.Debug("requesting miniblocks from network",
 		"topic", factory.MiniBlocksTopic,
 		"shard", destShardID,
 		"num mbs", len(unrequestedHashes),
@@ -262,7 +269,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 
 	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
 	if err != nil {
-		log.Error("RequestMiniBlocks.CrossShardRequester",
+		rrh.log.Error("RequestMiniBlocks.CrossShardRequester",
 			"error", err.Error(),
 			"topic", factory.MiniBlocksTopic,
 			"shard", destShardID,
@@ -272,7 +279,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 
 	miniBlocksRequester, ok := requester.(HashSliceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating miniblocks requester")
+		rrh.log.Warn("wrong assertion type when creating miniblocks requester")
 		return
 	}
 
@@ -281,7 +288,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 	epoch := rrh.getEpoch()
 	err = miniBlocksRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
 	if err != nil {
-		log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
+		rrh.log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
 			"error", err.Error(),
 			"epoch", epoch,
 			"num mbs", len(unrequestedHashes),
@@ -299,14 +306,14 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		return
 	}
 
-	log.Debug("requesting shard header from network",
+	rrh.log.Debug("requesting shard header from network",
 		"shard", shardID,
 		"hash", hash,
 	)
 
 	headerRequester, err := rrh.getShardHeaderRequester(shardID)
 	if err != nil {
-		log.Error("RequestShardHeader.getShardHeaderRequester",
+		rrh.log.Error("RequestShardHeader.getShardHeaderRequester",
 			"error", err.Error(),
 			"shard", shardID,
 		)
@@ -318,7 +325,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromHash(hash, epoch)
 	if err != nil {
-		log.Debug("RequestShardHeader.RequestDataFromHash",
+		rrh.log.Debug("RequestShardHeader.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", hash,
@@ -335,13 +342,13 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		return
 	}
 
-	log.Debug("requesting meta header from network",
+	rrh.log.Debug("requesting meta header from network",
 		"hash", hash,
 	)
 
 	requester, err := rrh.getMetaHeaderRequester()
 	if err != nil {
-		log.Error("RequestMetaHeader.getMetaHeaderRequester",
+		rrh.log.Error("RequestMetaHeader.getMetaHeaderRequester",
 			"error", err.Error(),
 			"hash", hash,
 		)
@@ -350,7 +357,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 
 	headerRequester, ok := requester.(dataRetriever.Requester)
 	if !ok {
-		log.Warn("wrong assertion type when creating header requester")
+		rrh.log.Warn("wrong assertion type when creating header requester")
 		return
 	}
 
@@ -359,7 +366,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromHash(hash, epoch)
 	if err != nil {
-		log.Debug("RequestMetaHeader.RequestDataFromHash",
+		rrh.log.Debug("RequestMetaHeader.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", hash,
@@ -378,14 +385,14 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		return
 	}
 
-	log.Debug("requesting shard header by nonce from network",
+	rrh.log.Debug("requesting shard header by nonce from network",
 		"shard", shardID,
 		"nonce", nonce,
 	)
 
 	requester, err := rrh.getShardHeaderRequester(shardID)
 	if err != nil {
-		log.Error("RequestShardHeaderByNonce.getShardHeaderRequester",
+		rrh.log.Error("RequestShardHeaderByNonce.getShardHeaderRequester",
 			"error", err.Error(),
 			"shard", shardID,
 		)
@@ -394,7 +401,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 	headerRequester, ok := requester.(NonceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating header requester")
+		rrh.log.Warn("wrong assertion type when creating header requester")
 		return
 	}
 
@@ -403,7 +410,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
-		log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
+		rrh.log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
 			"error", err.Error(),
 			"epoch", epoch,
 			"nonce", nonce,
@@ -442,7 +449,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		return
 	}
 
-	log.Trace("requesting trie nodes from network",
+	rrh.log.Trace("requesting trie nodes from network",
 		"topic", topic,
 		"shard", destShardID,
 		"num nodes", len(rrh.trieHashesAccumulator),
@@ -452,7 +459,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	requester, err := rrh.requestersFinder.MetaCrossShardRequester(topic, destShardID)
 	if err != nil {
-		log.Error("requestersFinder.MetaCrossShardRequester",
+		rrh.log.Error("requestersFinder.MetaCrossShardRequester",
 			"error", err.Error(),
 			"topic", topic,
 			"shard", destShardID,
@@ -462,7 +469,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	trieRequester, ok := requester.(HashSliceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating a trie nodes requester")
+		rrh.log.Warn("wrong assertion type when creating a trie nodes requester")
 		return
 	}
 
@@ -494,7 +501,7 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 	rrh.whiteList.Add(unrequestedHashes)
 	rrh.whiteList.Add([][]byte{requestHash})
 
-	log.Trace("requesting trie node from network",
+	rrh.log.Trace("requesting trie node from network",
 		"topic", topic,
 		"hash", requestHash,
 		"chunk index", chunkIndex,
@@ -502,7 +509,7 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(topic)
 	if err != nil {
-		log.Error("requestersFinder.MetaChainRequester",
+		rrh.log.Error("requestersFinder.MetaChainRequester",
 			"error", err.Error(),
 			"topic", topic,
 		)
@@ -511,7 +518,7 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 
 	trieRequester, ok := requester.(ChunkRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating a trie chunk requester")
+		rrh.log.Warn("wrong assertion type when creating a trie chunk requester")
 		return
 	}
 
@@ -521,12 +528,12 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 }
 
 func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
-	if log.GetLevel() != logger.LogTrace {
+	if rrh.log.GetLevel() != logger.LogTrace {
 		return
 	}
 
 	for txHash := range rrh.trieHashesAccumulator {
-		log.Trace("logTrieHashesFromAccumulator", "hash", []byte(txHash))
+		rrh.log.Trace("logTrieHashesFromAccumulator", "hash", []byte(txHash))
 	}
 }
 
@@ -537,13 +544,13 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		return
 	}
 
-	log.Debug("requesting meta header by nonce from network",
+	rrh.log.Debug("requesting meta header by nonce from network",
 		"nonce", nonce,
 	)
 
 	headerRequester, err := rrh.getMetaHeaderRequester()
 	if err != nil {
-		log.Error("RequestMetaHeaderByNonce.getMetaHeaderRequester",
+		rrh.log.Error("RequestMetaHeaderByNonce.getMetaHeaderRequester",
 			"error", err.Error(),
 		)
 		return
@@ -554,7 +561,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
-		log.Debug("RequestMetaHeaderByNonce.RequestDataFromNonce",
+		rrh.log.Debug("RequestMetaHeaderByNonce.RequestDataFromNonce",
 			"error", err.Error(),
 			"epoch", epoch,
 			"nonce", nonce,
@@ -571,7 +578,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 		return
 	}
 
-	log.Debug("requesting validator info messages from network",
+	rrh.log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
 		"hash", hash,
 		"epoch", rrh.epoch,
@@ -579,7 +586,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
 	if err != nil {
-		log.Error("RequestValidatorInfo.MetaChainRequester",
+		rrh.log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"hash", hash,
@@ -592,7 +599,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 
 	err = requester.RequestDataFromHash(hash, rrh.epoch)
 	if err != nil {
-		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+		rrh.log.Debug("RequestValidatorInfo.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"hash", hash,
@@ -611,7 +618,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 		return
 	}
 
-	log.Debug("requesting validator info messages from network",
+	rrh.log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
 		"num hashes", len(unrequestedHashes),
 		"epoch", rrh.epoch,
@@ -619,7 +626,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
 	if err != nil {
-		log.Error("RequestValidatorInfo.MetaChainRequester",
+		rrh.log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
@@ -630,7 +637,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 
 	validatorInfoRequester, ok := requester.(HashSliceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating a validator info requester")
+		rrh.log.Warn("wrong assertion type when creating a validator info requester")
 		return
 	}
 
@@ -638,7 +645,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 
 	err = validatorInfoRequester.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
 	if err != nil {
-		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+		rrh.log.Debug("RequestValidatorInfo.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
@@ -654,7 +661,7 @@ func (rrh *resolverRequestHandler) testIfRequestIsNeeded(key []byte, suffix stri
 	rrh.sweepIfNeeded()
 
 	if rrh.requestedItemsHandler.Has(string(key) + suffix) {
-		log.Trace("item already requested",
+		rrh.log.Trace("item already requested",
 			"key", key)
 		return false
 	}
@@ -666,7 +673,7 @@ func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte, suffix strin
 	for _, key := range keys {
 		err := rrh.requestedItemsHandler.Add(string(key) + suffix)
 		if err != nil {
-			log.Trace("addRequestedItems",
+			rrh.log.Trace("addRequestedItems",
 				"error", err.Error(),
 				"key", key)
 			continue
@@ -695,7 +702,7 @@ func (rrh *resolverRequestHandler) getShardHeaderRequester(shardID uint32) (data
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
 			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)
 
-		log.Warn("available requesters in container",
+		rrh.log.Warn("available requesters in container",
 			"requesters", rrh.requestersFinder.RequesterKeys(),
 		)
 		return nil, err
@@ -730,7 +737,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	}
 
 	baseTopic := factory.MetachainBlocksTopic
-	log.Debug("requesting header by epoch",
+	rrh.log.Debug("requesting header by epoch",
 		"topic", baseTopic,
 		"epoch", epoch,
 		"hash", epochStartIdentifier,
@@ -738,7 +745,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(baseTopic)
 	if err != nil {
-		log.Error("RequestStartOfEpochMetaBlock.MetaChainRequester",
+		rrh.log.Error("RequestStartOfEpochMetaBlock.MetaChainRequester",
 			"error", err.Error(),
 			"topic", baseTopic,
 		)
@@ -747,7 +754,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 
 	headerRequester, ok := requester.(EpochRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating header requester")
+		rrh.log.Warn("wrong assertion type when creating header requester")
 		return
 	}
 
@@ -755,7 +762,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 
 	err = headerRequester.RequestDataFromEpoch(epochStartIdentifier)
 	if err != nil {
-		log.Debug("RequestStartOfEpochMetaBlock.RequestDataFromEpoch",
+		rrh.log.Debug("RequestStartOfEpochMetaBlock.RequestDataFromEpoch",
 			"error", err.Error(),
 			"epochStartIdentifier", epochStartIdentifier,
 		)
@@ -827,7 +834,7 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
-	log.Debug("requesting peer authentication messages from network",
+	rrh.log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
 		"num hashes", len(hashes),
@@ -836,7 +843,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.PeerAuthenticationTopic)
 	if err != nil {
-		log.Error("RequestPeerAuthenticationsByHashes.MetaChainRequester",
+		rrh.log.Error("RequestPeerAuthenticationsByHashes.MetaChainRequester",
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
@@ -847,13 +854,13 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 
 	peerAuthRequester, ok := requester.(HashSliceRequester)
 	if !ok {
-		log.Warn("wrong assertion type when creating peer authentication requester")
+		rrh.log.Warn("wrong assertion type when creating peer authentication requester")
 		return
 	}
 
 	err = peerAuthRequester.RequestDataFromHashArray(hashes, rrh.epoch)
 	if err != nil {
-		log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",
+		rrh.log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,

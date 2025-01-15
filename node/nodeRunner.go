@@ -917,6 +917,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	if err != nil {
 		return nil, err
 	}
+
 	return managedConsensusComponents, nil
 }
 

@@ -212,6 +212,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
+		nil,
 		finder,
 		requestedItemsHandler,
 		sesb.whiteListHandler,

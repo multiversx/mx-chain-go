@@ -5,17 +5,16 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
-var log = logger.GetOrCreate("dataRetriever/headersCache")
-
 var _ dataRetriever.HeadersPool = (*headersPool)(nil)
 
 type headersPool struct {
+	log                  logger.Logger
 	cache                *headersCache
 	mutAddedDataHandlers sync.RWMutex
 	mutHeadersPool       sync.RWMutex
@@ -23,15 +22,23 @@ type headersPool struct {
 }
 
 // NewHeadersPool will create a new items cacher
-func NewHeadersPool(hdrsPoolConfig config.HeadersPoolConfig) (*headersPool, error) {
+func NewHeadersPool(
+	log logger.Logger,
+	hdrsPoolConfig config.HeadersPoolConfig,
+) (*headersPool, error) {
 	err := checkHeadersPoolConfig(hdrsPoolConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	headersCacheObject := newHeadersCache(hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
+	if log == nil {
+		log = logger.GetOrCreate("dataRetriever/headersCache")
+	}
+
+	headersCacheObject := newHeadersCache(log, hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)
 
 	return &headersPool{
+		log:                  log,
 		cache:                headersCacheObject,
 		mutAddedDataHandlers: sync.RWMutex{},
 		mutHeadersPool:       sync.RWMutex{},
@@ -65,7 +72,7 @@ func (pool *headersPool) AddHeader(headerHash []byte, header data.HeaderHandler)
 	added := pool.cache.addHeader(headerHash, header)
 
 	if added {
-		log.Debug("TOREMOVE - added header to pool", "cache ptr", fmt.Sprintf("%p", pool.cache), "header shard", header.GetShardID(), "header nonce", header.GetNonce())
+		pool.log.Debug("TOREMOVE - added header to pool", "cache ptr", fmt.Sprintf("%p", pool.cache), "header shard", header.GetShardID(), "header nonce", header.GetNonce())
 		pool.callAddedDataHandlers(header, headerHash)
 	}
 }
@@ -132,7 +139,7 @@ func (pool *headersPool) Clear() {
 // RegisterHandler registers a new handler to be called when a new data is added
 func (pool *headersPool) RegisterHandler(handler func(headerHandler data.HeaderHandler, headerHash []byte)) {
 	if handler == nil {
-		log.Error("attempt to register a nil handler to a cacher object")
+		pool.log.Error("attempt to register a nil handler to a cacher object")
 		return
 	}
 

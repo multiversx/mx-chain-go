@@ -37,7 +37,7 @@ func TestNewHeadersCacher(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		headersCacher, err := headersCache.NewHeadersPool(config.HeadersPoolConfig{
+		headersCacher, err := headersCache.NewHeadersPool(nil, config.HeadersPoolConfig{
 			MaxHeadersPerShard:            2,
 			NumElementsToRemoveOnEviction: 1,
 		})
@@ -50,7 +50,7 @@ func testNewHeadersCacher(cfg config.HeadersPoolConfig) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
-		headersCacher, err := headersCache.NewHeadersPool(cfg)
+		headersCacher, err := headersCache.NewHeadersPool(nil, cfg)
 		require.True(t, errors.Is(err, headersCache.ErrInvalidHeadersCacheParameter))
 		require.Nil(t, headersCacher)
 	}
@@ -60,6 +60,7 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            1000,
 			NumElementsToRemoveOnEviction: 100},
@@ -99,6 +100,7 @@ func Test_RemoveHeaderByHash(t *testing.T) {
 	t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            1000,
 			NumElementsToRemoveOnEviction: 100},
@@ -132,6 +134,7 @@ func TestHeadersCacher_AddHeadersInCacheAndRemoveByNonceAndShardId(t *testing.T)
 	t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            1000,
 			NumElementsToRemoveOnEviction: 100},
@@ -166,6 +169,7 @@ func TestHeadersCacher_Eviction(t *testing.T) {
 	numHeadersToGenerate := 1001
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            900,
 			NumElementsToRemoveOnEviction: 100},
@@ -192,6 +196,7 @@ func TestHeadersCacher_ConcurrentRequests_NoEviction(t *testing.T) {
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, 0)
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            numHeadersToGenerate + 1,
 			NumElementsToRemoveOnEviction: 10},
@@ -219,6 +224,7 @@ func TestHeadersCacher_ConcurrentRequests_WithEviction(t *testing.T) {
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: 1},
@@ -263,6 +269,7 @@ func TestHeadersCacher_AddHeadersWithSameNonceShouldBeRemovedAtEviction(t *testi
 	header1, header2, header3 := &block.Header{Nonce: 0}, &block.Header{Nonce: 0}, &block.Header{Nonce: 1}
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: 1},
@@ -287,6 +294,7 @@ func TestHeadersCacher_AddALotOfHeadersAndCheckEviction(t *testing.T) {
 	headers, headersHash := createASliceOfHeaders(numHeaders, shardId)
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: 50},
@@ -314,6 +322,7 @@ func TestHeadersCacher_BigCacheALotOfHeaders(t *testing.T) {
 
 	headers, headersHash := createASliceOfHeaders(numHeadersToGenerate, shardId)
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: 50},
@@ -368,6 +377,7 @@ func TestHeadersCacher_AddHeadersWithDifferentShardIdOnMultipleGoroutines(t *tes
 	headersShard2, hashesShad2 := createASliceOfHeaders(numHdrsToGenerate, 2)
 	numElemsToRemove := 25
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: numElemsToRemove},
@@ -429,6 +439,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader(t *testing.T) {
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: 1},
@@ -467,6 +478,7 @@ func TestHeadersCacher_TestEvictionRemoveCorrectHeader2(t *testing.T) {
 
 	headers, headersHashes := createASliceOfHeaders(numHeadersToGenerate, shardId)
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: 1},
@@ -512,6 +524,7 @@ func TestHeadersPool_AddHeadersMultipleShards(t *testing.T) {
 	headersShardMeta, headersHashesShardMeta := createASliceOfHeaders(numHeadersToGenerate, shardMeta)
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: numElemsToRemove},
@@ -588,6 +601,7 @@ func TestHeadersPool_Nonces(t *testing.T) {
 	headersShard0, headersHashesShard0 := createASliceOfHeaders(numHeadersToGenerate, shardId)
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            cacheSize,
 			NumElementsToRemoveOnEviction: numHeadersToRemove},
@@ -616,6 +630,7 @@ func TestHeadersPool_RegisterHandler(t *testing.T) {
 
 	wasCalled := false
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            1000,
 			NumElementsToRemoveOnEviction: 100},
@@ -640,6 +655,7 @@ func TestHeadersPool_Clear(t *testing.T) {
 	t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            1000,
 			NumElementsToRemoveOnEviction: 10},
@@ -657,6 +673,7 @@ func TestHeadersPool_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	headersCacher, _ := headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard: 0,
 		},
@@ -664,6 +681,7 @@ func TestHeadersPool_IsInterfaceNil(t *testing.T) {
 	require.True(t, headersCacher.IsInterfaceNil())
 
 	headersCacher, _ = headersCache.NewHeadersPool(
+		nil,
 		config.HeadersPoolConfig{
 			MaxHeadersPerShard:            1000,
 			NumElementsToRemoveOnEviction: 10,

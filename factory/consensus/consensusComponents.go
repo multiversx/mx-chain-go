@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -271,7 +272,12 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+
+	log := logger.GetOrCreate(fmt.Sprintf("consensus/%s", id))
+
 	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
+		Logger:               log,
 		Chronology:           cc.chronology,
 		ConsensusCoreHandler: consensusDataContainer,
 		ConsensusState:       consensusState,
@@ -343,7 +349,12 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		wd = &watchdog.DisabledWatchdog{}
 	}
 
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+
+	logger := logger.GetOrCreate(fmt.Sprintf("cns/chr/%s", id))
+
 	chronologyArg := chronology.ArgChronology{
+		Logger:           logger,
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
 		RoundHandler:     ccf.processComponents.RoundHandler(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
@@ -471,7 +482,12 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+
+	logger := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       logger,
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
@@ -602,7 +618,12 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		return nil, err
 	}
 
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+
+	logger := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       logger,
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
 		ChainHandler:                 ccf.dataComponents.Blockchain(),

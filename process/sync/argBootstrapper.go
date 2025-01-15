@@ -16,11 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // ArgBaseBootstrapper holds all dependencies required by the bootstrap data factory in order to create
 // new instances
 type ArgBaseBootstrapper struct {
+	Logger                       logger.Logger
 	HistoryRepo                  dblookupext.HistoryRepository
 	PoolsHolder                  dataRetriever.PoolsHolder
 	Store                        dataRetriever.StorageService

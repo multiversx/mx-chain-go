@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -14,6 +15,7 @@ import (
 // factory defines the data needed by this factory to create all the subrounds and give them their specific
 // functionality
 type factory struct {
+	log            logger.Logger
 	consensusCore  spos.ConsensusCoreHandler
 	consensusState spos.ConsensusStateHandler
 	worker         spos.WorkerHandler
@@ -28,6 +30,7 @@ type factory struct {
 
 // NewSubroundsFactory creates a new consensusState object
 func NewSubroundsFactory(
+	logger logger.Logger,
 	consensusDataContainer spos.ConsensusCoreHandler,
 	consensusState spos.ConsensusStateHandler,
 	worker spos.WorkerHandler,
@@ -53,6 +56,7 @@ func NewSubroundsFactory(
 	}
 
 	fct := factory{
+		log:                   logger,
 		consensusCore:         consensusDataContainer,
 		consensusState:        consensusState,
 		worker:                worker,
@@ -156,6 +160,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
@@ -196,6 +201,7 @@ func (fct *factory) generateBlockSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
@@ -232,6 +238,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
@@ -268,6 +275,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
