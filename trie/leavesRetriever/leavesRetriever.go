@@ -2,6 +2,7 @@ package leavesRetriever
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -39,13 +40,17 @@ func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Mars
 
 // GetLeaves retrieves leaves from the trie starting from the iterator state. It will also return the new iterator state
 // from which one can continue the iteration.
-func (lr *leavesRetriever) GetLeaves(numLeaves int, iteratorState [][]byte, ctx context.Context) (map[string]string, [][]byte, error) {
+func (lr *leavesRetriever) GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+	if check.IfNil(leavesParser) {
+		return nil, nil, fmt.Errorf("nil leaves parser")
+	}
+
 	iterator, err := dfsTrieIterator.NewIterator(iteratorState, lr.db, lr.marshaller, lr.hasher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	leavesData, err := iterator.GetLeaves(numLeaves, lr.maxSize, ctx)
+	leavesData, err := iterator.GetLeaves(numLeaves, lr.maxSize, leavesParser, ctx)
 	if err != nil {
 		return nil, nil, err
 	}

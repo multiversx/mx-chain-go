@@ -83,7 +83,7 @@ func getIteratorStateFromNextNodes(nextNodes []common.TrieNodeData) [][]byte {
 }
 
 // GetLeaves retrieves leaves from the trie. It stops either when the number of leaves is reached or the context is done.
-func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Context) (map[string]string, error) {
+func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, error) {
 	retrievedLeaves := make(map[string]string)
 	leavesSize := uint64(0)
 	for {
@@ -118,8 +118,13 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Cont
 					return nil, err
 				}
 
-				hexKey := hex.EncodeToString(key)
-				hexData := hex.EncodeToString(childNode.GetData())
+				keyValHolder, err := leavesParser.ParseLeaf(key, childNode.GetData(), childNode.GetVersion())
+				if err != nil {
+					return nil, err
+				}
+
+				hexKey := hex.EncodeToString(keyValHolder.Key())
+				hexData := hex.EncodeToString(keyValHolder.Value())
 				retrievedLeaves[hexKey] = hexData
 				leavesSize += uint64(len(hexKey) + len(hexData))
 				continue

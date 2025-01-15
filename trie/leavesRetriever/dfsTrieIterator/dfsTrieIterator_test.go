@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -103,7 +104,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator([][]byte{rootHash}, dbWrapper, marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(numLeaves, maxSize, ctx)
+		trieData, err := iterator.GetLeaves(numLeaves, maxSize, parsers.NewMainTrieLeafParser(), ctx)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedNumLeaves, len(trieData))
 	})
@@ -118,7 +119,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(numLeaves, maxSize, context.Background())
+		trieData, err := iterator.GetLeaves(numLeaves, maxSize, parsers.NewMainTrieLeafParser(), context.Background())
 		assert.Nil(t, err)
 		assert.Equal(t, numLeaves, len(trieData))
 	})
@@ -134,7 +135,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(17, maxSize, context.Background())
+		trieData, err := iterator.GetLeaves(17, maxSize, parsers.NewMainTrieLeafParser(), context.Background())
 		assert.Nil(t, err)
 		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
 	})
@@ -149,7 +150,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(0, 200, context.Background())
+		trieData, err := iterator.GetLeaves(0, 200, parsers.NewMainTrieLeafParser(), context.Background())
 		assert.Nil(t, err)
 		assert.Equal(t, 8, len(trieData))
 		assert.Equal(t, 8, len(iterator.nextNodes))
@@ -166,7 +167,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
 		iteratorMaxSize := uint64(200)
-		trieData, err := iterator.GetLeaves(numLeaves, iteratorMaxSize, context.Background())
+		trieData, err := iterator.GetLeaves(numLeaves, iteratorMaxSize, parsers.NewMainTrieLeafParser(), context.Background())
 		assert.Nil(t, err)
 		assert.Equal(t, 8, len(trieData))
 		assert.Equal(t, 8, len(iterator.nextNodes))
@@ -184,7 +185,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		numRetrievedLeaves := 0
 		numIterations := 0
 		for numRetrievedLeaves < numLeaves {
-			trieData, err := iterator.GetLeaves(5, maxSize, context.Background())
+			trieData, err := iterator.GetLeaves(5, maxSize, parsers.NewMainTrieLeafParser(), context.Background())
 			assert.Nil(t, err)
 
 			numRetrievedLeaves += len(trieData)
@@ -206,7 +207,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
-		trieData, err := iterator.GetLeaves(numLeaves, maxSize, nil)
+		trieData, err := iterator.GetLeaves(numLeaves, maxSize, parsers.NewMainTrieLeafParser(), nil)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
 	})
@@ -222,9 +223,10 @@ func TestDfsIterator_GetIteratorState(t *testing.T) {
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
 	_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
+
 	iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
-	leaves, err := iterator.GetLeaves(2, maxSize, context.Background())
+	leaves, err := iterator.GetLeaves(2, maxSize, parsers.NewMainTrieLeafParser(), context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(leaves))
 	val, ok := leaves[hex.EncodeToString([]byte("doe"))]
@@ -257,7 +259,7 @@ func TestDfsIterator_FinishedIteration(t *testing.T) {
 	numRetrievedLeaves := 0
 	for numRetrievedLeaves < numLeaves {
 		assert.False(t, iterator.FinishedIteration())
-		trieData, err := iterator.GetLeaves(5, maxSize, context.Background())
+		trieData, err := iterator.GetLeaves(5, maxSize, parsers.NewMainTrieLeafParser(), context.Background())
 		assert.Nil(t, err)
 
 		numRetrievedLeaves += len(trieData)

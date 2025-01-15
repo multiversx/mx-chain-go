@@ -308,6 +308,10 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	return mapToReturn, blockInfo, nil
 }
 
+type userAccountWithLeavesParser interface {
+	GetLeavesParser() common.TrieLeafParser
+}
+
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
 func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
@@ -324,11 +328,16 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 		return map[string]string{}, nil, blockInfo, nil
 	}
 
+	account, ok := userAccount.(userAccountWithLeavesParser)
+	if !ok {
+		return nil, nil, api.BlockInfo{}, fmt.Errorf("cannot cast user account to userAccountWithLeavesParser")
+	}
+
 	if len(iteratorState) == 0 {
 		iteratorState = append(iteratorState, userAccount.GetRootHash())
 	}
 
-	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, ctx)
+	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, account.GetLeavesParser(), ctx)
 	if err != nil {
 		return nil, nil, api.BlockInfo{}, err
 	}

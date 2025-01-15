@@ -1,6 +1,7 @@
 package trieNodeData
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
@@ -26,6 +27,11 @@ func NewIntermediaryNodeData(key common.KeyBuilder, data []byte) (*intermediaryN
 // IsLeaf returns false
 func (ind *intermediaryNodeData) IsLeaf() bool {
 	return false
+}
+
+// GetVersion returns NotSpecified
+func (ind *intermediaryNodeData) GetVersion() core.TrieNodeVersion {
+	return core.NotSpecified
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

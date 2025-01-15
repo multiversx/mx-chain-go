@@ -568,10 +568,15 @@ func (ln *leafNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNode
 		return nil, fmt.Errorf("getNodeData error %w", err)
 	}
 
+	version, err := ln.getVersion()
+	if err != nil {
+		return nil, err
+	}
+
 	data := make([]common.TrieNodeData, 1)
 	clonedKeyBuilder := keyBuilder.DeepClone()
 	clonedKeyBuilder.BuildKey(ln.Key)
-	nodeData, err := trieNodeData.NewLeafNodeData(clonedKeyBuilder, ln.Value)
+	nodeData, err := trieNodeData.NewLeafNodeData(clonedKeyBuilder, ln.Value, version)
 	if err != nil {
 		return nil, err
 	}

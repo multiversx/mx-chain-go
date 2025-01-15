@@ -1,6 +1,10 @@
 package leavesRetriever
 
-import "context"
+import (
+	"context"
+	
+	"github.com/multiversx/mx-chain-go/common"
+)
 
 type disabledLeavesRetriever struct{}
 
@@ -10,7 +14,7 @@ func NewDisabledLeavesRetriever() *disabledLeavesRetriever {
 }
 
 // GetLeaves returns an empty map and a nil byte slice for this implementation
-func (dlr *disabledLeavesRetriever) GetLeaves(_ int, _ [][]byte, _ context.Context) (map[string]string, [][]byte, error) {
+func (dlr *disabledLeavesRetriever) GetLeaves(_ int, _ [][]byte, _ common.TrieLeafParser, _ context.Context) (map[string]string, [][]byte, error) {
 	return make(map[string]string), [][]byte{}, nil
 }
 

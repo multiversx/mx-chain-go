@@ -4,12 +4,15 @@ import (
 	"context"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieTest "github.com/multiversx/mx-chain-go/testscommon/state"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever"
 	"github.com/stretchr/testify/assert"
 )
@@ -56,15 +59,19 @@ func TestLeavesRetriever_GetLeaves(t *testing.T) {
 	tr := trieTest.GetNewTrie()
 	trieTest.AddDataToTrie(tr, 25)
 	rootHash, _ := tr.RootHash()
-
+	leafParser := &trieMock.TrieLeafParserStub{
+		ParseLeafCalled: func(key []byte, val []byte, version core.TrieNodeVersion) (core.KeyValueHolder, error) {
+			return keyValStorage.NewKeyValStorage(key, val), nil
+		},
+	}
 	lr, _ := leavesRetriever.NewLeavesRetriever(tr.GetStorageManager(), &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{}, 100000)
-	leaves, newIteratorState, err := lr.GetLeaves(10, [][]byte{rootHash}, context.Background())
+	leaves, newIteratorState, err := lr.GetLeaves(10, [][]byte{rootHash}, leafParser, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 10, len(leaves))
 	assert.Equal(t, 8, len(newIteratorState))
 
 	newLr, _ := leavesRetriever.NewLeavesRetriever(tr.GetStorageManager(), &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{}, 100000)
-	leaves, newIteratorState, err = newLr.GetLeaves(10, newIteratorState, context.Background())
+	leaves, newIteratorState, err = newLr.GetLeaves(10, newIteratorState, leafParser, context.Background())
 	assert.Nil(t, err)
 	assert.Equal(t, 10, len(leaves))
 	assert.Equal(t, 3, len(newIteratorState))
