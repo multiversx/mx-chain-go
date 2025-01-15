@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -18,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/require"
 )
 
 type sovEndRoundHandler interface {
@@ -175,6 +176,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		outGoingOpData := []byte("bridgeOp")
 		aggregatedSig := []byte("aggregatedSig")
 		leaderSig := []byte("leaderSig")
+		pubKeysBitmap := []byte{0x1, 0x0}
 		getCallCt := 0
 		wasResetTimerCalled := false
 		wg := sync.WaitGroup{}
@@ -218,6 +220,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 					},
 					AggregatedSignature: aggregatedSig,
 					LeaderSignature:     leaderSig,
+					PubKeysBitmap:       pubKeysBitmap,
 				}, data)
 			},
 			ResetTimerCalled: func(hashes [][]byte) {
@@ -251,6 +254,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 							},
 							LeaderSignature:     leaderSig,
 							AggregatedSignature: aggregatedSig,
+							PubKeysBitmap:       pubKeysBitmap,
 						},
 					},
 				}, data)
@@ -298,6 +302,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 			},
 			AggregatedSignature: aggregatedSig,
 			LeaderSignature:     leaderSig,
+			Epoch:               4,
 		}
 
 		unconfirmedBridgeOutGoingData := &sovCore.BridgeOutGoingData{
@@ -308,6 +313,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 					Data: []byte("bridgeOp2"),
 				},
 			},
+			Epoch: 3,
 		}
 
 		wasResetTimerCalled := false
@@ -352,6 +358,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		sovHdr := &block.SovereignChainHeader{
 			Header: &block.Header{
 				Nonce: 4,
+				Epoch: 4,
 			},
 			OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
 				OutGoingOperationsHash:                outGoingDataHash,
@@ -436,6 +443,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 	t.Run("leader keeps resending previous unconfirmed operations, should keep signatures in pool", func(t *testing.T) {
 		t.Parallel()
 
+		epoch := uint32(4)
 		unconfirmedBridgeOutGoingData := &sovCore.BridgeOutGoingData{
 			Hash: []byte("hashOfHashes"),
 			OutGoingOperations: []*sovCore.OutGoingOperation{
@@ -444,12 +452,14 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 					Data: []byte("bridgeOp1"),
 				},
 			},
+			Epoch: epoch,
 		}
 
 		expiryTime := time.Millisecond * 100
 		pool := sovereignBlock.NewOutGoingOperationPool(expiryTime)
 		pool.Add(unconfirmedBridgeOutGoingData)
 
+		pubKeysBitmap := []byte{0x1, 0x0}
 		sendDataCalledCt := 0
 		wasDataSent := false
 		currCtx := context.Background()
@@ -467,6 +477,8 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 					},
 					AggregatedSignature: []byte("aggregatedSig"),
 					LeaderSignature:     []byte("leaderSig"),
+					PubKeysBitmap:       pubKeysBitmap,
+					Epoch:               epoch,
 				},
 			},
 		}
@@ -488,6 +500,7 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		sovHdr := &block.SovereignChainHeader{
 			Header: &block.Header{
 				Nonce: 4,
+				Epoch: epoch,
 			},
 			OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
 				Hash:                                  []byte("hashOfHashes"),
