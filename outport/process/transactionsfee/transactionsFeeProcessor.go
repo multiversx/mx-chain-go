@@ -165,7 +165,6 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 		if isSCRForSenderWithRefund(scr, txHashHex, txWithResults.GetTxHandler()) || isRefundForRelayed(scr, txWithResults.GetTxHandler()) {
 			hasRefund = true
 			totalRefunds.Add(totalRefunds, scr.Value)
-			break
 		}
 	}
 
