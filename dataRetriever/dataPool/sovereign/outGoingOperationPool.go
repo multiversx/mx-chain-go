@@ -47,12 +47,12 @@ func (op *outGoingOperationsPool) Add(data *sovereign.BridgeOutGoingData) {
 		return
 	}
 
-	// check here to be added  in data
-
 	log.Debug("outGoingOperationsPool.Add",
 		"hash", data.Hash,
 		"aggregated sig", data.AggregatedSignature,
 		"leader sig", data.LeaderSignature,
+		"pub keys bitmap", data.PubKeysBitmap,
+		"epoch", data.Epoch,
 	)
 
 	hashStr := string(data.Hash)

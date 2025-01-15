@@ -40,8 +40,6 @@ func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap 
 		return nil
 	}
 
-	// i don't think here
-
 	return sr.signingHandler.Verify(outGoingMb.GetOutGoingOperationsHash(), bitmap, header.GetEpoch())
 }
 
@@ -106,8 +104,6 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header d
 		outGoingMb.GetOutGoingOperationsHash(),
 		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
 
-	// also here
-
 	leaderSig, err := sr.signingHandler.CreateSignatureForPublicKey(leaderMsgToSign, leaderPubKey)
 	if err != nil {
 		return err
@@ -142,8 +138,6 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SetConsensusDataInHeader(header da
 		return err
 	}
 
-	// add here bitmap
-
 	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
 }
 
@@ -161,8 +155,6 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(h
 
 	cnsMsg.AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
 	cnsMsg.LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()
-
-	//i don't think it is needed here
 
 	log.Debug("sovereignSubRoundEndOutGoingTxData.AddLeaderAndAggregatedSignatures",
 		"AggregatedSignatureOutGoingTxData", cnsMsg.AggregatedSignatureOutGoingTxData,

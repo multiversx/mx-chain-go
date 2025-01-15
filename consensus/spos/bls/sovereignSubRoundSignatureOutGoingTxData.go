@@ -42,8 +42,6 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 		return make([]byte, 0), nil
 	}
 
-	// i don't think here if everyone verifies that signature is on the right bitmap???
-
 	return sr.signingHandler.CreateSignatureShareForPublicKey(
 		outGoingMBHeader.GetOutGoingOperationsHash(),
 		selfIndex,
