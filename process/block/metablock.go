@@ -756,6 +756,33 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	return nil
 }
 
+func (mp *metaProcessor) updateHeaderForEpochStartIfNeeded(metaHdr *block.MetaBlock) error {
+	isEpochStart := mp.epochStartTrigger.IsEpochStart()
+	if !isEpochStart {
+		return nil
+	}
+	return mp.updateEpochStartHeader(metaHdr)
+}
+
+func (mp *metaProcessor) createBody(metaHdr *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
+	isEpochStart := mp.epochStartTrigger.IsEpochStart()
+	var body data.BodyHandler
+	var err error
+	if isEpochStart {
+		body, err = mp.createEpochStartBody(metaHdr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		body, err = mp.createBlockBody(metaHdr, haveTime)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return body, nil
+}
+
 // CreateBlock creates the final block and header for the current round
 func (mp *metaProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
@@ -789,21 +816,19 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
-	if mp.epochStartTrigger.IsEpochStart() {
-		err = mp.updateEpochStartHeader(metaHdr)
-		if err != nil {
-			return nil, nil, err
-		}
+	err = mp.updateHeaderForEpochStartIfNeeded(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		body, err = mp.createEpochStartBody(metaHdr)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		body, err = mp.createBlockBody(metaHdr, haveTime)
-		if err != nil {
-			return nil, nil, err
-		}
+	err = mp.addPrevProofIfNeeded(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err = mp.createBody(metaHdr, haveTime)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	body, err = mp.applyBodyToHeader(metaHdr, body)

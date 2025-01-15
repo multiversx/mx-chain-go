@@ -547,6 +547,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.ScheduledMiniBlocksFlag,
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
+		common.EquivalentMessagesFlag,
 	})
 	if err != nil {
 		return err
@@ -2199,4 +2200,29 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 	}
 
 	return nil
+}
+
+func isProofEmpty(proof data.HeaderProofHandler) bool {
+	return len(proof.GetAggregatedSignature()) == 0 ||
+		len(proof.GetPubKeysBitmap()) == 0 ||
+		len(proof.GetHeaderHash()) == 0
+}
+
+func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
+	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return nil
+	}
+
+	prevBlockProof, err := bp.proofsPool.GetProof(bp.shardCoordinator.SelfId(), header.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	if !isProofEmpty(prevBlockProof) {
+		header.SetPreviousProof(prevBlockProof)
+		return nil
+	}
+
+	log.Debug("addPrevProofIfNeeded: no proof found", "header hash", header.GetPrevHash())
+	return process.ErrNilHeaderProof
 }

@@ -104,12 +104,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	// This must be done after createBlock, in order to have the proper epoch set
-	wasProofAdded := sr.addProofOnHeader(header)
-	if !wasProofAdded {
-		return false
-	}
-
 	// block proof verification should be done over the header that contains the leader signature
 	leaderSignature, err := sr.signBlockHeader(header)
 	if err != nil {
@@ -357,30 +351,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	}
 
 	return hdr, nil
-}
-
-func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
-	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
-	if err != nil {
-		// for the first block after activation we won't add the proof
-		// TODO: fix this on verifications as well
-		return common.IsEpochChangeBlockForFlagActivation(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag)
-	}
-
-	if !isProofEmpty(prevBlockProof) {
-		header.SetPreviousProof(prevBlockProof)
-		return true
-	}
-
-	log.Debug("addProofOnHeader: no proof found", "header hash", header.GetPrevHash())
-
-	return false
-}
-
-func isProofEmpty(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 ||
-		len(proof.GetPubKeysBitmap()) == 0 ||
-		len(proof.GetHeaderHash()) == 0
 }
 
 func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
