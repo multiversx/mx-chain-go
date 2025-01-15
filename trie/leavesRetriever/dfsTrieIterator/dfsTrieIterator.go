@@ -10,11 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 )
 
 type dfsIterator struct {
 	nextNodes  []common.TrieNodeData
-	rootHash   []byte
 	db         common.TrieStorageInteractor
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
@@ -22,7 +22,7 @@ type dfsIterator struct {
 }
 
 // NewIterator creates a new DFS iterator for the trie.
-func NewIterator(rootHash []byte, db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*dfsIterator, error) {
+func NewIterator(initialState [][]byte, db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*dfsIterator, error) {
 	if check.IfNil(db) {
 		return nil, trie.ErrNilDatabase
 	}
@@ -32,25 +32,61 @@ func NewIterator(rootHash []byte, db common.TrieStorageInteractor, marshaller ma
 	if check.IfNil(hasher) {
 		return nil, trie.ErrNilHasher
 	}
+	if len(initialState) == 0 {
+		return nil, trie.ErrEmptyInitialIteratorState
+	}
 
-	data, err := trie.GetNodeDataFromHash(rootHash, keyBuilder.NewKeyBuilder(), db, marshaller, hasher)
+	nextNodes, err := getNextNodesFromInitialState(initialState, uint(hasher.Size()))
 	if err != nil {
 		return nil, err
 	}
 
 	size := uint64(0)
-	for _, node := range data {
+	for _, node := range nextNodes {
 		size += node.Size()
 	}
 
 	return &dfsIterator{
-		nextNodes:  data,
-		rootHash:   rootHash,
+		nextNodes:  nextNodes,
 		db:         db,
 		marshaller: marshaller,
 		hasher:     hasher,
 		size:       size,
 	}, nil
+}
+
+func getNextNodesFromInitialState(initialState [][]byte, hashSize uint) ([]common.TrieNodeData, error) {
+	nextNodes := make([]common.TrieNodeData, len(initialState))
+	for i, state := range initialState {
+		if len(state) < int(hashSize) {
+			return nil, trie.ErrInvalidIteratorState
+		}
+
+		nodeHash := state[:hashSize]
+		key := state[hashSize:]
+
+		kb := keyBuilder.NewKeyBuilder()
+		kb.BuildKey(key)
+		nodeData, err := trieNodeData.NewIntermediaryNodeData(kb, nodeHash)
+		if err != nil {
+			return nil, err
+		}
+		nextNodes[i] = nodeData
+	}
+
+	return nextNodes, nil
+}
+
+func getIteratorStateFromNextNodes(nextNodes []common.TrieNodeData) [][]byte {
+	iteratorState := make([][]byte, len(nextNodes))
+	for i, node := range nextNodes {
+		nodeHash := node.GetData()
+		key := node.GetKeyBuilder().GetRawKey()
+
+		iteratorState[i] = append(nodeHash, key...)
+	}
+
+	return iteratorState
 }
 
 // GetLeaves retrieves leaves from the trie. It stops either when the number of leaves is reached or the context is done.
@@ -103,30 +139,13 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Cont
 	}
 }
 
-// GetIteratorId returns the ID of the iterator.
-func (it *dfsIterator) GetIteratorId() []byte {
-	if len(it.nextNodes) == 0 {
+// GetIteratorState returns the state of the iterator from which it can be resumed by another call.
+func (it *dfsIterator) GetIteratorState() [][]byte {
+	if it.FinishedIteration() {
 		return nil
 	}
 
-	nextNodeHash := it.nextNodes[0].GetData()
-	iteratorID := it.hasher.Compute(string(append(it.rootHash, nextNodeHash...)))
-	return iteratorID
-}
-
-// Clone creates a copy of the iterator.
-func (it *dfsIterator) Clone() common.DfsIterator {
-	nextNodes := make([]common.TrieNodeData, len(it.nextNodes))
-	copy(nextNodes, it.nextNodes)
-
-	return &dfsIterator{
-		nextNodes:  nextNodes,
-		rootHash:   it.rootHash,
-		db:         it.db,
-		marshaller: it.marshaller,
-		hasher:     it.hasher,
-		size:       it.size,
-	}
+	return getIteratorStateFromNextNodes(it.nextNodes)
 }
 
 // FinishedIteration checks if the iterator has finished the iteration.
@@ -136,7 +155,7 @@ func (it *dfsIterator) FinishedIteration() bool {
 
 // Size returns the size of the iterator.
 func (it *dfsIterator) Size() uint64 {
-	return it.size + uint64(len(it.rootHash))
+	return it.size
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

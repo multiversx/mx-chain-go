@@ -10,8 +10,8 @@ func NewDisabledLeavesRetriever() *disabledLeavesRetriever {
 }
 
 // GetLeaves returns an empty map and a nil byte slice for this implementation
-func (dlr *disabledLeavesRetriever) GetLeaves(_ int, _ []byte, _ []byte, _ context.Context) (map[string]string, []byte, error) {
-	return make(map[string]string), []byte{}, nil
+func (dlr *disabledLeavesRetriever) GetLeaves(_ int, _ [][]byte, _ context.Context) (map[string]string, [][]byte, error) {
+	return make(map[string]string), [][]byte{}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

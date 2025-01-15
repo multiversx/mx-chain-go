@@ -6,6 +6,7 @@ import "github.com/multiversx/mx-chain-go/common"
 type KeyBuilderStub struct {
 	BuildKeyCalled     func(keyPart []byte)
 	GetKeyCalled       func() ([]byte, error)
+	GetRawKeyCalled    func() []byte
 	ShallowCloneCalled func() common.KeyBuilder
 	DeepCloneCalled    func() common.KeyBuilder
 	SizeCalled         func() uint
@@ -25,6 +26,15 @@ func (stub *KeyBuilderStub) GetKey() ([]byte, error) {
 	}
 
 	return []byte{}, nil
+}
+
+// GetRawKey -
+func (stub *KeyBuilderStub) GetRawKey() []byte {
+	if stub.GetRawKeyCalled != nil {
+		return stub.GetRawKeyCalled()
+	}
+
+	return []byte{}
 }
 
 // ShallowClone -

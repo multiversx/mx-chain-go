@@ -125,13 +125,13 @@ type keyValuePairsResponse struct {
 	Code  string
 }
 
-type keyValuePairsWithCheckpointResponseData struct {
-	Pairs           map[string]string `json:"pairs"`
-	NewCheckpointId string            `json:"newCheckpointId"`
+type iterateKeysResponseData struct {
+	Pairs            map[string]string `json:"pairs"`
+	NewIteratorState [][]byte          `json:"newIteratorState"`
 }
-type keyValuePairsWithCheckpointResponse struct {
-	Data  keyValuePairsWithCheckpointResponseData `json:"data"`
-	Error string                                  `json:"error"`
+type iterateKeysResponse struct {
+	Data  iterateKeysResponseData `json:"data"`
+	Error string                  `json:"error"`
 	Code  string
 }
 
@@ -672,37 +672,66 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 	})
 }
 
-func TestAddressGroup_getKeyValuePairsWithCheckpoint(t *testing.T) {
+func TestAddressGroup_iterateKeys(t *testing.T) {
 	t.Parallel()
 
-	t.Run("empty address should error",
-		testErrorScenario("/address//num-keys/10/checkpoint-id/abc", "GET", nil,
-			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, apiErrors.ErrEmptyAddress)))
-	t.Run("invalid query options should error",
-		testErrorScenario("/address/erd1alice/num-keys/10/checkpoint-id/abc?blockNonce=not-uint64", "GET", nil,
-			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, apiErrors.ErrBadUrlParams)))
-	t.Run("empty num-keys should error",
-		testErrorScenario("/address/erd1alice/num-keys//checkpoint-id/abc", "GET", nil,
-			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, apiErrors.ErrEmptyNumKeys)))
-	t.Run("invalid num-keys should error",
-		testErrorScenario("/address/erd1alice/num-keys/not-uint64/checkpoint-id/abc", "GET", nil,
-			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, errors.New("strconv.Atoi: parsing \"not-uint64\": invalid syntax"))))
+	t.Run("invalid body should error",
+		testErrorScenario("/address/iterate-keys", "POST", bytes.NewBuffer([]byte("invalid body")),
+			formatExpectedErr(apiErrors.ErrValidation, errors.New("invalid character 'i' looking for beginning of value"))))
+	t.Run("empty address should error", func(t *testing.T) {
+		t.Parallel()
+
+		body := &groups.IterateKeysRequest{
+			Address: "",
+		}
+		bodyBytes, _ := json.Marshal(body)
+		testAddressGroup(
+			t,
+			&mock.FacadeStub{},
+			"/address/iterate-keys",
+			"POST",
+			bytes.NewBuffer(bodyBytes),
+			http.StatusBadRequest,
+			formatExpectedErr(apiErrors.ErrValidation, apiErrors.ErrEmptyAddress),
+		)
+	})
+	t.Run("invalid query options should error", func(t *testing.T) {
+		t.Parallel()
+
+		body := &groups.IterateKeysRequest{
+			Address: "erd1",
+		}
+		bodyBytes, _ := json.Marshal(body)
+		testAddressGroup(
+			t,
+			&mock.FacadeStub{},
+			"/address/iterate-keys?blockNonce=not-uint64",
+			"POST",
+			bytes.NewBuffer(bodyBytes),
+			http.StatusBadRequest,
+			formatExpectedErr(apiErrors.ErrIterateKeys, apiErrors.ErrBadUrlParams),
+		)
+	})
 	t.Run("with node fail should err", func(t *testing.T) {
 		t.Parallel()
 
+		body := &groups.IterateKeysRequest{
+			Address: "erd1",
+		}
+		bodyBytes, _ := json.Marshal(body)
 		facade := &mock.FacadeStub{
-			GetKeyValuePairsWithCheckpointCalled: func(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error) {
-				return nil, api.BlockInfo{}, "", expectedErr
+			IterateKeysCalled: func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+				return nil, nil, api.BlockInfo{}, expectedErr
 			},
 		}
 		testAddressGroup(
 			t,
 			facade,
-			"/address/erd1alice/num-keys/10/checkpoint-id/abc",
-			"GET",
-			nil,
+			"/address/iterate-keys",
+			"POST",
+			bytes.NewBuffer(bodyBytes),
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetKeyValuePairsWithCheckpoint, expectedErr),
+			formatExpectedErr(apiErrors.ErrIterateKeys, expectedErr),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -712,30 +741,34 @@ func TestAddressGroup_getKeyValuePairsWithCheckpoint(t *testing.T) {
 			"k1": "v1",
 			"k2": "v2",
 		}
-		originalCheckpointId := "abc"
-		newCheckpointId := "def"
-		numKeys := "10"
-		addr := "erd1alice"
+
+		body := &groups.IterateKeysRequest{
+			Address:       "erd1",
+			NumKeys:       10,
+			IteratorState: [][]byte{[]byte("starting"), []byte("state")},
+		}
+		newIteratorState := [][]byte{[]byte("new"), []byte("state")}
+		bodyBytes, _ := json.Marshal(body)
 		facade := &mock.FacadeStub{
-			GetKeyValuePairsWithCheckpointCalled: func(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error) {
-				assert.Equal(t, addr, address)
-				assert.Equal(t, 10, numLeaves)
-				assert.Equal(t, originalCheckpointId, checkpointId)
-				return pairs, api.BlockInfo{}, newCheckpointId, nil
+			IterateKeysCalled: func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
+				assert.Equal(t, body.Address, address)
+				assert.Equal(t, body.NumKeys, numKeys)
+				assert.Equal(t, body.IteratorState, iteratorState)
+				return pairs, newIteratorState, api.BlockInfo{}, nil
 			},
 		}
 
-		response := &keyValuePairsWithCheckpointResponse{}
+		response := &iterateKeysResponse{}
 		loadAddressGroupResponse(
 			t,
 			facade,
-			"/address/"+addr+"/num-keys/"+numKeys+"/checkpoint-id/"+originalCheckpointId,
-			"GET",
-			nil,
+			"/address/iterate-keys",
+			"POST",
+			bytes.NewBuffer(bodyBytes),
 			response,
 		)
 		assert.Equal(t, pairs, response.Data.Pairs)
-		assert.Equal(t, newCheckpointId, response.Data.NewCheckpointId)
+		assert.Equal(t, newIteratorState, response.Data.NewIteratorState)
 	})
 }
 
@@ -1220,7 +1253,7 @@ func getAddressRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:address/username", Open: true},
 					{Name: "/:address/code-hash", Open: true},
 					{Name: "/:address/keys", Open: true},
-					{Name: "/:address/num-keys/:numKeys/checkpoint-id/:checkpointId", Open: true},
+					{Name: "/iterate-keys", Open: true},
 					{Name: "/:address/key/:key", Open: true},
 					{Name: "/:address/esdt", Open: true},
 					{Name: "/:address/esdts/roles", Open: true},

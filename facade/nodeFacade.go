@@ -229,13 +229,12 @@ func (nf *nodeFacade) GetKeyValuePairs(address string, options apiData.AccountQu
 	return nf.node.GetKeyValuePairs(address, options, ctx)
 }
 
-// GetKeyValuePairsWithCheckpoint returns the given number of key-value pairs under the provided address.
-// The iteration starts from the given checkpoint, and returns a new checkpoint for the next iteration.
-func (nf *nodeFacade) GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options apiData.AccountQueryOptions) (map[string]string, apiData.BlockInfo, string, error) {
+// IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
+func (nf *nodeFacade) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options apiData.AccountQueryOptions) (map[string]string, [][]byte, apiData.BlockInfo, error) {
 	ctx, cancel := nf.getContextForApiTrieRangeOperations()
 	defer cancel()
 
-	return nf.node.GetKeyValuePairsWithCheckpoint(address, checkpointId, numLeaves, options, ctx)
+	return nf.node.IterateKeys(address, numKeys, iteratorState, options, ctx)
 }
 
 // GetGuardianData returns the guardian data for the provided address

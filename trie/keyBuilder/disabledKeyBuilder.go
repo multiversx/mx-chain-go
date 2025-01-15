@@ -22,6 +22,11 @@ func (dkb *disabledKeyBuilder) GetKey() ([]byte, error) {
 	return []byte{}, nil
 }
 
+// GetRawKey returns an empty byte array for this implementation
+func (dkb *disabledKeyBuilder) GetRawKey() []byte {
+	return []byte{}
+}
+
 // ShallowClone returns a new disabled key builder
 func (dkb *disabledKeyBuilder) ShallowClone() common.KeyBuilder {
 	return &disabledKeyBuilder{}

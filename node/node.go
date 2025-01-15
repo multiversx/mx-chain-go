@@ -308,38 +308,32 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	return mapToReturn, blockInfo, nil
 }
 
-// GetKeyValuePairsWithCheckpoint  returns the given number of key-value pairs under the provided address.
-// The iteration starts from the given checkpoint, and returns a new checkpoint for the next iteration.
-func (n *Node) GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, string, error) {
+// IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
+func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
 		if isEmptyAccount {
-			return make(map[string]string), adaptedBlockInfo, "", nil
+			return make(map[string]string), nil, adaptedBlockInfo, nil
 		}
 
-		return nil, api.BlockInfo{}, "", err
+		return nil, nil, api.BlockInfo{}, err
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, blockInfo, "", nil
+		return map[string]string{}, nil, blockInfo, nil
 	}
 
-	checkpointIdBytes, err := hex.DecodeString(checkpointId)
+	if len(iteratorState) == 0 {
+		iteratorState = append(iteratorState, userAccount.GetRootHash())
+	}
+
+	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, ctx)
 	if err != nil {
-		return nil, api.BlockInfo{}, "", fmt.Errorf("invalid checkpointId: %w", err)
+		return nil, nil, api.BlockInfo{}, err
 	}
 
-	mapToReturn, newCheckpoint, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(numLeaves, userAccount.GetRootHash(), checkpointIdBytes, ctx)
-	if err != nil {
-		return nil, api.BlockInfo{}, "", err
-	}
-
-	if common.IsContextDone(ctx) {
-		return nil, api.BlockInfo{}, "", ErrTrieOperationsTimeout
-	}
-
-	return mapToReturn, blockInfo, hex.EncodeToString(newCheckpoint), nil
+	return mapToReturn, newIteratorState, blockInfo, nil
 }
 
 func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {

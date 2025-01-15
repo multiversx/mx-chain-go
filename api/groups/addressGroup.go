@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strconv"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -24,7 +23,6 @@ const (
 	getUsernamePath                = "/:address/username"
 	getCodeHashPath                = "/:address/code-hash"
 	getKeysPath                    = "/:address/keys"
-	getKeysWithCheckpointPath      = "/:address/num-keys/:numKeys/checkpoint-id/:checkpointId"
 	getKeyPath                     = "/:address/key/:key"
 	getDataTrieMigrationStatusPath = "/:address/is-data-trie-migrated"
 	getESDTTokensPath              = "/:address/esdt"
@@ -34,6 +32,7 @@ const (
 	getRegisteredNFTsPath          = "/:address/registered-nfts"
 	getESDTNFTDataPath             = "/:address/nft/:tokenIdentifier/nonce/:nonce"
 	getGuardianData                = "/:address/guardian-data"
+	iterateKeysPath                = "/iterate-keys"
 	urlParamOnFinalBlock           = "onFinalBlock"
 	urlParamOnStartOfEpoch         = "onStartOfEpoch"
 	urlParamBlockNonce             = "blockNonce"
@@ -57,7 +56,7 @@ type addressFacadeHandler interface {
 	GetESDTsWithRole(address string, role string, options api.AccountQueryOptions) ([]string, api.BlockInfo, error)
 	GetAllESDTTokens(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error)
 	GetKeyValuePairs(address string, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, error)
-	GetKeyValuePairsWithCheckpoint(address string, checkpointId string, numLeaves int, options api.AccountQueryOptions) (map[string]string, api.BlockInfo, string, error)
+	IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error)
 	GetGuardianData(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error)
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	IsInterfaceNil() bool
@@ -138,9 +137,9 @@ func NewAddressGroup(facade addressFacadeHandler) (*addressGroup, error) {
 			Handler: ag.getKeyValuePairs,
 		},
 		{
-			Path:    getKeysWithCheckpointPath,
-			Method:  http.MethodGet,
-			Handler: ag.getKeyValuePairsWithCheckpoint,
+			Path:    iterateKeysPath,
+			Method:  http.MethodPost,
+			Handler: ag.iterateKeys,
 		},
 		{
 			Path:    getESDTBalancePath,
@@ -352,40 +351,45 @@ func (ag *addressGroup) getKeyValuePairs(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"pairs": value, "blockInfo": blockInfo})
 }
 
-// getKeysWithCheckpoint returns all the key-value pairs for the given address
-func (ag *addressGroup) getKeyValuePairsWithCheckpoint(c *gin.Context) {
-	addr := c.Param("address")
-	if addr == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyAddress)
+// IterateKeysRequest defines the request structure for iterating keys
+type IterateKeysRequest struct {
+	Address       string   `json:"address"`
+	NumKeys       uint     `json:"numKeys"`
+	IteratorState [][]byte `json:"iteratorState"`
+}
+
+// iterateKeys iterates keys for the given address
+func (ag *addressGroup) iterateKeys(c *gin.Context) {
+	var iterateKeysRequest = &IterateKeysRequest{}
+	err := c.ShouldBindJSON(&iterateKeysRequest)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrValidation, err)
+		return
+	}
+
+	if len(iterateKeysRequest.Address) == 0 {
+		shared.RespondWithValidationError(c, errors.ErrValidation, errors.ErrEmptyAddress)
 		return
 	}
 
 	options, err := extractAccountQueryOptions(c)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
+		shared.RespondWithValidationError(c, errors.ErrIterateKeys, err)
 		return
 	}
 
-	numLeavesAsString := c.Param("numKeys")
-	if numLeavesAsString == "" {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, errors.ErrEmptyNumKeys)
-		return
-	}
-
-	numLeaves, err := strconv.Atoi(numLeavesAsString)
+	value, newIteratorState, blockInfo, err := ag.getFacade().IterateKeys(
+		iterateKeysRequest.Address,
+		iterateKeysRequest.NumKeys,
+		iterateKeysRequest.IteratorState,
+		options,
+	)
 	if err != nil {
-		shared.RespondWithValidationError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
+		shared.RespondWithInternalError(c, errors.ErrIterateKeys, err)
 		return
 	}
 
-	checkpointId := c.Param("checkpointId")
-	value, blockInfo, newCheckpointId, err := ag.getFacade().GetKeyValuePairsWithCheckpoint(addr, checkpointId, numLeaves, options)
-	if err != nil {
-		shared.RespondWithInternalError(c, errors.ErrGetKeyValuePairsWithCheckpoint, err)
-		return
-	}
-
-	shared.RespondWithSuccess(c, gin.H{"pairs": value, "newCheckpointId": newCheckpointId, "blockInfo": blockInfo})
+	shared.RespondWithSuccess(c, gin.H{"pairs": value, "newIteratorState": newIteratorState, "blockInfo": blockInfo})
 }
 
 // getESDTBalance returns the balance for the given address and esdt token

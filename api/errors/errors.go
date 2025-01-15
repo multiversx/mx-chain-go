@@ -28,8 +28,8 @@ var ErrGetValueForKey = errors.New("get value for key error")
 // ErrGetKeyValuePairs signals an error in getting the key-value pairs of a key for an account
 var ErrGetKeyValuePairs = errors.New("get key-value pairs error")
 
-// ErrGetKeyValuePairsWithCheckpoint signals an error in getting the key-value pairs of a key for an account with a checkpoint
-var ErrGetKeyValuePairsWithCheckpoint = errors.New("get key-value pairs with checkpoint error")
+// ErrIterateKeys signals an error in iterating over the keys of an account
+var ErrIterateKeys = errors.New("iterate keys error")
 
 // ErrGetESDTBalance signals an error in getting esdt balance for given address
 var ErrGetESDTBalance = errors.New("get esdt balance for account error")
