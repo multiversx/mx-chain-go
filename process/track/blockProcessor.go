@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -309,13 +310,13 @@ func (bp *blockProcessor) checkHeaderFinality(
 	sortedHeadersHashes [][]byte,
 	index int,
 ) error {
-
 	if check.IfNil(header) {
 		return process.ErrNilBlockHeader
 	}
 
 	if common.IsFlagEnabledAfterEpochsStartBlock(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		if bp.proofsPool.HasProof(header.GetShardID(), sortedHeadersHashes[index]) {
+		// the index in argument is for the next block after header
+		if bp.proofsPool.HasProof(header.GetShardID(), sortedHeadersHashes[index-1]) {
 			return nil
 		}
 
@@ -324,7 +325,6 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 	prevHeader := header
 	numFinalityAttestingHeaders := uint64(0)
-
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
 		if numFinalityAttestingHeaders >= bp.blockFinality || currHeader.GetNonce() > prevHeader.GetNonce()+1 {

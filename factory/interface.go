@@ -386,6 +386,8 @@ type ConsensusWorker interface {
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
 	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
+	// RemoveAllReceivedHeaderHandlers removes all the functions handlers
+	RemoveAllReceivedHeaderHandlers()
 	// AddReceivedProofHandler adds a new handler function for a received proof
 	AddReceivedProofHandler(handler func(proofHandler consensus.ProofHandler))
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers

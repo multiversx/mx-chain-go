@@ -1272,7 +1272,13 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
-	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
+	if tpn.EpochNotifier == nil {
+		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	}
+	if tpn.EnableEpochsHandler == nil {
+		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
+	}
+	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -2167,23 +2173,21 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
-	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.ForkDetector, _ = processSync.NewShardForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
-	} else {
-		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(tpn.RoundHandler, tpn.BlockBlackListHandler, tpn.BlockTracker, tpn.NodesSetup.GetStartTime())
-	}
-
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
-	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
+	if tpn.EpochNotifier == nil {
+		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	}
+	if tpn.EnableEpochsHandler == nil {
+		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
+	}
+	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
 	coreComponents.RoundHandlerField = tpn.RoundHandler
-	coreComponents.EnableEpochsHandlerField = tpn.EnableEpochsHandler
-	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.EconomicsDataField = tpn.EconomicsData
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 
@@ -2192,7 +2196,25 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.BlockChain = tpn.BlockChain
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
+	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		tpn.ForkDetector, _ = processSync.NewShardForkDetector(
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			tpn.NodesSetup.GetStartTime(),
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Proofs())
+	} else {
+		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
+			tpn.RoundHandler,
+			tpn.BlockBlackListHandler,
+			tpn.BlockTracker,
+			tpn.NodesSetup.GetStartTime(),
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Proofs())
+	}
+
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()
@@ -2478,8 +2500,13 @@ func (tpn *TestProcessorNode) initNode() {
 		StatusMetricsField:    tpn.StatusMetrics,
 		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
-
-	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
+	if tpn.EpochNotifier == nil {
+		tpn.EpochNotifier = forking.NewGenericEpochNotifier()
+	}
+	if tpn.EnableEpochsHandler == nil {
+		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
+	}
+	coreComponents := GetDefaultCoreComponents(tpn.EnableEpochsHandler, tpn.EpochNotifier)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -2509,7 +2536,7 @@ func (tpn *TestProcessorNode) initNode() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.Store = tpn.Storage
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
@@ -2706,12 +2733,6 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		return nil, nil, nil
 	}
 
-	err = blockHeader.SetPubKeysBitmap([]byte{1})
-	if err != nil {
-		log.Warn("blockHeader.SetPubKeysBitmap", "error", err.Error())
-		return nil, nil, nil
-	}
-
 	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
 	currHdrHash := tpn.BlockChain.GetCurrentBlockHeaderHash()
 	if check.IfNil(currHdr) {
@@ -2730,22 +2751,10 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		log.Warn("blockHeader.SetPrevRandSeed", "error", err.Error())
 		return nil, nil, nil
 	}
-	sig := []byte("aggregated signature")
-	err = blockHeader.SetSignature(sig)
-	if err != nil {
-		log.Warn("blockHeader.SetSignature", "error", err.Error())
-		return nil, nil, nil
-	}
 
-	err = blockHeader.SetRandSeed(sig)
+	err = tpn.setBlockSignatures(blockHeader)
 	if err != nil {
-		log.Warn("blockHeader.SetRandSeed", "error", err.Error())
-		return nil, nil, nil
-	}
-
-	err = blockHeader.SetLeaderSignature([]byte("leader sign"))
-	if err != nil {
-		log.Warn("blockHeader.SetLeaderSignature", "error", err.Error())
+		log.Warn("setBlockSignatures", "error", err.Error())
 		return nil, nil, nil
 	}
 
@@ -2760,20 +2769,6 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 		log.Warn("blockHeader.SetSoftwareVersion", "error", err.Error())
 		return nil, nil, nil
 	}
-
-	previousProof := &dataBlock.HeaderProof{
-		PubKeysBitmap:       []byte{1},
-		AggregatedSignature: sig,
-		HeaderHash:          currHdrHash,
-		HeaderEpoch:         currHdr.GetEpoch(),
-		HeaderNonce:         currHdr.GetNonce(),
-		HeaderShardId:       currHdr.GetShardID(),
-	}
-	blockHeader.SetPreviousProof(previousProof)
-
-	_ = tpn.ProofsPool.AddProof(previousProof)
-
-	log.Error("added proof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 
 	genesisRound := tpn.BlockChain.GetGenesisHeader().GetRound()
 	err = blockHeader.SetTimeStamp((round - genesisRound) * uint64(tpn.RoundHandler.TimeDuration().Seconds()))
@@ -2806,6 +2801,57 @@ func (tpn *TestProcessorNode) ProposeBlock(round uint64, nonce uint64) (data.Bod
 	}
 
 	return blockBody, blockHeader, txHashes
+}
+
+func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler) error {
+	currHdrHash := tpn.BlockChain.GetCurrentBlockHeaderHash()
+	currHdr := tpn.BlockChain.GetCurrentBlockHeader()
+	sig := []byte("aggregated signature")
+	pubKeysBitmap := []byte{1}
+
+	err := blockHeader.SetRandSeed(sig)
+	if err != nil {
+		log.Warn("blockHeader.SetRandSeed", "error", err.Error())
+		return err
+	}
+
+	leaderSignature := []byte("leader signature")
+	err = blockHeader.SetLeaderSignature(leaderSignature)
+	if err != nil {
+		log.Warn("blockHeader.SetLeaderSignature", "error", err.Error())
+		return err
+	}
+
+	if common.ShouldBlockHavePrevProof(blockHeader, tpn.EnableEpochsHandler, common.EquivalentMessagesFlag) {
+		previousProof := &dataBlock.HeaderProof{
+			PubKeysBitmap:       pubKeysBitmap,
+			AggregatedSignature: sig,
+			HeaderHash:          currHdrHash,
+			HeaderEpoch:         currHdr.GetEpoch(),
+			HeaderNonce:         currHdr.GetNonce(),
+			HeaderShardId:       currHdr.GetShardID(),
+		}
+		blockHeader.SetPreviousProof(previousProof)
+
+		err = tpn.ProofsPool.AddProof(previousProof)
+		if err != nil {
+			log.Warn("ProofsPool.AddProof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address, "err", err.Error())
+		}
+		return err
+	}
+
+	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
+	if err != nil {
+		log.Warn("blockHeader.SetPubKeysBitmap", "error", err.Error())
+		return err
+	}
+
+	err = blockHeader.SetSignature(sig)
+	if err != nil {
+		log.Warn("blockHeader.SetSignature", "error", err.Error())
+		return err
+	}
+	return err
 }
 
 // BroadcastBlock broadcasts the block and body to the connected peers
@@ -3293,10 +3339,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 }
 
 // GetDefaultCoreComponents -
-func GetDefaultCoreComponents(enableEpochsConfig config.EnableEpochs) *mock.CoreComponentsStub {
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
-
+func GetDefaultCoreComponents(enableEpochsHandler common.EnableEpochsHandler, epochNotifier process.EpochNotifier) *mock.CoreComponentsStub {
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
 		TxMarshalizerField:            TestTxSignMarshalizer,
@@ -3323,7 +3366,7 @@ func GetDefaultCoreComponents(enableEpochsConfig config.EnableEpochs) *mock.Core
 		RaterField:                   &testscommon.RaterMock{},
 		GenesisNodesSetupField:       &genesisMocks.NodesSetupStub{},
 		GenesisTimeField:             time.Time{},
-		EpochNotifierField:           genericEpochNotifier,
+		EpochNotifierField:           epochNotifier,
 		EnableRoundsHandlerField:     &testscommon.EnableRoundsHandlerStub{},
 		TxVersionCheckField:          versioning.NewTxVersionChecker(MinTransactionVersion),
 		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
@@ -3446,12 +3489,15 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 }
 
 // getDefaultBootstrapComponents -
-func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator) *mainFactoryMocks.BootstrapComponentsStub {
+func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handler common.EnableEpochsHandler) *mainFactoryMocks.BootstrapComponentsStub {
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
 		GetVersionCalled: func(epoch uint32) string {
-			return "2"
+			if handler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+				return "2"
+			}
+			return "1"
 		},
 	}
 	versionedHeaderFactory, _ = hdrFactory.NewShardHeaderFactory(headerVersionHandler)

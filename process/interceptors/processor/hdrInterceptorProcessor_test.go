@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
@@ -14,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/stretchr/testify/assert"
 )
 
 func createMockHdrArgument() *processor.ArgHdrInterceptorProcessor {
@@ -169,6 +170,7 @@ func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	t.Parallel()
 
+	minNonceWithProof := uint64(2)
 	hdrInterceptedData := &struct {
 		testscommon.InterceptedDataStub
 		mock.GetHdrHandlerStub
@@ -180,7 +182,11 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		},
 		GetHdrHandlerStub: mock.GetHdrHandlerStub{
 			HeaderHandlerCalled: func() data.HeaderHandler {
-				return &testscommon.HeaderHandlerStub{}
+				return &testscommon.HeaderHandlerStub{
+					GetNonceCalled: func() uint64 {
+						return minNonceWithProof
+					},
+				}
 			},
 		},
 	}

@@ -80,6 +80,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.EquivalentProofsPool()) {
 		return ErrNilEquivalentProofPool
 	}
+	if check.IfNil(container.EpochNotifier()) {
+		return ErrNilEpochNotifier
+	}
 
 	return nil
 }

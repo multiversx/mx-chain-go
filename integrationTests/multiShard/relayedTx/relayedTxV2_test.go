@@ -97,7 +97,7 @@ func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testi
 	time.Sleep(time.Second)
 
 	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
-	finalBalance.Mul(finalBalance, sendValue)
+	finalBalance = big.NewInt(0).Mul(finalBalance, sendValue)
 
 	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)
 	checkSCBalance(t, ownerNode, scAddress, receiverAddress1, finalBalance)

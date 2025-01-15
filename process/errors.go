@@ -1251,9 +1251,6 @@ var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters co
 // ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
 var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
 
-// ErrInvalidHeader is raised when header is invalid
-var ErrInvalidHeader = errors.New("header is invalid")
-
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
 
@@ -1268,6 +1265,9 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
+
+// ErrMissingPrevHeaderProof signals that the proof for the previous header is missing
+var ErrMissingPrevHeaderProof = errors.New("missing previous header proof")
 
 // ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
 var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")

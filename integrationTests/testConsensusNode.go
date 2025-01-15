@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -289,13 +290,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		epochTrigger.SetTrigger(epochStartTrigger)
 	}
 
-	forkDetector, _ := syncFork.NewShardForkDetector(
-		roundHandler,
-		cache.NewTimeCache(time.Second),
-		&mock.BlockTrackerStub{},
-		args.StartTime,
-	)
-
 	tcn.initRequestersFinder()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
@@ -307,7 +301,9 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	coreComponents := GetDefaultCoreComponents(args.EnableEpochsConfig)
+	genericEpochNotifier = forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, genericEpochNotifier)
+	coreComponents := GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = TestMarshalizer
@@ -375,6 +371,15 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	cryptoComponents.PeerSignHandler = peerSigHandler
 	cryptoComponents.SigHandler = sigHandler
 	cryptoComponents.KeysHandlerField = keysHandler
+
+	forkDetector, _ := syncFork.NewShardForkDetector(
+		roundHandler,
+		cache.NewTimeCache(time.Second),
+		&mock.BlockTrackerStub{},
+		args.StartTime,
+		enableEpochsHandler,
+		dataPool.Proofs(),
+	)
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.ForkDetect = forkDetector

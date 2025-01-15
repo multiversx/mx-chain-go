@@ -112,6 +112,7 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.initConsensusThreshold()
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
+	fct.worker.RemoveAllReceivedHeaderHandlers()
 
 	err := fct.generateStartRoundSubround()
 	if err != nil {

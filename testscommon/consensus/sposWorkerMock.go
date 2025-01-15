@@ -17,6 +17,7 @@ type SposWorkerMock struct {
 		receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool,
 	)
 	AddReceivedHeaderHandlerCalled         func(handler func(data.HeaderHandler))
+	RemoveAllReceivedHeaderHandlersCalled  func()
 	AddReceivedProofHandlerCalled          func(handler func(proofHandler consensus.ProofHandler))
 	RemoveAllReceivedMessagesCallsCalled   func()
 	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) error
@@ -45,6 +46,13 @@ func (sposWorkerMock *SposWorkerMock) AddReceivedMessageCall(messageType consens
 func (sposWorkerMock *SposWorkerMock) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 	if sposWorkerMock.AddReceivedHeaderHandlerCalled != nil {
 		sposWorkerMock.AddReceivedHeaderHandlerCalled(handler)
+	}
+}
+
+// RemoveAllReceivedHeaderHandlers -
+func (sposWorkerMock *SposWorkerMock) RemoveAllReceivedHeaderHandlers() {
+	if sposWorkerMock.RemoveAllReceivedHeaderHandlersCalled != nil {
+		sposWorkerMock.RemoveAllReceivedHeaderHandlersCalled()
 	}
 }
 

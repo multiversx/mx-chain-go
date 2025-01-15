@@ -222,7 +222,16 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	return nil
+	return bp.checkPrevProofValidity(currentBlockHeader, headerHandler)
+}
+
+func (bp *baseProcessor) checkPrevProofValidity(prevHeader, headerHandler data.HeaderHandler) error {
+	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return nil
+	}
+
+	prevProof := headerHandler.GetPreviousProof()
+	return common.VerifyProofAgainstHeader(prevProof, prevHeader)
 }
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash

@@ -11,6 +11,7 @@ type ProofsPoolMock struct {
 	CleanupProofsBehindNonceCalled func(shardID uint32, nonce uint64) error
 	GetProofCalled                 func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProofCalled                 func(shardID uint32, headerHash []byte) bool
+	RegisterHandlerCalled          func(handler func(headerProof data.HeaderProofHandler))
 }
 
 // AddProof -
@@ -47,6 +48,13 @@ func (p *ProofsPoolMock) HasProof(shardID uint32, headerHash []byte) bool {
 	}
 
 	return false
+}
+
+// RegisterHandler -
+func (p *ProofsPoolMock) RegisterHandler(handler func(headerProof data.HeaderProofHandler)) {
+	if p.RegisterHandlerCalled != nil {
+		p.RegisterHandlerCalled(handler)
+	}
 }
 
 // IsInterfaceNil -
