@@ -18,7 +18,6 @@ type dfsIterator struct {
 	db         common.TrieStorageInteractor
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
-	size       uint64
 }
 
 // NewIterator creates a new DFS iterator for the trie.
@@ -41,17 +40,11 @@ func NewIterator(initialState [][]byte, db common.TrieStorageInteractor, marshal
 		return nil, err
 	}
 
-	size := uint64(0)
-	for _, node := range nextNodes {
-		size += node.Size()
-	}
-
 	return &dfsIterator{
 		nextNodes:  nextNodes,
 		db:         db,
 		marshaller: marshaller,
 		hasher:     hasher,
-		size:       size,
 	}, nil
 }
 
@@ -92,13 +85,14 @@ func getIteratorStateFromNextNodes(nextNodes []common.TrieNodeData) [][]byte {
 // GetLeaves retrieves leaves from the trie. It stops either when the number of leaves is reached or the context is done.
 func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Context) (map[string]string, error) {
 	retrievedLeaves := make(map[string]string)
+	leavesSize := uint64(0)
 	for {
 		nextNodes := make([]common.TrieNodeData, 0)
-		if it.size >= maxSize {
+		if leavesSize >= maxSize {
 			return retrievedLeaves, nil
 		}
 
-		if len(retrievedLeaves) >= numLeaves {
+		if len(retrievedLeaves) >= numLeaves && numLeaves != 0 {
 			return retrievedLeaves, nil
 		}
 
@@ -117,7 +111,6 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Cont
 			return nil, err
 		}
 
-		childrenSize := uint64(0)
 		for _, childNode := range childrenNodes {
 			if childNode.IsLeaf() {
 				key, err := childNode.GetKeyBuilder().GetKey()
@@ -125,16 +118,16 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, ctx context.Cont
 					return nil, err
 				}
 
-				retrievedLeaves[hex.EncodeToString(key)] = hex.EncodeToString(childNode.GetData())
+				hexKey := hex.EncodeToString(key)
+				hexData := hex.EncodeToString(childNode.GetData())
+				retrievedLeaves[hexKey] = hexData
+				leavesSize += uint64(len(hexKey) + len(hexData))
 				continue
 			}
 
 			nextNodes = append(nextNodes, childNode)
-			childrenSize += childNode.Size()
 		}
 
-		it.size += childrenSize
-		it.size -= it.nextNodes[0].Size()
 		it.nextNodes = append(nextNodes, it.nextNodes[1:]...)
 	}
 }
@@ -151,11 +144,6 @@ func (it *dfsIterator) GetIteratorState() [][]byte {
 // FinishedIteration checks if the iterator has finished the iteration.
 func (it *dfsIterator) FinishedIteration() bool {
 	return len(it.nextNodes) == 0
-}
-
-// Size returns the size of the iterator.
-func (it *dfsIterator) Size() uint64 {
-	return it.size
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

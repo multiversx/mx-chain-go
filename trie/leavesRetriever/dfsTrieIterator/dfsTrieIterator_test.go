@@ -68,7 +68,6 @@ func TestNewIterator(t *testing.T) {
 		iterator, err := NewIterator(initialState, db, marshaller, hasher)
 		assert.Nil(t, err)
 
-		assert.Equal(t, uint64(80), iterator.size)
 		assert.Equal(t, 2, len(iterator.nextNodes))
 	})
 }
@@ -139,20 +138,38 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
 	})
-	t.Run("max size reached returns retrieved leaves and saves iterator context", func(t *testing.T) {
+	t.Run("num leaves 0 iterates until maxSize reached", func(t *testing.T) {
 		t.Parallel()
 
-		tr := trieTest.GetTrieWithData()
-		expectedNumRetrievedLeaves := 2
+		tr := trieTest.GetNewTrie()
+		numLeaves := 25
+		trieTest.AddDataToTrie(tr, numLeaves)
 		rootHash, _ := tr.RootHash()
 
 		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
 		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
 
-		iteratorMaxSize := uint64(100)
-		trieData, err := iterator.GetLeaves(5, iteratorMaxSize, context.Background())
+		trieData, err := iterator.GetLeaves(0, 200, context.Background())
 		assert.Nil(t, err)
-		assert.Equal(t, expectedNumRetrievedLeaves, len(trieData))
+		assert.Equal(t, 8, len(trieData))
+		assert.Equal(t, 8, len(iterator.nextNodes))
+	})
+	t.Run("max size reached returns retrieved leaves and saves iterator context", func(t *testing.T) {
+		t.Parallel()
+
+		tr := trieTest.GetNewTrie()
+		numLeaves := 25
+		trieTest.AddDataToTrie(tr, numLeaves)
+		rootHash, _ := tr.RootHash()
+
+		_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
+		iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
+
+		iteratorMaxSize := uint64(200)
+		trieData, err := iterator.GetLeaves(numLeaves, iteratorMaxSize, context.Background())
+		assert.Nil(t, err)
+		assert.Equal(t, 8, len(trieData))
+		assert.Equal(t, 8, len(iterator.nextNodes))
 	})
 	t.Run("retrieve all leaves in multiple calls", func(t *testing.T) {
 		t.Parallel()
@@ -247,44 +264,5 @@ func TestDfsIterator_FinishedIteration(t *testing.T) {
 	}
 
 	assert.Equal(t, numLeaves, numRetrievedLeaves)
-	assert.True(t, iterator.FinishedIteration())
-}
-
-func TestDfsIterator_Size(t *testing.T) {
-	t.Parallel()
-
-	tr := trieTest.GetNewTrie()
-	numLeaves := 25
-	trieTest.AddDataToTrie(tr, numLeaves)
-	rootHash, _ := tr.RootHash()
-	_, marshaller, hasher := trieTest.GetDefaultTrieParameters()
-
-	iterator, _ := NewIterator([][]byte{rootHash}, tr.GetStorageManager(), marshaller, hasher)
-	assert.Equal(t, uint64(32), iterator.Size()) // root hash
-	assert.False(t, iterator.FinishedIteration())
-
-	_, err := iterator.GetLeaves(5, maxSize, context.Background())
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(299), iterator.Size()) // 9 hashes + leaf key(3) + 8 x intermediary nodes key(8 * 1)
-	assert.False(t, iterator.FinishedIteration())
-
-	_, err = iterator.GetLeaves(5, maxSize, context.Background())
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(268), iterator.Size()) // 8 hashes + 2 x leaf keys(2 * 3) + 6 x intermediary nodes key(6*1)
-	assert.False(t, iterator.FinishedIteration())
-
-	_, err = iterator.GetLeaves(5, maxSize, context.Background())
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(165), iterator.Size()) // 5 hashes + 5 x intermediary nodes key(5*1)
-	assert.False(t, iterator.FinishedIteration())
-
-	_, err = iterator.GetLeaves(5, maxSize, context.Background())
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(101), iterator.Size()) // 3 hashes + leaf key(3) + 2 x intermediary nodes key(2*1)
-	assert.False(t, iterator.FinishedIteration())
-
-	_, err = iterator.GetLeaves(5, maxSize, context.Background())
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), iterator.Size())
 	assert.True(t, iterator.FinishedIteration())
 }
