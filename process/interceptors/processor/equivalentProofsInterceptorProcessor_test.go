@@ -96,9 +96,9 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 		wasCalled := false
 		args := createMockArgEquivalentProofsInterceptorProcessor()
 		args.EquivalentProofsPool = &dataRetriever.ProofsPoolMock{
-			AddProofCalled: func(notarizedProof data.HeaderProofHandler) error {
+			AddProofCalled: func(notarizedProof data.HeaderProofHandler) bool {
 				wasCalled = true
-				return nil
+				return true
 			},
 		}
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)

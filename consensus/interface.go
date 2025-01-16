@@ -203,7 +203,7 @@ type KeysHandler interface {
 
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
-	AddProof(headerProof data.HeaderProofHandler) error
+	AddProof(headerProof data.HeaderProofHandler) bool
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool

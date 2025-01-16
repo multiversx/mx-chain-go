@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -56,7 +57,12 @@ func (epip *equivalentProofsInterceptorProcessor) Save(data process.InterceptedD
 		return process.ErrWrongTypeAssertion
 	}
 
-	return epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
+	wasAdded := epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
+	if !wasAdded {
+		return common.ErrAlreadyExistingEquivalentProof
+	}
+
+	return nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming equivalent proofs

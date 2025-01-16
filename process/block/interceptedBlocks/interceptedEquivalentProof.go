@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -146,7 +145,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
-		return proofscache.ErrAlreadyExistingEquivalentProof
+		return common.ErrAlreadyExistingEquivalentProof
 	}
 
 	err = iep.checkHeaderParamsFromProof()

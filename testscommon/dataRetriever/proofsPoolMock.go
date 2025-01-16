@@ -7,7 +7,7 @@ import (
 
 // ProofsPoolMock -
 type ProofsPoolMock struct {
-	AddProofCalled                 func(headerProof data.HeaderProofHandler) error
+	AddProofCalled                 func(headerProof data.HeaderProofHandler) bool
 	CleanupProofsBehindNonceCalled func(shardID uint32, nonce uint64) error
 	GetProofCalled                 func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProofCalled                 func(shardID uint32, headerHash []byte) bool
@@ -15,12 +15,12 @@ type ProofsPoolMock struct {
 }
 
 // AddProof -
-func (p *ProofsPoolMock) AddProof(headerProof data.HeaderProofHandler) error {
+func (p *ProofsPoolMock) AddProof(headerProof data.HeaderProofHandler) bool {
 	if p.AddProofCalled != nil {
 		return p.AddProofCalled(headerProof)
 	}
 
-	return nil
+	return false
 }
 
 // CleanupProofsBehindNonce -
