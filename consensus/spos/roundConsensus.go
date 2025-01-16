@@ -30,6 +30,9 @@ func NewRoundConsensus(
 	if check.IfNil(keysHandler) {
 		return nil, ErrNilKeysHandler
 	}
+	for nodeKey := range eligibleNodes {
+		log.Error("NewRoundConsensus", "key", nodeKey)
+	}
 
 	return &roundConsensus{
 		eligibleNodes:        eligibleNodes,
@@ -60,6 +63,11 @@ func (rcns *roundConsensus) SelfConsensusGroupIndex() (int, error) {
 func (rcns *roundConsensus) SetEligibleList(eligibleList map[string]struct{}) {
 	rcns.mutEligible.Lock()
 	rcns.eligibleNodes = eligibleList
+
+	for nodeKey := range eligibleList {
+		log.Error("SetEligibleList", "key", nodeKey)
+	}
+
 	rcns.mutEligible.Unlock()
 }
 

@@ -1040,6 +1040,19 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	publicKeysPrevEpoch := make(map[uint32][][]byte)
 	prevEpochConfigExists := false
 
+	log.Error("ihnc *indexHashedNodesCoordinator.GetConsensusWhitelistedNodes start ")
+
+	ihnc.mutNodesConfig.RLock()
+	epochCfg := ihnc.nodesConfig[epoch]
+	for shardKey, validatorsInShard := range epochCfg.eligibleMap {
+		log.Error("indexHashedNodesCoordinator.GetConsensusWhitelistedNodes iterating over", "shardKey", shardKey)
+
+		for _, currVal := range validatorsInShard {
+			log.Error("indexHashedNodesCoordinator.GetConsensusWhitelistedNodes iterating over", "pubKey", currVal.PubKey())
+		}
+	}
+	ihnc.mutNodesConfig.RUnlock()
+
 	if epoch > ihnc.startEpoch {
 		publicKeysPrevEpoch, err = ihnc.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err == nil {
@@ -1075,6 +1088,11 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 		shardEligible[string(pubKey)] = struct{}{}
 	}
 
+	for nodeKey := range shardEligible {
+		log.Error("indexHashedNodesCoordinator.GetConsensusWhitelistedNodes", "shardEligible", nodeKey)
+	}
+
+	log.Error("ihnc *indexHashedNodesCoordinator.GetConsensusWhitelistedNodes END ")
 	return shardEligible, nil
 }
 
