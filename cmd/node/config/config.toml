@@ -664,7 +664,7 @@
     StateStatisticsEnabled = false
 
 [TrieLeavesRetrieverConfig]
-    Enabled = true
+    Enabled = false
     MaxSizeInBytes = 10485760 #10MB
 
 [BlockSizeThrottleConfig]
