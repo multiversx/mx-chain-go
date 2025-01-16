@@ -24,7 +24,6 @@ import (
 var (
 	oneEGLD                   = big.NewInt(1000000000000000000)
 	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
-	oneCentOfEGLD             = big.NewInt(10000000000000000)
 	durationWaitAfterSendMany = 750 * time.Millisecond
 	durationWaitAfterSendSome = 10 * time.Millisecond
 )
