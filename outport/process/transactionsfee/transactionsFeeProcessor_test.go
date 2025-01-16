@@ -673,4 +673,5 @@ func TestPutFeeAndGasUsedRelayedTxV3(t *testing.T) {
 	require.Equal(t, big.NewInt(120804420000000), initialTx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(1289442), initialTx.GetFeeInfo().GetGasUsed())
 	require.Equal(t, "157910000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
+	require.True(t, initialTx.GetFeeInfo().HadRefund)
 }
