@@ -621,15 +621,6 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestExtensionNode_clone(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-	clone := en.clone()
-	assert.False(t, en == clone)
-	assert.Equal(t, en, clone)
-}
-
 func TestExtensionNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 

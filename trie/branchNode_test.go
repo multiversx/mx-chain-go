@@ -801,15 +801,6 @@ func TestBranchNode_getChildPosition(t *testing.T) {
 	assert.Equal(t, 13, pos)
 }
 
-func TestBranchNode_clone(t *testing.T) {
-	t.Parallel()
-
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	clone := bn.clone()
-	assert.False(t, bn == clone)
-	assert.Equal(t, bn, clone)
-}
-
 func TestBranchNode_isEmptyOrNil(t *testing.T) {
 	t.Parallel()
 
