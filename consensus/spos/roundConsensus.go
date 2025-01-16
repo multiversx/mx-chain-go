@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -156,6 +157,13 @@ func (rcns *roundConsensus) IsNodeInConsensusGroup(node string) bool {
 // IsNodeInEligibleList method checks if the node is part of the eligible list
 func (rcns *roundConsensus) IsNodeInEligibleList(node string) bool {
 	rcns.mutEligible.RLock()
+
+	log.Error("roundConsensus.IsNodeInEligibleList", node, node)
+
+	for nodeKey := range rcns.eligibleNodes {
+		log.Error("current eligible nodes", "key", nodeKey)
+	}
+
 	_, ok := rcns.eligibleNodes[node]
 	rcns.mutEligible.RUnlock()
 
