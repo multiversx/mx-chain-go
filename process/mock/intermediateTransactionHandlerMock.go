@@ -7,7 +7,7 @@ import (
 
 // IntermediateTransactionHandlerMock -
 type IntermediateTransactionHandlerMock struct {
-	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler) error
+	AddIntermediateTransactionsCalled        func(txs []data.TransactionHandler, key []byte) error
 	GetNumOfCrossInterMbsAndTxsCalled        func() (int, int)
 	CreateAllInterMiniBlocksCalled           func() []*block.MiniBlock
 	VerifyInterMiniBlocksCalled              func(body *block.Body) error
@@ -16,7 +16,7 @@ type IntermediateTransactionHandlerMock struct {
 	CreateMarshalledDataCalled               func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 	RemoveProcessedResultsCalled             func(key []byte) [][]byte
-	InitProcessedResultsCalled               func(key []byte)
+	InitProcessedResultsCalled               func(key []byte, parentKey []byte)
 	GetCreatedInShardMiniBlockCalled         func() *block.MiniBlock
 	intermediateTransactions                 []data.TransactionHandler
 }
@@ -30,9 +30,9 @@ func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults(key []byte
 }
 
 // InitProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) InitProcessedResults(key []byte) {
+func (ith *IntermediateTransactionHandlerMock) InitProcessedResults(key []byte, parentKey []byte) {
 	if ith.InitProcessedResultsCalled != nil {
-		ith.InitProcessedResultsCalled(key)
+		ith.InitProcessedResultsCalled(key, parentKey)
 	}
 }
 
@@ -45,12 +45,12 @@ func (ith *IntermediateTransactionHandlerMock) CreateMarshalledData(txHashes [][
 }
 
 // AddIntermediateTransactions -
-func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs []data.TransactionHandler) error {
+func (ith *IntermediateTransactionHandlerMock) AddIntermediateTransactions(txs []data.TransactionHandler, key []byte) error {
 	if ith.AddIntermediateTransactionsCalled == nil {
 		ith.intermediateTransactions = append(ith.intermediateTransactions, txs...)
 		return nil
 	}
-	return ith.AddIntermediateTransactionsCalled(txs)
+	return ith.AddIntermediateTransactionsCalled(txs, key)
 }
 
 // GetIntermediateTransactions -

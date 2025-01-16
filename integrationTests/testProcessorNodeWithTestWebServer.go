@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -101,7 +102,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 
 func createTestApiConfig() config.ApiRoutesConfig {
 	routes := map[string][]string{
-		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo", "/bootstrapstatus", "/connected-peers-ratings", "/managed-keys/count", "/managed-keys", "/managed-keys/eligible", "/managed-keys/waiting", "/waiting-epochs-left/:key"},
+		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo", "/bootstrapstatus", "/connected-peers-ratings", "/managed-keys/count", "/managed-keys", "/loaded-keys", "/managed-keys/eligible", "/managed-keys/waiting", "/waiting-epochs-left/:key"},
 		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/code-hash", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
 		"hardfork":    {"/trigger"},
 		"network":     {"/status", "/total-staked", "/economics", "/config"},
@@ -179,6 +180,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Hasher:                    TestHasher,
 		VMOutputCacher:            &testscommon.CacherMock{},
 		DataFieldParser:           dataFieldParser,
+		BlockChainHook:            tpn.BlockchainHook,
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
@@ -194,6 +196,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Accounts:            wrappedAccounts,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		BlockChain:          tpn.BlockChain,
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)
@@ -233,6 +236,8 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		TxTypeHandler:            txTypeHandler,
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
+		TxMarshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:      tpn.EnableEpochsHandler,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)
@@ -273,7 +278,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		APITransactionHandler:    apiTransactionHandler,
 		APIBlockHandler:          blockAPIHandler,
 		APIInternalBlockHandler:  apiInternalBlockProcessor,
-		GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+		GenesisNodesSetupHandler: &genesisMocks.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},

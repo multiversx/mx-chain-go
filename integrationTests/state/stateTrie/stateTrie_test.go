@@ -26,6 +26,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -246,7 +247,7 @@ func TestAccountsDB_CommitTwoOkAccountsShouldWork(t *testing.T) {
 	// reloading a new trie to test if data is inside
 	rootHash, err = adb.RootHash()
 	require.Nil(t, err)
-	err = adb.RecreateTrie(rootHash)
+	err = adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 	require.Nil(t, err)
 
 	// checking state1
@@ -283,7 +284,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	require.Nil(t, err)
 
-	tr2, err := tr1.Recreate(h1)
+	tr2, err := tr1.Recreate(holders.NewDefaultRootHashesHolder(h1))
 	require.Nil(t, err)
 
 	valRecov, _, err := tr2.Get(key)
@@ -333,7 +334,7 @@ func TestAccountsDB_CommitTwoOkAccountsWithRecreationFromStorageShouldWork(t *te
 	fmt.Printf("data committed! Root: %v\n", base64.StdEncoding.EncodeToString(rootHash))
 
 	// reloading a new trie to test if data is inside
-	err = adb.RecreateTrie(h)
+	err = adb.RecreateTrie(holders.NewDefaultRootHashesHolder(h))
 	require.Nil(t, err)
 
 	// checking state1
@@ -1038,7 +1039,7 @@ func BenchmarkCreateOneMillionAccounts(b *testing.B) {
 	rootHash, err := adb.RootHash()
 	require.Nil(b, err)
 
-	_ = adb.RecreateTrie(rootHash)
+	_ = adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 	fmt.Println("Completely collapsed trie")
 	createAndExecTxs(b, addr, nrTxs, nrOfAccounts, txVal, adb)
 }
@@ -1177,7 +1178,7 @@ func TestTrieDbPruning_GetAccountAfterPruning(t *testing.T) {
 	rootHash2, _ := adb.Commit()
 	adb.PruneTrie(rootHash1, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
-	err := adb.RecreateTrie(rootHash2)
+	err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash2))
 	require.Nil(t, err)
 	acc, err := adb.GetExistingAccount(address1)
 	require.NotNil(t, acc)
@@ -1224,7 +1225,7 @@ func TestAccountsDB_RecreateTrieInvalidatesDataTriesCache(t *testing.T) {
 	err = adb.RevertToSnapshot(0)
 	require.Nil(t, err)
 
-	err = adb.RecreateTrie(rootHash)
+	err = adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 	require.Nil(t, err)
 	acc1, _ = adb.LoadAccount(address1)
 	state1 = acc1.(state.UserAccountHandler)
@@ -1269,7 +1270,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 	newRootHash, _ := adb.Commit()
 	adb.PruneTrie(oldRootHash, state.OldRoot, state.NewPruningHandler(state.EnableDataRemoval))
 
-	err := adb.RecreateTrie(newRootHash)
+	err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(newRootHash))
 	require.Nil(t, err)
 	acc, err := adb.GetExistingAccount(address1)
 	require.NotNil(t, acc)
@@ -1290,7 +1291,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 	stateRootHash := state.GetRootHash()
 	stateTrie := state.DataTrie().(common.Trie)
-	stateNewTrie, _ := stateTrie.Recreate(stateRootHash)
+	stateNewTrie, _ := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(stateRootHash))
 	require.NotNil(t, stateNewTrie)
 
 	state.SetDataTrie(stateNewTrie)
@@ -1383,7 +1384,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	if !bytes.Equal(rootHash, rootHashOfRollbackedBlock) {
 		time.Sleep(time.Second * 6)
-		err = shardNode.AccntState.RecreateTrie(rootHashOfRollbackedBlock)
+		err = shardNode.AccntState.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashOfRollbackedBlock))
 		require.True(t, strings.Contains(err.Error(), trie.ErrKeyNotFound.Error()))
 	}
 
@@ -1401,7 +1402,7 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	)
 	time.Sleep(time.Second * 5)
 
-	err = shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	err = shardNode.AccntState.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashOfFirstBlock))
 	require.Nil(t, err)
 	require.Equal(t, uint64(11), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(12), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
@@ -1464,7 +1465,7 @@ func TestRollbackBlockWithSameRootHashAsPreviousAndCheckThatPruningIsNotDone(t *
 	require.Equal(t, uint64(1), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(2), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	err := shardNode.AccntState.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashOfFirstBlock))
 	require.Nil(t, err)
 }
 
@@ -1544,7 +1545,7 @@ func TestTriePruningWhenBlockIsFinal(t *testing.T) {
 	require.Equal(t, uint64(17), nodes[0].BlockChain.GetCurrentBlockHeader().GetNonce())
 	require.Equal(t, uint64(17), nodes[1].BlockChain.GetCurrentBlockHeader().GetNonce())
 
-	err := shardNode.AccntState.RecreateTrie(rootHashOfFirstBlock)
+	err := shardNode.AccntState.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashOfFirstBlock))
 	require.True(t, strings.Contains(err.Error(), trie.ErrKeyNotFound.Error()))
 }
 
@@ -1692,12 +1693,12 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	roothash := node.BlockChain.GetCurrentBlockRootHash()
-	tr, err := stateTrie.Recreate(roothash)
+	tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 
 	_, _, finalRoothash := node.BlockChain.GetFinalBlockInfo()
-	tr, err = stateTrie.Recreate(finalRoothash)
+	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(finalRoothash))
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 
@@ -1709,7 +1710,7 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 	err = integrationTests.TestMarshalizer.Unmarshal(hdr, hdrBytes)
 	require.Nil(tb, err)
 
-	tr, err = stateTrie.Recreate(hdr.GetRootHash())
+	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(hdr.GetRootHash()))
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 }
@@ -1860,7 +1861,7 @@ func testNodeStateSnapshotAndPruning(
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
-		tr, err := stateTrie.Recreate(snapshotsRootHashes[i])
+		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(snapshotsRootHashes[i]))
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
@@ -1868,7 +1869,7 @@ func testNodeStateSnapshotAndPruning(
 	assert.Equal(t, 1, len(prunedRootHashes))
 	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
 	for i := 0; i < len(prunedRootHashes)-1; i++ {
-		tr, err := stateTrie.Recreate(prunedRootHashes[i])
+		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(prunedRootHashes[i]))
 		require.Nil(t, tr)
 		require.NotNil(t, err)
 	}
@@ -2173,10 +2174,10 @@ func checkDataTrieConsistency(
 	for i, rootHash := range dataTriesRootHashes {
 		_, ok := removedAccounts[i]
 		if ok {
-			err := adb.RecreateTrie(rootHash)
+			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			assert.NotNil(t, err)
 		} else {
-			err := adb.RecreateTrie(rootHash)
+			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			require.Nil(t, err)
 		}
 	}
@@ -2479,11 +2480,14 @@ func startNodesAndIssueToken(
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 		StakingV2EnableEpoch:                        integrationTests.UnreachableEpoch,
+		StakeLimitsEnableEpoch:                      integrationTests.UnreachableEpoch,
+		StakingV4Step1EnableEpoch:                   integrationTests.UnreachableEpoch,
+		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
+		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
 		AutoBalanceDataTriesEnableEpoch:             1,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

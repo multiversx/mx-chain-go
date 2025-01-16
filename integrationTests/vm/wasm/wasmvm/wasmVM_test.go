@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package wasmvm
 
 import (
@@ -18,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -46,6 +43,10 @@ import (
 var log = logger.GetOrCreate("wasmVMtest")
 
 func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
@@ -92,6 +93,10 @@ func TestVmDeployWithTransferAndGasShouldDeploySCCode(t *testing.T) {
 }
 
 func TestVmSCDeployFactory(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)
@@ -148,6 +153,10 @@ func TestVmSCDeployFactory(t *testing.T) {
 }
 
 func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
 	ownerBalance := big.NewInt(100000000)
@@ -228,6 +237,10 @@ func TestSCMoveBalanceBeforeSCDeployV1(t *testing.T) {
 }
 
 func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(0)
 	ownerBalance := big.NewInt(100000000)
@@ -307,6 +320,10 @@ func TestSCMoveBalanceBeforeSCDeploy(t *testing.T) {
 }
 
 func TestWASMMetering(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	ownerAddressBytes := []byte("12345678901234567890123456789012")
 	ownerNonce := uint64(11)
 	ownerBalance := big.NewInt(0xfffffffffffffff)
@@ -408,6 +425,7 @@ func TestMultipleTimesERC20RustBigIntInBatches(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
 	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	durations, err := DeployAndExecuteERC20WithBigInt(3, 1000, gasSchedule, "../testdata/erc20-c-03/rust-simple-erc20.wasm", "transfer")
 	require.Nil(t, err)
@@ -446,6 +464,10 @@ func displayBenchmarksResults(durations []time.Duration) {
 }
 
 func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
 	ownerNonce := uint64(11)
@@ -480,8 +502,7 @@ func TestDeployERC20WithNotEnoughGasShouldReturnOutOfGas(t *testing.T) {
 }
 
 func TestJournalizingAndTimeToProcessChange(t *testing.T) {
-	// Only a test to benchmark jurnalizing and getting data from trie
-	t.Skip()
+	t.Skip("Only a test to benchmark jurnalizing and getting data from trie")
 
 	numRun := 1000
 	ownerAddressBytes := []byte("12345678901234567890123456789011")
@@ -577,8 +598,7 @@ func TestJournalizingAndTimeToProcessChange(t *testing.T) {
 }
 
 func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
-	// Only a test to benchmark transaction processing
-	t.Skip()
+	t.Skip("Only a test to benchmark transaction processing")
 
 	testMarshalizer := &marshal.JsonMarshalizer{}
 	testHasher := sha256.NewSha256()
@@ -805,7 +825,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
 			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
-			_ = testContext.Accounts.RecreateTrie(rootHash)
+			_ = testContext.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			continue
 		}
 
@@ -817,6 +837,10 @@ func TestAndCatchTrieError(t *testing.T) {
 }
 
 func TestCommunityContract_InShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	zero := big.NewInt(0)
 	transferEGLD := big.NewInt(42)
 
@@ -859,6 +883,10 @@ func TestCommunityContract_InShard(t *testing.T) {
 }
 
 func TestCommunityContract_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	zero := big.NewInt(0)
 	transferEGLD := big.NewInt(42)
 
@@ -904,6 +932,10 @@ func TestCommunityContract_CrossShard(t *testing.T) {
 }
 
 func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	// Scenario:
 	// 1. Deploy FunderSC on shard 0, owned by funderOwner
 	// 2. Deploy ParentSC on shard 1, owned by parentOwner; deployment needs address of FunderSC
@@ -913,11 +945,11 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	zero := big.NewInt(0)
 	transferEGLD := big.NewInt(42)
 
-	testContextFunderSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextFunderSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextFunderSC.Close()
 
-	testContextParentSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextParentSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextParentSC.Close()
 
@@ -1018,6 +1050,10 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 }
 
 func TestDeployDNSV2SetDeleteUserNames(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddressBytes, _ := vm.TestAddressPubkeyConverter.Decode(vm.DNSV2DeployerAddress)
 	senderNonce := uint64(0)
 	senderBalance := big.NewInt(100000000)

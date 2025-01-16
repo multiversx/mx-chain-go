@@ -342,6 +342,76 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 	})
 }
 
+func TestTransactionsGroup_getSCRsByTxHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get SCRsByTxHash empty scr hash should error", func(t *testing.T) {
+		facade := &mock.FacadeStub{}
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest(http.MethodGet, "/transaction/scrs-by-tx-hash/txHash", bytes.NewBuffer([]byte{}))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrValidationEmptySCRHash.Error()))
+		assert.Empty(t, txResp.Data)
+	})
+	t.Run("get scrs facade error", func(t *testing.T) {
+		localErr := fmt.Errorf("error")
+		facade := &mock.FacadeStub{
+			GetSCRsByTxHashCalled: func(txHash string, scrHash string) ([]*dataTx.ApiSmartContractResult, error) {
+				return nil, localErr
+			},
+		}
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest(http.MethodGet, "/transaction/scrs-by-tx-hash/txhash?scrHash=hash", bytes.NewBuffer([]byte{}))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, localErr.Error()))
+		assert.Empty(t, txResp.Data)
+	})
+	t.Run("get scrs should work", func(t *testing.T) {
+		facade := &mock.FacadeStub{
+			GetSCRsByTxHashCalled: func(txHash string, scrHash string) ([]*dataTx.ApiSmartContractResult, error) {
+				return []*dataTx.ApiSmartContractResult{}, nil
+			},
+		}
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest(http.MethodGet, "/transaction/scrs-by-tx-hash/txhash?scrHash=hash", bytes.NewBuffer([]byte{}))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", txResp.Error)
+	})
+}
+
 func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 	t.Parallel()
 
@@ -704,6 +774,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&nonce-gaps=true", apiErrors.ErrFetchingNonceGapsCannotIncludeFields))
 	t.Run("fields has spaces", testTxPoolWithInvalidQuery("?fields=sender ,receiver", apiErrors.ErrInvalidFields))
 	t.Run("fields has numbers", testTxPoolWithInvalidQuery("?fields=sender1", apiErrors.ErrInvalidFields))
+	t.Run("fields + wild card", testTxPoolWithInvalidQuery("?fields=sender,receiver,*", apiErrors.ErrInvalidFields))
 	t.Run("GetTransactionsPool error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -816,8 +887,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 		t.Parallel()
 
 		expectedSender := "sender"
-		providedFields := "sender,receiver"
-		query := "?by-sender=" + expectedSender + "&fields=" + providedFields
+		query := "?by-sender=" + expectedSender + "&fields=*"
 		expectedResp := &common.TransactionsPoolForSenderApiResponse{
 			Transactions: []common.Transaction{
 				{
@@ -1122,6 +1192,7 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
+					{Name: "/scrs-by-tx-hash/:txhash", Open: true},
 				},
 			},
 		},

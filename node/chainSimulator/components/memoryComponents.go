@@ -9,11 +9,11 @@ import (
 
 // CreateMemUnit creates a new in-memory storage unit
 func CreateMemUnit() storage.Storer {
-	capacity := uint32(10)
+	capacity := uint32(10_000_000)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := database.NewlruDB(100000)
+	persist, _ := database.NewlruDB(10_000_000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit
@@ -21,6 +21,13 @@ func CreateMemUnit() storage.Storer {
 
 type trieStorage struct {
 	storage.Storer
+}
+
+// CreateMemUnitForTries returns a special type of storer used on tries instances
+func CreateMemUnitForTries() storage.Storer {
+	return &trieStorage{
+		Storer: CreateMemUnit(),
+	}
 }
 
 // SetEpochForPutOperation does nothing
@@ -72,11 +79,4 @@ func (store *trieStorage) RemoveFromCurrentEpoch(key []byte) error {
 // RemoveFromAllActiveEpochs removes directly the key
 func (store *trieStorage) RemoveFromAllActiveEpochs(key []byte) error {
 	return store.Remove(key)
-}
-
-// CreateMemUnitForTries returns a special type of storer used on tries instances
-func CreateMemUnitForTries() storage.Storer {
-	return &trieStorage{
-		Storer: CreateMemUnit(),
-	}
 }

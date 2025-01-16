@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -203,7 +204,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(roothash)
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
@@ -280,7 +281,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(roothash)
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
 	require.False(t, check.IfNil(trie))
 
 	var val []byte

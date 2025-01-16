@@ -11,7 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/outport/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -22,11 +24,13 @@ var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
-		Marshaller:         marshallerMock.MarshalizerMock{},
-		TransactionsStorer: genericMocks.NewStorerMock(),
-		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
-		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
-		PubKeyConverter:    pubKeyConverter,
+		Marshaller:          marshallerMock.MarshalizerMock{},
+		TransactionsStorer:  genericMocks.NewStorerMock(),
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
+		TxFeeCalculator:     &mock.EconomicsHandlerMock{},
+		PubKeyConverter:     pubKeyConverter,
+		ArgsParser:          &testscommon.ArgumentParserMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 }
 
@@ -52,6 +56,16 @@ func TestNewTransactionFeeProcessor(t *testing.T) {
 	arg.TxFeeCalculator = nil
 	_, err = NewTransactionsFeeProcessor(arg)
 	require.Equal(t, ErrNilTransactionFeeCalculator, err)
+
+	arg = prepareMockArg()
+	arg.ArgsParser = nil
+	_, err = NewTransactionsFeeProcessor(arg)
+	require.Equal(t, process.ErrNilArgumentParser, err)
+
+	arg = prepareMockArg()
+	arg.EnableEpochsHandler = nil
+	_, err = NewTransactionsFeeProcessor(arg)
+	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 
 	arg = prepareMockArg()
 	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
@@ -125,7 +139,7 @@ func TestPutFeeAndGasUsedTx1(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(1673728170000000), initialTx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(7982817), initialTx.GetFeeInfo().GetGasUsed())
@@ -175,7 +189,7 @@ func TestPutFeeAndGasUsedScrNoTx(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(123001460000000), scr.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(7350146), scr.GetFeeInfo().GetGasUsed())
@@ -203,7 +217,7 @@ func TestPutFeeAndGasUsedInvalidTxs(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(349500000000000), tx.GetFeeInfo().GetFee())
 	require.Equal(t, tx.GetTxHandler().GetGasLimit(), tx.GetFeeInfo().GetGasUsed())
@@ -212,11 +226,15 @@ func TestPutFeeAndGasUsedInvalidTxs(t *testing.T) {
 func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 	t.Parallel()
 
+	receiver, _ := hex.DecodeString("00000000000000000500d3b28828d62052124f07dcd50ed31b0825f60eee1526")
 	tx1Hash := "h1"
 	tx1 := &outportcore.TxInfo{
 		Transaction: &transaction.Transaction{
 			GasLimit: 30000000,
 			GasPrice: 1000000000,
+			SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+			RcvAddr:  receiver,
+			Data:     []byte("here"),
 		},
 		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
 	}
@@ -226,6 +244,9 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 		Transaction: &transaction.Transaction{
 			GasLimit: 50000000,
 			GasPrice: 1000000000,
+			SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+			RcvAddr:  receiver,
+			Data:     []byte("here"),
 		},
 		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
 	}
@@ -277,7 +298,7 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 
 	require.Equal(t, tx1.GetTxHandler().GetGasLimit(), tx1.GetFeeInfo().GetGasUsed())
@@ -328,7 +349,7 @@ func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(550000000), initialTx.GetFeeInfo().GetGasUsed())
@@ -363,7 +384,7 @@ func TestPutFeeAndGasUsedESDTWithScCall(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(820765000000000), tx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(55_000_000), tx.GetFeeInfo().GetGasUsed())
@@ -418,7 +439,7 @@ func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), scr.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(0), scr.GetFeeInfo().GetGasUsed())
@@ -467,7 +488,7 @@ func TestPutFeeAndGasUsedScrWithRefundNotForInitialSender(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), scr.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(0), scr.GetFeeInfo().GetGasUsed())
@@ -515,8 +536,64 @@ func TestPutFeeAndGasUsedScrWithRefund(t *testing.T) {
 	require.NotNil(t, txsFeeProc)
 	require.Nil(t, err)
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(552865000000000), initialTx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(50_336_500), initialTx.GetFeeInfo().GetGasUsed())
+}
+
+func TestMoveBalanceWithSignalError(t *testing.T) {
+	txHash := []byte("e3cdb8b4936fdbee2d3b1244b4c49959df5f90ada683d650019d244e5a64afaf")
+	initialTx := &outportcore.TxInfo{Transaction: &transaction.Transaction{
+		Nonce:    1004,
+		GasLimit: 12_175_500,
+		GasPrice: 1000000000,
+		SndAddr:  []byte("erd1s8jr8e8hsvv7c9ehmshcjlpzf9ua5l50qeswa8feshrp6xlz9c7quacmtx"),
+		RcvAddr:  []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+		Data:     []byte("start@5465737420526166666c65203120f09f9a80@10000000000000000@0100000002@01000000006082a400@0100000001@01000000023232@"),
+	}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}
+
+	scrHash := []byte("scrHash")
+	scr := &outportcore.SCRInfo{
+		SmartContractResult: &smartContractResult.SmartContractResult{
+			Nonce:          1005,
+			SndAddr:        []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+			RcvAddr:        []byte("erd1s8jr8e8hsvv7c9ehmshcjlpzf9ua5l50qeswa8feshrp6xlz9c7quacmtx"),
+			PrevTxHash:     txHash,
+			OriginalTxHash: txHash,
+			Value:          big.NewInt(0),
+			Data:           []byte("@sending value to non payable contract"),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			hex.EncodeToString(scrHash): scr,
+		},
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): initialTx,
+		},
+		Logs: []*outportcore.LogData{
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte(core.SignalErrorOperation),
+						},
+					},
+				},
+				TxHash: hex.EncodeToString(txHash),
+			},
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
+	require.Nil(t, err)
+	require.Equal(t, uint64(225_500), initialTx.GetFeeInfo().GetGasUsed())
 }

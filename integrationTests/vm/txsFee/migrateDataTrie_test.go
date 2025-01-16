@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -32,7 +28,9 @@ type dataTrie interface {
 }
 
 func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	enableEpochs := config.EnableEpochs{
 		AutoBalanceDataTriesEnableEpoch: 0,
@@ -48,7 +46,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 	t.Run("deterministic trie", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier)
+		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier, 1)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -126,7 +124,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 	t.Run("random trie - all leaves are migrated in multiple transactions", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier)
+		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier, 1)
 		require.Nil(t, err)
 		defer testContext.Close()
 

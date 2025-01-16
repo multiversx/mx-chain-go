@@ -7,7 +7,6 @@ import (
 
 // EnableEpochsHandlerMock -
 type EnableEpochsHandlerMock struct {
-	WaitingListFixEnableEpochField            uint32
 	RefactorPeersMiniBlocksEnableEpochField   uint32
 	IsRefactorPeersMiniBlocksFlagEnabledField bool
 	CurrentEpoch                              uint32
@@ -18,8 +17,6 @@ func (mock *EnableEpochsHandlerMock) GetActivationEpoch(flag core.EnableEpochFla
 	switch flag {
 	case common.RefactorPeersMiniBlocksFlag:
 		return mock.RefactorPeersMiniBlocksEnableEpochField
-	case common.WaitingListFixFlag:
-		return mock.WaitingListFixEnableEpochField
 
 	default:
 		return 0
@@ -44,11 +41,6 @@ func (mock *EnableEpochsHandlerMock) IsFlagEnabledInEpoch(_ core.EnableEpochFlag
 // GetCurrentEpoch -
 func (mock *EnableEpochsHandlerMock) GetCurrentEpoch() uint32 {
 	return mock.CurrentEpoch
-}
-
-// FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled -
-func (mock *EnableEpochsHandlerMock) FixGasRemainingForSaveKeyValueBuiltinFunctionEnabled() bool {
-	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -8,21 +8,37 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+	initialVal := big.NewInt(10000000000)
+	epochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	if !baseCostFixEnabled {
+		epochsConfig.FixRelayedBaseCostEnableEpoch = integrationTests.UnreachableEpoch
+		epochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = integrationTests.UnreachableEpoch
+	}
+	nodes, idxProposers := createAndMintNodes(initialVal, epochsConfig)
+
+	players, relayerAccount := createAndMintPlayers(baseCostFixEnabled, nodes, initialVal)
+
+	return nodes, idxProposers, players, relayerAccount
+}
+
+func createAndMintNodes(initialVal *big.Int, enableEpochsConfig *config.EnableEpochs) ([]*integrationTests.TestProcessorNode, []int) {
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	nodes := integrationTests.CreateNodesWithEnableEpochsConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochsConfig,
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -33,21 +49,32 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
+	return nodes, idxProposers
+}
+
+func createAndMintPlayers(
+	intraShard bool,
+	nodes []*integrationTests.TestProcessorNode,
+	initialVal *big.Int,
+) ([]*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+	relayerShard := uint32(0)
 	numPlayers := 5
 	numShards := nodes[0].ShardCoordinator.NumberOfShards()
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		shardId := uint32(i) % numShards
+		if intraShard {
+			shardId = relayerShard
+		}
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, shardId)
 	}
 
-	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, relayerShard)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayerAccount}, initialVal)
 
-	return nodes, idxProposers, players, relayerAccount
+	return players, relayerAccount
 }
 
 // CreateAndSendRelayedAndUserTx will create and send a relayed user transaction
@@ -59,7 +86,7 @@ func CreateAndSendRelayedAndUserTx(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-) *transaction.Transaction {
+) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, gasLimit, txData)
@@ -70,7 +97,7 @@ func CreateAndSendRelayedAndUserTx(
 		fmt.Println(err.Error())
 	}
 
-	return relayedTx
+	return relayedTx, userTx
 }
 
 // CreateAndSendRelayedAndUserTxV2 will create and send a relayed user transaction for relayed v2
@@ -82,7 +109,7 @@ func CreateAndSendRelayedAndUserTxV2(
 	value *big.Int,
 	gasLimit uint64,
 	txData []byte,
-) *transaction.Transaction {
+) (*transaction.Transaction, *transaction.Transaction) {
 	txDispatcherNode := getNodeWithinSameShardAsPlayer(nodes, relayer.Address)
 
 	userTx := createUserTx(player, rcvAddr, value, 0, txData)
@@ -93,7 +120,7 @@ func CreateAndSendRelayedAndUserTxV2(
 		fmt.Println(err.Error())
 	}
 
-	return relayedTx
+	return relayedTx, userTx
 }
 
 func createUserTx(
@@ -117,6 +144,7 @@ func createUserTx(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = player.SingleSigner.Sign(player.SkTxSign, txBuff)
 	player.Nonce++
+	player.Balance.Sub(player.Balance, value)
 	return tx
 }
 
@@ -130,7 +158,7 @@ func createRelayedTx(
 	txData := core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshaled)
 	tx := &transaction.Transaction{
 		Nonce:    relayer.Nonce,
-		Value:    big.NewInt(0).Set(userTx.Value),
+		Value:    big.NewInt(0),
 		RcvAddr:  userTx.SndAddr,
 		SndAddr:  relayer.Address,
 		GasPrice: integrationTests.MinTxGasPrice,
@@ -144,9 +172,11 @@ func createRelayedTx(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
+
+	relayer.Balance.Sub(relayer.Balance, tx.Value)
+
 	txFee := economicsFee.ComputeTxFee(tx)
 	relayer.Balance.Sub(relayer.Balance, txFee)
-	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
 	return tx
 }
@@ -173,9 +203,11 @@ func createRelayedTxV2(
 	txBuff, _ := tx.GetDataForSigning(integrationTests.TestAddressPubkeyConverter, integrationTests.TestTxSignMarshalizer, integrationTests.TestTxSignHasher)
 	tx.Signature, _ = relayer.SingleSigner.Sign(relayer.SkTxSign, txBuff)
 	relayer.Nonce++
+
+	relayer.Balance.Sub(relayer.Balance, tx.Value)
+
 	txFee := economicsFee.ComputeTxFee(tx)
 	relayer.Balance.Sub(relayer.Balance, txFee)
-	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
 	return tx
 }

@@ -11,6 +11,7 @@ type ChainHandler interface {
 
 // ChainSimulator defines what a chain simulator should be able to do
 type ChainSimulator interface {
+	GenerateBlocks(numOfBlocks int) error
 	GetNodeHandler(shardID uint32) process.NodeHandler
 	IsInterfaceNil() bool
 }

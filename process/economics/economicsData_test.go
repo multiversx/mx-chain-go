@@ -16,13 +16,10 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
-	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -67,6 +64,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
 				ExtraGasLimitGuardedTx:      "50000",
+				MaxGasHigherFactorAccepted:  "10",
 			},
 		},
 		MinGasPrice:            "18446744073709551615",
@@ -87,6 +85,7 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
 				ExtraGasLimitGuardedTx:      "50000",
+				MaxGasHigherFactorAccepted:  "10",
 			},
 		},
 		MinGasPrice:            "1000000000",
@@ -106,13 +105,12 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 				return flag == common.GasPriceModifierFlag
 			},
 		},
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
 
-func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHandler) economics.ArgsNewEconomicsData {
+func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
@@ -122,8 +120,7 @@ func createArgsForEconomicsDataRealFees(handler economics.BuiltInFunctionsCostHa
 				return flag == common.GasPriceModifierFlag
 			},
 		},
-		BuiltInFunctionsCostHandler: handler,
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 	return args
 }
@@ -394,6 +391,36 @@ func TestNewEconomicsData_InvalidExtraGasLimitGuardedTxShouldErr(t *testing.T) {
 	}
 }
 
+func TestNewEconomicsData_InvalidMaxGasHigherFactorAccepted(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badExtraMaxGasHigherFactorAccepted := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+	}
+
+	for _, gasLimitGuardedTx := range badExtraMaxGasHigherFactorAccepted {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = gasLimitGuardedTx
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+	}
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "0"
+	_, err := economics.NewEconomicsData(args)
+	assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "2"
+	_, err = economics.NewEconomicsData(args)
+	assert.Nil(t, err)
+}
+
 func TestNewEconomicsData_MaxGasLimitPerBlockLowerThanMinGasLimitShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -523,16 +550,6 @@ func TestNewEconomicsData_InvalidTopUpGradientPointShouldErr(t *testing.T) {
 
 	_, err := economics.NewEconomicsData(args)
 	assert.True(t, errors.Is(err, process.ErrInvalidRewardsTopUpGradientPoint))
-}
-
-func TestNewEconomicsData_NilBuiltInFunctionsCostHandlerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForEconomicsData(1)
-	args.BuiltInFunctionsCostHandler = nil
-
-	_, err := economics.NewEconomicsData(args)
-	assert.Equal(t, process.ErrNilBuiltInFunctionsCostHandler, err)
 }
 
 func TestNewEconomicsData_NilTxVersionCheckerShouldErr(t *testing.T) {
@@ -731,6 +748,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 		{
 			EnableEpoch:                 2,
@@ -741,6 +759,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 	}
 
@@ -815,6 +834,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 		{
 			EnableEpoch:                 0,
@@ -825,6 +845,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 	}
 
@@ -1141,7 +1162,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueZero(t *testing.T) 
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueCheckGasUsedValue(t *testing.T) {
 	t.Parallel()
 
-	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{}))
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
 	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
 	tx1 := &transaction.Transaction{
 		GasPrice: 1000000000,
@@ -1194,7 +1215,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueCheckGasUsedValue(t
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueCheck(t *testing.T) {
 	t.Parallel()
 
-	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{}))
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
 	txData := []byte("0061736d0100000001150460037f7f7e017f60027f7f017e60017e0060000002420303656e7611696e74363473746f7261676553746f7265000003656e7610696e74363473746f726167654c6f6164000103656e760b696e74363466696e6973680002030504030303030405017001010105030100020608017f01419088040b072f05066d656d6f7279020004696e6974000309696e6372656d656e7400040964656372656d656e7400050367657400060a8a01041300418088808000410742011080808080001a0b2e01017e4180888080004107418088808000410710818080800042017c22001080808080001a20001082808080000b2e01017e41808880800041074180888080004107108180808000427f7c22001080808080001a20001082808080000b160041808880800041071081808080001082808080000b0b0f01004180080b08434f554e54455200@0500@0100")
 	tx := &transaction.Transaction{
 		GasPrice: 1000000000,
@@ -1214,11 +1235,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueCheck(t *testing.T)
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn_ToMuchGasProvided(t *testing.T) {
 	t.Parallel()
 
-	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
-		ArgsParser:  smartContract.NewArgumentParser(),
-	})
-	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
 
 	tx := &transaction.Transaction{
 		GasPrice: 1000000000,
@@ -1236,11 +1253,6 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn_ToMu
 }
 
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.T) {
-	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
-		ArgsParser:  smartContract.NewArgumentParser(),
-	})
-
 	txStake := &transaction.Transaction{
 		GasPrice: 1000000000,
 		GasLimit: 250000000,
@@ -1250,7 +1262,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.
 	expectedGasUsed := uint64(39378847)
 	expectedFee, _ := big.NewInt(0).SetString("39378847000000000", 10)
 
-	args := createArgsForEconomicsDataRealFees(builtInCostHandler)
+	args := createArgsForEconomicsDataRealFees()
 	args.EpochNotifier = forking.NewGenericEpochNotifier()
 	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: 1000,
@@ -1267,11 +1279,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueStakeTx(t *testing.
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *testing.T) {
 	t.Parallel()
 
-	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
-		ArgsParser:  smartContract.NewArgumentParser(),
-	})
-	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
 
 	tx := &transaction.Transaction{
 		GasPrice: 1000000000,
@@ -1279,8 +1287,8 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 		Data:     []byte("ESDTTransfer@54474e2d383862383366@0a"),
 	}
 
-	expectedGasUsed := uint64(104001)
-	expectedFee, _ := big.NewInt(0).SetString("104000010000000", 10)
+	expectedGasUsed := uint64(104009)
+	expectedFee, _ := big.NewInt(0).SetString("104000090000000", 10)
 
 	refundValue, _ := big.NewInt(0).SetString("0", 10)
 	gasUsed, fee := economicData.ComputeGasUsedAndFeeBasedOnRefundValue(tx, refundValue)
@@ -1291,11 +1299,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltIn(t *t
 func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltInTooMuchGas(t *testing.T) {
 	t.Parallel()
 
-	builtInCostHandler, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		GasSchedule: testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
-		ArgsParser:  smartContract.NewArgumentParser(),
-	})
-	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees(builtInCostHandler))
+	economicData, _ := economics.NewEconomicsData(createArgsForEconomicsDataRealFees())
 
 	tx := &transaction.Transaction{
 		GasPrice: 1000000000,
@@ -1315,7 +1319,7 @@ func TestEconomicsData_ComputeGasUsedAndFeeBasedOnRefundValueSpecialBuiltInTooMu
 func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 	t.Parallel()
 
-	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args := createArgsForEconomicsDataRealFees()
 	args.EpochNotifier = forking.NewGenericEpochNotifier()
 	args.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(config.EnableEpochs{
 		GasPriceModifierEnableEpoch: 1,
@@ -1353,7 +1357,7 @@ func TestEconomicsData_ComputeGasLimitBasedOnBalance(t *testing.T) {
 func TestEconomicsData_MaxGasPriceSetGuardian(t *testing.T) {
 	t.Parallel()
 
-	args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+	args := createArgsForEconomicsDataRealFees()
 	maxGasPriceSetGuardianString := "2000000"
 	expectedMaxGasPriceSetGuardian, err := strconv.ParseUint(maxGasPriceSetGuardianString, 10, 64)
 	require.Nil(t, err)
@@ -1369,7 +1373,7 @@ func TestEconomicsData_SetStatusHandler(t *testing.T) {
 	t.Run("nil status handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+		args := createArgsForEconomicsDataRealFees()
 		economicData, _ := economics.NewEconomicsData(args)
 
 		err := economicData.SetStatusHandler(nil)
@@ -1378,7 +1382,7 @@ func TestEconomicsData_SetStatusHandler(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsForEconomicsDataRealFees(&mock.BuiltInCostHandlerStub{})
+		args := createArgsForEconomicsDataRealFees()
 		economicData, _ := economics.NewEconomicsData(args)
 
 		err := economicData.SetStatusHandler(&statusHandler.AppStatusHandlerStub{})

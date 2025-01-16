@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -23,11 +20,14 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
-	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -37,14 +37,20 @@ type ArgsTestOnlyProcessingNode struct {
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
+	Monitor                factory.HeartbeatV2Monitor
 
-	InitialRound           int64
-	GasScheduleFilename    string
-	NumShards              uint32
-	ShardIDStr             string
-	BypassTxSignatureCheck bool
-	MinNodesPerShard       uint32
-	MinNodesMeta           uint32
+	InitialRound                int64
+	InitialNonce                uint64
+	GasScheduleFilename         string
+	NumShards                   uint32
+	ShardIDStr                  string
+	BypassTxSignatureCheck      bool
+	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
+	MinNodesMeta                uint32
+	MetaChainConsensusGroupSize uint32
+	RoundDurationInMillis       uint64
+	VmQueryDelayAfterStartInMs  uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -59,14 +65,13 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 
-	NodesCoordinator            nodesCoordinator.NodesCoordinator
-	ChainHandler                chainData.ChainHandler
-	ArgumentsParser             process.ArgumentsParser
-	TransactionFeeHandler       process.TransactionFeeHandler
-	StoreService                dataRetriever.StorageService
-	BuiltinFunctionsCostHandler economics.BuiltInFunctionsCostHandler
-	DataPool                    dataRetriever.PoolsHolder
-	broadcastMessenger          consensus.BroadcastMessenger
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	ChainHandler          chainData.ChainHandler
+	ArgumentsParser       process.ArgumentsParser
+	TransactionFeeHandler process.TransactionFeeHandler
+	StoreService          dataRetriever.StorageService
+	DataPool              dataRetriever.PoolsHolder
+	broadcastMessenger    consensus.BroadcastMessenger
 
 	httpServer    shared.UpgradeableHttpServerHandler
 	facadeHandler shared.FacadeHandler
@@ -81,24 +86,25 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	var err error
-	instance.TransactionFeeHandler, err = postprocess.NewFeeAccumulator()
-	if err != nil {
-		return nil, err
-	}
+	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
-		Config:              *args.Configs.GeneralConfig,
-		EnableEpochsConfig:  args.Configs.EpochConfig.EnableEpochs,
-		RoundsConfig:        *args.Configs.RoundConfig,
-		EconomicsConfig:     *args.Configs.EconomicsConfig,
-		ChanStopNodeProcess: args.ChanStopNodeProcess,
-		NumShards:           args.NumShards,
-		WorkingDir:          args.Configs.FlagsConfig.WorkingDir,
-		GasScheduleFilename: args.GasScheduleFilename,
-		NodesSetupPath:      args.Configs.ConfigurationPathsHolder.Nodes,
-		InitialRound:        args.InitialRound,
-		MinNodesPerShard:    args.MinNodesPerShard,
-		MinNodesMeta:        args.MinNodesMeta,
+		Config:                      *args.Configs.GeneralConfig,
+		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+		RoundsConfig:                *args.Configs.RoundConfig,
+		EconomicsConfig:             *args.Configs.EconomicsConfig,
+		ChanStopNodeProcess:         args.ChanStopNodeProcess,
+		NumShards:                   args.NumShards,
+		WorkingDir:                  args.Configs.FlagsConfig.WorkingDir,
+		GasScheduleFilename:         args.GasScheduleFilename,
+		NodesSetupPath:              args.Configs.ConfigurationPathsHolder.Nodes,
+		InitialRound:                args.InitialRound,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MinNodesMeta:                args.MinNodesMeta,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		RoundDurationInMs:           args.RoundDurationInMillis,
+		RatingConfig:                *args.Configs.RatingsConfig,
 	})
 	if err != nil {
 		return nil, err
@@ -143,14 +149,19 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	selfShardID := instance.GetShardCoordinator().SelfId()
-	instance.StatusComponentsHolder, err = CreateStatusComponents(
+
+	statusComponentsH, err := CreateStatusComponents(
 		selfShardID,
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
+		*args.Configs.ExternalConfig,
+		instance.CoreComponentsHolder,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	instance.StatusComponentsHolder = statusComponentsH
 
 	err = instance.createBlockChain(selfShardID)
 	if err != nil {
@@ -177,6 +188,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	statusComponentsH.SetNodesCoordinator(instance.NodesCoordinator)
+
 	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
 		Chain:              instance.ChainHandler,
 		StorageService:     instance.StoreService,
@@ -202,9 +215,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EconomicsConfig:          *args.Configs.EconomicsConfig,
 		SystemSCConfig:           *args.Configs.SystemSCConfig,
 		EpochConfig:              *args.Configs.EpochConfig,
+		RoundConfig:              *args.Configs.RoundConfig,
 		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,
+		GenesisNonce:             args.InitialNonce,
+		GenesisRound:             uint64(args.InitialRound),
 	})
 	if err != nil {
 		return nil, err
@@ -220,12 +236,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createBroadcastMessanger()
+	err = instance.createBroadcastMessenger()
 	if err != nil {
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs, args.Monitor)
 	if err != nil {
 		return nil, err
 	}
@@ -282,6 +298,14 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
+	shardID := node.BootstrapComponentsHolder.ShardCoordinator().SelfId()
+	shardIDStr := fmt.Sprintf("%d", shardID)
+	if shardID == core.MetachainShardId {
+		shardIDStr = "metachain"
+	}
+
+	pref.DestinationShardAsObserver = shardIDStr
+
 	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		node.CoreComponentsHolder.GenesisNodesSetup(),
@@ -300,6 +324,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.NodeTypeProvider(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.DataPool.CurrentEpochValidatorInfo(),
+		node.BootstrapComponentsHolder.NodesCoordinatorRegistryFactory(),
 	)
 	if err != nil {
 		return err
@@ -308,7 +333,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
-func (node *testOnlyProcessingNode) createBroadcastMessanger() error {
+func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		node.CoreComponentsHolder.InternalMarshalizer(),
 		node.CoreComponentsHolder.Hasher(),
@@ -356,6 +381,11 @@ func (node *testOnlyProcessingNode) GetCryptoComponents() factory.CryptoComponen
 // GetCoreComponents will return the core components
 func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHolder {
 	return node.CoreComponentsHolder
+}
+
+// GetDataComponents will return the data components
+func (node *testOnlyProcessingNode) GetDataComponents() factory.DataComponentsHolder {
+	return node.DataComponentsHolder
 }
 
 // GetStateComponents will return the state components
@@ -441,21 +471,12 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	// set nonce to zero
-	userAccount.IncreaseNonce(-userAccount.GetNonce())
-	// set nonce with the provided value
-	userAccount.IncreaseNonce(addressState.Nonce)
-
-	bigValue, ok := big.NewInt(0).SetString(addressState.Balance, 10)
-	if !ok {
-		return errors.New("cannot convert string balance to *big.Int")
-	}
-	err = userAccount.AddToBalance(bigValue)
+	err = setNonceAndBalanceForAccount(userAccount, addressState.Nonce, addressState.Balance)
 	if err != nil {
 		return err
 	}
 
-	err = setKeyValueMap(userAccount, addressState.Keys)
+	err = setKeyValueMap(userAccount, addressState.Pairs)
 	if err != nil {
 		return err
 	}
@@ -469,7 +490,9 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	if err != nil {
 		return err
 	}
-	userAccount.SetRootHash(rootHash)
+	if len(rootHash) != 0 {
+		userAccount.SetRootHash(rootHash)
+	}
 
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
@@ -481,40 +504,101 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	return err
 }
 
+// RemoveAccount will remove the account for the given address
+func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err := accountsAdapter.RemoveAccount(address)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	return err
+}
+
+// ForceChangeOfEpoch will force change of epoch
+func (node *testOnlyProcessingNode) ForceChangeOfEpoch() error {
+	currentHeader := node.DataComponentsHolder.Blockchain().GetCurrentBlockHeader()
+	if currentHeader == nil {
+		currentHeader = node.DataComponentsHolder.Blockchain().GetGenesisHeader()
+	}
+
+	node.ProcessComponentsHolder.EpochStartTrigger().ForceEpochStart(currentHeader.GetRound() + 1)
+
+	return nil
+}
+
+func setNonceAndBalanceForAccount(userAccount state.UserAccountHandler, nonce *uint64, balance string) error {
+	if nonce != nil {
+		// set nonce to zero
+		userAccount.IncreaseNonce(-userAccount.GetNonce())
+		// set nonce with the provided value
+		userAccount.IncreaseNonce(*nonce)
+	}
+
+	if balance == "" {
+		return nil
+	}
+
+	providedBalance, ok := big.NewInt(0).SetString(balance, 10)
+	if !ok {
+		return errors.New("cannot convert string balance to *big.Int")
+	}
+
+	// set balance to zero
+	userBalance := userAccount.GetBalance()
+	err := userAccount.AddToBalance(userBalance.Neg(userBalance))
+	if err != nil {
+		return err
+	}
+	// set provided balance
+	return userAccount.AddToBalance(providedBalance)
+}
+
 func (node *testOnlyProcessingNode) setScDataIfNeeded(address []byte, userAccount state.UserAccountHandler, addressState *dtos.AddressState) error {
 	if !core.IsSmartContractAddress(address) {
 		return nil
 	}
 
-	decodedCode, err := hex.DecodeString(addressState.Code)
-	if err != nil {
-		return err
+	if addressState.Code != "" {
+		decodedCode, err := hex.DecodeString(addressState.Code)
+		if err != nil {
+			return err
+		}
+		userAccount.SetCode(decodedCode)
 	}
-	userAccount.SetCode(decodedCode)
 
-	codeHash, err := base64.StdEncoding.DecodeString(addressState.CodeHash)
-	if err != nil {
-		return err
+	if addressState.CodeHash != "" {
+		codeHash, errD := base64.StdEncoding.DecodeString(addressState.CodeHash)
+		if errD != nil {
+			return errD
+		}
+		userAccount.SetCodeHash(codeHash)
 	}
-	userAccount.SetCodeHash(codeHash)
 
-	decodedCodeMetadata, err := base64.StdEncoding.DecodeString(addressState.CodeMetadata)
-	if err != nil {
-		return err
+	if addressState.CodeMetadata != "" {
+		decodedCodeMetadata, errD := base64.StdEncoding.DecodeString(addressState.CodeMetadata)
+		if errD != nil {
+			return errD
+		}
+		userAccount.SetCodeMetadata(decodedCodeMetadata)
 	}
-	userAccount.SetCodeMetadata(decodedCodeMetadata)
 
-	ownerAddress, err := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(addressState.Owner)
-	if err != nil {
-		return err
+	if addressState.Owner != "" {
+		ownerAddress, errD := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(addressState.Owner)
+		if errD != nil {
+			return errD
+		}
+		userAccount.SetOwnerAddress(ownerAddress)
 	}
-	userAccount.SetOwnerAddress(ownerAddress)
 
-	developerRewards, ok := big.NewInt(0).SetString(addressState.DeveloperRewards, 10)
-	if !ok {
-		return errors.New("cannot convert string developer rewards to *big.Int")
+	if addressState.DeveloperRewards != "" {
+		developerRewards, ok := big.NewInt(0).SetString(addressState.DeveloperRewards, 10)
+		if !ok {
+			return errors.New("cannot convert string developer rewards to *big.Int")
+		}
+		userAccount.AddToDeveloperReward(developerRewards)
 	}
-	userAccount.AddToDeveloperReward(developerRewards)
 
 	return nil
 }

@@ -393,27 +393,12 @@ func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
 func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	rootHash, _ := tr.RootHash()
-	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
-
-	newTr, err := tr.Recreate(rootHash)
-	assert.Nil(t, err)
-	assert.NotNil(t, newTr)
-
-	root, _ := newTr.RootHash()
-	assert.Equal(t, rootHash, root)
-}
-
-func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
-	t.Parallel()
-
 	t.Run("nil options", func(t *testing.T) {
 		t.Parallel()
 
 		tr := initTrie()
 
-		newTr, err := tr.RecreateFromEpoch(nil)
+		newTr, err := tr.Recreate(nil)
 		assert.Nil(t, newTr)
 		assert.Equal(t, trie.ErrNilRootHashHolder, err)
 	})
@@ -425,8 +410,8 @@ func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
 		rootHash, _ := tr.RootHash()
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
-		rootHashHolder := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
-		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
+		rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+		newTr, err := tr.Recreate(rootHashHolder)
 		assert.Nil(t, err)
 
 		assert.True(t, trie.IsBaseTrieStorageManager(newTr.GetStorageManager()))
@@ -444,7 +429,7 @@ func TestPatriciaMerkleTrie_RecreateFromEpoch(t *testing.T) {
 			HasValue: true,
 		}
 		rootHashHolder := holders.NewRootHashHolder(rootHash, optionalUint32)
-		newTr, err := tr.RecreateFromEpoch(rootHashHolder)
+		newTr, err := tr.Recreate(rootHashHolder)
 		assert.Nil(t, err)
 
 		assert.True(t, trie.IsTrieStorageManagerInEpoch(newTr.GetStorageManager()))
@@ -456,7 +441,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 
 	tr := initTrie()
 
-	newTr, err := tr.Recreate(nil)
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder([]byte{}))
 	assert.Nil(t, err)
 	root, _ := newTr.RootHash()
 	assert.Equal(t, emptyTrieHash, root)
@@ -975,15 +960,12 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				err := tr.Commit(hashesCollector.NewDisabledHashesCollector())
 				assert.Nil(t, err)
 			case 5:
-				_, err := tr.Recreate(initialRootHash)
-				assert.Nil(t, err)
-			case 6:
 				epoch := core.OptionalUint32{
 					Value:    3,
 					HasValue: true,
 				}
 				rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
-				_, err := tr.RecreateFromEpoch(rootHashHolder)
+				_, err := tr.Recreate(rootHashHolder)
 				assert.Nil(t, err)
 			case 7:
 				_, err := tr.GetSerializedNode(initialRootHash)
@@ -1359,7 +1341,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		addDefaultDataToTrie(tr)
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
-		collapsedTrie, _ := tr.Recreate(rootHash)
+		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 		dtr := collapsedTrie.(dataTrie)
 		dtm := &trieMock.DataTrieMigratorStub{
 			ConsumeStorageLoadGasCalled: func() bool {

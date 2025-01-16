@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -102,6 +103,10 @@ func TestTomlParser(t *testing.T) {
 				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
+				TransferAndExecuteByUserAddresses: []string{
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2"},
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
@@ -199,6 +204,11 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+		TransferAndExecuteByUserAddresses = [
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
+		]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
@@ -261,7 +271,9 @@ func TestTomlEconomicsParser(t *testing.T) {
 	minGasLimit := "18446744073709551615"
 	extraGasLimitGuardedTx := "50000"
 	maxGasPriceSetGuardian := "1234567"
+	maxGasHigherFactorAccepted := "10"
 	protocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+
 	denomination := 18
 
 	cfgEconomicsExpected := EconomicsConfig{
@@ -289,9 +301,10 @@ func TestTomlEconomicsParser(t *testing.T) {
 		FeeSettings: FeeSettings{
 			GasLimitSettings: []GasLimitSetting{
 				{
-					MaxGasLimitPerBlock:    maxGasLimitPerBlock,
-					MinGasLimit:            minGasLimit,
-					ExtraGasLimitGuardedTx: extraGasLimitGuardedTx,
+					MaxGasLimitPerBlock:        maxGasLimitPerBlock,
+					MinGasLimit:                minGasLimit,
+					ExtraGasLimitGuardedTx:     extraGasLimitGuardedTx,
+					MaxGasHigherFactorAccepted: maxGasHigherFactorAccepted,
 				},
 			},
 			MinGasPrice:            minGasPrice,
@@ -318,7 +331,7 @@ func TestTomlEconomicsParser(t *testing.T) {
     ProtocolSustainabilityAddress = "` + protocolSustainabilityAddress + `"
 
 [FeeSettings]
-    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `"}] 
+    GasLimitSettings = [{EnableEpoch = 0, MaxGasLimitPerBlock = "` + maxGasLimitPerBlock + `", MaxGasLimitPerMiniBlock = "", MaxGasLimitPerMetaBlock = "", MaxGasLimitPerMetaMiniBlock = "", MaxGasLimitPerTx = "", MinGasLimit = "` + minGasLimit + `", ExtraGasLimitGuardedTx = "` + extraGasLimitGuardedTx + `", MaxGasHigherFactorAccepted = "` + maxGasHigherFactorAccepted + `"}] 
     MinGasPrice = "` + minGasPrice + `"
 	MaxGasPriceSetGuardian = "` + maxGasPriceSetGuardian + `"
 `
@@ -490,10 +503,11 @@ func TestP2pConfig(t *testing.T) {
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d"
             PreventPortReuse = true
-        [Node.ResourceLimiter]
-            Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
-            ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
-            ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
+
+    [Node.ResourceLimiter]
+        Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
+        ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
+        ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
 
 [KadDhtPeerDiscovery]
     Enabled = false
@@ -652,9 +666,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
     ValidatorToDelegationEnableEpoch = 29
 
-    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 30
-
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 31
@@ -667,9 +678,6 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
     ESDTTransferRoleEnableEpoch = 34
-
-    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 35
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 36
@@ -852,6 +860,33 @@ func TestEnableEpochConfig(t *testing.T) {
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 93
 
+    # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
+    AlwaysMergeContextsInEEIEnableEpoch = 94
+
+    # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
+    CleanupAuctionOnLowWaitingListEnableEpoch = 95
+
+    # UseGasBoundedShouldFailExecutionEnableEpoch represents the epoch when use bounded gas function should fail execution in case of error
+    UseGasBoundedShouldFailExecutionEnableEpoch = 96
+
+    # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
+    DynamicESDTEnableEpoch = 97
+
+    # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
+    EGLDInMultiTransferEnableEpoch = 98
+
+    # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
+    CryptoOpcodesV2EnableEpoch = 99
+
+    # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
+    FixRelayedBaseCostEnableEpoch = 100
+
+    # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
+    MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 101
+
+	# FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 102
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -901,12 +936,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			SaveJailedAlwaysEnableEpoch:                              27,
 			ReDelegateBelowMinCheckEnableEpoch:                       28,
 			ValidatorToDelegationEnableEpoch:                         29,
-			WaitingListFixEnableEpoch:                                30,
 			IncrementSCRNonceInMultiTransferEnableEpoch:              31,
 			ESDTMultiTransferEnableEpoch:                             32,
 			GlobalMintBurnDisableEpoch:                               33,
 			ESDTTransferRoleEnableEpoch:                              34,
-			BuiltInFunctionOnMetaEnableEpoch:                         35,
 			ComputeRewardCheckpointEnableEpoch:                       36,
 			SCRSizeInvariantCheckEnableEpoch:                         37,
 			BackwardCompSaveKeyValueEnableEpoch:                      38,
@@ -965,6 +998,15 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
+			AlwaysMergeContextsInEEIEnableEpoch:                      94,
+			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
+			UseGasBoundedShouldFailExecutionEnableEpoch:              96,
+			DynamicESDTEnableEpoch:                                   97,
+			EGLDInMultiTransferEnableEpoch:                           98,
+			CryptoOpcodesV2EnableEpoch:                               99,
+			FixRelayedBaseCostEnableEpoch:                            100,
+			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
+			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

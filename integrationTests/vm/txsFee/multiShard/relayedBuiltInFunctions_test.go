@@ -15,16 +15,16 @@ import (
 )
 
 func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		2,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextRelayer.Close()
 
@@ -32,7 +32,8 @@ func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.
 		1,
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextInner.Close()
 

@@ -1,6 +1,8 @@
 package resolvers
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -20,6 +22,7 @@ type ArgTrieNodeResolver struct {
 
 // TrieNodeResolver is a wrapper over Resolver that is specialized in resolving trie node requests
 type TrieNodeResolver struct {
+	mutCriticalSection sync.Mutex
 	*baseResolver
 	messageProcessor
 	trieDataGetter dataRetriever.TrieDataGetter
@@ -104,6 +107,9 @@ func (tnRes *TrieNodeResolver) resolveMultipleHashes(hashesBuff []byte, message 
 }
 
 func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes map[string]struct{}) (int, bool) {
+	tnRes.mutCriticalSection.Lock()
+	defer tnRes.mutCriticalSection.Unlock()
+
 	spaceUsed := 0
 	usedAllSpace := false
 	remainingSpace := core.MaxBufferSizeToSendTrieNodes
@@ -129,6 +135,9 @@ func (tnRes *TrieNodeResolver) resolveOnlyRequestedHashes(hashes [][]byte, nodes
 }
 
 func (tnRes *TrieNodeResolver) resolveSubTries(hashes [][]byte, nodes map[string]struct{}, spaceUsedAlready int) {
+	tnRes.mutCriticalSection.Lock()
+	defer tnRes.mutCriticalSection.Unlock()
+
 	var serializedNodes [][]byte
 	var err error
 	var serializedNode []byte
@@ -168,7 +177,10 @@ func convertMapToSlice(m map[string]struct{}) [][]byte {
 }
 
 func (tnRes *TrieNodeResolver) resolveOneHash(hash []byte, chunkIndex uint32, message p2p.MessageP2P, source p2p.MessageHandler) error {
+	tnRes.mutCriticalSection.Lock()
 	serializedNode, err := tnRes.trieDataGetter.GetSerializedNode(hash)
+	tnRes.mutCriticalSection.Unlock()
+
 	if err != nil {
 		return err
 	}

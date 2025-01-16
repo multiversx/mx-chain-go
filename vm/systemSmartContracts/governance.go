@@ -648,11 +648,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.addToAccumulatedFees(baseConfig.LostProposalFee)
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
@@ -701,12 +697,7 @@ func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInp
 	accumulatedFees := g.getAccumulatedFees()
 	g.setAccumulatedFees(big.NewInt(0))
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, accumulatedFees, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
+	g.eei.Transfer(args.CallerAddr, args.RecipientAddr, accumulatedFees, nil, 0)
 	return vmcommon.Ok
 }
 

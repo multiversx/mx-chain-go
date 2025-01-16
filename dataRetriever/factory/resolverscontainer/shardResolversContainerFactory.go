@@ -25,7 +25,12 @@ func NewShardResolversContainerFactory(
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
 
-	thr, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	if err != nil {
+		return nil, err
+	}
+
+	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingTrieNodesJobs)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +49,8 @@ func NewShardResolversContainerFactory(
 		triesContainer:                  args.TriesContainer,
 		inputAntifloodHandler:           args.InputAntifloodHandler,
 		outputAntifloodHandler:          args.OutputAntifloodHandler,
-		throttler:                       thr,
+		throttler:                       mainThrottler,
+		trieNodesThrottler:              trieNodesThrottler,
 		isFullHistoryNode:               args.IsFullHistoryNode,
 		mainPreferredPeersHolder:        args.MainPreferredPeersHolder,
 		fullArchivePreferredPeersHolder: args.FullArchivePreferredPeersHolder,

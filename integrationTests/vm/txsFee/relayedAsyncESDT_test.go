@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -9,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -18,9 +15,13 @@ import (
 )
 
 func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -34,7 +35,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance, uint32(core.Fungible))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
@@ -69,16 +70,20 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(2500))
 	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(2500))
 
-	expectedSenderBalance := big.NewInt(94996430)
+	expectedSenderBalance := big.NewInt(98219900)
 	utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedSenderBalance)
 
-	expectedAccumulatedFees := big.NewInt(5003570)
+	expectedAccumulatedFees := big.NewInt(1780100)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 }
 
 func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -92,7 +97,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance, uint32(core.Fungible))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts
@@ -136,7 +141,11 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 }
 
 func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -150,7 +159,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, big.NewInt(0), token, 0, localEsdtBalance, uint32(core.Fungible))
 	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, localEgldBalance)
 
 	// deploy 2 contracts

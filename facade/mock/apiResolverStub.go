@@ -46,9 +46,20 @@ type ApiResolverStub struct {
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
+	GetLoadedKeysCalled                         func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
 	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
+	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+}
+
+// GetSCRsByTxHash -
+func (ars *ApiResolverStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	if ars.GetSCRsByTxHashCalled != nil {
+		return ars.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
 }
 
 // GetTransaction -
@@ -305,6 +316,14 @@ func (ars *ApiResolverStub) GetManagedKeysCount() int {
 func (ars *ApiResolverStub) GetManagedKeys() []string {
 	if ars.GetManagedKeysCalled != nil {
 		return ars.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
+// GetLoadedKeys -
+func (ars *ApiResolverStub) GetLoadedKeys() []string {
+	if ars.GetLoadedKeysCalled != nil {
+		return ars.GetLoadedKeysCalled()
 	}
 	return make([]string, 0)
 }

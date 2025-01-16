@@ -1,5 +1,3 @@
-//go:build !race
-
 package multiShard
 
 import (
@@ -16,22 +14,30 @@ import (
 )
 
 func TestDeployContractAndTransferValueSCProcessorV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testDeployContractAndTransferValue(t, 1000)
 }
 
 func TestDeployContractAndTransferValueSCProcessorV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testDeployContractAndTransferValue(t, 0)
 }
 
 func testDeployContractAndTransferValue(t *testing.T, scProcessorV2EnabledEpoch uint32) {
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
 	configEnabledEpochs := config.EnableEpochs{}
 	configEnabledEpochs.SCProcessorV2EnableEpoch = scProcessorV2EnabledEpoch
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, configEnabledEpochs)
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, configEnabledEpochs, 1)
 	require.Nil(t, err)
 	defer testContextDst.Close()
 

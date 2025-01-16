@@ -2,10 +2,12 @@ package components
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -20,7 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -42,6 +44,7 @@ type ArgsProcessComponentsHolder struct {
 	NodesCoordinator     nodesCoordinator.NodesCoordinator
 
 	EpochConfig              config.EpochConfig
+	RoundConfig              config.RoundConfig
 	ConfigurationPathsHolder config.ConfigurationPathsHolder
 	FlagsConfig              config.ContextFlagsConfig
 	ImportDBConfig           config.ImportDbConfig
@@ -49,10 +52,12 @@ type ArgsProcessComponentsHolder struct {
 	Config                   config.Config
 	EconomicsConfig          config.EconomicsConfig
 	SystemSCConfig           config.SystemSmartContractsConfig
+
+	GenesisNonce uint64
+	GenesisRound uint64
 }
 
 type processComponentsHolder struct {
-	closeHandler                     *closeHandler
 	receiptsRepository               factory.ReceiptsRepository
 	nodesCoordinator                 nodesCoordinator.NodesCoordinator
 	shardCoordinator                 sharding.Coordinator
@@ -93,11 +98,13 @@ type processComponentsHolder struct {
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
-	sendSignatureTracker             process.SentSignaturesTracker
+	sentSignatureTracker             process.SentSignaturesTracker
+	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
+	managedProcessComponentsCloser   io.Closer
 }
 
 // CreateProcessComponents will create the process components holder
-func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessComponentsHandler, error) {
+func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponentsHolder, error) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
@@ -146,12 +153,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
 	if err != nil {
 		return nil, err
 	}
@@ -180,12 +197,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                  args.Config,
 		EpochConfig:             args.EpochConfig,
+		RoundConfig:             args.RoundConfig,
 		PrefConfigs:             args.PrefsConfig,
 		ImportDBConfig:          args.ImportDBConfig,
+		EconomicsConfig:         args.EconomicsConfig,
 		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
+		MaxRating:               50,
+		SystemSCConfig:          &args.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		FlagsConfig:             args.FlagsConfig,
 		Data:                    args.DataComponents,
 		CoreData:                args.CoreComponents,
 		Crypto:                  args.CryptoComponents,
@@ -194,15 +221,9 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		BootstrapComponents:     args.BootstrapComponents,
 		StatusComponents:        args.StatusComponents,
 		StatusCoreComponents:    args.StatusCoreComponents,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               50,
-		SystemSCConfig:          &args.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             args.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		GenesisNonce:            args.GenesisNonce,
+		GenesisRound:            args.GenesisRound,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -220,7 +241,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 	}
 
 	instance := &processComponentsHolder{
-		closeHandler:                     NewCloseHandler(),
 		receiptsRepository:               managedProcessComponents.ReceiptsRepository(),
 		nodesCoordinator:                 managedProcessComponents.NodesCoordinator(),
 		shardCoordinator:                 managedProcessComponents.ShardCoordinator(),
@@ -256,22 +276,46 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
 		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
 		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
-		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(),
+		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
 		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
-		sendSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
+		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
-	instance.collectClosableComponents()
+	return replaceWithCustomProcessSubComponents(instance, processArgs)
+}
+
+func replaceWithCustomProcessSubComponents(
+	instance *processComponentsHolder,
+	processArgs processComp.ProcessComponentsFactoryArgs,
+) (*processComponentsHolder, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(processArgs.CoreData.InternalMarshalizer())
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
+	}
+
+	argsSyncedTxsSender := ArgsSyncedTxsSender{
+		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
+		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
+		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		DataPacker:       dataPacker,
+	}
+
+	instance.txsSenderHandler, err = NewSyncedTxsSender(argsSyncedTxsSender)
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
+	}
 
 	return instance, nil
 }
 
-// SentSignaturesTracker will return the send signature tracker
+// SentSignaturesTracker will return the sent signature tracker
 func (p *processComponentsHolder) SentSignaturesTracker() process.SentSignaturesTracker {
-	return p.sendSignatureTracker
+	return p.sentSignatureTracker
 }
 
 // NodesCoordinator will return the nodes coordinator
@@ -474,19 +518,14 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 	return p.receiptsRepository
 }
 
-func (p *processComponentsHolder) collectClosableComponents() {
-	p.closeHandler.AddComponent(p.interceptorsContainer)
-	p.closeHandler.AddComponent(p.fullArchiveInterceptorsContainer)
-	p.closeHandler.AddComponent(p.resolversContainer)
-	p.closeHandler.AddComponent(p.epochStartTrigger)
-	p.closeHandler.AddComponent(p.blockProcessor)
-	p.closeHandler.AddComponent(p.validatorsProvider)
-	p.closeHandler.AddComponent(p.txsSenderHandler)
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return p.epochStartSystemSCProcessor
 }
 
 // Close will call the Close methods on all inner components
 func (p *processComponentsHolder) Close() error {
-	return p.closeHandler.Close()
+	return p.managedProcessComponentsCloser.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

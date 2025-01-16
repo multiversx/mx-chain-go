@@ -389,16 +389,17 @@ func TestStateExport_ExportNodesSetupJsonShouldExportKeysInAlphabeticalOrder(t *
 
 	require.False(t, check.IfNil(stateExporter))
 
-	vals := make(map[uint32][]*state.ValidatorInfo)
-	val50 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaa"), List: string(common.EligibleList)}
-	val51 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbb"), List: string(common.EligibleList)}
-	val10 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ccc"), List: string(common.EligibleList)}
-	val11 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("ddd"), List: string(common.EligibleList)}
-	val00 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("aaaaaa"), List: string(common.EligibleList)}
-	val01 := &state.ValidatorInfo{ShardId: 5, PublicKey: []byte("bbbbbb"), List: string(common.EligibleList)}
-	vals[1] = []*state.ValidatorInfo{val50, val51}
-	vals[0] = []*state.ValidatorInfo{val00, val01}
-	vals[2] = []*state.ValidatorInfo{val10, val11}
+	vals := state.NewShardValidatorsInfoMap()
+	val50 := &state.ValidatorInfo{ShardId: 0, PublicKey: []byte("aaa"), List: string(common.EligibleList)}
+	val51 := &state.ValidatorInfo{ShardId: 0, PublicKey: []byte("bbb"), List: string(common.EligibleList)}
+	val10 := &state.ValidatorInfo{ShardId: 1, PublicKey: []byte("ccc"), List: string(common.EligibleList)}
+	val11 := &state.ValidatorInfo{ShardId: 1, PublicKey: []byte("ddd"), List: string(common.EligibleList)}
+	val00 := &state.ValidatorInfo{ShardId: 2, PublicKey: []byte("aaaaaa"), List: string(common.EligibleList)}
+	val01 := &state.ValidatorInfo{ShardId: 2, PublicKey: []byte("bbbbbb"), List: string(common.EligibleList)}
+	_ = vals.SetValidatorsInShard(0, []state.ValidatorInfoHandler{val50, val51})
+	_ = vals.SetValidatorsInShard(1, []state.ValidatorInfoHandler{val10, val11})
+	_ = vals.SetValidatorsInShard(2, []state.ValidatorInfoHandler{val00, val01})
+
 	err = stateExporter.exportNodesSetupJson(vals)
 	require.Nil(t, err)
 
