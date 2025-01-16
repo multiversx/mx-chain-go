@@ -94,13 +94,13 @@ func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithR
 	transactions := make([]*transaction.Transaction, 0)
 
 	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
-	currentBalance := int64(1000000000000000000)
+	currentRelayerBalance := int64(1000000000000000000)
 	feeForTransfer := int64(50_000 * 1_000_000_004)
 	feeForRelayingTransactionsOfAliceAndBob := int64(100_000*1_000_000_003 + 100_000*1_000_000_002)
 
 	transactions = append(transactions, &transaction.Transaction{
 		Nonce:     noncesTracker.getThenIncrementNonce(relayer),
-		Value:     big.NewInt(currentBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
+		Value:     big.NewInt(currentRelayerBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
 		SndAddr:   relayer.Bytes,
 		RcvAddr:   receiver.Bytes,
 		Data:      []byte{},
