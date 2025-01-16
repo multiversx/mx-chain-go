@@ -1401,11 +1401,11 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 		return nil
 	}
 
-	outGoingMb, outGoingOperationsHash := scbp.createOutGoingMiniBlockData(outGoingOperations)
+	outGoingMb, outGoingOperationsHash := scbp.createOutGoingMiniBlockData(headerHandler, outGoingOperations)
 	return scbp.setOutGoingMiniBlock(headerHandler, createdBlockBody, outGoingMb, outGoingOperationsHash)
 }
 
-func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
+func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(headerHandler data.HeaderHandler, outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
 	outGoingOpHashes := make([][]byte, len(outGoingOperations))
 	aggregatedOutGoingOperations := make([]byte, 0)
 	outGoingOperationsData := make([]*sovCore.OutGoingOperation, 0)
@@ -1428,6 +1428,8 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
 		Hash:               outGoingOperationsHash,
 		OutGoingOperations: outGoingOperationsData,
+		PubKeysBitmap:      headerHandler.GetPubKeysBitmap(),
+		Epoch:              headerHandler.GetEpoch(),
 	})
 
 	return &block.MiniBlock{
