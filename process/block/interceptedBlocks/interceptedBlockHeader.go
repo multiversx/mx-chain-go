@@ -73,11 +73,13 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 
 	err := inHdr.integrityVerifier.Verify(inHdr.hdr)
 	if err != nil {
+		log.Error("integrityVerifier.Verify", "err", err)
 		return err
 	}
 
 	err = inHdr.integrity()
 	if err != nil {
+		log.Error("integrity", "err", err)
 		return err
 	}
 

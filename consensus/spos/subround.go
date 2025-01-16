@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 )
@@ -41,6 +42,8 @@ type Subround struct {
 	Job    func(ctx context.Context) bool // method does the Subround Job and send the result to the peers
 	Check  func() bool                    // method checks if the consensus of the Subround is done
 	Extend func(subroundId int)           // method is called when round time is out
+
+	Log logger.Logger
 }
 
 // NewSubround creates a new SubroundId object
@@ -58,6 +61,7 @@ func NewSubround(
 	chainID []byte,
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
+	logger logger.Logger,
 ) (*Subround, error) {
 	err := checkNewSubroundParams(
 		consensusState,
@@ -88,6 +92,7 @@ func NewSubround(
 		Extend:                       nil,
 		appStatusHandler:             appStatusHandler,
 		currentPid:                   currentPid,
+		Log:                          logger,
 	}
 
 	return &sr, nil

@@ -50,6 +50,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 			return nil
 		}
 
+		log.Error("interceptedDataVerifier:", "dataHash", interceptedData.Hash())
 		return process.ErrInvalidInterceptedData
 	}
 
@@ -57,6 +58,7 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 	if err != nil {
 		log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
 		idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
+		log.Error("interceptedDataVerifier:", "dataHash", interceptedData.Hash(), "error", err)
 		return process.ErrInvalidInterceptedData
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -23,6 +24,7 @@ type factory struct {
 	sentSignaturesTracker spos.SentSignaturesTracker
 	chainID               []byte
 	currentPid            core.PeerID
+	log                   logger.Logger
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -35,6 +37,7 @@ func NewSubroundsFactory(
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
 	outportHandler outport.OutportHandler,
+	logger logger.Logger,
 ) (*factory, error) {
 	// no need to check the outportHandler, it can be nil
 	err := checkNewFactoryParams(
@@ -147,6 +150,7 @@ func (fct *factory) generateStartRoundSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
@@ -189,6 +193,7 @@ func (fct *factory) generateBlockSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
@@ -227,6 +232,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err
@@ -263,6 +269,7 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.chainID,
 		fct.currentPid,
 		fct.appStatusHandler,
+		fct.log,
 	)
 	if err != nil {
 		return err

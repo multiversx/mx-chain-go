@@ -56,7 +56,13 @@ func (epip *equivalentProofsInterceptorProcessor) Save(data process.InterceptedD
 		return process.ErrWrongTypeAssertion
 	}
 
-	return epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
+	// TODO: check if we should exclude here already exiting proof case
+	err := epip.equivalentProofsPool.AddProof(interceptedProof.GetProof())
+	if err != nil {
+		log.Error("equivalentProofsInterceptorProcessor: failed to add proof", "error", err)
+	}
+
+	return nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming equivalent proofs
