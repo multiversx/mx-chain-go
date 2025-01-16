@@ -61,13 +61,12 @@ func (en *extensionNode) getCollapsedEn() (*extensionNode, error) {
 	if en.isCollapsed() {
 		return en, nil
 	}
-	collapsed := en.clone()
 	if !hasValidHash(en.child) {
 		return nil, ErrNodeHashIsNotSet
 	}
-	collapsed.EncodedChild = en.child.getHash()
-	collapsed.child = nil
-	return collapsed, nil
+	en.EncodedChild = en.child.getHash()
+	en.child = nil
+	return en, nil
 }
 
 func (en *extensionNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
@@ -589,11 +588,6 @@ func (en *extensionNode) reduceNode(pos int, db common.TrieStorageInteractor) (n
 	}
 
 	return newEn, true, nil
-}
-
-func (en *extensionNode) clone() *extensionNode {
-	nodeClone := *en
-	return &nodeClone
 }
 
 func (en *extensionNode) isEmptyOrNil() error {

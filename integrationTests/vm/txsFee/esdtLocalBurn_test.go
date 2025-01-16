@@ -14,7 +14,11 @@ import (
 )
 
 func TestESDTLocalBurnShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -44,7 +48,11 @@ func TestESDTLocalBurnShouldWork(t *testing.T) {
 }
 
 func TestESDTLocalBurnMoreThanTotalBalanceShouldErr(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -74,7 +82,11 @@ func TestESDTLocalBurnMoreThanTotalBalanceShouldErr(t *testing.T) {
 }
 
 func TestESDTLocalBurnNotAllowedShouldErr(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -83,7 +95,7 @@ func TestESDTLocalBurnNotAllowedShouldErr(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	gasLimit := uint64(40)
 	tx := utils.CreateESDTLocalBurnTx(0, sndAddr, sndAddr, token, big.NewInt(100), gasPrice, gasLimit)

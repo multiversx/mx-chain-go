@@ -7,12 +7,13 @@ import (
 
 // peerMaxMessagesPerSec defines how many messages can be propagated by a pid in a round. The value was chosen by
 // following the next premises:
-// 1. a leader can propagate as maximum as 3 messages per round: proposed header block + proposed body + final info;
-// 2. due to the fact that a delayed signature of the proposer (from previous round) can be received in the current round
-//    adds an extra 1 to the total value, reaching value 4;
-// 3. Because the leader might be selected in the next round and might have an empty data pool, it can send the newly
-//    empty proposed block at the very beginning of the next round. One extra message here, yielding to a total of 5.
-// 4. If we consider the forks that can appear on the system wee need to add one more to the value.
+//  1. a leader can propagate as maximum as 3 messages per round: proposed header block + proposed body + final info;
+//  2. due to the fact that a delayed signature of the proposer (from previous round) can be received in the current round
+//     adds an extra 1 to the total value, reaching value 4;
+//  3. Because the leader might be selected in the next round and might have an empty data pool, it can send the newly
+//     empty proposed block at the very beginning of the next round. One extra message here, yielding to a total of 5.
+//  4. If we consider the forks that can appear on the system wee need to add one more to the value.
+//
 // Validators only send one signature message in a round, treating the edge case of a delayed message, will need at most
 // 2 messages per round (which is ok as it is below the set value of 5)
 const peerMaxMessagesPerSec = uint32(6)
@@ -36,7 +37,7 @@ func NewConsensusService() (*worker, error) {
 	return &wrk, nil
 }
 
-//InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
+// InitReceivedMessages initializes the MessagesType map for all messages for the current ConsensusService
 func (wrk *worker) InitReceivedMessages() map[consensus.MessageType][]*consensus.Message {
 	receivedMessages := make(map[consensus.MessageType][]*consensus.Message)
 	receivedMessages[MtBlockBodyAndHeader] = make([]*consensus.Message, 0)
@@ -54,47 +55,47 @@ func (wrk *worker) GetMaxMessagesInARoundPerPeer() uint32 {
 	return peerMaxMessagesPerSec
 }
 
-//GetStringValue gets the name of the messageType
+// GetStringValue gets the name of the messageType
 func (wrk *worker) GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
 
-//GetSubroundName gets the subround name for the subround id provided
+// GetSubroundName gets the subround name for the subround id provided
 func (wrk *worker) GetSubroundName(subroundId int) string {
 	return getSubroundName(subroundId)
 }
 
-//IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
+// IsMessageWithBlockBodyAndHeader returns if the current messageType is about block body and header
 func (wrk *worker) IsMessageWithBlockBodyAndHeader(msgType consensus.MessageType) bool {
 	return msgType == MtBlockBodyAndHeader
 }
 
-//IsMessageWithBlockBody returns if the current messageType is about block body
+// IsMessageWithBlockBody returns if the current messageType is about block body
 func (wrk *worker) IsMessageWithBlockBody(msgType consensus.MessageType) bool {
 	return msgType == MtBlockBody
 }
 
-//IsMessageWithBlockHeader returns if the current messageType is about block header
+// IsMessageWithBlockHeader returns if the current messageType is about block header
 func (wrk *worker) IsMessageWithBlockHeader(msgType consensus.MessageType) bool {
 	return msgType == MtBlockHeader
 }
 
-//IsMessageWithSignature returns if the current messageType is about signature
+// IsMessageWithSignature returns if the current messageType is about signature
 func (wrk *worker) IsMessageWithSignature(msgType consensus.MessageType) bool {
 	return msgType == MtSignature
 }
 
-//IsMessageWithFinalInfo returns if the current messageType is about header final info
+// IsMessageWithFinalInfo returns if the current messageType is about header final info
 func (wrk *worker) IsMessageWithFinalInfo(msgType consensus.MessageType) bool {
 	return msgType == MtBlockHeaderFinalInfo
 }
 
-//IsMessageWithInvalidSigners returns if the current messageType is about invalid signers
+// IsMessageWithInvalidSigners returns if the current messageType is about invalid signers
 func (wrk *worker) IsMessageWithInvalidSigners(msgType consensus.MessageType) bool {
 	return msgType == MtInvalidSigners
 }
 
-//IsMessageTypeValid returns if the current messageType is valid
+// IsMessageTypeValid returns if the current messageType is valid
 func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
 	isMessageTypeValid := msgType == MtBlockBodyAndHeader ||
 		msgType == MtBlockBody ||
@@ -106,17 +107,17 @@ func (wrk *worker) IsMessageTypeValid(msgType consensus.MessageType) bool {
 	return isMessageTypeValid
 }
 
-//IsSubroundSignature returns if the current subround is about signature
+// IsSubroundSignature returns if the current subround is about signature
 func (wrk *worker) IsSubroundSignature(subroundId int) bool {
 	return subroundId == SrSignature
 }
 
-//IsSubroundStartRound returns if the current subround is about start round
+// IsSubroundStartRound returns if the current subround is about start round
 func (wrk *worker) IsSubroundStartRound(subroundId int) bool {
 	return subroundId == SrStartRound
 }
 
-//GetMessageRange provides the MessageType range used in checks by the consensus
+// GetMessageRange provides the MessageType range used in checks by the consensus
 func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	var v []consensus.MessageType
 
@@ -127,7 +128,7 @@ func (wrk *worker) GetMessageRange() []consensus.MessageType {
 	return v
 }
 
-//CanProceed returns if the current messageType can proceed further if previous subrounds finished
+// CanProceed returns if the current messageType can proceed further if previous subrounds finished
 func (wrk *worker) CanProceed(consensusState *spos.ConsensusState, msgType consensus.MessageType) bool {
 	switch msgType {
 	case MtBlockBodyAndHeader:

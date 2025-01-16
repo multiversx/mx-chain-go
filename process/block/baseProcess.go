@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -42,7 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -121,6 +122,7 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
+	extraDelayRequestBlockInfo    time.Duration
 }
 
 type bootStorerDataArgs struct {
@@ -575,7 +577,7 @@ func (bp *baseProcessor) createBlockStarted() error {
 	bp.txCoordinator.CreateBlockStarted()
 	bp.feeHandler.CreateBlockStarted(scheduledGasAndFees)
 
-	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs())
+	err := bp.txCoordinator.AddIntermediateTransactions(bp.scheduledTxsExecutionHandler.GetScheduledIntermediateTxs(), nil)
 	if err != nil {
 		return err
 	}
@@ -1685,7 +1687,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := common.ExtraDelayForRequestBlockInfo
+	waitTime := bp.extraDelayRequestBlockInfo
 	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0

@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -17,11 +18,20 @@ type NodeHandler interface {
 	GetShardCoordinator() sharding.Coordinator
 	GetCryptoComponents() factory.CryptoComponentsHolder
 	GetCoreComponents() factory.CoreComponentsHolder
+	GetDataComponents() factory.DataComponentsHolder
 	GetStateComponents() factory.StateComponentsHolder
 	GetFacadeHandler() shared.FacadeHandler
 	GetStatusCoreComponents() factory.StatusCoreComponentsHolder
 	SetKeyValueForAddress(addressBytes []byte, state map[string]string) error
 	SetStateForAddress(address []byte, state *dtos.AddressState) error
+	RemoveAccount(address []byte) error
+	ForceChangeOfEpoch() error
 	Close() error
+	IsInterfaceNil() bool
+}
+
+// HeartbeatMonitorWithSet defines what a heartbeat monitor with set should be able to do
+type HeartbeatMonitorWithSet interface {
+	SetHeartbeats(heartbeats []data.PubKeyHeartbeat)
 	IsInterfaceNil() bool
 }

@@ -22,10 +22,11 @@
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d" # TCP listen address
             PreventPortReuse = true # seeder nodes will need to enable this option
-        [Node.ResourceLimiter]
-            Type = "default with manual scale"
-            ManualSystemMemoryInMB = 65536 # pretend that the host running the seeder has more RAM so it can handle more connections
-            ManualMaximumFD = 1048576
+
+    [Node.ResourceLimiter]
+        Type = "default with manual scale"
+        ManualSystemMemoryInMB = 65536 # pretend that the host running the seeder has more RAM so it can handle more connections
+        ManualMaximumFD = 1048576
 
 # P2P peer discovery section
 

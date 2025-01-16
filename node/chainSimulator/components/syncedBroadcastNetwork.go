@@ -62,6 +62,7 @@ func (network *syncedBroadcastNetwork) Broadcast(pid core.PeerID, topic string, 
 			DataField:            buff,
 			TopicField:           topic,
 			BroadcastMethodField: p2p.Broadcast,
+			PeerField:            pid,
 		}
 
 		handler.receive(pid, message)
@@ -84,6 +85,7 @@ func (network *syncedBroadcastNetwork) SendDirectly(from core.PeerID, topic stri
 		DataField:            buff,
 		TopicField:           topic,
 		BroadcastMethodField: p2p.Direct,
+		PeerField:            from,
 	}
 
 	handler.receive(from, message)

@@ -72,17 +72,16 @@ func (bn *branchNode) getCollapsedBn() (*branchNode, error) {
 	if bn.isCollapsed() {
 		return bn, nil
 	}
-	collapsed := bn.clone()
 	for i := range bn.children {
 		if bn.children[i] != nil {
 			if !hasValidHash(bn.children[i]) {
 				return nil, ErrNodeHashIsNotSet
 			}
-			collapsed.EncodedChildren[i] = bn.children[i].getHash()
-			collapsed.children[i] = nil
+			bn.EncodedChildren[i] = bn.children[i].getHash()
+			bn.children[i] = nil
 		}
 	}
-	return collapsed, nil
+	return bn, nil
 }
 
 func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
@@ -741,11 +740,6 @@ func getChildPosition(n *branchNode) (numChildren int, childPos int) {
 		n.childrenMutexes[i].RUnlock()
 	}
 	return
-}
-
-func (bn *branchNode) clone() *branchNode {
-	nodeClone := *bn
-	return &nodeClone
 }
 
 func (bn *branchNode) isEmptyOrNil() error {

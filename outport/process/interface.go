@@ -17,7 +17,7 @@ type AlteredAccountsProviderHandler interface {
 
 // TransactionsFeeHandler defines the functionality needed for computation of the transaction fee and gas used
 type TransactionsFeeHandler interface {
-	PutFeeAndGasUsed(pool *outport.TransactionPool) error
+	PutFeeAndGasUsed(pool *outport.TransactionPool, epoch uint32) error
 	IsInterfaceNil() bool
 }
 
@@ -34,6 +34,7 @@ type GasConsumedProvider interface {
 type EconomicsDataHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
+	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64

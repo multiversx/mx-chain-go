@@ -111,7 +111,7 @@ func treatLogError(logInstance logger.Logger, err error, key []byte) {
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
 	if db != nil {
-		db.GetStateStatsHandler().IncrTrie()
+		db.GetStateStatsHandler().IncrementTrie()
 	}
 }
 

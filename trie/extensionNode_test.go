@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -612,21 +613,12 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	tr := initTrie()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
-	collapsedTrie, _ := tr.Recreate(rootHash)
+	collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 
 	collapsedTrie.Delete([]byte("doe"))
 
 	err := collapsedTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 	assert.Nil(t, err)
-}
-
-func TestExtensionNode_clone(t *testing.T) {
-	t.Parallel()
-
-	en, _ := getEnAndCollapsedEn()
-	clone := en.clone()
-	assert.False(t, en == clone)
-	assert.Equal(t, en, clone)
 }
 
 func TestExtensionNode_isEmptyOrNil(t *testing.T) {

@@ -1,5 +1,3 @@
-//go:build !race
-
 package delegation
 
 import (
@@ -33,9 +31,8 @@ var NewBalanceBig = wasm.NewBalanceBig
 var RequireAlmostEquals = wasm.RequireAlmostEquals
 
 func TestDelegation_Claims(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	context := wasm.SetupTestContext(t)
@@ -86,12 +83,12 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 30000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 8148760, int(context.LastConsumedFee))
+	require.Equal(t, 8577123, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 8059660, int(context.LastConsumedFee))
+	require.Equal(t, 8420179, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")

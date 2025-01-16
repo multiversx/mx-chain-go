@@ -3,6 +3,8 @@ package nodesCoordinator
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -46,6 +48,8 @@ type PublicKeysSelector interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
@@ -66,9 +70,9 @@ type NodesCoordinatorHelper interface {
 
 // ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
-	//GetChance returns the chances for the rating
+	// GetChance returns the chances for the rating
 	GetChance(uint32) uint32
-	//IsInterfaceNil verifies if the interface is nil
+	// IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
 
@@ -136,5 +140,41 @@ type EpochsConfigUpdateHandler interface {
 type GenesisNodesSetupHandler interface {
 	MinShardHysteresisNodes() uint32
 	MinMetaHysteresisNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochValidatorsHandler defines what one epoch configuration for a nodes coordinator should hold
+type EpochValidatorsHandler interface {
+	GetEligibleValidators() map[string][]*SerializableValidator
+	GetWaitingValidators() map[string][]*SerializableValidator
+	GetLeavingValidators() map[string][]*SerializableValidator
+}
+
+// EpochValidatorsHandlerWithAuction defines what one epoch configuration for a nodes coordinator should hold + shuffled out validators
+type EpochValidatorsHandlerWithAuction interface {
+	EpochValidatorsHandler
+	GetShuffledOutValidators() map[string][]*SerializableValidator
+	GetLowWaitingList() bool
+}
+
+// NodesCoordinatorRegistryHandler defines what is used to initialize nodes coordinator
+type NodesCoordinatorRegistryHandler interface {
+	GetEpochsConfig() map[string]EpochValidatorsHandler
+	GetCurrentEpoch() uint32
+	SetCurrentEpoch(epoch uint32)
+}
+
+// NodesCoordinatorRegistryFactory handles NodesCoordinatorRegistryHandler marshall/unmarshall
+type NodesCoordinatorRegistryFactory interface {
+	CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error)
+	GetRegistryData(registry NodesCoordinatorRegistryHandler, epoch uint32) ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(header data.HeaderHandler)
 	IsInterfaceNil() bool
 }

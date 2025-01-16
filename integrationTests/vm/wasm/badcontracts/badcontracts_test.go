@@ -1,5 +1,3 @@
-//go:build !race
-
 package badcontracts
 
 import (
@@ -11,9 +9,8 @@ import (
 )
 
 func Test_Bad_C_NoPanic(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	context := wasm.SetupTestContext(t)
@@ -53,6 +50,10 @@ func Test_Bad_C_NoPanic(t *testing.T) {
 }
 
 func Test_Empty_C_NoPanic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -63,6 +64,10 @@ func Test_Empty_C_NoPanic(t *testing.T) {
 }
 
 func Test_Corrupt_NoPanic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -73,6 +78,10 @@ func Test_Corrupt_NoPanic(t *testing.T) {
 }
 
 func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -83,6 +92,10 @@ func Test_NoMemoryDeclaration_NoPanic(t *testing.T) {
 }
 
 func Test_BadFunctionNames_NoPanic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -91,6 +104,10 @@ func Test_BadFunctionNames_NoPanic(t *testing.T) {
 }
 
 func Test_BadReservedFunctions(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 

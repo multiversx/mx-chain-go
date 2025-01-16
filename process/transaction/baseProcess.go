@@ -29,6 +29,7 @@ type baseTxProcessor struct {
 	enableEpochsHandler common.EnableEpochsHandler
 	txVersionChecker    process.TxVersionCheckerHandler
 	guardianChecker     process.GuardianChecker
+	txTypeHandler       process.TxTypeHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -145,7 +146,8 @@ func (txProc *baseTxProcessor) checkTxValues(
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
 			return process.ErrNotEnoughGasInUserTx
 		}
-		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+
+		txFee = txProc.computeInnerTxFee(tx)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -170,6 +172,29 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *big.Int {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+		return txProc.computeInnerTxFeeAfterBaseCostFix(tx)
+	}
+
+	return txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+}
+
+func (txProc *baseTxProcessor) computeInnerTxFeeAfterBaseCostFix(tx *transaction.Transaction) *big.Int {
+	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
+	if dstShardTxType == process.MoveBalance {
+		return txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	}
+
+	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
+	gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
+	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(tx, gasToUse)
+	txFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
+
+	return txFee
 }
 
 func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {

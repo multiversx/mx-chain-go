@@ -163,7 +163,7 @@ func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
 // The API will start on the DefaultRestInterface value unless a correct value is passed or
-// the value is explicitly set to off, in which case it will not start at all
+// //	the value is explicitly set to off, in which case it will not start at all
 func (nf *nodeFacade) RestApiInterface() string {
 	if nf.config.RestApiInterface == "" {
 		return DefaultRestInterface
@@ -284,6 +284,11 @@ func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorS
 	return nf.node.ValidatorStatisticsApi()
 }
 
+// AuctionListApi will return the data about the validators in the auction list
+func (nf *nodeFacade) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return nf.node.AuctionListApi()
+}
+
 // SendBulkTransactions will send a bulk of transactions on the topic channel
 func (nf *nodeFacade) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
 	return nf.node.SendBulkTransactions(txs)
@@ -297,6 +302,11 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	return nf.apiResolver.GetTransaction(hash, withResults)
+}
+
+// GetSCRsByTxHash will return a list of smart contract results based on a provided tx hash and smart contract result hash
+func (nf *nodeFacade) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	return nf.apiResolver.GetSCRsByTxHash(txHash, scrHash)
 }
 
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
@@ -331,7 +341,19 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 
 // GetAccount returns a response containing information about the account correlated with provided address
 func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
-	accountResponse, blockInfo, err := nf.node.GetAccount(address, options)
+	var accountResponse apiData.AccountResponse
+	var blockInfo apiData.BlockInfo
+	var err error
+
+	if options.WithKeys {
+		ctx, cancel := nf.getContextForApiTrieRangeOperations()
+		defer cancel()
+
+		accountResponse, blockInfo, err = nf.node.GetAccountWithKeys(address, options, ctx)
+	} else {
+		accountResponse, blockInfo, err = nf.node.GetAccount(address, options)
+	}
+
 	if err != nil {
 		return apiData.AccountResponse{}, apiData.BlockInfo{}, err
 	}
@@ -354,13 +376,19 @@ func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQue
 	response := make(map[string]*apiData.AccountResponse)
 	var blockInfo apiData.BlockInfo
 
-	for _, address := range addresses {
+	for i, address := range addresses {
 		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
 		if err != nil {
 			return nil, apiData.BlockInfo{}, err
 		}
-
-		blockInfo = blockInfoForAccount
+		// Use the first block info as the block info for the whole bulk
+		if i == 0 {
+			blockInfo = blockInfoForAccount
+			blockRootHash, errBlockRootHash := hex.DecodeString(blockInfoForAccount.RootHash)
+			if errBlockRootHash == nil {
+				options.BlockRootHash = blockRootHash
+			}
+		}
 
 		codeHash := accountResponse.CodeHash
 		code, _ := nf.node.GetCode(codeHash, options)
@@ -590,9 +618,14 @@ func (nf *nodeFacade) GetManagedKeysCount() int {
 	return nf.apiResolver.GetManagedKeysCount()
 }
 
-// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+// GetManagedKeys returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (nf *nodeFacade) GetManagedKeys() []string {
 	return nf.apiResolver.GetManagedKeys()
+}
+
+// GetLoadedKeys returns all keys that were loaded by this node
+func (nf *nodeFacade) GetLoadedKeys() []string {
+	return nf.apiResolver.GetLoadedKeys()
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode

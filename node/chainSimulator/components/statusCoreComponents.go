@@ -1,6 +1,8 @@
 package components
 
 import (
+	"io"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -10,18 +12,18 @@ import (
 )
 
 type statusCoreComponentsHolder struct {
-	closeHandler               *closeHandler
-	resourceMonitor            factory.ResourceMonitor
-	networkStatisticsProvider  factory.NetworkStatisticsProvider
-	trieSyncStatisticsProvider factory.TrieSyncStatisticsProvider
-	statusHandler              core.AppStatusHandler
-	statusMetrics              external.StatusMetricsHandler
-	persistentStatusHandler    factory.PersistentStatusHandler
-	stateStatisticsHandler     common.StateStatisticsHandler
+	resourceMonitor                   factory.ResourceMonitor
+	networkStatisticsProvider         factory.NetworkStatisticsProvider
+	trieSyncStatisticsProvider        factory.TrieSyncStatisticsProvider
+	statusHandler                     core.AppStatusHandler
+	statusMetrics                     external.StatusMetricsHandler
+	persistentStatusHandler           factory.PersistentStatusHandler
+	stateStatisticsHandler            common.StateStatisticsHandler
+	managedStatusCoreComponentsCloser io.Closer
 }
 
 // CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHandler
-func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHandler, error) {
+func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (*statusCoreComponentsHolder, error) {
 	var err error
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCore.StatusCoreComponentsFactoryArgs{
@@ -50,17 +52,15 @@ func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.C
 	_ = managedStatusCoreComponents.ResourceMonitor().Close()
 
 	instance := &statusCoreComponentsHolder{
-		closeHandler:               NewCloseHandler(),
-		resourceMonitor:            managedStatusCoreComponents.ResourceMonitor(),
-		networkStatisticsProvider:  managedStatusCoreComponents.NetworkStatistics(),
-		trieSyncStatisticsProvider: managedStatusCoreComponents.TrieSyncStatistics(),
-		statusHandler:              managedStatusCoreComponents.AppStatusHandler(),
-		statusMetrics:              managedStatusCoreComponents.StatusMetrics(),
-		persistentStatusHandler:    managedStatusCoreComponents.PersistentStatusHandler(),
-		stateStatisticsHandler:     managedStatusCoreComponents.StateStatsHandler(),
+		resourceMonitor:                   managedStatusCoreComponents.ResourceMonitor(),
+		networkStatisticsProvider:         managedStatusCoreComponents.NetworkStatistics(),
+		trieSyncStatisticsProvider:        managedStatusCoreComponents.TrieSyncStatistics(),
+		statusHandler:                     managedStatusCoreComponents.AppStatusHandler(),
+		statusMetrics:                     managedStatusCoreComponents.StatusMetrics(),
+		persistentStatusHandler:           managedStatusCoreComponents.PersistentStatusHandler(),
+		stateStatisticsHandler:            managedStatusCoreComponents.StateStatsHandler(),
+		managedStatusCoreComponentsCloser: managedStatusCoreComponents,
 	}
-
-	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -100,16 +100,9 @@ func (s *statusCoreComponentsHolder) PersistentStatusHandler() factory.Persisten
 	return s.persistentStatusHandler
 }
 
-func (s *statusCoreComponentsHolder) collectClosableComponents() {
-	s.closeHandler.AddComponent(s.resourceMonitor)
-	s.closeHandler.AddComponent(s.networkStatisticsProvider)
-	s.closeHandler.AddComponent(s.statusHandler)
-	s.closeHandler.AddComponent(s.persistentStatusHandler)
-}
-
 // Close will call the Close methods on all inner components
 func (s *statusCoreComponentsHolder) Close() error {
-	return s.closeHandler.Close()
+	return s.managedStatusCoreComponentsCloser.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

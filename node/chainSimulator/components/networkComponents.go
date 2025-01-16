@@ -27,7 +27,7 @@ type networkComponentsHolder struct {
 }
 
 // CreateNetworkComponents creates a new networkComponentsHolder instance
-func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (factory.NetworkComponentsHandler, error) {
+func CreateNetworkComponents(network SyncedBroadcastNetworkHandler) (*networkComponentsHolder, error) {
 	messenger, err := NewSyncedMessenger(network)
 	if err != nil {
 		return nil, err

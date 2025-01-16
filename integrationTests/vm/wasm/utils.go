@@ -16,6 +16,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -102,6 +103,7 @@ type TestContext struct {
 	ScAddress        []byte
 	ScCodeMetadata   vmcommon.CodeMetadata
 	Accounts         *state.AccountsDB
+	TxLogsProcessor  process.TransactionLogProcessor
 	TxProcessor      process.TransactionProcessor
 	ScProcessor      scrCommon.TestSmartContractProcessor
 	QueryService     external.SCQueryService
@@ -112,6 +114,7 @@ type TestContext struct {
 	LastTxHash    []byte
 	SCRForwarder  *mock.IntermediateTransactionHandlerMock
 	LastSCResults []*smartContractResult.SmartContractResult
+	LastLogs      []*data.LogData
 }
 
 type testParticipant struct {
@@ -154,7 +157,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}, context.EpochNotifier)
 	context.RoundNotifier = &epochNotifier.RoundNotifierStub{}
-	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(integrationTests.GetDefaultRoundsConfig(), context.RoundNotifier)
+	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(testscommon.GetDefaultRoundsConfig(), context.RoundNotifier)
 	context.WasmVMChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -164,7 +167,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 	context.initFeeHandlers()
 	context.initVMAndBlockchainHook()
 	context.initTxProcessorWithOneSCExecutorWithVMs()
-	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.WasmVirtualMachine)
+
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              context.VMContainer,
 		EconomicsFee:             context.EconomicsFee,
@@ -221,7 +224,7 @@ func (context *TestContext) initFeeHandlers() {
 				RewardsConfigByEpoch: []config.EpochRewardSettings{
 					{
 						LeaderPercentage:                 0.1,
-						DeveloperPercentage:              0.0,
+						DeveloperPercentage:              0.3,
 						ProtocolSustainabilityPercentage: 0,
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "1000000",
@@ -239,6 +242,7 @@ func (context *TestContext) initFeeHandlers() {
 						MaxGasLimitPerTx:            maxGasLimitPerBlock,
 						MinGasLimit:                 minGasLimit,
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				MinGasPrice:            minGasPrice,
@@ -247,10 +251,9 @@ func (context *TestContext) initFeeHandlers() {
 				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
-		EpochNotifier:               context.EpochNotifier,
-		EnableEpochsHandler:         context.EnableEpochsHandler,
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:       context.EpochNotifier,
+		EnableEpochsHandler: context.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -317,6 +320,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
@@ -332,6 +336,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              hasher,
+		PubKeyConverter:     pkConverter,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
@@ -364,8 +369,11 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
 	argsLogProcessor := transactionLog.ArgTxLogProcessor{Marshalizer: marshalizer}
-	logsProcessor, _ := transactionLog.NewTxLogProcessor(argsLogProcessor)
+	context.TxLogsProcessor, err = transactionLog.NewTxLogProcessor(argsLogProcessor)
+	require.Nil(context.T, err)
+
 	context.SCRForwarder = &mock.IntermediateTransactionHandlerMock{}
+
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      context.VMContainer,
 		ArgsParser:       smartContract.NewArgumentParser(),
@@ -385,14 +393,14 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:     logsProcessor,
+		TxLogsProcessor:     context.TxLogsProcessor,
 		EnableRoundsHandler: context.EnableRoundsHandler,
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		VMOutputCacher:      txcache.NewDisabledCache(),
 	}
 
-	context.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
+	context.ScProcessor, err = processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, context.EpochNotifier)
 	require.Nil(context.T, err)
 
 	argsNewTxProcessor := processTransaction.ArgsNewTxProcessor{
@@ -414,7 +422,7 @@ func (context *TestContext) initTxProcessorWithOneSCExecutorWithVMs() {
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:     logsProcessor,
+		TxLogsProcessor:     context.TxLogsProcessor,
 	}
 
 	context.TxProcessor, err = processTransaction.NewTxProcessor(argsNewTxProcessor)
@@ -488,12 +496,18 @@ func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticip
 	participant.BalanceSnapshot = context.GetAccountBalance(participant)
 }
 
-// GetAccountBalance -
-func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
-	account, err := context.Accounts.GetExistingAccount(participant.Address)
+// GetAccount -
+func (context *TestContext) GetAccount(address []byte) state.UserAccountHandler {
+	account, err := context.Accounts.GetExistingAccount(address)
 	require.Nil(context.T, err)
 	accountAsUser := account.(state.UserAccountHandler)
-	return accountAsUser.GetBalance()
+	return accountAsUser
+}
+
+// GetAccountBalance -
+func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
+	account := context.GetAccount(participant.Address)
+	return account.GetBalance()
 }
 
 // GetAccountBalanceDelta -
@@ -544,20 +558,20 @@ func (context *TestContext) DeploySC(wasmPath string, parametersString string) e
 		return err
 	}
 
+	context.ScAddress, _ = context.BlockchainHook.NewAddress(context.Owner.Address, context.Owner.Nonce, factory.WasmVirtualMachine)
+
 	owner.Nonce++
 	_, err = context.Accounts.Commit()
 	if err != nil {
 		return err
 	}
 
-	err = context.GetCompositeTestError()
+	err = context.acquireOutcome()
 	if err != nil {
 		return err
 	}
 
-	_ = context.UpdateLastSCResults()
-
-	return nil
+	return context.GetCompositeTestError()
 }
 
 // UpgradeSC -
@@ -604,14 +618,12 @@ func (context *TestContext) UpgradeSC(wasmPath string, parametersString string) 
 		return err
 	}
 
-	err = context.GetCompositeTestError()
+	err = context.acquireOutcome()
 	if err != nil {
 		return err
 	}
 
-	_ = context.UpdateLastSCResults()
-
-	return nil
+	return context.GetCompositeTestError()
 }
 
 // GetSCCode -
@@ -680,18 +692,16 @@ func (context *TestContext) ExecuteSCWithValue(sender *testParticipant, txData s
 		return err
 	}
 
-	err = context.GetCompositeTestError()
+	err = context.acquireOutcome()
 	if err != nil {
 		return err
 	}
 
-	_ = context.UpdateLastSCResults()
-
-	return nil
+	return context.GetCompositeTestError()
 }
 
-// UpdateLastSCResults --
-func (context *TestContext) UpdateLastSCResults() error {
+// acquireOutcome -
+func (context *TestContext) acquireOutcome() error {
 	transactions := context.SCRForwarder.GetIntermediateTransactions()
 	context.LastSCResults = make([]*smartContractResult.SmartContractResult, len(transactions))
 	for i, tx := range transactions {
@@ -702,6 +712,8 @@ func (context *TestContext) UpdateLastSCResults() error {
 			return errors.New("could not convert tx to scr")
 		}
 	}
+
+	context.LastLogs = context.TxLogsProcessor.GetAllCurrentLogs()
 
 	return nil
 }
