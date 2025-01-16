@@ -136,13 +136,12 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			feeInfo.SetFee(initialPaidFee)
 		}
 
-		userTx, totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
-		isRelayedAfterFix := isRelayed && isFeeFixActive
+		userTx, totalFee, isRelayedV1V2 := tep.getFeeOfRelayedV1V2(txWithResult)
+		isRelayedAfterFix := isRelayedV1V2 && isFeeFixActive
 		if isRelayedAfterFix {
 			feeInfo.SetFee(totalFee)
 			feeInfo.SetInitialPaidFee(totalFee)
 			feeInfo.SetGasUsed(big.NewInt(0).Div(totalFee, big.NewInt(0).SetUint64(txHandler.GetGasPrice())).Uint64())
-
 		}
 
 		tep.prepareTxWithResults(txHashHex, txWithResult, userTx, epoch)
@@ -172,7 +171,11 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, userTx, hasRefund, epoch)
 }
 
-func (tep *transactionsFeeProcessor) getFeeOfRelayed(tx *transactionWithResults) (data.TransactionHandler, *big.Int, bool) {
+func (tep *transactionsFeeProcessor) getFeeOfRelayedV1V2(tx *transactionWithResults) (data.TransactionHandler, *big.Int, bool) {
+	if common.IsValidRelayedTxV3(tx.GetTxHandler()) {
+		return nil, nil, false
+	}
+
 	if len(tx.GetTxHandler().GetData()) == 0 {
 		return nil, nil, false
 	}
@@ -272,7 +275,7 @@ func (tep *transactionsFeeProcessor) setGasUsedAndFeeBasedOnRefundValue(
 	epoch uint32,
 ) {
 	isValidUserTxAfterBaseCostActivation := !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
-	if isValidUserTxAfterBaseCostActivation && !common.IsRelayedTxV3(txWithResults.GetTxHandler()) {
+	if isValidUserTxAfterBaseCostActivation && !common.IsValidRelayedTxV3(txWithResults.GetTxHandler()) {
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, refund)
 
 		tx := txWithResults.GetTxHandler()
@@ -312,8 +315,12 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 			continue
 		}
 
+		isRelayedV3 := common.IsValidRelayedTxV3(txFromStorage)
 		isForInitialTxSender := bytes.Equal(scr.RcvAddr, txFromStorage.SndAddr)
-		if !isForInitialTxSender {
+		isForRelayerV3 := bytes.Equal(scr.RcvAddr, txFromStorage.RelayerAddr)
+		shouldSkipRelayedV3 := isRelayedV3 && !isForRelayerV3
+		shouldSkipTx := !isRelayedV3 && !isForInitialTxSender || shouldSkipRelayedV3
+		if shouldSkipTx {
 			continue
 		}
 
