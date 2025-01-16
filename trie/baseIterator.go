@@ -3,6 +3,7 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 )
 
 type baseIterator struct {
@@ -17,7 +18,7 @@ func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 		return nil, ErrNilTrie
 	}
 
-	trie, err := trie.Recreate(rootHash)
+	trie, err := trie.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 	if err != nil {
 		return nil, err
 	}

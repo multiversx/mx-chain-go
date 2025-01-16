@@ -935,7 +935,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	numOperations := 1000
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
-	numFunctions := 14
+	numFunctions := 13
 
 	initialRootHash, _ := tr.RootHash()
 
@@ -967,14 +967,14 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
 				_, err := tr.Recreate(rootHashHolder)
 				assert.Nil(t, err)
-			case 7:
+			case 6:
 				_, err := tr.GetSerializedNode(initialRootHash)
 				assert.Nil(t, err)
-			case 8:
+			case 7:
 				size1KB := uint64(1024 * 1024)
 				_, _, err := tr.GetSerializedNodes(initialRootHash, size1KB)
 				assert.Nil(t, err)
-			case 9:
+			case 8:
 				trieIteratorChannels := &common.TrieIteratorChannels{
 					LeavesChan: make(chan core.KeyValueHolder, 1000),
 					ErrChan:    errChan.NewErrChanWrapper(),
@@ -988,15 +988,15 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 					parsers.NewMainTrieLeafParser(),
 				)
 				assert.Nil(t, err)
-			case 10:
+			case 9:
 				_, _, _ = tr.GetProof(initialRootHash, initialRootHash) // this might error due to concurrent operations that change the roothash
-			case 11:
+			case 10:
 				// extremely hard to compute an existing hash due to concurrent changes.
 				_, _ = tr.VerifyProof([]byte("dog"), []byte("puppy"), [][]byte{[]byte("proof1")}) // this might error due to concurrent operations that change the roothash
-			case 12:
+			case 11:
 				sm := tr.GetStorageManager()
 				assert.NotNil(t, sm)
-			case 13:
+			case 12:
 				trieStatsHandler := tr.(common.TrieStats)
 				_, err := trieStatsHandler.GetTrieStats("address", initialRootHash)
 				assert.Nil(t, err)
@@ -1755,7 +1755,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 
 		// collapse the trie
 		rootHash, _ := tr.RootHash()
-		tr, _ = tr.Recreate(rootHash)
+		tr, _ = tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 
 		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
 			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))
