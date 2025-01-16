@@ -132,7 +132,7 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 	})
 
 	sendTransactions(t, simulator, transactions)
-	time.Sleep(durationWaitAfterSendMany)
+	time.Sleep(durationWaitAfterSendSome)
 	require.Equal(t, 2, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
@@ -240,7 +240,7 @@ func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithR
 	})
 
 	sendTransactions(t, simulator, transactions)
-	time.Sleep(durationWaitAfterSendMany)
+	time.Sleep(durationWaitAfterSendSome)
 	require.Equal(t, 4, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
@@ -324,7 +324,7 @@ func TestMempoolWithChainSimulator_Eviction(t *testing.T) {
 		Signature: []byte("signature"),
 	})
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	expectedNumTransactionsInPool := 300_000 + 1 + 1 - int(storage.TxPoolSourceMeNumItemsToPreemptivelyEvict)
 	require.Equal(t, expectedNumTransactionsInPool, getNumTransactionsInPool(simulator, shard))
