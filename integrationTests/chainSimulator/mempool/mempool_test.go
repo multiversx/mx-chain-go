@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
@@ -65,6 +66,109 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	selectedTransactions, gas = selectTransactions(t, simulator, shard)
 	require.Equal(t, 30_000-27_756, len(selectedTransactions))
 	require.Equal(t, 50_000*(30_000-27_756), int(gas))
+}
+
+func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithRelayedV3(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numSenders := 3
+	shard := 0
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer simulator.Close()
+
+	err := simulator.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	participants := createParticipants(t, simulator, numSenders)
+	noncesTracker := newNoncesTracker()
+
+	alice := participants.sendersByShard[shard][0]
+	bob := participants.sendersByShard[shard][1]
+	carol := participants.sendersByShard[shard][2]
+	relayer := participants.relayerByShard[shard]
+	receiver := participants.receiverByShard[shard]
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
+	currentBalance := int64(1000000000000000000)
+	feeForTransfer := int64(50_000 * 1_000_000_004)
+	feeForRelayingTransactionsOfAliceAndBob := int64(100_000*1_000_000_003 + 100_000*1_000_000_002)
+
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(relayer),
+		Value:     big.NewInt(currentBalance - feeForTransfer - feeForRelayingTransactionsOfAliceAndBob),
+		SndAddr:   relayer.Bytes,
+		RcvAddr:   receiver.Bytes,
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_004,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	})
+
+	// Transfer from Alice (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            noncesTracker.getThenIncrementNonce(alice),
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          alice.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_003,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Bob (relayed)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            noncesTracker.getThenIncrementNonce(bob),
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          bob.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_002,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	// Transfer from Carol (relayed) - this one should not be selected due to insufficient balance (of the relayer)
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:            noncesTracker.getThenIncrementNonce(carol),
+		Value:            oneQuarterOfEGLD,
+		SndAddr:          carol.Bytes,
+		RcvAddr:          receiver.Bytes,
+		RelayerAddr:      relayer.Bytes,
+		Data:             []byte{},
+		GasLimit:         100_000,
+		GasPrice:         1_000_000_001,
+		ChainID:          []byte(configs.ChainID),
+		Version:          2,
+		Signature:        []byte("signature"),
+		RelayerSignature: []byte("signature"),
+	})
+
+	sendTransactions(t, simulator, transactions)
+	time.Sleep(durationWaitAfterSendMany)
+	require.Equal(t, 4, getNumTransactionsInPool(simulator, shard))
+
+	selectedTransactions, _ := selectTransactions(t, simulator, shard)
+	require.Equal(t, 3, len(selectedTransactions))
+
+	require.Equal(t, relayer.Bytes, selectedTransactions[0].Tx.GetSndAddr())
+	require.Equal(t, alice.Bytes, selectedTransactions[1].Tx.GetSndAddr())
+	require.Equal(t, bob.Bytes, selectedTransactions[2].Tx.GetSndAddr())
 }
 
 func TestMempoolWithChainSimulator_Eviction(t *testing.T) {

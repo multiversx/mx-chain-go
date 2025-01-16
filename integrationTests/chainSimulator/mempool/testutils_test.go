@@ -58,12 +58,14 @@ func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Con
 
 type participantsHolder struct {
 	sendersByShard  map[int][]dtos.WalletAddress
+	relayerByShard  map[int]dtos.WalletAddress
 	receiverByShard map[int]dtos.WalletAddress
 }
 
 func newParticipantsHolder() *participantsHolder {
 	return &participantsHolder{
 		sendersByShard:  make(map[int][]dtos.WalletAddress),
+		relayerByShard:  make(map[int]dtos.WalletAddress),
 		receiverByShard: make(map[int]dtos.WalletAddress),
 	}
 }
@@ -82,10 +84,14 @@ func createParticipants(t *testing.T, simulator testsChainSimulator.ChainSimulat
 			senders = append(senders, sender)
 		}
 
+		relayer, err := simulator.GenerateAndMintWalletAddress(uint32(shard), oneEGLD)
+		require.NoError(t, err)
+
 		receiver, err := simulator.GenerateAndMintWalletAddress(0, big.NewInt(0))
 		require.NoError(t, err)
 
 		participants.sendersByShard[shard] = senders
+		participants.relayerByShard[shard] = relayer
 		participants.receiverByShard[shard] = receiver
 	}
 
@@ -126,6 +132,12 @@ func sendTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulator
 
 	for shard, transactionsFromShard := range transactionsBySenderShard {
 		node := simulator.GetNodeHandler(uint32(shard))
+
+		for _, tx := range transactionsFromShard {
+			err := node.GetFacadeHandler().ValidateTransaction(tx)
+			require.NoError(t, err)
+		}
+
 		numSent, err := node.GetFacadeHandler().SendBulkTransactions(transactionsFromShard)
 
 		require.NoError(t, err)
