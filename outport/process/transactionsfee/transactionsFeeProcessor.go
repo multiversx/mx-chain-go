@@ -338,6 +338,7 @@ func (tep *transactionsFeeProcessor) prepareScrsNoTx(transactionsAndScrs *transa
 				gasUnits := tep.txFeeCalculator.ComputeGasUnitsFromRefundValue(txFromStorage, scr.Value, epoch)
 				scrHandler.GetFeeInfo().SetGasRefunded(gasUnits)
 				scrHandler.GetFeeInfo().SetFee(scr.Value)
+				continue
 			}
 
 			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txFromStorage, scr.Value)
