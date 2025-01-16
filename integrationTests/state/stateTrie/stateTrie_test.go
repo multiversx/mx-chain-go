@@ -2165,24 +2165,6 @@ func getDataTrieEntry() ([]byte, []byte) {
 	return key, value
 }
 
-func checkDataTrieConsistency(
-	t *testing.T,
-	adb state.AccountsAdapter,
-	removedAccounts map[int]struct{},
-	dataTriesRootHashes [][]byte,
-) {
-	for i, rootHash := range dataTriesRootHashes {
-		_, ok := removedAccounts[i]
-		if ok {
-			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
-			assert.NotNil(t, err)
-		} else {
-			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
-			require.Nil(t, err)
-		}
-	}
-}
-
 func TestProofAndVerifyProofDataTrie(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
