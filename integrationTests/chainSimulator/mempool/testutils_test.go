@@ -1,6 +1,7 @@
 package mempool
 
 import (
+	"encoding/hex"
 	"math/big"
 	"strconv"
 	"testing"
@@ -87,7 +88,7 @@ func createParticipants(t *testing.T, simulator testsChainSimulator.ChainSimulat
 		relayer, err := simulator.GenerateAndMintWalletAddress(uint32(shard), oneEGLD)
 		require.NoError(t, err)
 
-		receiver, err := simulator.GenerateAndMintWalletAddress(0, big.NewInt(0))
+		receiver, err := simulator.GenerateAndMintWalletAddress(uint32(shard), big.NewInt(0))
 		require.NoError(t, err)
 
 		participants.sendersByShard[shard] = senders
@@ -183,4 +184,11 @@ func getNumTransactionsInCurrentBlock(simulator testsChainSimulator.ChainSimulat
 	node := simulator.GetNodeHandler(uint32(shard))
 	currentBlock := node.GetDataComponents().Blockchain().GetCurrentBlockHeader()
 	return int(currentBlock.GetTxCount())
+}
+
+func getTransaction(t *testing.T, simulator testsChainSimulator.ChainSimulator, shard int, hash []byte) *transaction.ApiTransactionResult {
+	hashAsHex := hex.EncodeToString(hash)
+	transaction, err := simulator.GetNodeHandler(uint32(shard)).GetFacadeHandler().GetTransaction(hashAsHex, true)
+	require.NoError(t, err)
+	return transaction
 }
