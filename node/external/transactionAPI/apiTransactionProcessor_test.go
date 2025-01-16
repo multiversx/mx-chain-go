@@ -1320,8 +1320,8 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCDeployment
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.SCDeployment, false
 		}
 
 		dataPool.Transactions().AddData([]byte{0, 2}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
@@ -1332,10 +1332,23 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
 	})
 
+	t.Run("ProcessingType (with relayed v3)", func(t *testing.T) {
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.SCDeployment, true
+		}
+
+		dataPool.Transactions().AddData([]byte{0, 3}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		tx, err := processor.GetTransaction("0003", true)
+
+		require.Nil(t, err)
+		require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
+	})
+
 	t.Run("IsRefund (false)", func(t *testing.T) {
 		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
-		dataPool.UnsignedTransactions().AddData([]byte{0, 3}, scr, 42, "foo")
-		tx, err := processor.GetTransaction("0003", true)
+		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0004", true)
 
 		require.Nil(t, err)
 		require.Equal(t, false, tx.IsRefund)
@@ -1343,8 +1356,8 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 
 	t.Run("IsRefund (true)", func(t *testing.T) {
 		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@6f6b"), Value: big.NewInt(500)}
-		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
-		tx, err := processor.GetTransaction("0004", true)
+		dataPool.UnsignedTransactions().AddData([]byte{0, 5}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0005", true)
 
 		require.Nil(t, err)
 		require.Equal(t, true, tx.IsRefund)
@@ -1364,8 +1377,8 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-		return process.MoveBalance, process.SCDeployment
+	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		return process.MoveBalance, process.SCDeployment, false
 	}
 
 	feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {

@@ -183,7 +183,7 @@ func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTr
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
-	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
@@ -199,9 +199,9 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	tx.InitiallyPaidFee = fee.String()
 
 	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
-	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
+	_, fee, isRelayedV1V2 := atp.gasUsedAndFeeProcessor.getFeeOfRelayedV1V2(tx)
+	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive && isRelayedV1V2
 	if isRelayedAfterFix {
-		_, fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
 		tx.InitiallyPaidFee = fee.String()
 	}
 }
@@ -399,13 +399,20 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 	}
 
 	guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
-	if isGuardedTx {
+	if isGuardedTx && len(guardedTx.GetGuardianAddr()) > 0 {
 		fieldGetters[signatureField] = hex.EncodeToString(guardedTx.GetSignature())
 
 		if len(guardedTx.GetGuardianAddr()) > 0 {
 			fieldGetters[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
 			fieldGetters[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
 		}
+	}
+
+	relayedTx, ok := wrappedTx.Tx.(data.RelayedTransactionHandler)
+	if ok && len(relayedTx.GetRelayerAddr()) > 0 {
+		fieldGetters[signatureField] = hex.EncodeToString(relayedTx.GetSignature())
+		fieldGetters[relayerField] = atp.addressPubKeyConverter.SilentEncode(relayedTx.GetRelayerAddr(), log)
+		fieldGetters[relayerSignatureField] = hex.EncodeToString(relayedTx.GetRelayerSignature())
 	}
 
 	return fieldGetters

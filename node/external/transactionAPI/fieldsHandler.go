@@ -19,6 +19,8 @@ const (
 	guardianSignatureField = "guardiansignature"
 	senderShardID          = "sendershard"
 	receiverShardID        = "receivershard"
+	relayerField           = "relayer"
+	relayerSignatureField  = "relayersignature"
 	wildCard               = "*"
 
 	separator = ","
