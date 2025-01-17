@@ -1,28 +1,28 @@
 package preprocess_test
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSmartContractResultPreProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	fact, err := preprocess.NewSmartContractResultPreProcessorFactory()
-	require.Nil(t, err)
+	fact := preprocess.NewSmartContractResultPreProcessorFactory()
 	require.NotNil(t, fact)
 	require.Implements(t, new(preprocess.SmartContractResultPreProcessorCreator), fact)
 }
@@ -30,7 +30,7 @@ func TestNewSmartContractResultPreProcessorFactory(t *testing.T) {
 func TestSmartContractResultPreProcessorFactory_CreateSmartContractResultPreProcessor(t *testing.T) {
 	t.Parallel()
 
-	fact, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+	fact := preprocess.NewSmartContractResultPreProcessorFactory()
 
 	args := preprocess.SmartContractResultPreProcessorCreatorArgs{}
 	preProcessor, err := fact.CreateSmartContractResultPreProcessor(args)
@@ -47,7 +47,7 @@ func TestSmartContractResultPreProcessorFactory_CreateSmartContractResultPreProc
 func TestSmartContractResultPreProcessorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	fact, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+	fact := preprocess.NewSmartContractResultPreProcessorFactory()
 	require.False(t, fact.IsInterfaceNil())
 }
 

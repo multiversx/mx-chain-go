@@ -1,7 +1,11 @@
 package hooks
 
 import (
+	"fmt"
 	"testing"
+
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -9,41 +13,32 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewBlockChainHookFactory(t *testing.T) {
 	t.Parallel()
 
-	factory, err := NewBlockChainHookFactory()
-
-	assert.Nil(t, err)
-	assert.NotNil(t, factory)
+	factory := NewBlockChainHookFactory()
+	require.NotNil(t, factory)
 }
 
 func TestBlockChainHookFactory_CreateBlockChainHook(t *testing.T) {
 	t.Parallel()
 
-	factory, err := NewBlockChainHookFactory()
-
-	assert.Nil(t, err)
-
-	_, err = factory.CreateBlockChainHookHandler(getDefaultArgs())
-
-	assert.Nil(t, err)
+	factory := NewBlockChainHookFactory()
+	blockChainHook, err := factory.CreateBlockChainHookHandler(getDefaultArgs())
+	require.Equal(t, "*hooks.BlockChainHookImpl", fmt.Sprintf("%T", blockChainHook))
+	require.Nil(t, err)
 }
 
 func TestBlockChainHookFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	factory, err := NewBlockChainHookFactory()
-
-	assert.Nil(t, err)
-	assert.False(t, factory.IsInterfaceNil())
+	factory := NewBlockChainHookFactory()
+	require.False(t, factory.IsInterfaceNil())
 
 	factory = (*blockChainHookFactory)(nil)
-	assert.True(t, factory.IsInterfaceNil())
+	require.True(t, factory.IsInterfaceNil())
 }
 
 func getDefaultArgs() ArgBlockChainHook {

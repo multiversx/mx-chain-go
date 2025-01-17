@@ -1,24 +1,16 @@
 package storageBootstrap
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
 )
 
 type sovereignShardBootstrapFactory struct {
-	shardBootstrapFactory BootstrapperCreator
 }
 
 // NewSovereignShardBootstrapFactory creates a new instance of shardBootstrapFactory for run type sovereign
-func NewSovereignShardBootstrapFactory(sbf BootstrapperCreator) (*sovereignShardBootstrapFactory, error) {
-	if check.IfNil(sbf) {
-		return nil, errors.ErrNilShardBootstrapFactory
-	}
-	return &sovereignShardBootstrapFactory{
-		shardBootstrapFactory: sbf,
-	}, nil
+func NewSovereignShardBootstrapFactory() *sovereignShardBootstrapFactory {
+	return &sovereignShardBootstrapFactory{}
 }
 
 // CreateBootstrapper creates a new instance of shardBootstrapFactory for run type sovereign

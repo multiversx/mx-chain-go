@@ -6,8 +6,8 @@ type shardAdditionalStorageServiceFactory struct {
 }
 
 // NewShardAdditionalStorageServiceFactory creates a new instance of shardAdditionalStorageServiceFactory
-func NewShardAdditionalStorageServiceFactory() (*shardAdditionalStorageServiceFactory, error) {
-	return &shardAdditionalStorageServiceFactory{}, nil
+func NewShardAdditionalStorageServiceFactory() *shardAdditionalStorageServiceFactory {
+	return &shardAdditionalStorageServiceFactory{}
 }
 
 // CreateAdditionalStorageUnits does nothing

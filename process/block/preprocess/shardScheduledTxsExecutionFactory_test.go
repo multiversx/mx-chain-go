@@ -3,17 +3,17 @@ package preprocess
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardScheduledTxsExecutionFactory(t *testing.T) {
 	t.Parallel()
 
-	stef, err := NewShardScheduledTxsExecutionFactory()
-	require.Nil(t, err)
+	stef := NewShardScheduledTxsExecutionFactory()
 	require.NotNil(t, stef)
 	require.IsType(t, &shardScheduledTxsExecutionFactory{}, stef)
 }
@@ -21,7 +21,7 @@ func TestNewShardScheduledTxsExecutionFactory(t *testing.T) {
 func TestShardScheduledTxsExecutionFactory_CreateScheduledTxsExecutionHandler(t *testing.T) {
 	t.Parallel()
 
-	stef, _ := NewShardScheduledTxsExecutionFactory()
+	stef := NewShardScheduledTxsExecutionFactory()
 
 	stxeh, err := stef.CreateScheduledTxsExecutionHandler(ScheduledTxsExecutionFactoryArgs{})
 	require.NotNil(t, err)
@@ -44,6 +44,6 @@ func TestShardScheduledTxsExecutionFactory_CreateScheduledTxsExecutionHandler(t 
 func TestShardScheduledTxsExecutionFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	stef, _ := NewShardScheduledTxsExecutionFactory()
+	stef := NewShardScheduledTxsExecutionFactory()
 	require.False(t, stef.IsInterfaceNil())
 }

@@ -12,9 +12,8 @@ type RunTypeComponentsStub struct {
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
-	scrPreProcFactory, _ := preprocess.NewSmartContractResultPreProcessorFactory()
 	return &RunTypeComponentsStub{
-		SCResultsPreProcessorFactory: scrPreProcFactory,
+		SCResultsPreProcessorFactory: preprocess.NewSmartContractResultPreProcessorFactory(),
 		TxPreProcessorFactory:        preprocess.NewTxPreProcessorCreator(),
 	}
 }

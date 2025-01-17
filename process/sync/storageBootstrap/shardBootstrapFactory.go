@@ -9,8 +9,8 @@ type shardBootstrapFactory struct {
 }
 
 // NewShardBootstrapFactory creates a new instance of shardBootstrapFactory for run type normal
-func NewShardBootstrapFactory() (*shardBootstrapFactory, error) {
-	return &shardBootstrapFactory{}, nil
+func NewShardBootstrapFactory() *shardBootstrapFactory {
+	return &shardBootstrapFactory{}
 }
 
 // CreateBootstrapper creates a new instance of shardBootstrapFactory for run type normal
