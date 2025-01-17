@@ -149,10 +149,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return proofscache.ErrAlreadyExistingEquivalentProof
 	}
 
-	err = iep.checkHeaderParamsFromProof()
-	if err != nil {
-		return err
-	}
+	// TODO: should be checked instead on processing. Todo and commented code should be removed only when check added on processing
+	// err = iep.checkHeaderParamsFromProof()
+	// if err != nil {
+	// 	return err
+	// }
 
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
 }

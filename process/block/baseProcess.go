@@ -635,7 +635,7 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (ma
 		}
 
 		if bp.hasMissingProof(headerInfo, hdrHash) {
-			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hdrHash)
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
 		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
