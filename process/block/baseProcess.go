@@ -635,6 +635,7 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (ma
 		}
 
 		if bp.hasMissingProof(headerInfo, hdrHash) {
+			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
@@ -660,6 +661,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 		}
 
 		if bp.hasMissingProof(headerInfo, metaBlockHash) {
+			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
 		}
 
