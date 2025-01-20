@@ -917,3 +917,99 @@ func TestSovereignShardProcessor_ProcessBlock(t *testing.T) {
 		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
 	})
 }
+
+func TestSovereignShardProcessor_CommitBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header handler should error", func(t *testing.T) {
+		sovArgs := createSovChainBlockProcessorArgs()
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		err = scbp.CommitBlock(nil, &block.Body{})
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+	t.Run("nil body handler should error", func(t *testing.T) {
+		sovArgs := createSovChainBlockProcessorArgs()
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		err = scbp.CommitBlock(&block.SovereignChainHeader{}, nil)
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
+	t.Run("commit block should work", func(t *testing.T) {
+		expectedBusyIdleSequencePerCall := []string{busyIdentifier, idleIdentifier}
+		randSeed := []byte("rand seed")
+		blockHash := []byte("block hash")
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		_ = blkc.SetCurrentBlockHeaderAndRootHash(
+			&block.SovereignChainHeader{
+				Header: &block.Header{
+					Nonce:    4,
+					Round:    4,
+					Epoch:    0,
+					RandSeed: randSeed,
+				},
+				AccumulatedFeesInEpoch: big.NewInt(1),
+				DevFeesInEpoch:         big.NewInt(1),
+			},
+			[]byte("root hash"),
+		)
+		_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		blkc.SetCurrentBlockHeaderHash(blockHash)
+
+		expectedSovHeader := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce:         5,
+				Round:         5,
+				Epoch:         0,
+				PubKeysBitmap: []byte("0100101"),
+				PrevHash:      blockHash,
+				PrevRandSeed:  randSeed,
+				Signature:     []byte("signature"),
+				RootHash:      []byte("root hash"),
+			},
+		}
+
+		busyIdleCalled := make([]string, 0)
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = blkc
+		coreComponents.ProcessStatusHandlerField = &testscommon.ProcessStatusHandlerStub{
+			SetIdleCalled: func() {
+				busyIdleCalled = append(busyIdleCalled, idleIdentifier)
+			},
+			SetBusyCalled: func(reason string) {
+				busyIdleCalled = append(busyIdleCalled, busyIdentifier)
+			},
+		}
+		arguments := createShardBlockProcessorArgsForSovereign(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
+			CommitCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+			RootHashCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		}
+		forkDetectorAddHeaderCalled := false
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			AddHeaderCalled: func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
+				if header == expectedSovHeader {
+					forkDetectorAddHeaderCalled = true
+					return nil
+				}
+
+				return fmt.Errorf("should error")
+			},
+		}
+
+		sovArgs := createArgsSovereignChainBlockProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(sovArgs)
+		require.Nil(t, err)
+
+		err = scbp.CommitBlock(expectedSovHeader, &block.Body{})
+		require.Nil(t, err)
+		require.True(t, forkDetectorAddHeaderCalled)
+		require.Equal(t, expectedBusyIdleSequencePerCall, busyIdleCalled)
+	})
+}
