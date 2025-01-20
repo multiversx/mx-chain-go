@@ -12,7 +12,6 @@ deployHeaderVerifierContract() {
         --bytecode=$(eval echo ${HEADER_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --arguments ${BLS_PUB_KEYS} \
         --outfile=${OUTFILE} \
@@ -38,7 +37,6 @@ upgradeHeaderVerifierContract() {
         --bytecode=$(eval echo ${HEADER_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
@@ -56,7 +54,6 @@ setEsdtSafeAddressInHeaderVerifier() {
     mxpy contract call ${HEADER_VERIFIER_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
         --function="setEsdtSafeAddress" \
         --arguments ${ESDT_SAFE_ADDRESS} \

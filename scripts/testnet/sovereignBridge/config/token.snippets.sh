@@ -8,7 +8,6 @@ issueToken() {
     mxpy contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=60000000 \
         --value=${ESDT_ISSUE_COST} \
         --function="issue" \
@@ -42,7 +41,6 @@ depositTokenInSC() {
     mxpy contract call ${WALLET_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=20000000 \
         --function="MultiESDTNFTTransfer" \
         --arguments \
@@ -71,7 +69,6 @@ issueTokenSovereign() {
     mxpy contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY_SOVEREIGN} \
-        --chain=${CHAIN_ID_SOVEREIGN} \
         --gas-limit=60000000 \
         --value=${ESDT_ISSUE_COST} \
         --function="issue" \
@@ -102,7 +99,6 @@ registerSovereignToken() {
     mxpy contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=100000000 \
         --function="registerToken" \
         --value=${ESDT_ISSUE_COST} \
@@ -128,7 +124,6 @@ setLocalBurnRoleSovereign() {
     mxpy contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY_SOVEREIGN} \
-        --chain=${CHAIN_ID_SOVEREIGN} \
         --gas-limit=60000000 \
         --function="setSpecialRole" \
         --arguments \
@@ -152,7 +147,6 @@ depositTokenInSCSovereign() {
     mxpy contract call ${WALLET_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY_SOVEREIGN} \
-        --chain=${CHAIN_ID_SOVEREIGN} \
         --gas-limit=20000000 \
         --function="MultiESDTNFTTransfer" \
         --arguments \

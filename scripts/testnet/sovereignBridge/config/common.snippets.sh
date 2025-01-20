@@ -15,7 +15,6 @@ getFundsInAddressSovereign() {
         --pem=${WALLET_SOVEREIGN} \
         --pem-index 0 \
         --proxy=${PROXY_SOVEREIGN} \
-        --chain=${CHAIN_ID_SOVEREIGN} \
         --receiver=${WALLET_ADDRESS} \
         --value=100000000000000000000000 \
         --gas-limit=50000 \

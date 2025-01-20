@@ -9,7 +9,6 @@ deployEsdtSafeContract() {
         --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --arguments \
             false \
@@ -62,7 +61,6 @@ upgradeEsdtSafeContractCall() {
         --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
         --proxy=${URL} \
-        --chain=${CHAIN} \
         --gas-limit=200000000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
@@ -98,7 +96,6 @@ pauseEsdtSafeContractCall() {
     mxpy contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
-        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="pause" \
         --outfile=${OUTFILE} \
@@ -135,7 +132,6 @@ unpauseEsdtSafeContractCall() {
     mxpy contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
-        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="unpause" \
         --outfile=${OUTFILE} \
@@ -173,7 +169,6 @@ setFeeMarketAddressCall() {
     mxpy contract call ${ESDT_SAFE_CONTRACT_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
-        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="setFeeMarketAddress" \
         --arguments ${FEE_MARKET_CONTRACT_ADDRESS} \
@@ -193,7 +188,6 @@ setHeaderVerifierAddressInEsdtSafe() {
     mxpy contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
         --function="setHeaderVerifierAddress" \
         --arguments ${HEADER_VERIFIER_ADDRESS} \
