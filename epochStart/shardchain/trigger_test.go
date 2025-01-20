@@ -50,6 +50,9 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 		},
 		Storage: &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

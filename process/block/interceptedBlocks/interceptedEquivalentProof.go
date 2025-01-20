@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -13,13 +12,11 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const interceptedEquivalentProofType = "intercepted equivalent proof"
@@ -149,27 +146,9 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return proofscache.ErrAlreadyExistingEquivalentProof
 	}
 
-	// TODO: should be checked instead on processing. Todo and commented code should be removed only when check added on processing
-	// err = iep.checkHeaderParamsFromProof()
-	// if err != nil {
-	// 	return err
-	// }
+	// TODO: make sure proof fields (besides ones used to verify signature) should be checked on processing.
 
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
-}
-
-func (iep *interceptedEquivalentProof) checkHeaderParamsFromProof() error {
-	headersStorer, err := iep.getHeadersStorer(iep.proof.GetHeaderShardId())
-	if err != nil {
-		return err
-	}
-
-	header, err := common.GetHeader(iep.proof.GetHeaderHash(), iep.headersPool, headersStorer, iep.marshaller)
-	if err != nil {
-		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(iep.proof.GetHeaderHash()))
-	}
-
-	return common.VerifyProofAgainstHeader(iep.proof, header)
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {
@@ -181,14 +160,6 @@ func (iep *interceptedEquivalentProof) integrity() error {
 	}
 
 	return nil
-}
-
-func (iep *interceptedEquivalentProof) getHeadersStorer(shardID uint32) (storage.Storer, error) {
-	if shardID == core.MetachainShardId {
-		return iep.storage.GetStorer(dataRetriever.MetaBlockUnit)
-	}
-
-	return iep.storage.GetStorer(dataRetriever.BlockHeaderUnit)
 }
 
 // GetProof returns the underlying intercepted header proof
