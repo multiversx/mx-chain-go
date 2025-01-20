@@ -29,6 +29,8 @@ func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uin
 	return uint32(val), err
 }
 
+// TODO: ALSO FIX THIS AssignShardForPubKeyWhenNotSpecified
+
 // AssignShardForPubKeyWhenNotSpecified will return the same shard ID when it is called with the same parameters
 // This function fetched the last byte of the public key and based on a modulo operation it will return a shard ID
 func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint32 {
