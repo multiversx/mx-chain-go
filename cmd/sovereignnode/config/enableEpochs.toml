@@ -72,7 +72,6 @@
     # epoch should not be 0
     DelegationSmartContractEnableEpoch = 0
 
-    # TODO: MX-15702: Sovereign enable epoch handler should have all these type of flags always disabled
     # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
     CorrectLastUnjailedEnableEpoch = 0
 
@@ -106,9 +105,6 @@
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
     ESDTTransferRoleEnableEpoch = 0
-
-    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 0
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 0
