@@ -11,6 +11,7 @@ deployFeeMarketContract() {
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --arguments \
             ${ESDT_SAFE_ADDRESS} \
@@ -64,6 +65,7 @@ upgradeFeeMarketContractCall() {
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
         --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=200000000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
@@ -99,6 +101,7 @@ removeFeeInFeeMarketContractCall() {
     mxpy contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="removeFee" \
         --outfile=${OUTFILE} \
@@ -135,6 +138,7 @@ setFixedFeeMarketContractCall() {
     mxpy contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="setFee" \
         --arguments \
@@ -182,6 +186,7 @@ distributeFees() {
     mxpy contract call ${FEE_MARKET_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
         --gas-limit=20000000 \
         --function="distributeFees" \
         --arguments \
