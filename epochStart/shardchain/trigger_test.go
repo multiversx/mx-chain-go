@@ -393,6 +393,9 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 			return &vic.ValidatorInfoCacherStub{}
 		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(u uint64) []byte {
