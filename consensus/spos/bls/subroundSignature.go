@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -100,6 +101,8 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
+		chaos.In_subroundSignature_doSignatureJob_maybeCorruptSignature(sr.Header, signatureShare)
+
 		if !isSelfLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
 			if !ok {
@@ -156,6 +159,10 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 			"pk", []byte(pk),
 		)
 		return false
+	}
+
+	if chaos.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.Header) {
+		return true
 	}
 
 	if shouldWaitForAllSigsAsync {
