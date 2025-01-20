@@ -30,7 +30,6 @@ type ArgInterceptedEquivalentProof struct {
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
 	Headers           dataRetriever.HeadersPool
-	Storage           dataRetriever.StorageService
 }
 
 type interceptedEquivalentProof struct {
@@ -39,7 +38,6 @@ type interceptedEquivalentProof struct {
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
 	headersPool       dataRetriever.HeadersPool
-	storage           dataRetriever.StorageService
 	marshaller        marshaling.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
@@ -66,7 +64,6 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		proofsPool:        args.Proofs,
 		headersPool:       args.Headers,
 		marshaller:        args.Marshaller,
-		storage:           args.Storage,
 		hasher:            args.Hasher,
 		hash:              hash,
 	}, nil
@@ -90,9 +87,6 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	}
 	if check.IfNil(args.Headers) {
 		return process.ErrNilHeadersDataPool
-	}
-	if check.IfNil(args.Storage) {
-		return process.ErrNilStore
 	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher

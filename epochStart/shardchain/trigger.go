@@ -599,9 +599,6 @@ func (t *trigger) checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler d
 	if !ok {
 		return
 	}
-	if !t.newEpochHdrReceived && !metaHdr.IsStartOfEpochBlock() {
-		return
-	}
 	if !t.shouldUpdateTrigger(metaHdr, metaBlockHash) {
 		return
 	}

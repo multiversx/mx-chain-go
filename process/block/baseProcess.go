@@ -660,7 +660,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 		}
 
 		if bp.hasMissingProof(headerInfo, metaBlockHash) {
-			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, metaBlockHash)
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
 		}
 
 		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
@@ -841,7 +841,6 @@ func isPartiallyExecuted(
 ) bool {
 	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
-
 }
 
 // check if header has the same miniblocks as presented in body
