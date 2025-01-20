@@ -20,9 +20,11 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 
 	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
 
+	log.Error("NewSovereignIndexHashedNodesCoordinator BEFORE", "destinationShardID", arguments.ShardIDAsObserver)
+
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
 		nbShards:    arguments.NbShards,
-		shardID:     arguments.ShardIDAsObserver,
+		shardID:     core.SovereignChainShardId, //arguments.ShardIDAsObserver,
 		eligibleMap: make(map[uint32][]Validator),
 		waitingMap:  make(map[uint32][]Validator),
 		selectors:   make(map[uint32]RandomSelector),
@@ -91,6 +93,8 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 	if currentConfig == nil {
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
+
+	log.Error("NewSovereignIndexHashedNodesCoordinator AFTER", "destinationShardID", currentConfig.shardID)
 
 	displaySovereignNodesConfiguration(
 		currentConfig.eligibleMap,
