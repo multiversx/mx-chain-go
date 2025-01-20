@@ -369,7 +369,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 
 	ok := sr.EquivalentProofsPool().AddProof(proof)
 	if !ok {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: proof not added", "headerHash", proof.GetHeaderHash())
+		log.Debug("saveProofForPreviousHeaderIfNeeded: proof not added", "headerHash", hex.EncodeToString(proof.GetHeaderHash()))
 	}
 }
 
