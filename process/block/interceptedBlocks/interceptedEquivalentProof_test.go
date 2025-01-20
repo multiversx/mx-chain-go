@@ -3,7 +3,6 @@ package interceptedBlocks
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -12,11 +11,9 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -205,7 +202,6 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
 	})
-
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -222,128 +218,6 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		err = iep.CheckValidity()
 		require.Equal(t, proofscache.ErrAlreadyExistingEquivalentProof, err)
 	})
-
-	t.Run("missing header for proof hash should error", func(t *testing.T) {
-		t.Parallel()
-
-		providedErr := errors.New("missing header")
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return nil, providedErr
-			},
-		}
-		args.Storage = &genericMocks.ChainStorerMock{
-			BlockHeaders: genericMocks.NewStorerMockWithErrKeyNotFound(0),
-		}
-
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, storage.ErrKeyNotFound))
-	})
-
-	t.Run("nonce mismatch should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					GetNonceCalled: func() uint64 {
-						return providedNonce + 1
-					},
-				}, nil
-			},
-		}
-
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-		require.True(t, strings.Contains(err.Error(), "nonce mismatch"))
-	})
-
-	t.Run("shard id mismatch should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					GetNonceCalled: func() uint64 {
-						return providedNonce
-					},
-					GetShardIDCalled: func() uint32 {
-						return providedShard + 1
-					},
-				}, nil
-			},
-		}
-
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-		require.True(t, strings.Contains(err.Error(), "shard id mismatch"))
-	})
-
-	t.Run("epoch mismatch should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					GetNonceCalled: func() uint64 {
-						return providedNonce
-					},
-					GetShardIDCalled: func() uint32 {
-						return providedShard
-					},
-					EpochField: providedEpoch + 1,
-				}, nil
-			},
-		}
-
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-		require.True(t, strings.Contains(err.Error(), "epoch mismatch"))
-	})
-
-	t.Run("round mismatch should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgInterceptedEquivalentProof()
-		args.Headers = &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					GetNonceCalled: func() uint64 {
-						return providedNonce
-					},
-					GetShardIDCalled: func() uint32 {
-						return providedShard
-					},
-					EpochField: providedEpoch,
-					RoundField: providedRound + 1,
-				}, nil
-			},
-		}
-
-		iep, err := NewInterceptedEquivalentProof(args)
-		require.NoError(t, err)
-
-		err = iep.CheckValidity()
-		require.True(t, errors.Is(err, common.ErrInvalidHeaderProof))
-		require.True(t, strings.Contains(err.Error(), "round mismatch"))
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

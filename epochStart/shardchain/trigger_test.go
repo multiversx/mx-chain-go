@@ -703,6 +703,9 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 					},
 				}
 			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
+			},
 		}
 
 		epochStartTrigger, _ := NewEpochStartTrigger(args)
