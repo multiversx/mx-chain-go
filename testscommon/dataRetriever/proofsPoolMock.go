@@ -20,7 +20,7 @@ func (p *ProofsPoolMock) AddProof(headerProof data.HeaderProofHandler) bool {
 		return p.AddProofCalled(headerProof)
 	}
 
-	return false
+	return true
 }
 
 // CleanupProofsBehindNonce -

@@ -2837,7 +2837,6 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		if !wasAdded {
 			log.Warn("ProofsPool.AddProof not added", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 		}
-		return err
 	}
 
 	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
