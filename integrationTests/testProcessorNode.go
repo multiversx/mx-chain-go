@@ -3138,8 +3138,9 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
 	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)

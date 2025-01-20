@@ -51,7 +51,6 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte) (process.
 		HeaderSigVerifier: factory.headerSigVerifier,
 		Proofs:            factory.proofsPool,
 		Headers:           factory.headersPool,
-		Storage:           factory.storage,
 		Hasher:            factory.hasher,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)

@@ -99,8 +99,9 @@ func NewShardProcessorEmptyWith3shards(
 	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	hdrValidator, _ := NewHeaderValidator(argsHeaderValidator)
 

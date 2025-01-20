@@ -1203,7 +1203,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			// shard header must be processed completely
 			errAccountState := mp.accountsDB[state.UserAccountsState].RevertToSnapshot(snapshot)
 			if errAccountState != nil {
-				// TODO: evaluate if reloading the trie from disk will might solve the problem
+				// TODO: evaluate if reloading the trie from disk might solve the problem
 				log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
 			}
 			continue
