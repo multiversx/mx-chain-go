@@ -492,7 +492,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	headerLeader, err := sr.getLeaderForHeader(headerHandler)
 	if err != nil {
-		log.Debug("subroundBlock.receivedBlockHeader - error", err.Error())
+		log.Debug("subroundBlock.receivedBlockHeader - error getting leader for header", err.Error())
 		return
 	}
 

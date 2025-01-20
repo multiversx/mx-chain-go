@@ -2201,12 +2201,6 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 	return nil
 }
 
-func isProofEmpty(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 ||
-		len(proof.GetPubKeysBitmap()) == 0 ||
-		len(proof.GetHeaderHash()) == 0
-}
-
 func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
 	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		return nil
@@ -2217,11 +2211,6 @@ func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
 		return err
 	}
 
-	if !isProofEmpty(prevBlockProof) {
-		header.SetPreviousProof(prevBlockProof)
-		return nil
-	}
-
-	log.Debug("addPrevProofIfNeeded: no proof found", "header hash", header.GetPrevHash())
-	return process.ErrNilHeaderProof
+	header.SetPreviousProof(prevBlockProof)
+	return nil
 }

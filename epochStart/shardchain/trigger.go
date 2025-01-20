@@ -276,7 +276,6 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 		extraDelayForRequestBlockInfo: args.ExtraDelayForRequestBlockInfo,
 	}
 
-	// TODO: for equivalent messages this trigger needs to be changed, on start of epoch block proof instead
 	t.headersPool.RegisterHandler(t.receivedMetaBlock)
 	t.proofsPool.RegisterHandler(t.receivedProof)
 
