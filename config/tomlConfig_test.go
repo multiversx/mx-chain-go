@@ -1066,9 +1066,7 @@ func TestSovereignEnableEpochConfig(t *testing.T) {
 	}
 
 	cfg := SovereignEpochConfig{}
-
 	err := toml.Unmarshal([]byte(testString), &cfg)
-
 	require.Nil(t, err)
 	require.Equal(t, expectedCfg, cfg)
 }
