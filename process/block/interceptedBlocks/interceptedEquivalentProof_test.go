@@ -11,8 +11,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -202,7 +202,7 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		require.NoError(t, err)
 
 		err = iep.CheckValidity()
-		require.Equal(t, proofscache.ErrAlreadyExistingEquivalentProof, err)
+		require.Equal(t, common.ErrAlreadyExistingEquivalentProof, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
