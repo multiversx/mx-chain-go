@@ -2830,6 +2830,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 			HeaderEpoch:         currHdr.GetEpoch(),
 			HeaderNonce:         currHdr.GetNonce(),
 			HeaderShardId:       currHdr.GetShardID(),
+			IsStartOfEpoch:      blockHeader.IsStartOfEpochBlock(),
 		}
 		blockHeader.SetPreviousProof(previousProof)
 
