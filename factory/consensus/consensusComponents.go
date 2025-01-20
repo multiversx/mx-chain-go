@@ -257,6 +257,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
+		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

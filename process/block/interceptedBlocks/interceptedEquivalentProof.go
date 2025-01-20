@@ -7,13 +7,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const interceptedEquivalentProofType = "intercepted equivalent proof"
@@ -22,9 +25,11 @@ const interceptedEquivalentProofType = "intercepted equivalent proof"
 type ArgInterceptedEquivalentProof struct {
 	DataBuff          []byte
 	Marshaller        marshal.Marshalizer
+	Hasher            hashing.Hasher
 	ShardCoordinator  sharding.Coordinator
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
+	Headers           dataRetriever.HeadersPool
 }
 
 type interceptedEquivalentProof struct {
@@ -32,6 +37,10 @@ type interceptedEquivalentProof struct {
 	isForCurrentShard bool
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
+	headersPool       dataRetriever.HeadersPool
+	marshaller        marshaling.Marshalizer
+	hasher            hashing.Hasher
+	hash              []byte
 }
 
 // NewInterceptedEquivalentProof returns a new instance of interceptedEquivalentProof
@@ -46,11 +55,17 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		return nil, err
 	}
 
+	hash := args.Hasher.Compute(string(args.DataBuff))
+
 	return &interceptedEquivalentProof{
 		proof:             equivalentProof,
 		isForCurrentShard: extractIsForCurrentShard(args.ShardCoordinator, equivalentProof),
 		headerSigVerifier: args.HeaderSigVerifier,
 		proofsPool:        args.Proofs,
+		headersPool:       args.Headers,
+		marshaller:        args.Marshaller,
+		hasher:            args.Hasher,
+		hash:              hash,
 	}, nil
 }
 
@@ -70,6 +85,12 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	if check.IfNil(args.Proofs) {
 		return process.ErrNilProofsPool
 	}
+	if check.IfNil(args.Headers) {
+		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(args.Hasher) {
+		return process.ErrNilHasher
+	}
 
 	return nil
 }
@@ -86,6 +107,7 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 		"header shard", headerProof.HeaderShardId,
 		"header epoch", headerProof.HeaderEpoch,
 		"header nonce", headerProof.HeaderNonce,
+		"header round", headerProof.HeaderRound,
 		"bitmap", logger.DisplayByteSlice(headerProof.PubKeysBitmap),
 		"signature", logger.DisplayByteSlice(headerProof.AggregatedSignature),
 	)
@@ -95,6 +117,10 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 
 func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentProof *block.HeaderProof) bool {
 	proofShardId := equivalentProof.GetHeaderShardId()
+	if shardCoordinator.SelfId() == core.MetachainShardId {
+		return true
+	}
+
 	if proofShardId == core.MetachainShardId {
 		return true
 	}
@@ -111,8 +137,10 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
-		return proofscache.ErrAlreadyExistingEquivalentProof
+		return common.ErrAlreadyExistingEquivalentProof
 	}
+
+	// TODO: make sure proof fields (besides ones used to verify signature) should be checked on processing.
 
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
 }
@@ -140,7 +168,7 @@ func (iep *interceptedEquivalentProof) IsForCurrentShard() bool {
 
 // Hash returns the header hash the proof belongs to
 func (iep *interceptedEquivalentProof) Hash() []byte {
-	return iep.proof.HeaderHash
+	return iep.hash
 }
 
 // Type returns the type of this intercepted data
