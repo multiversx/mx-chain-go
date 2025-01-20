@@ -62,16 +62,6 @@ func TestLeafNode_isDirty(t *testing.T) {
 	assert.Equal(t, false, ln.isDirty())
 }
 
-func TestLeafNode_getCollapsed(t *testing.T) {
-	t.Parallel()
-
-	ln := getLn(getTestMarshalizerAndHasher())
-
-	collapsed, err := ln.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, ln, collapsed)
-}
-
 func TestLeafNode_setHash(t *testing.T) {
 	t.Parallel()
 
@@ -92,37 +82,6 @@ func TestLeafNode_setGivenHash(t *testing.T) {
 
 	ln.setGivenHash(expectedHash)
 	assert.Equal(t, expectedHash, ln.hash)
-}
-
-func TestLeafNode_hashNode(t *testing.T) {
-	t.Parallel()
-
-	ln := getLn(getTestMarshalizerAndHasher())
-	expectedHash, _ := encodeNodeAndGetHash(ln)
-
-	hash, err := ln.hashNode()
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHash, hash)
-}
-
-func TestLeafNode_hashNodeEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	ln := &leafNode{}
-
-	hash, err := ln.hashNode()
-	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
-	assert.Nil(t, hash)
-}
-
-func TestLeafNode_hashNodeNilNode(t *testing.T) {
-	t.Parallel()
-
-	var ln *leafNode
-
-	hash, err := ln.hashNode()
-	assert.True(t, errors.Is(err, ErrNilLeafNode))
-	assert.Nil(t, hash)
 }
 
 func TestLeafNode_commit(t *testing.T) {
@@ -222,18 +181,6 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 	assert.Nil(t, n)
 	assert.Nil(t, key)
 	assert.Equal(t, ErrNodeNotFound, err)
-}
-
-func TestLeafNode_getNextNilNode(t *testing.T) {
-	t.Parallel()
-
-	var ln *leafNode
-	key := []byte("dog")
-
-	n, key, err := ln.getNext(key, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
-	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
 func TestLeafNode_insertAtSameKey(t *testing.T) {
@@ -642,7 +589,7 @@ func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 	assert.Equal(t, ln.Value, retrievedLn.Value())
 }
 
-func TestLeafNode_commitContextDone(t *testing.T) {
+func TestLeafNode_commitSnapshotContextDone(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -650,7 +597,7 @@ func TestLeafNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := ln.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 

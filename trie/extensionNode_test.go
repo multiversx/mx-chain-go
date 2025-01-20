@@ -69,49 +69,6 @@ func TestExtensionNode_isDirty(t *testing.T) {
 	assert.Equal(t, false, en.isDirty())
 }
 
-func TestExtensionNode_getCollapsed(t *testing.T) {
-	t.Parallel()
-
-	en, collapsedEn := getEnAndCollapsedEn()
-	collapsedEn.dirty = true
-	en.setHash(getTestGoroutinesManager())
-	collapsedEn.hash = en.hash
-
-	collapsed, err := en.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn, collapsed)
-}
-
-func TestExtensionNode_getCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	collapsed, err := en.getCollapsed()
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, collapsed)
-}
-
-func TestExtensionNode_getCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	collapsed, err := en.getCollapsed()
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, collapsed)
-}
-
-func TestExtensionNode_getCollapsedCollapsedNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedEn := getEnAndCollapsedEn()
-
-	collapsed, err := collapsedEn.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedEn, collapsed)
-}
-
 func TestExtensionNode_setHash(t *testing.T) {
 	t.Parallel()
 
@@ -144,37 +101,6 @@ func TestExtensionNode_setGivenHash(t *testing.T) {
 
 	en.setGivenHash(expectedHash)
 	assert.Equal(t, expectedHash, en.hash)
-}
-
-func TestExtensionNode_hashNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedEn := getEnAndCollapsedEn()
-	expectedHash, _ := encodeNodeAndGetHash(collapsedEn)
-
-	hash, err := collapsedEn.hashNode()
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHash, hash)
-}
-
-func TestExtensionNode_hashNodeEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	en := &extensionNode{}
-
-	hash, err := en.hashNode()
-	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
-	assert.Nil(t, hash)
-}
-
-func TestExtensionNode_hashNodeNilNode(t *testing.T) {
-	t.Parallel()
-
-	var en *extensionNode
-
-	hash, err := en.hashNode()
-	assert.True(t, errors.Is(err, ErrNilExtensionNode))
-	assert.Nil(t, hash)
 }
 
 func TestExtensionNode_commit(t *testing.T) {
@@ -773,7 +699,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	en.setHash(getTestGoroutinesManager())
 	collapsedEn.setHash(getTestGoroutinesManager())
 	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
-	_ = collapsedEn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	collapsedEn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	en.print(enWriter, 0, db)
 	collapsedEn.print(collapsedEnWriter, 0, db)
@@ -839,7 +765,7 @@ func TestExtensionNode_SizeInBytes(t *testing.T) {
 	assert.Equal(t, len(collapsed)+len(key)+len(hash)+1+3*pointerSizeInBytes, en.sizeInBytes())
 }
 
-func TestExtensionNode_commitContextDone(t *testing.T) {
+func TestExtensionNode_commitSnapshotContextDone(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -847,7 +773,7 @@ func TestExtensionNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := en.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -868,7 +794,8 @@ func TestExtensionNode_commitSnapshotDbIsClosing(t *testing.T) {
 
 	_, collapsedEn := getEnAndCollapsedEn()
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	nodeBytes, _ := collapsedEn.getEncodedNode()
+	err := collapsedEn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }

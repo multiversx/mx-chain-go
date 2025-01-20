@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"sync"
 	"testing"
 	"time"
@@ -224,8 +225,7 @@ func TestTrieSync_FoundInStorageShouldNotRequest(t *testing.T) {
 		},
 	}
 
-	err := bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	require.Nil(t, err)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	leaves, err := bn.getChildren(db)
 	require.Nil(t, err)

@@ -63,7 +63,7 @@ func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
 		return 0, ErrNodeHashIsNotSet
 	}
 
-	val, err := collapseAndEncodeNode(n)
+	val, err := n.getEncodedNode()
 	if err != nil {
 		return 0, err
 	}
@@ -75,30 +75,21 @@ func encodeNodeAndCommitToDB(n node, db common.BaseStorer) (int, error) {
 	return len(val), err
 }
 
-func collapseAndEncodeNode(n node) ([]byte, error) {
-	n, err := n.getCollapsed()
-	if err != nil {
-		return nil, err
-	}
-
-	return n.getEncodedNode()
-}
-
-func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, error) {
-	encChild, err := db.Get(n)
+func getNodeFromDBAndDecode(n []byte, db common.TrieStorageInteractor, marshalizer marshal.Marshalizer, hasher hashing.Hasher) (node, []byte, error) {
+	encodedNode, err := db.Get(n)
 	if err != nil {
 		treatLogError(log, err, n)
 
-		return nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
+		return nil, nil, core.NewGetNodeFromDBErrWithKey(n, err, db.GetIdentifier())
 	}
 
-	decodedNode, err := decodeNode(encChild, marshalizer, hasher)
+	decodedNode, err := decodeNode(encodedNode, marshalizer, hasher)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	decodedNode.setGivenHash(n)
-	return decodedNode, nil
+	return decodedNode, encodedNode, nil
 }
 
 func treatLogError(logInstance logger.Logger, err error, key []byte) {
@@ -274,6 +265,8 @@ func saveDirtyNodeToStorage(
 	hash := hasher.Compute(string(encNode))
 	n.setGivenHash(hash)
 	hashesCollector.AddDirtyHash(hash)
+
+	// test point encodeNodeAndCommitToDB
 
 	err = targetDb.Put(hash, encNode)
 	if err != nil {

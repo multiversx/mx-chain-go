@@ -26,9 +26,7 @@ type baseTrieNode interface {
 type node interface {
 	baseTrieNode
 	setHash(goRoutinesManager common.TrieGoroutinesManager)
-	getCollapsed() (node, error) // a collapsed node is a node that instead of the children holds the children hashes
 	getEncodedNode() ([]byte, error)
-	hashNode() ([]byte, error)
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
 	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) node
@@ -46,10 +44,10 @@ type node interface {
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, goRoutinesManager common.TrieGoroutinesManager, hashesCollector common.TrieHashesCollector, originDb common.TrieStorageInteractor, targetDb common.BaseStorer)
-	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, nodeBytes []byte, depthLevel int) error
 
 	sizeInBytes() int
-	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error
+	collectStats(handler common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, db common.TrieStorageInteractor) error
 
 	IsInterfaceNil() bool
 }
@@ -59,7 +57,7 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
+	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, nodeBytes []byte, depthLevel int) error
 }
 
 // RequestHandler defines the methods through which request to data can be made
