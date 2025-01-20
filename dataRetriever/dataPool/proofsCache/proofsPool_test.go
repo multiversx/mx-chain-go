@@ -66,8 +66,8 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	_ = pp.AddProof(proof3)
 	_ = pp.AddProof(proof4)
 
-	err := pp.AddProof(proof4)
-	require.True(t, errors.Is(err, proofscache.ErrAlreadyExistingEquivalentProof))
+	ok := pp.AddProof(proof4)
+	require.False(t, ok)
 
 	proof, err := pp.GetProof(shardID, []byte("hash3"))
 	require.Nil(t, err)

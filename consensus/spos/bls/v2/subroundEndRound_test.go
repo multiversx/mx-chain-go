@@ -1244,11 +1244,11 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 
 		wasSetCurrentHeaderProofCalled := false
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			AddProofCalled: func(headerProof data.HeaderProofHandler) error {
+			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
 				wasSetCurrentHeaderProofCalled = true
 				require.NotEqual(t, providedPrevSig, headerProof.GetAggregatedSignature())
 				require.NotEqual(t, providedPrevBitmap, headerProof.GetPubKeysBitmap())
-				return nil
+				return true
 			},
 		})
 

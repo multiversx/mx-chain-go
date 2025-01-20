@@ -1,7 +1,6 @@
 package proofscache
 
 import (
-	"encoding/hex"
 	"fmt"
 	"sync"
 
@@ -31,9 +30,9 @@ func NewProofsPool() *proofsPool {
 // AddProof will add the provided proof to the pool
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
-) error {
+) bool {
 	if check.IfNilReflect(headerProof) {
-		return ErrNilProof
+		return false
 	}
 
 	shardID := headerProof.GetHeaderShardId()
@@ -41,7 +40,7 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
-		return fmt.Errorf("%w, headerHash: %s", ErrAlreadyExistingEquivalentProof, hex.EncodeToString(headerHash))
+		return false
 	}
 
 	pp.mutCache.Lock()
@@ -64,7 +63,7 @@ func (pp *proofsPool) AddProof(
 
 	pp.callAddedProofSubscribers(headerProof)
 
-	return nil
+	return true
 }
 
 func (pp *proofsPool) callAddedProofSubscribers(headerProof data.HeaderProofHandler) {

@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"reflect"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -82,10 +81,8 @@ func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.Pe
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
 	if common.ShouldBlockHavePrevProof(interceptedHdr.HeaderHandler(), hip.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		err := hip.proofs.AddProof(interceptedHdr.HeaderHandler().GetPreviousProof())
-		if err != nil {
-			log.Error("failed to add proof", "error", err, "intercepted header hash", interceptedHdr.Hash(), "header type", reflect.TypeOf(interceptedHdr.HeaderHandler()))
-		}
+		ok = hip.proofs.AddProof(interceptedHdr.HeaderHandler().GetPreviousProof())
+		log.Trace("HdrInterceptorProcessor.AddProof: add previous proof", "intercepted header hash", interceptedHdr.Hash(), "added", ok)
 	}
 
 	return nil

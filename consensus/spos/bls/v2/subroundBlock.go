@@ -3,6 +3,7 @@ package v2
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -367,9 +368,9 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 		return
 	}
 
-	err = sr.EquivalentProofsPool().AddProof(proof)
-	if err != nil {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err)
+	ok := sr.EquivalentProofsPool().AddProof(proof)
+	if !ok {
+		log.Debug("saveProofForPreviousHeaderIfNeeded: proof not added", "headerHash", hex.EncodeToString(proof.GetHeaderHash()))
 	}
 }
 
