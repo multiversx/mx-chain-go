@@ -15,8 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
-// TODO: remove this mock component; implement setters for main component in export_test.go
 // ConsensusCoreMock -
+// TODO: remove this mock component; implement setters for main component in export_test.go
 type ConsensusCoreMock struct {
 	blockChain              data.ChainHandler
 	blockProcessor          process.BlockProcessor
@@ -43,6 +43,7 @@ type ConsensusCoreMock struct {
 	signingHandler          consensus.SigningHandler
 	enableEpochsHandler     common.EnableEpochsHandler
 	equivalentProofsPool    consensus.EquivalentProofsPool
+	epochNotifier           process.EpochNotifier
 }
 
 // GetAntiFloodHandler -
@@ -293,6 +294,16 @@ func (ccm *ConsensusCoreMock) EquivalentProofsPool() consensus.EquivalentProofsP
 // SetEquivalentProofsPool -
 func (ccm *ConsensusCoreMock) SetEquivalentProofsPool(proofPool consensus.EquivalentProofsPool) {
 	ccm.equivalentProofsPool = proofPool
+}
+
+// EpochNotifier -
+func (ccm *ConsensusCoreMock) EpochNotifier() process.EpochNotifier {
+	return ccm.epochNotifier
+}
+
+// SetEpochNotifier -
+func (ccm *ConsensusCoreMock) SetEpochNotifier(epochNotifier process.EpochNotifier) {
+	ccm.epochNotifier = epochNotifier
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -41,6 +42,7 @@ type ConsensusCore struct {
 	signingHandler                consensus.SigningHandler
 	enableEpochsHandler           common.EnableEpochsHandler
 	equivalentProofsPool          consensus.EquivalentProofsPool
+	epochNotifier                 process.EpochNotifier
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -69,6 +71,7 @@ type ConsensusCoreArgs struct {
 	SigningHandler                consensus.SigningHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EquivalentProofsPool          consensus.EquivalentProofsPool
+	EpochNotifier                 process.EpochNotifier
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -100,6 +103,7 @@ func NewConsensusCore(
 		signingHandler:                args.SigningHandler,
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		equivalentProofsPool:          args.EquivalentProofsPool,
+		epochNotifier:                 args.EpochNotifier,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -178,6 +182,11 @@ func (cc *ConsensusCore) NodesCoordinator() nodesCoordinator.NodesCoordinator {
 // EpochStartRegistrationHandler returns the epoch start registration handler
 func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.RegistrationHandler {
 	return cc.epochStartRegistrationHandler
+}
+
+// EpochNotifier returns the epoch notifier
+func (cc *ConsensusCore) EpochNotifier() process.EpochNotifier {
+	return cc.epochNotifier
 }
 
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds

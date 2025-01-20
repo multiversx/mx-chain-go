@@ -465,8 +465,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      pcf.coreData.Hasher(),
-		Marshalizer: pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 	if err != nil {
@@ -822,8 +823,9 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
-			Hasher:      pcf.coreData.Hasher(),
-			Marshalizer: pcf.coreData.InternalMarshalizer(),
+			Hasher:              pcf.coreData.Hasher(),
+			Marshalizer:         pcf.coreData.InternalMarshalizer(),
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		}
 		headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 		if err != nil {
@@ -1782,10 +1784,22 @@ func (pcf *processComponentsFactory) newForkDetector(
 ) (process.ForkDetector, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return sync.NewShardForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewShardForkDetector(
+			pcf.coreData.RoundHandler(),
+			headerBlackList,
+			blockTracker,
+			pcf.coreData.GenesisNodesSetup().GetStartTime(),
+			pcf.coreData.EnableEpochsHandler(),
+			pcf.data.Datapool().Proofs())
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return sync.NewMetaForkDetector(pcf.coreData.RoundHandler(), headerBlackList, blockTracker, pcf.coreData.GenesisNodesSetup().GetStartTime())
+		return sync.NewMetaForkDetector(
+			pcf.coreData.RoundHandler(),
+			headerBlackList,
+			blockTracker,
+			pcf.coreData.GenesisNodesSetup().GetStartTime(),
+			pcf.coreData.EnableEpochsHandler(),
+			pcf.data.Datapool().Proofs())
 	}
 
 	return nil, errors.New("could not create fork detector")

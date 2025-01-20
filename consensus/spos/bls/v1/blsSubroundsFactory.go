@@ -104,6 +104,7 @@ func (fct *factory) GenerateSubrounds() error {
 	fct.initConsensusThreshold()
 	fct.consensusCore.Chronology().RemoveAllSubrounds()
 	fct.worker.RemoveAllReceivedMessagesCalls()
+	fct.worker.RemoveAllReceivedHeaderHandlers()
 
 	err := fct.generateStartRoundSubround()
 	if err != nil {
@@ -206,6 +207,7 @@ func (fct *factory) generateBlockSubround() error {
 	fct.worker.AddReceivedMessageCall(bls.MtBlockBodyAndHeader, subroundBlockInstance.receivedBlockBodyAndHeader)
 	fct.worker.AddReceivedMessageCall(bls.MtBlockBody, subroundBlockInstance.receivedBlockBody)
 	fct.worker.AddReceivedMessageCall(bls.MtBlockHeader, subroundBlockInstance.receivedBlockHeader)
+	fct.worker.AddReceivedHeaderHandler(subroundBlockInstance.receivedFullHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundBlockInstance)
 
 	return nil

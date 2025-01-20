@@ -209,7 +209,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	return hsv.VerifySignatureForHash(headerCopy, hash, bitmap, sig)
 }
 
-func verifyPrevProofForHeader(header data.HeaderHandler) error {
+func verifyPrevProofForHeaderIntegrity(header data.HeaderHandler) error {
 	prevProof := header.GetPreviousProof()
 	if check.IfNilReflect(prevProof) {
 		return process.ErrNilHeaderProof
@@ -255,7 +255,15 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 
 // VerifyHeaderWithProof checks if the proof on the header is correct
 func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
-	err := verifyPrevProofForHeader(header)
+	// first block for transition to equivalent proofs consensus does not have a previous proof
+	if !common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
+			return ErrProofNotExpected
+		}
+		return nil
+	}
+
+	err := verifyPrevProofForHeaderIntegrity(header)
 	if err != nil {
 		return err
 	}
@@ -285,6 +293,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return err
 	}
 
+	// TODO: add a new method to get consensus signers that does not require the header and only works with the proof
 	// round, prevHash and prevRandSeed could be removed when we remove fallback validation and we don't need backwards compatibility
 	// (e.g new binary from epoch x forward)
 	consensusPubKeys, err := hsv.getConsensusSigners(

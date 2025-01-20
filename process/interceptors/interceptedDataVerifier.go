@@ -11,10 +11,8 @@ import (
 type interceptedDataStatus int8
 
 const (
-	validInterceptedData interceptedDataStatus = iota
-	invalidInterceptedData
-
-	interceptedDataStatusBytesSize = 8
+	validInterceptedData           interceptedDataStatus = iota
+	interceptedDataStatusBytesSize                       = 8
 )
 
 type interceptedDataVerifier struct {
@@ -56,7 +54,9 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 
 	err := interceptedData.CheckValidity()
 	if err != nil {
-		idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
+		log.Debug("Intercepted data is invalid", "hash", interceptedData.Hash(), "err", err)
+		// TODO: investigate to selectively add as invalid intercepted data only when data is indeed invalid instead of missing
+		// idv.cache.Put(interceptedData.Hash(), invalidInterceptedData, interceptedDataStatusBytesSize)
 		return process.ErrInvalidInterceptedData
 	}
 

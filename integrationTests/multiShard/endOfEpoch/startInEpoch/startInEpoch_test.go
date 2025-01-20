@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -36,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -227,7 +228,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	cryptoComponents.BlKeyGen = &mock.KeyGenMock{}
 	cryptoComponents.TxKeyGen = &mock.KeyGenMock{}
 
-	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
+	coreComponents := integrationTests.GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
 	coreComponents.HasherField = integrationTests.TestHasher
@@ -358,7 +361,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		ChainID:                      string(integrationTests.ChainID),
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
-		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
+		EpochNotifier:                genericEpochNotifier,
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
 	}
