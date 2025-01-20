@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// TODO: Also fix ProcessDestinationShardAsObserver
+
 // ProcessDestinationShardAsObserver returns the shardID given the destination as observer string
 func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uint32, error) {
 	destShard := strings.ToLower(destinationShardIdAsObserver)
