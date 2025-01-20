@@ -553,10 +553,6 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		r := sr.DoBlockJob()
 		assert.True(t, r)
 		assert.Equal(t, uint64(1), sr.GetHeader().GetNonce())
-
-		proof := sr.GetHeader().GetPreviousProof()
-		assert.Equal(t, providedSignature, proof.GetAggregatedSignature())
-		assert.Equal(t, providedBitmap, proof.GetPubKeysBitmap())
 	})
 }
 

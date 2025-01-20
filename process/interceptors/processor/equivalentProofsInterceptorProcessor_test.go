@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
@@ -96,9 +95,9 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 		wasCalled := false
 		args := createMockArgEquivalentProofsInterceptorProcessor()
 		args.EquivalentProofsPool = &dataRetriever.ProofsPoolMock{
-			AddProofCalled: func(notarizedProof data.HeaderProofHandler) error {
+			AddProofCalled: func(notarizedProof data.HeaderProofHandler) bool {
 				wasCalled = true
-				return nil
+				return true
 			},
 		}
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
@@ -110,7 +109,6 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			Proofs:            &dataRetriever.ProofsPoolMock{},
 			Headers:           &pool.HeadersPoolStub{},
-			Storage:           &genericMocks.ChainStorerMock{},
 			Hasher:            &hashingMocks.HasherMock{},
 		}
 		argInterceptedEquivalentProof.DataBuff, _ = argInterceptedEquivalentProof.Marshaller.Marshal(&block.HeaderProof{

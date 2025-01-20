@@ -406,10 +406,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 	bitmap := previousHeader.GetPubKeysBitmap()
 	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, previousHeader.GetEpoch()) {
-		proof := previousHeader.GetPreviousProof()
-		if !check.IfNilReflect(proof) {
-			bitmap = proof.GetPubKeysBitmap()
-		}
+		bitmap = vs.getBitmapForFullConsensus(previousHeader.GetShardID(), previousHeader.GetEpoch())
 	}
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
@@ -903,6 +900,17 @@ func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) er
 	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
 
+// TODO: check if this can be taken from somewhere else
+func (vs *validatorStatistics) getBitmapForFullConsensus(shardID uint32, epoch uint32) []byte {
+	consensusSize := vs.nodesCoordinator.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
+	bitmap := make([]byte, consensusSize/8+1)
+	for i := 0; i < consensusSize; i++ {
+		bitmap[i/8] |= 1 << (uint16(i) % 8)
+	}
+
+	return bitmap
+}
+
 func (vs *validatorStatistics) updateShardDataPeerState(
 	header data.HeaderHandler,
 	cacheMap map[string]data.HeaderHandler,
@@ -935,10 +943,14 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		}
 
 		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
+		bitmap := h.PubKeysBitmap
+		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, h.Epoch) {
+			bitmap = vs.getBitmapForFullConsensus(h.ShardID, h.Epoch)
+		}
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			leader,
 			shardConsensus,
-			h.PubKeysBitmap,
+			bitmap,
 			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
 			h.ShardID,
 		)

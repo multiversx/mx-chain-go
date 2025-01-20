@@ -207,9 +207,9 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	wasAddedProofs := false
 	arg.Proofs = &dataRetriever.ProofsPoolMock{
-		AddProofCalled: func(headerProof data.HeaderProofHandler) error {
+		AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
 			wasAddedProofs = true
-			return nil
+			return true
 		},
 	}
 

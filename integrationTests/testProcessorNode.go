@@ -2833,11 +2833,10 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		}
 		blockHeader.SetPreviousProof(previousProof)
 
-		err = tpn.ProofsPool.AddProof(previousProof)
-		if err != nil {
-			log.Warn("ProofsPool.AddProof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address, "err", err.Error())
+		wasAdded := tpn.ProofsPool.AddProof(previousProof)
+		if !wasAdded {
+			log.Warn("ProofsPool.AddProof not added", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 		}
-		return err
 	}
 
 	err = blockHeader.SetPubKeysBitmap(pubKeysBitmap)
@@ -3138,8 +3137,9 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
 	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)

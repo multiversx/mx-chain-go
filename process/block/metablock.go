@@ -427,6 +427,16 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 		// TODO: consider the validation of the proof:
 		//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
 		//	if they are different, verify the proof received on header
+
+		shardHeader, ok := mp.hdrsForCurrBlock.hdrHashAndInfo[string(shardData.HeaderHash)]
+		if !ok {
+			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(shardData.HeaderHash))
+		}
+
+		if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHeader.hdr.GetEpoch()) {
+			continue
+		}
+
 		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
 		}
@@ -756,6 +766,33 @@ func (mp *metaProcessor) RestoreBlockIntoPools(headerHandler data.HeaderHandler,
 	return nil
 }
 
+func (mp *metaProcessor) updateHeaderForEpochStartIfNeeded(metaHdr *block.MetaBlock) error {
+	isEpochStart := mp.epochStartTrigger.IsEpochStart()
+	if !isEpochStart {
+		return nil
+	}
+	return mp.updateEpochStartHeader(metaHdr)
+}
+
+func (mp *metaProcessor) createBody(metaHdr *block.MetaBlock, haveTime func() bool) (data.BodyHandler, error) {
+	isEpochStart := mp.epochStartTrigger.IsEpochStart()
+	var body data.BodyHandler
+	var err error
+	if isEpochStart {
+		body, err = mp.createEpochStartBody(metaHdr)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		body, err = mp.createBlockBody(metaHdr, haveTime)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return body, nil
+}
+
 // CreateBlock creates the final block and header for the current round
 func (mp *metaProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
@@ -789,21 +826,19 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, err
 	}
 
-	if mp.epochStartTrigger.IsEpochStart() {
-		err = mp.updateEpochStartHeader(metaHdr)
-		if err != nil {
-			return nil, nil, err
-		}
+	err = mp.updateHeaderForEpochStartIfNeeded(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
-		body, err = mp.createEpochStartBody(metaHdr)
-		if err != nil {
-			return nil, nil, err
-		}
-	} else {
-		body, err = mp.createBlockBody(metaHdr, haveTime)
-		if err != nil {
-			return nil, nil, err
-		}
+	err = mp.addPrevProofIfNeeded(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	body, err = mp.createBody(metaHdr, haveTime)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	body, err = mp.applyBodyToHeader(metaHdr, body)
@@ -1168,7 +1203,7 @@ func (mp *metaProcessor) createAndProcessCrossMiniBlocksDstMe(
 			// shard header must be processed completely
 			errAccountState := mp.accountsDB[state.UserAccountsState].RevertToSnapshot(snapshot)
 			if errAccountState != nil {
-				// TODO: evaluate if reloading the trie from disk will might solve the problem
+				// TODO: evaluate if reloading the trie from disk might solve the problem
 				log.Warn("accounts.RevertToSnapshot", "error", errAccountState.Error())
 			}
 			continue
@@ -2161,11 +2196,11 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			continue
 		}
 
-		isBlockAfterEquivalentMessagesFlag := check.IfNil(headerInfo.hdr) &&
+		isBlockAfterEquivalentMessagesFlag := !check.IfNil(headerInfo.hdr) &&
 			mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
 		hasMissingShardHdrProof := isBlockAfterEquivalentMessagesFlag && !mp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 		if hasMissingShardHdrProof {
-			return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hdrHash)
+			return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
 		shardHdr, ok := headerInfo.hdr.(data.ShardHeaderHandler)
