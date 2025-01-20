@@ -12,9 +12,9 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -137,7 +137,7 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
-		return proofscache.ErrAlreadyExistingEquivalentProof
+		return common.ErrAlreadyExistingEquivalentProof
 	}
 
 	// TODO: make sure proof fields (besides ones used to verify signature) should be checked on processing.
