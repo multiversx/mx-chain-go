@@ -435,8 +435,6 @@ func TestSovereignShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 		},
 		AccumulatedFeesInEpoch: big.NewInt(0),
 	}, h)
-	require.Nil(t, h.GetValidatorStatsRootHash())
-	require.Nil(t, h.GetRootHash())
 }
 
 func TestSovereignShardProcessor_CreateBlock(t *testing.T) {
