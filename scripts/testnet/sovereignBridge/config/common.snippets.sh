@@ -21,9 +21,8 @@ getFundsInAddressSovereign() {
         --gas-limit=50000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
+        --wait-result \
         --send
-
-    sleep 6
 }
 
 gitPullAllChanges()
