@@ -70,3 +70,11 @@ func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 		require.Equal(t, uint32(0), nbShards)
 	})
 }
+
+func TestSovereignNumberOfShardsComputer_ShardIdFromNodesConfig(t *testing.T) {
+	t.Parallel()
+
+	ssc := newSovereignNumberOfShardsComputer()
+	require.Equal(t, core.SovereignChainShardId, ssc.ShardIdFromNodesConfig(nil))
+	require.Equal(t, core.SovereignChainShardId, ssc.ShardIdFromNodesConfig(&epochNodesConfig{shardID: core.MetachainShardId}))
+}
