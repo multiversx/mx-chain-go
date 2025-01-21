@@ -6,12 +6,13 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-core-go/core"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/urfave/cli"
+
 	"github.com/multiversx/mx-chain-go/common/operationmodes"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/urfave/cli"
 )
 
 var (
@@ -713,11 +714,10 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 	generalConfigs := configs.GeneralConfig
 	p2pConfigs := configs.MainP2pConfig
 	fullArchiveP2PConfigs := configs.FullArchiveP2pConfig
-	prefsConfig := configs.PreferencesConfig
 
 	var err error
 
-	importDbFlags.ImportDBTargetShardID, err = common.ProcessDestinationShardAsObserver(prefsConfig.Preferences.DestinationShardAsObserver)
+	importDbFlags.ImportDBTargetShardID = core.SovereignChainShardId
 	if err != nil {
 		return err
 	}
