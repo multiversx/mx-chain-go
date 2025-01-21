@@ -432,7 +432,8 @@ type TestProcessorNode struct {
 	BlockTrackerCreator   track.BlockTrackerCreator
 	BlockProcessorCreator processing.BlockProcessorCreator
 
-	RunTypeComponents factory.RunTypeComponentsHolder
+	RunTypeComponents   factory.RunTypeComponentsHolder
+	EnableEpochsFactory enablers.EnableEpochsFactory
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -565,6 +566,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		BlockProcessorCreator:      args.RunTypeComponents.BlockProcessorCreator(),
 		BlockTrackerCreator:        args.RunTypeComponents.BlockTrackerCreator(),
 		RunTypeComponents:          args.RunTypeComponents,
+		EnableEpochsFactory:        enablers.NewEnableEpochsFactory(),
 	}
 
 	tpn.NodeKeys = args.NodeKeys

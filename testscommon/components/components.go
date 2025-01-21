@@ -99,7 +99,7 @@ func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
 
 // GetSovereignRunTypeCoreComponents -
 func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
-	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory(config.SovereignEpochConfig{})
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovRunTypeCoreComponentsFactory)
 	if err != nil {
 		log.Error("GetSovereignRunTypeCoreComponents.NewManagedRunTypeCoreComponents", "error", err.Error())
@@ -143,8 +143,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				},
 			},
 		},
-		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		RunTypeCoreComponents: runTypeCoreComponents,
 	}
 }
 
@@ -342,8 +341,7 @@ func GetSovereignCoreComponents() factory.CoreComponentsHolder {
 	sovRunTypeCoreComponents := GetSovereignRunTypeCoreComponents()
 	coreArgs := GetCoreArgs()
 	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
-	coreArgs.GenesisNodesSetupFactory = sovRunTypeCoreComponents.GenesisNodesSetupFactoryCreator()
-	coreArgs.RatingsDataFactory = sovRunTypeCoreComponents.RatingsDataFactoryCreator()
+	coreArgs.RunTypeCoreComponents = sovRunTypeCoreComponents
 	return createCoreComponents(coreArgs)
 }
 
@@ -690,8 +688,8 @@ func GetProcessArgs(
 			}, nil
 		},
 	}
-
 	args.RunTypeComponents = runTypeComponents
+	args.EnableEpochsFactory = GetRunTypeCoreComponents().EnableEpochsFactoryCreator()
 	return args
 }
 
@@ -746,6 +744,7 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = runTypeComponents
+	processArgs.EnableEpochsFactory = GetSovereignRunTypeCoreComponents().EnableEpochsFactoryCreator()
 
 	return processArgs
 }
@@ -1229,6 +1228,7 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 
 // GetRunTypeComponentsWithCoreComp -
 func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolder) factory.RunTypeComponentsHolder {
+	generalCfg := GetGeneralConfig()
 	args := runType.ArgsRunTypeComponents{
 		CoreComponents: coreComponents,
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
@@ -1241,6 +1241,7 @@ func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolde
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &generalCfg,
 		},
 		InitialAccounts: createAccounts(),
 	}
