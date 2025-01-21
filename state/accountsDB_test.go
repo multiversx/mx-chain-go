@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -85,6 +86,21 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 	}
 }
 
+func getDefaultTrieArgs(db common.BaseStorer) trie.TrieArgs {
+	args := storage.GetStorageManagerArgs()
+	args.MainStorer = db
+	trieStorage, _ := trie.NewTrieStorageManager(args)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	return trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          &marshallerMock.MarshalizerMock{},
+		Hasher:               &hashingMocks.HasherMock{},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 5,
+		Throttler:            th,
+	}
+}
+
 func createUserAcc(address []byte) state.UserAccountHandler {
 	acc, _ := accounts.NewUserAccount(address, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
 	return acc
@@ -130,13 +146,10 @@ func getDefaultStateComponents(
 		SnapshotsBufferLen:    10,
 		SnapshotsGoroutineNum: 1,
 	}
-	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
 
-	args := storage.GetStorageManagerArgs()
-	args.MainStorer = db
-	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, 5)
+	trieArgs := getDefaultTrieArgs(db)
+	trieArgs.EnableEpochsHandler = enableEpochsHandler
+	tr, _ := trie.NewTrie(trieArgs)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -144,15 +157,15 @@ func getDefaultStateComponents(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(ewlArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, generalCfg.PruningBufferLen)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
+		Hasher:              trieArgs.Hasher,
+		Marshaller:          trieArgs.Marshalizer,
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
 		ProcessingMode:       common.Normal,
-		Marshaller:           marshaller,
+		Marshaller:           trieArgs.Marshalizer,
 		AddressConverter:     &testscommon.PubkeyConverterMock{},
 		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
 		StateMetrics:         &stateMock.StateMetricsStub{},
@@ -164,8 +177,8 @@ func getDefaultStateComponents(
 
 	argsAccountsDB := state.ArgsAccountsDB{
 		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
+		Hasher:                trieArgs.Hasher,
+		Marshaller:            trieArgs.Marshalizer,
 		AccountFactory:        accCreator,
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
@@ -173,7 +186,7 @@ func getDefaultStateComponents(
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
-	return adb, tr, trieStorage
+	return adb, tr, trieArgs.TrieStorage
 }
 
 func TestNewAccountsDB(t *testing.T) {
@@ -1774,22 +1787,19 @@ func TestAccountsDB_RemoveAccountAlsoRemovesCodeAndRevertsCorrectly(t *testing.T
 func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
+	db := storage.GetStorageManagerArgs().MainStorer
+	trieArgs := getDefaultTrieArgs(db)
+	tr, _ := trie.NewTrie(trieArgs)
 	ewl := stateMock.NewEvictionWaitingListMock(100)
-	args := storage.GetStorageManagerArgs()
-	tsm, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
-	argsAccountsDB.Hasher = hasher
-	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.Hasher = trieArgs.Hasher
+	argsAccountsDB.Marshaller = trieArgs.Marshalizer
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
+		Hasher:              trieArgs.Hasher,
+		Marshaller:          trieArgs.Marshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
@@ -1971,21 +1981,17 @@ func modifyDataTries(t *testing.T, accountsAddresses [][]byte, adb *state.Accoun
 func TestAccountsDB_GetCode(t *testing.T) {
 	t.Parallel()
 
-	maxTrieLevelInMemory := uint(5)
-	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
-
-	args := storage.GetStorageManagerArgs()
-	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	db := storage.GetStorageManagerArgs().MainStorer
+	trieArgs := getDefaultTrieArgs(db)
+	tr, _ := trie.NewTrie(trieArgs)
 	spm := disabled.NewDisabledStoragePruningManager()
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
-	argsAccountsDB.Hasher = hasher
-	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.Hasher = trieArgs.Hasher
+	argsAccountsDB.Marshaller = trieArgs.Marshalizer
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
+		Hasher:              trieArgs.Hasher,
+		Marshaller:          trieArgs.Marshalizer,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)
@@ -2009,7 +2015,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 	err = adb.SaveAccount(userAcc)
 	require.Nil(t, err)
 
-	codeHash := hasher.Compute(string(code))
+	codeHash := trieArgs.Hasher.Compute(string(code))
 
 	retrievedCode := adb.GetCode(codeHash)
 	assert.Equal(t, retrievedCode, code)
@@ -2425,13 +2431,12 @@ func TestAccountsDB_NewAccountsDbStartsSnapshotAfterRestart(t *testing.T) {
 }
 
 func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
-	maxTrieLevelInMemory := uint(5)
 	marshaller := &marshallerMock.MarshalizerMock{}
 	hasher := &hashingMocks.HasherMock{}
 
 	args := storage.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(getDefaultTrieArgs(tsm))
 	spm := disabled.NewDisabledStoragePruningManager()
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2751,19 +2756,19 @@ func TestAccountsDB_SaveKeyValAfterAccountIsReverted(t *testing.T) {
 func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	t.Parallel()
 
-	marshaller := &marshallerMock.MarshalizerMock{}
-	hasher := &hashingMocks.HasherMock{}
+	db := storage.GetStorageManagerArgs().MainStorer
 	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
-	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, uint(5))
+	trieArgs := getDefaultTrieArgs(db)
+	trieArgs.EnableEpochsHandler = enableEpochsHandler
+	tr, _ := trie.NewTrie(trieArgs)
 	spm := &stateMock.StoragePruningManagerStub{}
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
-	argsAccountsDB.Hasher = hasher
-	argsAccountsDB.Marshaller = marshaller
+	argsAccountsDB.Hasher = trieArgs.Hasher
+	argsAccountsDB.Marshaller = trieArgs.Marshalizer
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshaller,
+		Hasher:              trieArgs.Hasher,
+		Marshaller:          trieArgs.Marshalizer,
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	argsAccountsDB.AccountFactory, _ = factory.NewAccountCreator(argsAccCreator)

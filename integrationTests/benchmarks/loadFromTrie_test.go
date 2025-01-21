@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -101,8 +102,18 @@ func generateTriesWithMaxDepth(
 	hasher hashing.Hasher,
 ) []*keyForTrie {
 	tries := make([]*keyForTrie, numTries)
+	thr, _ := throttler.NewNumGoRoutinesThrottler(50)
+
 	for i := 0; i < numTries; i++ {
-		tr, _ := trie.NewTrie(storage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 2)
+		trieArgs := trie.TrieArgs{
+			TrieStorage:          storage,
+			Marshalizer:          marshaller,
+			Hasher:               hasher,
+			EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			MaxTrieLevelInMemory: 2,
+			Throttler:            thr,
+		}
+		tr, _ := trie.NewTrie(trieArgs)
 		key := insertKeysIntoTrie(t, tr, numTrieLevels, numChildrenPerBranch)
 
 		rootHash, _ := tr.RootHash()

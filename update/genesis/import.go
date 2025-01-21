@@ -315,7 +315,15 @@ func (si *stateImport) getTrie(shardID uint32, accType Type) (common.Trie, error
 		trieStorageManager = si.trieStorageManagers[dataRetriever.PeerAccountsUnit.String()]
 	}
 
-	trieForShard, err := trie.NewTrie(trieStorageManager, si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorageManager,
+		Marshalizer:          si.marshalizer,
+		Hasher:               si.hasher,
+		EnableEpochsHandler:  si.enableEpochsHandler,
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+	}
+	trieForShard, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +355,15 @@ func (si *stateImport) importDataTrie(identifier string, shID uint32, keys [][]b
 		return fmt.Errorf("%w wanted a roothash", update.ErrWrongTypeAssertion)
 	}
 
-	dataTrie, err := trie.NewTrie(si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()], si.marshalizer, si.hasher, si.enableEpochsHandler, maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          si.trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		Marshalizer:          si.marshalizer,
+		Hasher:               si.hasher,
+		EnableEpochsHandler:  si.enableEpochsHandler,
+		MaxTrieLevelInMemory: maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+	}
+	dataTrie, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		return err
 	}

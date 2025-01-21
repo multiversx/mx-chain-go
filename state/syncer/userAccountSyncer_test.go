@@ -3,7 +3,8 @@ package syncer
 import (
 	"testing"
 	"time"
-
+	
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -89,7 +90,16 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          tsm,
+		Marshalizer:          args.Marshalizer,
+		Hasher:               args.Hasher,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 5,
+		Throttler:            th,
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

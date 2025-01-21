@@ -86,6 +86,7 @@ func emptyDirtyBranchNode() *branchNode {
 func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 	args := GetDefaultTrieStorageManagerParameters()
 	trieStorage, _ := NewTrieStorageManager(args)
+	thr, _ := throttler.NewNumGoRoutinesThrottler(10)
 	tr := &patriciaMerkleTrie{
 		trieStorage:             trieStorage,
 		marshalizer:             args.Marshalizer,
@@ -97,6 +98,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		goRoutinesManager:       getTestGoroutinesManager(),
 		RootManager:             NewRootManager(),
 		trieOperationInProgress: &atomic.Flag{},
+		throttler:               thr,
 	}
 
 	return tr, trieStorage

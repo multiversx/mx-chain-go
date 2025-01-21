@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -48,66 +47,71 @@ type patriciaMerkleTrie struct {
 	goRoutinesManager       common.TrieGoroutinesManager
 	trieOperationInProgress *atomic.Flag
 	updateTrieMutex         sync.RWMutex
+	throttler               core.Throttler
 
 	maxTrieLevelInMemory uint
 	chanClose            chan struct{}
 }
 
+// TrieArgs is the arguments for creating a new trie
+type TrieArgs struct {
+	TrieStorage          common.StorageManager
+	Marshalizer          marshal.Marshalizer
+	Hasher               hashing.Hasher
+	EnableEpochsHandler  common.EnableEpochsHandler
+	MaxTrieLevelInMemory uint
+	Throttler            core.Throttler
+}
+
 // NewTrie creates a new Patricia Merkle Trie
 func NewTrie(
-	trieStorage common.StorageManager,
-	msh marshal.Marshalizer,
-	hsh hashing.Hasher,
-	enableEpochsHandler common.EnableEpochsHandler,
-	maxTrieLevelInMemory uint,
+	args TrieArgs,
 ) (*patriciaMerkleTrie, error) {
-	if check.IfNil(trieStorage) {
+	if check.IfNil(args.TrieStorage) {
 		return nil, ErrNilTrieStorage
 	}
-	if check.IfNil(msh) {
+	if check.IfNil(args.Marshalizer) {
 		return nil, ErrNilMarshalizer
 	}
-	if check.IfNil(hsh) {
+	if check.IfNil(args.Hasher) {
 		return nil, ErrNilHasher
 	}
-	if check.IfNil(enableEpochsHandler) {
+	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
-	if maxTrieLevelInMemory == 0 {
+	if args.MaxTrieLevelInMemory == 0 {
 		return nil, ErrInvalidLevelValue
 	}
-	log.Trace("created new trie", "max trie level in memory", maxTrieLevelInMemory)
-
-	tnvv, err := core.NewTrieNodeVersionVerifier(enableEpochsHandler)
-	if err != nil {
-		return nil, err
+	if check.IfNil(args.Throttler) {
+		return nil, ErrNilThrottler
 	}
+	log.Trace("created new trie", "max trie level in memory", args.MaxTrieLevelInMemory)
 
-	// TODO give num goroutines from config as argument
-	trieThrottler, err := throttler.NewNumGoRoutinesThrottler(20)
+	tnvv, err := core.NewTrieNodeVersionVerifier(args.EnableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	chanClose := make(chan struct{})
-	goRoutinesManager, err := NewGoroutinesManager(trieThrottler, errChan.NewErrChanWrapper(), chanClose)
+	goRoutinesManager, err := NewGoroutinesManager(args.Throttler, errChan.NewErrChanWrapper(), chanClose)
 	if err != nil {
 		return nil, err
 	}
 
 	return &patriciaMerkleTrie{
 		RootManager:             NewRootManager(),
-		trieStorage:             trieStorage,
-		marshalizer:             msh,
-		hasher:                  hsh,
-		maxTrieLevelInMemory:    maxTrieLevelInMemory,
+		trieStorage:             args.TrieStorage,
+		marshalizer:             args.Marshalizer,
+		hasher:                  args.Hasher,
+		maxTrieLevelInMemory:    args.MaxTrieLevelInMemory,
 		chanClose:               chanClose,
-		enableEpochsHandler:     enableEpochsHandler,
+		enableEpochsHandler:     args.EnableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		batchManager:            trieBatchManager.NewTrieBatchManager(),
 		goRoutinesManager:       goRoutinesManager,
 		trieOperationInProgress: &atomic.Flag{},
 		updateTrieMutex:         sync.RWMutex{},
+		throttler:               args.Throttler,
 	}, nil
 }
 
@@ -401,11 +405,14 @@ func (tr *patriciaMerkleTrie) Recreate(options common.RootHashHolder) (common.Tr
 func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
 	if common.IsEmptyTrie(root) {
 		return NewTrie(
-			tr.trieStorage,
-			tr.marshalizer,
-			tr.hasher,
-			tr.enableEpochsHandler,
-			tr.maxTrieLevelInMemory,
+			TrieArgs{
+				TrieStorage:          tr.trieStorage,
+				Marshalizer:          tr.marshalizer,
+				Hasher:               tr.hasher,
+				EnableEpochsHandler:  tr.enableEpochsHandler,
+				MaxTrieLevelInMemory: tr.maxTrieLevelInMemory,
+				Throttler:            tr.throttler,
+			},
 		)
 	}
 
@@ -450,11 +457,14 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 
 func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
-		tsm,
-		tr.marshalizer,
-		tr.hasher,
-		tr.enableEpochsHandler,
-		tr.maxTrieLevelInMemory,
+		TrieArgs{
+			tsm,
+			tr.marshalizer,
+			tr.hasher,
+			tr.enableEpochsHandler,
+			tr.maxTrieLevelInMemory,
+			tr.throttler,
+		},
 	)
 	if err != nil {
 		return nil, nil, err
