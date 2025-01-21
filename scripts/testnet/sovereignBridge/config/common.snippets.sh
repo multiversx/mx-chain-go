@@ -12,7 +12,7 @@ getFundsInAddressSovereign() {
 
     local OUTFILE="${OUTFILE_PATH}/get-funds-sovereign.interaction.json"
     mxpy tx new \
-        --pem="~/MultiversX/testnet/node/config/walletKey.pem" \
+        --pem=${WALLET_SOVEREIGN} \
         --pem-index 0 \
         --proxy=${PROXY_SOVEREIGN} \
         --chain=${CHAIN_ID_SOVEREIGN} \
@@ -21,9 +21,8 @@ getFundsInAddressSovereign() {
         --gas-limit=50000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
+        --wait-result \
         --send
-
-    sleep 6
 }
 
 gitPullAllChanges()
