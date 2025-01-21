@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// TODO: Also fix ProcessDestinationShardAsObserver
+
 // ProcessDestinationShardAsObserver returns the shardID given the destination as observer string
 func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uint32, error) {
 	destShard := strings.ToLower(destinationShardIdAsObserver)
@@ -28,6 +30,8 @@ func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uin
 
 	return uint32(val), err
 }
+
+// TODO: ALSO FIX THIS AssignShardForPubKeyWhenNotSpecified
 
 // AssignShardForPubKeyWhenNotSpecified will return the same shard ID when it is called with the same parameters
 // This function fetched the last byte of the public key and based on a modulo operation it will return a shard ID

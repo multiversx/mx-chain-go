@@ -501,6 +501,7 @@ func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeys(epoc
 	for shardID, shardEligible := range nodesConfig.eligibleMap {
 		for i := 0; i < len(shardEligible); i++ {
 			validatorsPubKeys[shardID] = append(validatorsPubKeys[shardID], shardEligible[i].PubKey())
+
 		}
 	}
 
@@ -1040,7 +1041,22 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 	publicKeysPrevEpoch := make(map[uint32][][]byte)
 	prevEpochConfigExists := false
 
+	log.Error("ihnc *indexHashedNodesCoordinator.GetConsensusWhitelistedNodes start ", " epoch", epoch)
+
+	ihnc.mutNodesConfig.RLock()
+	epochCfg := ihnc.nodesConfig[epoch]
+	for shardKey, validatorsInShard := range epochCfg.eligibleMap {
+		log.Error("indexHashedNodesCoordinator.GetConsensusWhitelistedNodes iterating over", "shardKey", shardKey)
+
+		for _, currVal := range validatorsInShard {
+			log.Error("indexHashedNodesCoordinator.GetConsensusWhitelistedNodes iterating over", "pubKey", currVal.PubKey())
+		}
+	}
+	ihnc.mutNodesConfig.RUnlock()
+
 	if epoch > ihnc.startEpoch {
+		log.Error("epoch > ihnc.startEpoch")
+
 		publicKeysPrevEpoch, err = ihnc.GetAllEligibleValidatorsPublicKeys(epoch - 1)
 		if err == nil {
 			prevEpochConfigExists = true
@@ -1051,6 +1067,8 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 
 	var prevEpochShardId uint32
 	if prevEpochConfigExists {
+		log.Error("prevEpochShardId")
+
 		prevEpochShardId, err = ihnc.ShardIdForEpoch(epoch - 1)
 		if err == nil {
 			for _, pubKey := range publicKeysPrevEpoch[prevEpochShardId] {
@@ -1066,15 +1084,33 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusWhitelistedNodes(
 		return nil, errGetEligible
 	}
 
+	validatorsInSov := publicKeysNewEpoch[0]
+
+	for _, valInShard := range validatorsInSov {
+		log.Error("2222222 valInShard", "key", valInShard)
+	}
+
 	epochShardId, errShardIdForEpoch := ihnc.ShardIdForEpoch(epoch)
 	if errShardIdForEpoch != nil {
 		return nil, errShardIdForEpoch
+	}
+
+	log.Error("333333333 epochShardId", "epochShardId", epochShardId)
+
+	if epochShardId != 0 {
+		log.Error("444444444444444444444444444444444444444444444444")
+		epochShardId = 0
 	}
 
 	for _, pubKey := range publicKeysNewEpoch[epochShardId] {
 		shardEligible[string(pubKey)] = struct{}{}
 	}
 
+	for nodeKey := range shardEligible {
+		log.Error("indexHashedNodesCoordinator.GetConsensusWhitelistedNodes", "shardEligible", nodeKey)
+	}
+
+	log.Error("ihnc *indexHashedNodesCoordinator.GetConsensusWhitelistedNodes END ")
 	return shardEligible, nil
 }
 
