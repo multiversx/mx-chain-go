@@ -9,10 +9,15 @@ import (
 
 var log = logger.GetOrCreate("chaos")
 
-var roundDivisor_maybeCorruptSignature = 5
-var roundDivisor_shouldSkipWaitingForSignatures = 7
-var roundDivisor_shouldReturnErrorInCheckSignaturesValidity = 11
-var blockNonceDivisor_shouldPanic = 123
+var context chaosContext
+
+func init() {
+	context = chaosContext{}
+}
+
+type chaosContext struct {
+	processTransactionCounter int
+}
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature corrupts the signature, from time to time.
 func In_subroundSignature_doSignatureJob_maybeCorruptSignature(header data.HeaderHandler, signatureShare []byte) {
@@ -61,6 +66,22 @@ func In_subroundEndRound_checkSignaturesValidity_shouldReturnError(header data.H
 	}
 
 	log.Info("Returning error in check signatures validity", "round", round, "nonce", nonce)
+	return true
+}
+
+// In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
+func In_shardProcess_processTransaction_shouldReturnError() bool {
+	if !isChaosEnabled() {
+		return false
+	}
+
+	context.processTransactionCounter++
+	if context.processTransactionCounter%numCallsDivisor_processTransaction_shouldReturnError == 0 {
+		log.Info("Returning error when processing transaction")
+		return true
+	}
+
+	return false
 }
 
 func isChaosEnabled() bool {
