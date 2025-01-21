@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -76,6 +77,9 @@ func (mrcc *managedRunTypeCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mrcc.ratingsDataFactory) {
 		return errors.ErrNilRatingsDataFactory
 	}
+	if check.IfNil(mrcc.enableEpochsFactory) {
+		return enablers.ErrNilEnableEpochsFactory
+	}
 	return nil
 }
 
@@ -101,6 +105,18 @@ func (mrcc *managedRunTypeCoreComponents) RatingsDataFactoryCreator() rating.Rat
 	}
 
 	return mrcc.runTypeCoreComponents.ratingsDataFactory
+}
+
+// EnableEpochsFactoryCreator returns the enable epochs factory creator
+func (mrcc *managedRunTypeCoreComponents) EnableEpochsFactoryCreator() enablers.EnableEpochsFactory {
+	mrcc.mutRunTypeCoreComponents.RLock()
+	defer mrcc.mutRunTypeCoreComponents.RUnlock()
+
+	if check.IfNil(mrcc.runTypeCoreComponents) {
+		return nil
+	}
+
+	return mrcc.runTypeCoreComponents.enableEpochsFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

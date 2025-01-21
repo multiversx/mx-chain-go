@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
@@ -668,6 +669,7 @@ type RunTypeCoreComponentsHandler interface {
 type RunTypeCoreComponentsHolder interface {
 	GenesisNodesSetupFactoryCreator() sharding.GenesisNodesSetupFactory
 	RatingsDataFactoryCreator() rating.RatingsDataFactory
+	EnableEpochsFactoryCreator() enablers.EnableEpochsFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error
