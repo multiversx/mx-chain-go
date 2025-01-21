@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -863,6 +864,10 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 }
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
+	if chaos.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.Header) {
+		return spos.ErrInvalidSignature
+	}
+
 	consensusGroup := sr.ConsensusGroup()
 	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, bitmap)
 	for _, pubKey := range signers {
