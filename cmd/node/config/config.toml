@@ -371,7 +371,7 @@
     NumElementsToRemoveOnEviction = 200
 
 [ProofsPoolConfig]
-    CleanupDelta = 3
+    CleanupNonceDelta = 3
 
 [BadBlocksCache]
     Name = "BadBlocksCache"

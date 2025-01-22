@@ -21,7 +21,7 @@ type HeadersPoolConfig struct {
 
 // ProofsPoolConfig will map the proofs cache configuration
 type ProofsPoolConfig struct {
-	CleanupDelta uint64
+	CleanupNonceDelta uint64
 }
 
 // DBConfig will map the database configuration

@@ -9,7 +9,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const defaultCleanupDelta = 3
+const defaultCleanupNonceDelta = 3
 
 var log = logger.GetOrCreate("dataRetriever/proofscache")
 
@@ -19,19 +19,20 @@ type proofsPool struct {
 
 	mutAddedProofSubscribers sync.RWMutex
 	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
-	cleanupDelta             uint64
+	cleanupNonceDelta        uint64
 }
 
 // NewProofsPool creates a new proofs pool component
-func NewProofsPool(cleanupDelta uint64) *proofsPool {
-	if cleanupDelta < defaultCleanupDelta {
-		cleanupDelta = defaultCleanupDelta
+func NewProofsPool(cleanupNonceDelta uint64) *proofsPool {
+	if cleanupNonceDelta < defaultCleanupNonceDelta {
+		log.Debug("proofs pool: using default cleanup nonce delta", "cleanupNonceDelta", defaultCleanupNonceDelta)
+		cleanupNonceDelta = defaultCleanupNonceDelta
 	}
 
 	return &proofsPool{
 		cache:                 make(map[uint32]*proofsCache),
 		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
-		cleanupDelta:          cleanupDelta,
+		cleanupNonceDelta:     cleanupNonceDelta,
 	}
 }
 
@@ -90,11 +91,11 @@ func (pp *proofsPool) CleanupProofsBehindNonce(shardID uint32, nonce uint64) err
 		return nil
 	}
 
-	if nonce <= pp.cleanupDelta {
+	if nonce <= pp.cleanupNonceDelta {
 		return nil
 	}
 
-	nonce -= pp.cleanupDelta
+	nonce -= pp.cleanupNonceDelta
 
 	pp.mutCache.RLock()
 	defer pp.mutCache.RUnlock()
