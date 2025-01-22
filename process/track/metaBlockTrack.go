@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -60,6 +61,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 	mbt.blockProcessor = blockProcessorObject
 	mbt.headers = make(map[uint32]map[uint64][]*HeaderInfo)
 	mbt.headersPool.RegisterHandler(mbt.receivedHeader)
+	mbt.proofsPool.RegisterHandler(mbt.receivedProof)
 	mbt.headersPool.Clear()
 
 	return &mbt, nil
