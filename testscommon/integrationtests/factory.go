@@ -1,6 +1,7 @@
 package integrationtests
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -100,7 +101,16 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, MaxTrieLevelInMemory)
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          TestMarshalizer,
+		Hasher:               TestHasher,
+		EnableEpochsHandler:  enableEpochs,
+		MaxTrieLevelInMemory: MaxTrieLevelInMemory,
+		Throttler:            th,
+	}
+	tr, _ := trie.NewTrie(trieArgs)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{

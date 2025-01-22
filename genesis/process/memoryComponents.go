@@ -21,7 +21,15 @@ func createAccountAdapter(
 	addressConverter core.PubkeyConverter,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, maxTrieLevelInMemory)
+	tr, err := trie.NewTrie(
+		trie.TrieArgs{
+			TrieStorage:          trieStorage,
+			Marshalizer:          marshaller,
+			Hasher:               hasher,
+			EnableEpochsHandler:  enableEpochsHandler,
+			MaxTrieLevelInMemory: maxTrieLevelInMemory,
+			Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+		})
 	if err != nil {
 		return nil, err
 	}

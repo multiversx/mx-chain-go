@@ -21,11 +21,6 @@ func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, erro
 	return adb.getAccount(address, adb.getMainTrie())
 }
 
-// GetObsoleteHashes -
-func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
-	return adb.obsoleteDataTrieHashes
-}
-
 // GetCode -
 func GetCode(account baseAccountHandler) []byte {
 	return account.GetCodeHash()

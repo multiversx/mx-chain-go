@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/hashesCollector"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
@@ -272,15 +273,14 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	args.Hasher = hasher
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	maxTrieLevelInMemory := uint(5)
-	tr1, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr1, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 
 	key := hasher.Compute("key")
 	value := hasher.Compute("value")
 
 	_ = tr1.Update(key, value)
 	h1, _ := tr1.RootHash()
-	err := tr1.Commit()
+	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	require.Nil(t, err)
 
 	tr2, err := tr1.Recreate(holders.NewDefaultRootHashesHolder(h1))
@@ -962,6 +962,11 @@ func TestAccountsDB_ExecALotOfBalanceTxOKorNOK(t *testing.T) {
 	integrationTests.PrintShardAccount(acntDest.(state.UserAccountHandler), "Destination")
 }
 
+type trieWithToString interface {
+	common.Trie
+	ToString() string
+}
+
 func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 	nrOfAccounts := 1000000
 	balance := 1500000
@@ -995,7 +1000,7 @@ func BenchmarkCreateOneMillionAccountsWithMockDB(b *testing.B) {
 		core.ConvertBytes(rtm.Sys),
 	)
 
-	_ = tr.String()
+	_ = tr.(trieWithToString).ToString()
 }
 
 func BenchmarkCreateOneMillionAccounts(b *testing.B) {
@@ -1055,8 +1060,8 @@ func createAccounts(
 	args := testStorage.GetStorageManagerArgs()
 	args.MainStorer = store
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+
+	tr, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              integrationTests.TestHasher,
@@ -2083,7 +2088,7 @@ func TestAccountRemoval(t *testing.T) {
 
 	shardNode := nodes[0]
 
-	dataTriesRootHashes, codeMap := generateAccounts(shardNode, accounts)
+	_, codeMap := generateAccounts(shardNode, accounts)
 
 	_, _ = shardNode.AccntState.Commit()
 	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -2116,13 +2121,6 @@ func TestAccountRemoval(t *testing.T) {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		checkCodeConsistency(t, shardNode, codeMap)
 	}
-
-	delayRounds = 5
-	for i := 0; i < delayRounds; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
-	}
-
-	checkDataTrieConsistency(t, shardNode.AccntState, removedAccounts, dataTriesRootHashes)
 }
 
 func generateAccounts(
@@ -2164,24 +2162,6 @@ func getDataTrieEntry() ([]byte, []byte) {
 	value := []byte("value" + index)
 
 	return key, value
-}
-
-func checkDataTrieConsistency(
-	t *testing.T,
-	adb state.AccountsAdapter,
-	removedAccounts map[int]struct{},
-	dataTriesRootHashes [][]byte,
-) {
-	for i, rootHash := range dataTriesRootHashes {
-		_, ok := removedAccounts[i]
-		if ok {
-			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
-			assert.NotNil(t, err)
-		} else {
-			err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
-			require.Nil(t, err)
-		}
-	}
 }
 
 func TestProofAndVerifyProofDataTrie(t *testing.T) {
@@ -2727,8 +2707,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	args := testStorage.GetStorageManagerArgs()
 	args.GeneralConfig = generalCfg
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	maxTrieLevelInMemory := uint(5)
-	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
+	tr, _ := trie.NewTrie(integrationTests.GetTrieArgs(trieStorage))
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              integrationTests.TestHasher,

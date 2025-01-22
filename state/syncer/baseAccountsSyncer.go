@@ -217,7 +217,15 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, b.maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          b.trieStorageManager,
+		Marshalizer:          b.marshalizer,
+		Hasher:               b.hasher,
+		EnableEpochsHandler:  b.enableEpochsHandler,
+		MaxTrieLevelInMemory: b.maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+	}
+	dataTrie, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)

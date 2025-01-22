@@ -372,7 +372,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	newRoot, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
+	newRoot, rootBytes, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -384,7 +384,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootDepthLevel)
+	err = newRoot.commitSnapshot(stsm, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, rootBytes, rootDepthLevel)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -422,14 +422,14 @@ func newSnapshotNode(
 	hsh hashing.Hasher,
 	rootHash []byte,
 	missingNodesCh chan []byte,
-) (snapshotNode, error) {
-	newRoot, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
+) (snapshotNode, []byte, error) {
+	newRoot, rootBytes, err := getNodeFromDBAndDecode(rootHash, db, msh, hsh)
 	_, _ = treatCommitSnapshotError(err, rootHash, missingNodesCh)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return newRoot, nil
+	return newRoot, rootBytes, nil
 }
 
 // IsPruningEnabled returns true if the trie pruning is enabled
