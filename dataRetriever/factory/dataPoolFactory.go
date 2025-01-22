@@ -147,7 +147,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}
 
-	proofsPool := proofscache.NewProofsPool()
+	proofsPool := proofscache.NewProofsPool(mainConfig.ProofsPoolConfig.CleanupDelta)
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 

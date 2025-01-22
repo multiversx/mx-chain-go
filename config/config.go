@@ -19,6 +19,11 @@ type HeadersPoolConfig struct {
 	NumElementsToRemoveOnEviction int
 }
 
+// ProofsPoolConfig will map the proofs cache configuration
+type ProofsPoolConfig struct {
+	CleanupDelta uint64
+}
+
 // DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath            string
@@ -208,6 +213,7 @@ type Config struct {
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
+	ProofsPoolConfig        ProofsPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
 	VirtualMachine          VirtualMachineServicesConfig
 	BuiltInFunctions        BuiltInFunctionsConfig

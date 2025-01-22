@@ -46,8 +46,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
-const proofsCleanupDelta = 3
-
 var log = logger.GetOrCreate("process/block")
 
 type hashAndHdr struct {
@@ -1006,7 +1004,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	)
 
 	if common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce-proofsCleanupDelta)
+		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
 				"nonce", noncesToPrevFinal,
@@ -1045,7 +1043,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	)
 
 	if common.ShouldBlockHavePrevProof(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal-proofsCleanupDelta)
+		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
 				"nonce", noncesToPrevFinal,

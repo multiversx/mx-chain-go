@@ -9,6 +9,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+const defaultCleanupDelta = 3
+
 var log = logger.GetOrCreate("dataRetriever/proofscache")
 
 type proofsPool struct {
@@ -17,13 +19,19 @@ type proofsPool struct {
 
 	mutAddedProofSubscribers sync.RWMutex
 	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
+	cleanupDelta             uint64
 }
 
 // NewProofsPool creates a new proofs pool component
-func NewProofsPool() *proofsPool {
+func NewProofsPool(cleanupDelta uint64) *proofsPool {
+	if cleanupDelta < defaultCleanupDelta {
+		cleanupDelta = defaultCleanupDelta
+	}
+
 	return &proofsPool{
 		cache:                 make(map[uint32]*proofsCache),
 		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
+		cleanupDelta:          cleanupDelta,
 	}
 }
 
@@ -81,6 +89,12 @@ func (pp *proofsPool) CleanupProofsBehindNonce(shardID uint32, nonce uint64) err
 	if nonce == 0 {
 		return nil
 	}
+
+	if nonce <= pp.cleanupDelta {
+		return nil
+	}
+
+	nonce = nonce - pp.cleanupDelta
 
 	pp.mutCache.RLock()
 	defer pp.mutCache.RUnlock()

@@ -138,7 +138,7 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 	})
 	panicIfError("CreatePoolsHolder", err)
 
-	proofsPool := proofscache.NewProofsPool()
+	proofsPool := proofscache.NewProofsPool(3)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
@@ -248,7 +248,7 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 	heartbeatPool, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolderWithTxPool", err)
 
-	proofsPool := proofscache.NewProofsPool()
+	proofsPool := proofscache.NewProofsPool(3)
 
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()

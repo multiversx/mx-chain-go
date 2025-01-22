@@ -370,6 +370,9 @@
     MaxHeadersPerShard = 1000
     NumElementsToRemoveOnEviction = 200
 
+[ProofsPoolConfig]
+    CleanupDelta = 3
+
 [BadBlocksCache]
     Name = "BadBlocksCache"
     Capacity = 1000
