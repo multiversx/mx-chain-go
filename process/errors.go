@@ -1274,3 +1274,6 @@ var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
 
 // ErrUnexpectedHeaderProof signals that a header proof has been provided unexpectedly
 var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
+
+// ErrEpochMissmatch signals that the epoch do not match
+var ErrEpochMissmatch = errors.New("epoch missmatch")

@@ -1898,6 +1898,9 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		if shardData.DeveloperFees.Cmp(shardHdr.GetDeveloperFees()) != 0 {
 			return nil, process.ErrDeveloperFeesDoNotMatch
 		}
+		if shardData.Epoch != shardHdr.GetEpoch() {
+			return nil, process.ErrEpochMissmatch
+		}
 
 		err = verifyProof(shardData.GetPreviousProof())
 		if err != nil {
@@ -2223,6 +2226,8 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			shardData.Epoch = shardHdr.GetEpoch()
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
