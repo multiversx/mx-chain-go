@@ -73,6 +73,7 @@ type NodesCoordinatorHelper interface {
 // NumberOfShardsComputer provides the number of shards computation capabilities
 type NumberOfShardsComputer interface {
 	ComputeNumberOfShards(config *epochNodesConfig) (uint32, error)
+	ShardIdFromNodesConfig(nodesConfig *epochNodesConfig) uint32
 	IsInterfaceNil() bool
 }
 

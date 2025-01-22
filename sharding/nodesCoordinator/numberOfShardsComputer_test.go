@@ -92,3 +92,11 @@ func TestNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 		require.Equal(t, expectedNbShardsWithoutMeta, nbShards)
 	})
 }
+
+func TestNumberOfShardsComputer_ShardIdFromNodesConfig(t *testing.T) {
+	t.Parallel()
+
+	ssc := newNumberOfShardsWithMetaComputer()
+	require.Equal(t, uint32(3), ssc.ShardIdFromNodesConfig(&epochNodesConfig{shardID: 3}))
+	require.Equal(t, core.MetachainShardId, ssc.ShardIdFromNodesConfig(&epochNodesConfig{shardID: core.MetachainShardId}))
+}
