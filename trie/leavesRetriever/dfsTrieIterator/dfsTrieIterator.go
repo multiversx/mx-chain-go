@@ -2,6 +2,7 @@ package dfsTrieIterator
 
 import (
 	"context"
+	"encoding/hex"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -9,19 +10,18 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 )
 
 type dfsIterator struct {
 	nextNodes  []common.TrieNodeData
-	rootHash   []byte
 	db         common.TrieStorageInteractor
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
-	size       uint64
 }
 
 // NewIterator creates a new DFS iterator for the trie.
-func NewIterator(rootHash []byte, db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*dfsIterator, error) {
+func NewIterator(initialState [][]byte, db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher) (*dfsIterator, error) {
 	if check.IfNil(db) {
 		return nil, trie.ErrNilDatabase
 	}
@@ -31,34 +31,68 @@ func NewIterator(rootHash []byte, db common.TrieStorageInteractor, marshaller ma
 	if check.IfNil(hasher) {
 		return nil, trie.ErrNilHasher
 	}
+	if len(initialState) == 0 {
+		return nil, trie.ErrEmptyInitialIteratorState
+	}
 
-	data, err := trie.GetNodeDataFromHash(rootHash, keyBuilder.NewKeyBuilder(), db, marshaller, hasher)
+	nextNodes, err := getNextNodesFromInitialState(initialState, uint(hasher.Size()))
 	if err != nil {
 		return nil, err
 	}
 
-	size := uint64(0)
-	for _, node := range data {
-		size += node.Size()
-	}
-
 	return &dfsIterator{
-		nextNodes:  data,
-		rootHash:   rootHash,
+		nextNodes:  nextNodes,
 		db:         db,
 		marshaller: marshaller,
 		hasher:     hasher,
-		size:       size,
 	}, nil
 }
 
+func getNextNodesFromInitialState(initialState [][]byte, hashSize uint) ([]common.TrieNodeData, error) {
+	nextNodes := make([]common.TrieNodeData, len(initialState))
+	for i, state := range initialState {
+		if len(state) < int(hashSize) {
+			return nil, trie.ErrInvalidIteratorState
+		}
+
+		nodeHash := state[:hashSize]
+		key := state[hashSize:]
+
+		kb := keyBuilder.NewKeyBuilder()
+		kb.BuildKey(key)
+		nodeData, err := trieNodeData.NewIntermediaryNodeData(kb, nodeHash)
+		if err != nil {
+			return nil, err
+		}
+		nextNodes[i] = nodeData
+	}
+
+	return nextNodes, nil
+}
+
+func getIteratorStateFromNextNodes(nextNodes []common.TrieNodeData) [][]byte {
+	iteratorState := make([][]byte, len(nextNodes))
+	for i, node := range nextNodes {
+		nodeHash := node.GetData()
+		key := node.GetKeyBuilder().GetRawKey()
+
+		iteratorState[i] = append(nodeHash, key...)
+	}
+
+	return iteratorState
+}
+
 // GetLeaves retrieves leaves from the trie. It stops either when the number of leaves is reached or the context is done.
-// TODO add a maxSize that will stop the iteration when the size is reached
-func (it *dfsIterator) GetLeaves(numLeaves int, ctx context.Context) (map[string]string, error) {
+func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, error) {
 	retrievedLeaves := make(map[string]string)
+	leavesSize := uint64(0)
 	for {
 		nextNodes := make([]common.TrieNodeData, 0)
-		if len(retrievedLeaves) >= numLeaves {
+		if leavesSize >= maxSize {
+			return retrievedLeaves, nil
+		}
+
+		if len(retrievedLeaves) >= numLeaves && numLeaves != 0 {
 			return retrievedLeaves, nil
 		}
 
@@ -66,7 +100,7 @@ func (it *dfsIterator) GetLeaves(numLeaves int, ctx context.Context) (map[string
 			return retrievedLeaves, nil
 		}
 
-		if checkContextDone(ctx) {
+		if common.IsContextDone(ctx) {
 			return retrievedLeaves, nil
 		}
 
@@ -77,7 +111,6 @@ func (it *dfsIterator) GetLeaves(numLeaves int, ctx context.Context) (map[string
 			return nil, err
 		}
 
-		childrenSize := uint64(0)
 		for _, childNode := range childrenNodes {
 			if childNode.IsLeaf() {
 				key, err := childNode.GetKeyBuilder().GetKey()
@@ -85,44 +118,32 @@ func (it *dfsIterator) GetLeaves(numLeaves int, ctx context.Context) (map[string
 					return nil, err
 				}
 
-				retrievedLeaves[string(key)] = string(childNode.GetData())
+				keyValHolder, err := leavesParser.ParseLeaf(key, childNode.GetData(), childNode.GetVersion())
+				if err != nil {
+					return nil, err
+				}
+
+				hexKey := hex.EncodeToString(keyValHolder.Key())
+				hexData := hex.EncodeToString(keyValHolder.Value())
+				retrievedLeaves[hexKey] = hexData
+				leavesSize += uint64(len(hexKey) + len(hexData))
 				continue
 			}
 
 			nextNodes = append(nextNodes, childNode)
-			childrenSize += childNode.Size()
 		}
 
-		it.size += childrenSize
-		it.size -= it.nextNodes[0].Size()
 		it.nextNodes = append(nextNodes, it.nextNodes[1:]...)
 	}
 }
 
-// GetIteratorId returns the ID of the iterator.
-func (it *dfsIterator) GetIteratorId() []byte {
-	if len(it.nextNodes) == 0 {
+// GetIteratorState returns the state of the iterator from which it can be resumed by another call.
+func (it *dfsIterator) GetIteratorState() [][]byte {
+	if it.FinishedIteration() {
 		return nil
 	}
 
-	nextNodeHash := it.nextNodes[0].GetData()
-	iteratorID := it.hasher.Compute(string(append(it.rootHash, nextNodeHash...)))
-	return iteratorID
-}
-
-// Clone creates a copy of the iterator.
-func (it *dfsIterator) Clone() common.DfsIterator {
-	nextNodes := make([]common.TrieNodeData, len(it.nextNodes))
-	copy(nextNodes, it.nextNodes)
-
-	return &dfsIterator{
-		nextNodes:  nextNodes,
-		rootHash:   it.rootHash,
-		db:         it.db,
-		marshaller: it.marshaller,
-		hasher:     it.hasher,
-		size:       it.size,
-	}
+	return getIteratorStateFromNextNodes(it.nextNodes)
 }
 
 // FinishedIteration checks if the iterator has finished the iteration.
@@ -130,26 +151,7 @@ func (it *dfsIterator) FinishedIteration() bool {
 	return len(it.nextNodes) == 0
 }
 
-// Size returns the size of the iterator.
-func (it *dfsIterator) Size() uint64 {
-	return it.size + uint64(len(it.rootHash))
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (it *dfsIterator) IsInterfaceNil() bool {
 	return it == nil
-}
-
-// TODO add context nil test
-func checkContextDone(ctx context.Context) bool {
-	if ctx == nil {
-		return false
-	}
-
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
 }

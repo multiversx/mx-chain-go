@@ -2,7 +2,7 @@ package leavesRetriever
 
 import (
 	"context"
-	"sync"
+	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -12,14 +12,10 @@ import (
 )
 
 type leavesRetriever struct {
-	iterators      map[string]common.DfsIterator
-	lruIteratorIDs [][]byte
-	db             common.TrieStorageInteractor
-	marshaller     marshal.Marshalizer
-	hasher         hashing.Hasher
-	size           uint64
-	maxSize        uint64
-	mutex          sync.RWMutex
+	db         common.TrieStorageInteractor
+	marshaller marshal.Marshalizer
+	hasher     hashing.Hasher
+	maxSize    uint64
 }
 
 // NewLeavesRetriever creates a new leaves retriever
@@ -35,125 +31,31 @@ func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Mars
 	}
 
 	return &leavesRetriever{
-		iterators:      make(map[string]common.DfsIterator),
-		lruIteratorIDs: make([][]byte, 0),
-		db:             db,
-		marshaller:     marshaller,
-		hasher:         hasher,
-		size:           0,
-		maxSize:        maxSize,
+		db:         db,
+		marshaller: marshaller,
+		hasher:     hasher,
+		maxSize:    maxSize,
 	}, nil
 }
 
-// GetLeaves retrieves the leaves from the trie. If there is a saved checkpoint for the iterator id, it will continue to iterate from the checkpoint.
-func (lr *leavesRetriever) GetLeaves(numLeaves int, rootHash []byte, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
-	if len(iteratorID) == 0 {
-		return lr.getLeavesFromNewInstance(numLeaves, rootHash, ctx)
+// GetLeaves retrieves leaves from the trie starting from the iterator state. It will also return the new iterator state
+// from which one can continue the iteration.
+func (lr *leavesRetriever) GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+	if check.IfNil(leavesParser) {
+		return nil, nil, fmt.Errorf("nil leaves parser")
 	}
 
-	lr.mutex.RLock()
-	iterator, ok := lr.iterators[string(iteratorID)]
-	lr.mutex.RUnlock()
-	if !ok {
-		return nil, nil, ErrIteratorNotFound
-	}
-
-	return lr.getLeavesFromCheckpoint(numLeaves, iterator, iteratorID, ctx)
-}
-
-func (lr *leavesRetriever) getLeavesFromNewInstance(numLeaves int, rootHash []byte, ctx context.Context) (map[string]string, []byte, error) {
-	iterator, err := dfsTrieIterator.NewIterator(rootHash, lr.db, lr.marshaller, lr.hasher)
+	iterator, err := dfsTrieIterator.NewIterator(iteratorState, lr.db, lr.marshaller, lr.hasher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return lr.getLeavesFromIterator(iterator, numLeaves, ctx)
-}
-
-func (lr *leavesRetriever) getLeavesFromCheckpoint(numLeaves int, iterator common.DfsIterator, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
-	lr.markIteratorAsRecentlyUsed(iteratorID)
-	clonedIterator := iterator.Clone()
-
-	return lr.getLeavesFromIterator(clonedIterator, numLeaves, ctx)
-}
-
-func (lr *leavesRetriever) getLeavesFromIterator(iterator common.DfsIterator, numLeaves int, ctx context.Context) (map[string]string, []byte, error) {
-	leaves, err := iterator.GetLeaves(numLeaves, ctx)
+	leavesData, err := iterator.GetLeaves(numLeaves, lr.maxSize, leavesParser, ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if iterator.FinishedIteration() {
-		return leaves, nil, nil
-	}
-
-	iteratorId := iterator.GetIteratorId()
-	if len(iteratorId) == 0 {
-		return leaves, nil, nil
-	}
-
-	lr.manageIterators(iteratorId, iterator)
-	return leaves, iteratorId, nil
-}
-
-func (lr *leavesRetriever) manageIterators(iteratorId []byte, iterator common.DfsIterator) {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
-
-	lr.saveIterator(iteratorId, iterator)
-	lr.removeIteratorsIfMaxSizeIsExceeded()
-}
-
-func (lr *leavesRetriever) saveIterator(iteratorId []byte, iterator common.DfsIterator) {
-	_, isPresent := lr.iterators[string(iteratorId)]
-	if isPresent {
-		return
-	}
-
-	lr.lruIteratorIDs = append(lr.lruIteratorIDs, iteratorId)
-	lr.iterators[string(iteratorId)] = iterator
-	lr.size += iterator.Size() + uint64(len(iteratorId))
-}
-
-func (lr *leavesRetriever) markIteratorAsRecentlyUsed(iteratorId []byte) {
-	lr.mutex.Lock()
-	defer lr.mutex.Unlock()
-
-	for i, id := range lr.lruIteratorIDs {
-		if string(id) == string(iteratorId) {
-			lr.lruIteratorIDs = append(lr.lruIteratorIDs[:i], lr.lruIteratorIDs[i+1:]...)
-			lr.lruIteratorIDs = append(lr.lruIteratorIDs, id)
-			return
-		}
-	}
-}
-
-func (lr *leavesRetriever) removeIteratorsIfMaxSizeIsExceeded() {
-	if lr.size <= lr.maxSize {
-		return
-	}
-
-	idsToRemove := make([][]byte, 0)
-	sizeOfRemoved := uint64(0)
-	numOfRemoved := 0
-
-	for i := 0; i < len(lr.lruIteratorIDs); i++ {
-		id := lr.lruIteratorIDs[i]
-		idsToRemove = append(idsToRemove, id)
-		iterator := lr.iterators[string(id)]
-		sizeOfRemoved += iterator.Size() + uint64(len(id))
-		numOfRemoved++
-
-		if lr.size-sizeOfRemoved <= lr.maxSize {
-			break
-		}
-	}
-
-	for _, id := range idsToRemove {
-		delete(lr.iterators, string(id))
-	}
-	lr.lruIteratorIDs = lr.lruIteratorIDs[numOfRemoved:]
-	lr.size -= sizeOfRemoved
+	return leavesData, iterator.GetIteratorState(), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

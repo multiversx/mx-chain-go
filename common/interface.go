@@ -80,6 +80,7 @@ type StorageMarker interface {
 type KeyBuilder interface {
 	BuildKey(keyPart []byte)
 	GetKey() ([]byte, error)
+	GetRawKey() []byte
 	DeepClone() KeyBuilder
 	ShallowClone() KeyBuilder
 	Size() uint
@@ -381,21 +382,19 @@ type TrieNodeData interface {
 	GetData() []byte
 	Size() uint64
 	IsLeaf() bool
+	GetVersion() core.TrieNodeVersion
 }
 
 // DfsIterator is used to iterate the trie nodes in a depth-first search manner
 type DfsIterator interface {
-	GetLeaves(numLeaves int, ctx context.Context) (map[string]string, error)
-	GetIteratorId() []byte
-	Clone() DfsIterator
-	FinishedIteration() bool
-	Size() uint64
+	GetLeaves(numLeaves int, maxSize uint64, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, error)
+	GetIteratorState() [][]byte
 	IsInterfaceNil() bool
 }
 
 // TrieLeavesRetriever is used to retrieve the leaves from the trie. If there is a saved checkpoint for the iterator id,
 // it will continue to iterate from the checkpoint.
 type TrieLeavesRetriever interface {
-	GetLeaves(numLeaves int, rootHash []byte, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error)
+	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
 	IsInterfaceNil() bool
 }

@@ -34,6 +34,11 @@ func (kb *keyBuilder) GetKey() ([]byte, error) {
 	return hexToTrieKeyBytes(kb.key)
 }
 
+// GetRawKey returns the key as it is, without transforming it
+func (kb *keyBuilder) GetRawKey() []byte {
+	return kb.key
+}
+
 // ShallowClone returns a new KeyBuilder with the same key. The key slice points to the same memory location.
 func (kb *keyBuilder) ShallowClone() common.KeyBuilder {
 	return &keyBuilder{

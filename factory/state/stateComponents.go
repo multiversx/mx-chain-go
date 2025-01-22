@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever"
 )
 
 // TODO: merge this with data components
@@ -53,6 +54,7 @@ type stateComponents struct {
 	triesContainer           common.TriesHolder
 	trieStorageManagers      map[string]common.StorageManager
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier
+	trieLeavesRetriever      common.TrieLeavesRetriever
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -100,6 +102,11 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
+	trieLeavesRetriever, err := scf.createTrieLeavesRetriever(trieStorageManagers[dataRetriever.UserAccountsUnit.String()])
+	if err != nil {
+		return nil, err
+	}
+
 	return &stateComponents{
 		peerAccounts:             peerAdapter,
 		accountsAdapter:          accountsAdapter,
@@ -108,7 +115,21 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		triesContainer:           triesContainer,
 		trieStorageManagers:      trieStorageManagers,
 		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
+		trieLeavesRetriever:      trieLeavesRetriever,
 	}, nil
+}
+
+func (scf *stateComponentsFactory) createTrieLeavesRetriever(trieStorage common.TrieStorageInteractor) (common.TrieLeavesRetriever, error) {
+	if !scf.config.TrieLeavesRetrieverConfig.Enabled {
+		return leavesRetriever.NewDisabledLeavesRetriever(), nil
+	}
+
+	return leavesRetriever.NewLeavesRetriever(
+		trieStorage,
+		scf.core.InternalMarshalizer(),
+		scf.core.Hasher(),
+		scf.config.TrieLeavesRetrieverConfig.MaxSizeInBytes,
+	)
 }
 
 func (scf *stateComponentsFactory) createSnapshotManager(

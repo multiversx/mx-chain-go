@@ -49,6 +49,7 @@ type NodeStub struct {
 	GetESDTsWithRoleCalled                         func(address string, role string, options api.AccountQueryOptions, ctx context.Context) ([]string, api.BlockInfo, error)
 	GetESDTsRolesCalled                            func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string][]string, api.BlockInfo, error)
 	GetKeyValuePairsCalled                         func(address string, options api.AccountQueryOptions, ctx context.Context) (map[string]string, api.BlockInfo, error)
+	IterateKeysCalled                              func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error)
 	GetAllIssuedESDTsCalled                        func(tokenType string, ctx context.Context) ([]string, error)
 	GetProofCalled                                 func(rootHash string, key string) (*common.GetProofResponse, error)
 	GetProofDataTrieCalled                         func(rootHash string, address string, key string) (*common.GetProofResponse, *common.GetProofResponse, error)
@@ -110,6 +111,15 @@ func (ns *NodeStub) GetKeyValuePairs(address string, options api.AccountQueryOpt
 	}
 
 	return nil, api.BlockInfo{}, nil
+}
+
+// IterateKeys -
+func (ns *NodeStub) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
+	if ns.IterateKeysCalled != nil {
+		return ns.IterateKeysCalled(address, numKeys, iteratorState, options, ctx)
+	}
+
+	return nil, nil, api.BlockInfo{}, nil
 }
 
 // GetValueForKey -
