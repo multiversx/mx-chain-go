@@ -2223,6 +2223,8 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			if err != nil {
 				return nil, err
 			}
+
+			shardData.Epoch = shardHdr.GetEpoch()
 		}
 		shardData.NumPendingMiniBlocks = uint32(len(mp.pendingMiniBlocksHandler.GetPendingMiniBlocks(shardData.ShardID)))
 		header, _, err := mp.blockTracker.GetLastSelfNotarizedHeader(shardHdr.GetShardID())
