@@ -81,7 +81,7 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	proof, err = pp.GetProof(shardID, []byte("hash3"))
-	require.Nil(t, nil)
+	require.Nil(t, err)
 
 	proof, err = pp.GetProof(shardID, []byte("hash4"))
 	require.Nil(t, err)
