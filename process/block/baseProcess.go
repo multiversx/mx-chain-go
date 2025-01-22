@@ -633,6 +633,7 @@ func (bp *baseProcessor) computeHeadersForCurrentBlock(usedInBlock bool) (map[ui
 		}
 
 		if bp.hasMissingProof(headerInfo, hdrHash) {
+			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
@@ -651,6 +652,7 @@ func (bp *baseProcessor) computeHeadersForCurrentBlockInfo(usedInBlock bool) (ma
 		}
 
 		if bp.hasMissingProof(headerInfo, metaBlockHash) {
+			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
 		}
 
