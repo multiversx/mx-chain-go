@@ -624,11 +624,9 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
-// TODO: remove bool parameter and give instead the set to sort
-func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+func (bp *baseProcessor) computeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
 		if headerInfo.usedInBlock != usedInBlock {
 			continue
@@ -641,20 +639,13 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (ma
 
 		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
 	}
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-
-	// sort headers for each shard
-	for _, hdrsForShard := range hdrsForCurrentBlock {
-		process.SortHeadersByNonce(hdrsForShard)
-	}
 
 	return hdrsForCurrentBlock, nil
 }
 
-func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) (map[uint32][][]byte, error) {
+func (bp *baseProcessor) computeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]*nonceAndHashInfo, error) {
 	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
 
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
 		if headerInfo.usedInBlock != usedInBlock {
 			continue
@@ -668,7 +659,34 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
 			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
 	}
+
+	return hdrsForCurrentBlockInfo, nil
+}
+
+// TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	hdrsForCurrentBlock, err := bp.computeHeadersForCurrentBlock(usedInBlock)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
+
+	// sort headers for each shard
+	for _, hdrsForShard := range hdrsForCurrentBlock {
+		process.SortHeadersByNonce(hdrsForShard)
+	}
+
+	return hdrsForCurrentBlock, nil
+}
+
+func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) (map[uint32][][]byte, error) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	hdrsForCurrentBlockInfo, err := bp.computeHeadersForCurrentBlockInfo(usedInBlock)
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, hdrsForShard := range hdrsForCurrentBlockInfo {
 		if len(hdrsForShard) > 1 {
