@@ -142,7 +142,15 @@ func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
 }
 
 func (d *dataTrieFactory) createAndAddOneTrie(shId uint32, accType genesis.Type, container common.TriesHolder) error {
-	dataTrie, err := trie.NewTrie(d.trieStorage, d.marshalizer, d.hasher, d.enableEpochsHandler, d.maxTrieLevelInMemory)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          d.trieStorage,
+		Marshalizer:          d.marshalizer,
+		Hasher:               d.hasher,
+		EnableEpochsHandler:  d.enableEpochsHandler,
+		MaxTrieLevelInMemory: d.maxTrieLevelInMemory,
+		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+	}
+	dataTrie, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		return err
 	}

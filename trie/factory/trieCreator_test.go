@@ -41,6 +41,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StatsCollector:      disabled.NewStateStatistics(),
+		NumGoRoutines:       10,
 	}
 }
 

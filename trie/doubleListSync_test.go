@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/hashesCollector"
@@ -35,10 +36,22 @@ func createTrieStorageManager(store storage.Storer) (common.StorageManager, stor
 	return tsm, store
 }
 
+func getTrieArgs(tsm common.StorageManager) TrieArgs {
+	th, _ := throttler.NewNumGoRoutinesThrottler(10)
+	return TrieArgs{
+		TrieStorage:          tsm,
+		Marshalizer:          marshalizer,
+		Hasher:               hasherMock,
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		MaxTrieLevelInMemory: 6,
+		Throttler:            th,
+	}
+}
+
 func createInMemoryTrie() (common.Trie, storage.Storer) {
 	memUnit := testscommon.CreateMemUnit()
 	tsm, _ := createTrieStorageManager(memUnit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
+	tr, _ := NewTrie(getTrieArgs(tsm))
 
 	return tr, memUnit
 }
@@ -51,7 +64,7 @@ func createInMemoryTrieFromDB(db storage.Persister) (common.Trie, storage.Storer
 	unit, _ := storageunit.NewStorageUnit(cache, db)
 
 	tsm, _ := createTrieStorageManager(unit)
-	tr, _ := NewTrie(tsm, marshalizer, hasherMock, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 6)
+	tr, _ := NewTrie(getTrieArgs(tsm))
 
 	return tr, unit
 }

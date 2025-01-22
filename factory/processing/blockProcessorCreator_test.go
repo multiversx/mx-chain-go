@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -198,7 +199,16 @@ func createAccountAdapter(
 	trieStorage common.StorageManager,
 	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, 5)
+	thr, _ := throttler.NewNumGoRoutinesThrottler(10)
+	trieArgs := trie.TrieArgs{
+		TrieStorage:          trieStorage,
+		Marshalizer:          marshaller,
+		Hasher:               hasher,
+		EnableEpochsHandler:  handler,
+		MaxTrieLevelInMemory: 5,
+		Throttler:            thr,
+	}
+	tr, err := trie.NewTrie(trieArgs)
 	if err != nil {
 		return nil, err
 	}
