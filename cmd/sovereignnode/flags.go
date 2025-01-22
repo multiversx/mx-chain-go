@@ -620,10 +620,7 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	// would bring confusion
 	isInImportDBMode := configs.ImportDbConfig.IsImportDBMode
 	if isInImportDBMode {
-		err := processConfigImportDBMode(log, configs)
-		if err != nil {
-			return err
-		}
+		processConfigImportDBMode(log, configs)
 	}
 	if !isInImportDBMode && configs.ImportDbConfig.ImportDbNoSigCheckFlag {
 		return fmt.Errorf("import-db-no-sig-check can only be used with the import-db flag")
@@ -709,19 +706,12 @@ func processSnapshotLessObserverMode(log logger.Logger, configs *config.Configs)
 	)
 }
 
-func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error {
+func processConfigImportDBMode(log logger.Logger, configs *config.Configs) {
 	importDbFlags := configs.ImportDbConfig
 	generalConfigs := configs.GeneralConfig
 	p2pConfigs := configs.MainP2pConfig
 	fullArchiveP2PConfigs := configs.FullArchiveP2pConfig
-
-	var err error
-
 	importDbFlags.ImportDBTargetShardID = core.SovereignChainShardId
-	if err != nil {
-		return err
-	}
-
 	generalConfigs.GeneralSettings.StartInEpochEnabled = false
 
 	// We need to increment "NumActivePersisters" in order to make the storage resolvers work (since they open 2 epochs in advance)
@@ -744,7 +734,6 @@ func processConfigImportDBMode(log logger.Logger, configs *config.Configs) error
 		"import DB shard ID", importDbFlags.ImportDBTargetShardID,
 		"kad dht discoverer", "off",
 	)
-	return nil
 }
 
 func processConfigFullArchiveMode(log logger.Logger, configs *config.Configs) {
