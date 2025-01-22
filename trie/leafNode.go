@@ -45,10 +45,6 @@ func newLeafNode(
 	}, nil
 }
 
-func (ln *leafNode) getCollapsed() (node, error) {
-	return ln, nil
-}
-
 func (ln *leafNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 	if len(ln.hash) != 0 {
 		return
@@ -59,14 +55,6 @@ func (ln *leafNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 		return
 	}
 	ln.hash = hash
-}
-
-func (ln *leafNode) hashNode() ([]byte, error) {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("hashNode error %w", err)
-	}
-	return encodeNodeAndGetHash(ln)
 }
 
 func (ln *leafNode) commitDirty(
@@ -91,23 +79,19 @@ func (ln *leafNode) commitSnapshot(
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
-
-	err = writeNodeOnChannel(ln, leavesChan)
+	err := writeNodeOnChannel(ln, leavesChan)
 	if err != nil {
 		return err
 	}
 
-	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
+	err = db.Put(ln.hash, nodeBytes)
 	if err != nil {
 		return err
 	}
@@ -117,8 +101,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddLeafNode(depthLevel, uint64(nodeSize), version)
-
+	stats.AddLeafNode(depthLevel, uint64(len(nodeBytes)), version)
 	return nil
 }
 
@@ -162,15 +145,12 @@ func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorage
 }
 
 func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, []byte, error) {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return nil, nil, fmt.Errorf("getNext error %w", err)
-	}
 	if bytes.Equal(key, ln.Key) {
 		return nil, nil, nil
 	}
 	return nil, nil, ErrNodeNotFound
 }
+
 func (ln *leafNode) insert(
 	newData []core.TrieData,
 	goRoutinesManager common.TrieGoroutinesManager,
@@ -422,23 +402,13 @@ func (ln *leafNode) getValue() []byte {
 	return ln.Value
 }
 
-func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, _ common.TrieStorageInteractor) error {
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("collectStats error %w", err)
-	}
-
-	val, err := collapseAndEncodeNode(ln)
-	if err != nil {
-		return err
-	}
-
+func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, _ common.TrieStorageInteractor) error {
 	version, err := ln.getVersion()
 	if err != nil {
 		return err
 	}
 
-	ts.AddLeafNode(depthLevel, uint64(len(val)), version)
+	ts.AddLeafNode(depthLevel, nodeSize, version)
 	return nil
 }
 

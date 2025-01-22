@@ -49,26 +49,6 @@ func newExtensionNode(key []byte, child node, marshalizer marshal.Marshalizer, h
 	}, nil
 }
 
-func (en *extensionNode) getCollapsed() (node, error) {
-	return en.getCollapsedEn()
-}
-
-func (en *extensionNode) getCollapsedEn() (*extensionNode, error) {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getCollapsed error %w", err)
-	}
-	if en.isCollapsed() {
-		return en, nil
-	}
-	if !hasValidHash(en.child) {
-		return nil, ErrNodeHashIsNotSet
-	}
-	en.EncodedChild = en.child.getHash()
-	en.child = nil
-	return en, nil
-}
-
 func (en *extensionNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 	if len(en.hash) != 0 {
 		return
@@ -109,22 +89,6 @@ func (en *extensionNode) shouldSetHashForChild() bool {
 	}
 
 	return false
-}
-
-func (en *extensionNode) hashNode() ([]byte, error) {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("hashNode error %w", err)
-	}
-	if en.child != nil {
-		var encChild []byte
-		encChild, err = encodeNodeAndGetHash(en.child)
-		if err != nil {
-			return nil, err
-		}
-		en.EncodedChild = encChild
-	}
-	return encodeNodeAndGetHash(en)
 }
 
 func (en *extensionNode) commitDirty(
@@ -179,42 +143,39 @@ func (en *extensionNode) commitSnapshot(
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := en.isEmptyOrNil()
+	child, childBytes, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
 	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
+		return err
 	}
-
-	_, err = en.resolveIfCollapsed(db)
 	childIsMissing, err := treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
 	if err != nil {
 		return err
 	}
 
 	if !childIsMissing {
-		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
+		err = child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
-	return en.saveToStorage(db, stats, depthLevel)
+	return en.saveToStorage(db, stats, nodeBytes, depthLevel)
 }
 
-func (en *extensionNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
-	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
+func (en *extensionNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, nodeBytes []byte, depthLevel int) error {
+	err := targetDb.Put(en.hash, nodeBytes)
 	if err != nil {
 		return err
 	}
 
-	stats.AddExtensionNode(depthLevel, uint64(nodeSize))
-
-	en.child = nil
+	stats.AddExtensionNode(depthLevel, uint64(len(nodeBytes)))
 	return nil
 }
 
@@ -244,7 +205,7 @@ func (en *extensionNode) resolveIfCollapsed(db common.TrieStorageInteractor) (no
 		return en.child, nil
 	}
 
-	child, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	child, _, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -286,10 +247,6 @@ func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.TrieS
 }
 
 func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return nil, nil, fmt.Errorf("getNext error %w", err)
-	}
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
 		return nil, nil, ErrNodeNotFound
@@ -731,28 +688,18 @@ func (en *extensionNode) getValue() []byte {
 	return []byte{}
 }
 
-func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error {
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("collectStats error %w", err)
-	}
-
-	_, err = en.resolveIfCollapsed(db)
+func (en *extensionNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, db common.TrieStorageInteractor) error {
+	child, childBytes, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}
 
-	err = en.child.collectStats(ts, depthLevel+1, db)
+	err = child.collectStats(ts, depthLevel+1, uint64(len(childBytes)), db)
 	if err != nil {
 		return err
 	}
 
-	val, err := collapseAndEncodeNode(en)
-	if err != nil {
-		return err
-	}
-
-	ts.AddExtensionNode(depthLevel, uint64(len(val)))
+	ts.AddExtensionNode(depthLevel, nodeSize)
 	return nil
 }
 

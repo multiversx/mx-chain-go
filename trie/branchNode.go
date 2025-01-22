@@ -60,30 +60,6 @@ func (bn *branchNode) setVersionForChild(version core.TrieNodeVersion, childPos 
 	}
 }
 
-func (bn *branchNode) getCollapsed() (node, error) {
-	return bn.getCollapsedBn()
-}
-
-func (bn *branchNode) getCollapsedBn() (*branchNode, error) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("getCollapsed error %w", err)
-	}
-	if bn.isCollapsed() {
-		return bn, nil
-	}
-	for i := range bn.children {
-		if bn.children[i] != nil {
-			if !hasValidHash(bn.children[i]) {
-				return nil, ErrNodeHashIsNotSet
-			}
-			bn.EncodedChildren[i] = bn.children[i].getHash()
-			bn.children[i] = nil
-		}
-	}
-	return bn, nil
-}
-
 func (bn *branchNode) setHash(goRoutinesManager common.TrieGoroutinesManager) {
 	if len(bn.hash) != 0 {
 		return
@@ -149,24 +125,6 @@ func (bn *branchNode) shouldSetHashForChild(childPos int) bool {
 	}
 
 	return false
-}
-
-func (bn *branchNode) hashNode() ([]byte, error) {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return nil, fmt.Errorf("hashNode error %w", err)
-	}
-	for i := range bn.EncodedChildren {
-		if bn.children[i] != nil {
-			var encChild []byte
-			encChild, err = encodeNodeAndGetHash(bn.children[i])
-			if err != nil {
-				return nil, err
-			}
-			bn.EncodedChildren[i] = encChild
-		}
-	}
-	return encodeNodeAndGetHash(bn)
 }
 
 func (bn *branchNode) commitDirty(
@@ -255,19 +213,19 @@ func (bn *branchNode) commitSnapshot(
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
+			continue
+		}
 
-	for i := range bn.children {
-		_, err = bn.resolveIfCollapsed(byte(i), db)
+		child, childBytes, err := getNodeFromDBAndDecode(bn.EncodedChildren[i], db, bn.marsh, bn.hasher)
 		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
 		if err != nil {
 			return err
@@ -276,35 +234,23 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
+		err = child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, childBytes, depthLevel+1)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats, depthLevel)
+	return bn.saveToStorage(db, stats, nodeBytes, depthLevel)
 }
 
-func (bn *branchNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
-	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
+func (bn *branchNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, nodeBytes []byte, depthLevel int) error {
+	err := targetDb.Put(bn.hash, nodeBytes)
 	if err != nil {
 		return err
 	}
 
-	stats.AddBranchNode(depthLevel, uint64(nodeSize))
-
-	bn.removeChildrenPointers()
+	stats.AddBranchNode(depthLevel, uint64(len(nodeBytes)))
 	return nil
-}
-
-func (bn *branchNode) removeChildrenPointers() {
-	for i := range bn.children {
-		bn.children[i] = nil
-	}
 }
 
 func (bn *branchNode) getEncodedNode() ([]byte, error) {
@@ -318,15 +264,6 @@ func (bn *branchNode) getEncodedNode() ([]byte, error) {
 	}
 	marshaledNode = append(marshaledNode, branch)
 	return marshaledNode, nil
-}
-
-func (bn *branchNode) isCollapsed() bool {
-	for i := range bn.children {
-		if bn.children[i] != nil {
-			return false
-		}
-	}
-	return true
 }
 
 func (bn *branchNode) resolveIfCollapsed(pos byte, db common.TrieStorageInteractor) (node, error) {
@@ -343,7 +280,7 @@ func (bn *branchNode) resolveIfCollapsed(pos byte, db common.TrieStorageInteract
 		return bn.children[pos], nil
 	}
 
-	child, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
+	child, _, err := getNodeFromDBAndDecode(bn.EncodedChildren[pos], db, bn.marsh, bn.hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -910,34 +847,24 @@ func (bn *branchNode) getValue() []byte {
 	return []byte{}
 }
 
-func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error {
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("collectStats error %w", err)
-	}
-
-	for i := range bn.children {
-		_, err = bn.resolveIfCollapsed(byte(i), db)
-		if err != nil {
-			return err
-		}
-
-		if bn.children[i] == nil {
+func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, depthLevel int, nodeSize uint64, db common.TrieStorageInteractor) error {
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
 			continue
 		}
 
-		err = bn.children[i].collectStats(ts, depthLevel+1, db)
+		child, childBytes, err := getNodeFromDBAndDecode(bn.EncodedChildren[i], db, bn.marsh, bn.hasher)
+		if err != nil {
+			return err
+		}
+
+		err = child.collectStats(ts, depthLevel+1, uint64(len(childBytes)), db)
 		if err != nil {
 			return err
 		}
 	}
 
-	val, err := collapseAndEncodeNode(bn)
-	if err != nil {
-		return err
-	}
-
-	ts.AddBranchNode(depthLevel, uint64(len(val)))
+	ts.AddBranchNode(depthLevel, nodeSize)
 	return nil
 }
 

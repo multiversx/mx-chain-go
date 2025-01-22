@@ -460,7 +460,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		return nil, nil, err
 	}
 
-	newRoot, err := getNodeFromDBAndDecode(rootHash, tsm, tr.marshalizer, tr.hasher)
+	newRoot, _, err := getNodeFromDBAndDecode(rootHash, tsm, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -633,7 +633,7 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, [
 		return nil, nil, ErrNilNode
 	}
 
-	rootNode, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
+	rootNode, _, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, nil, fmt.Errorf("trie get proof error: %w", err)
 	}
@@ -709,13 +709,17 @@ func (tr *patriciaMerkleTrie) GetStorageManager() common.StorageManager {
 
 // GetTrieStats will collect and return the statistics for the given rootHash
 func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (common.TrieStatisticsHandler, error) {
-	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
+	if common.IsEmptyTrie(rootHash) {
+		return statistics.NewTrieStatistics(), nil
+	}
+
+	rootNode, rootBytes, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, err
 	}
 
 	ts := statistics.NewTrieStatistics()
-	err = newTrie.GetRootNode().collectStats(ts, rootDepthLevel, newTrie.trieStorage)
+	err = rootNode.collectStats(ts, rootDepthLevel, uint64(len(rootBytes)), tr.trieStorage)
 	if err != nil {
 		return nil, err
 	}

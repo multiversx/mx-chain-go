@@ -153,49 +153,6 @@ func TestBranchNode_isDirty(t *testing.T) {
 	assert.Equal(t, false, bn.isDirty())
 }
 
-func TestBranchNode_getCollapsed(t *testing.T) {
-	t.Parallel()
-
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	bn.setHash(getTestGoroutinesManager())
-	collapsedBn.dirty = true
-	collapsedBn.hash = bn.hash
-
-	collapsed, err := bn.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedBn, collapsed)
-}
-
-func TestBranchNode_getCollapsedEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	bn := emptyDirtyBranchNode()
-
-	collapsed, err := bn.getCollapsed()
-	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
-	assert.Nil(t, collapsed)
-}
-
-func TestBranchNode_getCollapsedNilNode(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-
-	collapsed, err := bn.getCollapsed()
-	assert.True(t, errors.Is(err, ErrNilBranchNode))
-	assert.Nil(t, collapsed)
-}
-
-func TestBranchNode_getCollapsedCollapsedNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-
-	collapsed, err := collapsedBn.getCollapsed()
-	assert.Nil(t, err)
-	assert.Equal(t, collapsedBn, collapsed)
-}
-
 func TestBranchNode_setHash(t *testing.T) {
 	t.Parallel()
 
@@ -228,37 +185,6 @@ func TestBranchNode_setGivenHash(t *testing.T) {
 
 	bn.setGivenHash(expectedHash)
 	assert.Equal(t, expectedHash, bn.hash)
-}
-
-func TestBranchNode_hashNode(t *testing.T) {
-	t.Parallel()
-
-	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	expectedHash, _ := encodeNodeAndGetHash(collapsedBn)
-
-	hash, err := collapsedBn.hashNode()
-	assert.Nil(t, err)
-	assert.Equal(t, expectedHash, hash)
-}
-
-func TestBranchNode_hashNodeEmptyNode(t *testing.T) {
-	t.Parallel()
-
-	bn := emptyDirtyBranchNode()
-
-	hash, err := bn.hashNode()
-	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
-	assert.Nil(t, hash)
-}
-
-func TestBranchNode_hashNodeNilNode(t *testing.T) {
-	t.Parallel()
-
-	var bn *branchNode
-
-	hash, err := bn.hashNode()
-	assert.True(t, errors.Is(err, ErrNilBranchNode))
-	assert.Nil(t, hash)
 }
 
 func TestBranchNode_commit(t *testing.T) {
@@ -342,18 +268,6 @@ func TestBranchNode_resolveCollapsedPosOutOfRange(t *testing.T) {
 	childNode, err := bn.resolveIfCollapsed(17, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, childNode)
-}
-
-func TestBranchNode_isCollapsed(t *testing.T) {
-	t.Parallel()
-
-	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-
-	assert.True(t, collapsedBn.isCollapsed())
-	assert.False(t, bn.isCollapsed())
-
-	collapsedBn.children[2], _ = newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
-	assert.False(t, collapsedBn.isCollapsed())
 }
 
 func TestBranchNode_tryGet(t *testing.T) {
@@ -904,7 +818,7 @@ func TestBranchNode_getChildrenCollapsedBn(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	bn.setHash(getTestGoroutinesManager())
-	_ = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	children, err := collapsedBn.getChildren(db)
 	assert.Nil(t, err)
@@ -969,14 +883,16 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("nnn"), []byte("nnn"))
 	_ = tr.Update([]byte("zzz"), []byte("zzz"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+	rootHash, _ := tr.RootHash()
+	collapsedTrie, _ := tr.recreate(rootHash, tr.trieStorage)
+	collapsedRoot := collapsedTrie.GetRootNode()
 
-	collapsedRoot, _ := tr.GetRootNode().getCollapsed()
-	tr.Delete([]byte("zzz"))
-	ExecuteUpdatesFromBatch(tr)
+	collapsedTrie.Delete([]byte("zzz"))
+	ExecuteUpdatesFromBatch(collapsedTrie)
 
 	assert.True(t, collapsedRoot.isDirty())
 
-	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
+	_ = collapsedTrie.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	assert.False(t, collapsedRoot.isDirty())
 }
@@ -1102,8 +1018,8 @@ func TestBranchNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	bn.setHash(getTestGoroutinesManager())
 	collapsedBn.setHash(getTestGoroutinesManager())
-	_ = bn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
-	_ = collapsedBn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	collapsedBn.setDirty(false)
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	bn.print(bnWriter, 0, db)
 	collapsedBn.print(collapsedBnWriter, 0, db)
@@ -1168,7 +1084,7 @@ func TestBranchNode_SizeInBytes(t *testing.T) {
 	assert.Equal(t, len(collapsed1)+len(collapsed2)+len(hash)+1+19*pointerSizeInBytes, bn.sizeInBytes())
 }
 
-func TestBranchNode_commitContextDone(t *testing.T) {
+func TestBranchNode_commitSnapshotContextDone(t *testing.T) {
 	t.Parallel()
 
 	db := testscommon.NewMemDbMock()
@@ -1176,7 +1092,7 @@ func TestBranchNode_commitContextDone(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := bn.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte("nodeBytes"), 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 
@@ -1189,8 +1105,9 @@ func TestBranchNode_commitSnapshotDbIsClosing(t *testing.T) {
 	}
 
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	nodeBytes, _ := collapsedBn.getEncodedNode()
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.True(t, core.IsClosingError(err))
 	assert.Equal(t, 0, len(missingNodesChan))
 }
@@ -1206,7 +1123,8 @@ func TestBranchNode_commitSnapshotChildIsMissingErr(t *testing.T) {
 	_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	collapsedBn.setHash(getTestGoroutinesManager())
 	missingNodesChan := make(chan []byte, 10)
-	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	nodeBytes, _ := collapsedBn.getEncodedNode()
+	err := collapsedBn.commitSnapshot(db, nil, missingNodesChan, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, nodeBytes, 0)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(missingNodesChan))
 }

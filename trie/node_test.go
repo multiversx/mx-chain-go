@@ -143,8 +143,9 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 	encNode = append(encNode, branch)
 	nodeHash := bn.hasher.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, db, bn.marsh, bn.hasher)
 	assert.Nil(t, err)
+	assert.Equal(t, encNode, nodeBytes)
 
 	h1, _ := encodeNodeAndGetHash(collapsedBn)
 	h2, _ := encodeNodeAndGetHash(nodeInstance)
@@ -163,8 +164,9 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 	encNode = append(encNode, extension)
 	nodeHash := en.hasher.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, db, en.marsh, en.hasher)
 	assert.Nil(t, err)
+	assert.Equal(t, encNode, nodeBytes)
 
 	h1, _ := encodeNodeAndGetHash(collapsedEn)
 	h2, _ := encodeNodeAndGetHash(nodeInstance)
@@ -183,8 +185,9 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 	encNode = append(encNode, leaf)
 	nodeHash := ln.hasher.Compute(string(encNode))
 
-	nodeInstance, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
+	nodeInstance, nodeBytes, err := getNodeFromDBAndDecode(nodeHash, db, ln.marsh, ln.hasher)
 	assert.Nil(t, err)
+	assert.Equal(t, encNode, nodeBytes)
 
 	ln = getLn(ln.marsh, ln.hasher)
 	ln.dirty = false
