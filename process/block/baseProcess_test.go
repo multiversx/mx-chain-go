@@ -289,7 +289,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			return cs
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
-			return proofscache.NewProofsPool()
+			return proofscache.NewProofsPool(3)
 		},
 	}
 
