@@ -578,7 +578,7 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		marshalledHeader, err := sp.marshalizer.Marshal(header)
 		if err != nil {
 			return err
