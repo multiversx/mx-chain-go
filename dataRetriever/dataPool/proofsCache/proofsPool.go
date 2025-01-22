@@ -94,7 +94,7 @@ func (pp *proofsPool) CleanupProofsBehindNonce(shardID uint32, nonce uint64) err
 		return nil
 	}
 
-	nonce = nonce - pp.cleanupDelta
+	nonce -= pp.cleanupDelta
 
 	pp.mutCache.RLock()
 	defer pp.mutCache.RUnlock()
