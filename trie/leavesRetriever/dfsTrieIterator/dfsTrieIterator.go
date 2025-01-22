@@ -100,7 +100,7 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, leavesParser com
 			return retrievedLeaves, nil
 		}
 
-		if checkContextDone(ctx) {
+		if common.IsContextDone(ctx) {
 			return retrievedLeaves, nil
 		}
 
@@ -154,17 +154,4 @@ func (it *dfsIterator) FinishedIteration() bool {
 // IsInterfaceNil returns true if there is no value under the interface
 func (it *dfsIterator) IsInterfaceNil() bool {
 	return it == nil
-}
-
-func checkContextDone(ctx context.Context) bool {
-	if ctx == nil {
-		return false
-	}
-
-	select {
-	case <-ctx.Done():
-		return true
-	default:
-		return false
-	}
 }

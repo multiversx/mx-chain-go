@@ -112,7 +112,7 @@ type esdtTokensCompleteResponseData struct {
 type esdtTokensCompleteResponse struct {
 	Data  esdtTokensCompleteResponseData `json:"data"`
 	Error string                         `json:"error"`
-	Code  string
+	Code  string                         `json:"code"`
 }
 
 type keyValuePairsResponseData struct {
@@ -122,7 +122,7 @@ type keyValuePairsResponseData struct {
 type keyValuePairsResponse struct {
 	Data  keyValuePairsResponseData `json:"data"`
 	Error string                    `json:"error"`
-	Code  string
+	Code  string                    `json:"code"`
 }
 
 type iterateKeysResponseData struct {
@@ -132,7 +132,7 @@ type iterateKeysResponseData struct {
 type iterateKeysResponse struct {
 	Data  iterateKeysResponseData `json:"data"`
 	Error string                  `json:"error"`
-	Code  string
+	Code  string                  `json:"code"`
 }
 
 type esdtRolesResponseData struct {
@@ -142,7 +142,7 @@ type esdtRolesResponseData struct {
 type esdtRolesResponse struct {
 	Data  esdtRolesResponseData `json:"data"`
 	Error string                `json:"error"`
-	Code  string
+	Code  string                `json:"code"`
 }
 
 type usernameResponseData struct {

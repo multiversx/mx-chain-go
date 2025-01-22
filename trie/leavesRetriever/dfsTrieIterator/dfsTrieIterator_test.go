@@ -200,7 +200,7 @@ func TestDfsIterator_GetLeaves(t *testing.T) {
 
 		tr := trieTest.GetNewTrie()
 		numLeaves := 25
-		expectedNumRetrievedLeaves := 25
+		expectedNumRetrievedLeaves := 0
 		trieTest.AddDataToTrie(tr, numLeaves)
 		rootHash, _ := tr.RootHash()
 
