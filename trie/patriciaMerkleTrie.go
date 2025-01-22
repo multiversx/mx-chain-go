@@ -719,7 +719,7 @@ func (tr *patriciaMerkleTrie) GetStorageManager() common.StorageManager {
 
 // GetTrieStats will collect and return the statistics for the given rootHash
 func (tr *patriciaMerkleTrie) GetTrieStats(address string, rootHash []byte) (common.TrieStatisticsHandler, error) {
-	if len(rootHash) == 0 || bytes.Equal(rootHash, common.EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return statistics.NewTrieStatistics(), nil
 	}
 
