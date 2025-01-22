@@ -336,6 +336,16 @@ func (bp *blockProcessor) checkHeaderFinality(
 			continue
 		}
 
+		// if the currentHeader(the one that should confirm the finality of the prev)
+		// is the epoch start block of equivalent messages, we must check for its proof as well
+		if common.IsEpochChangeBlockForFlagActivation(currHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			if bp.proofsPool.HasProof(currHeader.GetShardID(), sortedHeadersHashes[index]) {
+				return nil
+			}
+
+			return process.ErrHeaderNotFinal
+		}
+
 		prevHeader = currHeader
 		numFinalityAttestingHeaders += 1
 	}
