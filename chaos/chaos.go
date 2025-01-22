@@ -16,7 +16,10 @@ func init() {
 }
 
 type chaosContext struct {
-	processTransactionCounter int
+	numCallsProcessTransaction        int
+	numCallsDoSignatureJob            int
+	numCallsCompleteSignatureSubround int
+	numCallsCheckSignaturesValidity   int
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature corrupts the signature, from time to time.
@@ -25,14 +28,12 @@ func In_subroundSignature_doSignatureJob_maybeCorruptSignature(header data.Heade
 		return
 	}
 
-	round := header.GetRound()
-	nonce := header.GetNonce()
-
-	if round%uint64(roundDivisor_maybeCorruptSignature) != 0 {
+	context.numCallsDoSignatureJob++
+	if context.numCallsDoSignatureJob%numCallsDivisor_maybeCorruptSignature != 0 {
 		return
 	}
 
-	log.Info("Corrupting signature", "round", round, "nonce", nonce)
+	log.Info("Corrupting signature", "round", header.GetRound(), "nonce", header.GetNonce())
 	signatureShare[0] += 1
 }
 
@@ -42,14 +43,12 @@ func In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatur
 		return false
 	}
 
-	round := header.GetRound()
-	nonce := header.GetNonce()
-
-	if round%uint64(roundDivisor_shouldSkipWaitingForSignatures) != 0 {
+	context.numCallsCompleteSignatureSubround++
+	if context.numCallsCompleteSignatureSubround%numCallsDivisor_shouldSkipWaitingForSignatures != 0 {
 		return false
 	}
 
-	log.Info("Skipping waiting for signatures", "round", round, "nonce", nonce)
+	log.Info("Skipping waiting for signatures", "round", header.GetRound(), "nonce", header.GetNonce())
 	return true
 }
 
@@ -58,14 +57,12 @@ func In_subroundEndRound_checkSignaturesValidity_shouldReturnError(header data.H
 		return false
 	}
 
-	round := header.GetRound()
-	nonce := header.GetNonce()
-
-	if round%uint64(roundDivisor_shouldReturnErrorInCheckSignaturesValidity) != 0 {
+	context.numCallsCheckSignaturesValidity++
+	if context.numCallsCheckSignaturesValidity%numCallsDivisor_shouldReturnErrorInCheckSignaturesValidity != 0 {
 		return false
 	}
 
-	log.Info("Returning error in check signatures validity", "round", round, "nonce", nonce)
+	log.Info("Returning error in check signatures validity", "round", header.GetRound(), "nonce", header.GetNonce())
 	return true
 }
 
@@ -75,8 +72,8 @@ func In_shardProcess_processTransaction_shouldReturnError() bool {
 		return false
 	}
 
-	context.processTransactionCounter++
-	if context.processTransactionCounter%numCallsDivisor_processTransaction_shouldReturnError == 0 {
+	context.numCallsProcessTransaction++
+	if context.numCallsProcessTransaction%numCallsDivisor_processTransaction_shouldReturnError == 0 {
 		log.Info("Returning error when processing transaction")
 		return true
 	}
