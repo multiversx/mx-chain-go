@@ -640,15 +640,6 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 	return nil
 }
 
-func (sp *shardProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error) {
-	marshalledHeader, errMarshal := sp.marshalizer.Marshal(header)
-	if errMarshal != nil {
-		return nil, errMarshal
-	}
-
-	return sp.hasher.Compute(string(marshalledHeader)), nil
-}
-
 func (sp *shardProcessor) checkAndRequestIfMetaHeadersMissing() {
 	orderedMetaBlocks, _ := sp.blockTracker.GetTrackedHeaders(core.MetachainShardId)
 

@@ -1904,7 +1904,7 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
 			if shardData.Epoch != shardHdr.GetEpoch() {
-				return nil, process.ErrEpochMissmatch
+				return nil, process.ErrEpochMismatch
 			}
 		}
 
@@ -1987,22 +1987,18 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 			continue
 		}
 
-		// verify if there are "K" block after current to make this one final
-		nextBlocksVerified := uint32(0)
-		isNotarizedBasedOnProofs := false
-		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			var errCheckProof error
-			isNotarizedBasedOnProofs, errCheckProof = mp.checkShardHeaderFinalityBasedOnProofs(shardHdr, shardId)
-			// if the header is notarized based on proofs and there is no error, break the loop
-			// if there is any error, forward it, header is not final
-			if isNotarizedBasedOnProofs {
-				if errCheckProof != nil {
-					return err
-				}
-
-				break
+		isNotarizedBasedOnProofs, errCheckProof := mp.checkShardHeaderFinalityBasedOnProofs(lastVerifiedHdr, shardId)
+		if isNotarizedBasedOnProofs {
+			if errCheckProof != nil {
+				return errCheckProof
 			}
 
+			continue
+		}
+
+		// verify if there are "K" block after current to make this one final
+		nextBlocksVerified := uint32(0)
+		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
 			if nextBlocksVerified >= mp.shardBlockFinality {
 				break
 			}
@@ -2014,6 +2010,15 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 					log.Debug("checkShardHeadersFinality -> isHdrConstructionValid",
 						"error", err.Error())
 					continue
+				}
+
+				isNotarizedBasedOnProofs, errCheckProof = mp.checkShardHeaderFinalityBasedOnProofs(shardHdr, shardId)
+				if isNotarizedBasedOnProofs {
+					if errCheckProof != nil {
+						return errCheckProof
+					}
+
+					break
 				}
 
 				lastVerifiedHdr = shardHdr
