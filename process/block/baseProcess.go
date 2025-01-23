@@ -375,8 +375,9 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	var prevAggregatedSig, prevBitmap, prevHash []byte
 	var proofShard, proofEpoch uint32
 	var proofRound, proofNonce uint64
-	var isStartOfEpoch bool
+	var isStartOfEpoch, hasProofInfo bool
 	if !check.IfNilReflect(proof) {
+		hasProofInfo = true
 		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 		prevHash = proof.GetHeaderHash()
 		proofShard = proof.GetHeaderShardId()
@@ -386,7 +387,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 		isStartOfEpoch = proof.GetIsStartOfEpoch()
 	}
 
-	return []*display.LineData{
+	logLines := []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
 			"ChainID",
@@ -447,43 +448,50 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"",
 			"Receipts hash",
 			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
-		display.NewLineData(false, []string{
+		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
-		display.NewLineData(true, []string{
-			"Previous proof",
-			"Header hash",
-			logger.DisplayByteSlice(prevHash)}),
-		display.NewLineData(false, []string{
-			"",
-			"Aggregated signature",
-			logger.DisplayByteSlice(prevAggregatedSig)}),
-		display.NewLineData(true, []string{
-			"",
-			"Pub keys bitmap",
-			logger.DisplayByteSlice(prevBitmap)}),
-		display.NewLineData(true, []string{
-			"",
-			"Epoch",
-			fmt.Sprintf("%d", proofEpoch)}),
-		display.NewLineData(true, []string{
-			"",
-			"Round",
-			fmt.Sprintf("%d", proofRound)}),
-		display.NewLineData(true, []string{
-			"",
-			"Shard",
-			fmt.Sprintf("%d", proofShard)}),
-		display.NewLineData(true, []string{
-			"",
-			"Nonce",
-			fmt.Sprintf("%d", proofNonce)}),
-		display.NewLineData(true, []string{
-			"",
-			"IsStartOfEpoch",
-			fmt.Sprintf("%t", isStartOfEpoch)}),
 	}
+
+	if hasProofInfo {
+		logLines = append(logLines,
+			display.NewLineData(false, []string{
+				"Previous proof",
+				"Header hash",
+				logger.DisplayByteSlice(prevHash)}),
+			display.NewLineData(false, []string{
+				"",
+				"Aggregated signature",
+				logger.DisplayByteSlice(prevAggregatedSig)}),
+			display.NewLineData(false, []string{
+				"",
+				"Pub keys bitmap",
+				logger.DisplayByteSlice(prevBitmap)}),
+			display.NewLineData(false, []string{
+				"",
+				"Epoch",
+				fmt.Sprintf("%d", proofEpoch)}),
+			display.NewLineData(false, []string{
+				"",
+				"Round",
+				fmt.Sprintf("%d", proofRound)}),
+			display.NewLineData(false, []string{
+				"",
+				"Shard",
+				fmt.Sprintf("%d", proofShard)}),
+			display.NewLineData(false, []string{
+				"",
+				"Nonce",
+				fmt.Sprintf("%d", proofNonce)}),
+			display.NewLineData(true, []string{
+				"",
+				"IsStartOfEpoch",
+				fmt.Sprintf("%t", isStartOfEpoch)}),
+		)
+	}
+
+	return logLines
 }
 
 // checkProcessorParameters will check the input parameters values
