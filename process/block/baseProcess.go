@@ -372,9 +372,18 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 
 	proof := headerHandler.GetPreviousProof()
 
-	var prevAggregatedSig, prevBitmap []byte
+	var prevAggregatedSig, prevBitmap, prevHash []byte
+	var proofShard, proofEpoch uint32
+	var proofRound, proofNonce uint64
+	var isStartOfEpoch bool
 	if !check.IfNilReflect(proof) {
 		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+		prevHash = proof.GetHeaderHash()
+		proofShard = proof.GetHeaderShardId()
+		proofEpoch = proof.GetHeaderEpoch()
+		proofRound = proof.GetHeaderRound()
+		proofNonce = proof.GetHeaderNonce()
+		isStartOfEpoch = proof.GetIsStartOfEpoch()
 	}
 
 	return []*display.LineData{
@@ -442,14 +451,38 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"",
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
-		display.NewLineData(false, []string{
+		display.NewLineData(true, []string{
 			"Previous proof",
+			"Header hash",
+			logger.DisplayByteSlice(prevHash)}),
+		display.NewLineData(false, []string{
+			"",
 			"Aggregated signature",
 			logger.DisplayByteSlice(prevAggregatedSig)}),
 		display.NewLineData(true, []string{
 			"",
 			"Pub keys bitmap",
 			logger.DisplayByteSlice(prevBitmap)}),
+		display.NewLineData(true, []string{
+			"",
+			"Epoch",
+			fmt.Sprintf("%d", proofEpoch)}),
+		display.NewLineData(true, []string{
+			"",
+			"Round",
+			fmt.Sprintf("%d", proofRound)}),
+		display.NewLineData(true, []string{
+			"",
+			"Shard",
+			fmt.Sprintf("%d", proofShard)}),
+		display.NewLineData(true, []string{
+			"",
+			"Nonce",
+			fmt.Sprintf("%d", proofNonce)}),
+		display.NewLineData(true, []string{
+			"",
+			"IsStartOfEpoch",
+			fmt.Sprintf("%t", isStartOfEpoch)}),
 	}
 }
 
@@ -2233,6 +2266,18 @@ func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
 	}
 
 	header.SetPreviousProof(prevBlockProof)
+
+	log.Debug("added proof on header",
+		"header hash", prevBlockProof.GetHeaderHash(),
+		"epoch", prevBlockProof.GetHeaderEpoch(),
+		"nonce", prevBlockProof.GetHeaderNonce(),
+		"shardID", prevBlockProof.GetHeaderShardId(),
+		"pubKeys bitmap", prevBlockProof.GetPubKeysBitmap(),
+		"round", prevBlockProof.GetHeaderRound(),
+		"nonce", prevBlockProof.GetHeaderNonce(),
+		"isStartOfEpoch", prevBlockProof.GetIsStartOfEpoch(),
+	)
+
 	return nil
 }
 
