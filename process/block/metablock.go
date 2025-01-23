@@ -1904,13 +1904,16 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 		}
 		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHdr.GetEpoch()) {
 			if shardData.Epoch != shardHdr.GetEpoch() {
-				return nil, process.ErrEpochMissmatch
+				return nil, process.ErrEpochMismatch
 			}
 		}
 
-		err = verifyProof(shardData.GetPreviousProof())
-		if err != nil {
-			return nil, err
+		if common.ShouldBlockHavePrevProof(shardHdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			// TODO: proper check of the fields
+			err = verifyProof(shardData.GetPreviousProof())
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})
@@ -1987,22 +1990,18 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 			continue
 		}
 
-		// verify if there are "K" block after current to make this one final
-		nextBlocksVerified := uint32(0)
-		isNotarizedBasedOnProofs := false
-		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			var errCheckProof error
-			isNotarizedBasedOnProofs, errCheckProof = mp.checkShardHeaderFinalityBasedOnProofs(shardHdr, shardId)
-			// if the header is notarized based on proofs and there is no error, break the loop
-			// if there is any error, forward it, header is not final
-			if isNotarizedBasedOnProofs {
-				if errCheckProof != nil {
-					return err
-				}
-
-				break
+		isNotarizedBasedOnProofs, errCheckProof := mp.checkShardHeaderFinalityBasedOnProofs(lastVerifiedHdr, shardId)
+		if isNotarizedBasedOnProofs {
+			if errCheckProof != nil {
+				return errCheckProof
 			}
 
+			continue
+		}
+
+		// verify if there are "K" block after current to make this one final
+		nextBlocksVerified := uint32(0)
+		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
 			if nextBlocksVerified >= mp.shardBlockFinality {
 				break
 			}
@@ -2014,6 +2013,15 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 					log.Debug("checkShardHeadersFinality -> isHdrConstructionValid",
 						"error", err.Error())
 					continue
+				}
+
+				isNotarizedBasedOnProofs, errCheckProof = mp.checkShardHeaderFinalityBasedOnProofs(shardHdr, shardId)
+				if isNotarizedBasedOnProofs {
+					if errCheckProof != nil {
+						return errCheckProof
+					}
+
+					break
 				}
 
 				lastVerifiedHdr = shardHdr
@@ -2078,10 +2086,10 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 			if shardHeader.GetNonce() > mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.GetShardID()] {
 				mp.hdrsForCurrBlock.highestHdrNonce[shardHeader.GetShardID()] = shardHeader.GetNonce()
 			}
+			mp.updateLastNotarizedBlockForShard(shardHeader, shardHeaderHash)
 		}
 
-		shouldConsiderProofsForNotarization := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, shardHeader.GetEpoch())
-		if mp.hdrsForCurrBlock.missingHdrs == 0 && !shouldConsiderProofsForNotarization {
+		if mp.hdrsForCurrBlock.missingHdrs == 0 {
 			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 			if mp.hdrsForCurrBlock.missingFinalityAttestingHdrs == 0 {
 				log.Debug("received all missing finality attesting shard headers")
@@ -2105,17 +2113,20 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 
 // requestMissingFinalityAttestingShardHeaders requests the headers needed to accept the current selected headers for
 // processing the current block. It requests the shardBlockFinality headers greater than the highest shard header,
-// for each shard, related to the block which should be processed
+// for the given shard, related to the block which should be processed
 // this method should be called only under the mutex protection: hdrsForCurrBlock.mutHdrsForBlock
 func (mp *metaProcessor) requestMissingFinalityAttestingShardHeaders() uint32 {
 	missingFinalityAttestingShardHeaders := uint32(0)
 
 	for shardId := uint32(0); shardId < mp.shardCoordinator.NumberOfShards(); shardId++ {
-		missingFinalityAttestingHeaders := mp.requestMissingFinalityAttestingHeaders(
-			shardId,
-			mp.shardBlockFinality,
-		)
-
+		lastNotarizedShardHeader := mp.hdrsForCurrBlock.lastNotarizedShardHeaders[shardId]
+		missingFinalityAttestingHeaders := uint32(0)
+		if lastNotarizedShardHeader != nil && !lastNotarizedShardHeader.notarizedBasedOnProof {
+			missingFinalityAttestingHeaders = mp.requestMissingFinalityAttestingHeaders(
+				shardId,
+				mp.shardBlockFinality,
+			)
+		}
 		missingFinalityAttestingShardHeaders += missingFinalityAttestingHeaders
 	}
 
@@ -2132,11 +2143,31 @@ func (mp *metaProcessor) requestShardHeaders(metaBlock *block.MetaBlock) (uint32
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
+func (mp *metaProcessor) updateLastNotarizedBlockForShard(hdr data.ShardHeaderHandler, headerHash []byte) {
+	lastNotarizedForShard := mp.hdrsForCurrBlock.lastNotarizedShardHeaders[hdr.GetShardID()]
+	if lastNotarizedForShard == nil {
+		lastNotarizedForShard = &lastNotarizedHeaderInfo{header: hdr}
+		mp.hdrsForCurrBlock.lastNotarizedShardHeaders[hdr.GetShardID()] = lastNotarizedForShard
+	}
+
+	if hdr.GetNonce() >= lastNotarizedForShard.header.GetNonce() {
+		notarizedBasedOnProofs := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+		hasProof := false
+		if notarizedBasedOnProofs {
+			hasProof = mp.proofsPool.HasProof(hdr.GetShardID(), headerHash)
+		}
+
+		lastNotarizedForShard.header = hdr
+		lastNotarizedForShard.hash = headerHash
+		lastNotarizedForShard.notarizedBasedOnProof = notarizedBasedOnProofs
+		lastNotarizedForShard.hasProof = hasProof
+	}
+}
+
 func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer mp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	notarizedShardHdrsBasedOnProofs := 0
 	for _, shardData := range metaBlock.ShardInfo {
 		if shardData.Nonce == mp.genesisNonce {
 			lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardData.ShardID)
@@ -2145,7 +2176,7 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 				continue
 			}
 			if !bytes.Equal(hash, shardData.HeaderHash) {
-				log.Warn("genesis hash missmatch",
+				log.Warn("genesis hash mismatch",
 					"last notarized nonce", lastCrossNotarizedHeaderForShard.GetNonce(),
 					"last notarized hash", hash,
 					"genesis nonce", mp.genesisNonce,
@@ -2178,13 +2209,10 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
 		}
 
-		if mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch()) {
-			notarizedShardHdrsBasedOnProofs++
-		}
+		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
 	}
 
-	shouldRequestMissingFinalityAttestingShardHeaders := notarizedShardHdrsBasedOnProofs != len(metaBlock.ShardInfo)
-	if mp.hdrsForCurrBlock.missingHdrs == 0 && shouldRequestMissingFinalityAttestingShardHeaders {
+	if mp.hdrsForCurrBlock.missingHdrs == 0 {
 		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}
 
