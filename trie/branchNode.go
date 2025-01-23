@@ -309,24 +309,24 @@ func (bn *branchNode) tryGet(key []byte, currentDepth uint32, db common.TrieStor
 	return child.tryGet(key, currentDepth+1, db)
 }
 
-func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
+func (bn *branchNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, []byte, error) {
 	if len(key) == 0 {
-		return nil, nil, ErrValueTooShort
+		return nil, nil, nil, ErrValueTooShort
 	}
 	childPos := key[firstByte]
 	if childPosOutOfRange(childPos) {
-		return nil, nil, ErrChildPosOutOfRange
+		return nil, nil, nil, ErrChildPosOutOfRange
 	}
 	key = key[1:]
-	_, err := bn.resolveIfCollapsed(childPos, db)
+	if len(bn.EncodedChildren[childPos]) == 0 {
+		return nil, nil, nil, ErrNodeNotFound
+	}
+	childNode, encodedNode, err := getNodeFromDBAndDecode(bn.EncodedChildren[childPos], db, bn.marsh, bn.hasher)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	if bn.children[childPos] == nil {
-		return nil, nil, ErrNodeNotFound
-	}
-	return bn.children[childPos], key, nil
+	return childNode, encodedNode, key, nil
 }
 
 func (bn *branchNode) insert(

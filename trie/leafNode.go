@@ -144,11 +144,11 @@ func (ln *leafNode) tryGet(key []byte, currentDepth uint32, _ common.TrieStorage
 	return nil, currentDepth, nil
 }
 
-func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, []byte, error) {
+func (ln *leafNode) getNext(key []byte, _ common.TrieStorageInteractor) (node, []byte, []byte, error) {
 	if bytes.Equal(key, ln.Key) {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
-	return nil, nil, ErrNodeNotFound
+	return nil, nil, nil, ErrNodeNotFound
 }
 
 func (ln *leafNode) insert(

@@ -275,7 +275,8 @@ func TestExtensionNode_getNext(t *testing.T) {
 	t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
-	nextNode, _ := getBnAndCollapsedBn(en.marsh, en.hasher)
+	db := testscommon.NewMemDbMock()
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -283,8 +284,10 @@ func TestExtensionNode_getNext(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	n, newKey, err := en.getNext(key, nil)
-	assert.Equal(t, nextNode, n)
+	n, nodeBytes, newKey, err := en.getNext(key, db)
+	child, childBytes, _ := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	assert.Equal(t, childBytes, nodeBytes)
+	assert.Equal(t, child, n)
 	assert.Equal(t, key[1:], newKey)
 	assert.Nil(t, err)
 }
@@ -297,9 +300,10 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	lnKey := []byte("dog")
 	key := append(bnKey, lnKey...)
 
-	n, key, err := en.getNext(key, nil)
+	n, nodeBytes, key, err := en.getNext(key, nil)
 	assert.Nil(t, n)
 	assert.Nil(t, key)
+	assert.Nil(t, nodeBytes)
 	assert.Equal(t, ErrNodeNotFound, err)
 }
 
@@ -352,7 +356,7 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 
 	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	enHash := en.getHash()
-	bn, _, _ := en.getNext(enKey, db)
+	bn, _, _, _ := en.getNext(enKey, db)
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
@@ -461,8 +465,8 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	en.setHash(getTestGoroutinesManager())
 
 	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
-	bn, key, _ := en.getNext(key, db)
-	ln, _, _ := bn.getNext(key, db)
+	bn, _, key, _ := en.getNext(key, db)
+	ln, _, _, _ := bn.getNext(key, db)
 	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
 	data := []core.TrieData{{Key: lnPathKey}}
 
