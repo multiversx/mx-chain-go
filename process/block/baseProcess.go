@@ -2235,3 +2235,12 @@ func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
 	header.SetPreviousProof(prevBlockProof)
 	return nil
 }
+
+func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error) {
+	marshalledHeader, errMarshal := bp.marshalizer.Marshal(header)
+	if errMarshal != nil {
+		return nil, errMarshal
+	}
+
+	return bp.hasher.Compute(string(marshalledHeader)), nil
+}

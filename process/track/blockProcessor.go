@@ -316,7 +316,11 @@ func (bp *blockProcessor) checkHeaderFinality(
 
 	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		// the index in argument is for the next block after header
-		if bp.proofsPool.HasProof(header.GetShardID(), sortedHeadersHashes[index-1]) {
+		hashIndex := index
+		if index > 0 {
+			hashIndex = index - 1
+		}
+		if bp.proofsPool.HasProof(header.GetShardID(), sortedHeadersHashes[hashIndex]) {
 			return nil
 		}
 
@@ -339,7 +343,7 @@ func (bp *blockProcessor) checkHeaderFinality(
 		// if the currentHeader(the one that should confirm the finality of the prev)
 		// is the epoch start block of equivalent messages, we must check for its proof as well
 		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currHeader.GetEpoch()) {
-			if bp.proofsPool.HasProof(currHeader.GetShardID(), sortedHeadersHashes[index]) {
+			if bp.proofsPool.HasProof(currHeader.GetShardID(), sortedHeadersHashes[i]) {
 				return nil
 			}
 
