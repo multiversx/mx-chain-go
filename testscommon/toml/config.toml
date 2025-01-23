@@ -51,3 +51,7 @@
 [Map]
     [Map.Key1]
         Number = 999
+
+[TestArray]
+    Strings = ["a", "b", "c"]
+    Ints = [0, 1, 2]
