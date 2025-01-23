@@ -136,6 +136,13 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 		log.Debug("baseBlockTrack.receivedProof with missing header", "headerHash", headerHash)
 		return
 	}
+	log.Debug("received proof from network in block tracker",
+		"shard", proof.GetHeaderShardId(),
+		"epoch", proof.GetHeaderEpoch(),
+		"round", proof.GetHeaderRound(),
+		"nonce", proof.GetHeaderNonce(),
+		"hash", proof.GetHeaderHash(),
+	)
 
 	bbt.receivedHeader(header, headerHash)
 }

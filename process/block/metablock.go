@@ -1908,9 +1908,12 @@ func (mp *metaProcessor) checkShardHeadersValidity(metaHdr *block.MetaBlock) (ma
 			}
 		}
 
-		err = verifyProof(shardData.GetPreviousProof())
-		if err != nil {
-			return nil, err
+		if common.ShouldBlockHavePrevProof(shardHdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			// TODO: proper check of the fields
+			err = verifyProof(shardData.GetPreviousProof())
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		mapMiniBlockHeadersInMetaBlock := make(map[string]struct{})

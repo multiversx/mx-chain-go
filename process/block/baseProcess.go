@@ -706,8 +706,11 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 
 func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
 	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-	hasProof := bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
-	return isFlagEnabledForHeader && !hasProof
+	if !isFlagEnabledForHeader {
+		return false
+	}
+
+	return !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 }
 
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(
