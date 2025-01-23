@@ -1999,17 +1999,6 @@ func (mp *metaProcessor) checkShardHeadersFinality(
 		// verify if there are "K" block after current to make this one final
 		nextBlocksVerified := uint32(0)
 		for _, shardHdr := range finalityAttestingShardHdrs[shardId] {
-			isNotarizedBasedOnProofs, errCheckProof = mp.checkShardHeaderFinalityBasedOnProofs(shardHdr, shardId)
-			// if the header is notarized based on proofs and there is no error, break the loop
-			// if there is any error, forward it, header is not final
-			if isNotarizedBasedOnProofs {
-				if errCheckProof != nil {
-					return errCheckProof
-				}
-
-				break
-			}
-
 			if nextBlocksVerified >= mp.shardBlockFinality {
 				break
 			}
