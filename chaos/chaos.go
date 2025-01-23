@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	chaosAdapters "github.com/multiversx/mx-chain-go/chaosAdapters"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -20,6 +21,10 @@ type chaosContext struct {
 	numCallsDoSignatureJob            int
 	numCallsCompleteSignatureSubround int
 	numCallsCheckSignaturesValidity   int
+}
+
+func Seed(eligibleNodes []chaosAdapters.Validator, waitingNodes []chaosAdapters.Validator) {
+	log.Info("Seeding chaos", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature corrupts the signature, from time to time.
