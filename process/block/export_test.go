@@ -390,6 +390,25 @@ func (bp *baseProcessor) SetHighestHdrNonceForCurrentBlock(shardId uint32, value
 	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 }
 
+type LastNotarizedHeaderInfo struct {
+	Header                data.HeaderHandler
+	Hash                  []byte
+	NotarizedBasedOnProof bool
+	HasProof              bool
+}
+
+func (bp *baseProcessor) SetLastNotarizedHeaderForShard(shardId uint32, info *LastNotarizedHeaderInfo) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	lastNotarizedSharInfo := &lastNotarizedHeaderInfo{
+		header:                info.Header,
+		hash:                  info.Hash,
+		notarizedBasedOnProof: info.NotarizedBasedOnProof,
+		hasProof:              info.HasProof,
+	}
+	bp.hdrsForCurrBlock.lastNotarizedShardHeaders[shardId] = lastNotarizedSharInfo
+	bp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+}
+
 func (bp *baseProcessor) CreateBlockStarted() error {
 	return bp.createBlockStarted()
 }
