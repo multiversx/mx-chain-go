@@ -48,6 +48,9 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	if proof.GetHeaderRound() != header.GetRound() {
 		return fmt.Errorf("%w, round mismatch", ErrInvalidHeaderProof)
 	}
+	if proof.GetIsStartOfEpoch() != header.IsStartOfEpochBlock() {
+		return fmt.Errorf("%w, is start of epoch mismatch", ErrInvalidHeaderProof)
+	}
 
 	return nil
 }
