@@ -441,6 +441,10 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
 		}
 
+		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			continue
+		}
+
 		shardHeadersStorer, err := mp.store.GetStorer(dataRetriever.BlockHeaderUnit)
 		if err != nil {
 			return err
