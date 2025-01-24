@@ -321,6 +321,8 @@ func (ps *PruningStorer) onEvicted(key interface{}, value interface{}) {
 func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
+	//log.Error("PruningStorer.PUT", "KEY", key, "data", data)
+
 	persisterToUse := ps.getPersisterToUse()
 
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister())
