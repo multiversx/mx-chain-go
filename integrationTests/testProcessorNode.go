@@ -1091,8 +1091,6 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
-	tpn.ProofsPool = proofscache.NewProofsPool()
-
 	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
 	if len(id) > 8 {
 		id = id[0:8]
@@ -1101,6 +1099,8 @@ func (tpn *TestProcessorNode) initDataPools() {
 	log := logger.GetOrCreate(fmt.Sprintf("dtr/hc/%s", id))
 
 	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(log, 1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
+	tpn.ProofsPool = proofscache.NewProofsPool(3)
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
@@ -2871,9 +2871,9 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 		}
 		blockHeader.SetPreviousProof(previousProof)
 
-		err = tpn.ProofsPool.AddProof(previousProof)
-		if err != nil {
-			log.Warn("ProofsPool.AddProof", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address, "err", err.Error())
+		wasAdded := tpn.ProofsPool.AddProof(previousProof)
+		if !wasAdded {
+			log.Warn("ProofsPool.AddProof not added", "currHdrHash", currHdrHash, "node", tpn.OwnAccount.Address)
 		}
 	}
 
@@ -3193,8 +3193,9 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
 	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      TestHasher,
-		Marshalizer: TestMarshalizer,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
 	}
 
 	tpn.HeaderValidator, _ = block.NewHeaderValidator(argsHeaderValidator)

@@ -79,8 +79,9 @@ func createArgBaseProcessor(
 ) blproc.ArgBaseProcessor {
 	nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 
@@ -143,8 +144,8 @@ func createTestBlockchain() *testscommon.ChainHandlerStub {
 }
 
 func generateTestCache() storage.Cacher {
-	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
-	return cache
+	c, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000, Shards: 1, SizeInBytes: 0})
+	return c
 }
 
 func generateTestUnit() storage.Storer {
@@ -288,7 +289,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			return cs
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
-			return proofscache.NewProofsPool()
+			return proofscache.NewProofsPool(3)
 		},
 	}
 
@@ -1268,8 +1269,9 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      coreComponents.Hasher(),
-		Marshalizer: coreComponents.InternalMarshalizer(),
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 	sp.SetHeaderValidator(headerValidator)
@@ -1302,8 +1304,9 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
-		Hasher:      coreComponents.Hasher(),
-		Marshalizer: coreComponents.InternalMarshalizer(),
+		Hasher:              coreComponents.Hasher(),
+		Marshalizer:         coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 	}
 	headerValidator, _ := blproc.NewHeaderValidator(argsHeaderValidator)
 	sp.SetHeaderValidator(headerValidator)

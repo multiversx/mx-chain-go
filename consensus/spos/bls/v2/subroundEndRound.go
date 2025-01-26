@@ -261,9 +261,9 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 
 	// if proof not nil, it was created and broadcasted so it has to be added to the pool
 	if proof != nil {
-		err = sr.EquivalentProofsPool().AddProof(proof)
-		if err != nil {
-			sr.Log.Debug("doEndRoundJobByNode.AddProof", "error", err)
+		ok := sr.EquivalentProofsPool().AddProof(proof)
+		if !ok {
+			sr.Log.Trace("doEndRoundJobByNode.AddProof", "added", ok)
 		}
 	}
 

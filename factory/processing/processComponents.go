@@ -468,8 +468,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
-		Hasher:      pcf.coreData.Hasher(),
-		Marshalizer: pcf.coreData.InternalMarshalizer(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 	if err != nil {
@@ -825,8 +826,9 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		argsHeaderValidator := block.ArgsHeaderValidator{
-			Hasher:      pcf.coreData.Hasher(),
-			Marshalizer: pcf.coreData.InternalMarshalizer(),
+			Hasher:              pcf.coreData.Hasher(),
+			Marshalizer:         pcf.coreData.InternalMarshalizer(),
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 		}
 		headerValidator, err := block.NewHeaderValidator(argsHeaderValidator)
 		if err != nil {

@@ -293,6 +293,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return err
 	}
 
+	// TODO: add a new method to get consensus signers that does not require the header and only works with the proof
 	// round, prevHash and prevRandSeed could be removed when we remove fallback validation and we don't need backwards compatibility
 	// (e.g new binary from epoch x forward)
 	consensusPubKeys, err := hsv.getConsensusSigners(

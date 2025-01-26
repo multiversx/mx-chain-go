@@ -548,6 +548,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.ScheduledMiniBlocksFlag,
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
+		common.EquivalentMessagesFlag,
 	})
 	if err != nil {
 		return err
@@ -635,7 +636,8 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (ma
 		}
 
 		if bp.hasMissingProof(headerInfo, hdrHash) {
-			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hdrHash)
+			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
 		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
@@ -660,7 +662,8 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 		}
 
 		if bp.hasMissingProof(headerInfo, metaBlockHash) {
-			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, metaBlockHash)
+			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
 		}
 
 		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
@@ -841,7 +844,6 @@ func isPartiallyExecuted(
 ) bool {
 	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
-
 }
 
 // check if header has the same miniblocks as presented in body
@@ -1002,7 +1004,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		highestPrevFinalBlockNonce,
 	)
 
-	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+	if common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
 		if err != nil {
 			bp.log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -1041,7 +1043,7 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		crossNotarizedHeader.GetNonce(),
 	)
 
-	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, crossNotarizedHeader.GetEpoch()) {
+	if common.ShouldBlockHavePrevProof(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
 		if err != nil {
 			bp.log.Warn("failed to cleanup notarized proofs behind nonce",
@@ -2199,5 +2201,19 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner([]byte(signer))
 	}
 
+	return nil
+}
+
+func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
+	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return nil
+	}
+
+	prevBlockProof, err := bp.proofsPool.GetProof(bp.shardCoordinator.SelfId(), header.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	header.SetPreviousProof(prevBlockProof)
 	return nil
 }
