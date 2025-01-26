@@ -1792,7 +1792,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	fact, _ := shard.NewPreProcessorsContainerFactory(
+	fact, err := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
 		TestMarshalizer,
@@ -1816,6 +1816,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
 	)
+	if err != nil {
+		panic(err.Error())
+	}
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -3166,18 +3169,25 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		ProofsPool:          tpn.DataPool.Proofs(),
 	}
 
+	var err error
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
 		}
 
-		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
+		tpn.BlockTracker, err = track.NewShardBlockTrack(arguments)
+		if err != nil {
+			panic(err.Error())
+		}
 	} else {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
 		}
 
-		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
+		tpn.BlockTracker, err = track.NewMetaBlockTrack(arguments)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 }
 

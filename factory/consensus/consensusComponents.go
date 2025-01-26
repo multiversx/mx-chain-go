@@ -272,7 +272,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
 
 	log := logger.GetOrCreate(fmt.Sprintf("consensus/%s", id))
 
@@ -349,7 +352,10 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		wd = &watchdog.DisabledWatchdog{}
 	}
 
-	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
 
 	logger := logger.GetOrCreate(fmt.Sprintf("cns/chr/%s", id))
 
@@ -482,7 +488,10 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
-	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
 
 	logger := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
 
@@ -618,7 +627,10 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		return nil, err
 	}
 
-	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())[0:8]
+	id := hex.EncodeToString(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
+	if len(id) > 8 {
+		id = id[0:8]
+	}
 
 	logger := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
 

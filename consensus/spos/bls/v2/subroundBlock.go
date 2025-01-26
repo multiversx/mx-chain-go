@@ -75,6 +75,7 @@ func checkNewSubroundBlockParams(
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	isSelfLeader := sr.IsSelfLeader() && sr.ShouldConsiderSelfKeyInConsensus()
 	if !isSelfLeader { // is NOT self leader in this round?
+		sr.Log.Warn("is not Leader")
 		return false
 	}
 
@@ -347,6 +348,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	if err != nil {
 		return nil, err
 	}
+	sr.Log.Debug("set timestamp for header", "timestamp", hdr.GetTimeStamp(), "header nonnce", hdr.GetNonce())
 
 	err = hdr.SetPrevRandSeed(prevRandSeed)
 	if err != nil {
@@ -369,7 +371,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if err != nil {
-		sr.Log.Error("failed to get proof for header", "headerHash", sr.GetData())
+		sr.Log.Error("failed to get proof for header", "headerHash", header.GetPrevHash())
 
 		if header.GetNonce() == 1 {
 			sr.Log.Error("first nonce")
