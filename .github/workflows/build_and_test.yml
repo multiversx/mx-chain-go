@@ -1,15 +1,13 @@
 name: Build and smoke test
 
 on:
-  pull_request:
-    branches: [master, rc/*]
   workflow_dispatch:
 
 jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-13-xlarge]
+        runs-on: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
