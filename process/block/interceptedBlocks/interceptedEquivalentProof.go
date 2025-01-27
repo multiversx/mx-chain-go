@@ -110,6 +110,7 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 		"header round", headerProof.HeaderRound,
 		"bitmap", logger.DisplayByteSlice(headerProof.PubKeysBitmap),
 		"signature", logger.DisplayByteSlice(headerProof.AggregatedSignature),
+		"isEpochStart", headerProof.IsStartOfEpoch,
 	)
 
 	return headerProof, nil
@@ -130,6 +131,7 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
+	log.Debug("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
 	err := iep.integrity()
 	if err != nil {
 		return err
@@ -183,13 +185,15 @@ func (iep *interceptedEquivalentProof) Identifiers() [][]byte {
 
 // String returns the proof's most important fields as string
 func (iep *interceptedEquivalentProof) String() string {
-	return fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=%d, shard=%d, nonce=%d",
+	return fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=%d, shard=%d, nonce=%d, round=%d, isEpochStart=%t",
 		logger.DisplayByteSlice(iep.proof.PubKeysBitmap),
 		logger.DisplayByteSlice(iep.proof.AggregatedSignature),
 		logger.DisplayByteSlice(iep.proof.HeaderHash),
 		iep.proof.HeaderEpoch,
 		iep.proof.HeaderShardId,
 		iep.proof.HeaderNonce,
+		iep.proof.HeaderRound,
+		iep.proof.IsStartOfEpoch,
 	)
 }
 

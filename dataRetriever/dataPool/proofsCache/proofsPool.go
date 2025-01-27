@@ -53,20 +53,22 @@ func (pp *proofsPool) AddProof(
 	}
 
 	pp.mutCache.Lock()
-	defer pp.mutCache.Unlock()
-
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
 		proofsPerShard = newProofsCache()
 		pp.cache[shardID] = proofsPerShard
 	}
+	pp.mutCache.Unlock()
 
-	log.Trace("added proof to pool",
+	log.Debug("added proof to pool",
 		"header hash", headerProof.GetHeaderHash(),
 		"epoch", headerProof.GetHeaderEpoch(),
 		"nonce", headerProof.GetHeaderNonce(),
 		"shardID", headerProof.GetHeaderShardId(),
 		"pubKeys bitmap", headerProof.GetPubKeysBitmap(),
+		"round", headerProof.GetHeaderRound(),
+		"nonce", headerProof.GetHeaderNonce(),
+		"isStartOfEpoch", headerProof.GetIsStartOfEpoch(),
 	)
 
 	proofsPerShard.addProof(headerProof)
@@ -98,9 +100,8 @@ func (pp *proofsPool) CleanupProofsBehindNonce(shardID uint32, nonce uint64) err
 	nonce -= pp.cleanupNonceDelta
 
 	pp.mutCache.RLock()
-	defer pp.mutCache.RUnlock()
-
 	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
 	if !ok {
 		return fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
 	}
@@ -124,17 +125,14 @@ func (pp *proofsPool) GetProof(
 		return nil, fmt.Errorf("nil header hash")
 	}
 
-	// fmt.Println(string(debug.Stack()))
-
-	pp.mutCache.RLock()
-	defer pp.mutCache.RUnlock()
-
 	log.Trace("trying to get proof",
 		"headerHash", headerHash,
 		"shardID", shardID,
 	)
 
+	pp.mutCache.RLock()
 	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
 	}

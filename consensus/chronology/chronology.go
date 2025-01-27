@@ -109,6 +109,7 @@ func (chr *chronology) RemoveAllSubrounds() {
 
 	chr.subrounds = make(map[int]int)
 	chr.subroundHandlers = make([]consensus.SubroundHandler, 0)
+	chr.subroundId = srBeforeStartRound
 
 	chr.mutSubrounds.Unlock()
 }

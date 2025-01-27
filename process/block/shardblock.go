@@ -588,15 +588,14 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	if common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		marshalledHeader, err := sp.marshalizer.Marshal(header)
-		if err != nil {
-			return err
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		hash, errHash := sp.getHeaderHash(header)
+		if errHash != nil {
+			return errHash
 		}
 
-		headerHash := sp.hasher.Compute(string(marshalledHeader))
-		if !sp.proofsPool.HasProof(header.GetShardID(), headerHash) {
-			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(headerHash))
+		if !sp.proofsPool.HasProof(header.GetShardID(), hash) {
+			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(hash))
 		}
 
 		return nil
@@ -622,6 +621,19 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 				sp.log.Debug("checkMetaHdrFinality -> isHdrConstructionValid",
 					"error", err.Error())
 				continue
+			}
+
+			if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
+				hash, errHash := sp.getHeaderHash(metaHdr)
+				if errHash != nil {
+					return errHash
+				}
+
+				if sp.proofsPool.HasProof(core.MetachainShardId, hash) {
+					return nil
+				}
+
+				return process.ErrHeaderNotFinal
 			}
 
 			lastVerifiedHdr = metaHdr

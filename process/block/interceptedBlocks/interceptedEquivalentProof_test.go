@@ -282,6 +282,8 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 		HeaderEpoch:         123,
 		HeaderNonce:         345,
 		HeaderShardId:       0,
+		HeaderRound:         123456,
+		IsStartOfEpoch:      false,
 	}
 	args := createMockArgInterceptedEquivalentProof()
 	args.DataBuff, _ = args.Marshaller.Marshal(proof)
@@ -293,7 +295,7 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 	require.Equal(t, hash, iep.Hash())
 	require.Equal(t, [][]byte{proof.HeaderHash}, iep.Identifiers())
 	require.Equal(t, interceptedEquivalentProofType, iep.Type())
-	expectedStr := fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=123, shard=0, nonce=345",
+	expectedStr := fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=123, shard=0, nonce=345, round=123456, isEpochStart=false",
 		logger.DisplayByteSlice(proof.PubKeysBitmap),
 		logger.DisplayByteSlice(proof.AggregatedSignature),
 		logger.DisplayByteSlice(proof.HeaderHash))

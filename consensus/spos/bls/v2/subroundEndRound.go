@@ -533,6 +533,7 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 		HeaderNonce:         sr.GetHeader().GetNonce(),
 		HeaderShardId:       sr.GetHeader().GetShardID(),
 		HeaderRound:         sr.GetHeader().GetRound(),
+		IsStartOfEpoch:      sr.GetHeader().IsStartOfEpochBlock(),
 	}
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))

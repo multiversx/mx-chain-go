@@ -29,13 +29,16 @@ var expectedErr = errors.New("expected error")
 
 func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 	v1, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
-	v2, _ := nodesCoordinator.NewValidator([]byte("pubKey1"), 1, defaultChancesSelection)
+	v2, _ := nodesCoordinator.NewValidator([]byte("pubKey2"), 1, defaultChancesSelection)
 	return &ArgsHeaderSigVerifier{
 		Marshalizer: &mock.MarshalizerMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{
 			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validators []nodesCoordinator.Validator, err error) {
 				return v1, []nodesCoordinator.Validator{v1, v2}, nil
+			},
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return []string{"pubKey1", "pubKey2"}, nil
 			},
 		},
 		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(cryptoMocks.NewMultiSigner()),
