@@ -254,17 +254,17 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		return false
 	}
 
-	err := sr.commitBlock()
-	if err != nil {
-		return false
-	}
-
 	// if proof not nil, it was created and broadcasted so it has to be added to the pool
 	if proof != nil {
 		ok := sr.EquivalentProofsPool().AddProof(proof)
 		if !ok {
 			log.Trace("doEndRoundJobByNode.AddProof", "added", ok)
 		}
+	}
+
+	err := sr.commitBlock()
+	if err != nil {
+		return false
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
