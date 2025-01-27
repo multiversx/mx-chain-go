@@ -20,9 +20,11 @@ func Test_newFieldsHandler(t *testing.T) {
 	for _, field := range splitFields {
 		require.True(t, fh.IsFieldSet(field), fmt.Sprintf("field %s is not set", field))
 	}
+	require.True(t, fh.IsFieldSet(hashField), "hashField should have been returned by default")
 
 	fh = newFieldsHandler("*")
 	for _, field := range splitFields {
 		require.True(t, fh.IsFieldSet(field))
 	}
+	require.True(t, fh.IsFieldSet(hashField), "hashField should have been returned by default")
 }
