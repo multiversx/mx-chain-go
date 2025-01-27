@@ -246,22 +246,22 @@ func (en *extensionNode) tryGet(key []byte, currentDepth uint32, db common.TrieS
 	return child.tryGet(key, currentDepth+1, db)
 }
 
-func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error) {
+func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, []byte, error) {
 	keyTooShort := len(key) < len(en.Key)
 	if keyTooShort {
-		return nil, nil, ErrNodeNotFound
+		return nil, nil, nil, ErrNodeNotFound
 	}
 	keysDontMatch := !bytes.Equal(en.Key, key[:len(en.Key)])
 	if keysDontMatch {
-		return nil, nil, ErrNodeNotFound
+		return nil, nil, nil, ErrNodeNotFound
 	}
-	childNode, err := en.resolveIfCollapsed(db)
+	child, encodedChild, err := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	key = key[len(en.Key):]
-	return childNode, key, nil
+	return child, encodedChild, key, nil
 }
 
 func (en *extensionNode) insert(

@@ -6,8 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
-// TODO: add unit tests
-
 type rootManager struct {
 	root         node
 	oldHashes    [][]byte

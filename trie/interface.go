@@ -28,7 +28,7 @@ type node interface {
 	setHash(goRoutinesManager common.TrieGoroutinesManager)
 	getEncodedNode() ([]byte, error)
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
-	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
+	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, []byte, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) node
 	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) (bool, node)
 	reduceNode(pos int, db common.TrieStorageInteractor) (node, bool, error)
