@@ -329,7 +329,7 @@ func TestConsensusBLSWithFullProcessing(t *testing.T) {
 		for _, n := range nodesList {
 			for i := 1; i < len(nodes); i++ {
 				if check.IfNil(n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()) {
-					// assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
+					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 				} else {
 					fmt.Println("FOUND")
 					assert.Equal(t, expectedNonce, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce())

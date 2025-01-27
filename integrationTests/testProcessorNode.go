@@ -1098,9 +1098,8 @@ func (tpn *TestProcessorNode) initDataPools() {
 
 	log := logger.GetOrCreate(fmt.Sprintf("dtr/hc/%s", id))
 
-	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(log, 1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	tpn.ProofsPool = proofscache.NewProofsPool(3)
-	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(log, 1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
