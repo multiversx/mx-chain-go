@@ -175,7 +175,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
-	if chaos.In_shardProcess_processTransaction_shouldReturnError() {
+	if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
 		return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
 	}
 

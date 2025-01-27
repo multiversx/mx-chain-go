@@ -103,7 +103,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
-		chaos.In_subroundSignature_doSignatureJob_maybeCorruptSignature(sr.GetHeader(), signatureShare)
+		chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)
 
 		if !isSelfLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
@@ -163,7 +163,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 		return false
 	}
 
-	if chaos.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader()) {
+	if chaos.Controller.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader()) {
 		return true
 	}
 
@@ -386,6 +386,8 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
 			return false
 		}
+
+		chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), selfIndex, signatureShare)
 
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)

@@ -21,5 +21,5 @@ func learnChaosContext(eligibleNodesMap map[uint32][]Validator, waitingNodesMap 
 		}
 	}
 
-	chaos.Seed(eligibleNodes, waitingNodes)
+	chaos.Controller.LearnNodes(eligibleNodes, waitingNodes)
 }

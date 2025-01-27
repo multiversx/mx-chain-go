@@ -871,7 +871,7 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 }
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
-	if chaos.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.GetHeader()) {
+	if chaos.Controller.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.GetHeader()) {
 		return spos.ErrInvalidSignature
 	}
 
