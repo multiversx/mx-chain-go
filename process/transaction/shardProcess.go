@@ -18,6 +18,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -174,6 +175,10 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
+	if chaos.In_shardProcess_processTransaction_shouldReturnError() {
+		return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
+	}
+
 	if check.IfNil(tx) {
 		return 0, process.ErrNilTransaction
 	}
