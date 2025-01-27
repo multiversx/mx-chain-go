@@ -18,8 +18,8 @@ func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochs
 	return isStartOfEpochBlock && isBlockInActivationEpoch
 }
 
-// IsFlagEnabledAfterEpochsStartBlock returns true if the flag is enabled for the header, but it is not the epoch start block
-func IsFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
+// isFlagEnabledAfterEpochsStartBlock returns true if the flag is enabled for the header, but it is not the epoch start block
+func isFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
 	isFlagEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(flag, header.GetEpoch())
 	isEpochStartBlock := IsEpochChangeBlockForFlagActivation(header, enableEpochsHandler, flag)
 	return isFlagEnabled && !isEpochStartBlock
@@ -27,7 +27,7 @@ func IsFlagEnabledAfterEpochsStartBlock(header data.HeaderHandler, enableEpochsH
 
 // ShouldBlockHavePrevProof returns true if the block should have a proof
 func ShouldBlockHavePrevProof(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
-	return IsFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, flag) && header.GetNonce() > 1
+	return isFlagEnabledAfterEpochsStartBlock(header, enableEpochsHandler, flag) && header.GetNonce() > 1
 }
 
 // VerifyProofAgainstHeader verifies the fields on the proof match the ones on the header
@@ -47,6 +47,9 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 	if proof.GetHeaderRound() != header.GetRound() {
 		return fmt.Errorf("%w, round mismatch", ErrInvalidHeaderProof)
+	}
+	if proof.GetIsStartOfEpoch() != header.IsStartOfEpochBlock() {
+		return fmt.Errorf("%w, is start of epoch mismatch", ErrInvalidHeaderProof)
 	}
 
 	return nil
