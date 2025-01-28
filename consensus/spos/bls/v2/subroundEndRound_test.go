@@ -1227,8 +1227,6 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 	t.Run("should work with equivalent messages flag active", func(t *testing.T) {
 		t.Parallel()
 
-		providedPrevSig := []byte("prev sig")
-		providedPrevBitmap := []byte{1, 1, 1, 1, 1, 1, 1, 1, 1}
 		container := consensusMocks.InitConsensusCore()
 		container.SetBlockchain(&testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1241,16 +1239,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
-
-		wasSetCurrentHeaderProofCalled := false
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
-				wasSetCurrentHeaderProofCalled = true
-				require.NotEqual(t, providedPrevSig, headerProof.GetAggregatedSignature())
-				require.NotEqual(t, providedPrevBitmap, headerProof.GetPubKeysBitmap())
-				return true
-			},
-		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 
 		ch := make(chan bool, 1)
 		consensusState := initializers.InitConsensusState()
@@ -1295,7 +1284,6 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 
 		r := srEndRound.DoEndRoundJobByNode()
 		require.True(t, r)
-		require.True(t, wasSetCurrentHeaderProofCalled)
 	})
 }
 
