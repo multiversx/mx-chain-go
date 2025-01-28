@@ -48,6 +48,7 @@ type StatusComponentsFactoryArgs struct {
 	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
 	IsSovereign          bool
+	ESDTPrefix           string
 }
 
 type statusComponentsFactory struct {
@@ -65,6 +66,7 @@ type statusComponentsFactory struct {
 	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
 	isSovereign          bool
+	esdtPrefix           string
 }
 
 var log = logger.GetOrCreate("factory")
@@ -110,6 +112,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		isInImportMode:       args.IsInImportMode,
 		cryptoComponents:     args.CryptoComponents,
 		isSovereign:          args.IsSovereign,
+		esdtPrefix:           args.ESDTPrefix,
 	}, nil
 }
 
@@ -242,6 +245,7 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
 		Sovereign:                scf.isSovereign,
+		ESDTPrefix:               scf.esdtPrefix,
 		MainChainElastic:         mainChainElastic,
 	}
 }
