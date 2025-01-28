@@ -114,6 +114,8 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	sfd.computeFinalCheckpoint()
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	sfd.addCheckpoint(newCheckpoint)
+	// first shard block with proof does not have increased consensus
+	// so instant finality will only be set after the first block with increased consensus
 	if common.ShouldBlockHavePrevProof(header, sfd.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		sfd.setFinalCheckpoint(newCheckpoint)
 	}
