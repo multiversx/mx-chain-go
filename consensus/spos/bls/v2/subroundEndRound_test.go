@@ -1181,8 +1181,13 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		numCalls := 0
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				if numCalls <= 1 {
+					numCalls++
+					return false
+				}
 				return true
 			},
 		})
