@@ -419,7 +419,7 @@ func (mp *metaProcessor) ProcessBlock(
 }
 
 func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error {
-	if !mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.Epoch) {
+	if !common.ShouldBlockHavePrevProof(header, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		return nil
 	}
 
