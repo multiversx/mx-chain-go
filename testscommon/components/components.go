@@ -456,10 +456,25 @@ func GetProcessArgs(
 	)
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	if err != nil {
+		panic(err)
+	}
 
 	return processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
@@ -704,7 +719,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				{
 					MarshallerType:     "json",
 					Mode:               "client",
-					URL:                "localhost:12345",
+					URL:                "ws://localhost:12345",
 					RetryDurationInSec: 1,
 				},
 			},
@@ -739,10 +754,19 @@ func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordin
 	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
 	if err != nil {
-		fmt.Println(err.Error())
+		panic(err)
 	}
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
+
+	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = dataComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
 	return dataComponents
 }
 

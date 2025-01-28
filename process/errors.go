@@ -1068,9 +1068,6 @@ var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block s
 // ErrNilTxMaxTotalCostHandler signals a nil transaction max total cost
 var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 
-// ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
-var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
-
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
 
@@ -1242,6 +1239,9 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 // ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
 var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")
 
+// ErrRelayedTxV3Disabled signals that relayed tx v3 are disabled
+var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 are disabled")
+
 // ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
 var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
 
@@ -1250,6 +1250,15 @@ var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters co
 
 // ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
 var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
+
+// ErrGuardedRelayerNotAllowed signals that the provided relayer is guarded
+var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")
+
+// ErrRelayedByGuardianNotAllowed signals that the provided guardian is also the relayer
+var ErrRelayedByGuardianNotAllowed = errors.New("relayed by guardian not allowed")
+
+// ErrInvalidRelayedTxV3 signals that an invalid relayed tx v3 has been provided
+var ErrInvalidRelayedTxV3 = errors.New("invalid relayed transaction")
 
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
