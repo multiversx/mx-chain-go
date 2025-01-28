@@ -29,7 +29,7 @@ def update_key(lines, key, value) -> []:
     return updated_lines
 
 
-def enable_grpc(lines, section):
+def enable_key(lines, section):
     updated_lines = []
     section_found = False
 
@@ -51,7 +51,8 @@ def update_sovereign_config(file_path, main_chain_address, sovereign_chain_addre
     updated_lines = update_subscribed_addresses(lines, "OutgoingSubscribedEvents", "deposit", sovereign_chain_address)
     updated_lines = update_subscribed_addresses(updated_lines, "NotifierConfig", "deposit", main_chain_address)
     updated_lines = update_subscribed_addresses(updated_lines, "NotifierConfig", "execute", main_chain_address)
-    updated_lines = enable_grpc(updated_lines, "OutGoingBridge")
+    updated_lines = enable_key(updated_lines, "OutGoingBridge")
+    updated_lines = enable_key(updated_lines, "NotifierConfig")
 
     with open(file_path, 'w') as file:
         file.writelines(updated_lines)
