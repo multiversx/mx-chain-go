@@ -114,7 +114,7 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 	sfd.computeFinalCheckpoint()
 	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
 	sfd.addCheckpoint(newCheckpoint)
-	if sfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+	if common.ShouldBlockHavePrevProof(header, sfd.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		sfd.setFinalCheckpoint(newCheckpoint)
 	}
 	sfd.removePastOrInvalidRecords()
