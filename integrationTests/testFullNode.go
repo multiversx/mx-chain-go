@@ -48,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	chainShardingMocks "github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -110,6 +111,7 @@ func CreateNodesWithTestFullNode(
 					EpochsConfig:         &enableEpochsConfig,
 					NodeKeys:             keysPair,
 				},
+				ShardID:       shardID,
 				ConsensusSize: consensusSize,
 				RoundTime:     roundTime,
 				ConsensusType: consensusType,
@@ -137,6 +139,7 @@ func CreateNodesWithTestFullNode(
 type ArgsTestFullNode struct {
 	*ArgTestProcessorNode
 
+	ShardID       uint32
 	ConsensusSize int
 	RoundTime     uint64
 	ConsensusType string
@@ -150,13 +153,18 @@ type ArgsTestFullNode struct {
 
 type TestFullNode struct {
 	*TestProcessorNode
+
+	ShardCoordinator sharding.Coordinator
 }
 
 func NewTestFullNode(args ArgsTestFullNode) *TestFullNode {
 	tpn := newBaseTestProcessorNode(*args.ArgTestProcessorNode)
 
+	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, args.ShardID)
+
 	tfn := &TestFullNode{
 		TestProcessorNode: tpn,
+		ShardCoordinator:  shardCoordinator,
 	}
 
 	tfn.initTestNodeWithArgs(*args.ArgTestProcessorNode, args)
@@ -342,6 +350,25 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 
 	if args.GenesisFile != "" {
 		tpn.createHeartbeatWithHardforkTrigger()
+	}
+}
+
+func (tpn *TestFullNode) setGenesisBlock() {
+	genesisBlock := tpn.GenesisBlocks[tpn.ShardCoordinator.SelfId()]
+	_ = tpn.BlockChain.SetGenesisHeader(genesisBlock)
+	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, genesisBlock)
+	tpn.BlockChain.SetGenesisHeaderHash(hash)
+	log.Info("set genesis",
+		"shard ID", tpn.ShardCoordinator.SelfId(),
+		"hash", hex.EncodeToString(hash),
+	)
+}
+
+func (tpn *TestFullNode) initChainHandler() {
+	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		tpn.BlockChain = CreateMetaChain()
+	} else {
+		tpn.BlockChain = CreateShardChain()
 	}
 }
 
@@ -947,6 +974,10 @@ func (tpn *TestFullNode) initBlockProcessor(
 			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
 		}
 
+		if systemVM == nil {
+			systemVM, _ = mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
+		}
+
 		argsStakingDataProvider := metachain.StakingDataProviderArgs{
 			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
 			SystemVM:            systemVM,
@@ -978,7 +1009,10 @@ func (tpn *TestFullNode) initBlockProcessor(
 			RewardsHandler:        tpn.EconomicsData,
 			EconomicsDataProvider: economicsDataProvider,
 		}
-		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
+		epochStartRewards, err := metachain.NewRewardsCreatorProxy(argsEpochRewards)
+		if err != nil {
+			panic(fmt.Sprintf("error creating rewards creator proxy: %s", err.Error()))
+		}
 
 		validatorInfoStorage, _ := tpn.Storage.GetStorer(dataRetriever.UnsignedTransactionUnit)
 		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{

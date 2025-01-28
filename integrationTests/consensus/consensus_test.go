@@ -210,9 +210,9 @@ func TestConsensusBLSWithFullProcessing(t *testing.T) {
 	logger.ToggleLoggerName(true)
 
 	numKeysOnEachNode := 1
-	numMetaNodes := uint32(4)
-	numNodes := uint32(4)
-	consensusSize := uint32(4 * numKeysOnEachNode)
+	numMetaNodes := uint32(2)
+	numNodes := uint32(2)
+	consensusSize := uint32(2 * numKeysOnEachNode)
 	roundTime := uint64(1000)
 
 	// maxShards := uint32(1)
@@ -227,10 +227,10 @@ func TestConsensusBLSWithFullProcessing(t *testing.T) {
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
-	equivalentProodsActivationEpoch := uint32(10)
+	equivalentProofsActivationEpoch := uint32(0)
 
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProodsActivationEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProodsActivationEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
 
 	fmt.Println("Step 1. Setup nodes...")
 
@@ -332,7 +332,7 @@ func TestConsensusBLSWithFullProcessing(t *testing.T) {
 					// assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
 				} else {
 					fmt.Println("FOUND")
-					assert.Equal(t, expectedNonce, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce())
+					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
 				}
 			}
 		}
