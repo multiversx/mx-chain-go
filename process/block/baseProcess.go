@@ -747,7 +747,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
-	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
+	isFlagEnabledForHeader := common.ShouldBlockHavePrevProof(headerInfo.hdr, bp.enableEpochsHandler, common.EquivalentMessagesFlag)
 	if !isFlagEnabledForHeader {
 		return false
 	}
