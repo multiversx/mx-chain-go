@@ -255,7 +255,7 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 func (sr *subroundEndRound) waitForProof() bool {
 	shardID := sr.ShardCoordinator().SelfId()
 	headerHash := sr.GetData()
-	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
+	if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
 		return true
 	}
 
@@ -332,7 +332,7 @@ func (sr *subroundEndRound) sendProof() {
 	}
 
 	// broadcast header proof
-	_, err = sr.createAndBroadcastProof(sig, bitmap)
+	err = sr.createAndBroadcastProof(sig, bitmap)
 	if err != nil {
 		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
 	}
@@ -543,7 +543,7 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) (*block.HeaderProof, error) {
+func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) error {
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
@@ -557,14 +557,14 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	log.Debug("step 3: block header proof has been sent",
 		"PubKeysBitmap", bitmap,
 		"AggregateSignature", signature)
 
-	return headerProof, nil
+	return nil
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
