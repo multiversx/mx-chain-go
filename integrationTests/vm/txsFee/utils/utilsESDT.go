@@ -27,6 +27,7 @@ func CreateAccountWithESDTBalance(
 	tokenIdentifier []byte,
 	esdtNonce uint64,
 	esdtValue *big.Int,
+	esdtType uint32,
 ) {
 	account, err := accnts.LoadAccount(pubKey)
 	require.Nil(t, err)
@@ -39,6 +40,7 @@ func CreateAccountWithESDTBalance(
 	require.Nil(t, err)
 
 	esdtData := &esdt.ESDigitalToken{
+		Type:       esdtType,
 		Value:      esdtValue,
 		Properties: []byte{},
 	}
@@ -92,6 +94,7 @@ func CreateAccountWithNFT(
 	require.Nil(t, err)
 
 	esdtData := &esdt.ESDigitalToken{
+		Type:       uint32(core.NonFungible),
 		Value:      big.NewInt(1),
 		Properties: []byte{},
 		TokenMetaData: &esdt.MetaData{
@@ -152,7 +155,7 @@ func CreateAccountWithESDTBalanceAndRoles(
 	esdtValue *big.Int,
 	roles [][]byte,
 ) {
-	CreateAccountWithESDTBalance(t, accnts, pubKey, egldValue, tokenIdentifier, esdtNonce, esdtValue)
+	CreateAccountWithESDTBalance(t, accnts, pubKey, egldValue, tokenIdentifier, esdtNonce, esdtValue, uint32(core.Fungible))
 	SetESDTRoles(t, accnts, pubKey, tokenIdentifier, roles)
 }
 

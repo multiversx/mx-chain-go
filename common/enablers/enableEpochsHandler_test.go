@@ -119,9 +119,11 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DynamicESDTEnableEpoch:                                   102,
 		EGLDInMultiTransferEnableEpoch:                           103,
 		CryptoOpcodesV2EnableEpoch:                               104,
-		RelayedTransactionsV3EnableEpoch:                         105,
-		FixRelayedBaseCostEnableEpoch:                            106,
-		MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          107,
+		FixRelayedBaseCostEnableEpoch:                            105,
+		MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          106,
+		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           107,
+		UseGasBoundedShouldFailExecutionEnableEpoch:              108,
+		RelayedTransactionsV3EnableEpoch:                         109,
 	}
 }
 
@@ -322,8 +324,8 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
-	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV3Flag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -440,12 +442,14 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.CleanupAuctionOnLowWaitingListEnableEpoch, handler.GetActivationEpoch(common.CleanupAuctionOnLowWaitingListFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
+	require.Equal(t, cfg.UseGasBoundedShouldFailExecutionEnableEpoch, handler.GetActivationEpoch(common.UseGasBoundedShouldFailExecutionFlag))
 	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
-	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.FixRelayedBaseCostEnableEpoch, handler.GetActivationEpoch(common.FixRelayedBaseCostFlag))
 	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.MultiESDTNFTTransferAndExecuteByUserFlag))
+	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
+	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -55,9 +56,16 @@ func (txProc *txProcessor) ProcessUserTx(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
+	relayerAddr []byte,
 	originalTxHash []byte,
 ) (vmcommon.ReturnCode, error) {
-	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, originalTxHash)
+	return txProc.processUserTx(
+		originalTx,
+		userTx,
+		relayedTxValue,
+		relayedNonce,
+		relayerAddr,
+		originalTxHash)
 }
 
 // ProcessMoveBalanceCostRelayedUserTx calls the un-exported method processMoveBalanceCostRelayedUserTx
@@ -95,9 +103,9 @@ func (inTx *InterceptedTransaction) CheckMaxGasPrice() error {
 	return inTx.checkMaxGasPrice()
 }
 
-// VerifyGuardian calls the un-exported method verifyGuardian
-func (txProc *txProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
-	return txProc.verifyGuardian(tx, account)
+// SetEnableEpochsHandler sets the internal enable epochs handler
+func (inTx *InterceptedTransaction) SetEnableEpochsHandler(handler common.EnableEpochsHandler) {
+	inTx.enableEpochsHandler = handler
 }
 
 // ShouldIncreaseNonce calls the un-exported method shouldIncreaseNonce

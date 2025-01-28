@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/process"
 )
 
 // EconomicsHandlerMock -
@@ -27,6 +26,7 @@ type EconomicsHandlerMock struct {
 	ComputeFeeCalled                                    func(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled                         func(tx data.TransactionWithFeeHandler) error
 	ComputeMoveBalanceFeeCalled                         func(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeMoveBalanceFeeInEpochCalled                  func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeTxFeeCalled                                  func(tx data.TransactionWithFeeHandler) *big.Int
 	DeveloperPercentageCalled                           func() float64
 	MinGasPriceCalled                                   func() uint64
@@ -47,8 +47,11 @@ type EconomicsHandlerMock struct {
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
-	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
-	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
+}
+
+// ComputeGasUnitsFromRefundValue -
+func (ehm *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+	return 0
 }
 
 // LeaderPercentage -
@@ -199,7 +202,14 @@ func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx data.TransactionWithFe
 		return ehm.ComputeMoveBalanceFeeCalled(tx)
 	}
 	return big.NewInt(0)
+}
 
+// ComputeMoveBalanceFeeInEpoch -
+func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	if ehm.ComputeMoveBalanceFeeInEpochCalled != nil {
+		return ehm.ComputeMoveBalanceFeeInEpochCalled(tx, epoch)
+	}
+	return big.NewInt(0)
 }
 
 // ComputeGasLimitBasedOnBalance -
@@ -334,22 +344,6 @@ func (ehm *EconomicsHandlerMock) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(t
 func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
 	if ehm.ComputeTxFeeBasedOnGasUsedInEpochCalled != nil {
 		return ehm.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
-	}
-	return nil
-}
-
-// ComputeRelayedTxFees -
-func (ehm *EconomicsHandlerMock) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
-	if ehm.ComputeRelayedTxFeesCalled != nil {
-		return ehm.ComputeRelayedTxFeesCalled(tx)
-	}
-	return big.NewInt(0), big.NewInt(0), nil
-}
-
-// SetTxTypeHandler -
-func (ehm *EconomicsHandlerMock) SetTxTypeHandler(txTypeHandler process.TxTypeHandler) error {
-	if ehm.SetTxTypeHandlerCalled != nil {
-		return ehm.SetTxTypeHandlerCalled(txTypeHandler)
 	}
 	return nil
 }

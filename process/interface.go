@@ -40,6 +40,7 @@ import (
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
+	VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -69,7 +70,7 @@ type SmartContractProcessorFacade interface {
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
-	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
+	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
@@ -696,11 +697,11 @@ type feeHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
 	ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
-	ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -727,7 +728,6 @@ type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
-	SetTxTypeHandler(txTypeHandler TxTypeHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1398,19 +1398,5 @@ type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
-	IsInterfaceNil() bool
-}
-
-// RelayedTxV3Processor defines a component able to check and process relayed transactions v3
-type RelayedTxV3Processor interface {
-	CheckRelayedTx(tx *transaction.Transaction) error
-	IsInterfaceNil() bool
-}
-
-// FailedTxLogsAccumulator defines a component able to accumulate logs during a relayed tx execution
-type FailedTxLogsAccumulator interface {
-	GetLogs(txHash []byte) (data.TransactionHandler, []*vmcommon.LogEntry, bool)
-	SaveLogs(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error
-	Remove(txHash []byte)
 	IsInterfaceNil() bool
 }

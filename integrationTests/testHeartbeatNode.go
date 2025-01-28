@@ -55,7 +55,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -640,7 +639,6 @@ func (thn *TestHeartbeatNode) initInterceptors() {
 		SignaturesHandler:            &processMock.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: thn.heartbeatExpiryTimespanInSec,
 		PeerID:                       thn.MainMessenger.ID(),
-		RelayedTxV3Processor:         &processMocks.RelayedTxV3ProcessorMock{},
 	}
 
 	thn.createPeerAuthInterceptor(argsFactory)

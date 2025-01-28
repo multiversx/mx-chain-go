@@ -40,7 +40,7 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance, uint32(core.Fungible))
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -96,7 +96,7 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance, uint32(core.Fungible))
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -153,7 +153,7 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance, uint32(core.Fungible))
 
 	// deploy 2 contracts
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -208,7 +208,7 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 	sftBalance := big.NewInt(1000)
 	halfBalance := big.NewInt(500)
 
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance, uint32(core.SemiFungible))
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -305,7 +305,7 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 	sftBalance := big.NewInt(1000)
 	halfBalance := big.NewInt(500)
 
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance, uint32(core.SemiFungible))
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -408,7 +408,7 @@ func TestSendNFTToContractWith0Function(t *testing.T) {
 	sftNonce := uint64(1)
 	sftBalance := big.NewInt(1000)
 
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance, uint32(core.SemiFungible))
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -461,7 +461,7 @@ func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
 	sftNonce := uint64(1)
 	sftBalance := big.NewInt(1000)
 
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, ownerAddr, big.NewInt(1000000000), sftTokenID, sftNonce, sftBalance, uint32(core.SemiFungible))
 	utils.CheckESDTNFTBalance(t, testContext, ownerAddr, sftTokenID, sftNonce, sftBalance)
 
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
@@ -523,7 +523,7 @@ func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
 	localEsdtBalance := big.NewInt(100000000)
 	esdtTransferValue := big.NewInt(5000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, localEgldBalance, token, 0, localEsdtBalance, uint32(core.Fungible))
 
 	// deploy contract
 	ownerAccount, _ := testContext.Accounts.LoadAccount(ownerAddr)
