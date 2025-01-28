@@ -263,7 +263,7 @@ func (sr *subroundEndRound) DoEndRoundJobByNode() bool {
 
 // CreateAndBroadcastProof calls the unexported createAndBroadcastHeaderFinalInfo function
 func (sr *subroundEndRound) CreateAndBroadcastProof(signature []byte, bitmap []byte) {
-	_, _ = sr.createAndBroadcastProof(signature, bitmap)
+	_ = sr.createAndBroadcastProof(signature, bitmap)
 }
 
 // ReceivedProof calls the unexported receivedProof function
