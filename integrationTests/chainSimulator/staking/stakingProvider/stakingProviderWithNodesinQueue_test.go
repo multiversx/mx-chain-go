@@ -75,6 +75,8 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	mintValue := big.NewInt(0).Mul(big.NewInt(5000), chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(1)

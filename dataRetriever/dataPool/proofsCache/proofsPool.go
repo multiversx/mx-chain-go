@@ -60,12 +60,15 @@ func (pp *proofsPool) AddProof(
 	}
 	pp.mutCache.Unlock()
 
-	log.Trace("added proof to pool",
+	log.Debug("added proof to pool",
 		"header hash", headerProof.GetHeaderHash(),
 		"epoch", headerProof.GetHeaderEpoch(),
 		"nonce", headerProof.GetHeaderNonce(),
 		"shardID", headerProof.GetHeaderShardId(),
 		"pubKeys bitmap", headerProof.GetPubKeysBitmap(),
+		"round", headerProof.GetHeaderRound(),
+		"nonce", headerProof.GetHeaderNonce(),
+		"isStartOfEpoch", headerProof.GetIsStartOfEpoch(),
 	)
 
 	proofsPerShard.addProof(headerProof)
