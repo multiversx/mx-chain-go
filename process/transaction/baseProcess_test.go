@@ -44,6 +44,7 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag),
 		txVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		guardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		txTypeHandler:       &testscommon.TxTypeHandlerMock{},
 	}
 
 	return &baseProc
@@ -212,6 +213,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		enableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag),
 		txVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		guardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		txTypeHandler:       &testscommon.TxTypeHandlerMock{},
 	}
 
 	notGuardedAccount := &stateMock.UserAccountStub{}
@@ -229,7 +231,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		t.Parallel()
 
 		localBaseProc := baseProc
-		err := localBaseProc.verifyGuardian(&transaction.Transaction{}, nil)
+		err := localBaseProc.VerifyGuardian(&transaction.Transaction{}, nil)
 		assert.Nil(t, err)
 	})
 	t.Run("guarded account with a not guarded transaction should error", func(t *testing.T) {
@@ -242,7 +244,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		}
 
-		err := localBaseProc.verifyGuardian(&transaction.Transaction{}, guardedAccount)
+		err := localBaseProc.VerifyGuardian(&transaction.Transaction{}, guardedAccount)
 		assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 		assert.Contains(t, err.Error(), "not allowed to bypass guardian")
 	})
@@ -256,7 +258,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		}
 
-		err := localBaseProc.verifyGuardian(&transaction.Transaction{}, notGuardedAccount)
+		err := localBaseProc.VerifyGuardian(&transaction.Transaction{}, notGuardedAccount)
 		assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 		assert.Contains(t, err.Error(), process.ErrGuardedTransactionNotExpected.Error())
 	})
@@ -270,7 +272,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		}
 
-		err := localBaseProc.verifyGuardian(&transaction.Transaction{}, notGuardedAccount)
+		err := localBaseProc.VerifyGuardian(&transaction.Transaction{}, notGuardedAccount)
 		assert.Nil(t, err)
 	})
 	t.Run("get active guardian fails should error", func(t *testing.T) {
@@ -288,7 +290,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		}
 
-		err := localBaseProc.verifyGuardian(&transaction.Transaction{}, guardedAccount)
+		err := localBaseProc.VerifyGuardian(&transaction.Transaction{}, guardedAccount)
 		assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 		assert.Contains(t, err.Error(), expectedErr.Error())
 	})
@@ -307,7 +309,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		}
 
-		err := localBaseProc.verifyGuardian(tx, guardedAccount)
+		err := localBaseProc.VerifyGuardian(tx, guardedAccount)
 		assert.ErrorIs(t, err, process.ErrTransactionNotExecutable)
 		assert.Contains(t, err.Error(), process.ErrTransactionAndAccountGuardianMismatch.Error())
 	})
@@ -326,7 +328,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			},
 		}
 
-		err := localBaseProc.verifyGuardian(tx, guardedAccount)
+		err := localBaseProc.VerifyGuardian(tx, guardedAccount)
 		assert.Nil(t, err)
 	})
 }

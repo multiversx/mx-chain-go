@@ -25,10 +25,6 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
-	defer func() {
-		go txs.notifyTransactionProviderIfNeeded()
-	}()
-
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
 	for index := range sortedTxs {
 		if !haveTime() {
@@ -175,10 +171,6 @@ func (txs *transactions) processTransaction(
 	elapsedTime = time.Since(startTime)
 	mbInfo.processingInfo.totalTimeUsedForProcess += elapsedTime
 
-	txs.accountTxsShards.Lock()
-	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.accountTxsShards.Unlock()
-
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
 		if errors.Is(err, process.ErrHigherNonceInTransaction) {
 			mbInfo.senderAddressToSkip = tx.GetSndAddr()
@@ -218,7 +210,7 @@ func (txs *transactions) processTransaction(
 	}
 
 	if errors.Is(err, process.ErrFailedTransaction) {
-		log.Debug("transactions.processTransaction",
+		log.Trace("transactions.processTransaction",
 			"txHash", txHash,
 			"nonce", tx.Nonce,
 			"value", tx.Value,
@@ -378,10 +370,6 @@ func (txs *transactions) verifyTransaction(
 	err = txs.txProcessor.VerifyTransaction(tx)
 	elapsedTime = time.Since(startTime)
 	mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += elapsedTime
-
-	txs.accountTxsShards.Lock()
-	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.accountTxsShards.Unlock()
 
 	if err != nil {
 		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
@@ -561,7 +549,7 @@ func (txs *transactions) getTxAndMbInfo(
 	}
 	numNewTxs := 1
 
-	_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
+	_, txTypeDstShard, _ := txs.txTypeHandler.ComputeTransactionType(tx)
 	isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
 	isCrossShardScCallOrSpecialTx := receiverShardID != txs.shardCoordinator.SelfId() &&
 		(isReceiverSmartContractAddress || len(tx.RcvUserName) > 0)
@@ -695,7 +683,7 @@ func (txs *transactions) shouldContinueProcessingScheduledTx(
 
 	mbInfo.senderAddressToSkip = tx.GetSndAddr()
 
-	_, txTypeDstShard := txs.txTypeHandler.ComputeTransactionType(tx)
+	_, txTypeDstShard, _ := txs.txTypeHandler.ComputeTransactionType(tx)
 	isReceiverSmartContractAddress := txTypeDstShard == process.SCDeployment || txTypeDstShard == process.SCInvoking
 	if !isReceiverSmartContractAddress {
 		return nil, nil, false
