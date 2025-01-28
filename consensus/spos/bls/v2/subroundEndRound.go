@@ -247,20 +247,34 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		if !sr.waitForSignalSync() {
 			return false
 		}
+		_, _ = sr.sendProof()
 	}
 
-	proof, ok := sr.sendProof()
-	if !ok {
-		return false
+	return sr.finalizeConfirmedBlock()
+}
+
+func (sr *subroundEndRound) waitForProof(shardID uint32, headerHash []byte) bool {
+	if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
+		return true
 	}
 
-	// if proof not nil, it was created and broadcasted so it has to be added to the pool
-	if proof != nil {
-		ok := sr.EquivalentProofsPool().AddProof(proof)
-		if !ok {
-			log.Trace("doEndRoundJobByNode.AddProof", "added", ok)
+	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	defer cancel()
+
+	for {
+		select {
+		case <-time.After(time.Millisecond):
+			if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
+				return true
+			}
+		case <-ctx.Done():
+			return false
 		}
 	}
+}
+
+func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
+	sr.waitForProof(sr.ShardCoordinator().SelfId(), sr.GetData())
 
 	err := sr.commitBlock()
 	if err != nil {
