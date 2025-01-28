@@ -321,7 +321,6 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	log.Error("doEndRoundJobByLeader.SetSignature", "set sig", "sig", sig)
 	err = header.SetSignature(sig)
 	if err != nil {
 		log.Debug("doEndRoundJobByLeader.SetSignature", "error", err.Error())

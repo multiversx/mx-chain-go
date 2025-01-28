@@ -38,7 +38,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	disabledInterceptors "github.com/multiversx/mx-chain-go/process/interceptors/disabled"
@@ -72,7 +71,6 @@ import (
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
@@ -521,7 +519,7 @@ func (tpn *TestFullNode) initNode(
 			tpn.DataPool.Proofs())
 	}
 	if err != nil {
-		panic(err.Error())
+		log.Error("error creating fork detector", "error", err)
 	}
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
@@ -818,13 +816,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 ) {
 	var err error
 
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
-
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
@@ -835,30 +826,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 	if tpn.EnableEpochsHandler == nil {
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
-
-	// if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-	// 	tpn.ForkDetector, _ = processSync.NewShardForkDetector(
-	// 		log,
-	// 		tpn.RoundHandler,
-	// 		tpn.BlockBlackListHandler,
-	// 		tpn.BlockTracker,
-	// 		tpn.NodesSetup.GetStartTime(),
-	// 		tpn.EnableEpochsHandler,
-	// 		tpn.DataPool.Proofs())
-	// } else {
-	// 	tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
-	// 		log,
-	// 		tpn.RoundHandler,
-	// 		tpn.BlockBlackListHandler,
-	// 		tpn.BlockTracker,
-	// 		tpn.NodesSetup.GetStartTime(),
-	// 		tpn.EnableEpochsHandler,
-	// 		tpn.DataPool.Proofs())
-	// }
-
-	// if tpn.ForkDetector == nil {
-	// 	panic("AAAAAAAAAAAAAAAAA")
-	// }
 
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
@@ -969,14 +936,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
-		systemVM, errGet := tpn.VMContainer.Get(factory.SystemVirtualMachine)
-		if errGet != nil {
-			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
-		}
-
-		if systemVM == nil {
-			systemVM, _ = mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
-		}
+		systemVM, _ := mock.NewOneSCExecutorMockVM(tpn.BlockchainHook, TestHasher)
 
 		argsStakingDataProvider := metachain.StakingDataProviderArgs{
 			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
@@ -1011,7 +971,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		}
 		epochStartRewards, err := metachain.NewRewardsCreatorProxy(argsEpochRewards)
 		if err != nil {
-			panic(fmt.Sprintf("error creating rewards creator proxy: %s", err.Error()))
+			log.Error("error creating rewards proxy", "error", err)
 		}
 
 		validatorInfoStorage, _ := tpn.Storage.GetStorer(dataRetriever.UnsignedTransactionUnit)
@@ -1131,7 +1091,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	if err != nil {
-		panic(fmt.Sprintf("error creating blockprocessor: %s", err.Error()))
+		log.Error("error creating blockprocessor", "error", err)
 	}
 }
 
@@ -1163,7 +1123,7 @@ func (tpn *TestFullNode) initBlockTracker(
 
 		tpn.BlockTracker, err = track.NewShardBlockTrack(arguments)
 		if err != nil {
-			panic(err.Error())
+			log.Error("NewShardBlockTrack", "error", err)
 		}
 	} else {
 		arguments := track.ArgMetaTracker{
@@ -1172,7 +1132,7 @@ func (tpn *TestFullNode) initBlockTracker(
 
 		tpn.BlockTracker, err = track.NewMetaBlockTrack(arguments)
 		if err != nil {
-			panic(err.Error())
+			log.Error("NewMetaBlockTrack", "error", err)
 		}
 	}
 }
