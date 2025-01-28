@@ -960,16 +960,6 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	}
 }
 
-func getNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrationTests.TestProcessorNode) (int, error) {
-	for i := range nodeList {
-		if node == nodeList[i] {
-			return i, nil
-		}
-	}
-
-	return 0, errors.New("no such node in list")
-}
-
 func putDeploySCToDataPool(
 	fileName string,
 	pubkey []byte,

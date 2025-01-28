@@ -22,7 +22,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -61,7 +61,7 @@ func TestMoveBalanceAllFlagsEnabledLessBalanceThanGasLimitMulGasPrice(t *testing
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -82,7 +82,7 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -126,7 +126,7 @@ func TestMoveBalanceInvalidHasGasButNoValueShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -159,7 +159,7 @@ func TestMoveBalanceHigherNonceShouldNotConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -193,7 +193,7 @@ func TestMoveBalanceMoreGasThanGasLimitPerMiniBlockForSafeCrossShard(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -228,7 +228,7 @@ func TestMoveBalanceInvalidUserNames(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 

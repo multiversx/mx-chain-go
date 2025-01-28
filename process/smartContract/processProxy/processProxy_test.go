@@ -39,7 +39,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 
 	return scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
-		ArgsParser:  &mock.ArgumentParserMock{},
+		ArgsParser:  &testscommon.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		AccountsDB: &stateMock.AccountsStub{

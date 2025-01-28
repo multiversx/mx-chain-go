@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
@@ -37,10 +36,19 @@ func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+	)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedCryptoComponents,
+	)
 	require.Nil(t, err)
 	require.NotNil(t, managedDataComponents)
 

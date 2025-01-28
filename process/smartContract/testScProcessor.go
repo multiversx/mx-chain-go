@@ -2,6 +2,7 @@ package smartContract
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -83,7 +84,7 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 
 func wrapErrorIfNotContains(originalError error, msg string) error {
 	if originalError == nil {
-		return fmt.Errorf(msg)
+		return errors.New(msg)
 	}
 
 	alreadyContainsMessage := strings.Contains(originalError.Error(), msg)

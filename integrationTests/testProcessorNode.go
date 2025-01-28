@@ -1713,6 +1713,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
+	guardianChecker := &guardianMocks.GuardedAccountHandlerStub{}
 
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
@@ -1758,7 +1759,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ScrForwarder:        tpn.ScrForwarder,
 		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		GuardianChecker:     guardianChecker,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 	}
@@ -2637,22 +2638,29 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 	if len(tx.GuardianAddr) == TestAddressPubkeyConverter.Len() {
 		guardianAddress = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
 	}
+
+	relayerAddress := ""
+	if len(tx.RelayerAddr) == TestAddressPubkeyConverter.Len() {
+		relayerAddress = TestAddressPubkeyConverter.SilentEncode(tx.RelayerAddr, log)
+	}
 	createTxArgs := &external.ArgsCreateTransaction{
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         encodedRcvAddr,
-		ReceiverUsername: nil,
-		Sender:           encodedSndAddr,
-		SenderUsername:   nil,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		DataField:        tx.Data,
-		SignatureHex:     hex.EncodeToString(tx.Signature),
-		ChainID:          string(tx.ChainID),
-		Version:          tx.Version,
-		Options:          tx.Options,
-		Guardian:         guardianAddress,
-		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
+		Nonce:               tx.Nonce,
+		Value:               tx.Value.String(),
+		Receiver:            encodedRcvAddr,
+		ReceiverUsername:    nil,
+		Sender:              encodedSndAddr,
+		SenderUsername:      nil,
+		GasPrice:            tx.GasPrice,
+		GasLimit:            tx.GasLimit,
+		DataField:           tx.Data,
+		SignatureHex:        hex.EncodeToString(tx.Signature),
+		ChainID:             string(tx.ChainID),
+		Version:             tx.Version,
+		Options:             tx.Options,
+		Guardian:            guardianAddress,
+		GuardianSigHex:      hex.EncodeToString(tx.GuardianSignature),
+		Relayer:             relayerAddress,
+		RelayerSignatureHex: hex.EncodeToString(tx.RelayerSignature),
 	}
 	tx, txHash, err := tpn.Node.CreateTransaction(createTxArgs)
 	if err != nil {
@@ -2893,9 +2901,13 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 	}
 }
 
-// CommitBlock commits the block and body
+// CommitBlock commits the block and body.
+// This isn't entirely correct, since there's not state rollback if the commit fails.
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(header, body)
+	err := tpn.BlockProcessor.CommitBlock(header, body)
+	if err != nil {
+		log.Error("TestProcessorNode.CommitBlock", "error", err.Error())
+	}
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
@@ -3333,6 +3345,8 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
+		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
+		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
 		FixedOrderInConsensusEnableEpoch:                  UnreachableEpoch,
 	}
