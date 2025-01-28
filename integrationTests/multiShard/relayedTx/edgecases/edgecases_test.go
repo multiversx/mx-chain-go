@@ -113,7 +113,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 
 	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 

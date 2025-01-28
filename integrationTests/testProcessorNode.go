@@ -136,9 +136,6 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
 var zero = big.NewInt(0)
