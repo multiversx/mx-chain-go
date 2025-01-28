@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ForkDetector = (*shardForkDetector)(nil)
@@ -22,6 +23,7 @@ type shardForkDetector struct {
 
 // NewShardForkDetector method creates a new shardForkDetector object
 func NewShardForkDetector(
+	log logger.Logger,
 	roundHandler consensus.RoundHandler,
 	blackListHandler process.TimeCacher,
 	blockTracker process.BlockTracker,
@@ -51,7 +53,12 @@ func NewShardForkDetector(
 		return nil, err
 	}
 
+	if log == nil {
+		log = logger.GetOrCreate("process/sync")
+	}
+
 	bfd := &baseForkDetector{
+		log:                 log,
 		roundHandler:        roundHandler,
 		blackListHandler:    blackListHandler,
 		genesisTime:         genesisTime,
@@ -157,7 +164,7 @@ func (sfd *shardForkDetector) appendSelfNotarizedHeaders(
 			hasProof: hasProof,
 		})
 		if appended {
-			log.Debug("added self notarized header in fork detector",
+			sfd.log.Debug("added self notarized header in fork detector",
 				"notarized by shard", shardID,
 				"round", selfNotarizedHeaders[i].GetRound(),
 				"nonce", selfNotarizedHeaders[i].GetNonce(),

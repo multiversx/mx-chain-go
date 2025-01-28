@@ -289,7 +289,7 @@ func NewTestHeartbeatNodeWithCoordinator(
 
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(maxShards, nodeShardId)
 
-	messenger := CreateMessengerFromConfig(p2pConfig)
+	messenger := CreateMessengerFromConfig(p2pConfig, "")
 	pidPk, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pkShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
 	pidShardId, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
@@ -615,6 +615,7 @@ func (thn *TestHeartbeatNode) createShardRequestersContainer(args requesterscont
 func (thn *TestHeartbeatNode) createRequestHandler() {
 	thn.RequestersFinder, _ = containers.NewRequestersFinder(thn.RequestersContainer, thn.ShardCoordinator)
 	thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		nil,
 		thn.RequestersFinder,
 		thn.RequestedItemsHandler,
 		thn.WhiteListHandler,

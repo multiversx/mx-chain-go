@@ -16,7 +16,7 @@ func (tsb *TestShardBootstrap) RollBack(revertUsingForkNonce bool) error {
 func (tsb *TestShardBootstrap) SetProbableHighestNonce(nonce uint64) {
 	forkDetector, ok := tsb.forkDetector.(*shardForkDetector)
 	if !ok {
-		log.Error("inner forkdetector impl is not of type shardForkDetector")
+		tsb.log.Error("inner forkdetector impl is not of type shardForkDetector")
 		return
 	}
 

@@ -1,6 +1,7 @@
 package integrationTests
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"time"
@@ -67,6 +68,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -209,7 +211,10 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
-	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
+
+	logID := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
+
+	tcn.MainMessenger = CreateMessengerWithNoDiscovery(logID)
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
@@ -289,6 +294,9 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		epochTrigger = &shardchain.TestTrigger{}
 		epochTrigger.SetTrigger(epochStartTrigger)
 	}
+
+	genericEpochNotifier = forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, genericEpochNotifier)
 
 	tcn.initRequestersFinder()
 
@@ -372,7 +380,17 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	cryptoComponents.SigHandler = sigHandler
 	cryptoComponents.KeysHandlerField = keysHandler
 
+	dataComponents := GetDefaultDataComponents()
+	dataComponents.BlockChain = tcn.ChainHandler
+	dataComponents.DataPool = dataPool
+	dataComponents.Store = createTestStore()
+
+	id := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
 	forkDetector, _ := syncFork.NewShardForkDetector(
+		log,
 		roundHandler,
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
@@ -403,11 +421,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, storage, epochTrigger)
 	processComponents.IntContainer = tcn.MainInterceptorsContainer
-
-	dataComponents := GetDefaultDataComponents()
-	dataComponents.BlockChain = tcn.ChainHandler
-	dataComponents.DataPool = dataPool
-	dataComponents.Store = createTestStore()
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB

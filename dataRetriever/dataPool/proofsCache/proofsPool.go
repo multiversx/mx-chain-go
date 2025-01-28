@@ -124,6 +124,7 @@ func (pp *proofsPool) GetProof(
 	if headerHash == nil {
 		return nil, fmt.Errorf("nil header hash")
 	}
+
 	log.Trace("trying to get proof",
 		"headerHash", headerHash,
 		"shardID", shardID,

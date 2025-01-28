@@ -16,7 +16,7 @@ func (tmb *TestMetaBootstrap) RollBack(revertUsingForkNonce bool) error {
 func (tmb *TestMetaBootstrap) SetProbableHighestNonce(nonce uint64) {
 	forkDetector, ok := tmb.forkDetector.(*metaForkDetector)
 	if !ok {
-		log.Error("inner forkdetector impl is not of type metaForkDetector")
+		tmb.log.Error("inner forkdetector impl is not of type metaForkDetector")
 		return
 	}
 

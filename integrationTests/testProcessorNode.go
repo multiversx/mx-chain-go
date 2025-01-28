@@ -31,6 +31,7 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -1090,8 +1091,15 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 }
 
 func (tpn *TestProcessorNode) initDataPools() {
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("dtr/hc/%s", id))
+
 	tpn.ProofsPool = proofscache.NewProofsPool(3)
-	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
+	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(log, 1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	tpn.WhiteListHandler, _ = interceptors.NewWhiteListDataVerifier(suCache)
@@ -1539,8 +1547,16 @@ func (tpn *TestProcessorNode) initRequesters() {
 		tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
 	}
 
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("dtr/rh/%s", id))
+
 	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
 	tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
+		log,
 		tpn.RequestersFinder,
 		tpn.RequestedItemsHandler,
 		tpn.WhiteListHandler,
@@ -1775,7 +1791,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	fact, _ := shard.NewPreProcessorsContainerFactory(
+	fact, err := shard.NewPreProcessorsContainerFactory(
 		tpn.ShardCoordinator,
 		tpn.Storage,
 		TestMarshalizer,
@@ -1799,6 +1815,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		processedMiniBlocksTracker,
 		tpn.TxExecutionOrderHandler,
 	)
+	if err != nil {
+		panic(err.Error())
+	}
 	tpn.PreProcessorsContainer, _ = fact.Create()
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
@@ -2173,6 +2192,13 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
@@ -2198,6 +2224,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		tpn.ForkDetector, _ = processSync.NewShardForkDetector(
+			log,
 			tpn.RoundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
@@ -2206,6 +2233,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.DataPool.Proofs())
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(
+			log,
 			tpn.RoundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
@@ -2222,6 +2250,13 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
+
+	id = hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	logger := logger.GetOrCreate(fmt.Sprintf("p/b/%s", id))
 
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
@@ -2253,6 +2288,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		Logger:                       logger,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2830,6 +2866,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 			HeaderEpoch:         currHdr.GetEpoch(),
 			HeaderNonce:         currHdr.GetNonce(),
 			HeaderShardId:       currHdr.GetShardID(),
+			HeaderRound:         currHdr.GetRound(),
 			IsStartOfEpoch:      blockHeader.IsStartOfEpochBlock(),
 		}
 		blockHeader.SetPreviousProof(previousProof)
@@ -2896,7 +2933,10 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 
 // CommitBlock commits the block and body
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(header, body)
+	err := tpn.BlockProcessor.CommitBlock(header, body)
+	if err != nil {
+		log.Error("CommitBlock", "error", err)
+	}
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter
@@ -3105,7 +3145,15 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/track/%s", id))
+
 	argBaseTracker := track.ArgBaseTracker{
+		Logger:              log,
 		Hasher:              TestHasher,
 		HeaderValidator:     tpn.HeaderValidator,
 		Marshalizer:         TestMarshalizer,
@@ -3121,18 +3169,25 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		ProofsPool:          tpn.DataPool.Proofs(),
 	}
 
+	var err error
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		arguments := track.ArgShardTracker{
 			ArgBaseTracker: argBaseTracker,
 		}
 
-		tpn.BlockTracker, _ = track.NewShardBlockTrack(arguments)
+		tpn.BlockTracker, err = track.NewShardBlockTrack(arguments)
+		if err != nil {
+			panic(err.Error())
+		}
 	} else {
 		arguments := track.ArgMetaTracker{
 			ArgBaseTracker: argBaseTracker,
 		}
 
-		tpn.BlockTracker, _ = track.NewMetaBlockTrack(arguments)
+		tpn.BlockTracker, err = track.NewMetaBlockTrack(arguments)
+		if err != nil {
+			panic(err.Error())
+		}
 	}
 }
 
