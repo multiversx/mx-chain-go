@@ -18,6 +18,21 @@ def update_subscribed_addresses(lines, section, identifier, main_chain_address) 
     return updated_lines
 
 
+def update_key_in_section(lines, section, key, value):
+    updated_lines = []
+    section_found = False
+
+    for line in lines:
+        if line.startswith("[" + section + "]"):
+            section_found = True
+        if section_found and key in line:
+            line = re.sub(rf'({re.escape(key)}\s*=\s*)".*?"', r'\1"{}"'.format(value), line)
+            section_found = False
+        updated_lines.append(line)
+
+    return updated_lines
+
+
 def update_key(lines, key, value) -> []:
     updated_lines = []
 
@@ -68,26 +83,11 @@ def update_node_configs(config_path, esdt_prefix, sovereign_chain_address):
     update_transfer_and_execute_address(config_path + "/config.toml", sovereign_chain_address)
 
 
-def update_main_chain_elastic_url(lines, section, key, value):
-    updated_lines = []
-    section_found = False
-
-    for line in lines:
-        if line.startswith("[" + section + "]"):
-            section_found = True
-        if section_found and key in line:
-            line = re.sub(rf'({re.escape(key)}\s*=\s*)".*?"', r'\1"{}"'.format(value), line)
-            section_found = False
-        updated_lines.append(line)
-
-    return updated_lines
-
-
 def update_external_config(file_path, main_chain_elastic):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    updated_lines = update_main_chain_elastic_url(lines, "MainChainElasticSearchConnector", "URL", main_chain_elastic)
+    updated_lines = update_key_in_section(lines, "MainChainElasticSearchConnector", "URL", main_chain_elastic)
 
     with open(file_path, 'w') as file:
         file.writelines(updated_lines)
