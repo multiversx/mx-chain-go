@@ -20,4 +20,5 @@ type PubKeyHeartbeat struct {
 	PeerSubType          uint32    `json:"peerSubType"`
 	PidString            string    `json:"pidString"`
 	NumTrieNodesReceived uint64    `json:"numTrieNodesReceived,omitempty"`
+	LatencyMicro         int64     `json:"latencyMicro,omitempty"`
 }
