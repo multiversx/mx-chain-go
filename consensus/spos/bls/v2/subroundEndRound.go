@@ -11,7 +11,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 
@@ -247,14 +246,16 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		if !sr.waitForSignalSync() {
 			return false
 		}
-		_, _ = sr.sendProof()
+		sr.sendProof()
 	}
 
 	return sr.finalizeConfirmedBlock()
 }
 
-func (sr *subroundEndRound) waitForProof(shardID uint32, headerHash []byte) bool {
-	if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
+func (sr *subroundEndRound) waitForProof() bool {
+	shardID := sr.ShardCoordinator().SelfId()
+	headerHash := sr.GetData()
+	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		return true
 	}
 
@@ -274,7 +275,9 @@ func (sr *subroundEndRound) waitForProof(shardID uint32, headerHash []byte) bool
 }
 
 func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
-	sr.waitForProof(sr.ShardCoordinator().SelfId(), sr.GetData())
+	if !sr.waitForProof() {
+		return false
+	}
 
 	err := sr.commitBlock()
 	if err != nil {
@@ -295,29 +298,29 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendProof() (data.HeaderProofHandler, bool) {
+func (sr *subroundEndRound) sendProof() {
 	if !sr.shouldSendProof() {
-		return nil, true
+		return
 	}
 
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendProof.checkSignaturesValidity", "error", err.Error())
-		return nil, false
+		return
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return nil, false
+		return
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return nil, false
+		return
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -325,12 +328,14 @@ func (sr *subroundEndRound) sendProof() (data.HeaderProofHandler, bool) {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return nil, false
+		return
 	}
 
 	// broadcast header proof
-	proof, err := sr.createAndBroadcastProof(sig, bitmap)
-	return proof, err == nil
+	_, err = sr.createAndBroadcastProof(sig, bitmap)
+	if err != nil {
+		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
+	}
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
