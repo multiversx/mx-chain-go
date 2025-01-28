@@ -2833,6 +2833,7 @@ func (tpn *TestProcessorNode) setBlockSignatures(blockHeader data.HeaderHandler)
 			HeaderEpoch:         currHdr.GetEpoch(),
 			HeaderNonce:         currHdr.GetNonce(),
 			HeaderShardId:       currHdr.GetShardID(),
+			HeaderRound:         currHdr.GetRound(),
 			IsStartOfEpoch:      blockHeader.IsStartOfEpochBlock(),
 		}
 		blockHeader.SetPreviousProof(previousProof)
@@ -2899,7 +2900,10 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 
 // CommitBlock commits the block and body
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(header, body)
+	err := tpn.BlockProcessor.CommitBlock(header, body)
+	if err != nil {
+		log.Error("CommitBlock", "error", err)
+	}
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter

@@ -199,12 +199,11 @@ func testAllNodesHaveSameLastBlock(t *testing.T, nodes []*integrationTests.TestP
 }
 
 func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T) {
-	// TODO: remove skip after test is fixed
-	t.Skip("will be fixed in another PR")
-
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	logger.SetLogLevel("*:TRACE")
 
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
