@@ -112,7 +112,11 @@ func (sfd *shardForkDetector) doJobOnBHProcessed(
 ) {
 	_ = sfd.appendSelfNotarizedHeaders(selfNotarizedHeaders, selfNotarizedHeadersHashes, core.MetachainShardId)
 	sfd.computeFinalCheckpoint()
-	sfd.addCheckpoint(&checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash})
+	newCheckpoint := &checkpointInfo{nonce: header.GetNonce(), round: header.GetRound(), hash: headerHash}
+	sfd.addCheckpoint(newCheckpoint)
+	if sfd.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		sfd.setFinalCheckpoint(newCheckpoint)
+	}
 	sfd.removePastOrInvalidRecords()
 }
 
