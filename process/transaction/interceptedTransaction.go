@@ -44,7 +44,6 @@ type InterceptedTransaction struct {
 	isForCurrentShard      bool
 	enableSignedTxWithHash bool
 	enableEpochsHandler    common.EnableEpochsHandler
-	relayedTxV3Processor   process.RelayedTxV3Processor
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -65,7 +64,6 @@ func NewInterceptedTransaction(
 	txSignHasher hashing.Hasher,
 	txVersionChecker process.TxVersionCheckerHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
-	relayedTxV3Processor process.RelayedTxV3Processor,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -113,9 +111,6 @@ func NewInterceptedTransaction(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(relayedTxV3Processor) {
-		return nil, process.ErrNilRelayedTxV3Processor
-	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -139,7 +134,6 @@ func NewInterceptedTransaction(
 		txVersionChecker:       txVersionChecker,
 		txSignHasher:           txSignHasher,
 		enableEpochsHandler:    enableEpochsHandler,
-		relayedTxV3Processor:   relayedTxV3Processor,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -202,6 +196,11 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
+		err = inTx.verifyIfRelayedTxV3(inTx.tx)
+		if err != nil {
+			return err
+		}
+
 		err = inTx.verifyIfRelayedTx(inTx.tx)
 		if err != nil {
 			return err
@@ -212,27 +211,18 @@ func (inTx *InterceptedTransaction) CheckValidity() error {
 			return err
 		}
 
-		err = inTx.verifyIfRelayedTxV3(inTx.tx)
-		if err != nil {
-			return err
-		}
-
-		if len(inTx.tx.RelayerAddr) > 0 {
-			return fmt.Errorf("%w, relayer address found on transaction", process.ErrWrongTransaction)
-		}
-
 		inTx.whiteListerVerifiedTxs.Add([][]byte{inTx.Hash()})
 	}
 
 	return nil
 }
 
-func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTxData []byte, innerTxs []*transaction.Transaction) error {
-	if isRelayedV3(innerTxs) {
+func (inTx *InterceptedTransaction) checkRecursiveRelayed(userTx *transaction.Transaction) error {
+	if common.IsValidRelayedTxV3(userTx) {
 		return process.ErrRecursiveRelayedTxIsNotAllowed
 	}
 
-	funcName, _, err := inTx.argsParser.ParseCallData(string(userTxData))
+	funcName, _, err := inTx.argsParser.ParseCallData(string(userTx.Data))
 	if err != nil {
 		return nil
 	}
@@ -249,41 +239,42 @@ func isRelayedTx(funcName string) bool {
 		core.RelayedTransactionV2 == funcName
 }
 
-func isRelayedV3(innerTxs []*transaction.Transaction) bool {
-	return len(innerTxs) > 0
-}
-
 func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transaction) error {
-	if len(tx.InnerTransactions) == 0 {
+	if !common.IsRelayedTxV3(tx) {
 		return nil
 	}
+
 	if !inTx.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3Flag) {
 		return process.ErrRelayedTxV3Disabled
 	}
-	err := inTx.relayedTxV3Processor.CheckRelayedTx(tx)
+
+	if !common.IsValidRelayedTxV3(tx) {
+		return process.ErrInvalidRelayedTxV3
+	}
+
+	err := inTx.integrity(tx)
 	if err != nil {
 		return err
 	}
 
-	funcName, _, err := inTx.argsParser.ParseCallData(string(tx.Data))
-	if err == nil && isRelayedTx(funcName) {
-		return process.ErrMultipleRelayedTxTypesIsNotAllowed
+	if !inTx.coordinator.SameShard(tx.RelayerAddr, tx.SndAddr) {
+		return process.ErrShardIdMissmatch
 	}
 
-	return inTx.verifyInnerTransactions(tx)
-}
+	if bytes.Equal(tx.RelayerAddr, tx.GuardianAddr) {
+		return process.ErrRelayedByGuardianNotAllowed
+	}
 
-func (inTx *InterceptedTransaction) verifyInnerTransactions(tx *transaction.Transaction) error {
-	for _, innerTx := range tx.InnerTransactions {
-		err := inTx.integrity(innerTx)
-		if err != nil {
-			return fmt.Errorf("inner transaction: %w", err)
-		}
+	userTx := *tx
+	userTx.RelayerSignature = make([]byte, 0) // temporary removed signature for recursive relayed checks
+	err = inTx.verifyUserTx(&userTx)
+	if err != nil {
+		return fmt.Errorf("inner transaction: %w", err)
+	}
 
-		err = inTx.verifyUserTx(innerTx)
-		if err != nil {
-			return fmt.Errorf("inner transaction: %w", err)
-		}
+	err = inTx.verifyRelayerSig(tx)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -296,10 +287,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 	}
 	if core.RelayedTransactionV2 != funcName {
 		return nil
-	}
-
-	if len(tx.InnerTransactions) > 0 {
-		return process.ErrMultipleRelayedTxTypesIsNotAllowed
 	}
 
 	userTx, err := createRelayedV2(tx, userTxArgs)
@@ -323,10 +310,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 		return process.ErrInvalidArguments
 	}
 
-	if len(tx.InnerTransactions) > 0 {
-		return process.ErrMultipleRelayedTxTypesIsNotAllowed
-	}
-
 	userTx, err := createTx(inTx.signMarshalizer, userTxArgs[0])
 	if err != nil {
 		return fmt.Errorf("inner transaction: %w", err)
@@ -346,7 +329,7 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 
 func (inTx *InterceptedTransaction) verifyUserTx(userTx *transaction.Transaction) error {
 	// recursive relayed transactions are not allowed
-	err := inTx.checkRecursiveRelayed(userTx.Data, userTx.InnerTransactions)
+	err := inTx.checkRecursiveRelayed(userTx)
 	if err != nil {
 		return fmt.Errorf("inner transaction: %w", err)
 	}
@@ -444,6 +427,21 @@ func (inTx *InterceptedTransaction) verifySig(tx *transaction.Transaction) error
 	return inTx.singleSigner.Verify(senderPubKey, txMessageForSigVerification, tx.Signature)
 }
 
+// verifyRelayerSig checks if the tx is correctly signed by relayer
+func (inTx *InterceptedTransaction) verifyRelayerSig(tx *transaction.Transaction) error {
+	txMessageForSigVerification, err := inTx.getTxMessageForGivenTx(tx)
+	if err != nil {
+		return err
+	}
+
+	relayerPubKey, err := inTx.keyGen.PublicKeyFromByteArray(tx.RelayerAddr)
+	if err != nil {
+		return err
+	}
+
+	return inTx.singleSigner.Verify(relayerPubKey, txMessageForSigVerification, tx.RelayerSignature)
+}
+
 // VerifyGuardianSig verifies if the guardian signature is valid
 func (inTx *InterceptedTransaction) VerifyGuardianSig(tx *transaction.Transaction) error {
 	txMessageForSigVerification, err := inTx.getTxMessageForGivenTx(tx)
@@ -535,11 +533,6 @@ func (inTx *InterceptedTransaction) SenderAddress() []byte {
 // Fee returns the estimated cost of the transaction
 func (inTx *InterceptedTransaction) Fee() *big.Int {
 	return inTx.feeHandler.ComputeTxFee(inTx.tx)
-}
-
-// RelayerAddress returns the relayer address from transaction
-func (inTx *InterceptedTransaction) RelayerAddress() []byte {
-	return inTx.tx.RelayerAddr
 }
 
 // Type returns the type of this intercepted data

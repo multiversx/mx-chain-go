@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/disabled"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	processTxs "github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -60,11 +61,13 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 	}
 
 	transactionsFeeProc, err := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
-		Marshaller:         arg.Marshaller,
-		TransactionsStorer: arg.TransactionsStorer,
-		ShardCoordinator:   arg.ShardCoordinator,
-		TxFeeCalculator:    arg.EconomicsData,
-		PubKeyConverter:    arg.AddressConverter,
+		Marshaller:          arg.Marshaller,
+		TransactionsStorer:  arg.TransactionsStorer,
+		ShardCoordinator:    arg.ShardCoordinator,
+		TxFeeCalculator:     arg.EconomicsData,
+		PubKeyConverter:     arg.AddressConverter,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		EnableEpochsHandler: arg.EnableEpochsHandler,
 	})
 	if err != nil {
 		return nil, err

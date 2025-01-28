@@ -374,7 +374,7 @@ func (gc *gasComputation) ComputeGasProvidedByTx(
 		return txHandler.GetGasLimit(), txHandler.GetGasLimit(), nil
 	}
 
-	txTypeSndShard, txTypeDstShard := gc.txTypeHandler.ComputeTransactionType(txHandler)
+	txTypeSndShard, txTypeDstShard, _ := gc.txTypeHandler.ComputeTransactionType(txHandler)
 	isSCCall := txTypeDstShard == process.SCDeployment ||
 		txTypeDstShard == process.SCInvoking ||
 		txTypeDstShard == process.BuiltInFunctionCall
@@ -403,7 +403,7 @@ func (gc *gasComputation) computeGasProvidedByTxV1(
 ) (uint64, uint64, error) {
 	moveBalanceConsumption := gc.economicsFee.ComputeGasLimit(txHandler)
 
-	txTypeInShard, _ := gc.txTypeHandler.ComputeTransactionType(txHandler)
+	txTypeInShard, _, _ := gc.txTypeHandler.ComputeTransactionType(txHandler)
 	isSCCall := txTypeInShard == process.SCDeployment ||
 		txTypeInShard == process.SCInvoking ||
 		txTypeInShard == process.BuiltInFunctionCall ||
@@ -426,7 +426,7 @@ func (gc *gasComputation) computeGasProvidedByTxV1(
 }
 
 func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
-	return txType == process.RelayedTx || txType == process.RelayedTxV2 || txType == process.RelayedTxV3
+	return txType == process.RelayedTx || txType == process.RelayedTxV2
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
