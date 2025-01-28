@@ -219,13 +219,12 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 
 func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
-	mainChainElastic := esFactory.MainChainElastic{
+	mainChainElastic := esFactory.ElasticConfig{
 		Enabled:  scf.externalConfig.MainChainElasticSearchConnector.Enabled,
 		Url:      scf.externalConfig.MainChainElasticSearchConnector.URL,
 		UserName: scf.externalConfig.MainChainElasticSearchConnector.Username,
 		Password: scf.externalConfig.MainChainElasticSearchConnector.Password,
 	}
-	log.Error("mc es", "url", scf.externalConfig.MainChainElasticSearchConnector.URL)
 
 	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
