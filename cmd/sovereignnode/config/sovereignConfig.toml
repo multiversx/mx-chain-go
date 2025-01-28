@@ -39,6 +39,7 @@
     ]
 
 [OutGoingBridge]
+    Enabled = false
     GRPCHost = "localhost"
     GRPCPort = "8085"
     # Hasher type for outgoing operations
