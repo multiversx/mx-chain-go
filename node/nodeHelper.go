@@ -65,11 +65,6 @@ func CreateNode(
 
 	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
 
-	consensusGroupSize, err := consensusComponents.ConsensusGroupSize()
-	if err != nil {
-		return nil, err
-	}
-
 	var nd *Node
 	nd, err = NewNode(
 		WithStatusCoreComponents(statusCoreComponents),
@@ -85,7 +80,6 @@ func CreateNode(
 		WithNetworkComponents(networkComponents),
 		WithInitialNodesPubKeys(coreComponents.GenesisNodesSetup().InitialNodesPubKeys()),
 		WithRoundDuration(coreComponents.GenesisNodesSetup().GetRoundDuration()),
-		WithConsensusGroupSize(consensusGroupSize),
 		WithGenesisTime(genesisTime),
 		WithConsensusType(config.Consensus.Type),
 		WithBootstrapRoundIndex(bootstrapRoundIndex),

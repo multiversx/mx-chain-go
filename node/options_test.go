@@ -71,32 +71,6 @@ func TestWithRoundDuration_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestWithConsensusGroupSize_NegativeGroupSizeShouldErr(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	opt := WithConsensusGroupSize(-1)
-	err := opt(node)
-
-	assert.Equal(t, 0, node.consensusGroupSize)
-	assert.Equal(t, ErrNegativeOrZeroConsensusGroupSize, err)
-}
-
-func TestWithConsensusGroupSize_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	node, _ := NewNode()
-
-	groupSize := 567
-
-	opt := WithConsensusGroupSize(groupSize)
-	err := opt(node)
-
-	assert.True(t, node.consensusGroupSize == groupSize)
-	assert.Nil(t, err)
-}
-
 func TestWithGenesisTime(t *testing.T) {
 	t.Parallel()
 

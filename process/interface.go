@@ -25,6 +25,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -913,12 +914,18 @@ type TopicFloodPreventer interface {
 	IsInterfaceNil() bool
 }
 
+// ChainParametersSubscriber is the interface that can be used to subscribe for chain parameters changes
+type ChainParametersSubscriber interface {
+	RegisterNotifyHandler(handler common.ChainParametersSubscriptionHandler)
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
-	ApplyConsensusSize(size int)
+	SetConsensusSizeNotifier(chainParametersNotifier ChainParametersSubscriber, shardID uint32)
 	SetDebugger(debugger AntifloodDebugger) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
@@ -1045,6 +1052,36 @@ type RatingsStepHandler interface {
 	ValidatorIncreaseRatingStep() int32
 	ValidatorDecreaseRatingStep() int32
 	ConsecutiveMissedBlocksPenalty() float32
+}
+
+// NodesSetupHandler returns the nodes' configuration
+type NodesSetupHandler interface {
+	AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler
+	InitialNodesPubKeys() map[uint32][]string
+	GetShardIDForPubKey(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
+	InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
+	MinNumberOfNodes() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfMetaNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
+	MinNumberOfNodesWithHysteresis() uint32
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
 }
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
@@ -1186,11 +1223,13 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() TxVersionCheckerHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
+	ChainParametersSubscriber() ChainParametersSubscriber
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	ChainParametersHandler() ChainParametersHandler
 	IsInterfaceNil() bool
 }
 

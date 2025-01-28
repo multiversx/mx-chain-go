@@ -52,6 +52,7 @@ type ArgsChainSimulatorConfigs struct {
 	ConsensusGroupSize          uint32
 	MetaChainMinNodes           uint32
 	MetaChainConsensusGroupSize uint32
+	Hysteresis                  float32
 	InitialEpoch                uint32
 	RoundsPerEpoch              core.OptionalUint64
 	NumNodesWaitingListShard    uint32
@@ -131,6 +132,13 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	if err != nil {
 		return nil, err
 	}
+
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardMinNumNodes = args.MinNodesPerShard
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainMinNumNodes = args.MetaChainMinNodes
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardConsensusGroupSize = args.ConsensusGroupSize
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundDuration = args.RoundDurationInMillis
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].Hysteresis = args.Hysteresis
 
 	node.ApplyArchCustomConfigs(configs)
 
@@ -280,14 +288,10 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
-	nodes.ConsensusGroupSize = args.ConsensusGroupSize
-	nodes.MetaChainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	nodes.Hysteresis = 0
 
-	nodes.MinNodesPerShard = args.MinNodesPerShard
-	nodes.MetaChainMinNodes = args.MetaChainMinNodes
-
 	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
+	configs.NodesConfig.InitialNodes = make([]*config.InitialNodeConfig, 0)
 	privateKeys := make([]crypto.PrivateKey, 0)
 	publicKeys := make([]crypto.PublicKey, 0)
 	walletIndex := 0
@@ -305,6 +309,12 @@ func generateValidatorsKeyAndUpdateFiles(
 		nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
 			PubKey:  hex.EncodeToString(pkBytes),
 			Address: stakeWallets[walletIndex].Address.Bech32,
+		})
+
+		configs.NodesConfig.InitialNodes = append(configs.NodesConfig.InitialNodes, &config.InitialNodeConfig{
+			PubKey:        hex.EncodeToString(pkBytes),
+			Address:       stakeWallets[walletIndex].Address.Bech32,
+			InitialRating: 5000001,
 		})
 
 		walletIndex++
@@ -326,6 +336,13 @@ func generateValidatorsKeyAndUpdateFiles(
 				PubKey:  hex.EncodeToString(pkBytes),
 				Address: stakeWallets[walletIndex].Address.Bech32,
 			})
+
+			configs.NodesConfig.InitialNodes = append(configs.NodesConfig.InitialNodes, &config.InitialNodeConfig{
+				PubKey:        hex.EncodeToString(pkBytes),
+				Address:       stakeWallets[walletIndex].Address.Bech32,
+				InitialRating: 5000001,
+			})
+
 			walletIndex++
 		}
 	}

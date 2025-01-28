@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/config"
 )
 
 // TrieIteratorChannels defines the channels that are being used when iterating the trie nodes
@@ -370,5 +371,11 @@ type ExecutionOrderGetter interface {
 	GetItems() [][]byte
 	Contains(txHash []byte) bool
 	Len() int
+	IsInterfaceNil() bool
+}
+
+// ChainParametersSubscriptionHandler defines the behavior of a chain parameters subscription handler
+type ChainParametersSubscriptionHandler interface {
+	ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig)
 	IsInterfaceNil() bool
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	errErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -114,6 +115,7 @@ func CreateNodesCoordinator(
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
+	chainParametersHandler process.ChainParametersHandler,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if check.IfNil(nodeShufflerOut) {
 		return nil, errErd.ErrNilShuffleOutCloser
@@ -148,8 +150,6 @@ func CreateNodesCoordinator(
 	}
 
 	nbShards := nodesConfig.NumberOfShards()
-	shardConsensusGroupSize := int(nodesConfig.GetShardConsensusGroupSize())
-	metaConsensusGroupSize := int(nodesConfig.GetMetaConsensusGroupSize())
 	eligibleNodesInfo, waitingNodesInfo := nodesConfig.InitialNodesInfo()
 
 	eligibleValidators, errEligibleValidators := nodesCoordinator.NodesInfoToValidators(eligibleNodesInfo)
@@ -198,28 +198,27 @@ func CreateNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:         shardConsensusGroupSize,
-		MetaConsensusGroupSize:          metaConsensusGroupSize,
-		Marshalizer:                     marshalizer,
-		Hasher:                          hasher,
-		Shuffler:                        nodeShuffler,
-		EpochStartNotifier:              epochStartNotifier,
-		BootStorer:                      bootStorer,
-		ShardIDAsObserver:               shardIDAsObserver,
-		NbShards:                        nbShards,
-		EligibleNodes:                   eligibleValidators,
-		WaitingNodes:                    waitingValidators,
-		SelfPublicKey:                   pubKeyBytes,
-		ConsensusGroupCache:             consensusGroupCache,
-		ShuffledOutHandler:              shuffledOutHandler,
-		Epoch:                           currentEpoch,
-		StartEpoch:                      startEpoch,
-		ChanStopNode:                    chanNodeStop,
-		NodeTypeProvider:                nodeTypeProvider,
-		IsFullArchive:                   prefsConfig.FullArchive,
-		EnableEpochsHandler:             enableEpochsHandler,
-		ValidatorInfoCacher:             validatorInfoCacher,
-		GenesisNodesSetupHandler:        nodesConfig,
+		ChainParametersHandler: chainParametersHandler,
+		Marshalizer:            marshalizer,
+		Hasher:                 hasher,
+		Shuffler:               nodeShuffler,
+		EpochStartNotifier:     epochStartNotifier,
+		BootStorer:             bootStorer,
+		ShardIDAsObserver:      shardIDAsObserver,
+		NbShards:               nbShards,
+		EligibleNodes:          eligibleValidators,
+		WaitingNodes:           waitingValidators,
+		SelfPublicKey:          pubKeyBytes,
+		ConsensusGroupCache:    consensusGroupCache,
+		ShuffledOutHandler:     shuffledOutHandler,
+		Epoch:                  currentEpoch,
+		StartEpoch:             startEpoch,
+		ChanStopNode:           chanNodeStop,
+		NodeTypeProvider:       nodeTypeProvider,
+		IsFullArchive:          prefsConfig.FullArchive,
+		EnableEpochsHandler:    enableEpochsHandler,
+		ValidatorInfoCacher:    validatorInfoCacher,
+		GenesisNodesSetupHandler: nodesConfig,
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 

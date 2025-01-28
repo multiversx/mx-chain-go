@@ -7,6 +7,7 @@ import (
 	"runtime/pprof"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -40,6 +41,8 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
 	roundConfig, _ := common.LoadRoundConfig(configPathsHolder.RoundActivation)
+	var nodesConfig config.NodesConfig
+	_ = core.LoadJsonFile(&nodesConfig, NodesSetupPath)
 
 	mainP2PConfig.KadDhtPeerDiscovery.Enabled = false
 	prefsConfig.Preferences.DestinationShardAsObserver = "0"
@@ -69,8 +72,30 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	}
 	configs.ConfigurationPathsHolder = configPathsHolder
 	configs.ImportDbConfig = &config.ImportDbConfig{}
+	configs.NodesConfig = &nodesConfig
+
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(configs.NodesConfig.InitialNodes)), configs.GeneralConfig.GeneralSettings.GenesisMaxNumberOfShards)
 
 	return configs
+}
+
+func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32) []config.ChainParametersByEpochConfig {
+	numShardsWithMeta := numShardsWithoutMeta + 1
+	nodesPerShards := numInitialNodes / numShardsWithMeta
+	shardCnsGroupSize := nodesPerShards
+	if shardCnsGroupSize > 1 {
+		shardCnsGroupSize--
+	}
+	diff := numInitialNodes - nodesPerShards*numShardsWithMeta
+	return []config.ChainParametersByEpochConfig{
+		{
+			ShardConsensusGroupSize:     shardCnsGroupSize,
+			ShardMinNumNodes:            nodesPerShards,
+			MetachainConsensusGroupSize: nodesPerShards,
+			MetachainMinNumNodes:        nodesPerShards + diff,
+			RoundDuration:               2000,
+		},
+	}
 }
 
 func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {

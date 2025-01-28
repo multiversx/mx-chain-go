@@ -475,6 +475,9 @@ var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilChainParametersHandler signals that a nil chain parameters handler was provided
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
+
 // ErrSignerNotSupported signals that a not supported signer was provided
 var ErrSignerNotSupported = errors.New("signer not supported")
 

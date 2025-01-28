@@ -114,7 +114,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		ProcessComponents: &testsMocks.ProcessComponentsStub{
 			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
 			EpochNotifier:                 &testsMocks.EpochStartNotifierStub{},
-			NodesCoord:                    &shardingMocks.NodesCoordinatorStub{},
+			NodesCoord:                    &shardingMocks.NodesCoordinatorMock{},
 			NodeRedundancyHandlerInternal: &testsMocks.RedundancyHandlerStub{},
 			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
 			ReqHandler:                    &testscommon.RequestHandlerStub{},
@@ -315,7 +315,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord: &shardingMocks.NodesCoordinatorStub{},
+			NodesCoord: &shardingMocks.NodesCoordinatorMock{},
 			ShardCoord: nil,
 		}
 		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
@@ -328,7 +328,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord:        &shardingMocks.NodesCoordinatorStub{},
+			NodesCoord:        &shardingMocks.NodesCoordinatorMock{},
 			ShardCoord:        &testscommon.ShardsCoordinatorMock{},
 			RoundHandlerField: nil,
 		}
@@ -342,7 +342,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord:           &shardingMocks.NodesCoordinatorStub{},
+			NodesCoord:           &shardingMocks.NodesCoordinatorMock{},
 			ShardCoord:           &testscommon.ShardsCoordinatorMock{},
 			RoundHandlerField:    &testscommon.RoundHandlerMock{},
 			HardforkTriggerField: nil,
@@ -497,7 +497,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 2 {
+			if cnt > 1 {
 				return nil // createBootstrapper fails
 			}
 			return testscommon.NewMultiShardsCoordinatorMock(2)
@@ -519,7 +519,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		shardC := testscommon.NewMultiShardsCoordinatorMock(2)
 		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 2 {
+			if cnt > 1 {
 				shardC.SelfIDCalled = func() uint32 {
 					return shardC.NoShards + 1 // createBootstrapper returns ErrShardIdOutOfRange
 				}
@@ -532,28 +532,6 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 
 		cc, err := ccf.Create()
 		require.Equal(t, sharding.ErrShardIdOutOfRange, err)
-		require.Nil(t, cc)
-	})
-	t.Run("createShardBootstrapper fails due to NewShardStorageBootstrapper failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
-		require.True(t, ok)
-		cnt := 0
-		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
-			cnt++
-			if cnt > 3 {
-				return nil // NewShardStorageBootstrapper fails
-			}
-			return testscommon.NewMultiShardsCoordinatorMock(2)
-		}
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
-		require.NotNil(t, ccf)
-
-		cc, err := ccf.Create()
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "shard coordinator"))
 		require.Nil(t, cc)
 	})
 	t.Run("createUserAccountsSyncer fails due to missing UserAccountTrie should error", func(t *testing.T) {
@@ -581,30 +559,6 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cc, err := ccf.Create()
 		require.Error(t, err)
 		require.True(t, strings.Contains(err.Error(), "value is not positive"))
-		require.Nil(t, cc)
-	})
-	t.Run("createMetaChainBootstrapper fails due to NewMetaStorageBootstrapper failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
-		require.True(t, ok)
-		cnt := 0
-		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
-			cnt++
-			if cnt > 3 {
-				return nil // NewShardStorageBootstrapper fails
-			}
-			shardC := testscommon.NewMultiShardsCoordinatorMock(2)
-			shardC.CurrentShard = core.MetachainShardId
-			return shardC
-		}
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
-		require.NotNil(t, ccf)
-
-		cc, err := ccf.Create()
-		require.Error(t, err)
-		require.True(t, strings.Contains(err.Error(), "shard coordinator"))
 		require.Nil(t, cc)
 	})
 	t.Run("createUserAccountsSyncer fails due to missing UserAccountTrie should error", func(t *testing.T) {
@@ -697,27 +651,6 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 		require.Nil(t, cc)
 	})
-	t.Run("createConsensusState fails due to nil nodes coordinator should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockConsensusComponentsFactoryArgs()
-		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
-		require.True(t, ok)
-		cnt := 0
-		processCompStub.NodesCoordinatorCalled = func() nodesCoordinator.NodesCoordinator {
-			cnt++
-			if cnt > 2 {
-				return nil
-			}
-			return &shardingMocks.NodesCoordinatorStub{}
-		}
-		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
-		require.NotNil(t, ccf)
-
-		cc, err := ccf.Create()
-		require.Equal(t, errorsMx.ErrNilNodesCoordinator, err)
-		require.Nil(t, cc)
-	})
 	t.Run("createConsensusState fails due to GetConsensusWhitelistedNodes failure should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -725,7 +658,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		processCompStub, ok := args.ProcessComponents.(*testsMocks.ProcessComponentsStub)
 		require.True(t, ok)
 		processCompStub.NodesCoordinatorCalled = func() nodesCoordinator.NodesCoordinator {
-			return &shardingMocks.NodesCoordinatorStub{
+			return &shardingMocks.NodesCoordinatorMock{
 				GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
 					return nil, expectedErr
 				},

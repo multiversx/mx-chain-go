@@ -104,10 +104,12 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
@@ -1243,12 +1245,10 @@ func CreateRatingsData() *rating.RatingsData {
 	}
 
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                   ratingsConfig,
-		ShardConsensusSize:       63,
-		MetaConsensusSize:        400,
-		ShardMinNodes:            400,
-		MetaMinNodes:             400,
-		RoundDurationMiliseconds: 6000,
+		Config:                    ratingsConfig,
+		ChainParametersHolder:     &chainParameters.ChainParametersHolderMock{},
+		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
+		RoundDurationMilliseconds: 6000,
 	}
 
 	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)

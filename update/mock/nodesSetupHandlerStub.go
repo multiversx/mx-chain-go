@@ -3,6 +3,7 @@ package mock
 import (
 	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
@@ -10,6 +11,7 @@ import (
 type GenesisNodesSetupHandlerStub struct {
 	InitialNodesInfoForShardCalled   func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
 	InitialNodesInfoCalled           func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	ExportNodesConfigCalled          func() config.NodesConfig
 	GetStartTimeCalled               func() int64
 	GetRoundDurationCalled           func() uint64
 	GetChainIdCalled                 func() string
@@ -148,6 +150,15 @@ func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodes() uint32 {
 	}
 
 	return 1
+}
+
+// ExportNodesConfig -
+func (g *GenesisNodesSetupHandlerStub) ExportNodesConfig() config.NodesConfig {
+	if g.ExportNodesConfigCalled != nil {
+		return g.ExportNodesConfigCalled()
+	}
+
+	return config.NodesConfig{}
 }
 
 // IsInterfaceNil -

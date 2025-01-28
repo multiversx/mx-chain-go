@@ -88,8 +88,8 @@ func (rcns *roundConsensus) ConsensusGroupSize() int {
 }
 
 // SetConsensusGroupSize sets the consensus group size
-func (rcns *roundConsensus) SetConsensusGroupSize(consensusGroudpSize int) {
-	rcns.consensusGroupSize = consensusGroudpSize
+func (rcns *roundConsensus) SetConsensusGroupSize(consensusGroupSize int) {
+	rcns.consensusGroupSize = consensusGroupSize
 }
 
 // SelfPubKey returns selfPubKey ID

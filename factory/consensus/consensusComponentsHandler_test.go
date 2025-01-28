@@ -74,24 +74,6 @@ func TestManagedConsensusComponents_Create(t *testing.T) {
 	})
 }
 
-func TestManagedConsensusComponents_ConsensusGroupSize(t *testing.T) {
-	t.Parallel()
-
-	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(createMockConsensusComponentsFactoryArgs())
-	managedConsensusComponents, _ := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
-	require.NotNil(t, managedConsensusComponents)
-
-	size, err := managedConsensusComponents.ConsensusGroupSize()
-	require.Equal(t, errorsMx.ErrNilConsensusComponentsHolder, err)
-	require.Zero(t, size)
-
-	err = managedConsensusComponents.Create()
-	require.NoError(t, err)
-	size, err = managedConsensusComponents.ConsensusGroupSize()
-	require.NoError(t, err)
-	require.Equal(t, 2, size)
-}
-
 func TestManagedConsensusComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 

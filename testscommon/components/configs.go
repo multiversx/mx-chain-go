@@ -156,6 +156,18 @@ func GetGeneralConfig() config.Config {
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
 			SetGuardianEpochsDelay:   20,
+			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
+				{
+					EnableEpoch:                 0,
+					RoundDuration:               4000,
+					ShardConsensusGroupSize:     1,
+					ShardMinNumNodes:            1,
+					MetachainConsensusGroupSize: 1,
+					MetachainMinNumNodes:        1,
+					Hysteresis:                  0,
+					Adaptivity:                  false,
+				},
+			},
 		},
 		Marshalizer: config.MarshalizerConfig{
 			Type:           TestMarshalizer,

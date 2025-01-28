@@ -71,7 +71,6 @@ type accountInfo struct {
 type Node struct {
 	initialNodesPubkeys map[uint32][]string
 	roundDuration       uint64
-	consensusGroupSize  int
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
@@ -155,11 +154,6 @@ func (n *Node) CreateShardedStores() error {
 	}
 
 	return nil
-}
-
-// GetConsensusGroupSize returns the configured consensus size
-func (n *Node) GetConsensusGroupSize() int {
-	return n.consensusGroupSize
 }
 
 // GetBalance gets the balance for a specific address

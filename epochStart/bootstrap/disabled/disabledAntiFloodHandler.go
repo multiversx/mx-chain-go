@@ -29,8 +29,8 @@ func (a *antiFloodHandler) CanProcessMessagesOnTopic(_ core.PeerID, _ string, _ 
 	return nil
 }
 
-// ApplyConsensusSize does nothing
-func (a *antiFloodHandler) ApplyConsensusSize(_ int) {
+// SetConsensusSizeNotifier does nothing
+func (a *antiFloodHandler) SetConsensusSizeNotifier(_ process.ChainParametersSubscriber, _ uint32) {
 }
 
 // SetDebugger returns nil
