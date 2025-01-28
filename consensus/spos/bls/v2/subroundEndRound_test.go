@@ -572,6 +572,11 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 	t.Parallel()
 
 	container := consensusMocks.InitConsensusCore()
+	container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return true
+		},
+	})
 	sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetSelfPubKey("A")
 
@@ -1176,6 +1181,11 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		})
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		verifySigShareNumCalls := 0
@@ -1233,13 +1243,17 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 				return &block.HeaderV2{}
 			},
 		})
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		})
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 
 		ch := make(chan bool, 1)
 		consensusState := initializers.InitConsensusState()
