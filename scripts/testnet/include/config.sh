@@ -174,6 +174,7 @@ updateNodeConfig() {
 
 	if [ $USE_ELASTICSEARCH -eq 1 ]; then
 	  sed -i '/^\[ElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
+	  sed -i '/^\[MainChainElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
 	fi
 
   sed -i '/^\[DbLookupExtensions\]/,/^\[/ s/Enabled *= *false/Enabled = true/' config_observer.toml
