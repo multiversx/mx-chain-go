@@ -717,7 +717,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	)
 
 	alarmsToCancel := make([]string, 0)
-	dbb.mutDataForBroadcast.RLock()
+	dbb.mutDataForBroadcast.Lock()
 	for i, broadcastData := range dbb.valHeaderBroadcastData {
 		samePrevRandSeed := bytes.Equal(broadcastData.Header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
 		sameRound := broadcastData.Header.GetRound() == headerHandler.GetRound()
@@ -736,7 +736,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 		}
 	}
 
-	dbb.mutDataForBroadcast.RUnlock()
+	dbb.mutDataForBroadcast.Unlock()
 
 	for _, alarmID := range alarmsToCancel {
 		dbb.alarm.Cancel(alarmID)

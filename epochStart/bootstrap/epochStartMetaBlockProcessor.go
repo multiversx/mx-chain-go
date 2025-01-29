@@ -264,7 +264,7 @@ func (e *epochStartMetaBlockProcessor) waitForConfMetaBlock(ctx context.Context,
 		return epochStart.ErrNilMetaBlock
 	}
 
-	err := e.requestConfirmationMetaBlock(metaBlock.GetNonce())
+	err := e.requestConfirmationMetaBlock(metaBlock.GetNonce() + 1)
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func (e *epochStartMetaBlockProcessor) waitForConfMetaBlock(ctx context.Context,
 		case <-ctx.Done():
 			return epochStart.ErrTimeoutWaitingForMetaBlock
 		case <-chanRequests:
-			err = e.requestConfirmationMetaBlock(metaBlock.GetNonce())
+			err = e.requestConfirmationMetaBlock(metaBlock.GetNonce() + 1)
 			if err != nil {
 				return err
 			}

@@ -371,7 +371,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 	proof := header.GetPreviousProof()
 	err := common.VerifyProofAgainstHeader(proof, prevHeader)
 	if err != nil {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof, %s", err.Error())
+		log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err.Error())
 		return
 	}
 

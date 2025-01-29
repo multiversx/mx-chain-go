@@ -59,7 +59,7 @@ type PeerAccountHandler interface {
 	GetTempRating() uint32
 	SetTempRating(uint32)
 	GetConsecutiveProposerMisses() uint32
-	SetConsecutiveProposerMisses(uint322 uint32)
+	SetConsecutiveProposerMisses(consecutiveMisses uint32)
 	ResetAtNewEpoch()
 	SetPreviousList(list string)
 	vmcommon.AccountHandler

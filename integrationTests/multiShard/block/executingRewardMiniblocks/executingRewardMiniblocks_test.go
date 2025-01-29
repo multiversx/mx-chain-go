@@ -279,9 +279,6 @@ func updateNumberTransactionsProposed(
 	transactionsForLeader[addressProposer] += nbTransactions
 }
 
-func updateRewardsForMetachain(_ map[string]uint32, _ *integrationTests.TestProcessorNode) {
-}
-
 func verifyRewardsForMetachain(
 	t *testing.T,
 	mapRewardsForMeta map[string]uint32,

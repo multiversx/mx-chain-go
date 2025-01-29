@@ -23,15 +23,15 @@ func TestAsyncCallShouldWork(t *testing.T) {
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -131,15 +131,15 @@ func TestAsyncCallDisabled(t *testing.T) {
 	activationRound.Round = "0"
 	roundsConfig.RoundActivations["DisableAsyncCallV1"] = activationRound
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(0, enableEpochs, roundsConfig)
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(0, enableEpochs, roundsConfig, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(1, enableEpochs, roundsConfig)
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(1, enableEpochs, roundsConfig, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(2, enableEpochs, roundsConfig)
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(2, enableEpochs, roundsConfig, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 

@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -39,7 +39,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	allowVMQueriesChan := make(chan struct{})
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(vmQueryDelayAfterStartInMs) * time.Millisecond)
 		close(allowVMQueriesChan)
 		node.StatusCoreComponents.AppStatusHandler().SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}()
@@ -176,6 +176,7 @@ func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error 
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, node.CoreComponentsHolder.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, node.CoreComponentsHolder.EconomicsData().MinGasLimit())
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, node.CoreComponentsHolder.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, node.CoreComponentsHolder.EconomicsData().MinGasLimit())
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, node.CoreComponentsHolder.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", node.CoreComponentsHolder.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", node.CoreComponentsHolder.EconomicsData().GasPriceModifier()))
