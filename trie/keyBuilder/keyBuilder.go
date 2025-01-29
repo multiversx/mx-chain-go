@@ -34,10 +34,25 @@ func (kb *keyBuilder) GetKey() ([]byte, error) {
 	return hexToTrieKeyBytes(kb.key)
 }
 
-// Clone returns a new KeyBuilder with the same key
-func (kb *keyBuilder) Clone() common.KeyBuilder {
+// GetRawKey returns the key as it is, without transforming it
+func (kb *keyBuilder) GetRawKey() []byte {
+	return kb.key
+}
+
+// ShallowClone returns a new KeyBuilder with the same key. The key slice points to the same memory location.
+func (kb *keyBuilder) ShallowClone() common.KeyBuilder {
 	return &keyBuilder{
 		key: kb.key,
+	}
+}
+
+// DeepClone returns a new KeyBuilder with the same key. This allocates a new memory location for the key slice.
+func (kb *keyBuilder) DeepClone() common.KeyBuilder {
+	clonedKey := make([]byte, len(kb.key))
+	copy(clonedKey, kb.key)
+
+	return &keyBuilder{
+		key: clonedKey,
 	}
 }
 
@@ -58,6 +73,11 @@ func hexToTrieKeyBytes(hex []byte) ([]byte, error) {
 	}
 
 	return key, nil
+}
+
+// Size returns the size of the key
+func (kb *keyBuilder) Size() uint {
+	return uint(len(kb.key))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
