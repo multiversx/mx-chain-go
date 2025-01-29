@@ -3,9 +3,11 @@ package bootstrap
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	interceptorFactory "github.com/multiversx/mx-chain-go/process/interceptors/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
@@ -200,6 +202,12 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	// create a new instance of interceptedDataVerifier which will be used for bootstrap only
+	interceptedDataVerifierFactory := interceptorFactory.NewInterceptedDataVerifierFactory(interceptorFactory.InterceptedDataVerifierFactoryArgs{
+		CacheSpan:   time.Duration(bcf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(bcf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+	})
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:            bcf.coreComponents,
 		CryptoComponentsHolder:          bcf.cryptoComponents,
@@ -227,6 +235,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		EnableEpochsHandler:             bcf.coreComponents.EnableEpochsHandler(),
+		InterceptedDataVerifierFactory:  interceptedDataVerifierFactory,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

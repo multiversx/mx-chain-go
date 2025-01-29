@@ -372,12 +372,22 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 
 	proof := headerHandler.GetPreviousProof()
 
-	var prevAggregatedSig, prevBitmap []byte
+	var prevAggregatedSig, prevBitmap, prevHash []byte
+	var proofShard, proofEpoch uint32
+	var proofRound, proofNonce uint64
+	var isStartOfEpoch, hasProofInfo bool
 	if !check.IfNilReflect(proof) {
+		hasProofInfo = true
 		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+		prevHash = proof.GetHeaderHash()
+		proofShard = proof.GetHeaderShardId()
+		proofEpoch = proof.GetHeaderEpoch()
+		proofRound = proof.GetHeaderRound()
+		proofNonce = proof.GetHeaderNonce()
+		isStartOfEpoch = proof.GetIsStartOfEpoch()
 	}
 
-	return []*display.LineData{
+	logLines := []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
 			"ChainID",
@@ -438,19 +448,50 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"",
 			"Receipts hash",
 			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
-		display.NewLineData(false, []string{
+		display.NewLineData(true, []string{
 			"",
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
-		display.NewLineData(false, []string{
-			"Previous proof",
-			"Aggregated signature",
-			logger.DisplayByteSlice(prevAggregatedSig)}),
-		display.NewLineData(true, []string{
-			"",
-			"Pub keys bitmap",
-			logger.DisplayByteSlice(prevBitmap)}),
 	}
+
+	if hasProofInfo {
+		logLines = append(logLines,
+			display.NewLineData(false, []string{
+				"Previous proof",
+				"Header hash",
+				logger.DisplayByteSlice(prevHash)}),
+			display.NewLineData(false, []string{
+				"",
+				"Aggregated signature",
+				logger.DisplayByteSlice(prevAggregatedSig)}),
+			display.NewLineData(false, []string{
+				"",
+				"Pub keys bitmap",
+				logger.DisplayByteSlice(prevBitmap)}),
+			display.NewLineData(false, []string{
+				"",
+				"Epoch",
+				fmt.Sprintf("%d", proofEpoch)}),
+			display.NewLineData(false, []string{
+				"",
+				"Round",
+				fmt.Sprintf("%d", proofRound)}),
+			display.NewLineData(false, []string{
+				"",
+				"Shard",
+				fmt.Sprintf("%d", proofShard)}),
+			display.NewLineData(false, []string{
+				"",
+				"Nonce",
+				fmt.Sprintf("%d", proofNonce)}),
+			display.NewLineData(true, []string{
+				"",
+				"IsStartOfEpoch",
+				fmt.Sprintf("%t", isStartOfEpoch)}),
+		)
+	}
+
+	return logLines
 }
 
 // checkProcessorParameters will check the input parameters values
@@ -624,24 +665,51 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
-// TODO: remove bool parameter and give instead the set to sort
-func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+func (bp *baseProcessor) computeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
 		if headerInfo.usedInBlock != usedInBlock {
 			continue
 		}
 
 		if bp.hasMissingProof(headerInfo, hdrHash) {
-			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
 		}
 
 		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
 	}
+
+	return hdrsForCurrentBlock, nil
+}
+
+func (bp *baseProcessor) computeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]*nonceAndHashInfo, error) {
+	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
+
+	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		if bp.hasMissingProof(headerInfo, metaBlockHash) {
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
+		}
+
+		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+	}
+
+	return hdrsForCurrentBlockInfo, nil
+}
+
+// TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	hdrsForCurrentBlock, err := bp.computeHeadersForCurrentBlock(usedInBlock)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
 
 	// sort headers for each shard
 	for _, hdrsForShard := range hdrsForCurrentBlock {
@@ -652,23 +720,12 @@ func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (ma
 }
 
 func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) (map[uint32][][]byte, error) {
-	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
-
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if headerInfo.usedInBlock != usedInBlock {
-			continue
-		}
-
-		if bp.hasMissingProof(headerInfo, metaBlockHash) {
-			bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
-			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
-		}
-
-		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
-			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
-	}
+	hdrsForCurrentBlockInfo, err := bp.computeHeadersForCurrentBlockInfo(usedInBlock)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, hdrsForShard := range hdrsForCurrentBlockInfo {
 		if len(hdrsForShard) > 1 {
@@ -690,8 +747,11 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 
 func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
 	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch())
-	hasProof := bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
-	return isFlagEnabledForHeader && !hasProof
+	if !isFlagEnabledForHeader {
+		return false
+	}
+
+	return !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 }
 
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(
@@ -2214,5 +2274,26 @@ func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
 	}
 
 	header.SetPreviousProof(prevBlockProof)
+
+	log.Debug("added proof on header",
+		"header hash", prevBlockProof.GetHeaderHash(),
+		"epoch", prevBlockProof.GetHeaderEpoch(),
+		"nonce", prevBlockProof.GetHeaderNonce(),
+		"shardID", prevBlockProof.GetHeaderShardId(),
+		"pubKeys bitmap", prevBlockProof.GetPubKeysBitmap(),
+		"round", prevBlockProof.GetHeaderRound(),
+		"nonce", prevBlockProof.GetHeaderNonce(),
+		"isStartOfEpoch", prevBlockProof.GetIsStartOfEpoch(),
+	)
+
 	return nil
+}
+
+func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error) {
+	marshalledHeader, errMarshal := bp.marshalizer.Marshal(header)
+	if errMarshal != nil {
+		return nil, errMarshal
+	}
+
+	return bp.hasher.Compute(string(marshalledHeader)), nil
 }

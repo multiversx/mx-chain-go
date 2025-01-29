@@ -569,6 +569,7 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 	if headerProof.GetHeaderShardId() != core.MetachainShardId {
 		return
 	}
+
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 

@@ -820,10 +820,28 @@ func TestMetaProcessor_RequestFinalMissingHeaderShouldPass(t *testing.T) {
 	mp, _ := blproc.NewMetaProcessor(arguments)
 	mp.AddHdrHashToRequestedList(&block.Header{}, []byte("header_hash"))
 	mp.SetHighestHdrNonceForCurrentBlock(0, 1)
+	mp.SetLastNotarizedHeaderForShard(0, &blproc.LastNotarizedHeaderInfo{
+		Header:                &block.Header{Nonce: 0, ShardID: 0},
+		Hash:                  []byte("header hash"),
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
 	mp.SetHighestHdrNonceForCurrentBlock(1, 2)
+	mp.SetLastNotarizedHeaderForShard(1, &blproc.LastNotarizedHeaderInfo{
+		Header:                &block.Header{Nonce: 2, ShardID: 1},
+		Hash:                  []byte("header hash"),
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
 	mp.SetHighestHdrNonceForCurrentBlock(2, 3)
+	mp.SetLastNotarizedHeaderForShard(2, &blproc.LastNotarizedHeaderInfo{
+		Header:                &block.Header{Nonce: 3, ShardID: 2},
+		Hash:                  []byte("header hash"),
+		NotarizedBasedOnProof: false,
+		HasProof:              false,
+	})
 	res := mp.RequestMissingFinalityAttestingShardHeaders()
-	assert.Equal(t, res, uint32(3))
+	assert.Equal(t, uint32(3), res)
 }
 
 // ------- CommitBlock
