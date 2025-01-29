@@ -1959,10 +1959,16 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 
 	// 2. restore cross chain txs/incoming scr????
 	// 3. restore extended shard headers from hashes??? like RestoreBlockIntoPools from shard
+	// 4. what to do if we forever loose an extended header? we should request it from notifier?
 
 	sovChainHdr, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
 		return fmt.Errorf("%w in sovereignChainBlockProcessor.RestoreBlockIntoPools", errors.ErrWrongTypeAssertion)
+	}
+
+	err := scbp.restoreExtendedHeaderIntoPool(sovChainHdr.GetExtendedShardHeaderHashes())
+	if err != nil {
+		return err
 	}
 
 	scbp.extendedShardHeaderTracker.RemoveLastSelfNotarizedHeaders()
@@ -1974,6 +1980,56 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 
 	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
 		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
+	}
+
+	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extendedShardHeaderHashes [][]byte) error {
+	headersPool := scbp.dataPool.Headers()
+
+	for _, extendedHdrHash := range extendedShardHeaderHashes {
+		extendedHdr, errNotCritical := process.GetExtendedShardHeaderFromStorage(extendedHdrHash, scbp.marshalizer, scbp.store)
+		if errNotCritical != nil {
+			log.Debug("extended header is not fully processed yet and not committed in ExtendedShardHeadersUnit",
+				"hash", extendedHdrHash)
+			continue
+		}
+
+		headersPool.AddHeader(extendedHdrHash, extendedHdr)
+
+		extendedHdrStorer, err := scbp.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
+		if err != nil {
+			log.Error("unable to get storage unit",
+				"unit", dataRetriever.ExtendedShardHeadersUnit.String())
+			return err
+		}
+
+		err = extendedHdrStorer.Remove(extendedHdrHash)
+		if err != nil {
+			log.Error("unable to remove hash from MetaBlockUnit",
+				"hash", extendedHdrHash)
+			return err
+		}
+
+		nonceToByteSlice := scbp.uint64Converter.ToByteSlice(extendedHdr.GetNonce())
+		extendedHdrNonceHashStorer, err := scbp.store.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+		if err != nil {
+			log.Error("unable to get storage unit",
+				"unit", dataRetriever.ExtendedShardHeadersNonceHashDataUnit.String())
+			return err
+		}
+
+		errNotCritical = extendedHdrNonceHashStorer.Remove(nonceToByteSlice)
+		if errNotCritical != nil {
+			log.Debug("extendedHdrNonceHashStorer.Remove error not critical",
+				"error", errNotCritical.Error())
+		}
+
+		log.Debug("extended block has been restored successfully",
+			"round", extendedHdr.GetRound(),
+			"nonce", extendedHdr.GetNonce(),
+			"hash", extendedHdr)
 	}
 
 	return nil
