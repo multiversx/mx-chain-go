@@ -334,7 +334,7 @@
     FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 1
 
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
-    RelayedTransactionsV3EnableEpoch = 2
+    RelayedTransactionsV3EnableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
