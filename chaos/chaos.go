@@ -5,7 +5,6 @@ import (
 )
 
 var log = logger.GetOrCreate("chaos")
-
 var Controller *chaosController
 
 func init() {

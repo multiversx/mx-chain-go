@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -112,6 +113,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header, leaderSignature)
+
 	err = header.SetLeaderSignature(leaderSignature)
 	if err != nil {
 		printLogMessage(ctx, "doBlockJob.SetLeaderSignature", err)
@@ -121,6 +124,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		return false
+	}
+
+	if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header) {
 		return false
 	}
 

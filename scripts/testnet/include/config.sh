@@ -92,6 +92,7 @@ copyNodeConfig() {
   cp $NODEDIR/config/genesisContracts/*.* ./node/config/genesisContracts
   mkdir ./node/config/gasSchedules -p
   cp $NODEDIR/config/gasSchedules/*.* ./node/config/gasSchedules
+  cp $NODEDIR/config/chaos.json ./node/config
 
   echo "Configuration files copied from the Node to the working directories of the executables."
   popd

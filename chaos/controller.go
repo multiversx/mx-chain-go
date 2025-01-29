@@ -13,6 +13,7 @@ type chaosController struct {
 	numCallsDoSignatureJob            int
 	numCallsCompleteSignatureSubround int
 	numCallsCheckSignaturesValidity   int
+	numCallsV2DoBlockJob              int
 }
 
 func newChaosController(configFilePath string) *chaosController {
@@ -32,8 +33,23 @@ func (controller *chaosController) LearnNodes(eligibleNodes []chaosAdapters.Vali
 	log.Info("Seeding chaos", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
 }
 
+// In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
+func (controller *chaosController) In_shardProcess_processTransaction_shouldReturnError() bool {
+	if !controller.enabled {
+		return false
+	}
+
+	controller.numCallsProcessTransaction++
+	if controller.numCallsProcessTransaction%controller.config.NumCallsDivisor_processTransaction_shouldReturnError == 0 {
+		log.Info("Returning error when processing transaction")
+		return true
+	}
+
+	return false
+}
+
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
-func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(header data.HeaderHandler, signatureShare []byte) {
+func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(header data.HeaderHandler, signature []byte) {
 	if !controller.enabled {
 		return
 	}
@@ -44,11 +60,11 @@ func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorr
 	}
 
 	log.Info("Corrupting signature", "round", header.GetRound(), "nonce", header.GetNonce())
-	signatureShare[0] += 1
+	signature[0] += 1
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
-func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(header data.HeaderHandler, keyIndex int, signatureShare []byte) {
+func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(header data.HeaderHandler, keyIndex int, signature []byte) {
 	if !controller.enabled {
 		return
 	}
@@ -59,7 +75,7 @@ func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorr
 	}
 
 	log.Info("Corrupting signature", "round", header.GetRound(), "nonce", header.GetNonce(), "keyIndex", keyIndex)
-	signatureShare[0] += 1
+	signature[0] += 1
 }
 
 // In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
@@ -91,17 +107,32 @@ func (controller *chaosController) In_subroundEndRound_checkSignaturesValidity_s
 	return true
 }
 
-// In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
-func (controller *chaosController) In_shardProcess_processTransaction_shouldReturnError() bool {
+// In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header data.HeaderHandler, signature []byte) {
+	if !controller.enabled {
+		return
+	}
+
+	controller.numCallsV2DoBlockJob++
+	if controller.numCallsV2DoBlockJob%controller.config.NumCallsDivisor_consensusV2_maybeCorruptLeaderSignature != 0 {
+		return
+	}
+
+	log.Info("Corrupting leader signature", "round", header.GetRound(), "nonce", header.GetNonce())
+	signature[0] += 1
+}
+
+// In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header data.HeaderHandler) bool {
 	if !controller.enabled {
 		return false
 	}
 
-	controller.numCallsProcessTransaction++
-	if controller.numCallsProcessTransaction%controller.config.NumCallsDivisor_processTransaction_shouldReturnError == 0 {
-		log.Info("Returning error when processing transaction")
-		return true
+	controller.numCallsV2DoBlockJob++
+	if controller.numCallsV2DoBlockJob%controller.config.NumCallsDivisor_consensusV2_maybeCorruptLeaderSignature != 0 {
+		return false
 	}
 
-	return false
+	log.Info("Skip sending block", "round", header.GetRound(), "nonce", header.GetNonce())
+	return true
 }
