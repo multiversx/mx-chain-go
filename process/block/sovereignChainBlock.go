@@ -33,6 +33,8 @@ var rootHash = "uncomputed root hash"
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	IsGenesisLastCrossNotarizedHeader() bool
+	RemoveLastCrossNotarizedHeaders()
+	RemoveLastSelfNotarizedHeaders()
 }
 
 type extendedShardHeaderRequestHandler interface {
@@ -58,6 +60,8 @@ type sovereignChainBlockProcessor struct {
 	epochEconomics        process.EndOfEpochEconomics
 
 	mainChainNotarizationStartRound uint64
+
+	ct int
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -716,6 +720,13 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	if haveTime == nil {
 		return nil, nil, process.ErrNilHaveTimeHandler
 	}
+
+	scbp.ct++
+
+	//if scbp.ct == 35 {
+	//	scbp.RestoreBlockIntoPools(headerHandler, bodyHandler)
+	//	return headerHandler, bodyHandler, nil
+	//}
 
 	scbp.processStatusHandler.SetBusy("sovereignChainBlockProcessor.ProcessBlock")
 	defer scbp.processStatusHandler.SetIdle()
@@ -1944,7 +1955,27 @@ func (scbp *sovereignChainBlockProcessor) saveSovereignMetricsForCommittedBlock(
 // RestoreBlockIntoPools restores block into pools
 func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	scbp.restoreBlockBody(header, body)
-	scbp.blockTracker.RemoveLastNotarizedHeaders()
+	// THIS SHOULD BE ERROR
+
+	// 2. restore cross chain txs/incoming scr????
+	// 3. restore extended shard headers from hashes??? like RestoreBlockIntoPools from shard
+
+	sovChainHdr, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.RestoreBlockIntoPools", errors.ErrWrongTypeAssertion)
+	}
+
+	scbp.extendedShardHeaderTracker.RemoveLastSelfNotarizedHeaders()
+	numOfNotarizedExtendedHeaders := len(sovChainHdr.GetExtendedShardHeaderHashes())
+	log.Debug("sovereignChainBlockProcessor.RestoreBlockIntoPools", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
+	if numOfNotarizedExtendedHeaders == 0 {
+		return nil
+	}
+
+	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
+		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
+	}
+
 	return nil
 }
 
