@@ -2351,7 +2351,7 @@ func (bp *baseProcessor) commitEpochStart(
 	validatorInfoCreator process.EpochStartValidatorInfoCreator,
 ) {
 	if header.IsStartOfEpochBlock() {
-		bp.epochStartTrigger.SetProcessed(header, body)
+		bp.epochStartTrigger.SetProcessed(header, body) // here either remove it from here +add it on process or unsbuscribe the nodes coord epoch start trigger
 		go epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go validatorInfoCreator.SaveBlockDataToStorage(header, body)
 	} else {
