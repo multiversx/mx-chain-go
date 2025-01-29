@@ -189,21 +189,16 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createDataPool(args)
+	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
+		Config:           args.Configs.GeneralConfig,
+		EconomicsData:    instance.CoreComponentsHolder.EconomicsData(),
+		ShardCoordinator: instance.BootstrapComponentsHolder.ShardCoordinator(),
+		Marshalizer:      instance.CoreComponentsHolder.InternalMarshalizer(),
+		PathManager:      instance.CoreComponentsHolder.PathHandler(),
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	//instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
-	//	Config:           args.Configs.GeneralConfig,
-	//	EconomicsData:    instance.CoreComponentsHolder.EconomicsData(),
-	//	ShardCoordinator: instance.BootstrapComponentsHolder.ShardCoordinator(),
-	//	Marshalizer:      instance.CoreComponentsHolder.InternalMarshalizer(),
-	//	PathManager:      instance.CoreComponentsHolder.PathHandler(),
-	//})
-	//if err != nil {
-	//	return nil, err
-	//}
 
 	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
 		Chain:              instance.ChainHandler,
