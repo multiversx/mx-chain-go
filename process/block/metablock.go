@@ -452,7 +452,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 
 		prevProof := shardData.GetPreviousProof()
 		headersPool := mp.dataPool.Headers()
-		prevHeader, err := common.GetHeader(prevProof.GetHeaderHash(), headersPool, shardHeadersStorer, mp.marshalizer)
+		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, shardHeadersStorer, mp.marshalizer, prevProof.GetHeaderShardId())
 		if err != nil {
 			return err
 		}
