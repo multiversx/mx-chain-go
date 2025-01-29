@@ -1993,7 +1993,7 @@ func (sc *scProcessor) getFeePayer(tx data.TransactionHandler, acntSnd state.Use
 		return acntSnd, nil // do not load the same account twice
 	}
 
-	account, err := sc.getAccountFromAddress(relayedTx.GetRelayerAddr())
+	account, err := sc.scProcessorHelper.GetAccountFromAddress(relayedTx.GetRelayerAddr())
 	if err != nil {
 		return nil, err
 	}
