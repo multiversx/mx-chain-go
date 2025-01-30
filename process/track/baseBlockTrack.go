@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -156,14 +155,6 @@ func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (dat
 	}
 
 	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, headersStorer, bbt.marshalizer, proof.GetHeaderShardId())
-}
-
-func (bbt *baseBlockTrack) getHeaderStorer(headerShard uint32) (storage.Storer, error) {
-	if headerShard == core.MetachainShardId {
-		return bbt.store.GetStorer(dataRetriever.MetaBlockUnit)
-	}
-
-	return bbt.store.GetStorer(dataRetriever.BlockHeaderUnit)
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
