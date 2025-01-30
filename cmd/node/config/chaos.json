@@ -1,6 +1,12 @@
 {
-    "numCallsDivisorMaybeCorruptSignature": 5,
-    "numCallsDivisorShouldSkipWaitingForSignatures": 7,
-    "numCallsDivisorShouldReturnErrorInCheckSignaturesValidity": 11,
-    "numCallsDivisorProcessTransactionShouldReturnError": 101
+    "failures": [
+        {
+            "name": "processTransactionShouldReturnError",
+            "when": "nodePublicKeyLastByte % 4 == 0 && transactionHashLastByte % 7 == 0"
+        },
+        {
+            "name": "maybeCorruptSignature",
+            "when": ""
+        }
+    ]
 }

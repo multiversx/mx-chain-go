@@ -1,138 +1,178 @@
 package chaos
 
 import (
+	"math/rand"
+	"sync"
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
-	chaosAdapters "github.com/multiversx/mx-chain-go/chaosAdapters"
+	"github.com/multiversx/mx-chain-go/chaosAdapters"
 )
 
 type chaosController struct {
-	enabled bool
-	config  chaosConfig
+	mutex                  sync.Mutex
+	enabled                bool
+	config                 *chaosConfig
+	currentShard           uint32
+	currentEpoch           uint32
+	currentRound           uint64
+	currentlyEligibleNodes []chaosAdapters.Validator
+	currentlyWaitingNodes  []chaosAdapters.Validator
 
-	numCallsProcessTransaction        int
-	numCallsDoSignatureJob            int
-	numCallsCompleteSignatureSubround int
-	numCallsCheckSignaturesValidity   int
-	numCallsV2DoBlockJob              int
+	CallsCounters *callsCounters
+}
+
+type callsCounters struct {
+	ProcessTransaction atomic.Counter
 }
 
 func newChaosController(configFilePath string) *chaosController {
-	config, err := loadChaosConfigFromFile(configFilePath)
+	config, err := newChaosConfigFromFile(configFilePath)
 	if err != nil {
 		log.Warn("Could not load chaos config", "error", err)
 		return &chaosController{enabled: false}
 	}
 
 	return &chaosController{
-		enabled: true,
-		config:  config,
+		mutex:         sync.Mutex{},
+		enabled:       true,
+		config:        config,
+		CallsCounters: &callsCounters{},
 	}
 }
 
+func (controller *chaosController) LearnSelfShard(shard uint32) {
+	log.Info("LearnSelfShard", "shard", shard)
+	controller.currentShard = shard
+}
+
+func (controller *chaosController) LearnCurrentEpoch(epoch uint32) {
+	log.Info("LearnCurrentEpoch", "epoch", epoch)
+	controller.currentEpoch = epoch
+}
+
+func (controller *chaosController) LearnCurrentRound(round int64) {
+	log.Info("LearnCurrentRound", "round", round)
+	controller.currentRound = uint64(round)
+}
+
 func (controller *chaosController) LearnNodes(eligibleNodes []chaosAdapters.Validator, waitingNodes []chaosAdapters.Validator) {
-	log.Info("Seeding chaos", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
+	log.Info("LearnNodes", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
+
+	controller.currentlyEligibleNodes = eligibleNodes
+	controller.currentlyWaitingNodes = waitingNodes
 }
 
 // In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
 func (controller *chaosController) In_shardProcess_processTransaction_shouldReturnError() bool {
-	if !controller.enabled {
-		return false
-	}
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
-	controller.numCallsProcessTransaction++
-	if controller.numCallsProcessTransaction%controller.config.NumCallsDivisor_processTransaction_shouldReturnError == 0 {
-		log.Info("Returning error when processing transaction")
-		return true
-	}
-
-	return false
+	circumstance := controller.acquireCircumstance()
+	return controller.shouldFail(failureProcessTransactionShouldReturnError, circumstance)
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
 func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(header data.HeaderHandler, signature []byte) {
-	if !controller.enabled {
-		return
-	}
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
-	controller.numCallsDoSignatureJob++
-	if controller.numCallsDoSignatureJob%controller.config.NumCallsDivisor_maybeCorruptSignature != 0 {
-		return
+	circumstance := controller.acquireCircumstance()
+	circumstance.blockNonce = header.GetNonce()
+	if controller.shouldFail(failureMaybeCorruptSignature, circumstance) {
+		signature[0] += 1
 	}
-
-	log.Info("Corrupting signature", "round", header.GetRound(), "nonce", header.GetNonce())
-	signature[0] += 1
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
 func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(header data.HeaderHandler, keyIndex int, signature []byte) {
-	if !controller.enabled {
-		return
-	}
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
-	controller.numCallsDoSignatureJob++
-	if controller.numCallsDoSignatureJob%controller.config.NumCallsDivisor_maybeCorruptSignature != 0 {
-		return
+	circumstance := controller.acquireCircumstance()
+	circumstance.blockNonce = header.GetNonce()
+	if controller.shouldFail(failureMaybeCorruptSignature, circumstance) {
+		signature[0] += 1
 	}
-
-	log.Info("Corrupting signature", "round", header.GetRound(), "nonce", header.GetNonce(), "keyIndex", keyIndex)
-	signature[0] += 1
 }
 
 // In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
 func (controller *chaosController) In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(header data.HeaderHandler) bool {
-	if !controller.enabled {
-		return false
-	}
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
-	controller.numCallsCompleteSignatureSubround++
-	if controller.numCallsCompleteSignatureSubround%controller.config.NumCallsDivisor_shouldSkipWaitingForSignatures != 0 {
-		return false
-	}
-
-	log.Info("Skipping waiting for signatures", "round", header.GetRound(), "nonce", header.GetNonce())
-	return true
+	circumstance := controller.acquireCircumstance()
+	circumstance.blockNonce = header.GetNonce()
+	return controller.shouldFail(failureShouldSkipWaitingForSignatures, circumstance)
 }
 
 func (controller *chaosController) In_subroundEndRound_checkSignaturesValidity_shouldReturnError(header data.HeaderHandler) bool {
-	if !controller.enabled {
-		return false
-	}
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
-	controller.numCallsCheckSignaturesValidity++
-	if controller.numCallsCheckSignaturesValidity%controller.config.NumCallsDivisor_shouldReturnErrorInCheckSignaturesValidity != 0 {
-		return false
-	}
-
-	log.Info("Returning error in check signatures validity", "round", header.GetRound(), "nonce", header.GetNonce())
-	return true
+	circumstance := controller.acquireCircumstance()
+	circumstance.blockNonce = header.GetNonce()
+	return controller.shouldFail(failureShouldReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
 // In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header data.HeaderHandler, signature []byte) {
-	if !controller.enabled {
-		return
-	}
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
-	controller.numCallsV2DoBlockJob++
-	if controller.numCallsV2DoBlockJob%controller.config.NumCallsDivisor_consensusV2_maybeCorruptLeaderSignature != 0 {
-		return
+	circumstance := controller.acquireCircumstance()
+	circumstance.blockNonce = header.GetNonce()
+	if controller.shouldFail(failureMaybeCorruptLeaderSignature, circumstance) {
+		signature[0] += 1
 	}
-
-	log.Info("Corrupting leader signature", "round", header.GetRound(), "nonce", header.GetNonce())
-	signature[0] += 1
 }
 
 // In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header data.HeaderHandler) bool {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	circumstance := controller.acquireCircumstance()
+	circumstance.blockNonce = header.GetNonce()
+	return controller.shouldFail(failureShouldSkipSendingBlock, circumstance)
+}
+
+func (controller *chaosController) acquireCircumstance() *failureCircumstance {
+	randomNumber := rand.Uint64()
+	now := time.Now().Unix()
+
+	return &failureCircumstance{
+		randomNumber: randomNumber,
+		now:          now,
+		shard:        controller.currentShard,
+		epoch:        controller.currentEpoch,
+		round:        controller.currentRound,
+
+		counterProcessTransaction: controller.CallsCounters.ProcessTransaction.GetUint64(),
+	}
+}
+
+func (controller *chaosController) shouldFail(failureName failureName, circumstance *failureCircumstance) bool {
 	if !controller.enabled {
 		return false
 	}
 
-	controller.numCallsV2DoBlockJob++
-	if controller.numCallsV2DoBlockJob%controller.config.NumCallsDivisor_consensusV2_maybeCorruptLeaderSignature != 0 {
+	failure, configured := controller.config.getFailureByName(failureName)
+	if !configured {
 		return false
 	}
 
-	log.Info("Skip sending block", "round", header.GetRound(), "nonce", header.GetNonce())
-	return true
+	shouldFail, err := circumstance.evalExpression(failure.When)
+	if err != nil {
+		log.Warn("Failed to evaluate expression", "error", err)
+		return false
+	}
+
+	if shouldFail {
+		log.Info("shouldFail()", "failureName", failureName)
+		return true
+	}
+
+	return false
 }

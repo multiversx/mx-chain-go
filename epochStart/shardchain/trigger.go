@@ -19,8 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -722,6 +723,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			log.Debug(display.Headline(msg, "", "#"))
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.metaEpoch)
+			chaos.Controller.LearnCurrentEpoch(t.metaEpoch)
 			t.clearMissingMiniBlocksMap(t.metaEpoch)
 			t.clearMissingValidatorsInfoMap(t.metaEpoch)
 		}

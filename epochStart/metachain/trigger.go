@@ -15,8 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -223,6 +224,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 		log.Debug(display.Headline(msg, "", "#"))
 		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
 		logger.SetCorrelationEpoch(t.epoch)
+		chaos.Controller.LearnCurrentEpoch(t.epoch)
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 	}
 }
