@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -17,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/sync")
@@ -44,6 +46,7 @@ type ArgsBaseStorageBootstrapper struct {
 	EpochNotifier                process.EpochNotifier
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	AppStatusHandler             core.AppStatusHandler
+	EnableEpochsHandler          common.EnableEpochsHandler
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -79,6 +82,7 @@ type storageBootstrapper struct {
 	epochNotifier                process.EpochNotifier
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	appStatusHandler             core.AppStatusHandler
+	enableEpochsHandler          common.EnableEpochsHandler
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -446,6 +450,9 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 
+	if common.ShouldBlockHavePrevProof(header, st.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		st.forkDetector.SetFinalCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
+	}
 	return nil
 }
 
@@ -512,6 +519,9 @@ func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) err
 	}
 	if check.IfNil(args.AppStatusHandler) {
 		return process.ErrNilAppStatusHandler
+	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil

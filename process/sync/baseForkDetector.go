@@ -382,6 +382,15 @@ func (bfd *baseForkDetector) lastCheckpoint() *checkpointInfo {
 	return lastCheckpoint
 }
 
+// SetFinalCheckpoint sets the final checkpoint to the given one
+func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64, hash []byte) {
+	bfd.setFinalCheckpoint(&checkpointInfo{
+		nonce: nonce,
+		round: round,
+		hash:  hash,
+	})
+}
+
 func (bfd *baseForkDetector) setFinalCheckpoint(finalCheckpoint *checkpointInfo) {
 	bfd.mutFork.Lock()
 	bfd.fork.finalCheckpoint = finalCheckpoint

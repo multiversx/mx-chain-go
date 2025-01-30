@@ -20,6 +20,7 @@ type ForkDetectorMock struct {
 	RestoreToGenesisCalled          func()
 	ResetProbableHighestNonceCalled func()
 	SetFinalToLastCheckpointCalled  func()
+	SetFinalCheckpointCalled        func(nonce uint64, round uint64, hash []byte)
 	ReceivedProofCalled             func(proof data.HeaderProofHandler)
 }
 
@@ -113,6 +114,13 @@ func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 func (fdm *ForkDetectorMock) SetFinalToLastCheckpoint() {
 	if fdm.SetFinalToLastCheckpointCalled != nil {
 		fdm.SetFinalToLastCheckpointCalled()
+	}
+}
+
+// SetFinalCheckpoint -
+func (fdm *ForkDetectorMock) SetFinalCheckpoint(nonce uint64, round uint64, hash []byte) {
+	if fdm.SetFinalCheckpointCalled != nil {
+		fdm.SetFinalCheckpointCalled(nonce, round, hash)
 	}
 }
 

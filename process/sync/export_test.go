@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -64,11 +65,6 @@ func (bfd *baseForkDetector) LastCheckpointNonce() uint64 {
 // LastCheckpointRound -
 func (bfd *baseForkDetector) LastCheckpointRound() uint64 {
 	return bfd.lastCheckpoint().round
-}
-
-// SetFinalCheckpoint -
-func (bfd *baseForkDetector) SetFinalCheckpoint(nonce uint64, round uint64, hash []byte) {
-	bfd.setFinalCheckpoint(&checkpointInfo{nonce: nonce, round: round, hash: hash})
 }
 
 // FinalCheckpointNonce -
