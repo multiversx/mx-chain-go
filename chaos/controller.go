@@ -106,7 +106,7 @@ func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorr
 
 	circumstance := controller.acquireCircumstance()
 	circumstance.blockNonce = header.GetNonce()
-	if controller.shouldFail(failureMaybeCorruptSignature, circumstance) {
+	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
 		signature[0] += 1
 	}
 }
@@ -118,7 +118,7 @@ func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorr
 
 	circumstance := controller.acquireCircumstance()
 	circumstance.blockNonce = header.GetNonce()
-	if controller.shouldFail(failureMaybeCorruptSignature, circumstance) {
+	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
 		signature[0] += 1
 	}
 }
@@ -149,7 +149,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 
 	circumstance := controller.acquireCircumstance()
 	circumstance.blockNonce = header.GetNonce()
-	if controller.shouldFail(failureMaybeCorruptLeaderSignature, circumstance) {
+	if controller.shouldFail(failureShouldCorruptLeaderSignature, circumstance) {
 		signature[0] += 1
 	}
 }
@@ -190,7 +190,7 @@ func (controller *chaosController) shouldFail(failureName failureName, circumsta
 		return false
 	}
 
-	shouldFail, err := circumstance.evalExpression(failure.When)
+	shouldFail, err := circumstance.evalExpression(failure.Condition)
 	if err != nil {
 		log.Warn("Failed to evaluate expression", "error", err)
 		return false

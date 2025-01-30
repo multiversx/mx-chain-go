@@ -14,8 +14,8 @@ type chaosConfig struct {
 }
 
 type failureDefinition struct {
-	Name string `json:"name"`
-	When string `json:"when"`
+	Name      string `json:"name"`
+	Condition string `json:"condition"`
 }
 
 func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {

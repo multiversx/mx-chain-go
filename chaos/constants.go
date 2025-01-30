@@ -4,10 +4,10 @@ type failureName string
 
 const (
 	failureProcessTransactionShouldReturnError        failureName = "processTransactionShouldReturnError"
-	failureMaybeCorruptSignature                      failureName = "maybeCorruptSignature"
+	failureShouldCorruptSignature                     failureName = "shouldCorruptSignature"
 	failureShouldSkipWaitingForSignatures             failureName = "shouldSkipWaitingForSignatures"
 	failureShouldReturnErrorInCheckSignaturesValidity failureName = "shouldReturnErrorInCheckSignaturesValidity"
-	failureMaybeCorruptLeaderSignature                failureName = "maybeCorruptLeaderSignature"
+	failureShouldCorruptLeaderSignature               failureName = "shouldCorruptLeaderSignature"
 	failureShouldSkipSendingBlock                     failureName = "shouldSkipSendingBlock"
 )
 
