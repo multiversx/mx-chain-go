@@ -301,10 +301,6 @@ func (sp *shardProcessor) ProcessBlock(
 				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 			}
 
-			if !common.ShouldBlockHavePrevProof(hInfo.hdr, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-				continue
-			}
-
 			if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
 				continue
 			}

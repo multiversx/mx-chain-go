@@ -437,13 +437,13 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-			continue
-		}
-
 		err := mp.checkProofRequestingNextHeaderBlockingIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
 		if err != nil {
 			return err
+		}
+
+		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+			continue
 		}
 
 		shardHeadersStorer, err := mp.store.GetStorer(dataRetriever.BlockHeaderUnit)
