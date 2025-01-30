@@ -124,7 +124,8 @@ type baseProcessor struct {
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
 
-	proofsPool dataRetriever.ProofsPool
+	proofsPool     dataRetriever.ProofsPool
+	chanNextHeader chan bool
 }
 
 type bootStorerDataArgs struct {
@@ -2296,4 +2297,58 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	}
 
 	return bp.hasher.Compute(string(marshalledHeader)), nil
+}
+
+func (bp *baseProcessor) checkProofRequestingNextHeaderBlockingIfMissing(
+	headerShard uint32,
+	headerHash []byte,
+	headerNonce uint64,
+) error {
+	if bp.proofsPool.HasProof(headerShard, headerHash) {
+		return nil
+	}
+
+	log.Trace("could not find proof for header, requesting the next one",
+		"current hash", hex.EncodeToString(headerHash),
+		"header shard", headerShard)
+	err := bp.requestNextHeaderBlocking(headerNonce+1, headerShard)
+	if err != nil {
+		return err
+	}
+
+	if bp.proofsPool.HasProof(headerShard, headerHash) {
+		return nil
+	}
+
+	return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(headerHash))
+}
+
+func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32) error {
+	headersPool := bp.dataPool.Headers()
+
+	_ = core.EmptyChannel(bp.chanNextHeader)
+
+	if shardID == core.MetachainShardId {
+		go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+	}
+
+	err := bp.waitForNextHeader()
+	if err != nil {
+		return err
+	}
+
+	_, _, err = process.GetShardHeaderFromPoolWithNonce(nonce, shardID, headersPool)
+
+	return err
+}
+
+func (bp *baseProcessor) waitForNextHeader() error {
+	select {
+	case <-bp.chanNextHeader:
+		return nil
+	case <-time.After(bp.extraDelayRequestBlockInfo):
+		return process.ErrTimeIsOut
+	}
 }
