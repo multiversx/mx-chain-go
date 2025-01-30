@@ -42,7 +42,7 @@ func (h *headerSigVerifier) VerifySignatureForHash(_ data.HeaderHandler, _ []byt
 }
 
 // VerifyHeaderWithProof returns nil as it is disabled
-func (h *headerSigVerifier) VerifyHeaderWithProof(_ data.HeaderHandler) error {
+func (h *headerSigVerifier) VerifyHeaderWithPrevProof(_ data.HeaderHandler) error {
 	return nil
 }
 

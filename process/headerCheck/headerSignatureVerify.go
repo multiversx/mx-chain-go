@@ -227,8 +227,12 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
-	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		return hsv.VerifyHeaderWithProof(header)
+	if common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return hsv.VerifyHeaderWithPrevProof(header)
+	}
+
+	if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
+		return ErrProofNotExpected
 	}
 
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
@@ -290,16 +294,9 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
 }
 
-// VerifyHeaderWithProof checks if the proof on the header is correct
-func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
+// VerifyHeaderWithPrevProof checks if the proof on the header is correct
+func (hsv *HeaderSigVerifier) VerifyHeaderWithPrevProof(header data.HeaderHandler) error {
 	// first block for transition to equivalent proofs consensus does not have a previous proof
-	if !common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
-			return ErrProofNotExpected
-		}
-		return nil
-	}
-
 	err := verifyPrevProofForHeaderIntegrity(header)
 	if err != nil {
 		return err

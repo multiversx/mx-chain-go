@@ -59,7 +59,7 @@ func (mock *HeaderSigVerifierMock) VerifySignatureForHash(header data.HeaderHand
 }
 
 // VerifyHeaderWithProof -
-func (mock *HeaderSigVerifierMock) VerifyHeaderWithProof(header data.HeaderHandler) error {
+func (mock *HeaderSigVerifierMock) VerifyHeaderWithPrevProof(header data.HeaderHandler) error {
 	if mock.VerifyHeaderWithProofCalled != nil {
 		return mock.VerifyHeaderWithProofCalled(header)
 	}
