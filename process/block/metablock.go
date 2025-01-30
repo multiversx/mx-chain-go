@@ -437,8 +437,9 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
+		err := mp.checkProofRequestingNextHeaderBlockingIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
+		if err != nil {
+			return err
 		}
 
 		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
