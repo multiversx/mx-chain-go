@@ -6,8 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
+
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3

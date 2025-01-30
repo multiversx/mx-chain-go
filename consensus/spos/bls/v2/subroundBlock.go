@@ -355,6 +355,10 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if !common.ShouldBlockHavePrevProof(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag) {
+		return
+	}
+
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
 		log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
@@ -526,7 +530,6 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	sr.SetData(sr.Hasher().Compute(string(marshalledHeader)))
 	sr.SetHeader(headerHandler)
-
 	sr.saveProofForPreviousHeaderIfNeeded(headerHandler, prevHeader)
 
 	log.Debug("step 1: block header has been received",
