@@ -14,11 +14,12 @@ const (
 type failureExpressionParameterName string
 
 const (
-	parameterRandomNumber failureExpressionParameterName = "randomNumber"
-	parameterNow          failureExpressionParameterName = "now"
-	parameterShard        failureExpressionParameterName = "shard"
-	parameterEpoch        failureExpressionParameterName = "epoch"
-	parameterRound        failureExpressionParameterName = "round"
+	parameterRandomNumber    failureExpressionParameterName = "randomNumber"
+	parameterNow             failureExpressionParameterName = "now"
+	parameterNodeDisplayName failureExpressionParameterName = "nodeDisplayName"
+	parameterShard           failureExpressionParameterName = "shard"
+	parameterEpoch           failureExpressionParameterName = "epoch"
+	parameterRound           failureExpressionParameterName = "round"
 
 	parameterCounterProcessTransaction failureExpressionParameterName = "counterProcessTransaction"
 

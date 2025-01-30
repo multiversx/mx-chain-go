@@ -11,9 +11,11 @@ import (
 )
 
 type chaosController struct {
-	mutex                  sync.Mutex
-	enabled                bool
-	config                 *chaosConfig
+	mutex   sync.Mutex
+	enabled bool
+	config  *chaosConfig
+
+	nodeDisplayName        string
 	currentShard           uint32
 	currentEpoch           uint32
 	currentRound           uint64
@@ -42,24 +44,48 @@ func newChaosController(configFilePath string) *chaosController {
 	}
 }
 
+// LearnNodeDisplayName learns the display name of the current node.
+func (controller *chaosController) LearnNodeDisplayName(displayName string) {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	log.Info("LearnNodeDisplayName", "displayName", displayName)
+	controller.nodeDisplayName = displayName
+}
+
+// LearnSelfShard learns the current shard.
 func (controller *chaosController) LearnSelfShard(shard uint32) {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
 	log.Info("LearnSelfShard", "shard", shard)
 	controller.currentShard = shard
 }
 
+// LearnCurrentEpoch learns the current epoch.
 func (controller *chaosController) LearnCurrentEpoch(epoch uint32) {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
 	log.Info("LearnCurrentEpoch", "epoch", epoch)
 	controller.currentEpoch = epoch
 }
 
+// LearnCurrentRound learns the current round.
 func (controller *chaosController) LearnCurrentRound(round int64) {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
 	log.Info("LearnCurrentRound", "round", round)
 	controller.currentRound = uint64(round)
 }
 
+// LearnNodes learns the currently eligible and waiting nodes.
 func (controller *chaosController) LearnNodes(eligibleNodes []chaosAdapters.Validator, waitingNodes []chaosAdapters.Validator) {
-	log.Info("LearnNodes", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
 
+	log.Info("LearnNodes", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
 	controller.currentlyEligibleNodes = eligibleNodes
 	controller.currentlyWaitingNodes = waitingNodes
 }
@@ -143,11 +169,12 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 	now := time.Now().Unix()
 
 	return &failureCircumstance{
-		randomNumber: randomNumber,
-		now:          now,
-		shard:        controller.currentShard,
-		epoch:        controller.currentEpoch,
-		round:        controller.currentRound,
+		nodeDisplayName: controller.nodeDisplayName,
+		randomNumber:    randomNumber,
+		now:             now,
+		shard:           controller.currentShard,
+		epoch:           controller.currentEpoch,
+		round:           controller.currentRound,
 
 		counterProcessTransaction: controller.CallsCounters.ProcessTransaction.GetUint64(),
 	}
