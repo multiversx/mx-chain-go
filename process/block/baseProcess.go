@@ -124,7 +124,8 @@ type baseProcessor struct {
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
 
-	proofsPool dataRetriever.ProofsPool
+	proofsPool    dataRetriever.ProofsPool
+	chRcvHdrNonce chan bool
 }
 
 type bootStorerDataArgs struct {
@@ -2296,4 +2297,30 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	}
 
 	return bp.hasher.Compute(string(marshalledHeader)), nil
+}
+
+func (bp *baseProcessor) requestNextShardHeaderBlocking(nonce uint64, shardID uint32) error {
+	headersPool := bp.dataPool.Headers()
+
+	_ = core.EmptyChannel(bp.chRcvHdrNonce)
+
+	go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+
+	err := bp.waitForHeaderNonce()
+	if err != nil {
+		return err
+	}
+
+	_, _, err = process.GetShardHeaderFromPoolWithNonce(nonce, shardID, headersPool)
+
+	return err
+}
+
+func (bp *baseProcessor) waitForHeaderNonce() error {
+	select {
+	case <-bp.chRcvHdrNonce:
+		return nil
+	case <-time.After(time.Second * 2):
+		return process.ErrTimeIsOut
+	}
 }

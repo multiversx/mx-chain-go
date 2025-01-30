@@ -301,12 +301,24 @@ func (sp *shardProcessor) ProcessBlock(
 				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 			}
 
+			if !common.ShouldBlockHavePrevProof(hInfo.hdr, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+				continue
+			}
+
 			if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
 				continue
 			}
 
 			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
-				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+				log.Trace("could not find proof for meta header, requesting the next one", "current hash", hex.EncodeToString(metaBlockHash))
+				err := sp.requestNextShardHeaderBlocking(hInfo.hdr.GetNonce()+1, core.MetachainShardId)
+				if err != nil {
+					return err
+				}
+
+				if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
+					return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+				}
 			}
 		}
 	}
