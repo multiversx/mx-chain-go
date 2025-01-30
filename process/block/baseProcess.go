@@ -124,8 +124,8 @@ type baseProcessor struct {
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
 
-	proofsPool    dataRetriever.ProofsPool
-	chRcvHdrNonce chan bool
+	proofsPool     dataRetriever.ProofsPool
+	chanNextHeader chan bool
 }
 
 type bootStorerDataArgs struct {
@@ -2302,7 +2302,7 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32) error {
 	headersPool := bp.dataPool.Headers()
 
-	_ = core.EmptyChannel(bp.chRcvHdrNonce)
+	_ = core.EmptyChannel(bp.chanNextHeader)
 
 	if shardID == core.MetachainShardId {
 		go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
@@ -2310,7 +2310,7 @@ func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32)
 		go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 	}
 
-	err := bp.waitForHeaderNonce()
+	err := bp.waitForNextHeader()
 	if err != nil {
 		return err
 	}
@@ -2320,9 +2320,9 @@ func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32)
 	return err
 }
 
-func (bp *baseProcessor) waitForHeaderNonce() error {
+func (bp *baseProcessor) waitForNextHeader() error {
 	select {
-	case <-bp.chRcvHdrNonce:
+	case <-bp.chanNextHeader:
 		return nil
 	case <-time.After(time.Second * 2):
 		return process.ErrTimeIsOut
