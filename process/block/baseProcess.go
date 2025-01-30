@@ -2324,7 +2324,7 @@ func (bp *baseProcessor) waitForNextHeader() error {
 	select {
 	case <-bp.chanNextHeader:
 		return nil
-	case <-time.After(time.Second * 2):
+	case <-time.After(bp.extraDelayRequestBlockInfo):
 		return process.ErrTimeIsOut
 	}
 }
