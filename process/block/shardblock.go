@@ -309,16 +309,9 @@ func (sp *shardProcessor) ProcessBlock(
 				continue
 			}
 
-			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
-				log.Trace("could not find proof for meta header, requesting the next one", "current hash", hex.EncodeToString(metaBlockHash))
-				err = sp.requestNextHeaderBlocking(hInfo.hdr.GetNonce()+1, core.MetachainShardId)
-				if err != nil {
-					return err
-				}
-
-				if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
-					return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
-				}
+			err = sp.checkProofRequestingNextHeaderBlockingIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+			if err != nil {
+				return err
 			}
 		}
 	}

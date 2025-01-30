@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -268,7 +267,6 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			log.Error("failed", "error", err, "stack", string(debug.Stack()))
 			mp.RevertCurrentBlock()
 		}
 	}()
@@ -443,16 +441,9 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
-			log.Trace("could not find proof for shard data, requesting the next shard header", "current hash", hex.EncodeToString(shardData.HeaderHash))
-			err := mp.requestNextHeaderBlocking(shardHeader.hdr.GetNonce()+1, shardData.ShardID)
-			if err != nil {
-				return err
-			}
-
-			if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
-				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(shardData.HeaderHash))
-			}
+		err := mp.checkProofRequestingNextHeaderBlockingIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
+		if err != nil {
+			return err
 		}
 
 		shardHeadersStorer, err := mp.store.GetStorer(dataRetriever.BlockHeaderUnit)
