@@ -2299,12 +2299,16 @@ func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error
 	return bp.hasher.Compute(string(marshalledHeader)), nil
 }
 
-func (bp *baseProcessor) requestNextShardHeaderBlocking(nonce uint64, shardID uint32) error {
+func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32) error {
 	headersPool := bp.dataPool.Headers()
 
 	_ = core.EmptyChannel(bp.chRcvHdrNonce)
 
-	go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	if shardID == core.MetachainShardId {
+		go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+	}
 
 	err := bp.waitForHeaderNonce()
 	if err != nil {

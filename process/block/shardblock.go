@@ -311,7 +311,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
 				log.Trace("could not find proof for meta header, requesting the next one", "current hash", hex.EncodeToString(metaBlockHash))
-				err := sp.requestNextShardHeaderBlocking(hInfo.hdr.GetNonce()+1, core.MetachainShardId)
+				err = sp.requestNextHeaderBlocking(hInfo.hdr.GetNonce()+1, core.MetachainShardId)
 				if err != nil {
 					return err
 				}

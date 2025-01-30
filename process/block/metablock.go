@@ -445,7 +445,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 
 		if !mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash) {
 			log.Trace("could not find proof for shard data, requesting the next shard header", "current hash", hex.EncodeToString(shardData.HeaderHash))
-			err := mp.requestNextShardHeaderBlocking(shardHeader.hdr.GetNonce()+1, shardData.ShardID)
+			err := mp.requestNextHeaderBlocking(shardHeader.hdr.GetNonce()+1, shardData.ShardID)
 			if err != nil {
 				return err
 			}
