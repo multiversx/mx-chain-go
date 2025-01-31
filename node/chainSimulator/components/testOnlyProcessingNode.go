@@ -237,7 +237,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createBroadcastMessenger(args.Configs.GeneralConfig.ConsensusGradualBroadcast)
+	err = instance.createBroadcastMessenger()
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +319,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	return nil
 }
 
-func (node *testOnlyProcessingNode) createBroadcastMessenger(gradualBroadcastConfig config.ConsensusGradualBroadcastConfig) error {
+func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 	broadcastMessenger, err := sposFactory.GetBroadcastMessenger(
 		node.CoreComponentsHolder.InternalMarshalizer(),
 		node.CoreComponentsHolder.Hasher(),
@@ -330,7 +330,6 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger(gradualBroadcastCon
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
-		gradualBroadcastConfig,
 	)
 	if err != nil {
 		return err

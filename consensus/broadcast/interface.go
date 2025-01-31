@@ -2,7 +2,6 @@ package broadcast
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 )
@@ -16,10 +15,8 @@ type DelayedBroadcaster interface {
 		mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 		txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 		headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
-		equivalentProofBroadcast func(proof *block.HeaderProof, pkBytes []byte) error,
 		consensusMessageBroadcast func(message *consensus.Message) error,
 	) error
-	SetFinalProofForValidator(proof *block.HeaderProof, consensusIndex int, pkBytes []byte) error
 	Close()
 	IsInterfaceNil() bool
 }
