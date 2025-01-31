@@ -896,8 +896,15 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 			"extendedShardHeader nonce", extendedShardHdr.GetNonce(),
 			"extendedShardHeader round", extendedShardHdr.GetRound(),
 		)
+
 		err = scbp.headerValidator.IsHeaderConstructionValid(extendedShardHdr, lastCrossNotarizedHeader)
 		if err != nil {
+			log.Error("sovereignChainBlockProcessor.checkExtendedShardHeadersValidity", "error", err,
+				"extendedShardHdr.Nonce", extendedShardHdr.GetNonce(),
+				"lastCrossNotarizedHeader.Nonce", lastCrossNotarizedHeader.GetNonce(),
+				"extendedShardHdr.Round", extendedShardHdr.GetRound(),
+				"lastCrossNotarizedHeader.Round", lastCrossNotarizedHeader.GetRound(),
+			)
 			return fmt.Errorf("%w : checkExtendedShardHeadersValidity -> isHdrConstructionValid", err)
 		}
 
@@ -1975,6 +1982,31 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 	numOfNotarizedExtendedHeaders := len(sovChainHdr.GetExtendedShardHeaderHashes())
 	log.Debug("sovereignChainBlockProcessor.RestoreBlockIntoPools", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
 	if numOfNotarizedExtendedHeaders == 0 {
+		return nil
+	}
+
+	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
+		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
+	}
+
+	return scbp.resetLastCrossNotarizedFromPrevHdr(sovChainHdr)
+}
+
+func (scbp *sovereignChainBlockProcessor) resetLastCrossNotarizedFromPrevHdr(sovChainHdr data.SovereignChainHeaderHandler) error {
+	prevHdrHash := sovChainHdr.GetPrevHash()
+	prevHdr, err := scbp.dataPool.Headers().GetHeaderByHash(prevHdrHash)
+	if err != nil {
+		return err
+	}
+
+	prevSovChainHdr, castOk := prevHdr.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.resetLastCrossNotarizedFromPrevHdr", errors.ErrWrongTypeAssertion)
+	}
+
+	numOfNotarizedExtendedHeaders := len(prevSovChainHdr.GetExtendedShardHeaderHashes())
+	log.Debug("sovereignChainBlockProcessor.resetLastCrossNotarizedFromPrevHdr", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
+	if numOfNotarizedExtendedHeaders <= 1 {
 		return nil
 	}
 
