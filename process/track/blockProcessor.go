@@ -4,9 +4,12 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -24,6 +27,11 @@ type blockProcessor struct {
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
+
+	enableEpochsHandler common.EnableEpochsHandler
+	proofsPool          process.ProofsPool
+	marshaller          marshal.Marshalizer
+	hasher              hashing.Hasher
 
 	blockFinality uint64
 }
@@ -47,6 +55,10 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
+		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		proofsPool:                            arguments.ProofsPool,
+		marshaller:                            arguments.Marshaller,
+		hasher:                                arguments.Hasher,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -154,7 +166,7 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 		}
 	}
 
-	sortedHeaders, _ := bp.blockTracker.SortHeadersFromNonce(core.MetachainShardId, header.GetNonce()+1)
+	sortedHeaders, sortedHeadersHashes := bp.blockTracker.SortHeadersFromNonce(core.MetachainShardId, header.GetNonce()+1)
 	if len(sortedHeaders) == 0 {
 		return
 	}
@@ -162,7 +174,7 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 	finalMetachainHeaders := make([]data.HeaderHandler, 0)
 	finalMetachainHeadersHashes := make([][]byte, 0)
 
-	err = bp.checkHeaderFinality(header, sortedHeaders, 0)
+	err = bp.checkHeaderFinality(header, sortedHeaders, sortedHeadersHashes, 0)
 	if err == nil {
 		finalMetachainHeaders = append(finalMetachainHeaders, header)
 		finalMetachainHeadersHashes = append(finalMetachainHeadersHashes, headerHash)
@@ -234,14 +246,15 @@ func (bp *blockProcessor) ComputeLongestChain(shardID uint32, header data.Header
 		go bp.requestHeadersIfNeeded(header, sortedHeaders, headers)
 	}()
 
-	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, header.GetNonce()+1)
+	startingNonce := header.GetNonce() + 1
+	sortedHeaders, sortedHeadersHashes = bp.blockTracker.SortHeadersFromNonce(shardID, startingNonce)
 	if len(sortedHeaders) == 0 {
 		return headers, headersHashes
 	}
 
 	longestChainHeadersIndexes := make([]int, 0)
 	headersIndexes := make([]int, 0)
-	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, 0)
+	bp.getNextHeader(&longestChainHeadersIndexes, headersIndexes, header, sortedHeaders, sortedHeadersHashes, 0)
 
 	for _, index := range longestChainHeadersIndexes {
 		headers = append(headers, sortedHeaders[index])
@@ -256,6 +269,7 @@ func (bp *blockProcessor) getNextHeader(
 	headersIndexes []int,
 	prevHeader data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
+	sortedHeadersHashes [][]byte,
 	index int,
 ) {
 	defer func() {
@@ -279,13 +293,13 @@ func (bp *blockProcessor) getNextHeader(
 			continue
 		}
 
-		err = bp.checkHeaderFinality(currHeader, sortedHeaders, i+1)
+		err = bp.checkHeaderFinality(currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		if err != nil {
 			continue
 		}
 
 		headersIndexes = append(headersIndexes, i)
-		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, i+1)
+		bp.getNextHeader(longestChainHeadersIndexes, headersIndexes, currHeader, sortedHeaders, sortedHeadersHashes, i+1)
 		headersIndexes = headersIndexes[:len(headersIndexes)-1]
 	}
 }
@@ -293,16 +307,28 @@ func (bp *blockProcessor) getNextHeader(
 func (bp *blockProcessor) checkHeaderFinality(
 	header data.HeaderHandler,
 	sortedHeaders []data.HeaderHandler,
+	sortedHeadersHashes [][]byte,
 	index int,
 ) error {
-
 	if check.IfNil(header) {
 		return process.ErrNilBlockHeader
 	}
 
+	if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		// the index in argument is for the next block after header
+		hashIndex := index
+		if index > 0 {
+			hashIndex = index - 1
+		}
+		if bp.proofsPool.HasProof(header.GetShardID(), sortedHeadersHashes[hashIndex]) {
+			return nil
+		}
+
+		return process.ErrHeaderNotFinal
+	}
+
 	prevHeader := header
 	numFinalityAttestingHeaders := uint64(0)
-
 	for i := index; i < len(sortedHeaders); i++ {
 		currHeader := sortedHeaders[i]
 		if numFinalityAttestingHeaders >= bp.blockFinality || currHeader.GetNonce() > prevHeader.GetNonce()+1 {
@@ -312,6 +338,16 @@ func (bp *blockProcessor) checkHeaderFinality(
 		err := bp.headerValidator.IsHeaderConstructionValid(currHeader, prevHeader)
 		if err != nil {
 			continue
+		}
+
+		// if the currentHeader(the one that should confirm the finality of the prev)
+		// is the epoch start block of equivalent messages, we must check for its proof as well
+		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currHeader.GetEpoch()) {
+			if bp.proofsPool.HasProof(currHeader.GetShardID(), sortedHeadersHashes[i]) {
+				return nil
+			}
+
+			return process.ErrHeaderNotFinal
 		}
 
 		prevHeader = currHeader
@@ -483,6 +519,18 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.RoundHandler) {
 		return ErrNilRoundHandler
+	}
+	if check.IfNil(arguments.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.ProofsPool) {
+		return ErrNilProofsPool
+	}
+	if check.IfNil(arguments.Marshaller) {
+		return process.ErrNilMarshalizer
+	}
+	if check.IfNilReflect(arguments.Hasher) {
+		return process.ErrNilHasher
 	}
 
 	return nil

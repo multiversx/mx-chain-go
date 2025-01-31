@@ -8,8 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 func initNodesWithTestSigner(
@@ -23,6 +24,7 @@ func initNodesWithTestSigner(
 
 	fmt.Println("Step 1. Setup nodes...")
 
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
 		int(numMetaNodes),
 		int(numNodes),
@@ -30,6 +32,7 @@ func initNodesWithTestSigner(
 		roundTime,
 		consensusType,
 		1,
+		enableEpochsConfig,
 	)
 
 	for shardID, nodesList := range nodes {

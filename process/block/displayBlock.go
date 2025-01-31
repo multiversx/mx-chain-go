@@ -268,7 +268,7 @@ func (txc *transactionCounter) displayTxBlockBody(
 			miniBlock.SenderShardID,
 			miniBlock.ReceiverShardID)
 
-		if miniBlock.TxHashes == nil || len(miniBlock.TxHashes) == 0 {
+		if len(miniBlock.TxHashes) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				part, "", "<EMPTY>"}))
 		}

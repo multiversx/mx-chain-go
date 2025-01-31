@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -94,6 +95,10 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+
+				// TODO[Sorin]: remove this once all equivalent messages PRs are merged
+				cfg.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+				cfg.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 			},
 		})
 		require.Nil(t, err)
@@ -139,6 +144,10 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+
+				// TODO[Sorin]: remove this once all equivalent messages PRs are merged
+				cfg.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+				cfg.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 			},
 		})
 		require.Nil(t, err)

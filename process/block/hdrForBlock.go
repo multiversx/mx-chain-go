@@ -6,18 +6,27 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
+type lastNotarizedHeaderInfo struct {
+	header                data.HeaderHandler
+	hash                  []byte
+	notarizedBasedOnProof bool
+	hasProof              bool
+}
+
 type hdrForBlock struct {
 	missingHdrs                  uint32
 	missingFinalityAttestingHdrs uint32
 	highestHdrNonce              map[uint32]uint64
 	mutHdrsForBlock              sync.RWMutex
 	hdrHashAndInfo               map[string]*hdrInfo
+	lastNotarizedShardHeaders    map[uint32]*lastNotarizedHeaderInfo
 }
 
 func newHdrForBlock() *hdrForBlock {
 	return &hdrForBlock{
-		hdrHashAndInfo:  make(map[string]*hdrInfo),
-		highestHdrNonce: make(map[uint32]uint64),
+		hdrHashAndInfo:            make(map[string]*hdrInfo),
+		highestHdrNonce:           make(map[uint32]uint64),
+		lastNotarizedShardHeaders: make(map[uint32]*lastNotarizedHeaderInfo),
 	}
 }
 
@@ -25,6 +34,7 @@ func (hfb *hdrForBlock) initMaps() {
 	hfb.mutHdrsForBlock.Lock()
 	hfb.hdrHashAndInfo = make(map[string]*hdrInfo)
 	hfb.highestHdrNonce = make(map[uint32]uint64)
+	hfb.lastNotarizedShardHeaders = make(map[uint32]*lastNotarizedHeaderInfo)
 	hfb.mutHdrsForBlock.Unlock()
 }
 

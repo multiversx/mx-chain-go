@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -388,7 +389,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
 
 	consensusGroupEpoch := computeEpoch(previousHeader)
-	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
+	leader, consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetRound(),
 		previousHeader.GetShardID(),
@@ -397,15 +398,20 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		return nil, err
 	}
 
-	encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+	encodedLeaderPk := vs.pubkeyConv.SilentEncode(leader.PubKey(), log)
 
 	leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
 
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
+	bitmap := previousHeader.GetPubKeysBitmap()
+	if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, previousHeader.GetEpoch()) {
+		bitmap = vs.getBitmapForFullConsensus(previousHeader.GetShardID(), previousHeader.GetEpoch())
+	}
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
+		leader,
 		consensusGroup,
-		previousHeader.GetPubKeysBitmap(),
+		bitmap,
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
 		previousHeader.GetShardID(),
 	)
@@ -799,16 +805,16 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("ComputeValidatorsGroup")
 		log.Debug("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
-		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
+		leader, consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
 		}
 
 		swInner.Start("loadPeerAccount")
-		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
+		leaderPeerAcc, err := vs.loadPeerAccount(leader.PubKey())
 
-		encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+		encodedLeaderPk := vs.pubkeyConv.SilentEncode(leader.PubKey(), log)
 		leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
@@ -816,7 +822,7 @@ func (vs *validatorStatistics) computeDecrease(
 		}
 
 		vs.mutValidatorStatistics.Lock()
-		vs.missedBlocksCounters.decreaseLeader(consensusGroup[0].PubKey())
+		vs.missedBlocksCounters.decreaseLeader(leader.PubKey())
 		vs.mutValidatorStatistics.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
@@ -894,6 +900,17 @@ func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) er
 	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
 
+// TODO: check if this can be taken from somewhere else
+func (vs *validatorStatistics) getBitmapForFullConsensus(shardID uint32, epoch uint32) []byte {
+	consensusSize := vs.nodesCoordinator.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
+	bitmap := make([]byte, consensusSize/8+1)
+	for i := 0; i < consensusSize; i++ {
+		bitmap[i/8] |= 1 << (uint16(i) % 8)
+	}
+
+	return bitmap
+}
+
 func (vs *validatorStatistics) updateShardDataPeerState(
 	header data.HeaderHandler,
 	cacheMap map[string]data.HeaderHandler,
@@ -920,15 +937,20 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 
 		epoch := computeEpoch(currentHeader)
 
-		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
+		leader, shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
 		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
+		bitmap := h.PubKeysBitmap
+		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, h.Epoch) {
+			bitmap = vs.getBitmapForFullConsensus(h.ShardID, h.Epoch)
+		}
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
+			leader,
 			shardConsensus,
-			h.PubKeysBitmap,
+			bitmap,
 			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
 			h.ShardID,
 		)
@@ -1014,6 +1036,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
+	leader nodesCoordinator.Validator,
 	validatorList []nodesCoordinator.Validator,
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
@@ -1033,7 +1056,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		peerAcc.IncreaseNumSelectedInSuccessBlocks()
 
 		newRating := peerAcc.GetRating()
-		isLeader := i == 0
+		isLeader := bytes.Equal(leader.PubKey(), validatorList[i].PubKey())
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
 		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 
@@ -1164,6 +1187,11 @@ func (vs *validatorStatistics) getTempRating(s string) uint32 {
 }
 
 func (vs *validatorStatistics) display(validatorKey string) {
+	if log.GetLevel() != logger.LogTrace {
+		// do not need to load peer account if not log level trace
+		return
+	}
+
 	peerAcc, err := vs.loadPeerAccount([]byte(validatorKey))
 	if err != nil {
 		log.Trace("display peer acc", "error", err)

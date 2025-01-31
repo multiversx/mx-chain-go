@@ -25,6 +25,8 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:     integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -39,11 +41,11 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 		node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -61,10 +63,10 @@ func TestEpochStartChangeWithoutTransactionInMultiShardedEnvironment(t *testing.
 	time.Sleep(time.Second)
 
 	// ----- wait for epoch end period
-	round, nonce = endOfEpoch.CreateAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, idxProposers)
+	round, nonce = endOfEpoch.CreateAndPropagateBlocks(t, roundsPerEpoch, round, nonce, nodes, leaders)
 
 	nrRoundsToPropagateMultiShard := uint64(5)
-	_, _ = endOfEpoch.CreateAndPropagateBlocks(t, nrRoundsToPropagateMultiShard, round, nonce, nodes, idxProposers)
+	_, _ = endOfEpoch.CreateAndPropagateBlocks(t, nrRoundsToPropagateMultiShard, round, nonce, nodes, leaders)
 
 	epoch := uint32(1)
 	endOfEpoch.VerifyThatNodesHaveCorrectEpoch(t, epoch, nodes)

@@ -10,19 +10,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/mock"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgsPendingMiniBlock() ArgsNewPendingMiniBlocksSyncer {
 	return ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 		},
 		Marshalizer:    &mock.MarshalizerFake{},
@@ -93,7 +95,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPool(t *testing.T) {
 	mb := &block.MiniBlock{}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				miniBlockInPool = true
@@ -147,7 +149,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolWithRewards(t *testing.T)
 	}
 	args := ArgsNewPendingMiniBlocksSyncer{
 		Storage: &storageStubs.StorerStub{},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				miniBlockInPool = true
@@ -223,7 +225,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolMissingTimeout(t *testing
 				return nil, localErr
 			},
 		},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(f func(key []byte, val interface{})) {},
 			PeekCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
@@ -274,7 +276,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInPoolReceive(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Cache:          testscommon.NewCacherMock(),
+		Cache:          cache.NewCacherMock(),
 		Marshalizer:    &mock.MarshalizerFake{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
 	}
@@ -322,7 +324,7 @@ func TestSyncPendingMiniBlocksFromMeta_MiniBlocksInStorageReceive(t *testing.T) 
 				return mbBytes, nil
 			},
 		},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
 			PeekCalled: func(key []byte) (interface{}, bool) {
 				return nil, false
@@ -376,7 +378,7 @@ func TestSyncPendingMiniBlocksFromMeta_GetMiniBlocksShouldWork(t *testing.T) {
 				return nil, localErr
 			},
 		},
-		Cache: &testscommon.CacherStub{
+		Cache: &cache.CacherStub{
 			RegisterHandlerCalled: func(_ func(_ []byte, _ interface{})) {},
 			PeekCalled: func(key []byte) (interface{}, bool) {
 				return nil, false

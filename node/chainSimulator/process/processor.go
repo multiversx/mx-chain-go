@@ -3,10 +3,10 @@ package process
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -82,11 +82,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	validatorsGroup, err := creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(prevRandSeed, newHeader.GetRound(), shardID, epoch)
+	leader, _, err := creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(prevRandSeed, newHeader.GetRound(), shardID, epoch)
 	if err != nil {
 		return err
 	}
-	blsKey := validatorsGroup[spos.IndexOfLeaderInConsensusGroup]
+	blsKey := leader
 
 	isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(blsKey.PubKey())
 	if !isManaged {

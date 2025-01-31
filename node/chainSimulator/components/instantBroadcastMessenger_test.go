@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,14 +24,14 @@ func TestNewInstantBroadcastMessenger(t *testing.T) {
 	t.Run("nil shardCoordinator should error", func(t *testing.T) {
 		t.Parallel()
 
-		mes, err := NewInstantBroadcastMessenger(&mock.BroadcastMessengerMock{}, nil)
+		mes, err := NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{}, nil)
 		require.Equal(t, errorsMx.ErrNilShardCoordinator, err)
 		require.Nil(t, mes)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		mes, err := NewInstantBroadcastMessenger(&mock.BroadcastMessengerMock{}, &mock.ShardCoordinatorMock{})
+		mes, err := NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{}, &mock.ShardCoordinatorMock{})
 		require.NoError(t, err)
 		require.NotNil(t, mes)
 	})
@@ -41,7 +43,7 @@ func TestInstantBroadcastMessenger_IsInterfaceNil(t *testing.T) {
 	var mes *instantBroadcastMessenger
 	require.True(t, mes.IsInterfaceNil())
 
-	mes, _ = NewInstantBroadcastMessenger(&mock.BroadcastMessengerMock{}, &mock.ShardCoordinatorMock{})
+	mes, _ = NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{}, &mock.ShardCoordinatorMock{})
 	require.False(t, mes.IsInterfaceNil())
 }
 
@@ -60,7 +62,7 @@ func TestInstantBroadcastMessenger_BroadcastBlockDataLeader(t *testing.T) {
 			"topic_0": {[]byte("txs topic 0")},
 			"topic_1": {[]byte("txs topic 1")},
 		}
-		mes, err := NewInstantBroadcastMessenger(&mock.BroadcastMessengerMock{
+		mes, err := NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{
 			BroadcastMiniBlocksCalled: func(mbs map[uint32][]byte, bytes []byte) error {
 				require.Equal(t, providedMBs, mbs)
 				return expectedErr // for coverage only
@@ -94,7 +96,7 @@ func TestInstantBroadcastMessenger_BroadcastBlockDataLeader(t *testing.T) {
 		expectedTxs := map[string][][]byte{
 			"topic_0_META": {[]byte("txs topic meta")},
 		}
-		mes, err := NewInstantBroadcastMessenger(&mock.BroadcastMessengerMock{
+		mes, err := NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{
 			BroadcastMiniBlocksCalled: func(mbs map[uint32][]byte, bytes []byte) error {
 				require.Equal(t, expectedMBs, mbs)
 				return nil
@@ -114,7 +116,7 @@ func TestInstantBroadcastMessenger_BroadcastBlockDataLeader(t *testing.T) {
 	t.Run("shard, empty miniblocks should early exit", func(t *testing.T) {
 		t.Parallel()
 
-		mes, err := NewInstantBroadcastMessenger(&mock.BroadcastMessengerMock{
+		mes, err := NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{
 			BroadcastMiniBlocksCalled: func(mbs map[uint32][]byte, bytes []byte) error {
 				require.Fail(t, "should have not been called")
 				return nil

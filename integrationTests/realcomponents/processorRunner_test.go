@@ -3,8 +3,9 @@ package realcomponents
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 func TestNewProcessorRunnerAndClose(t *testing.T) {

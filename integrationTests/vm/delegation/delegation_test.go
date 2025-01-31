@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/endOfEpoch"
 	integrationTestsVm "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDelegationSystemSCWithValidatorStatisticsAndStakingPhase3p5(t *testing.T) {
@@ -263,17 +263,14 @@ func processBlocks(
 	blockToProduce uint64,
 	nodesMap map[uint32][]*integrationTests.TestProcessorNode,
 ) (uint64, uint64) {
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
-
 	for i := uint64(0); i < blockToProduce; i++ {
 		for _, nodesSlice := range nodesMap {
 			integrationTests.UpdateRound(nodesSlice, round)
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodesSlice)
 		}
 
-		_, _, consensusNodes = integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-		indexesProposers := endOfEpoch.GetBlockProposersIndexes(consensusNodes, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, round)
+		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 		round++
 		nonce++
 

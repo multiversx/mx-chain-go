@@ -94,6 +94,9 @@ const ConnectionTopic = "connection"
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
 
+// EquivalentProofsTopic is the topic used for equivalent proofs
+const EquivalentProofsTopic = "equivalentProofs"
+
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 
@@ -855,8 +858,10 @@ const (
 	ChainParametersOrder
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
 	NodesCoordinatorOrder
-	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
-	ConsensusOrder
+	// ConsensusHandlerOrder defines the order in which ConsensusHandler is notified of a start of epoch event
+	ConsensusHandlerOrder
+	// ConsensusStartRoundOrder defines the order in which Consensus StartRound subround is notified of a start of epoch event
+	ConsensusStartRoundOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which indexer is notified of a start of epoch event
@@ -1243,5 +1248,7 @@ const (
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
+	FixedOrderInConsensusFlag                          core.EnableEpochFlag = "FixedOrderInConsensusFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

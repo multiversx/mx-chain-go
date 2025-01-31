@@ -10,28 +10,30 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 	return interceptors.ArgMultiDataInterceptor{
-		Topic:                "test topic",
-		Marshalizer:          &mock.MarshalizerMock{},
-		DataFactory:          &mock.InterceptedDataFactoryStub{},
-		Processor:            &mock.InterceptorProcessorStub{},
-		Throttler:            createMockThrottler(),
-		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		CurrentPeerId:        "pid",
+		Topic:                   "test topic",
+		Marshalizer:             &mock.MarshalizerMock{},
+		DataFactory:             &mock.InterceptedDataFactoryStub{},
+		Processor:               &mock.InterceptorProcessorStub{},
+		Throttler:               createMockThrottler(),
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:        &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:           "pid",
+		InterceptedDataVerifier: &mock.InterceptedDataVerifierMock{},
 	}
 }
 
@@ -66,6 +68,17 @@ func TestNewMultiDataInterceptor_NilInterceptedDataFactoryShouldErr(t *testing.T
 
 	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrNilInterceptedDataFactory, err)
+}
+
+func TestNewMultiDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.InterceptedDataVerifier = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilInterceptedDataVerifier, err)
 }
 
 func TestNewMultiDataInterceptor_NilInterceptedDataProcessorShouldErr(t *testing.T) {
@@ -282,6 +295,7 @@ func TestMultiDataInterceptor_ProcessReceivedPartiallyCorrectDataShouldErr(t *te
 		IsForCurrentShardCalled: func() bool {
 			return true
 		},
+		HashCalled: func() []byte { return []byte("hash") },
 	}
 	arg := createMockArgMultiDataInterceptor()
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
@@ -354,6 +368,11 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	}
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+		VerifyCalled: func(interceptedData process.InterceptedData) error {
+			return interceptedData.CheckValidity()
+		},
+	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 
 	dataField, _ := marshalizer.Marshal(&batch.Batch{Data: buffData})
@@ -570,6 +589,9 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	interceptedData := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
 		CheckValidityCalled: func() error {
 			return expectedErr
 		},
@@ -601,6 +623,11 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	arg.WhiteListRequest = &testscommon.WhiteListHandlerStub{
 		IsWhiteListedCalled: func(interceptedData process.InterceptedData) bool {
 			return true
+		},
+	}
+	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
+		VerifyCalled: func(interceptedData process.InterceptedData) error {
+			return interceptedData.CheckValidity()
 		},
 	}
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
@@ -657,6 +684,9 @@ func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteLis
 		},
 		IsForCurrentShardCalled: func() bool {
 			return false
+		},
+		HashCalled: func() []byte {
+			return []byte("hash")
 		},
 	}
 

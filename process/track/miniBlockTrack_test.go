@@ -4,14 +4,16 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMiniBlockTrack_NilDataPoolHolderErr(t *testing.T) {
@@ -256,7 +258,7 @@ func TestGetTransactionPool_ShouldWork(t *testing.T) {
 			return unsignedTransactionsPool
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return testscommon.NewCacherStub()
+			return cache.NewCacherStub()
 		},
 	}
 	mbt, _ := track.NewMiniBlockTrack(dataPool, mock.NewMultipleShardsCoordinatorMock(), &testscommon.WhiteListHandlerStub{})
@@ -286,7 +288,7 @@ func createDataPool() dataRetriever.PoolsHolder {
 			return testscommon.NewShardedDataStub()
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return testscommon.NewCacherStub()
+			return cache.NewCacherStub()
 		},
 	}
 }

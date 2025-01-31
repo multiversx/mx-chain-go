@@ -4,7 +4,9 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+
 	"github.com/multiversx/mx-chain-go/storage"
+	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 )
 
 // ShardedDataCacheNotifierMock -
@@ -31,7 +33,7 @@ func (mock *ShardedDataCacheNotifierMock) ShardDataStore(cacheId string) (c stor
 
 	cache, found := mock.caches[cacheId]
 	if !found {
-		cache = NewCacherMock()
+		cache = cacheMocks.NewCacherMock()
 		mock.caches[cacheId] = cache
 	}
 

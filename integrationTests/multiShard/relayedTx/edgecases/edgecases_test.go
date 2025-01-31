@@ -16,7 +16,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest(false)
+	nodes, leaders, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest(false)
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -40,7 +40,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
 		}
 
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
@@ -48,7 +48,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 
 	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 
@@ -74,7 +74,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest(false)
+	nodes, leaders, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest(false)
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -105,7 +105,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, tooMuchGasLimit, []byte(""))
 		}
 
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(time.Second)
@@ -113,7 +113,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 
 	roundToPropagateMultiShard := int64(20)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 	}
 

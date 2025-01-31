@@ -123,3 +123,6 @@ var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")
 
 // ErrNilChainParametersHandler signals that a nil chain parameters handler has been provided
 var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
+
+// ErrEmptyValidatorsList signals that the validators list is empty
+var ErrEmptyValidatorsList = errors.New("empty validators list")

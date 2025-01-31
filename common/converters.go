@@ -23,7 +23,7 @@ func ProcessDestinationShardAsObserver(destinationShardIdAsObserver string) (uin
 
 	val, err := strconv.ParseUint(destShard, 10, 32)
 	if err != nil {
-		return 0, fmt.Errorf("error parsing DestinationShardAsObserver option: " + err.Error())
+		return 0, fmt.Errorf("error parsing DestinationShardAsObserver option: %s", err.Error())
 	}
 
 	return uint32(val), err

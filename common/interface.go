@@ -379,3 +379,8 @@ type ChainParametersSubscriptionHandler interface {
 	ChainParametersChanged(chainParameters config.ChainParametersByEpochConfig)
 	IsInterfaceNil() bool
 }
+
+// HeadersPool defines what a headers pool structure can perform
+type HeadersPool interface {
+	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+}

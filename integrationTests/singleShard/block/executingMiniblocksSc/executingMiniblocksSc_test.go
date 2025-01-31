@@ -9,10 +9,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/singleShard/block"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
@@ -40,10 +41,11 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 	integrationTests.ConnectNodes(connectableNodes)
 
 	idxProposer := 0
+	leader := nodes[idxProposer]
 	numPlayers := 10
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
-		players[i] = integrationTests.CreateTestWalletAccount(nodes[idxProposer].ShardCoordinator, 0)
+		players[i] = integrationTests.CreateTestWalletAccount(leader.ShardCoordinator, 0)
 	}
 
 	defer func() {
@@ -62,7 +64,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 
 	hardCodedSk, _ := hex.DecodeString("5561d28b0d89fa425bbbf9e49a018b5d1e4a462c03d2efce60faf9ddece2af06")
 	hardCodedScResultingAddress, _ := hex.DecodeString("000000000000000005006c560111a94e434413c1cdaafbc3e1348947d1d5b3a1")
-	nodes[idxProposer].LoadTxSignSkBytes(hardCodedSk)
+	leader.LoadTxSignSkBytes(hardCodedSk)
 
 	initialVal := big.NewInt(100000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
@@ -70,11 +72,11 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 
 	integrationTests.DeployScTx(nodes, idxProposer, hex.EncodeToString(scCode), factory.WasmVirtualMachine, "001000000000")
 	time.Sleep(block.StepDelay)
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []int{idxProposer}, round, nonce)
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []*integrationTests.TestProcessorNode{leader}, round, nonce)
 
 	playersDoTopUp(nodes[idxProposer], players, hardCodedScResultingAddress, big.NewInt(10000000))
 	time.Sleep(block.StepDelay)
-	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []int{idxProposer}, round, nonce)
+	round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []*integrationTests.TestProcessorNode{leader}, round, nonce)
 
 	for i := 0; i < 100; i++ {
 		playersDoTransfer(nodes[idxProposer], players, hardCodedScResultingAddress, big.NewInt(100))
@@ -82,7 +84,7 @@ func TestShouldProcessMultipleERC20ContractsInSingleShard(t *testing.T) {
 
 	for i := 0; i < 10; i++ {
 		time.Sleep(block.StepDelay)
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []int{idxProposer}, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, []*integrationTests.TestProcessorNode{leader}, round, nonce)
 	}
 	integrationTests.CheckRootHashes(t, nodes, []int{idxProposer})
 

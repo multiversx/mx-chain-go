@@ -74,6 +74,15 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.SigningHandler()) {
 		return ErrNilSigningHandler
 	}
+	if check.IfNil(container.EnableEpochsHandler()) {
+		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(container.EquivalentProofsPool()) {
+		return ErrNilEquivalentProofPool
+	}
+	if check.IfNil(container.EpochNotifier()) {
+		return ErrNilEpochNotifier
+	}
 
 	return nil
 }

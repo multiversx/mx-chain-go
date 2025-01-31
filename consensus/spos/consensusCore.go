@@ -4,6 +4,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -38,6 +40,9 @@ type ConsensusCore struct {
 	messageSigningHandler         consensus.P2PSigningHandler
 	peerBlacklistHandler          consensus.PeerBlacklistHandler
 	signingHandler                consensus.SigningHandler
+	enableEpochsHandler           common.EnableEpochsHandler
+	equivalentProofsPool          consensus.EquivalentProofsPool
+	epochNotifier                 process.EpochNotifier
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -64,6 +69,9 @@ type ConsensusCoreArgs struct {
 	MessageSigningHandler         consensus.P2PSigningHandler
 	PeerBlacklistHandler          consensus.PeerBlacklistHandler
 	SigningHandler                consensus.SigningHandler
+	EnableEpochsHandler           common.EnableEpochsHandler
+	EquivalentProofsPool          consensus.EquivalentProofsPool
+	EpochNotifier                 process.EpochNotifier
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -93,6 +101,9 @@ func NewConsensusCore(
 		messageSigningHandler:         args.MessageSigningHandler,
 		peerBlacklistHandler:          args.PeerBlacklistHandler,
 		signingHandler:                args.SigningHandler,
+		enableEpochsHandler:           args.EnableEpochsHandler,
+		equivalentProofsPool:          args.EquivalentProofsPool,
+		epochNotifier:                 args.EpochNotifier,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -173,6 +184,11 @@ func (cc *ConsensusCore) EpochStartRegistrationHandler() epochStart.Registration
 	return cc.epochStartRegistrationHandler
 }
 
+// EpochNotifier returns the epoch notifier
+func (cc *ConsensusCore) EpochNotifier() process.EpochNotifier {
+	return cc.epochNotifier
+}
+
 // PeerHonestyHandler will return the peer honesty handler which will be used in subrounds
 func (cc *ConsensusCore) PeerHonestyHandler() consensus.PeerHonestyHandler {
 	return cc.peerHonestyHandler
@@ -211,6 +227,16 @@ func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
 // SigningHandler will return the signing handler component
 func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
 	return cc.signingHandler
+}
+
+// EnableEpochsHandler returns the enable epochs handler component
+func (cc *ConsensusCore) EnableEpochsHandler() common.EnableEpochsHandler {
+	return cc.enableEpochsHandler
+}
+
+// EquivalentProofsPool returns the equivalent proofs component
+func (cc *ConsensusCore) EquivalentProofsPool() consensus.EquivalentProofsPool {
+	return cc.equivalentProofsPool
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

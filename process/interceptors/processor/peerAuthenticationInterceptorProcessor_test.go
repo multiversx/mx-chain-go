@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+
 	heartbeatMessages "github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/heartbeat"
@@ -13,9 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
 )
 
 type interceptedDataHandler interface {
@@ -25,7 +27,7 @@ type interceptedDataHandler interface {
 
 func createPeerAuthenticationInterceptorProcessArg() processor.ArgPeerAuthenticationInterceptorProcessor {
 	return processor.ArgPeerAuthenticationInterceptorProcessor{
-		PeerAuthenticationCacher: testscommon.NewCacherStub(),
+		PeerAuthenticationCacher: cache.NewCacherStub(),
 		PeerShardMapper:          &p2pmocks.NetworkShardingCollectorStub{},
 		Marshaller:               marshallerMock.MarshalizerMock{},
 		HardforkTrigger:          &testscommon.HardforkTriggerStub{},
@@ -188,7 +190,7 @@ func TestPeerAuthenticationInterceptorProcessor_Save(t *testing.T) {
 		wasPutCalled := false
 		providedPid := core.PeerID("pid")
 		arg := createPeerAuthenticationInterceptorProcessArg()
-		arg.PeerAuthenticationCacher = &testscommon.CacherStub{
+		arg.PeerAuthenticationCacher = &cache.CacherStub{
 			PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 				assert.Equal(t, providedIPAMessage.Pubkey, key)
 				ipa := value.(*heartbeatMessages.PeerAuthentication)

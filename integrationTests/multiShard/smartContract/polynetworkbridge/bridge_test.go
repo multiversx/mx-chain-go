@@ -7,6 +7,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
@@ -14,8 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBridgeSetupAndBurn(t *testing.T) {
@@ -31,6 +32,8 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:       integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:    integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{
@@ -48,11 +51,11 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	ownerNode := nodes[0]
 	shard := nodes[0:nodesPerShard]
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -73,7 +76,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 	nonce++
 
 	tokenManagerPath := "../testdata/polynetworkbridge/esdt_token_manager.wasm"
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 2, nonce, round)
 
 	blockChainHook := ownerNode.BlockchainHook
 	scAddressBytes, _ := blockChainHook.NewAddress(
@@ -100,7 +103,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		deploymentData,
 		100000,
 	)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 1, nonce, round)
 
 	txValue := big.NewInt(1000)
 	txData := "performWrappedEgldIssue@05"
@@ -112,7 +115,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		txData,
 		integrationTests.AdditionalGasLimit,
 	)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 8, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 8, nonce, round)
 
 	scQuery := &process.SCQuery{
 		CallerAddr: ownerNode.OwnAccount.Address,
@@ -140,7 +143,7 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 		integrationTests.AdditionalGasLimit,
 	)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 12, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 12, nonce, round)
 
 	checkBurnedOnESDTContract(t, nodes, tokenIdentifier, valueToBurn)
 }

@@ -4,15 +4,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	"github.com/stretchr/testify/require"
 )
 
 func getDefaultBaseAccSyncerArgs() syncer.ArgsNewBaseAccountsSyncer {
@@ -22,7 +24,7 @@ func getDefaultBaseAccSyncerArgs() syncer.ArgsNewBaseAccountsSyncer {
 		TrieStorageManager:                &storageManager.StorageManagerStub{},
 		RequestHandler:                    &testscommon.RequestHandlerStub{},
 		Timeout:                           time.Second,
-		Cacher:                            testscommon.NewCacherMock(),
+		Cacher:                            cache.NewCacherMock(),
 		UserAccountsSyncStatisticsHandler: &testscommon.SizeSyncStatisticsHandlerStub{},
 		AppStatusHandler:                  &statusHandler.AppStatusHandlerStub{},
 		EnableEpochsHandler:               &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

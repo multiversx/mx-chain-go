@@ -9,18 +9,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createDefaultArguments() ArgPeerMiniBlockSyncer {
 	defaultArgs := ArgPeerMiniBlockSyncer{
-		MiniBlocksPool:     testscommon.NewCacherStub(),
+		MiniBlocksPool:     cache.NewCacherStub(),
 		ValidatorsInfoPool: testscommon.NewShardedDataStub(),
 		RequestHandler:     &testscommon.RequestHandlerStub{},
 	}
@@ -63,7 +66,7 @@ func TestNewValidatorInfoProcessor_NilRequestHandlerShouldErr(t *testing.T) {
 
 func TestValidatorInfoProcessor_IsInterfaceNil(t *testing.T) {
 	args := createDefaultArguments()
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
@@ -76,7 +79,7 @@ func TestValidatorInfoProcessor_IsInterfaceNil(t *testing.T) {
 
 func TestValidatorInfoProcessor_ShouldWork(t *testing.T) {
 	args := createDefaultArguments()
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
@@ -89,7 +92,7 @@ func TestValidatorInfoProcessor_ShouldWork(t *testing.T) {
 
 func TestValidatorInfoProcessor_ProcessMetaBlockThatIsNoStartOfEpochShouldWork(t *testing.T) {
 	args := createDefaultArguments()
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
@@ -104,7 +107,7 @@ func TestValidatorInfoProcessor_ProcessMetaBlockThatIsNoStartOfEpochShouldWork(t
 
 func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork(t *testing.T) {
 	args := createDefaultArguments()
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 		},
 	}
@@ -120,7 +123,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithNoPeerMiniblocksShouldWork
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 
 	peekCalled := false
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 		},
@@ -182,7 +185,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithPeerMiniblocksInPoolShould
 	epochStartHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0, RootHash: hash, HeaderHash: hash}}
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 
 		},
@@ -245,7 +248,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksShould
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 
 	var receivedMiniblock func(key []byte, value interface{})
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 			receivedMiniblock = f
 		},
@@ -309,7 +312,7 @@ func TestValidatorInfoProcessor_ProcesStartOfEpochWithMissinPeerMiniblocksTimeou
 	epochStartHeader.MiniBlockHeaders = []block.MiniBlockHeader{miniBlockHeader}
 
 	var receivedMiniblock func(key []byte, value interface{})
-	args.MiniBlocksPool = &testscommon.CacherStub{
+	args.MiniBlocksPool = &cache.CacherStub{
 		RegisterHandlerCalled: func(f func(key []byte, value interface{})) {
 			receivedMiniblock = f
 		},

@@ -16,12 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("outport/process/outportDataProvider")
@@ -292,7 +293,7 @@ func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
 
 func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]uint64, error) {
 	epoch := odp.computeEpoch(header)
-	pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+	_, pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		odp.shardID,

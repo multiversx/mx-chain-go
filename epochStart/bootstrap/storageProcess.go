@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -177,16 +178,17 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	}
 
 	argsEpochStartSyncer := ArgsNewEpochStartMetaSyncer{
-		CoreComponentsHolder:    sesb.coreComponentsHolder,
-		CryptoComponentsHolder:  sesb.cryptoComponentsHolder,
-		RequestHandler:          sesb.requestHandler,
-		Messenger:               sesb.mainMessenger,
-		ShardCoordinator:        sesb.shardCoordinator,
-		EconomicsData:           sesb.economicsData,
-		WhitelistHandler:        sesb.whiteListHandler,
-		StartInEpochConfig:      sesb.generalConfig.EpochStartConfig,
-		HeaderIntegrityVerifier: sesb.headerIntegrityVerifier,
-		MetaBlockProcessor:      metablockProcessor,
+		CoreComponentsHolder:           sesb.coreComponentsHolder,
+		CryptoComponentsHolder:         sesb.cryptoComponentsHolder,
+		RequestHandler:                 sesb.requestHandler,
+		Messenger:                      sesb.mainMessenger,
+		ShardCoordinator:               sesb.shardCoordinator,
+		EconomicsData:                  sesb.economicsData,
+		WhitelistHandler:               sesb.whiteListHandler,
+		StartInEpochConfig:             sesb.generalConfig.EpochStartConfig,
+		HeaderIntegrityVerifier:        sesb.headerIntegrityVerifier,
+		MetaBlockProcessor:             metablockProcessor,
+		InterceptedDataVerifierFactory: sesb.interceptedDataVerifierFactory,
 	}
 
 	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
@@ -404,20 +406,20 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		shardId = sesb.genesisShardCoordinator.SelfId()
 	}
 	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:               sesb.dataPool,
-		Marshalizer:            sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:         sesb.requestHandler,
-		ChanceComputer:         sesb.rater,
-		GenesisNodesConfig:     sesb.genesisNodesConfig,
-		ChainParametersHandler: sesb.coreComponentsHolder.ChainParametersHandler(),
-		NodeShuffler:           sesb.nodeShuffler,
-		Hasher:                 sesb.coreComponentsHolder.Hasher(),
-		PubKey:                 pubKey,
-		ShardIdAsObserver:      shardId,
-		ChanNodeStop:           sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:       sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:          sesb.prefsConfig.FullArchive,
-		EnableEpochsHandler:    sesb.coreComponentsHolder.EnableEpochsHandler(),
+		DataPool:                        sesb.dataPool,
+		Marshalizer:                     sesb.coreComponentsHolder.InternalMarshalizer(),
+		RequestHandler:                  sesb.requestHandler,
+		ChanceComputer:                  sesb.rater,
+		GenesisNodesConfig:              sesb.genesisNodesConfig,
+		ChainParametersHandler:          sesb.coreComponentsHolder.ChainParametersHandler(),
+		NodeShuffler:                    sesb.nodeShuffler,
+		Hasher:                          sesb.coreComponentsHolder.Hasher(),
+		PubKey:                          pubKey,
+		ShardIdAsObserver:               shardId,
+		ChanNodeStop:                    sesb.coreComponentsHolder.ChanStopNodeProcess(),
+		NodeTypeProvider:                sesb.coreComponentsHolder.NodeTypeProvider(),
+		IsFullArchive:                   sesb.prefsConfig.FullArchive,
+		EnableEpochsHandler:             sesb.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory: sesb.nodesCoordinatorRegistryFactory,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

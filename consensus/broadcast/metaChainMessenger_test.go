@@ -7,16 +7,22 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensusMock "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 var nodePkBytes = []byte("node public key bytes")
@@ -27,10 +33,11 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
-	alarmScheduler := &mock.AlarmSchedulerStub{}
+	alarmScheduler := &testscommon.AlarmSchedulerStub{}
+	delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -45,6 +52,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
+			DelayedBroadcaster:         delayedBroadcaster,
 		},
 	}
 }
@@ -94,6 +102,14 @@ func TestMetaChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
 	assert.Equal(t, broadcast.ErrNilKeysHandler, err)
 }
 
+func TestMetaChainMessenger_NilDelayedBroadcasterShouldError(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	args.DelayedBroadcaster = nil
+	scm, err := broadcast.NewMetaChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, broadcast.ErrNilDelayedBroadcaster, err)
+}
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	mcm, err := broadcast.NewMetaChainMessenger(args)
@@ -291,4 +307,115 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 		numBroadcast += countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+"topic2"]
 		assert.Equal(t, len(transactions), numBroadcast)
 	})
+}
+
+func TestMetaChainMessenger_Close(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMetaChainArgs()
+	closeCalled := false
+	delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
+		CloseCalled: func() {
+			closeCalled = true
+		},
+	}
+	args.DelayedBroadcaster = delayedBroadcaster
+
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
+	require.NotNil(t, mcm)
+	mcm.Close()
+	assert.True(t, closeCalled)
+}
+
+func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Nil header", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultMetaChainArgs()
+		delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
+			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
+				require.Fail(t, "SetHeaderForValidator should not be called")
+				return nil
+			},
+		}
+		args.DelayedBroadcaster = delayedBroadcaster
+
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
+		mcm.PrepareBroadcastHeaderValidator(nil, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
+	})
+	t.Run("Err on core.CalculateHash", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultMetaChainArgs()
+		delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
+			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
+				require.Fail(t, "SetHeaderForValidator should not be called")
+				return nil
+			},
+		}
+		args.DelayedBroadcaster = delayedBroadcaster
+
+		header := &block.Header{}
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
+		mcm.SetMarshalizerMeta(nil)
+		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
+	})
+	t.Run("Err on SetHeaderForValidator", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultMetaChainArgs()
+		checkVarModified := false
+		delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
+			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
+				checkVarModified = true
+				return expectedErr
+			},
+		}
+		args.DelayedBroadcaster = delayedBroadcaster
+
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
+		header := &block.Header{}
+		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
+		assert.True(t, checkVarModified)
+	})
+}
+
+func TestMetaChainMessenger_BroadcastBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Err nil blockData", func(t *testing.T) {
+		args := createDefaultMetaChainArgs()
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
+		err := mcm.BroadcastBlock(nil, nil)
+		assert.NotNil(t, err)
+	})
+}
+
+func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultMetaChainArgs()
+	varModified := false
+	delayedBroadcaster := &consensusMock.DelayedBroadcasterMock{
+		SetBroadcastHandlersCalled: func(
+			mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+			txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+			consensusMessageBroadcast func(message *consensus.Message) error) error {
+			varModified = true
+			return expectedErr
+		},
+	}
+	args.DelayedBroadcaster = delayedBroadcaster
+
+	mcm, err := broadcast.NewMetaChainMessenger(args)
+	assert.Nil(t, mcm)
+	assert.NotNil(t, err)
+	assert.True(t, varModified)
 }

@@ -11,12 +11,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/integrationTests"
-	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var log = logger.GetOrCreate("integrationtests/singleshard/block/softfork")
@@ -67,7 +68,7 @@ func TestScDeploy(t *testing.T) {
 	}
 	integrationTests.ConnectNodes(connectableNodes)
 
-	idxProposers := []int{0, 1}
+	leaders := []*integrationTests.TestProcessorNode{nodes[0], nodes[1]}
 
 	defer func() {
 		for _, n := range nodes {
@@ -93,7 +94,7 @@ func TestScDeploy(t *testing.T) {
 
 	for i := uint64(0); i < numRounds; i++ {
 		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
@@ -108,7 +109,7 @@ func TestScDeploy(t *testing.T) {
 	deploySucceeded := deploySc(t, nodes)
 	for i := uint64(0); i < 5; i++ {
 		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 

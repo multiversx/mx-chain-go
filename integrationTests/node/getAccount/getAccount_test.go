@@ -7,13 +7,16 @@ import (
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common/enablers"
+	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createAccountsRepository(accDB state.AccountsAdapter, blockchain chainData.ChainHandler) state.AccountsRepository {
@@ -39,7 +42,9 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
 	rootHash, _ := accDB.Commit()
 
-	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(integrationTests.CreateEnableEpochsConfig(), genericEpochNotifier)
+	coreComponents := integrationTests.GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.AddressPubKeyConverterField = integrationTests.TestAddressPubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()
@@ -81,7 +86,9 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	testPubkey := integrationTests.CreateAccount(accDB, testNonce, testBalance)
 	rootHash, _ := accDB.Commit()
 
-	coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
+	genericEpochNotifier := forking.NewGenericEpochNotifier()
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(integrationTests.CreateEnableEpochsConfig(), genericEpochNotifier)
+	coreComponents := integrationTests.GetDefaultCoreComponents(enableEpochsHandler, genericEpochNotifier)
 	coreComponents.AddressPubKeyConverterField = testscommon.RealWorldBech32PubkeyConverter
 
 	dataComponents := integrationTests.GetDefaultDataComponents()

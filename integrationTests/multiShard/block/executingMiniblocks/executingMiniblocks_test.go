@@ -33,7 +33,6 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	nodesPerShard := 3
 	numMetachainNodes := 1
 
-	idxProposers := []int{0, 3, 6, 9, 12, 15, 18}
 	senderShard := uint32(0)
 	recvShards := []uint32{1, 2}
 	round := uint64(0)
@@ -47,6 +46,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 		nodesPerShard,
 		numMetachainNodes,
 	)
+	leaders := []*integrationTests.TestProcessorNode{nodes[0], nodes[3], nodes[6], nodes[9], nodes[12], nodes[15], nodes[18]}
 	integrationTests.DisplayAndStartNodes(nodes)
 
 	defer func() {
@@ -97,7 +97,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 	nonce++
 	roundsToWait := 6
 	for i := 0; i < roundsToWait; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 	}
 
 	gasPricePerTxBigInt := big.NewInt(0).SetUint64(integrationTests.MinTxGasPrice)
@@ -163,11 +163,11 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 		node.EconomicsData.SetMinGasLimit(minGasLimit, 0)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -192,8 +192,8 @@ func TestSimpleTransactionsWithMoreGasWhichYieldInReceiptsInMultiShardedEnvironm
 	nrRoundsToTest := 10
 	for i := 0; i <= nrRoundsToTest; i++ {
 		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
@@ -253,11 +253,11 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		node.EconomicsData.SetMinGasLimit(minGasLimit, 0)
 	}
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -294,8 +294,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	time.Sleep(2 * time.Second)
 
 	integrationTests.UpdateRound(nodes, round)
-	integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-	integrationTests.SyncBlock(t, nodes, idxProposers, round)
+	integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+	integrationTests.SyncBlock(t, nodes, leaders, round)
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
@@ -320,8 +320,8 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 	numRoundsToTest := 6
 	for i := 0; i < numRoundsToTest; i++ {
 		integrationTests.UpdateRound(nodes, round)
-		integrationTests.ProposeBlock(nodes, idxProposers, round, nonce)
-		integrationTests.SyncBlock(t, nodes, idxProposers, round)
+		integrationTests.ProposeBlock(nodes, leaders, round, nonce)
+		integrationTests.SyncBlock(t, nodes, leaders, round)
 		round = integrationTests.IncrementAndPrintRound(round)
 		nonce++
 
@@ -420,22 +420,22 @@ func TestShouldSubtractTheCorrectTxFee(t *testing.T) {
 		gasPrice,
 	)
 
-	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
 	shardId0 := uint32(0)
 
 	_ = integrationTests.IncrementAndPrintRound(round)
 
 	// test sender account decreased its balance with gasPrice * gasLimit
-	accnt, err := consensusNodes[shardId0][0].AccntState.GetExistingAccount(ownerPk)
+	accnt, err := proposeData[shardId0].Leader.AccntState.GetExistingAccount(ownerPk)
 	assert.Nil(t, err)
 	ownerAccnt := accnt.(state.UserAccountHandler)
 	expectedBalance := big.NewInt(0).Set(initialVal)
 	tx := &transaction.Transaction{GasPrice: gasPrice, GasLimit: gasLimit, Data: []byte(txData)}
-	txCost := consensusNodes[shardId0][0].EconomicsData.ComputeTxFee(tx)
+	txCost := proposeData[shardId0].Leader.EconomicsData.ComputeTxFee(tx)
 	expectedBalance.Sub(expectedBalance, txCost)
 	assert.Equal(t, expectedBalance, ownerAccnt.GetBalance())
 
-	printContainingTxs(consensusNodes[shardId0][0], consensusNodes[shardId0][0].BlockChain.GetCurrentBlockHeader().(*block.Header))
+	printContainingTxs(proposeData[shardId0].Leader, proposeData[shardId0].Leader.BlockChain.GetCurrentBlockHeader().(*block.Header))
 }
 
 func printContainingTxs(tpn *integrationTests.TestProcessorNode, hdr data.HeaderHandler) {

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state"
@@ -29,7 +30,7 @@ func createGeneralTestnetForTxTest(
 
 func createGeneralSetupForTxTest(initialBalance *big.Int) (
 	[]*integrationTests.TestProcessorNode,
-	[]int,
+	[]*integrationTests.TestProcessorNode,
 	[]*integrationTests.TestWalletAccount,
 ) {
 	numOfShards := 2
@@ -40,6 +41,8 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:               integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:            integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -49,11 +52,11 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 		enableEpochs,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -68,7 +71,7 @@ func createGeneralSetupForTxTest(initialBalance *big.Int) (
 
 	integrationTests.MintAllPlayers(nodes, players, initialBalance)
 
-	return nodes, idxProposers, players
+	return nodes, leaders, players
 }
 
 func createAndSendTransaction(

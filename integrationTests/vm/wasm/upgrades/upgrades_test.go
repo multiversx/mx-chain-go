@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"testing"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUpgrades_Hello(t *testing.T) {
@@ -212,7 +213,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 	require.Nil(t, err)
 
 	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(alice.Address, 0, factory.WasmVirtualMachine)
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{24}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner
@@ -225,7 +226,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{24}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 
 	// Now upgrade as Alice, should work
@@ -238,7 +239,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{42}, query(t, network.ShardNode, scAddress, "getUltimateAnswer"))
 }
 
@@ -269,7 +270,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	require.Nil(t, err)
 
 	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(alice.Address, 0, factory.WasmVirtualMachine)
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{1}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Increment the counter (could be either Bob or Alice)
@@ -282,7 +283,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{2}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Upgrade as Bob - upgrade should fail, since Alice is the owner (counter.init() not executed, state not reset)
@@ -295,7 +296,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{2}, query(t, network.ShardNode, scAddress, "get"))
 
 	// Now upgrade as Alice, should work (state is reset by counter.init())
@@ -308,7 +309,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	network.Continue(t, 1)
+	network.Continue(t, 2)
 	require.Equal(t, []byte{1}, query(t, network.ShardNode, scAddress, "get"))
 }
 

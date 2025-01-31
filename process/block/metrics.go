@@ -12,11 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const leaderIndex = 0
@@ -129,7 +130,7 @@ func incrementMetricCountConsensusAcceptedBlocks(
 	appStatusHandler core.AppStatusHandler,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
-	pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
+	_, pubKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		header.GetShardID(),
@@ -184,7 +185,7 @@ func indexRoundInfo(
 	roundsInfo := make([]*outportcore.RoundInfo, 0)
 	roundsInfo = append(roundsInfo, roundInfo)
 	for i := lastBlockRound + 1; i < currentBlockRound; i++ {
-		publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
+		_, publicKeys, err := nodesCoordinator.GetConsensusValidatorsPublicKeys(lastHeader.GetRandSeed(), i, shardId, lastHeader.GetEpoch())
 		if err != nil {
 			continue
 		}
