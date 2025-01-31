@@ -49,6 +49,7 @@ type ArgsTestOnlyProcessingNode struct {
 	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
+	VmQueryDelayAfterStartInMs  uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -152,6 +153,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
 		*args.Configs.ExternalConfig,
+		instance.CoreComponentsHolder,
 	)
 	if err != nil {
 		return nil, err
@@ -173,10 +175,17 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createDataPool(args)
+	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
+		Config:           args.Configs.GeneralConfig,
+		EconomicsData:    instance.CoreComponentsHolder.EconomicsData(),
+		ShardCoordinator: instance.BootstrapComponentsHolder.ShardCoordinator(),
+		Marshalizer:      instance.CoreComponentsHolder.InternalMarshalizer(),
+		PathManager:      instance.CoreComponentsHolder.PathHandler(),
+	})
 	if err != nil {
 		return nil, err
 	}
+
 	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
 	if err != nil {
 		return nil, err
@@ -233,7 +242,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs)
 	if err != nil {
 		return nil, err
 	}
@@ -255,22 +264,6 @@ func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
 	} else {
 		node.ChainHandler, err = blockchain.NewBlockChain(node.StatusCoreComponents.AppStatusHandler())
 	}
-
-	return err
-}
-
-func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNode) error {
-	var err error
-
-	argsDataPool := dataRetrieverFactory.ArgsDataPool{
-		Config:           args.Configs.GeneralConfig,
-		EconomicsData:    node.CoreComponentsHolder.EconomicsData(),
-		ShardCoordinator: node.BootstrapComponentsHolder.ShardCoordinator(),
-		Marshalizer:      node.CoreComponentsHolder.InternalMarshalizer(),
-		PathManager:      node.CoreComponentsHolder.PathHandler(),
-	}
-
-	node.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(argsDataPool)
 
 	return err
 }

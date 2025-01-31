@@ -305,8 +305,9 @@ func (sp *shardProcessor) ProcessBlock(
 				continue
 			}
 
-			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) && header.GetNonce() > 1 {
-				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+			err = sp.checkProofRequestingNextHeaderBlockingIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+			if err != nil {
+				return err
 			}
 		}
 	}

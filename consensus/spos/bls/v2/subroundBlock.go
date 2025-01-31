@@ -355,6 +355,10 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if !common.ShouldBlockHavePrevProof(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag) {
+		return
+	}
+
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
 		log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
@@ -364,7 +368,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 	proof := header.GetPreviousProof()
 	err := common.VerifyProofAgainstHeader(proof, prevHeader)
 	if err != nil {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err)
+		log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err.Error())
 		return
 	}
 

@@ -6,9 +6,30 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-vm-v1_2-go/ipc/marshaling"
 )
+
+// IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
+func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
+	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)
+	if !isRelayedV3 {
+		return false
+	}
+	hasValidRelayer := len(relayedTx.GetRelayerAddr()) == len(tx.GetSndAddr()) && len(relayedTx.GetRelayerAddr()) > 0
+	hasValidRelayerSignature := len(relayedTx.GetRelayerSignature()) == len(relayedTx.GetSignature()) && len(relayedTx.GetRelayerSignature()) > 0
+	return hasValidRelayer && hasValidRelayerSignature
+}
+
+// IsRelayedTxV3 returns true if the provided transaction is a transaction of type relayed v3, without any further checks
+func IsRelayedTxV3(tx data.TransactionHandler) bool {
+	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)
+	if !isRelayedV3 {
+		return false
+	}
+
+	hasRelayer := len(relayedTx.GetRelayerAddr()) > 0
+	hasRelayerSignature := len(relayedTx.GetRelayerSignature()) > 0
+	return hasRelayer || hasRelayerSignature
+}
 
 // IsEpochChangeBlockForFlagActivation returns true if the provided header is the first one after the specified flag's activation
 func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
@@ -53,29 +74,4 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 
 	return nil
-}
-
-// GetHeader tries to get the header from pool first and if not found, searches for it through storer
-func GetHeader(
-	headerHash []byte,
-	headersPool HeadersPool,
-	headersStorer storage.Storer,
-	marshaller marshaling.Marshalizer,
-) (data.HeaderHandler, error) {
-	header, err := headersPool.GetHeaderByHash(headerHash)
-	if err == nil {
-		return header, nil
-	}
-
-	headerBytes, err := headersStorer.SearchFirst(headerHash)
-	if err != nil {
-		return nil, err
-	}
-
-	err = marshaller.Unmarshal(header, headerBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
 }
