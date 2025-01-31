@@ -117,7 +117,7 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 		{
 			Path:    getNFTsPath,
 			Method:  http.MethodGet,
-			Handler: ng.getHandlerFuncForEsdt(core.NonFungibleESDT),
+			Handler: ng.getHandlerFuncForEsdt(core.NonFungibleESDTv2),
 		},
 		{
 			Path:    directStakedInfoPath,

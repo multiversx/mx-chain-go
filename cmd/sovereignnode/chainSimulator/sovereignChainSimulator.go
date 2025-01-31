@@ -44,6 +44,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
 		cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
 		cfg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix = "sov"
+		cfg.GeneralConfig.Versions.VersionsByEpochs = []config.VersionByEpochs{{StartEpoch: 0, Version: string(process.SovereignHeaderVersion)}}
 
 		if alterConfigs != nil {
 			alterConfigs(cfg)
@@ -52,7 +53,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	}
 
 	args.CreateRunTypeCoreComponents = func() (factory.RunTypeCoreComponentsHolder, error) {
-		return createSovereignRunTypeCoreComponents()
+		return createSovereignRunTypeCoreComponents(*configs.SovereignEpochConfig)
 	}
 	args.CreateIncomingHeaderSubscriber = func(config config.WebSocketConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
@@ -85,17 +86,23 @@ func loadSovereignConfigs(configsPath string) (*sovereignConfig.SovereignConfig,
 		return nil, err
 	}
 
+	sovereignEpochConfig, err := sovereignConfig.LoadSovereignEpochConfig(path.Join(configsPath, "enableEpochs.toml"))
+	if err != nil {
+		return nil, err
+	}
+
 	return &sovereignConfig.SovereignConfig{
 		Configs: &config.Configs{
 			EpochConfig:     epochConfig,
 			EconomicsConfig: economicsConfig,
 		},
 		SovereignExtraConfig: sovereignExtraConfig,
+		SovereignEpochConfig: sovereignEpochConfig,
 	}, nil
 }
 
-func createSovereignRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
-	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+func createSovereignRunTypeCoreComponents(sovereignEpochConfig config.SovereignEpochConfig) (factory.RunTypeCoreComponentsHolder, error) {
+	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory(sovereignEpochConfig)
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
 	if err != nil {
 		return nil, err

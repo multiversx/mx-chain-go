@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -85,14 +86,14 @@ var (
 )
 
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-	return createProcessComponentsFactoryArgs(getRunTypeComponentsMock())
+	return createProcessComponentsFactoryArgs(components.GetRunTypeCoreComponents(), getRunTypeComponentsMock())
 }
 
 func createMockSovereignProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-	return createProcessComponentsFactoryArgs(getSovereignRunTypeComponentsMock())
+	return createProcessComponentsFactoryArgs(components.GetSovereignRunTypeCoreComponents(), getSovereignRunTypeComponentsMock())
 }
 
-func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunTypeComponentsStub) processComp.ProcessComponentsFactoryArgs {
+func createProcessComponentsFactoryArgs(runTypeCoreComponents runType.RunTypeCoreComponentsHolder, runTypeComponents *mainFactoryMocks.RunTypeComponentsStub) processComp.ProcessComponentsFactoryArgs {
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		EpochConfig: config.EpochConfig{
@@ -282,6 +283,7 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 		},
 	}
 	args.RunTypeComponents = runTypeComponents
+	args.EnableEpochsFactory = runTypeCoreComponents.EnableEpochsFactoryCreator()
 	return args
 }
 
@@ -1060,6 +1062,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilExportHandlerFactoryCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil EnableEpochsFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.EnableEpochsFactory = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, enablers.ErrNilEnableEpochsFactory))
+		require.Nil(t, pcf)
+	})
 	t.Run("nil OutportDataProviderFactory should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1069,6 +1080,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilOutportDataProviderFactory))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil IncomingHeaderSubscriber should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.IncomingHeaderSubscriber = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilIncomingHeaderSubscriber))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1142,6 +1162,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
 		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
 		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
+		VersionedHeaderFactoryField:                 rt.VersionedHeaderFactory(),
 	}
 }
 

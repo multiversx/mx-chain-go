@@ -43,6 +43,7 @@ import (
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
 	cryptoComp "github.com/multiversx/mx-chain-go/factory/crypto"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -332,7 +333,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		managedRunTypeComponents,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -340,7 +347,13 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedCryptoComponents,
+		managedRunTypeComponents,
+	)
 	if err != nil {
 		return true, err
 	}
@@ -443,6 +456,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedStatusCoreComponents,
 		managedRunTypeComponents,
+		managedRunTypeCoreComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 	)
@@ -852,6 +866,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, coreComponents.EconomicsData().MinGasLimit())
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
@@ -1177,6 +1192,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
+	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
@@ -1236,33 +1252,35 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  *configs.GeneralConfig,
-		EpochConfig:             *configs.EpochConfig,
-		RoundConfig:             *configs.RoundConfig,
-		PrefConfigs:             *configs.PreferencesConfig,
-		ImportDBConfig:          *configs.ImportDbConfig,
-		EconomicsConfig:         *configs.EconomicsConfig,
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        nodesCoordinator,
-		Data:                    dataComponents,
-		CoreData:                coreComponents,
-		Crypto:                  cryptoComponents,
-		State:                   stateComponents,
-		Network:                 networkComponents,
-		BootstrapComponents:     bootstrapComponents,
-		StatusComponents:        statusComponents,
-		StatusCoreComponents:    statusCoreComponents,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:          configs.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             *configs.FlagsConfig,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		RunTypeComponents:       runTypeComponents,
+		Config:                   *configs.GeneralConfig,
+		EpochConfig:              *configs.EpochConfig,
+		RoundConfig:              *configs.RoundConfig,
+		PrefConfigs:              *configs.PreferencesConfig,
+		ImportDBConfig:           *configs.ImportDbConfig,
+		EconomicsConfig:          *configs.EconomicsConfig,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         nodesCoordinator,
+		Data:                     dataComponents,
+		CoreData:                 coreComponents,
+		Crypto:                   cryptoComponents,
+		State:                    stateComponents,
+		Network:                  networkComponents,
+		BootstrapComponents:      bootstrapComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:           configs.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              *configs.FlagsConfig,
+		TxExecutionOrderHandler:  txExecutionOrderHandler,
+		RunTypeComponents:        runTypeComponents,
+		IncomingHeaderSubscriber: &factoryDisabled.IncomingHeaderProcessor{},
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1463,18 +1481,17 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:                   *nr.configs.GeneralConfig,
-		ConfigPathsHolder:        *nr.configs.ConfigurationPathsHolder,
-		EpochConfig:              *nr.configs.EpochConfig,
-		RoundConfig:              *nr.configs.RoundConfig,
-		ImportDbConfig:           *nr.configs.ImportDbConfig,
-		RatingsConfig:            *nr.configs.RatingsConfig,
-		EconomicsConfig:          *nr.configs.EconomicsConfig,
-		NodesFilename:            nr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:         nr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		Config:                *nr.configs.GeneralConfig,
+		ConfigPathsHolder:     *nr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *nr.configs.EpochConfig,
+		RoundConfig:           *nr.configs.RoundConfig,
+		ImportDbConfig:        *nr.configs.ImportDbConfig,
+		RatingsConfig:         *nr.configs.RatingsConfig,
+		EconomicsConfig:       *nr.configs.EconomicsConfig,
+		NodesFilename:         nr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:      nr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		RunTypeCoreComponents: runTypeCoreComponents,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)

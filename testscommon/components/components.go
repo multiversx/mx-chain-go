@@ -99,7 +99,7 @@ func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
 
 // GetSovereignRunTypeCoreComponents -
 func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
-	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory(config.SovereignEpochConfig{})
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovRunTypeCoreComponentsFactory)
 	if err != nil {
 		log.Error("GetSovereignRunTypeCoreComponents.NewManagedRunTypeCoreComponents", "error", err.Error())
@@ -143,8 +143,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				},
 			},
 		},
-		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		RunTypeCoreComponents: runTypeCoreComponents,
 	}
 }
 
@@ -342,8 +341,7 @@ func GetSovereignCoreComponents() factory.CoreComponentsHolder {
 	sovRunTypeCoreComponents := GetSovereignRunTypeCoreComponents()
 	coreArgs := GetCoreArgs()
 	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
-	coreArgs.GenesisNodesSetupFactory = sovRunTypeCoreComponents.GenesisNodesSetupFactoryCreator()
-	coreArgs.RatingsDataFactory = sovRunTypeCoreComponents.RatingsDataFactoryCreator()
+	coreArgs.RunTypeCoreComponents = sovRunTypeCoreComponents
 	return createCoreComponents(coreArgs)
 }
 
@@ -574,10 +572,25 @@ func GetProcessArgs(
 	)
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	if err != nil {
+		panic(err)
+	}
 
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config:                 testscommon.GetGeneralConfig(),
@@ -667,6 +680,7 @@ func GetProcessArgs(
 				},
 			},
 		},
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	initialAccounts := createAccounts()
@@ -689,8 +703,8 @@ func GetProcessArgs(
 			}, nil
 		},
 	}
-
 	args.RunTypeComponents = runTypeComponents
+	args.EnableEpochsFactory = GetRunTypeCoreComponents().EnableEpochsFactoryCreator()
 	return args
 }
 
@@ -745,6 +759,7 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = runTypeComponents
+	processArgs.EnableEpochsFactory = GetSovereignRunTypeCoreComponents().EnableEpochsFactoryCreator()
 
 	return processArgs
 }
@@ -888,9 +903,20 @@ func GetSovereignDataComponents(coreComponents factory.CoreComponentsHolder, sha
 }
 
 func createDataComponents(dataArgs dataComp.DataComponentsFactoryArgs) factory.DataComponentsHolder {
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = dataComponents.Create()
+	if err != nil {
+		panic(err)
+	}
 	return dataComponents
 }
 
@@ -1126,6 +1152,7 @@ func createSovereignAccounts() []genesis.InitialAccountHandler {
 }
 
 func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
+	generalCfg := GetGeneralConfig()
 	return runType.ArgsRunTypeComponents{
 		CoreComponents: &mockCoreComp.CoreComponentsStub{
 			HasherField:                 &hashingMocks.HasherMock{},
@@ -1144,6 +1171,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &generalCfg,
 		},
 		InitialAccounts: createAccounts(),
 	}
@@ -1204,6 +1232,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		DelegatedListFactoryField:                   rt.DelegatedListFactoryHandler(),
 		DirectStakedListFactoryField:                rt.DirectStakedListFactoryHandler(),
 		TotalStakedValueFactoryField:                rt.TotalStakedValueFactoryHandler(),
+		VersionedHeaderFactoryField:                 rt.VersionedHeaderFactory(),
 	}
 }
 
@@ -1225,6 +1254,7 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 
 // GetRunTypeComponentsWithCoreComp -
 func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolder) factory.RunTypeComponentsHolder {
+	generalCfg := GetGeneralConfig()
 	args := runType.ArgsRunTypeComponents{
 		CoreComponents: coreComponents,
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
@@ -1237,6 +1267,7 @@ func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolde
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
+			GeneralConfig: &generalCfg,
 		},
 		InitialAccounts: createAccounts(),
 	}
@@ -1273,7 +1304,6 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
-
 	return runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config: config.SovereignConfig{
