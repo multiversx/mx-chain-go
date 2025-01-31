@@ -296,6 +296,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		FallbackHeaderValidator: fallbackHeaderValidator,
 		EnableEpochsHandler:     pcf.coreData.EnableEpochsHandler(),
 		HeadersPool:             pcf.data.Datapool().Headers(),
+		StorageService:          pcf.data.StorageService(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
