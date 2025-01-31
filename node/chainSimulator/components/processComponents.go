@@ -100,6 +100,7 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
+	blockchainHook                   process.BlockChainHookWithAccountsAdapter
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -283,6 +284,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
+		blockchainHook:                   managedProcessComponents.BlockchainHook(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -521,6 +523,11 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 // EpochSystemSCProcessor returns the epoch start system SC processor
 func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return p.epochStartSystemSCProcessor
+}
+
+// BlockchainHook returns the blockchain hook
+func (p *processComponentsHolder) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	return p.blockchainHook
 }
 
 // Close will call the Close methods on all inner components

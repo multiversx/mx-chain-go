@@ -527,6 +527,45 @@ func TestTrigger_RevertStateToBlockBehindEpochStart(t *testing.T) {
 	assert.True(t, et.IsEpochStart())
 }
 
+func TestTrigger_LastCommitedShardEpochStartBlock(t *testing.T) {
+	t.Parallel()
+
+	args := createMockShardEpochStartTriggerArguments()
+	et, _ := NewEpochStartTrigger(args)
+
+	epoch := uint32(37)
+
+	epochStartNonce := uint64(100)
+	epochStartRound := uint64(101)
+	ecpohStartTimeStamp := uint64(102)
+
+	epochStartShHdr := &block.Header{
+		Epoch:              epoch,
+		Nonce:              epochStartNonce,
+		Round:              epochStartRound,
+		TimeStamp:          ecpohStartTimeStamp,
+		EpochStartMetaHash: []byte("metaHash"),
+	}
+
+	nonce := uint64(200)
+	round := uint64(201)
+	timeStamp := uint64(202)
+
+	shHdr := &block.Header{
+		Epoch:     epoch,
+		Nonce:     nonce,
+		Round:     round,
+		TimeStamp: timeStamp,
+	}
+
+	et.SetProcessed(epochStartShHdr, nil)
+	et.SetProcessed(shHdr, nil)
+
+	lastCommitedEpochStartBlock, err := et.LastCommitedEpochStartHdr()
+	require.Nil(t, err)
+	require.Equal(t, epochStartShHdr, lastCommitedEpochStartBlock)
+}
+
 func TestTrigger_RevertStateToBlockBehindEpochStartNoBlockInAnEpoch(t *testing.T) {
 	t.Parallel()
 
