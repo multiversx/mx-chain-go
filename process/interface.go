@@ -854,7 +854,7 @@ type InterceptedHeaderSigVerifier interface {
 	VerifySignature(header data.HeaderHandler) error
 	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
 	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
-	VerifyHeaderWithPrevProof(header data.HeaderHandler) error
+	VerifyHeaderWithProof(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

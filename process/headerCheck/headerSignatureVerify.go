@@ -35,6 +35,7 @@ type ArgsHeaderSigVerifier struct {
 	FallbackHeaderValidator process.FallbackHeaderValidator
 	EnableEpochsHandler     common.EnableEpochsHandler
 	HeadersPool             dataRetriever.HeadersPool
+	StorageService          dataRetriever.StorageService
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -48,6 +49,7 @@ type HeaderSigVerifier struct {
 	fallbackHeaderValidator process.FallbackHeaderValidator
 	enableEpochsHandler     common.EnableEpochsHandler
 	headersPool             dataRetriever.HeadersPool
+	storageService          dataRetriever.StorageService
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -107,6 +109,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.HeadersPool) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.StorageService) {
+		return process.ErrNilStorageService
 	}
 
 	return nil
@@ -227,10 +232,9 @@ func getPubKeySigners(consensusPubKeys []string, pubKeysBitmap []byte) [][]byte 
 
 // VerifySignature will check if signature is correct
 func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
-	if common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		return hsv.VerifyHeaderWithPrevProof(header)
+	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return hsv.VerifyHeaderWithProof(header)
 	}
-
 	if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
 		return ErrProofNotExpected
 	}
@@ -294,23 +298,45 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
 }
 
-// VerifyHeaderWithPrevProof checks if the proof on the header is correct
-func (hsv *HeaderSigVerifier) VerifyHeaderWithPrevProof(header data.HeaderHandler) error {
+// VerifyHeaderWithProof checks if the proof on the header is correct
+func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
 	// first block for transition to equivalent proofs consensus does not have a previous proof
+	if !common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
+			return ErrProofNotExpected
+		}
+		return nil
+	}
+
 	err := verifyPrevProofForHeaderIntegrity(header)
 	if err != nil {
 		return err
 	}
 
 	prevProof := header.GetPreviousProof()
-	if common.IsEpochChangeBlockForFlagActivation(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		return hsv.verifyHeaderProofAtTransition(header, prevProof)
+	if prevProof.GetIsStartOfEpoch() {
+		return hsv.verifyHeaderProofAtTransition(prevProof)
 	}
 
 	return hsv.VerifyHeaderProof(prevProof)
 }
 
-func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(header data.HeaderHandler, prevProof data.HeaderProofHandler) error {
+func (hsv *HeaderSigVerifier) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
+	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
+	headersStorer, err := hsv.storageService.GetStorer(headerUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
+}
+
+func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(prevProof data.HeaderProofHandler) error {
+	header, err := hsv.getHeaderForProof(prevProof)
+	if err != nil {
+		return err
+	}
+
 	consensusPubKeys, err := hsv.getConsensusSigners(
 		header.GetPrevRandSeed(),
 		prevProof.GetHeaderShardId(),
