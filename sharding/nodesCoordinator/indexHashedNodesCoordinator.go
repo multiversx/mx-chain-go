@@ -186,7 +186,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, arguments.Epoch)
 	}
 
-	learnChaosContext(currentConfig.eligibleMap, currentConfig.waitingMap)
+	// chaos-testing-point:NewIndexHashedNodesCoordinator_chaosControllerLearnNodes
 
 	displayNodesConfiguration(
 		currentConfig.eligibleMap,
@@ -768,7 +768,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	err = ihnc.saveState(randomness, newEpoch)
 	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
-	learnChaosContext(resUpdateNodes.Eligible, resUpdateNodes.Waiting)
+	// chaos-testing-point:indexHashedNodesCoordinator_EpochStartPrepare
 
 	displayNodesConfiguration(
 		resUpdateNodes.Eligible,
