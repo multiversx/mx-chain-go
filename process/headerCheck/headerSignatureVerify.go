@@ -303,7 +303,32 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithPrevProof(header data.HeaderHandle
 	}
 
 	prevProof := header.GetPreviousProof()
+	if header.GetShardID() != common.MetachainShardId && common.IsEpochChangeBlockForFlagActivation(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return hsv.verifyShardHeaderProofAtTransition(header, prevProof)
+	}
+
 	return hsv.VerifyHeaderProof(prevProof)
+}
+
+func (hsv *HeaderSigVerifier) verifyShardHeaderProofAtTransition(header data.HeaderHandler, prevProof data.HeaderProofHandler) error {
+	consensusPubKeys, err := hsv.getConsensusSigners(
+		header.GetPrevRandSeed(),
+		prevProof.GetHeaderShardId(),
+		prevProof.GetHeaderEpoch(),
+		prevProof.GetIsStartOfEpoch(),
+		prevProof.GetHeaderRound(),
+		prevProof.GetHeaderHash(),
+		prevProof.GetPubKeysBitmap())
+	if err != nil {
+		return err
+	}
+
+	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(prevProof.GetHeaderEpoch())
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, prevProof.GetHeaderHash(), prevProof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
