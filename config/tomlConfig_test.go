@@ -884,6 +884,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
     FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 102
 
+	# RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 103
+
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 69
 
@@ -1006,6 +1009,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixRelayedBaseCostEnableEpoch:                            100,
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
+			RelayedTransactionsV3EnableEpoch:                         103,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
