@@ -24,7 +24,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
-	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -1049,7 +1048,6 @@ func (nr *nodeRunner) logInformation(
 
 	var shardIdString = core.GetShardIDString(bootstrapComponents.ShardCoordinator().SelfId())
 	logger.SetCorrelationShard(shardIdString)
-	chaos.Controller.LearnSelfShard(bootstrapComponents.ShardCoordinator().SelfId())
 
 	sessionInfoFileOutput := fmt.Sprintf("%s:%s\n%s:%s\n%s:%v\n%s:%s\n%s:%v\n",
 		"PkBlockSign", cryptoComponents.PublicKeyString(),
