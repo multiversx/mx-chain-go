@@ -258,7 +258,7 @@ func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]s
 			continue
 		}
 
-		if bytes.Equal(esdtToken.TokenType, []byte(tokenType)) {
+		if tokenTypeEquals(esdtToken.TokenType, tokenType) {
 			tokens = append(tokens, tokenName)
 		}
 	}
@@ -273,6 +273,19 @@ func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]s
 	}
 
 	return tokens, nil
+}
+
+func tokenTypeEquals(tokenType []byte, providedTokenType string) bool {
+	if providedTokenType == core.NonFungibleESDTv2 ||
+		providedTokenType == core.NonFungibleESDT {
+		return bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) || bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) || bytes.Equal(tokenType, []byte(core.DynamicNFTESDT))
+	}
+
+	if providedTokenType == core.SemiFungibleESDT {
+		return bytes.Equal(tokenType, []byte(core.SemiFungibleESDT)) || bytes.Equal(tokenType, []byte(core.DynamicSFTESDT))
+	}
+
+	return bytes.Equal(tokenType, []byte(providedTokenType))
 }
 
 func (n *Node) getEsdtDataFromLeaf(leaf core.KeyValueHolder) (*systemSmartContracts.ESDTDataV2, bool) {
@@ -747,7 +760,7 @@ func (n *Node) ValidateTransaction(tx *transaction.Transaction) error {
 	if errors.Is(err, process.ErrAccountNotFound) {
 		return fmt.Errorf("%w for address %s",
 			process.ErrInsufficientFunds,
-			n.coreComponents.AddressPubKeyConverter().SilentEncode(tx.SndAddr, log),
+			n.extractAddressFromError(err),
 		)
 	}
 
@@ -822,6 +835,7 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
+		n.coreComponents.EnableEpochsHandler(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -870,6 +884,9 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	if len(txArgs.GuardianSigHex) > n.addressSignatureHexSize {
 		return nil, nil, fmt.Errorf("%w for guardian signature", ErrInvalidSignatureLength)
 	}
+	if len(txArgs.RelayerSignatureHex) > n.addressSignatureHexSize {
+		return nil, nil, fmt.Errorf("%w for relayer signature", ErrInvalidSignatureLength)
+	}
 
 	if uint32(len(txArgs.Receiver)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for receiver", ErrInvalidAddressLength)
@@ -879,6 +896,9 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 	if uint32(len(txArgs.Guardian)) > n.coreComponents.EncodedAddressLen() {
 		return nil, nil, fmt.Errorf("%w for guardian", ErrInvalidAddressLength)
+	}
+	if uint32(len(txArgs.Relayer)) > n.coreComponents.EncodedAddressLen() {
+		return nil, nil, fmt.Errorf("%w for relayer", ErrInvalidAddressLength)
 	}
 	if len(txArgs.SenderUsername) > core.MaxUserNameLength {
 		return nil, nil, ErrInvalidSenderUsernameLength
@@ -935,6 +955,20 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 		if err != nil {
 			return nil, nil, err
 		}
+	}
+	if len(txArgs.Relayer) > 0 {
+		relayerAddress, errDecode := addrPubKeyConverter.Decode(txArgs.Relayer)
+		if errDecode != nil {
+			return nil, nil, fmt.Errorf("%w while decoding relayer address", errDecode)
+		}
+		tx.RelayerAddr = relayerAddress
+	}
+	if len(txArgs.RelayerSignatureHex) > 0 {
+		relayerSigBytes, errDecodeString := hex.DecodeString(txArgs.RelayerSignatureHex)
+		if errDecodeString != nil {
+			return nil, nil, fmt.Errorf("%w while decoding relayer signature", errDecodeString)
+		}
+		tx.RelayerSignature = relayerSigBytes
 	}
 
 	var txHash []byte
@@ -1555,6 +1589,22 @@ func (n *Node) getKeyBytes(key string) ([]byte, error) {
 	}
 
 	return hex.DecodeString(key)
+}
+
+func (n *Node) extractAddressFromError(err error) string {
+	if !strings.Contains(err.Error(), "for address") {
+		return ""
+	}
+
+	errWords := strings.Split(err.Error(), " ")
+	for _, word := range errWords {
+		_, errDecode := n.coreComponents.AddressPubKeyConverter().Decode(word)
+		if errDecode == nil {
+			return word
+		}
+	}
+
+	return ""
 }
 
 // AddClosableComponent adds a closable component to the internal stored components

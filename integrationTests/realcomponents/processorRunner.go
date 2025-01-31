@@ -77,6 +77,9 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
+	var err error
+	require.Nil(tb, err)
+
 	pr.createRunTypeCoreComponents(tb)
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
