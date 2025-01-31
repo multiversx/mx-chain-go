@@ -69,6 +69,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
 		enableEpochsHandler:     arguments.EnableEpochsHandler,
 		headersPool:             arguments.HeadersPool,
+		storageService:          arguments.StorageService,
 	}, nil
 }
 
@@ -332,6 +333,9 @@ func (hsv *HeaderSigVerifier) getHeaderForProof(proof data.HeaderProofHandler) (
 }
 
 func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(prevProof data.HeaderProofHandler) error {
+	if check.IfNilReflect(prevProof) {
+		return process.ErrNilHeaderProof
+	}
 	header, err := hsv.getHeaderForProof(prevProof)
 	if err != nil {
 		return err
