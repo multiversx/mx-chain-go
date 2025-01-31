@@ -217,6 +217,9 @@ var testProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49
 // delegation manager system smartcontract
 var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80"
 
+// CrossChainAddresses -
+var CrossChainAddresses = []string{"erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80"}
+
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
@@ -866,16 +869,18 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                    gasSchedule,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 []string{},
+		Marshalizer:                    TestMarshalizer,
+		Accounts:                       tpn.AccntState,
+		ShardCoordinator:               tpn.ShardCoordinator,
+		EpochNotifier:                  tpn.EpochNotifier,
+		EnableEpochsHandler:            tpn.EnableEpochsHandler,
+		MaxNumAddressesInTransferRole:  100,
+		GuardedAccountHandler:          tpn.GuardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1593,23 +1598,30 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.ShardCoordinator,
 	)
 
+	sliceDNSAddresses := make([]string, 0)
 	mapDNSAddresses := make(map[string]struct{})
 	if !check.IfNil(tpn.SmartContractParser) {
 		mapDNSAddresses, _ = tpn.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+
+		for dnsAddr := range mapDNSAddresses {
+			sliceDNSAddresses = append(sliceDNSAddresses, TestAddressPubkeyConverter.SilentEncode([]byte(dnsAddr), log))
+		}
 	}
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		MapDNSV2Addresses:         mapDNSAddresses,
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                    gasSchedule,
+		MapDNSAddresses:                mapDNSAddresses,
+		DNSV2Addresses:                 sliceDNSAddresses,
+		Marshalizer:                    TestMarshalizer,
+		Accounts:                       tpn.AccntState,
+		ShardCoordinator:               tpn.ShardCoordinator,
+		EpochNotifier:                  tpn.EpochNotifier,
+		EnableEpochsHandler:            tpn.EnableEpochsHandler,
+		MaxNumAddressesInTransferRole:  100,
+		GuardedAccountHandler:          tpn.GuardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1689,6 +1701,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	tpn.GasHandler, _ = preprocess.NewGasComputation(tpn.EconomicsData, txTypeHandler, tpn.EnableEpochsHandler)
 	badBlocksHandler, _ := tpn.InterimProcContainer.Get(dataBlock.InvalidBlock)
+	guardianChecker := &guardianMocks.GuardedAccountHandlerStub{}
 
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         tpn.VMContainer,
@@ -1734,7 +1747,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		ScrForwarder:        tpn.ScrForwarder,
 		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
+		GuardianChecker:     guardianChecker,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:     tpn.TransactionLogProcessor,
 	}
@@ -1837,16 +1850,18 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                    gasSchedule,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 []string{},
+		Marshalizer:                    TestMarshalizer,
+		Accounts:                       tpn.AccntState,
+		ShardCoordinator:               tpn.ShardCoordinator,
+		EpochNotifier:                  tpn.EpochNotifier,
+		EnableEpochsHandler:            tpn.EnableEpochsHandler,
+		MaxNumAddressesInTransferRole:  100,
+		GuardedAccountHandler:          tpn.GuardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -2592,22 +2607,29 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 	if len(tx.GuardianAddr) == TestAddressPubkeyConverter.Len() {
 		guardianAddress = TestAddressPubkeyConverter.SilentEncode(tx.GuardianAddr, log)
 	}
+
+	relayerAddress := ""
+	if len(tx.RelayerAddr) == TestAddressPubkeyConverter.Len() {
+		relayerAddress = TestAddressPubkeyConverter.SilentEncode(tx.RelayerAddr, log)
+	}
 	createTxArgs := &external.ArgsCreateTransaction{
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         encodedRcvAddr,
-		ReceiverUsername: nil,
-		Sender:           encodedSndAddr,
-		SenderUsername:   nil,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		DataField:        tx.Data,
-		SignatureHex:     hex.EncodeToString(tx.Signature),
-		ChainID:          string(tx.ChainID),
-		Version:          tx.Version,
-		Options:          tx.Options,
-		Guardian:         guardianAddress,
-		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
+		Nonce:               tx.Nonce,
+		Value:               tx.Value.String(),
+		Receiver:            encodedRcvAddr,
+		ReceiverUsername:    nil,
+		Sender:              encodedSndAddr,
+		SenderUsername:      nil,
+		GasPrice:            tx.GasPrice,
+		GasLimit:            tx.GasLimit,
+		DataField:           tx.Data,
+		SignatureHex:        hex.EncodeToString(tx.Signature),
+		ChainID:             string(tx.ChainID),
+		Version:             tx.Version,
+		Options:             tx.Options,
+		Guardian:            guardianAddress,
+		GuardianSigHex:      hex.EncodeToString(tx.GuardianSignature),
+		Relayer:             relayerAddress,
+		RelayerSignatureHex: hex.EncodeToString(tx.RelayerSignature),
 	}
 	tx, txHash, err := tpn.Node.CreateTransaction(createTxArgs)
 	if err != nil {
@@ -2816,9 +2838,13 @@ func (tpn *TestProcessorNode) WhiteListBody(nodes []*TestProcessorNode, bodyHand
 	}
 }
 
-// CommitBlock commits the block and body
+// CommitBlock commits the block and body.
+// This isn't entirely correct, since there's not state rollback if the commit fails.
 func (tpn *TestProcessorNode) CommitBlock(body data.BodyHandler, header data.HeaderHandler) {
-	_ = tpn.BlockProcessor.CommitBlock(header, body)
+	err := tpn.BlockProcessor.CommitBlock(header, body)
+	if err != nil {
+		log.Error("TestProcessorNode.CommitBlock", "error", err.Error())
+	}
 }
 
 // GetShardHeader returns the first *dataBlock.Header stored in datapools having the nonce provided as parameter

@@ -206,6 +206,36 @@ func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestNetworkConfigMetrics_GasLimitRelayedTxShouldWork(t *testing.T) {
+	t.Parallel()
+
+	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	key := common.MetricExtraGasLimitRelayedTx
+	val := uint64(123)
+	statusMetricsProvider.SetUInt64Value(key, val)
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetricsProvider
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/config", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := io.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, fmt.Sprintf("%d", val))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 

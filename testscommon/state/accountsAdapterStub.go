@@ -11,6 +11,8 @@ import (
 
 var errNotImplemented = errors.New("not implemented")
 
+var _ state.AccountsAdapter = (*AccountsStub)(nil)
+
 // AccountsStub -
 type AccountsStub struct {
 	GetExistingAccountCalled      func(addressContainer []byte) (vmcommon.AccountHandler, error)
