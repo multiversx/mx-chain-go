@@ -1227,6 +1227,7 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
 		IsSovereign:          true,
+		ESDTPrefix:           snr.configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
