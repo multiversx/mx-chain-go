@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
@@ -569,10 +570,12 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 		return
 	}
 
+	epoch := rrh.getEpoch()
+
 	log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
 		"hash", hash,
-		"epoch", rrh.epoch,
+		"epoch", epoch,
 	)
 
 	requester, err := rrh.baseRequestHandler.getValidatorsInfoRequester()
@@ -581,20 +584,20 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"hash", hash,
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 		)
 		return
 	}
 
 	rrh.whiteList.Add([][]byte{hash})
 
-	err = requester.RequestDataFromHash(hash, rrh.epoch)
+	err = requester.RequestDataFromHash(hash, epoch)
 	if err != nil {
 		log.Debug("RequestValidatorInfo.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"hash", hash,
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 		)
 		return
 	}
@@ -609,10 +612,12 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 		return
 	}
 
+	epoch := rrh.getEpoch()
+
 	log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
 		"num hashes", len(unrequestedHashes),
-		"epoch", rrh.epoch,
+		"epoch", epoch,
 	)
 
 	requester, err := rrh.baseRequestHandler.getValidatorsInfoRequester()
@@ -621,7 +626,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 		)
 		return
 	}
@@ -634,13 +639,13 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	err = validatorInfoRequester.RequestDataFromHashArray(unrequestedHashes, rrh.epoch)
+	err = validatorInfoRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
 	if err != nil {
 		log.Debug("RequestValidatorInfo.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 		)
 		return
 	}
@@ -777,11 +782,13 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
+	epoch := rrh.getEpoch()
+
 	log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
 		"num hashes", len(hashes),
-		"epoch", rrh.epoch,
+		"epoch", epoch,
 	)
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.PeerAuthenticationTopic)
@@ -790,7 +797,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 		)
 		return
 	}
@@ -801,13 +808,13 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 		return
 	}
 
-	err = peerAuthRequester.RequestDataFromHashArray(hashes, rrh.epoch)
+	err = peerAuthRequester.RequestDataFromHashArray(hashes, epoch)
 	if err != nil {
 		log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
-			"epoch", rrh.epoch,
+			"epoch", epoch,
 		)
 	}
 }
