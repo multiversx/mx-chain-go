@@ -25,8 +25,8 @@ func (txCoordinator *TxCoordinator) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ComputeTransactionType(_ data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-	return 0, 0
+func (txCoordinator *TxCoordinator) ComputeTransactionType(_ data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+	return 0, 0, false
 }
 
 // RequestMiniBlocksAndTransactions does nothing as it is disabled
@@ -62,8 +62,8 @@ func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
 }
 
 // ProcessBlockTransaction does nothing as it is disabled
-func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ func() time.Duration) error {
-	return nil
+func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler, _ *block.Body, _ func() time.Duration) (block.MiniBlockSlice, error) {
+	return make(block.MiniBlockSlice, 0), nil
 }
 
 // CreateBlockStarted does nothing as it is disabled

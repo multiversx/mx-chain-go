@@ -60,7 +60,24 @@ func (vs *validatorStatistics) UpdateShardDataPeerState(
 	header data.HeaderHandler,
 	cacheMap map[string]data.HeaderHandler,
 ) error {
-	return vs.updateShardDataPeerState(header, cacheMap)
+	return vs.updateShardDataPeerState(header, CreateCommonHeaderCacheMap(cacheMap))
+}
+
+// UpdateShardDataPeerState -
+func (scvs *sovereignChainValidatorStatistics) UpdateShardDataPeerState(
+	header data.HeaderHandler,
+	cacheMap map[string]data.HeaderHandler,
+) error {
+	return scvs.updateShardDataPeerState(header, CreateCommonHeaderCacheMap(cacheMap))
+}
+
+// CreateCommonHeaderCacheMap -
+func CreateCommonHeaderCacheMap(cacheMap map[string]data.HeaderHandler) map[string]data.CommonHeaderHandler {
+	newCacheMap := make(map[string]data.CommonHeaderHandler)
+	for k, v := range cacheMap {
+		newCacheMap[k] = v
+	}
+	return newCacheMap
 }
 
 // GetActualList -

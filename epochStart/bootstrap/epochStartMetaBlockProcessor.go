@@ -8,8 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataCore "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -31,13 +30,14 @@ type epochStartMetaBlockProcessor struct {
 	marshalizer                       marshal.Marshalizer
 	hasher                            hashing.Hasher
 	mutReceivedMetaBlocks             sync.RWMutex
-	mapReceivedMetaBlocks             map[string]data.MetaHeaderHandler
+	mapReceivedMetaBlocks             map[string]dataCore.MetaHeaderHandler
 	mapMetaBlocksFromPeers            map[string][]core.PeerID
 	chanConsensusReached              chan bool
-	metaBlock                         data.MetaHeaderHandler
+	metaBlock                         dataCore.MetaHeaderHandler
 	peerCountTarget                   int
 	minNumConnectedPeers              int
 	minNumOfPeersToConsiderBlockValid int
+	epochStartPeerHandler             epochStartPeerHandler
 }
 
 // NewEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block
@@ -80,10 +80,12 @@ func NewEpochStartMetaBlockProcessor(
 		minNumConnectedPeers:              minNumConnectedPeersConfig,
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
-		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),
+		mapReceivedMetaBlocks:             make(map[string]dataCore.MetaHeaderHandler),
 		mapMetaBlocksFromPeers:            make(map[string][]core.PeerID),
 		chanConsensusReached:              make(chan bool, 1),
 	}
+
+	processor.epochStartPeerHandler = processor
 
 	processor.waitForEnoughNumConnectedPeers(messenger)
 	percentage := float64(consensusPercentage) / 100.0
@@ -129,7 +131,7 @@ func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromCo
 		return nil
 	}
 
-	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(dataCore.MetaHeaderHandler)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
 			"header", interceptedHdr.HeaderHandler())
@@ -165,17 +167,18 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
-	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(factory.MetachainBlocksTopic)
+func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (dataCore.MetaHeaderHandler, error) {
+	requestTopic := e.epochStartPeerHandler.getTopic()
+	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(requestTopic)
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err = e.requestHandler.SetNumPeersToQuery(factory.MetachainBlocksTopic, originalIntra, originalCross)
+		err = e.epochStartPeerHandler.setNumPeers(e.requestHandler, originalIntra, originalCross)
 		if err != nil {
 			log.Warn("epoch bootstrapper: error setting num of peers intra/cross for resolver",
-				"resolver", factory.MetachainBlocksTopic,
+				"resolver", requestTopic,
 				"error", err)
 		}
 	}()
@@ -206,7 +209,7 @@ func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Contex
 	}
 }
 
-func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (data.MetaHeaderHandler, error) {
+func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (dataCore.MetaHeaderHandler, error) {
 	e.mutReceivedMetaBlocks.RLock()
 	defer e.mutReceivedMetaBlocks.RUnlock()
 
@@ -228,7 +231,7 @@ func (e *epochStartMetaBlockProcessor) getMostReceivedMetaBlock() (data.MetaHead
 
 func (e *epochStartMetaBlockProcessor) requestMetaBlock() error {
 	numConnectedPeers := len(e.messenger.ConnectedPeers())
-	err := e.requestHandler.SetNumPeersToQuery(factory.MetachainBlocksTopic, numConnectedPeers, numConnectedPeers)
+	err := e.epochStartPeerHandler.setNumPeers(e.requestHandler, numConnectedPeers, numConnectedPeers)
 	if err != nil {
 		return err
 	}
@@ -267,6 +270,17 @@ func (e *epochStartMetaBlockProcessor) processEntry(
 
 // RegisterHandler registers a callback function to be notified of incoming epoch start metablocks
 func (e *epochStartMetaBlockProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
+}
+
+func (e *epochStartMetaBlockProcessor) setNumPeers(
+	requestHandler RequestHandler,
+	intra int, cross int,
+) error {
+	return requestHandler.SetNumPeersToQuery(e.getTopic(), intra, cross)
+}
+
+func (e *epochStartMetaBlockProcessor) getTopic() string {
+	return factory.MetachainBlocksTopic
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

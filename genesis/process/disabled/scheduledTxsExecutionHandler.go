@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -44,7 +45,7 @@ func (steh *ScheduledTxsExecutionHandler) GetScheduledIntermediateTxs() map[bloc
 
 // GetScheduledMiniBlocks does nothing as it is a disabled component
 func (steh *ScheduledTxsExecutionHandler) GetScheduledMiniBlocks() block.MiniBlockSlice {
-	return make(block.MiniBlockSlice, 0)
+	return nil
 }
 
 // GetScheduledGasAndFees returns a zero value structure for the gas and fees
@@ -64,12 +65,12 @@ func (steh *ScheduledTxsExecutionHandler) SetScheduledInfo(_ *process.ScheduledI
 
 // GetScheduledRootHashForHeader does nothing as it is disabled
 func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeader(_ []byte) ([]byte, error) {
-	return make([]byte, 0), nil
+	return nil, genesis.ErrScheduledRootHashForHeaderNotFound
 }
 
 // GetScheduledRootHashForHeaderWithEpoch does nothing as it is disabled
 func (steh *ScheduledTxsExecutionHandler) GetScheduledRootHashForHeaderWithEpoch(_ []byte, _ uint32) ([]byte, error) {
-	return make([]byte, 0), nil
+	return nil, genesis.ErrScheduledRootHashForHeaderWithEpochNotFound
 }
 
 // RollBackToBlock does nothing as it is disabled

@@ -27,7 +27,7 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
-	txGasHandler                 txcache.TxGasHandler
+	host                         txcache.MempoolHost
 }
 
 type txPoolShard struct {
@@ -38,9 +38,17 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
-	log.Debug("NewShardedTxPool", "args", args.String())
+	log.Debug("NewShardedTxPool", "args.SelfShardID", args.SelfShardID)
 
 	err := args.verify()
+	if err != nil {
+		return nil, err
+	}
+
+	mempoolHost, err := newMempoolHost(argsMempoolHost{
+		txGasHandler: args.TxGasHandler,
+		marshalizer:  args.Marshalizer,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +57,13 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 	halfOfCapacity := args.Config.Capacity / 2
 
 	configPrototypeSourceMe := txcache.ConfigSourceMe{
-		NumChunks:                     args.Config.Shards,
-		EvictionEnabled:               true,
-		NumBytesThreshold:             uint32(halfOfSizeInBytes),
-		CountThreshold:                halfOfCapacity,
-		NumBytesPerSenderThreshold:    args.Config.SizeInBytesPerSender,
-		CountPerSenderThreshold:       args.Config.SizePerSender,
-		NumSendersToPreemptivelyEvict: dataRetriever.TxPoolNumSendersToPreemptivelyEvict,
+		NumChunks:                   args.Config.Shards,
+		EvictionEnabled:             true,
+		NumBytesThreshold:           uint32(halfOfSizeInBytes),
+		CountThreshold:              halfOfCapacity,
+		NumBytesPerSenderThreshold:  args.Config.SizeInBytesPerSender,
+		CountPerSenderThreshold:     args.Config.SizePerSender,
+		NumItemsToPreemptivelyEvict: storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
 	}
 
 	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).
@@ -66,7 +74,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumChunks:                   args.Config.Shards,
 		MaxNumBytes:                 uint32(halfOfSizeInBytes) / numCrossTxCaches,
 		MaxNumItems:                 halfOfCapacity / numCrossTxCaches,
-		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.TxPoolDestinationMeNumItemsToPreemptivelyEvict,
 	}
 
 	shardedTxPoolObject := &shardedTxPool{
@@ -77,7 +85,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
-		txGasHandler:                 args.TxGasHandler,
+		host:                         mempoolHost,
 	}
 
 	return shardedTxPoolObject, nil
@@ -134,7 +142,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.txGasHandler)
+		cache, err := txcache.NewTxCache(config, txPool.host)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()
@@ -188,6 +196,7 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
+
 	_, added := cache.AddTx(tx)
 	if added {
 		txPool.onAdded(tx.TxHash, tx)
@@ -228,13 +237,8 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 
 // RemoveData removes the transaction from the pool
 func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
-	txPool.removeTx(key, cacheID)
-}
-
-// removeTx removes the transaction from the pool
-func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) bool {
 	shard := txPool.getOrCreateShard(cacheID)
-	return shard.Cache.RemoveTxByHash(txHash)
+	_ = shard.Cache.RemoveTxByHash(key)
 }
 
 // RemoveSetOfDataFromPool removes a bunch of transactions from the pool
@@ -244,14 +248,27 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 
 // removeTxBulk removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
+	shard := txPool.getOrCreateShard(cacheID)
+
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("removal")
+
 	numRemoved := 0
 	for _, key := range txHashes {
-		if txPool.removeTx(key, cacheID) {
+		if shard.Cache.RemoveTxByHash(key) {
 			numRemoved++
 		}
 	}
 
-	log.Trace("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	stopWatch.Stop("removal")
+
+	// Transactions with lower / equal nonce are also removed, but the counter does not reflect that.
+	log.Debug("shardedTxPool.removeTxBulk",
+		"cacheID", cacheID,
+		"numToRemove", len(txHashes),
+		"numRemoved", numRemoved,
+		"duration", stopWatch.GetMeasurement("removal"),
+	)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)

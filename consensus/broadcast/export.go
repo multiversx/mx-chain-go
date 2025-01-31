@@ -175,13 +175,17 @@ func NewCommonMessenger(
 	keysHandler consensus.KeysHandler,
 ) (*commonMessenger, error) {
 
-	return &commonMessenger{
+	cm := &commonMessenger{
 		marshalizer:          marshalizer,
 		messenger:            messenger,
 		shardCoordinator:     shardCoordinator,
 		peerSignatureHandler: peerSigHandler,
 		keysHandler:          keysHandler,
-	}, nil
+	}
+
+	cm.broadcasterFilterHandler = cm
+
+	return cm, nil
 }
 
 // Broadcast -

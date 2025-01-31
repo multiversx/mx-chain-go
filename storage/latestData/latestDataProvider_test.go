@@ -177,7 +177,7 @@ func TestLoadEpochStartRoundShard(t *testing.T) {
 	args := getLatestDataProviderArgs()
 	ldp, _ := NewLatestDataProvider(args)
 
-	round, err := ldp.loadEpochStartRound(shardID, key, storer)
+	round, err := ldp.epochStartRoundLoader.loadEpochStartRound(shardID, key, storer)
 	assert.NoError(t, err)
 	assert.Equal(t, startRound, round)
 }
@@ -202,7 +202,7 @@ func TestLoadEpochStartRoundMetachain(t *testing.T) {
 	args := getLatestDataProviderArgs()
 	ldp, _ := NewLatestDataProvider(args)
 
-	round, err := ldp.loadEpochStartRound(shardID, key, storer)
+	round, err := ldp.epochStartRoundLoader.loadEpochStartRound(shardID, key, storer)
 	assert.NoError(t, err)
 	assert.Equal(t, startRound, round)
 }
@@ -365,7 +365,7 @@ func TestFullHistoryLoadEpochStartRoundShard(t *testing.T) {
 	args := getLatestDataProviderArgs()
 	ldp, _ := NewLatestDataProvider(args)
 
-	round, err := ldp.loadEpochStartRound(shardID, key, storer)
+	round, err := ldp.epochStartRoundLoader.loadEpochStartRound(shardID, key, storer)
 	assert.NoError(t, err)
 	assert.Equal(t, startRound, round)
 }
@@ -391,7 +391,7 @@ func TestFullHistoryLoadEpochStartRoundMetachain(t *testing.T) {
 	args := getLatestDataProviderArgs()
 	ldp, _ := NewLatestDataProvider(args)
 
-	round, err := ldp.loadEpochStartRound(shardID, key, storer)
+	round, err := ldp.epochStartRoundLoader.loadEpochStartRound(shardID, key, storer)
 	assert.NoError(t, err)
 	assert.Equal(t, startRound, round)
 }

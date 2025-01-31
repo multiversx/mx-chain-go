@@ -56,6 +56,24 @@ buildNode() {
   popd
 }
 
+buildSovereignNode() {
+  echo "Building Sovereign Node executable..."
+  pushd $SOVEREIGNNODEDIR
+
+  APP_VERSION="v1.0.0"
+  if [ $ALWAYS_NEW_APP_VERSION -eq 1 ]; then
+    APP_VERSION="$(date +"v%Y.%m.%d.%H.%M.%S")"
+  fi
+
+  go build -gcflags="all=-N -l" -ldflags="-X main.appVersion=$APP_VERSION" .
+  popd
+
+  pushd $TESTNETDIR
+  mv $SOVEREIGNNODE ./node/node
+  echo "Sovereign Node executable built."
+  popd
+}
+
 buildSeednode() {
   echo "Building Seednode executable..."
   pushd $SEEDNODEDIR

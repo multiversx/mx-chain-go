@@ -12,7 +12,7 @@ import (
 
 // TransactionCoordinatorMock -
 type TransactionCoordinatorMock struct {
-	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
+	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool)
 	RequestMiniBlocksAndTransactionsCalled               func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
@@ -20,7 +20,7 @@ type TransactionCoordinatorMock struct {
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
-	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error)
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
@@ -34,12 +34,17 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+	GetAllCurrentLogsCalled                              func() []*data.LogData
 
 	miniBlocks []*block.MiniBlock
 }
 
 // GetAllCurrentLogs -
 func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []*data.LogData {
+	if tcm.GetAllCurrentLogsCalled != nil {
+		return tcm.GetAllCurrentLogsCalled()
+	}
+
 	return nil
 }
 
@@ -57,9 +62,9 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType -
-func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
 	if tcm.ComputeTransactionTypeCalled == nil {
-		return 0, 0
+		return 0, 0, false
 	}
 
 	return tcm.ComputeTransactionTypeCalled(tx)
@@ -129,9 +134,9 @@ func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error
 }
 
 // ProcessBlockTransaction -
-func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
+func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error) {
 	if tcm.ProcessBlockTransactionCalled == nil {
-		return nil
+		return nil, nil
 	}
 
 	return tcm.ProcessBlockTransactionCalled(header, body, haveTime)

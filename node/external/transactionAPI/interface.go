@@ -3,6 +3,7 @@ package transactionAPI
 import (
 	"math/big"
 
+	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
@@ -29,4 +30,10 @@ type LogsFacade interface {
 // DataFieldParser defines what a data field parser should be able to do
 type DataFieldParser interface {
 	Parse(dataField []byte, sender, receiver []byte, numOfShards uint32) *datafield.ResponseParseData
+}
+
+// APIRewardTxHandler defines an api reward tx handler
+type APIRewardTxHandler interface {
+	PrepareRewardTx(tx *rewardTxData.RewardTx) *transaction.ApiTransactionResult
+	IsInterfaceNil() bool
 }

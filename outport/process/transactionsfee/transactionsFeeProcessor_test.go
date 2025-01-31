@@ -10,10 +10,13 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -21,6 +24,18 @@ import (
 )
 
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+
+func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
+	economicsConfig := testscommon.GetEconomicsConfig()
+	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		Economics:           &economicsConfig,
+		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+	})
+
+	return economicsData
+}
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
 	return ArgTransactionsFeeProcessor{
@@ -596,4 +611,67 @@ func TestMoveBalanceWithSignalError(t *testing.T) {
 	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, uint64(225_500), initialTx.GetFeeInfo().GetGasUsed())
+}
+
+func TestPutFeeAndGasUsedRelayedTxV3(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("relayedTxV3")
+	scrWithRefund := []byte("scrWithRefund")
+	refundValueBig, _ := big.NewInt(0).SetString("37105580000000", 10)
+	initialTx := &outportcore.TxInfo{
+		Transaction: &transaction.Transaction{
+			Nonce:       9,
+			SndAddr:     []byte("erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"),
+			RcvAddr:     []byte("erd1qqqqqqqqqqqqqpgq2nfn5uxjjkjlrzad3jrak8p3p30v79pseddsm73zpw"),
+			RelayerAddr: []byte("erd1at9keal0jfhamc67ulq4csmchh33eek87yf5hhzcvlw8e5qlx8zq5hjwjl"),
+			GasLimit:    5000000,
+			GasPrice:    1000000000,
+			Data:        []byte("add@01"),
+			Value:       big.NewInt(0),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): initialTx,
+		},
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			hex.EncodeToString(scrWithRefund): {
+				SmartContractResult: &smartContractResult.SmartContractResult{
+					Nonce:          10,
+					GasPrice:       1000000000,
+					GasLimit:       0,
+					Value:          refundValueBig,
+					SndAddr:        []byte("erd1qqqqqqqqqqqqqpgq2nfn5uxjjkjlrzad3jrak8p3p30v79pseddsm73zpw"),
+					RcvAddr:        []byte("erd1at9keal0jfhamc67ulq4csmchh33eek87yf5hhzcvlw8e5qlx8zq5hjwjl"),
+					Data:           []byte(""),
+					PrevTxHash:     txHash,
+					OriginalTxHash: txHash,
+					ReturnMessage:  []byte("gas refund for relayer"),
+				},
+				FeeInfo: &outportcore.FeeInfo{
+					Fee: big.NewInt(0),
+				},
+			},
+		},
+	}
+
+	arg := prepareMockArg()
+	arg.TxFeeCalculator = createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	})
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
+	require.Nil(t, err)
+	require.Equal(t, big.NewInt(120804420000000), initialTx.GetFeeInfo().GetFee())
+	require.Equal(t, uint64(1289442), initialTx.GetFeeInfo().GetGasUsed())
+	require.Equal(t, "157910000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
+	require.True(t, initialTx.GetFeeInfo().HadRefund)
 }

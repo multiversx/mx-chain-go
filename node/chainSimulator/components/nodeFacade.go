@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -16,9 +15,11 @@ import (
 	nodePack "github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/process/mock"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64, nodeFactory nodePack.NodeFactory) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -62,6 +63,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		AllowVMQueriesChan: allowVMQueriesChan,
 		StatusComponents:   node.StatusComponentsHolder,
 		ProcessingMode:     common.GetNodeProcessingMode(configs.ImportDbConfig),
+		RunTypeComponents:  node.RunTypeComponents,
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)
@@ -73,7 +75,8 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	flagsConfig := configs.FlagsConfig
 
-	nd, err := nodePack.NewNode(
+	nd, err := nodeFactory.CreateNewNode(
+		nodePack.WithRunTypeComponents(node.RunTypeComponents),
 		nodePack.WithStatusCoreComponents(node.StatusCoreComponents),
 		nodePack.WithCoreComponents(node.CoreComponentsHolder),
 		nodePack.WithCryptoComponents(node.CryptoComponentsHolder),
@@ -177,6 +180,7 @@ func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error 
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, node.CoreComponentsHolder.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, node.CoreComponentsHolder.EconomicsData().MinGasLimit())
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, node.CoreComponentsHolder.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, node.CoreComponentsHolder.EconomicsData().MinGasLimit())
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, node.CoreComponentsHolder.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", node.CoreComponentsHolder.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", node.CoreComponentsHolder.EconomicsData().GasPriceModifier()))

@@ -429,6 +429,60 @@ func GetGeneralConfig() config.Config {
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
 		},
+		SovereignConfig: config.SovereignConfig{
+			NotifierConfig: config.NotifierConfig{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+				WebSocketConfig: config.WebSocketConfig{
+					HasherType:     "keccak",
+					MarshallerType: "json",
+				},
+			},
+			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+			},
+			OutGoingBridge: config.OutGoingBridge{
+				Hasher: "sha256",
+			},
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: "WEGLD-ab47da",
+			},
+			ExtendedShardHeaderStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+				},
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("ExtendedShardHeaderStorage"),
+					Type:              string(storageunit.MemoryDB),
+					BatchDelaySeconds: 5,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
+			},
+			ExtendedShardHdrNonceHashStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+				},
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("ExtendedShardHdrNonceHashStorage"),
+					Type:              string(storageunit.MemoryDB),
+					BatchDelaySeconds: 5,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
+			},
+		},
 	}
 }
 

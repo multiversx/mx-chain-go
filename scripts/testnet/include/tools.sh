@@ -5,7 +5,11 @@ startProxy() {
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
-  runCommandInTerminal "./proxy" $1
+  ARGS=""
+  if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
+      ARGS="--sovereign"
+  fi
+  runCommandInTerminal "./proxy $ARGS" $1
 }
 
 pauseProxy() {
@@ -76,4 +80,9 @@ resumeSeednode() {
 
 stopSeednode() {
   stopProcessByPort $PORT_SEEDNODE
+}
+
+stopElasticsearch() {
+  ES_CONTAINER_ID=$(cat $TESTNETDIR/es_container_id.txt)
+  sudo docker stop $ES_CONTAINER_ID
 }

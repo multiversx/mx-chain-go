@@ -31,35 +31,38 @@ type delegationAddress struct {
 	address string
 }
 
+// ArgsNodesSetupChecker is a struct placeholder for args needed to create a nodes setup checker
+type ArgsNodesSetupChecker struct {
+	AccountsParser           genesis.AccountsParser
+	InitialNodePrice         *big.Int
+	ValidatorPubKeyConverter core.PubkeyConverter
+	KeyGenerator             crypto.KeyGenerator
+}
+
 // NewNodesSetupChecker will create a node setup checker able to check the initial nodes against the provided genesis values
-func NewNodesSetupChecker(
-	accountsParser genesis.AccountsParser,
-	initialNodePrice *big.Int,
-	validatorPubkeyConverter core.PubkeyConverter,
-	keyGenerator crypto.KeyGenerator,
-) (*nodeSetupChecker, error) {
-	if check.IfNil(accountsParser) {
+func NewNodesSetupChecker(args ArgsNodesSetupChecker) (*nodeSetupChecker, error) {
+	if check.IfNil(args.AccountsParser) {
 		return nil, genesis.ErrNilAccountsParser
 	}
-	if initialNodePrice == nil {
+	if args.InitialNodePrice == nil {
 		return nil, genesis.ErrNilInitialNodePrice
 	}
-	if initialNodePrice.Cmp(big.NewInt(minimumAcceptedNodePrice)) < 0 {
+	if args.InitialNodePrice.Cmp(big.NewInt(minimumAcceptedNodePrice)) < 0 {
 		return nil, fmt.Errorf("%w, minimum accepted is %d",
 			genesis.ErrInvalidInitialNodePrice, minimumAcceptedNodePrice)
 	}
-	if check.IfNil(validatorPubkeyConverter) {
+	if check.IfNil(args.ValidatorPubKeyConverter) {
 		return nil, genesis.ErrNilPubkeyConverter
 	}
-	if check.IfNil(keyGenerator) {
+	if check.IfNil(args.KeyGenerator) {
 		return nil, genesis.ErrNilKeyGenerator
 	}
 
 	return &nodeSetupChecker{
-		accountsParser:           accountsParser,
-		initialNodePrice:         initialNodePrice,
-		validatorPubkeyConverter: validatorPubkeyConverter,
-		keyGenerator:             keyGenerator,
+		accountsParser:           args.AccountsParser,
+		initialNodePrice:         args.InitialNodePrice,
+		validatorPubkeyConverter: args.ValidatorPubKeyConverter,
+		keyGenerator:             args.KeyGenerator,
 	}, nil
 }
 

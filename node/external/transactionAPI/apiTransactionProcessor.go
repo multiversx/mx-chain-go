@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -24,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -55,7 +56,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(
+		args.Marshalizer,
+		args.AddressPubKeyConverter,
+		args.DataFieldParser,
+		args.ShardCoordinator,
+		args.ApiRewardTxHandler,
+	)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -183,7 +190,7 @@ func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTr
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
-	typeOnSource, typeOnDestination := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
@@ -199,9 +206,9 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	tx.InitiallyPaidFee = fee.String()
 
 	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
-	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
+	_, fee, isRelayedV1V2 := atp.gasUsedAndFeeProcessor.getFeeOfRelayedV1V2(tx)
+	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive && isRelayedV1V2
 	if isRelayedAfterFix {
-		_, fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
 		tx.InitiallyPaidFee = fee.String()
 	}
 }
@@ -394,15 +401,25 @@ func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.Wrap
 		rcvUsernameField: wrappedTx.Tx.GetRcvUserName(),
 		dataField:        wrappedTx.Tx.GetData(),
 		valueField:       getTxValue(wrappedTx),
-		senderShardID:    wrappedTx.SenderShardID,
-		receiverShardID:  wrappedTx.ReceiverShardID,
+		senderShardID:    atp.shardCoordinator.ComputeId(wrappedTx.Tx.GetSndAddr()),
+		receiverShardID:  atp.shardCoordinator.ComputeId(wrappedTx.Tx.GetRcvAddr()),
 	}
 
 	guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
-	if isGuardedTx {
+	if isGuardedTx && len(guardedTx.GetGuardianAddr()) > 0 {
 		fieldGetters[signatureField] = hex.EncodeToString(guardedTx.GetSignature())
-		fieldGetters[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
-		fieldGetters[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
+
+		if len(guardedTx.GetGuardianAddr()) > 0 {
+			fieldGetters[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
+			fieldGetters[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
+		}
+	}
+
+	relayedTx, ok := wrappedTx.Tx.(data.RelayedTransactionHandler)
+	if ok && len(relayedTx.GetRelayerAddr()) > 0 {
+		fieldGetters[signatureField] = hex.EncodeToString(relayedTx.GetSignature())
+		fieldGetters[relayerField] = atp.addressPubKeyConverter.SilentEncode(relayedTx.GetRelayerAddr(), log)
+		fieldGetters[relayerSignatureField] = hex.EncodeToString(relayedTx.GetRelayerSignature())
 	}
 
 	return fieldGetters

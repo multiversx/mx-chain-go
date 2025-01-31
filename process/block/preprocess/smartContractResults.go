@@ -253,9 +253,9 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 	headerHandler data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-) error {
+) (block.MiniBlockSlice, error) {
 	if check.IfNil(body) {
-		return process.ErrNilBlockBody
+		return nil, process.ErrNilBlockBody
 	}
 
 	numSCRsProcessed := 0
@@ -284,6 +284,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		)
 	}()
 
+	createdMBs := make(block.MiniBlockSlice, 0)
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -300,18 +301,18 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 		pi, err := scr.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		indexOfFirstTxToBeProcessed := pi.indexOfLastTxProcessed + 1
 		err = process.CheckIfIndexesAreOutOfBound(indexOfFirstTxToBeProcessed, pi.indexOfLastTxProcessedByProposer, miniBlock)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		for j := indexOfFirstTxToBeProcessed; j <= pi.indexOfLastTxProcessedByProposer; j++ {
 			if !haveTime() {
-				return process.ErrTimeIsOut
+				return nil, process.ErrTimeIsOut
 			}
 
 			txHash := miniBlock.TxHashes[j]
@@ -320,12 +321,12 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			scr.scrForBlock.mutTxsForBlock.RUnlock()
 			if !ok || check.IfNil(txInfoFromMap.tx) {
 				log.Warn("missing transaction in ProcessBlockTransactions ", "type", miniBlock.Type, "txHash", txHash)
-				return process.ErrMissingTransaction
+				return nil, process.ErrMissingTransaction
 			}
 
 			currScr, ok := txInfoFromMap.tx.(*smartContractResult.SmartContractResult)
 			if !ok {
-				return process.ErrWrongTypeAssertion
+				return nil, process.ErrWrongTypeAssertion
 			}
 
 			if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
@@ -337,7 +338,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 					&gasInfo)
 
 				if err != nil {
-					return err
+					return nil, err
 				}
 
 				scr.gasHandler.SetGasProvided(gasProvidedByTxInSelfShard, txHash)
@@ -345,21 +346,23 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 
 			err = scr.saveAccountBalanceForAddress(currScr.GetRcvAddr())
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			scr.txExecutionOrderHandler.Add(txHash)
 			_, err = scr.scrProcessor.ProcessSmartContractResult(currScr)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			scr.updateGasConsumedWithGasRefundedAndGasPenalized(txHash, &gasInfo)
 			numSCRsProcessed++
 		}
+
+		createdMBs = append(createdMBs, miniBlock)
 	}
 
-	return nil
+	return createdMBs, nil
 }
 
 // SaveTxsToStorage saves smart contract results from body into storage

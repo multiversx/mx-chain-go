@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -30,6 +31,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -70,9 +75,6 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testBlockInfo struct {
@@ -1153,13 +1155,93 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
 }
 
-func TestNode_GetAllIssuedESDTs(t *testing.T) {
+func TestNode_GetAllESDTTokensForNFTWithPrefix(t *testing.T) {
 	t.Parallel()
 
+	acc := createAcc(testscommon.TestPubKeyAlice)
+
+	nftToken := "pref-TCKR-67tgv3"
+	nftNonce := big.NewInt(1)
+	nftKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken)
+	nftKeyWithBytes := append(nftKey, nftNonce.Bytes()...)
+	nftSuffix := append(nftKeyWithBytes, acc.AddressBytes()...)
+
+	nftMetaData := &esdt.MetaData{Nonce: nftNonce.Uint64(), Creator: []byte("12345678901234567890123456789012")}
+	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
+	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
+
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
+			return nftData, false, nil
+
+		},
+	}
+	acc.SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					leavesChannels.LeavesChan <- trieLeaf
+					wg.Done()
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan.Close()
+				}()
+
+				wg.Wait()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
+			return nil
+		},
+	}
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithESDTNFTStorageHandler(esdtStorageStub),
+	)
+
+	tokens, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, err)
+	require.Equal(t, 1, len(tokens))
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey := "pref-TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
+func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shardId uint32) {
 	acc := createAcc([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
 	sftToken := []byte("SFT-RANDOM")
+	sftTokenDynamic := []byte("SFT-Dynamic")
 	nftToken := []byte("NFT-RANDOM")
+	nftTokenV2 := []byte("NFT-RANDOM-V2")
+	nftTokenDynamic := []byte("NFT-Dynamic")
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
@@ -1169,13 +1251,28 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	sftMarshalledData, _ := getMarshalizer().Marshal(sftData)
 	_ = acc.SaveKeyValue(sftToken, sftMarshalledData)
 
+	sftDataDynamic := &systemSmartContracts.ESDTDataV2{TokenName: []byte("semi fungible dynamic"), TokenType: []byte(core.DynamicSFTESDT)}
+	sftMarshalledDataDynamic, _ := getMarshalizer().Marshal(sftDataDynamic)
+	_ = acc.SaveKeyValue(sftTokenDynamic, sftMarshalledDataDynamic)
+
 	nftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
 	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
 	_ = acc.SaveKeyValue(nftToken, nftMarshalledData)
 
+	nftData2 := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible v2"), TokenType: []byte(core.NonFungibleESDT)}
+	nftMarshalledData2, _ := getMarshalizer().Marshal(nftData2)
+	_ = acc.SaveKeyValue(nftTokenV2, nftMarshalledData2)
+
+	nftDataDynamic := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible dynamic"), TokenType: []byte(core.DynamicNFTESDT)}
+	nftMarshalledDataDyamic, _ := getMarshalizer().Marshal(nftDataDynamic)
+	_ = acc.SaveKeyValue(nftTokenDynamic, nftMarshalledDataDyamic)
+
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 	nftSuffix := append(nftToken, acc.AddressBytes()...)
+	nftSuffix2 := append(nftTokenV2, acc.AddressBytes()...)
+	nftDynamicSuffix := append(nftTokenDynamic, acc.AddressBytes()...)
 	sftSuffix := append(sftToken, acc.AddressBytes()...)
+	sftDynamicSuffix := append(sftTokenDynamic, acc.AddressBytes()...)
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
@@ -1186,9 +1283,16 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 					trieLeaf, _ = tlp.ParseLeaf(sftToken, append(sftMarshalledData, sftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(sftTokenDynamic, append(sftMarshalledDataDynamic, sftDynamicSuffix...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
 
 					trieLeaf, _ = tlp.ParseLeaf(nftToken, append(nftMarshalledData, nftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(nftTokenV2, append(nftMarshalledData2, nftSuffix2...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(nftTokenDynamic, append(nftMarshalledDataDyamic, nftDynamicSuffix...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
+
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
 				}()
@@ -1220,9 +1324,10 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
-		SelfShardId: core.MetachainShardId,
+		SelfShardId: shardId,
 	}
-	n, _ := node.NewNode(
+
+	n, _ := nodeFactory.CreateNewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
@@ -1236,22 +1341,51 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 
 	value, err = n.GetAllIssuedESDTs(core.SemiFungibleESDT, context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(value))
+	assert.Equal(t, 2, len(value))
 	assert.Equal(t, string(sftToken), value[0])
+	assert.Equal(t, string(sftTokenDynamic), value[1])
 
 	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDT, context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(value))
+	assert.Equal(t, 3, len(value)) // for both versions
 	assert.Equal(t, string(nftToken), value[0])
+	assert.Equal(t, string(nftTokenV2), value[1])
+	assert.Equal(t, string(nftTokenDynamic), value[2])
+
+	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDTv2, context.Background())
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(value)) // for both versions
+	assert.Equal(t, string(nftToken), value[0])
+	assert.Equal(t, string(nftTokenV2), value[1])
+	assert.Equal(t, string(nftTokenDynamic), value[2])
 
 	value, err = n.GetAllIssuedESDTs("", context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 3, len(value))
+	assert.Equal(t, 6, len(value))
 }
 
-func TestNode_GetESDTsWithRole(t *testing.T) {
+func TestNode_GetAllESDTTokens_ShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testNodeGetAllIssuedESDTs(t, node.NewNodeFactory(), core.MetachainShardId)
+}
+
+func TestNode_GetAllESDTTokens_WrongChainId(t *testing.T) {
+	t.Parallel()
+
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: 0,
+	}
+	n, err := node.NewNode(node.WithProcessComponents(processComponents))
+	require.Nil(t, err)
+
+	value, err := n.GetAllIssuedESDTs("", context.Background())
+	require.Nil(t, value)
+	require.Equal(t, node.ErrMetachainOnlyEndpoint, err)
+}
+
+func testNodeGetESDTsWithRole(t *testing.T, nodeFactory node.NodeFactory, shardId uint32) {
 	addrBytes := testscommon.TestPubKeyAlice
 	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -1305,33 +1439,79 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
-		SelfShardId: core.MetachainShardId,
+		SelfShardId: shardId,
 	}
-	n, _ := node.NewNode(
+	n, _ := nodeFactory.CreateNewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, 1, len(tokenResult))
-	require.Equal(t, string(esdtToken), tokenResult[0])
+	t.Run("get ESDTs with role NFT add quantity should work", func(t *testing.T) {
+		t.Parallel()
 
-	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, 1, len(tokenResult))
-	require.Equal(t, string(esdtToken), tokenResult[0])
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTAddQuantity, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(tokenResult))
+		require.Equal(t, string(esdtToken), tokenResult[0])
+	})
+	t.Run("get ESDTs with role local mint should work", func(t *testing.T) {
+		t.Parallel()
 
-	tokenResult, _, err = n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Len(t, tokenResult, 0)
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleLocalMint, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(tokenResult))
+		require.Equal(t, string(esdtToken), tokenResult[0])
+	})
+	t.Run("get ESDTs with role NFT create should work", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Len(t, tokenResult, 0)
+	})
+	t.Run("invalid role should error", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, "invalid role", api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, node.ErrInvalidESDTRole, err)
+		require.Nil(t, tokenResult)
+	})
+	t.Run("invalid address should error", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsWithRole("aaaaa", core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, "invalid bech32 string length 5", err.Error())
+		require.Nil(t, tokenResult)
+	})
 }
 
-func TestNode_GetESDTsRoles(t *testing.T) {
+func TestNode_GetESDTsWithRole(t *testing.T) {
 	t.Parallel()
 
+	testNodeGetESDTsWithRole(t, node.NewNodeFactory(), core.MetachainShardId)
+}
+
+func TestNode_GetESDTsWithRole_WrongChainId(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: 0,
+	}
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents))
+	require.Nil(t, err)
+
+	res, _, err := n.GetESDTsWithRole(testscommon.TestAddressAlice, core.ESDTRoleNFTCreate, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, res)
+	require.Equal(t, node.ErrMetachainOnlyEndpoint, err)
+}
+
+func testNodeGetESDTsRoles(t *testing.T, nodeFactory node.NodeFactory, shardId uint32) {
 	addrBytes := testscommon.TestPubKeyAlice
 	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -1384,25 +1564,58 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
-		SelfShardId: core.MetachainShardId,
+		SelfShardId: shardId,
 	}
-	n, _ := node.NewNode(
+	n, _ := nodeFactory.CreateNewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
 	)
 
-	tokenResult, _, err := n.GetESDTsRoles(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, map[string][]string{
-		string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
-	}, tokenResult)
+	t.Run("get ESDTs roles should work", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsRoles(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, map[string][]string{
+			string(esdtToken): {core.ESDTRoleNFTAddQuantity, core.ESDTRoleLocalMint},
+		}, tokenResult)
+	})
+	t.Run("invalid address should fail", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetESDTsRoles("aaaaa", api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, "invalid bech32 string length 5", err.Error())
+		require.Nil(t, tokenResult)
+	})
 }
 
-func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
+func TestNode_GetESDTsRoles(t *testing.T) {
 	t.Parallel()
 
+	testNodeGetESDTsWithRole(t, node.NewNodeFactory(), core.MetachainShardId)
+}
+
+func TestNode_GetESDTsRoles_WrongChainId(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: 0,
+	}
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents))
+	require.Nil(t, err)
+
+	tokenResult, _, err := n.GetESDTsRoles(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, tokenResult)
+	require.Equal(t, node.ErrMetachainOnlyEndpoint, err)
+}
+
+func testNodeGetNFTTokenIDsRegisteredByAddress(t *testing.T, nodeFactory node.NodeFactory, shardId uint32) {
 	addrBytes := testscommon.TestPubKeyAlice
 	acc := createAcc(addrBytes)
 	esdtToken := []byte("TCK-RANDOM")
@@ -1450,19 +1663,54 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
 	processComponents := getDefaultProcessComponents()
 	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
-		SelfShardId: core.MetachainShardId,
+		SelfShardId: shardId,
 	}
-	n, _ := node.NewNode(
+	n, _ := nodeFactory.CreateNewNode(
 		node.WithCoreComponents(coreComponents),
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 		node.WithProcessComponents(processComponents),
 	)
 
+	t.Run("get NFT token IDs registered by address should work", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+		require.NoError(t, err)
+		require.Equal(t, 1, len(tokenResult))
+		require.Equal(t, string(esdtToken), tokenResult[0])
+	})
+	t.Run("invalid address should fail", func(t *testing.T) {
+		t.Parallel()
+
+		tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress("aaaaa", api.AccountQueryOptions{}, context.Background())
+		require.Equal(t, "invalid bech32 string length 5", err.Error())
+		require.Nil(t, tokenResult)
+	})
+}
+
+func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
+	t.Parallel()
+
+	testNodeGetNFTTokenIDsRegisteredByAddress(t, node.NewNodeFactory(), core.MetachainShardId)
+}
+
+func TestNode_GetNFTTokenIDsRegisteredByAddress_WrongChainId(t *testing.T) {
+	t.Parallel()
+
+	coreComponents := getDefaultCoreComponents()
+	processComponents := getDefaultProcessComponents()
+	processComponents.ShardCoord = &mock.ShardCoordinatorMock{
+		SelfShardId: 0,
+	}
+	n, err := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithProcessComponents(processComponents))
+	require.Nil(t, err)
+
 	tokenResult, _, err := n.GetNFTTokenIDsRegisteredByAddress(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
-	require.NoError(t, err)
-	require.Equal(t, 1, len(tokenResult))
-	require.Equal(t, string(esdtToken), tokenResult[0])
+	require.Nil(t, tokenResult)
+	require.Equal(t, node.ErrMetachainOnlyEndpoint, err)
 }
 
 func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T) {
@@ -3004,15 +3252,63 @@ func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
 		node.WithCryptoComponents(getDefaultCryptoComponents()),
 	)
 
-	tx := &transaction.Transaction{
-		SndAddr:   bytes.Repeat([]byte("1"), 32),
-		RcvAddr:   bytes.Repeat([]byte("1"), 32),
-		Value:     big.NewInt(37),
-		Signature: []byte("signature"),
-		ChainID:   []byte("chainID"),
-	}
-	err := n.ValidateTransaction(tx)
-	require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	t.Run("normal tx", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:   bytes.Repeat([]byte("1"), 32),
+			RcvAddr:   bytes.Repeat([]byte("1"), 32),
+			Value:     big.NewInt(37),
+			Signature: []byte("signature"),
+			ChainID:   []byte("chainID"),
+		}
+
+		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	})
+	t.Run("relayed tx v3, no funds for sender", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:          bytes.Repeat([]byte("1"), 32),
+			RcvAddr:          bytes.Repeat([]byte("1"), 32),
+			Value:            big.NewInt(37),
+			Signature:        []byte("sSignature"),
+			RelayerAddr:      bytes.Repeat([]byte("2"), 32),
+			RelayerSignature: []byte("rSignature"),
+			ChainID:          []byte("chainID"),
+		}
+		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	})
+	t.Run("relayed tx v3, no funds for relayer", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:          bytes.Repeat([]byte("1"), 32),
+			RcvAddr:          bytes.Repeat([]byte("1"), 32),
+			Value:            big.NewInt(37),
+			Signature:        []byte("sSignature"),
+			RelayerAddr:      bytes.Repeat([]byte("2"), 32),
+			RelayerSignature: []byte("rSignature"),
+			ChainID:          []byte("chainID"),
+		}
+
+		stateComp := getDefaultStateComponents()
+		stateComp.AccountsAPI = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, tx.SndAddr) {
+					return &stateMock.UserAccountStub{}, nil
+				}
+
+				return nil, errors.New("account not found")
+			},
+		}
+		nLocal, _ := node.NewNode(
+			node.WithCoreComponents(getDefaultCoreComponents()),
+			node.WithBootstrapComponents(getDefaultBootstrapComponents()),
+			node.WithProcessComponents(getDefaultProcessComponents()),
+			node.WithStateComponents(stateComp),
+			node.WithCryptoComponents(getDefaultCryptoComponents()),
+		)
+
+		err := nLocal.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeqvw86cj", err.Error())
+	})
 }
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
@@ -3086,7 +3382,7 @@ func TestCreateShardedStores_NilTransactionDataPoolShouldError(t *testing.T) {
 		return nil
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{}
+		return &testscommon.HeadersCacherStub{}
 	}
 	coreComponents := getDefaultCoreComponents()
 	coreComponents.IntMarsh = getMarshalizer()
@@ -3166,7 +3462,7 @@ func TestCreateShardedStores_ReturnsSuccessfully(t *testing.T) {
 		return testscommon.NewShardedDataStub()
 	}
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{}
+		return &testscommon.HeadersCacherStub{}
 	}
 
 	coreComponents := getDefaultCoreComponents()
@@ -5259,7 +5555,8 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		StartTime:                time.Time{},
 		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
+		ChanStopProcess:          make(chan endProcess.ArgEndProcess, 1),
 	}
 }
 
@@ -5286,6 +5583,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		BlockTrack:                           &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:                 &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:                           &testscommon.RequestHandlerStub{},
+		RequestedItemsHandlerInternal:        &testscommon.RequestedItemsHandlerStub{},
 		TxLogsProcess:                        &mock.TxLogProcessorMock{},
 		HeaderConstructValidator:             &mock.HeaderValidatorStub{},
 		MainPeerMapper:                       &p2pmocks.NetworkShardingCollectorStub{},
@@ -5295,6 +5593,8 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		TxsSenderHandlerField:                &txsSenderMock.TxsSenderHandlerMock{},
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
 		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
+		ESDTDataStorageHandlerForAPIInternal: &testscommon.EsdtStorageHandlerStub{},
+		ResContainer:                         &dataRetrieverMock.ResolversContainerStub{},
 	}
 }
 
@@ -5310,11 +5610,12 @@ func getDefaultDataComponents() *nodeMockFactory.DataComponentsMock {
 			return []byte("root hash")
 		},
 	}
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
 
 	return &nodeMockFactory.DataComponentsMock{
 		BlockChain: chainHandler,
 		Store:      &mockStorage.ChainStorerStub{},
-		DataPool:   &dataRetrieverMock.PoolsHolderMock{},
+		DataPool:   dataPool,
 		MbProvider: &mock.MiniBlocksProviderStub{},
 	}
 }

@@ -90,7 +90,7 @@ func TestBlockGroup_getBlockByNonce(t *testing.T) {
 		t.Parallel()
 
 		providedNonce := uint64(37)
-		expectedOptions := api.BlockQueryOptions{WithTransactions: true}
+		expectedOptions := api.BlockQueryOptions{WithTransactions: true, ForHyperblock: true}
 		expectedBlock := api.Block{
 			Nonce: 37,
 			Round: 39,
@@ -107,7 +107,7 @@ func TestBlockGroup_getBlockByNonce(t *testing.T) {
 		loadBlockGroupResponse(
 			t,
 			facade,
-			fmt.Sprintf("/block/by-nonce/%d?withTxs=true", providedNonce),
+			fmt.Sprintf("/block/by-nonce/%d?withTxs=true&forHyperblock=true", providedNonce),
 			"GET",
 			nil,
 			response,

@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -187,6 +188,22 @@ func WithConsensusComponents(consensusComponents factory.ConsensusComponentsHand
 		}
 		n.consensusComponents = consensusComponents
 		n.closableComponents = append(n.closableComponents, consensusComponents)
+		return nil
+	}
+}
+
+// WithRunTypeComponents sets up the Node run type components
+func WithRunTypeComponents(runTypeComponents factory.RunTypeComponentsHandler) Option {
+	return func(n *Node) error {
+		if check.IfNil(runTypeComponents) {
+			return errors.ErrNilRunTypeComponents
+		}
+		err := runTypeComponents.CheckSubcomponents()
+		if err != nil {
+			return err
+		}
+		n.runTypeComponents = runTypeComponents
+		n.closableComponents = append(n.closableComponents, runTypeComponents)
 		return nil
 	}
 }

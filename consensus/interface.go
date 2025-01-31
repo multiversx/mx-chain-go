@@ -47,6 +47,34 @@ type SubroundHandler interface {
 	IsInterfaceNil() bool
 }
 
+// SubRoundStartExtraSignatureHandler defines an extra signer during start subround in a consensus process
+type SubRoundStartExtraSignatureHandler interface {
+	Reset(pubKeys []string) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
+// SubRoundSignatureExtraSignatureHandler defines an extra signer during signature subround in a consensus process
+type SubRoundSignatureExtraSignatureHandler interface {
+	CreateSignatureShare(header data.HeaderHandler, selfIndex uint16, selfPubKey []byte) ([]byte, error)
+	AddSigShareToConsensusMessage(sigShare []byte, cnsMsg *Message) error
+	StoreSignatureShare(index uint16, cnsMsg *Message) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
+// SubRoundEndExtraSignatureHandler defines an extra signer during end subround in a consensus process
+type SubRoundEndExtraSignatureHandler interface {
+	AggregateAndSetSignatures(bitmap []byte, header data.HeaderHandler) ([]byte, error)
+	AddLeaderAndAggregatedSignatures(header data.HeaderHandler, cnsMsg *Message) error
+	SignAndSetLeaderSignature(header data.HeaderHandler, leaderPubKey []byte) error
+	SetAggregatedSignatureInHeader(header data.HeaderHandler, aggregatedSig []byte) error
+	SetConsensusDataInHeader(header data.HeaderHandler, cnsMsg *Message) error
+	VerifyAggregatedSignatures(bitmap []byte, header data.HeaderHandler) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
 // ChronologyHandler defines the actions which should be handled by a chronology implementation
 type ChronologyHandler interface {
 	Close() error
@@ -177,6 +205,7 @@ type SigningHandler interface {
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	ShallowClone() SigningHandler
 	IsInterfaceNil() bool
 }
 

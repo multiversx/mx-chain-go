@@ -3,12 +3,14 @@ package components
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"path/filepath"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,30 +30,23 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
 type ArgsProcessComponentsHolder struct {
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	NodesCoordinator     nodesCoordinator.NodesCoordinator
-
-	EpochConfig              config.EpochConfig
-	RoundConfig              config.RoundConfig
-	ConfigurationPathsHolder config.ConfigurationPathsHolder
-	FlagsConfig              config.ContextFlagsConfig
-	ImportDBConfig           config.ImportDbConfig
-	PrefsConfig              config.Preferences
-	Config                   config.Config
-	EconomicsConfig          config.EconomicsConfig
-	SystemSCConfig           config.SystemSmartContractsConfig
+	CoreComponents           factory.CoreComponentsHolder
+	CryptoComponents         factory.CryptoComponentsHolder
+	NetworkComponents        factory.NetworkComponentsHolder
+	BootstrapComponents      factory.BootstrapComponentsHolder
+	StateComponents          factory.StateComponentsHolder
+	DataComponents           factory.DataComponentsHolder
+	StatusComponents         factory.StatusComponentsHolder
+	StatusCoreComponents     factory.StatusCoreComponentsHolder
+	NodesCoordinator         nodesCoordinator.NodesCoordinator
+	RunTypeComponents        factory.RunTypeComponentsHolder
+	EnableEpochsFactory      enablers.EnableEpochsFactory
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+	Configs                  config.Configs
 
 	GenesisNonce uint64
 	GenesisRound uint64
@@ -105,34 +100,13 @@ type processComponentsHolder struct {
 
 // CreateProcessComponents will create the process components holder
 func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponentsHolder, error) {
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
-	if err != nil {
-		return nil, err
-	}
-	totalSupply, ok := big.NewInt(0).SetString(args.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	if !ok {
-		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			args.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
-	}
-
-	mintingSenderAddress := args.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
-	argsAccountsParser := genesis.AccountsParserArgs{
-		GenesisFilePath: args.ConfigurationPathsHolder.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   mintingSenderAddress,
-		PubkeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    args.CryptoComponents.TxSignKeyGen(),
-		Hasher:          args.CoreComponents.Hasher(),
-		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(argsAccountsParser)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.Configs.FlagsConfig.DbDir, common.DefaultDBPath), args.Configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
-		args.ConfigurationPathsHolder.SmartContracts,
+		args.Configs.ConfigurationPathsHolder.SmartContracts,
 		args.CoreComponents.AddressPubKeyConverter(),
 		args.CryptoComponents.TxSignKeyGen(),
 	)
@@ -142,7 +116,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
 		SelfShardID:              args.BootstrapComponents.ShardCoordinator().SelfId(),
-		Config:                   args.Config.DbLookupExtensions,
+		Config:                   args.Configs.GeneralConfig.DbLookupExtensions,
 		Hasher:                   args.CoreComponents.Hasher(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		Store:                    args.DataComponents.StorageService(),
@@ -153,7 +127,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Configs.GeneralConfig.WhiteListPool.Capacity))
 	if err != nil {
 		return nil, err
 
@@ -163,7 +137,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	lruCacheTx, err := cache.NewLRUCache(int(args.Configs.GeneralConfig.WhiteListerVerifiedTxs.Capacity))
 	if err != nil {
 		return nil, err
 
@@ -184,8 +158,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig:  args.EpochConfig.GasSchedule,
-		ConfigDir:          args.ConfigurationPathsHolder.GasScheduleDirectoryName,
+		GasScheduleConfig:  args.Configs.EpochConfig.GasSchedule,
+		ConfigDir:          args.Configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
 		EpochNotifier:      args.CoreComponents.EpochNotifier(),
 		WasmVMChangeLocker: args.CoreComponents.WasmVMChangeLocker(),
 	}
@@ -195,35 +169,37 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  args.Config,
-		EpochConfig:             args.EpochConfig,
-		RoundConfig:             args.RoundConfig,
-		PrefConfigs:             args.PrefsConfig,
-		ImportDBConfig:          args.ImportDBConfig,
-		EconomicsConfig:         args.EconomicsConfig,
-		AccountsParser:          accountsParser,
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        args.NodesCoordinator,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListHandler,
-		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
-		MaxRating:               50,
-		SystemSCConfig:          &args.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             args.FlagsConfig,
-		Data:                    args.DataComponents,
-		CoreData:                args.CoreComponents,
-		Crypto:                  args.CryptoComponents,
-		State:                   args.StateComponents,
-		Network:                 args.NetworkComponents,
-		BootstrapComponents:     args.BootstrapComponents,
-		StatusComponents:        args.StatusComponents,
-		StatusCoreComponents:    args.StatusCoreComponents,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		GenesisNonce:            args.GenesisNonce,
-		GenesisRound:            args.GenesisRound,
+		Config:                   *args.Configs.GeneralConfig,
+		EpochConfig:              *args.Configs.EpochConfig,
+		RoundConfig:              *args.Configs.RoundConfig,
+		PrefConfigs:              *args.Configs.PreferencesConfig,
+		ImportDBConfig:           *args.Configs.ImportDbConfig,
+		EconomicsConfig:          *args.Configs.EconomicsConfig,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         args.NodesCoordinator,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListHandler,
+		WhiteListerVerifiedTxs:   whiteListVerifiedTxs,
+		MaxRating:                50,
+		SystemSCConfig:           args.Configs.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              *args.Configs.FlagsConfig,
+		Data:                     args.DataComponents,
+		CoreData:                 args.CoreComponents,
+		Crypto:                   args.CryptoComponents,
+		State:                    args.StateComponents,
+		Network:                  args.NetworkComponents,
+		BootstrapComponents:      args.BootstrapComponents,
+		StatusComponents:         args.StatusComponents,
+		StatusCoreComponents:     args.StatusCoreComponents,
+		TxExecutionOrderHandler:  txExecutionOrderHandler,
+		GenesisNonce:             args.GenesisNonce,
+		GenesisRound:             args.GenesisRound,
+		RunTypeComponents:        args.RunTypeComponents,
+		EnableEpochsFactory:      args.EnableEpochsFactory,
+		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

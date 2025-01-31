@@ -5,9 +5,6 @@ import "github.com/pkg/errors"
 // ErrHeartbeatsNotActive signals that the heartbeat system is not active
 var ErrHeartbeatsNotActive = errors.New("heartbeat system not active")
 
-// ErrNilNode signals that a nil node instance has been provided
-var ErrNilNode = errors.New("nil node")
-
 // ErrNilApiResolver signals that a nil api resolver instance has been provided
 var ErrNilApiResolver = errors.New("nil api resolver")
 

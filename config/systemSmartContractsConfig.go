@@ -32,6 +32,7 @@ type StakingSystemSCConfig struct {
 type ESDTSystemSCConfig struct {
 	BaseIssuingCost string
 	OwnerAddress    string
+	ESDTPrefix      string
 }
 
 // GovernanceSystemSCConfigV1 holds the initial set of values that were used to initialise the

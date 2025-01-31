@@ -2021,10 +2021,10 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Equal(t, addedStakedValue, getBLSTopUpValue(t, metachainNode, validatorB.Bytes))
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
+	require.Equal(t, delegationAddress, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	require.Equal(t, validatorB.Bytes, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+	require.Equal(t, validatorB.Bytes, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
 	log.Info("Step 4. User A : whitelistForMerge@addressB")
 	txDataField = fmt.Sprintf("whitelistForMerge@%s", hex.EncodeToString(validatorB.Bytes))
@@ -2048,26 +2048,11 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Nil(t, err)
 
 	decodedBLSKey0, _ = hex.DecodeString(blsKeys[0])
-	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey0))
+	require.Equal(t, delegationAddress, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey0))
 
 	decodedBLSKey1, _ = hex.DecodeString(blsKeys[1])
-	require.Equal(t, delegationAddress, getBLSKeyOwner(t, metachainNode, decodedBLSKey1))
+	require.Equal(t, delegationAddress, staking.GetBLSKeyOwner(t, metachainNode, decodedBLSKey1))
 
 	expectedTopUpValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(200))
 	require.Equal(t, expectedTopUpValue, getBLSTopUpValue(t, metachainNode, delegationAddress))
-}
-
-func getBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.StakingSCAddress,
-		FuncName:   "getOwner",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{blsKey},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, chainSimulatorIntegrationTests.OkReturnCode, result.ReturnCode)
-
-	return result.ReturnData[0]
 }

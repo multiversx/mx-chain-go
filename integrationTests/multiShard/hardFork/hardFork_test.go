@@ -12,29 +12,33 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("integrationTests/hardfork")
@@ -484,7 +488,6 @@ func hardForkImport(
 					MaxNumberOfIterations: 100000,
 				},
 			},
-			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
 			EpochConfig: config.EpochConfig{
@@ -503,6 +506,8 @@ func hardForkImport(
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
+			EnableEpochsFactory:     enablers.NewEnableEpochsFactory(),
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -600,7 +605,7 @@ func createHardForkExporter(
 		networkComponents.PeersRatingHandlerField = node.PeersRatingHandler
 		networkComponents.InputAntiFlood = &mock.NilAntifloodHandler{}
 		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
-		argsExportHandler := factory.ArgsExporter{
+		argsExportHandler := mxFactory.ArgsExporter{
 			CoreComponents:       coreComponents,
 			CryptoComponents:     cryptoComponents,
 			StatusCoreComponents: statusCoreComponents,
@@ -654,6 +659,7 @@ func createHardForkExporter(
 			TrieSyncerVersion:         2,
 			CheckNodesOnDisk:          false,
 			NodeOperationMode:         node.NodeOperationMode,
+			ShardCoordinatorFactory:   sharding.NewMultiShardCoordinatorFactory(),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

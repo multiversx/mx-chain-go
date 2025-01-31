@@ -41,6 +41,10 @@ func TestNewMissingheadersByHashSyncer_NilParamsShouldErr(t *testing.T) {
 	nilRequestHandlerArgs.RequestHandler = nil
 	testInput[nilRequestHandlerArgs] = update.ErrNilRequestHandler
 
+	nilCrossHeaderRequesterArgs := okArgs
+	nilCrossHeaderRequesterArgs.CrossHeaderRequester = nil
+	testInput[nilCrossHeaderRequesterArgs] = errNilCrossHeaderRequester
+
 	for args, expectedErr := range testInput {
 		mhhs, err := NewMissingheadersByHashSyncer(args)
 		require.True(t, check.IfNil(mhhs))
@@ -61,7 +65,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderFoundInCacheShouldWork(
 	t.Parallel()
 
 	args := getMisingHeadersByHashSyncerArgs()
-	args.Cache = &mock.HeadersCacherStub{
+	args.Cache = &testscommon.HeadersCacherStub{
 		GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
 			return &block.MetaBlock{Nonce: 37}, nil
 		},
@@ -76,7 +80,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderFoundInStorageShouldWor
 	t.Parallel()
 
 	args := getMisingHeadersByHashSyncerArgs()
-	args.Cache = &mock.HeadersCacherStub{
+	args.Cache = &testscommon.HeadersCacherStub{
 		GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
 			return nil, errors.New("not found")
 		},
@@ -99,7 +103,7 @@ func TestSyncHeadersByHash_SyncMissingHeadersByHashHeaderNotFoundShouldTimeout(t
 
 	var errNotFound = errors.New("not found")
 	args := getMisingHeadersByHashSyncerArgs()
-	args.Cache = &mock.HeadersCacherStub{
+	args.Cache = &testscommon.HeadersCacherStub{
 		GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
 			return nil, errNotFound
 		},
@@ -141,7 +145,7 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 			return nil, errNotFound
 		},
 	}
-	args.Cache = &mock.HeadersCacherStub{
+	args.Cache = &testscommon.HeadersCacherStub{
 		GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
 			return nil, errNotFound
 		},
@@ -173,10 +177,13 @@ func TestSyncHeadersByHash_GetHeadersShouldReceiveAndReturnOkMb(t *testing.T) {
 }
 
 func getMisingHeadersByHashSyncerArgs() ArgsNewMissingHeadersByHashSyncer {
+	requestHandler := &testscommon.RequestHandlerStub{}
+	metaHdrRequester, _ := NewMetaHeaderRequester(requestHandler)
 	return ArgsNewMissingHeadersByHashSyncer{
-		Storage:        genericMocks.NewStorerMock(),
-		Cache:          &mock.HeadersCacherStub{},
-		Marshalizer:    &mock.MarshalizerMock{},
-		RequestHandler: &testscommon.RequestHandlerStub{},
+		Storage:              genericMocks.NewStorerMock(),
+		Cache:                &testscommon.HeadersCacherStub{},
+		Marshalizer:          &mock.MarshalizerMock{},
+		RequestHandler:       requestHandler,
+		CrossHeaderRequester: metaHdrRequester,
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 )
 
@@ -32,10 +33,15 @@ type GasConsumedProvider interface {
 
 // EconomicsDataHandler defines the functionality needed for economics data
 type EconomicsDataHandler interface {
+	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64
+}
+
+type shardRewardsCreator interface {
+	getRewardsForShard(rewardsTxs map[string]data.TransactionHandler) (map[string]*outport.RewardInfo, error)
 }

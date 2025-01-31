@@ -1,10 +1,7 @@
 package scrCommon
 
 import (
-	"math/big"
-
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -15,20 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
-
-// TestSmartContractProcessor is a SmartContractProcessor used in integration tests
-type TestSmartContractProcessor interface {
-	process.SmartContractProcessorFacade
-	GetCompositeTestError() error
-	GetGasRemaining() uint64
-	GetAllSCRs() []data.TransactionHandler
-	CleanGasRefunded()
-}
-
-// ExecutableChecker is an interface for checking if a builtin function is executable
-type ExecutableChecker interface {
-	CheckIsExecutable(senderAddr []byte, value *big.Int, receiverAddr []byte, gasProvidedForCall uint64, arguments [][]byte) error
-}
 
 // ArgsNewSmartContractProcessor defines the arguments needed for new smart contract processor
 type ArgsNewSmartContractProcessor struct {
@@ -55,6 +38,35 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher      storage.Cacher
 	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
+	EpochNotifier           vmcommon.EpochNotifier
+}
+
+// ScrProcessingData is a struct placeholder for scr data to be processed after validation checks
+type ScrProcessingData struct {
+	Hash        []byte
+	Snapshot    int
+	Sender      state.UserAccountHandler
+	Destination state.UserAccountHandler
+}
+
+// GetHash returns the hash
+func (spd *ScrProcessingData) GetHash() []byte {
+	return spd.Hash
+}
+
+// GetSnapshot returns the snapshot
+func (spd *ScrProcessingData) GetSnapshot() int {
+	return spd.Snapshot
+}
+
+// GetSender returns the sender
+func (spd *ScrProcessingData) GetSender() state.UserAccountHandler {
+	return spd.Sender
+}
+
+// GetDestination returns the destination
+func (spd *ScrProcessingData) GetDestination() state.UserAccountHandler {
+	return spd.Destination
 }
 
 // FindVMByScAddress is exported for use in all version of scr processors
