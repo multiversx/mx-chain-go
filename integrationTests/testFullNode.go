@@ -223,11 +223,6 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.AppStatusHandler = TestAppStatusHandler
 	}
 
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
 	tpn.MainMessenger = CreateMessengerWithNoDiscovery()
 
 	tpn.StatusMetrics = args.StatusMetrics
