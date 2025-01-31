@@ -187,18 +187,6 @@ func (cm *commonMessenger) BroadcastBlockData(
 	}
 }
 
-// PrepareBroadcastEquivalentProof sets the proof into the delayed block broadcaster
-func (cm *commonMessenger) PrepareBroadcastEquivalentProof(
-	proof *block.HeaderProof,
-	consensusIndex int,
-	pkBytes []byte,
-) {
-	err := cm.delayedBlockBroadcaster.SetFinalProofForValidator(proof, consensusIndex, pkBytes)
-	if err != nil {
-		log.Error("commonMessenger.PrepareBroadcastEquivalentProof", "error", err)
-	}
-}
-
 func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,

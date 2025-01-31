@@ -855,7 +855,6 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
-		config.ConsensusGradualBroadcastConfig{GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{}},
 	)
 
 	if args.WithSync {
@@ -1081,7 +1080,6 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
-		config.ConsensusGradualBroadcastConfig{GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{}},
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()

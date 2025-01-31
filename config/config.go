@@ -231,10 +231,9 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig         PeersRatingConfig
-	PoolsCleanersConfig       PoolsCleanersConfig
-	Redundancy                RedundancyConfig
-	ConsensusGradualBroadcast ConsensusGradualBroadcastConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
+	Redundancy          RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -681,11 +680,6 @@ type ChainParametersByEpochConfig struct {
 type IndexBroadcastDelay struct {
 	EndIndex            int
 	DelayInMilliseconds uint64
-}
-
-// ConsensusGradualBroadcastConfig holds the configuration for the consensus final info gradual broadcast
-type ConsensusGradualBroadcastConfig struct {
-	GradualIndexBroadcastDelay []IndexBroadcastDelay
 }
 
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier

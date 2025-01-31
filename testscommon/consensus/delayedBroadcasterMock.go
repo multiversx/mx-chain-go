@@ -2,8 +2,6 @@ package consensus
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/multiversx/mx-chain-go/consensus"
 
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
@@ -18,18 +16,8 @@ type DelayedBroadcasterMock struct {
 		mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 		txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 		headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
-		equivalentProofsBroadcast func(proof *block.HeaderProof, pkBytes []byte) error,
 		consensusMessageBroadcast func(message *consensus.Message) error) error
-	CloseCalled                     func()
-	SetFinalProofForValidatorCalled func(proof *block.HeaderProof, consensusIndex int, pkBytes []byte) error
-}
-
-// SetFinalProofForValidator -
-func (mock *DelayedBroadcasterMock) SetFinalProofForValidator(proof *block.HeaderProof, consensusIndex int, pkBytes []byte) error {
-	if mock.SetFinalProofForValidatorCalled != nil {
-		return mock.SetFinalProofForValidatorCalled(proof, consensusIndex, pkBytes)
-	}
-	return nil
+	CloseCalled func()
 }
 
 // SetLeaderData -
@@ -61,7 +49,6 @@ func (mock *DelayedBroadcasterMock) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 	headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
-	equivalentProofBroadcast func(proof *block.HeaderProof, pkBytes []byte) error,
 	consensusMessageBroadcast func(message *consensus.Message) error,
 ) error {
 	if mock.SetBroadcastHandlersCalled != nil {
@@ -69,7 +56,6 @@ func (mock *DelayedBroadcasterMock) SetBroadcastHandlers(
 			mbBroadcast,
 			txBroadcast,
 			headerBroadcast,
-			equivalentProofBroadcast,
 			consensusMessageBroadcast)
 	}
 	return nil
