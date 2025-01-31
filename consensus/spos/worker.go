@@ -580,6 +580,11 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
 	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
+
+	log.Trace("received message with signature",
+		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
+		"header hash", cnsMsg.BlockHeaderHash,
+	)
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
