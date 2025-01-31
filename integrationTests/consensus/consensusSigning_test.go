@@ -15,7 +15,6 @@ import (
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 func initNodesWithTestSigner(
@@ -76,9 +75,6 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.ToggleLoggerName(true)
-	logger.SetLogLevel("*:TRACE,consensus:TRACE")
 
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)

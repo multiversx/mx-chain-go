@@ -341,7 +341,6 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
-		config.ConsensusGradualBroadcastConfig{GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{}},
 	)
 
 	if args.WithSync {
