@@ -8,14 +8,15 @@ import (
 )
 
 type chaosConfig struct {
-	Failures []failureDefinition `json:"failures"`
+	Failures         []failureDefinition `json:"failures"`
+	ReusableTriggers []string            `json:"reusableTriggers"`
 
 	failuresByName map[string]failureDefinition
 }
 
 type failureDefinition struct {
-	Name      string `json:"name"`
-	Condition string `json:"condition"`
+	Name     string   `json:"name"`
+	Triggers []string `json:"triggers"`
 }
 
 func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {

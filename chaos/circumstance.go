@@ -1,7 +1,6 @@
 package chaos
 
 import (
-	"fmt"
 	"go/constant"
 	"go/token"
 	"go/types"
@@ -26,23 +25,35 @@ type failureCircumstance struct {
 	transactionHash []byte
 }
 
-func (circumstance *failureCircumstance) evalExpression(expression string) (resultAsBool bool, err error) {
+func (circumstance *failureCircumstance) anyExpression(expressions []string) bool {
 	fileSet := token.NewFileSet()
 	pack := circumstance.createGoPackage()
 
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("panic occurred during evaluation: %v", r)
+			log.Error("panic occurred during evaluation", "panic", r)
 		}
 	}()
 
-	result, err := types.Eval(fileSet, pack, token.NoPos, expression)
-	if err != nil {
-		return false, fmt.Errorf("failed to evaluate expression: %v", err)
+	for _, expression := range expressions {
+		result, err := types.Eval(fileSet, pack, token.NoPos, expression)
+		if err != nil {
+			log.Error("failed to evaluate expression", "error", err, "expression", expression)
+			continue
+		}
+
+		resultAsBool, err := strconv.ParseBool(result.Value.String())
+		if err != nil {
+			log.Error("failed to parse result as bool", "error", err, "expression", expression, "result", result.Value.String())
+			continue
+		}
+
+		if resultAsBool {
+			return true
+		}
 	}
 
-	resultAsBool, err = strconv.ParseBool(result.Value.String())
-	return resultAsBool, err
+	return false
 }
 
 func (circumstance *failureCircumstance) createGoPackage() *types.Package {
@@ -74,8 +85,6 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 		transactionHashLastByte := circumstance.transactionHash[len(circumstance.transactionHash)-1]
 		scope.Insert(createFailureExpressionNumericParameter(pack, parameterTransactionHashLastByte, uint64(transactionHashLastByte)))
 	}
-
-	scope.Insert(types.NewConst(token.NoPos, pack, "cucu", types.Typ[types.String], constant.MakeString("hello")))
 
 	return pack
 }
