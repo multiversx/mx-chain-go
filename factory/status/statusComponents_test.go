@@ -65,6 +65,7 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 		},
 		IsInImportMode: false,
 		IsSovereign:    false,
+		ESDTPrefix:     "",
 	}
 }
 

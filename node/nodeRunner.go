@@ -1128,6 +1128,7 @@ func (nr *nodeRunner) CreateManagedStatusComponents(
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
 		IsSovereign:          false,
+		ESDTPrefix:           nr.configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)

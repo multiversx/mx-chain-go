@@ -71,15 +71,6 @@ sovereignStart() {
     $TESTNET_DIR/sovereignStart.sh
 }
 
-# This function will restart sovereign:
-# - stop sovereign nodes and services
-# - deploy sovereign nodes with all services
-sovereignRestart() {
-    stopSovereign
-
-    sovereignStart
-}
-
 # This function will reset sovereign:
 # - stop sovereign nodes and services
 # - deploy sovereign nodes with all services
