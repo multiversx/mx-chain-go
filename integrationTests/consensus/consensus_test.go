@@ -55,9 +55,6 @@ func TestConsensusBLSFullTestSingleKeys_WithEquivalentProofs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	logger.ToggleLoggerName(true)
-	logger.SetLogLevel("*:DEBUG,consensus:TRACE")
-
 	runFullConsensusTest(t, blsConsensusType, 1, true)
 }
 
@@ -86,9 +83,6 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 }
 
 func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivationEpoch uint32) {
-	_ = logger.SetLogLevel("*:DEBUG,process:TRACE,consensus:TRACE")
-	logger.ToggleLoggerName(true)
-
 	numKeysOnEachNode := 1
 	numMetaNodes := uint32(2)
 	numNodes := uint32(2)
