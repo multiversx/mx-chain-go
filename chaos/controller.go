@@ -1,13 +1,16 @@
 package chaos
 
 import (
+	"math"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/chaosAdapters"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type chaosController struct {
@@ -16,9 +19,6 @@ type chaosController struct {
 	config  *chaosConfig
 
 	nodeDisplayName        string
-	currentShard           uint32
-	currentEpoch           uint32
-	currentRound           uint64
 	currentlyEligibleNodes []chaosAdapters.Validator
 	currentlyWaitingNodes  []chaosAdapters.Validator
 
@@ -51,33 +51,6 @@ func (controller *chaosController) LearnNodeDisplayName(displayName string) {
 
 	log.Info("LearnNodeDisplayName", "displayName", displayName)
 	controller.nodeDisplayName = displayName
-}
-
-// LearnSelfShard learns the current shard.
-func (controller *chaosController) LearnSelfShard(shard uint32) {
-	controller.mutex.Lock()
-	defer controller.mutex.Unlock()
-
-	log.Info("LearnSelfShard", "shard", shard)
-	controller.currentShard = shard
-}
-
-// LearnCurrentEpoch learns the current epoch.
-func (controller *chaosController) LearnCurrentEpoch(epoch uint32) {
-	controller.mutex.Lock()
-	defer controller.mutex.Unlock()
-
-	log.Info("LearnCurrentEpoch", "epoch", epoch)
-	controller.currentEpoch = epoch
-}
-
-// LearnCurrentRound learns the current round.
-func (controller *chaosController) LearnCurrentRound(round int64) {
-	controller.mutex.Lock()
-	defer controller.mutex.Unlock()
-
-	log.Info("LearnCurrentRound", "round", round)
-	controller.currentRound = uint64(round)
 }
 
 // LearnNodes learns the currently eligible and waiting nodes.
@@ -168,13 +141,21 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 	randomNumber := rand.Uint64()
 	now := time.Now().Unix()
 
+	// For simplificty, we get the current shard, epoch and round from the logger correlation facility.
+	loggerCorrelation := logger.GetCorrelation()
+
+	shard, err := core.ConvertShardIDToUint32(loggerCorrelation.Shard)
+	if err != nil {
+		shard = math.MaxInt16
+	}
+
 	return &failureCircumstance{
 		nodeDisplayName: controller.nodeDisplayName,
 		randomNumber:    randomNumber,
 		now:             now,
-		shard:           controller.currentShard,
-		epoch:           controller.currentEpoch,
-		round:           controller.currentRound,
+		shard:           shard,
+		epoch:           loggerCorrelation.Epoch,
+		round:           uint64(loggerCorrelation.Round),
 
 		counterProcessTransaction: controller.CallsCounters.ProcessTransaction.GetUint64(),
 	}
@@ -190,12 +171,7 @@ func (controller *chaosController) shouldFail(failureName failureName, circumsta
 		return false
 	}
 
-	shouldFail, err := circumstance.evalExpression(failure.Condition)
-	if err != nil {
-		log.Warn("Failed to evaluate expression", "error", err)
-		return false
-	}
-
+	shouldFail := circumstance.anyExpression(failure.Triggers)
 	if shouldFail {
 		log.Info("shouldFail()", "failureName", failureName)
 		return true
