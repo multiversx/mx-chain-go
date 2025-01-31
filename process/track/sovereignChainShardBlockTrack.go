@@ -255,3 +255,13 @@ func (scsbt *sovereignChainShardBlockTrack) IsShardStuck(_ uint32) bool {
 // ComputeCrossInfo does nothing for sovereign chain
 func (scsbt *sovereignChainShardBlockTrack) ComputeCrossInfo(_ []data.HeaderHandler) {
 }
+
+// RemoveLastCrossNotarizedHeaders removes last cross notarized headers from tracker list
+func (scsbt *sovereignChainShardBlockTrack) RemoveLastCrossNotarizedHeaders() {
+	scsbt.crossNotarizer.RemoveLastNotarizedHeader()
+}
+
+// RemoveLastSelfNotarizedHeaders removes last self notarized headers from tracker list
+func (scsbt *sovereignChainShardBlockTrack) RemoveLastSelfNotarizedHeaders() {
+	scsbt.selfNotarizer.RemoveLastNotarizedHeader()
+}
