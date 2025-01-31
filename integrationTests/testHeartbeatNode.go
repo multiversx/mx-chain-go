@@ -48,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -349,8 +350,14 @@ func CreateNodesWithTestHeartbeatNode(
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ShardConsensusGroupSize:         shardConsensusGroupSize,
-			MetaConsensusGroupSize:          metaConsensusGroupSize,
+			ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+					return config.ChainParametersByEpochConfig{
+						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+						MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+					}, nil
+				},
+			},
 			Marshalizer:                     TestMarshalizer,
 			Hasher:                          TestHasher,
 			ShardIDAsObserver:               shardId,
@@ -397,8 +404,14 @@ func CreateNodesWithTestHeartbeatNode(
 			}
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ShardConsensusGroupSize:         shardConsensusGroupSize,
-				MetaConsensusGroupSize:          metaConsensusGroupSize,
+				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+						return config.ChainParametersByEpochConfig{
+							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
+							MetachainConsensusGroupSize: uint32(metaConsensusGroupSize),
+						}, nil
+					},
+				},
 				Marshalizer:                     TestMarshalizer,
 				Hasher:                          TestHasher,
 				ShardIDAsObserver:               shardId,

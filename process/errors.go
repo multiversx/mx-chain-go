@@ -465,6 +465,9 @@ var ErrNilEpochNotifier = errors.New("nil EpochNotifier")
 // ErrNilRoundNotifier signals that the provided EpochNotifier is nil
 var ErrNilRoundNotifier = errors.New("nil RoundNotifier")
 
+// ErrNilChainParametersHandler signals that the provided chain parameters handler is nil
+var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")
+
 // ErrInvalidCacheRefreshIntervalInSec signals that the cacheRefreshIntervalInSec is invalid - zero or less
 var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshIntervalInSec")
 
@@ -1229,6 +1232,15 @@ var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execut
 
 // ErrRelayedTxV3Disabled signals that relayed tx v3 are disabled
 var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 are disabled")
+
+// ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
+var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
+
+// ErrEmptyChainParametersConfiguration signals that an empty chain parameters configuration has been provided
+var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters configuration")
+
+// ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
+var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
 
 // ErrGuardedRelayerNotAllowed signals that the provided relayer is guarded
 var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")

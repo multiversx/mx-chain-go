@@ -3,10 +3,10 @@ package nodesCoordinator
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -29,7 +29,7 @@ type NodesCoordinator interface {
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	ShuffleOutForEpoch(_ uint32)
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
-	ConsensusGroupSize(uint32) int
+	ConsensusGroupSizeForShardAndEpoch(uint32, uint32) int
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
 	IsInterfaceNil() bool
@@ -56,7 +56,6 @@ type PublicKeysSelector interface {
 
 // NodesShuffler provides shuffling functionality for nodes
 type NodesShuffler interface {
-	UpdateParams(numNodesShard uint32, numNodesMeta uint32, hysteresis float32, adaptivity bool)
 	UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error)
 	IsInterfaceNil() bool
 }
@@ -176,5 +175,13 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
 }

@@ -851,6 +851,8 @@ const (
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
+	// ChainParametersOrder defines the order in which ChainParameters is notified of a start of epoch event
+	ChainParametersOrder
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
 	NodesCoordinatorOrder
 	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
@@ -963,7 +965,7 @@ const PutInStorerMaxTime = time.Second
 const DefaultUnstakedEpoch = math.MaxUint32
 
 // InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
-// does not follow the protocol: example not useing the same marshaler as the other peers
+// does not follow the protocol: example not using the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
 
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
