@@ -52,7 +52,6 @@ func NewMetaChainMessenger(
 		mcm.BroadcastMiniBlocks,
 		mcm.BroadcastTransactions,
 		mcm.BroadcastHeader,
-		mcm.BroadcastEquivalentProof,
 		mcm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
