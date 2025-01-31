@@ -303,14 +303,14 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithPrevProof(header data.HeaderHandle
 	}
 
 	prevProof := header.GetPreviousProof()
-	if header.GetShardID() != common.MetachainShardId && common.IsEpochChangeBlockForFlagActivation(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		return hsv.verifyShardHeaderProofAtTransition(header, prevProof)
+	if common.IsEpochChangeBlockForFlagActivation(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return hsv.verifyHeaderProofAtTransition(header, prevProof)
 	}
 
 	return hsv.VerifyHeaderProof(prevProof)
 }
 
-func (hsv *HeaderSigVerifier) verifyShardHeaderProofAtTransition(header data.HeaderHandler, prevProof data.HeaderProofHandler) error {
+func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(header data.HeaderHandler, prevProof data.HeaderProofHandler) error {
 	consensusPubKeys, err := hsv.getConsensusSigners(
 		header.GetPrevRandSeed(),
 		prevProof.GetHeaderShardId(),
