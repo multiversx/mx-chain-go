@@ -162,14 +162,6 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
-		ConsensusGradualBroadcast: ConsensusGradualBroadcastConfig{
-			GradualIndexBroadcastDelay: []IndexBroadcastDelay{
-				{
-					EndIndex:            0,
-					DelayInMilliseconds: 0,
-				},
-			},
-		},
 	}
 	testString := `
 [GeneralSettings]
@@ -276,13 +268,6 @@ func TestTomlParser(t *testing.T) {
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
     # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
     MaxRoundsOfInactivityAccepted = 3
-
-# ConsensusGradualBroadcast defines how validators will broadcast the aggregated final info, based on their consensus index
-[ConsensusGradualBroadcast]
-    GradualIndexBroadcastDelay = [
-        # All validators will broadcast the message right away
-        { EndIndex = 0, DelayInMilliseconds = 0 },
-    ]
 `
 	cfg := Config{}
 

@@ -407,7 +407,6 @@ func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) 
 			mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 			txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
-			equivalentProofsBroadcast func(proof *block.HeaderProof, pkBytes []byte) error,
 			consensusMessageBroadcast func(message *consensus.Message) error) error {
 			varModified = true
 			return expectedErr
