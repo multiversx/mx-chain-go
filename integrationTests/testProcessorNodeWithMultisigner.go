@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -474,6 +475,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 			EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 			HeadersPool:             &mock.HeadersCacherStub{},
+			StorageService:          &genericMocks.ChainStorerMock{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -619,6 +621,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 				EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 				HeadersPool:             &mock.HeadersCacherStub{},
+				StorageService:          &genericMocks.ChainStorerMock{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
