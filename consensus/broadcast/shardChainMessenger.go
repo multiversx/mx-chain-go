@@ -56,7 +56,6 @@ func NewShardChainMessenger(
 		scm.BroadcastMiniBlocks,
 		scm.BroadcastTransactions,
 		scm.BroadcastHeader,
-		scm.BroadcastEquivalentProof,
 		scm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
