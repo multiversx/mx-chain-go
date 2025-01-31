@@ -116,6 +116,7 @@ func testConsensusBLSWithFullProcessing(t *testing.T, equivalentProofsActivation
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
+		true,
 	)
 
 	for shardID, nodesList := range nodes {
