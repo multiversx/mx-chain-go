@@ -1048,6 +1048,9 @@ func (tpn *TestFullNode) initBlockProcessor(
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
+		if err != nil {
+			log.Error("error creating meta blockprocessor", "error", err)
+		}
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
@@ -1088,11 +1091,11 @@ func (tpn *TestFullNode) initBlockProcessor(
 		}
 
 		tpn.BlockProcessor, err = block.NewShardProcessor(arguments)
+		if err != nil {
+			log.Error("error creating shard blockprocessor", "error", err)
+		}
 	}
 
-	if err != nil {
-		log.Error("error creating blockprocessor", "error", err)
-	}
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(
