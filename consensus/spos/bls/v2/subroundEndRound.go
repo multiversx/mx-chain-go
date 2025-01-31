@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/bits"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -100,7 +101,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
-	if sr.IsJobDone(sr.SelfPubKey(), sr.Current()) {
+	if sr.IsSelfJobDone(sr.Current()) {
 		return
 	}
 	if !sr.IsConsensusDataSet() {
@@ -555,16 +556,47 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 		IsStartOfEpoch:      sr.GetHeader().IsStartOfEpochBlock(),
 	}
 
-	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sr.SelfPubKey()))
+	sender := sr.getEquivalentProofSender()
+	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sender))
 	if err != nil {
 		return err
 	}
 
 	log.Debug("step 3: block header proof has been sent",
 		"PubKeysBitmap", bitmap,
-		"AggregateSignature", signature)
+		"AggregateSignature", signature,
+		"proof sender", hex.EncodeToString([]byte(sender)))
 
 	return nil
+}
+
+func (sr *subroundEndRound) getEquivalentProofSender() string {
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		return sr.SelfPubKey() // single key mode
+	}
+
+	return sr.getRandomManagedKeyProofSender()
+}
+
+func (sr *subroundEndRound) getRandomManagedKeyProofSender() string {
+	// in multikey mode, we randomly select one managed key for the proof
+	consensusKeysManagedByCurrentNode := make([]string, 0)
+	for _, validator := range sr.ConsensusGroup() {
+		if !sr.IsKeyManagedBySelf([]byte(validator)) {
+			continue
+		}
+
+		consensusKeysManagedByCurrentNode = append(consensusKeysManagedByCurrentNode, validator)
+	}
+
+	if len(consensusKeysManagedByCurrentNode) == 0 {
+		return sr.SelfPubKey() // fallback return self pub key, should never happen
+	}
+
+	randIdx := rand.Intn(len(consensusKeysManagedByCurrentNode))
+	randManagedKey := consensusKeysManagedByCurrentNode[randIdx]
+
+	return randManagedKey
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
