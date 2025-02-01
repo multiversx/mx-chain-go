@@ -1,54 +1,75 @@
 import shutil
 from pathlib import Path
+from typing import Tuple
 
 
 def main():
-    # Nodes coordinator
     shutil.copyfile("chaosPatching/nodesCoordinator.go.patch", "sharding/nodesCoordinator/chaos.go")
 
-    file_path = Path("sharding/nodesCoordinator/indexHashedNodesCoordinator.go")
-    content = file_path.read_text()
+    do_replacements(
+        file_path=Path("sharding/nodesCoordinator/indexHashedNodesCoordinator.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:NewIndexHashedNodesCoordinator_chaosControllerLearnNodes",
+                """chaosControllerLearnNodes(currentConfig.eligibleMap, currentConfig.waitingMap)""",
+            ),
+            (
+                "// chaos-testing-point:indexHashedNodesCoordinator_EpochStartPrepare",
+                """chaosControllerLearnNodes(resUpdateNodes.Eligible, resUpdateNodes.Waiting)"""
+            )
+        ]
+    )
 
-    marker = "// chaos-testing-point:NewIndexHashedNodesCoordinator_chaosControllerLearnNodes"
-    patch = """chaosControllerLearnNodes(currentConfig.eligibleMap, currentConfig.waitingMap)"""
-    content = content.replace(marker, patch)
+    do_replacements(
+        file_path=Path("process/transaction/shardProcess.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:shardProcess_ProcessTransaction",
+                """chaos.Controller.CallsCounters.ProcessTransaction.Increment()
 
-    marker = "// chaos-testing-point:indexHashedNodesCoordinator_EpochStartPrepare"
-    patch = """chaosControllerLearnNodes(resUpdateNodes.Eligible, resUpdateNodes.Waiting)"""
-    content = content.replace(marker, patch)
-
-    file_path.write_text(content)
-
-    # Shard processor
-    file_path = Path("process/transaction/shardProcess.go")
-    content = file_path.read_text()
-    marker = "// chaos-testing-point:shardProcess_ProcessTransaction"
-    patch = """chaos.Controller.CallsCounters.ProcessTransaction.Increment()
-
-	if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
-		return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
+    if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
+        return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
 	}
 """
-    content = content.replace(marker, patch)
+            ),
+        ],
+        with_import=True
+    )
 
-    content = add_chaos_import(content)
-    file_path.write_text(content)
-
-    # Consensus V2, subround BLOCK
-    file_path = Path("consensus/spos/bls/v2/subroundBlock.go")
-    content = file_path.read_text()
-    marker = "// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature"
-    patch = """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header, leaderSignature)"""
-    content = content.replace(marker, patch)
-
-    marker = "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock"
-    patch = """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header) {
-		return false
+    do_replacements(
+        file_path=Path("consensus/spos/bls/v2/subroundBlock.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature",
+                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header, leaderSignature)"""
+            ),
+            (
+                "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",
+                """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header) {
+        return false
 	}
     """
-    content = content.replace(marker, patch)
+            )
+        ],
+        with_import=True
+    )
 
-    content = add_chaos_import(content)
+    do_replacements(
+        file_path=Path("consensus/spos/bls/v1/subroundSignature.go"),
+        replacements=[],
+        with_import=True
+    )
+
+
+def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_import: bool = False):
+    content = file_path.read_text()
+
+    for marker, patch in replacements:
+        content = content.replace(marker, patch)
+
+    if with_import:
+        content = add_chaos_import(content)
+
     file_path.write_text(content)
 
 
