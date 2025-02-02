@@ -736,7 +736,7 @@ func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.processReceivedProof",
+	bfd.log.Debug("forkDetector.processReceivedProof",
 		"round", hInfo.round,
 		"nonce", hInfo.nonce,
 		"hash", hInfo.hash,
@@ -762,13 +762,13 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	bfd.setHighestNonceReceived(header.GetNonce())
 
 	if state == process.BHProposed || !hasProof {
-		log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
+		bfd.log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
 		return
 	}
 
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
-		log.Trace("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
+		bfd.log.Trace("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
 		state = process.BHReceivedTooLate
 	}
 
@@ -782,7 +782,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	}
 
 	if !bfd.append(hInfo) {
-		log.Trace("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
+		bfd.log.Trace("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
 		return
 	}
 

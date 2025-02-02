@@ -45,7 +45,6 @@ import (
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/sync"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -73,6 +72,7 @@ import (
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
@@ -223,7 +223,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.AppStatusHandler = TestAppStatusHandler
 	}
 
-	tpn.MainMessenger = CreateMessengerWithNoDiscovery()
+	tpn.MainMessenger = CreateMessengerWithNoDiscovery("main/p2p")
 
 	tpn.StatusMetrics = args.StatusMetrics
 	if check.IfNil(args.StatusMetrics) {
@@ -501,22 +501,33 @@ func (tpn *TestFullNode) initNode(
 
 	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
 
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		tpn.ForkDetector, err = processSync.NewShardForkDetector(
+			log,
 			roundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			args.StartTime,
 			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+		)
 	} else {
 		tpn.ForkDetector, err = processSync.NewMetaForkDetector(
+			log,
 			roundHandler,
 			tpn.BlockBlackListHandler,
 			tpn.BlockTracker,
 			args.StartTime,
 			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
+			tpn.DataPool.Proofs(),
+		)
 	}
 	if err != nil {
 		log.Error("error creating fork detector", "error", err)
@@ -1159,13 +1170,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
-			roundHandler,
-			tpn.BlockBlackListHandler,
-			tpn.BlockTracker,
-			0,
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -1186,13 +1190,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(
-			roundHandler,
-			tpn.BlockBlackListHandler,
-			tpn.BlockTracker,
-			0,
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -1213,7 +1210,15 @@ func (tpn *TestFullNode) initBlockTracker(
 	roundHandler consensus.RoundHandler,
 ) {
 
+	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/b/t/%s", id))
+
 	argBaseTracker := track.ArgBaseTracker{
+		Logger:              log,
 		Hasher:              TestHasher,
 		HeaderValidator:     tpn.HeaderValidator,
 		Marshalizer:         TestMarshalizer,

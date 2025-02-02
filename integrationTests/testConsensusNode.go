@@ -295,9 +295,6 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		epochTrigger.SetTrigger(epochStartTrigger)
 	}
 
-	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, genericEpochNotifier)
-
 	tcn.initRequestersFinder()
 
 	peerSigCache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 1000})
