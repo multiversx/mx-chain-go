@@ -108,13 +108,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	// This must be done after createBlock, in order to have the proper epoch set
-	wasProofAdded := sr.addProofOnHeader(header)
-	if !wasProofAdded {
-		sr.Log.Error("proof was not added")
-		return false
-	}
-
 	// block proof verification should be done over the header that contains the leader signature
 	leaderSignature, err := sr.signBlockHeader(header)
 	if err != nil {
@@ -366,43 +359,11 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	return hdr, nil
 }
 
-func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
-	prevBlockProof, err := sr.EquivalentProofsPool().GetProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
-	if err != nil {
-		sr.Log.Error("failed to get proof for header", "headerHash", sr.GetData())
-
-		if header.GetNonce() == 1 {
-			sr.Log.Error("first nonce")
-			return true
-		}
-
-		// for the first block after activation we won't add the proof
-		// TODO: fix this on verifications as well
-		return common.IsEpochChangeBlockForFlagActivation(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag)
-	}
-
-	if !isProofEmpty(prevBlockProof) {
-		header.SetPreviousProof(prevBlockProof)
-		return true
-	}
-
-	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
-	if err != nil {
-		hash = []byte("")
-	}
-
-	sr.Log.Debug("addProofOnHeader: no proof found", "header hash", hex.EncodeToString(hash))
-
-	return false
-}
-
-func isProofEmpty(proof data.HeaderProofHandler) bool {
-	return len(proof.GetAggregatedSignature()) == 0 ||
-		len(proof.GetPubKeysBitmap()) == 0 ||
-		len(proof.GetHeaderHash()) == 0
-}
-
 func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
+	if !common.ShouldBlockHavePrevProof(header, sr.EnableEpochsHandler(), common.EquivalentMessagesFlag) {
+		return
+	}
+
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
 		sr.Log.Debug("saverroofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
@@ -412,14 +373,13 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 	proof := header.GetPreviousProof()
 	err := common.VerifyProofAgainstHeader(proof, prevHeader)
 	if err != nil {
-		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof, %w", err)
+		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: invalid proof", "error", err.Error())
 		return
 	}
 
-	err = sr.EquivalentProofsPool().AddProof(proof)
-	if err != nil {
-		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: failed to add proof, %w", err.Error())
-		return
+	ok := sr.EquivalentProofsPool().AddProof(proof)
+	if !ok {
+		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: proof not added", "headerHash", hex.EncodeToString(proof.GetHeaderHash()))
 	}
 
 	sr.Log.Error("saveProofForPreviousHeaderIfNeeded: added proof on header", "proofHeader", proof.GetHeaderHash())
@@ -495,11 +455,22 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
 	nc := sr.NodesCoordinator()
+
+	prevBlockEpoch := uint32(0)
+	if sr.Blockchain().GetCurrentBlockHeader() != nil {
+		prevBlockEpoch = sr.Blockchain().GetCurrentBlockHeader().GetEpoch()
+	}
+	// TODO: remove this if first block in new epoch will be validated by epoch validators
+	// first block in epoch is validated by previous epoch validators
+	selectionEpoch := headerHandler.GetEpoch()
+	if selectionEpoch != prevBlockEpoch {
+		selectionEpoch = prevBlockEpoch
+	}
 	leader, _, err := nc.ComputeConsensusGroup(
 		headerHandler.GetPrevRandSeed(),
 		headerHandler.GetRound(),
 		headerHandler.GetShardID(),
-		headerHandler.GetEpoch(),
+		selectionEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -516,6 +487,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
 		sr.Log.Error("receivedBlockHeader: nil header fileds")
 		return
@@ -523,23 +495,24 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	isHeaderForCurrentConsensus, prevHeader := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
+		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
 		return
 	}
 
 	isLeader := sr.IsSelfLeader()
 	if sr.ConsensusGroup() == nil || isLeader {
-		sr.Log.Error("receivedBlockHeader: is leader")
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
 		return
 	}
 
 	if sr.IsConsensusDataSet() {
-		sr.Log.Error("receivedBlockHeader: consensus data is already set")
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - consensus data is set")
 		return
 	}
 
 	headerLeader, err := sr.getLeaderForHeader(headerHandler)
 	if err != nil {
-		sr.Log.Error("receivedBlockHeader: failed to get leader for header", "error", err)
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - error getting leader for header", err.Error())
 		return
 	}
 
@@ -550,22 +523,23 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 			spos.LeaderPeerHonestyDecreaseFactor,
 		)
 
-		sr.Log.Error("receivedBlockHeader: node leader not in current roud")
-
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - leader is not the leader in current round")
 		return
 	}
 
 	if sr.IsHeaderAlreadyReceived() {
-		sr.Log.Error("receivedBlockHeader: header already received")
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - header is already received")
 		return
 	}
 
 	if !sr.CanProcessReceivedHeader(string(headerLeader)) {
+		log.Debug("subroundBlock.receivedBlockHeader - can not process received header")
 		return
 	}
 
 	marshalledHeader, err := sr.Marshalizer().Marshal(headerHandler)
 	if err != nil {
+		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
 		return
 	}
 

@@ -18,7 +18,6 @@ type BroadcastMessengerMock struct {
 	BroadcastTransactionsCalled              func(map[string][][]byte, []byte) error
 	BroadcastConsensusMessageCalled          func(*consensus.Message) error
 	BroadcastBlockDataLeaderCalled           func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, pkBytes []byte) error
-	PrepareBroadcastEquivalentProofCalled    func(proof data.HeaderProofHandler, consensusIndex int, pkBytes []byte)
 }
 
 // BroadcastBlock -
@@ -124,17 +123,6 @@ func (bmm *BroadcastMessengerMock) BroadcastEquivalentProof(proof *block.HeaderP
 		return bmm.BroadcastEquivalentProofCalled(proof, pkBytes)
 	}
 	return nil
-}
-
-// PrepareBroadcastEquivalentProof -
-func (bmm *BroadcastMessengerMock) PrepareBroadcastEquivalentProof(
-	proof *block.HeaderProof,
-	consensusIndex int,
-	pkBytes []byte,
-) {
-	if bmm.PrepareBroadcastEquivalentProofCalled != nil {
-		bmm.PrepareBroadcastEquivalentProofCalled(proof, consensusIndex, pkBytes)
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

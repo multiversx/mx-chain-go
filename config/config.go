@@ -19,6 +19,11 @@ type HeadersPoolConfig struct {
 	NumElementsToRemoveOnEviction int
 }
 
+// ProofsPoolConfig will map the proofs cache configuration
+type ProofsPoolConfig struct {
+	CleanupNonceDelta uint64
+}
+
 // DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath            string
@@ -208,6 +213,7 @@ type Config struct {
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
+	ProofsPoolConfig        ProofsPoolConfig
 	BlockSizeThrottleConfig BlockSizeThrottleConfig
 	VirtualMachine          VirtualMachineServicesConfig
 	BuiltInFunctions        BuiltInFunctionsConfig
@@ -225,10 +231,9 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig         PeersRatingConfig
-	PoolsCleanersConfig       PoolsCleanersConfig
-	Redundancy                RedundancyConfig
-	ConsensusGradualBroadcast ConsensusGradualBroadcastConfig
+	PeersRatingConfig   PeersRatingConfig
+	PoolsCleanersConfig PoolsCleanersConfig
+	Redundancy          RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -675,11 +680,6 @@ type ChainParametersByEpochConfig struct {
 type IndexBroadcastDelay struct {
 	EndIndex            int
 	DelayInMilliseconds uint64
-}
-
-// ConsensusGradualBroadcastConfig holds the configuration for the consensus final info gradual broadcast
-type ConsensusGradualBroadcastConfig struct {
-	GradualIndexBroadcastDelay []IndexBroadcastDelay
 }
 
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier

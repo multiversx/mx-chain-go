@@ -1,7 +1,6 @@
 package interceptedBlocks
 
 import (
-	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,10 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const interceptedEquivalentProofType = "intercepted equivalent proof"
@@ -33,7 +30,6 @@ type ArgInterceptedEquivalentProof struct {
 	HeaderSigVerifier consensus.HeaderSigVerifier
 	Proofs            dataRetriever.ProofsPool
 	Headers           dataRetriever.HeadersPool
-	Storage           dataRetriever.StorageService
 }
 
 type interceptedEquivalentProof struct {
@@ -42,7 +38,6 @@ type interceptedEquivalentProof struct {
 	headerSigVerifier consensus.HeaderSigVerifier
 	proofsPool        dataRetriever.ProofsPool
 	headersPool       dataRetriever.HeadersPool
-	storage           dataRetriever.StorageService
 	marshaller        marshaling.Marshalizer
 	hasher            hashing.Hasher
 	hash              []byte
@@ -69,7 +64,6 @@ func NewInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) (*interce
 		proofsPool:        args.Proofs,
 		headersPool:       args.Headers,
 		marshaller:        args.Marshaller,
-		storage:           args.Storage,
 		hasher:            args.Hasher,
 		hash:              hash,
 	}, nil
@@ -94,9 +88,6 @@ func checkArgInterceptedEquivalentProof(args ArgInterceptedEquivalentProof) erro
 	if check.IfNil(args.Headers) {
 		return process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(args.Storage) {
-		return process.ErrNilStore
-	}
 	if check.IfNil(args.Hasher) {
 		return process.ErrNilHasher
 	}
@@ -119,6 +110,7 @@ func createEquivalentProof(marshaller marshal.Marshalizer, buff []byte) (*block.
 		"header round", headerProof.HeaderRound,
 		"bitmap", logger.DisplayByteSlice(headerProof.PubKeysBitmap),
 		"signature", logger.DisplayByteSlice(headerProof.AggregatedSignature),
+		"isEpochStart", headerProof.IsStartOfEpoch,
 	)
 
 	return headerProof, nil
@@ -139,6 +131,7 @@ func extractIsForCurrentShard(shardCoordinator sharding.Coordinator, equivalentP
 
 // CheckValidity checks if the received proof is valid
 func (iep *interceptedEquivalentProof) CheckValidity() error {
+	log.Debug("Checking intercepted equivalent proof validity", "proof header hash", iep.proof.HeaderHash)
 	err := iep.integrity()
 	if err != nil {
 		return err
@@ -146,29 +139,12 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 
 	ok := iep.proofsPool.HasProof(iep.proof.GetHeaderShardId(), iep.proof.GetHeaderHash())
 	if ok {
-		return proofscache.ErrAlreadyExistingEquivalentProof
+		return common.ErrAlreadyExistingEquivalentProof
 	}
 
-	err = iep.checkHeaderParamsFromProof()
-	if err != nil {
-		return err
-	}
+	// TODO: make sure proof fields (besides ones used to verify signature) should be checked on processing.
 
 	return iep.headerSigVerifier.VerifyHeaderProof(iep.proof)
-}
-
-func (iep *interceptedEquivalentProof) checkHeaderParamsFromProof() error {
-	headersStorer, err := iep.getHeadersStorer(iep.proof.GetHeaderShardId())
-	if err != nil {
-		return err
-	}
-
-	header, err := common.GetHeader(iep.proof.GetHeaderHash(), iep.headersPool, headersStorer, iep.marshaller)
-	if err != nil {
-		return fmt.Errorf("%w while getting header for proof hash %s", err, hex.EncodeToString(iep.proof.GetHeaderHash()))
-	}
-
-	return common.VerifyProofAgainstHeader(iep.proof, header)
 }
 
 func (iep *interceptedEquivalentProof) integrity() error {
@@ -180,14 +156,6 @@ func (iep *interceptedEquivalentProof) integrity() error {
 	}
 
 	return nil
-}
-
-func (iep *interceptedEquivalentProof) getHeadersStorer(shardID uint32) (storage.Storer, error) {
-	if shardID == core.MetachainShardId {
-		return iep.storage.GetStorer(dataRetriever.MetaBlockUnit)
-	}
-
-	return iep.storage.GetStorer(dataRetriever.BlockHeaderUnit)
 }
 
 // GetProof returns the underlying intercepted header proof
@@ -217,13 +185,15 @@ func (iep *interceptedEquivalentProof) Identifiers() [][]byte {
 
 // String returns the proof's most important fields as string
 func (iep *interceptedEquivalentProof) String() string {
-	return fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=%d, shard=%d, nonce=%d",
+	return fmt.Sprintf("bitmap=%s, signature=%s, hash=%s, epoch=%d, shard=%d, nonce=%d, round=%d, isEpochStart=%t",
 		logger.DisplayByteSlice(iep.proof.PubKeysBitmap),
 		logger.DisplayByteSlice(iep.proof.AggregatedSignature),
 		logger.DisplayByteSlice(iep.proof.HeaderHash),
 		iep.proof.HeaderEpoch,
 		iep.proof.HeaderShardId,
 		iep.proof.HeaderNonce,
+		iep.proof.HeaderRound,
+		iep.proof.IsStartOfEpoch,
 	)
 }
 

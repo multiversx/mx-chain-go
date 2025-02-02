@@ -70,7 +70,6 @@ type BroadcastMessenger interface {
 	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
 	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
-	PrepareBroadcastEquivalentProof(proof *block.HeaderProof, consensusIndex int, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 
@@ -203,7 +202,7 @@ type KeysHandler interface {
 
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
-	AddProof(headerProof data.HeaderProofHandler) error
+	AddProof(headerProof data.HeaderProofHandler) bool
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool

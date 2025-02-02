@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -16,15 +18,17 @@ var _ process.HeaderConstructionValidator = (*headerValidator)(nil)
 
 // ArgsHeaderValidator are the arguments needed to create a new header validator
 type ArgsHeaderValidator struct {
-	Logger      logger.Logger
-	Hasher      hashing.Hasher
-	Marshalizer marshal.Marshalizer
+	Logger              logger.Logger
+	Hasher              hashing.Hasher
+	Marshalizer         marshal.Marshalizer
+	EnableEpochsHandler core.EnableEpochsHandler
 }
 
 type headerValidator struct {
-	log         logger.Logger
-	hasher      hashing.Hasher
-	marshalizer marshal.Marshalizer
+	log                 logger.Logger
+	hasher              hashing.Hasher
+	marshalizer         marshal.Marshalizer
+	enableEpochsHandler core.EnableEpochsHandler
 }
 
 // NewHeaderValidator returns a new header validator
@@ -35,6 +39,9 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 	if check.IfNil(args.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.EnableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 
 	var log logger.Logger
 	log = logger.GetOrCreate("process/block")
@@ -43,9 +50,10 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 	}
 
 	return &headerValidator{
-		log:         log,
-		hasher:      args.Hasher,
-		marshalizer: args.Marshalizer,
+		log:                 log,
+		hasher:              args.Hasher,
+		marshalizer:         args.Marshalizer,
+		enableEpochsHandler: args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -97,9 +105,15 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 		return process.ErrRandSeedDoesNotMatch
 	}
 
-	// TODO: check here if proof from currHeader is valid for prevHeader
+	return h.verifyProofForBlock(prevHeader, currHeader.GetPreviousProof())
+}
 
-	return nil
+func (h *headerValidator) verifyProofForBlock(header data.HeaderHandler, proof data.HeaderProofHandler) error {
+	if !h.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return nil
+	}
+
+	return common.VerifyProofAgainstHeader(proof, header)
 }
 
 // IsInterfaceNil returns if underlying object is true

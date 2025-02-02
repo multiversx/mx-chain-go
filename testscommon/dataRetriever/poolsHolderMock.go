@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -61,11 +62,8 @@ func newPoolsHolderMock(log logger.Logger) *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			TxGasHandler: &txcachemocks.TxGasHandlerMock{
-				MinimumGasMove:       50000,
-				MinimumGasPrice:      200000000000,
-				GasProcessingDivisor: 100,
-			},
+			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
+			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			NumberOfShards: 1,
 		},
 	)
@@ -122,7 +120,7 @@ func newPoolsHolderMock(log logger.Logger) *PoolsHolderMock {
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.proofs = proofscache.NewProofsPool()
+	holder.proofs = proofscache.NewProofsPool(3)
 
 	return holder
 }

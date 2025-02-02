@@ -310,6 +310,13 @@ func (wrk *Worker) AddReceivedHeaderHandler(handler func(data.HeaderHandler)) {
 	wrk.mutReceivedHeadersHandler.Unlock()
 }
 
+// RemoveAllReceivedHeaderHandlers removes all the functions handlers
+func (wrk *Worker) RemoveAllReceivedHeaderHandlers() {
+	wrk.mutReceivedHeadersHandler.Lock()
+	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
+	wrk.mutReceivedHeadersHandler.Unlock()
+}
+
 // ReceivedProof process the received proof, calling each received proof handler registered in worker instance
 func (wrk *Worker) ReceivedProof(proofHandler consensus.ProofHandler) {
 	if check.IfNilReflect(proofHandler) {
@@ -573,6 +580,11 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
 	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
+
+	log.Trace("received message with signature",
+		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
+		"header hash", cnsMsg.BlockHeaderHash,
+	)
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) {

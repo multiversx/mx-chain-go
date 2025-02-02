@@ -54,6 +54,9 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, dataRetriever.ErrNilShardCoordinator
 	}
+	if check.IfNil(args.Marshalizer) {
+		return nil, dataRetriever.ErrNilMarshalizer
+	}
 	if check.IfNil(args.PathManager) {
 		return nil, dataRetriever.ErrNilPathManager
 	}
@@ -62,9 +65,10 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
 		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
+		TxGasHandler:   args.EconomicsData,
+		Marshalizer:    args.Marshalizer,
 		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
 		SelfShardID:    args.ShardCoordinator.SelfId(),
-		TxGasHandler:   args.EconomicsData,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
@@ -147,7 +151,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}
 
-	proofsPool := proofscache.NewProofsPool()
+	proofsPool := proofscache.NewProofsPool(mainConfig.ProofsPoolConfig.CleanupNonceDelta)
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 

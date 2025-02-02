@@ -362,7 +362,7 @@ type PeerAuthenticationPayloadValidator interface {
 
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
-	AddProof(headerProof data.HeaderProofHandler) error
+	AddProof(headerProof data.HeaderProofHandler) bool
 	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)

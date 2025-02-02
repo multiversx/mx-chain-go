@@ -304,8 +304,18 @@ func (sp *shardProcessor) ProcessBlock(
 	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		// check proofs for cross notarized metablocks
 		for _, metaBlockHash := range header.GetMetaBlockHashes() {
-			if !sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHash) {
-				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(metaBlockHash))
+			hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+			if !ok {
+				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
+			}
+
+			if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
+				continue
+			}
+
+			err = sp.checkProofRequestingNextHeaderBlockingIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+			if err != nil {
+				return err
 			}
 
 			sp.log.Debug("checking cross notarized metablocks: has proof for meta header", "headerHash", metaBlockHash)
@@ -579,15 +589,14 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 		return process.ErrNilBlockHeader
 	}
 
-	if common.IsFlagEnabledAfterEpochsStartBlock(header, sp.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		marshalledHeader, err := sp.marshalizer.Marshal(header)
-		if err != nil {
-			return err
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		hash, errHash := sp.getHeaderHash(header)
+		if errHash != nil {
+			return errHash
 		}
 
-		headerHash := sp.hasher.Compute(string(marshalledHeader))
-		if !sp.proofsPool.HasProof(header.GetShardID(), headerHash) {
-			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(headerHash))
+		if !sp.proofsPool.HasProof(header.GetShardID(), hash) {
+			return fmt.Errorf("%w, missing proof for header %s", process.ErrHeaderNotFinal, hex.EncodeToString(hash))
 		}
 
 		return nil
@@ -613,6 +622,19 @@ func (sp *shardProcessor) checkMetaHdrFinality(header data.HeaderHandler) error 
 				sp.log.Debug("checkMetaHdrFinality -> isHdrConstructionValid",
 					"error", err.Error())
 				continue
+			}
+
+			if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch()) {
+				hash, errHash := sp.getHeaderHash(metaHdr)
+				if errHash != nil {
+					return errHash
+				}
+
+				if sp.proofsPool.HasProof(core.MetachainShardId, hash) {
+					return nil
+				}
+
+				return process.ErrHeaderNotFinal
 			}
 
 			lastVerifiedHdr = metaHdr
@@ -886,6 +908,11 @@ func (sp *shardProcessor) CreateBlock(
 				return nil, nil, err
 			}
 		}
+	}
+
+	err = sp.addPrevProofIfNeeded(shardHdr)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr)
@@ -1446,6 +1473,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	}
 
 	sp.roundNotifier.CheckRound(header)
+	sp.epochNotifier.CheckEpoch(header)
 
 	err = shardHeader.SetNonce(nonce)
 	if err != nil {

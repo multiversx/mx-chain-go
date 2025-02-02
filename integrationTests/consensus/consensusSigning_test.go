@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
@@ -20,12 +21,17 @@ func initNodesWithTestSigner(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
-) map[uint32][]*integrationTests.TestConsensusNode {
+) map[uint32][]*integrationTests.TestFullNode {
 
 	fmt.Println("Step 1. Setup nodes...")
 
+	equivalentProofsActivationEpoch := uint32(0)
+
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	nodes := integrationTests.CreateNodesWithTestConsensusNode(
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
+
+	nodes := integrationTests.CreateNodesWithTestFullNode(
 		int(numMetaNodes),
 		int(numNodes),
 		int(consensusSize),
@@ -33,11 +39,8 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
+		false,
 	)
-
-	for shardID, nodesList := range nodes {
-		displayAndStartNodes(shardID, nodesList)
-	}
 
 	time.Sleep(p2pBootstrapDelay)
 
@@ -54,7 +57,7 @@ func initNodesWithTestSigner(
 						// sig share with invalid size
 						invalidSigShare = bytes.Repeat([]byte("a"), 3)
 					}
-					log.Warn("invalid sig share from ", "pk", getPkEncoded(nodes[shardID][ii].NodeKeys.Pk), "sig", invalidSigShare)
+					log.Warn("invalid sig share from ", "pk", getPkEncoded(nodes[shardID][ii].NodeKeys.MainKey.Pk), "sig", invalidSigShare)
 
 					return invalidSigShare, nil
 				}
@@ -75,7 +78,6 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(1)
 	roundTime := uint64(1000)
-	numCommBlock := uint64(8)
 
 	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
 
@@ -92,27 +94,29 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	fmt.Println("Start consensus...")
 	time.Sleep(time.Second)
 
-	for shardID := range nodes {
-		mutex := &sync.Mutex{}
-		nonceForRoundMap := make(map[uint64]uint64)
-		totalCalled := 0
+	for _, nodesList := range nodes {
+		for _, n := range nodesList {
+			err := startFullConsensusNode(n)
+			require.Nil(t, err)
+		}
+	}
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
-		assert.Nil(t, err)
+	fmt.Println("Wait for several rounds...")
 
-		chDone := make(chan bool)
-		go checkBlockProposedEveryRound(numCommBlock, nonceForRoundMap, mutex, chDone, t)
+	time.Sleep(15 * time.Second)
 
-		extraTime := uint64(2)
-		endTime := time.Duration(roundTime)*time.Duration(numCommBlock+extraTime)*time.Millisecond + time.Minute
-		select {
-		case <-chDone:
-		case <-time.After(endTime):
-			mutex.Lock()
-			log.Error("currently saved nonces for rounds", "nonceForRoundMap", nonceForRoundMap)
-			assert.Fail(t, "consensus too slow, not working.")
-			mutex.Unlock()
-			return
+	fmt.Println("Checking shards...")
+
+	expectedNonce := uint64(10)
+	for _, nodesList := range nodes {
+		for _, n := range nodesList {
+			for i := 1; i < len(nodes); i++ {
+				if check.IfNil(n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader()) {
+					assert.Fail(t, fmt.Sprintf("Node with idx %d does not have a current block", i))
+				} else {
+					assert.GreaterOrEqual(t, n.Node.GetDataComponents().Blockchain().GetCurrentBlockHeader().GetNonce(), expectedNonce)
+				}
+			}
 		}
 	}
 }

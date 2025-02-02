@@ -10,6 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -24,9 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxGasLimitPerBlock = uint64(1500000000)
@@ -107,8 +108,9 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
@@ -123,19 +125,23 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:              &hashingMocks.HasherMock{},
-			HeaderValidator:     headerValidator,
-			Marshalizer:         &mock.MarshalizerMock{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			RoundHandler:        &mock.RoundHandlerMock{},
-			ShardCoordinator:    shardCoordinatorMock,
-			Store:               initStore(),
-			StartHeaders:        genesisBlocks,
-			PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
-			WhitelistHandler:    whitelistHandler,
-			FeeHandler:          feeHandler,
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			ProofsPool:          &dataRetrieverMock.ProofsPoolMock{},
+			Hasher:           &hashingMocks.HasherMock{},
+			HeaderValidator:  headerValidator,
+			Marshalizer:      &mock.MarshalizerMock{},
+			RequestHandler:   &testscommon.RequestHandlerStub{},
+			RoundHandler:     &mock.RoundHandlerMock{},
+			ShardCoordinator: shardCoordinatorMock,
+			Store:            initStore(),
+			StartHeaders:     genesisBlocks,
+			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
+			WhitelistHandler: whitelistHandler,
+			FeeHandler:       feeHandler,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return false
+				},
+			},
+			ProofsPool: &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
 
@@ -147,8 +153,9 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	shardCoordinatorMock.CurrentShard = core.MetachainShardId
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	whitelistHandler := &testscommon.WhiteListHandlerStub{}
@@ -163,19 +170,23 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
-			Hasher:              &hashingMocks.HasherMock{},
-			HeaderValidator:     headerValidator,
-			Marshalizer:         &mock.MarshalizerMock{},
-			RequestHandler:      &testscommon.RequestHandlerStub{},
-			RoundHandler:        &mock.RoundHandlerMock{},
-			ShardCoordinator:    shardCoordinatorMock,
-			Store:               initStore(),
-			StartHeaders:        genesisBlocks,
-			PoolsHolder:         dataRetrieverMock.NewPoolsHolderMock(),
-			WhitelistHandler:    whitelistHandler,
-			FeeHandler:          feeHandler,
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			ProofsPool:          &dataRetrieverMock.ProofsPoolMock{},
+			Hasher:           &hashingMocks.HasherMock{},
+			HeaderValidator:  headerValidator,
+			Marshalizer:      &mock.MarshalizerMock{},
+			RequestHandler:   &testscommon.RequestHandlerStub{},
+			RoundHandler:     &mock.RoundHandlerMock{},
+			ShardCoordinator: shardCoordinatorMock,
+			Store:            initStore(),
+			StartHeaders:     genesisBlocks,
+			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
+			WhitelistHandler: whitelistHandler,
+			FeeHandler:       feeHandler,
+			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+					return false
+				},
+			},
+			ProofsPool: &dataRetrieverMock.ProofsPoolMock{},
 		},
 	}
 
@@ -186,8 +197,9 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerMock{},
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	feeHandler := &economicsmocks.EconomicsHandlerStub{
@@ -404,6 +416,9 @@ func TestShardGetSelfHeaders_ShouldWork(t *testing.T) {
 				},
 			}
 		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -440,6 +455,9 @@ func TestMetaGetSelfHeaders_ShouldWork(t *testing.T) {
 					return &block.MetaBlock{}, nil
 				},
 			}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
 		},
 	}
 	mbt, _ := track.NewMetaBlockTrack(metaArguments)
@@ -1685,6 +1703,9 @@ func TestAddHeaderFromPool_ShouldWork(t *testing.T) {
 				},
 			}
 		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
+		},
 	}
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -2257,7 +2278,7 @@ func TestComputeLongestChain_ShouldWorkWithLongestChain(t *testing.T) {
 	assert.Equal(t, longestChain+chains-1, uint64(len(headers)))
 }
 
-//------- CheckBlockAgainstRoundHandler
+// ------- CheckBlockAgainstRoundHandler
 
 func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()
@@ -2306,7 +2327,7 @@ func TestBaseBlockTrack_CheckBlockAgainstRoundHandlerShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CheckBlockAgainstFinal
+// ------- CheckBlockAgainstFinal
 
 func TestBaseBlockTrack_CheckBlockAgainstFinalNilHeaderShouldErr(t *testing.T) {
 	t.Parallel()

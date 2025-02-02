@@ -1,4 +1,4 @@
-FROM golang:1.20.7 as builder
+FROM golang:1.20.7 AS builder
 
 RUN apt-get update && apt-get install -y
 WORKDIR /go/mx-chain-go
@@ -12,5 +12,4 @@ RUN go build
 FROM ubuntu:22.04
 COPY --from=builder /go/mx-chain-go/cmd/keygenerator /go/mx-chain-go/cmd/keygenerator
 
-WORKDIR /go/mx-chain-go/cmd/keygenerator/
-ENTRYPOINT ["./keygenerator"]
+ENTRYPOINT ["/go/mx-chain-go/cmd/keygenerator/keygenerator"]

@@ -1,7 +1,6 @@
 package proofscache
 
 import (
-	"encoding/hex"
 	"fmt"
 	"sync"
 
@@ -9,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+const defaultCleanupNonceDelta = 3
 
 var log = logger.GetOrCreate("dataRetriever/proofscache")
 
@@ -18,22 +19,29 @@ type proofsPool struct {
 
 	mutAddedProofSubscribers sync.RWMutex
 	addedProofSubscribers    []func(headerProof data.HeaderProofHandler)
+	cleanupNonceDelta        uint64
 }
 
 // NewProofsPool creates a new proofs pool component
-func NewProofsPool() *proofsPool {
+func NewProofsPool(cleanupNonceDelta uint64) *proofsPool {
+	if cleanupNonceDelta < defaultCleanupNonceDelta {
+		log.Debug("proofs pool: using default cleanup nonce delta", "cleanupNonceDelta", defaultCleanupNonceDelta)
+		cleanupNonceDelta = defaultCleanupNonceDelta
+	}
+
 	return &proofsPool{
 		cache:                 make(map[uint32]*proofsCache),
 		addedProofSubscribers: make([]func(headerProof data.HeaderProofHandler), 0),
+		cleanupNonceDelta:     cleanupNonceDelta,
 	}
 }
 
 // AddProof will add the provided proof to the pool
 func (pp *proofsPool) AddProof(
 	headerProof data.HeaderProofHandler,
-) error {
+) bool {
 	if check.IfNilReflect(headerProof) {
-		return ErrNilProof
+		return false
 	}
 
 	shardID := headerProof.GetHeaderShardId()
@@ -41,31 +49,33 @@ func (pp *proofsPool) AddProof(
 
 	hasProof := pp.HasProof(shardID, headerHash)
 	if hasProof {
-		return fmt.Errorf("%w, headerHash: %s", ErrAlreadyExistingEquivalentProof, hex.EncodeToString(headerHash))
+		return false
 	}
 
 	pp.mutCache.Lock()
-	defer pp.mutCache.Unlock()
-
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
 		proofsPerShard = newProofsCache()
 		pp.cache[shardID] = proofsPerShard
 	}
+	pp.mutCache.Unlock()
 
-	log.Trace("added proof to pool",
+	log.Debug("added proof to pool",
 		"header hash", headerProof.GetHeaderHash(),
 		"epoch", headerProof.GetHeaderEpoch(),
 		"nonce", headerProof.GetHeaderNonce(),
 		"shardID", headerProof.GetHeaderShardId(),
 		"pubKeys bitmap", headerProof.GetPubKeysBitmap(),
+		"round", headerProof.GetHeaderRound(),
+		"nonce", headerProof.GetHeaderNonce(),
+		"isStartOfEpoch", headerProof.GetIsStartOfEpoch(),
 	)
 
 	proofsPerShard.addProof(headerProof)
 
 	pp.callAddedProofSubscribers(headerProof)
 
-	return nil
+	return true
 }
 
 func (pp *proofsPool) callAddedProofSubscribers(headerProof data.HeaderProofHandler) {
@@ -83,10 +93,15 @@ func (pp *proofsPool) CleanupProofsBehindNonce(shardID uint32, nonce uint64) err
 		return nil
 	}
 
-	pp.mutCache.RLock()
-	defer pp.mutCache.RUnlock()
+	if nonce <= pp.cleanupNonceDelta {
+		return nil
+	}
 
+	nonce -= pp.cleanupNonceDelta
+
+	pp.mutCache.RLock()
 	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
 	if !ok {
 		return fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
 	}
@@ -109,18 +124,14 @@ func (pp *proofsPool) GetProof(
 	if headerHash == nil {
 		return nil, fmt.Errorf("nil header hash")
 	}
-
-	// fmt.Println(string(debug.Stack()))
-
-	pp.mutCache.RLock()
-	defer pp.mutCache.RUnlock()
-
 	log.Trace("trying to get proof",
 		"headerHash", headerHash,
 		"shardID", shardID,
 	)
 
+	pp.mutCache.RLock()
 	proofsPerShard, ok := pp.cache[shardID]
+	pp.mutCache.RUnlock()
 	if !ok {
 		return nil, fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
 	}

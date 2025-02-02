@@ -36,7 +36,7 @@ type txLogProcessor struct {
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
-//  and saving them into the injected storage
+// and saving them into the injected storage
 func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	storer := args.Storer
 	if check.IfNil(storer) && args.SaveInStorageEnabled {
@@ -179,7 +179,6 @@ func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {
 	})
 	tlp.logsIndices[string(txHash)] = len(tlp.logs) - 1
 	tlp.mut.Unlock()
-
 }
 
 // For SC deployment transactions, we use the sender address

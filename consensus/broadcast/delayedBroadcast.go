@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -26,7 +25,6 @@ import (
 
 const prefixHeaderAlarm = "header_"
 const prefixDelayDataAlarm = "delay_"
-const prefixConsensusMessageAlarm = "message_"
 const sizeHeadersCache = 1000 // 1000 hashes in cache
 
 // ArgsDelayedBlockBroadcaster holds the arguments to create a delayed block broadcaster
@@ -37,7 +35,6 @@ type ArgsDelayedBlockBroadcaster struct {
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
 	AlarmScheduler        timersScheduler
-	Config                config.ConsensusGradualBroadcastConfig
 }
 
 // timersScheduler exposes functionality for scheduling multiple timers
@@ -51,11 +48,6 @@ type timersScheduler interface {
 type headerDataForValidator struct {
 	round        uint64
 	prevRandSeed []byte
-}
-
-type validatorProof struct {
-	proof   *block.HeaderProof
-	pkBytes []byte
 }
 
 type delayedBlockBroadcaster struct {
@@ -72,14 +64,9 @@ type delayedBlockBroadcaster struct {
 	broadcastMiniblocksData    func(mbData map[uint32][]byte, pkBytes []byte) error
 	broadcastTxsData           func(txData map[string][][]byte, pkBytes []byte) error
 	broadcastHeader            func(header data.HeaderHandler, pkBytes []byte) error
-	broadcastEquivalentProof   func(proof *block.HeaderProof, pkBytes []byte) error
 	broadcastConsensusMessage  func(message *consensus.Message) error
 	cacheHeaders               storage.Cacher
 	mutHeadersCache            sync.RWMutex
-	config                     config.ConsensusGradualBroadcastConfig
-	mutBroadcastFinalProof     sync.RWMutex
-	valBroadcastFinalProof     map[string]*validatorProof
-	cacheConsensusMessages     storage.Cacher
 }
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
@@ -102,11 +89,6 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, err
 	}
 
-	cacheConsensusMessages, err := cache.NewLRUCache(sizeHeadersCache)
-	if err != nil {
-		return nil, err
-	}
-
 	dbb := &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
@@ -115,14 +97,11 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),
 		valBroadcastData:           make([]*shared.DelayedBroadcastData, 0),
 		delayedBroadcastData:       make([]*shared.DelayedBroadcastData, 0),
-		valBroadcastFinalProof:     make(map[string]*validatorProof, 0),
 		maxDelayCacheSize:          args.LeaderCacheSize,
 		maxValidatorDelayCacheSize: args.ValidatorCacheSize,
 		mutDataForBroadcast:        sync.RWMutex{},
 		cacheHeaders:               cacheHeaders,
 		mutHeadersCache:            sync.RWMutex{},
-		config:                     args.Config,
-		cacheConsensusMessages:     cacheConsensusMessages,
 	}
 
 	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
@@ -254,60 +233,11 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *shared.Delay
 	return nil
 }
 
-// SetFinalProofForValidator sets the header proof to be broadcast by validator when its turn comes
-func (dbb *delayedBlockBroadcaster) SetFinalProofForValidator(
-	proof *block.HeaderProof,
-	consensusIndex int,
-	pkBytes []byte,
-) error {
-	if proof == nil {
-		return spos.ErrNilHeaderProof
-	}
-
-	// set alarm only for validators that are aware that the block was finalized
-	isProofValid := len(proof.AggregatedSignature) > 0 &&
-		len(proof.PubKeysBitmap) > 0 &&
-		len(proof.HeaderHash) > 0
-	if !isProofValid {
-		log.Trace("delayedBlockBroadcaster.SetFinalProofForValidator: consensus message alarm has not been set",
-			"validatorConsensusOrder", consensusIndex,
-		)
-
-		return nil
-	}
-
-	if dbb.cacheConsensusMessages.Has(proof.HeaderHash) {
-		return nil
-	}
-
-	duration := dbb.getBroadcastDelayForIndex(consensusIndex)
-	alarmID := prefixConsensusMessageAlarm + hex.EncodeToString(proof.HeaderHash)
-
-	vProof := &validatorProof{
-		proof:   proof,
-		pkBytes: pkBytes,
-	}
-	dbb.mutBroadcastFinalProof.Lock()
-	dbb.valBroadcastFinalProof[alarmID] = vProof
-	dbb.mutBroadcastFinalProof.Unlock()
-
-	dbb.alarm.Add(dbb.finalProofAlarmExpired, duration, alarmID)
-	log.Trace("delayedBlockBroadcaster.SetFinalProofForValidator: final proof alarm has been set",
-		"validatorConsensusOrder", consensusIndex,
-		"headerHash", proof.HeaderHash,
-		"alarmID", alarmID,
-		"duration", duration,
-	)
-
-	return nil
-}
-
 // SetBroadcastHandlers sets the broadcast handlers for miniBlocks and transactions
 func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 	headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
-	equivalentProofBroadcast func(proof *block.HeaderProof, pkBytes []byte) error,
 	consensusMessageBroadcast func(message *consensus.Message) error,
 ) error {
 	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil || consensusMessageBroadcast == nil {
@@ -320,7 +250,6 @@ func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	dbb.broadcastMiniblocksData = mbBroadcast
 	dbb.broadcastTxsData = txBroadcast
 	dbb.broadcastHeader = headerBroadcast
-	dbb.broadcastEquivalentProof = equivalentProofBroadcast
 	dbb.broadcastConsensusMessage = consensusMessageBroadcast
 
 	return nil
@@ -697,19 +626,6 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	dbb.cacheHeaders.Put(headerHash, struct{}{}, 0)
 	dbb.mutHeadersCache.Unlock()
 
-	// TODO: should be handled from interceptor
-	proof := headerHandler.GetPreviousProof()
-	var aggSig, bitmap []byte
-	if !check.IfNilReflect(proof) {
-		aggSig, bitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
-	}
-
-	// TODO: add common check for verifying proof validity
-	isFinalInfo := len(aggSig) > 0 && len(bitmap) > 0
-	if isFinalInfo {
-		dbb.cacheConsensusMessages.Put(headerHash, struct{}{}, 0)
-	}
-
 	log.Trace("delayedBlockBroadcaster.interceptedHeader",
 		"headerHash", headerHash,
 		"round", headerHandler.GetRound(),
@@ -717,7 +633,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	)
 
 	alarmsToCancel := make([]string, 0)
-	dbb.mutDataForBroadcast.RLock()
+	dbb.mutDataForBroadcast.Lock()
 	for i, broadcastData := range dbb.valHeaderBroadcastData {
 		samePrevRandSeed := bytes.Equal(broadcastData.Header.GetPrevRandSeed(), headerHandler.GetPrevRandSeed())
 		sameRound := broadcastData.Header.GetRound() == headerHandler.GetRound()
@@ -736,7 +652,7 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 		}
 	}
 
-	dbb.mutDataForBroadcast.RUnlock()
+	dbb.mutDataForBroadcast.Unlock()
 
 	for _, alarmID := range alarmsToCancel {
 		dbb.alarm.Cancel(alarmID)
@@ -816,49 +732,6 @@ func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler
 	}
 
 	return mbHashesForShard
-}
-
-func (dbb *delayedBlockBroadcaster) getBroadcastDelayForIndex(index int) time.Duration {
-	for i := 0; i < len(dbb.config.GradualIndexBroadcastDelay); i++ {
-		entry := dbb.config.GradualIndexBroadcastDelay[i]
-		if index > entry.EndIndex {
-			continue
-		}
-
-		return time.Duration(entry.DelayInMilliseconds) * time.Millisecond
-	}
-
-	return 0
-}
-
-func (dbb *delayedBlockBroadcaster) finalProofAlarmExpired(alarmID string) {
-	headerHash, err := hex.DecodeString(strings.TrimPrefix(alarmID, prefixConsensusMessageAlarm))
-	if err != nil {
-		log.Error("delayedBlockBroadcaster.finalProofAlarmExpired", "error", err.Error(),
-			"headerHash", headerHash,
-			"alarmID", alarmID,
-		)
-		return
-	}
-
-	dbb.mutBroadcastFinalProof.Lock()
-	defer dbb.mutBroadcastFinalProof.Unlock()
-	if dbb.cacheConsensusMessages.Has(headerHash) {
-		delete(dbb.valBroadcastFinalProof, alarmID)
-		return
-	}
-
-	vProof, ok := dbb.valBroadcastFinalProof[alarmID]
-	if !ok {
-		return
-	}
-
-	err = dbb.broadcastEquivalentProof(vProof.proof, vProof.pkBytes)
-	if err != nil {
-		log.Error("finalProofAlarmExpired.broadcastEquivalentProof", "error", err)
-	}
-
-	delete(dbb.valBroadcastFinalProof, alarmID)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
