@@ -653,19 +653,22 @@ func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, [
 
 	var proof [][]byte
 	var errGet error
-	hexKey := keyBytesToHex(key)
-	currentNode := rootNode
+
+	data := &nodeData{
+		currentNode: rootNode,
+		encodedNode: encodedNode,
+		hexKey:      keyBytesToHex(key),
+	}
 
 	for {
-		proof = append(proof, encodedNode)
-		value := currentNode.getValue()
+		proof = append(proof, data.encodedNode)
+		value := data.currentNode.getValue()
 
-		currentNode, encodedNode, hexKey, errGet = currentNode.getNext(hexKey, tr.trieStorage)
+		data, errGet = data.currentNode.getNext(data.hexKey, tr.trieStorage)
 		if errGet != nil {
 			return nil, nil, errGet
 		}
-
-		if currentNode == nil {
+		if data == nil {
 			return proof, value, nil
 		}
 	}
