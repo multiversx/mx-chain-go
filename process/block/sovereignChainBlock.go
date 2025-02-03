@@ -2065,7 +2065,7 @@ func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extended
 		log.Debug("extended block has been restored successfully",
 			"round", extendedHdr.GetRound(),
 			"nonce", extendedHdr.GetNonce(),
-			"hash", extendedHdr)
+			"hash", extendedHdrHash)
 	}
 
 	return nil
