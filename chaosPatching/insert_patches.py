@@ -4,6 +4,17 @@ from typing import Tuple
 
 
 def main():
+    do_replacements(
+        file_path=Path("cmd/node/main.go"),
+        replacements=[
+            (
+                "// chaos-testing-point/node_main_learnNodeDisplayName",
+                """chaos.Controller.LearnNodeDisplayName(preferencesConfig.Preferences.NodeDisplayName)"""
+            )
+        ],
+        with_import=True
+    )
+
     shutil.copyfile("chaosPatching/nodesCoordinator.go.patch", "sharding/nodesCoordinator/chaos.go")
 
     do_replacements(

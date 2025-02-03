@@ -9,7 +9,6 @@ import (
 	"github.com/klauspost/cpuid/v2"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -263,7 +262,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
 
-	chaos.Controller.LearnNodeDisplayName(preferencesConfig.Preferences.NodeDisplayName)
+	// chaos-testing-point/node_main_learnNodeDisplayName
 
 	return &config.Configs{
 		GeneralConfig:            generalConfig,
