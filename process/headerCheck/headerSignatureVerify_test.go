@@ -746,10 +746,10 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		args.EnableEpochsHandler = enableEpochs
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if epoch < activationEpoch {
-				return false
-			}
-			return true
+			return epoch >= activationEpoch
+		}
+		enableEpochs.GetActivationEpochCalled = func(flag core.EnableEpochFlag) uint32 {
+			return activationEpoch
 		}
 
 		args.NodesCoordinator = nc
@@ -775,6 +775,16 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		err := hdrSigVerifier.VerifySignature(header)
 		require.Nil(t, err)
 		require.False(t, wasCalled)
+
+		// check current block proof
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{0xff}, // bitmap should still have the old format
+			AggregatedSignature: []byte("aggregated signature"),
+			HeaderHash:          []byte("hash"),
+			HeaderEpoch:         1,
+			IsStartOfEpoch:      true,
+		})
+		require.Nil(t, err)
 	})
 	t.Run("check shard block following the transition block, which has lower consensus size but with a proof", func(t *testing.T) {
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
@@ -812,10 +822,10 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 				return nil
 			}})
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if epoch < activationEpoch {
-				return false
-			}
-			return true
+			return epoch >= activationEpoch
+		}
+		enableEpochs.GetActivationEpochCalled = func(flag core.EnableEpochFlag) uint32 {
+			return activationEpoch
 		}
 
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -881,10 +891,10 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 				return nil
 			}})
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if epoch < activationEpoch {
-				return false
-			}
-			return true
+			return epoch >= activationEpoch
+		}
+		enableEpochs.GetActivationEpochCalled = func(flag core.EnableEpochFlag) uint32 {
+			return activationEpoch
 		}
 
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -914,6 +924,19 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		err := hdrSigVerifier.VerifySignature(header)
 		require.Nil(t, err)
 		require.True(t, wasCalled)
+
+		// check current block proof
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{0xff, 0x3f}, // for current block, bitmap should have the new format
+			AggregatedSignature: []byte("aggregated signature"),
+			HeaderHash:          []byte("hash"),
+			HeaderEpoch:         1,
+			HeaderNonce:         100,
+			HeaderShardId:       0,
+			HeaderRound:         100,
+			IsStartOfEpoch:      false,
+		})
+		require.Nil(t, err)
 	})
 }
 
