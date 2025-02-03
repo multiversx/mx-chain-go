@@ -1985,9 +1985,9 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 		return nil
 	}
 
-	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
-		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
-	}
+	//for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
+	//	scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
+	//}
 
 	// restore last cross notarized at previous ????
 	return nil
