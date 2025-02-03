@@ -133,6 +133,7 @@ type processComponents struct {
 	receiptsRepository               mainFactory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
+	epochStartTriggerHanlder         epochStart.TriggerHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -709,7 +710,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator()
+	apiTransactionEvaluator, vmFactoryForTxSimulate, err := pcf.createAPITransactionEvaluator(epochStartTrigger)
 	if err != nil {
 		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
@@ -762,6 +763,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:                   pcf.accountsParser,
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
+		epochStartTriggerHanlder:         epochStartTrigger,
 	}, nil
 }
 

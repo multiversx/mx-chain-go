@@ -53,6 +53,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1218,6 +1219,29 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			PrevHash: prevShardHeaderHash,
 		}
 
+		metaBlockInstance := &block.MetaBlock{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						HeaderHash:            notarizedShardHeaderHash,
+						ShardID:               0,
+						FirstPendingMetaBlock: notarizedMetaHeaderHash,
+					},
+				},
+			},
+		}
+
+		prevMetaBlock := &block.MetaBlock{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						HeaderHash: notarizedShardHeaderHash,
+						ShardID:    0,
+					},
+				},
+			},
+		}
+
 		expectedErr := fmt.Errorf("expected error")
 		args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
@@ -1231,13 +1255,19 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.syncedHeaders = make(map[string]data.HeaderHandler)
-		epochStartProvider.epochStartMeta = metaBlock
+		epochStartProvider.epochStartMeta = metaBlockInstance
+		epochStartProvider.prevEpochStartMeta = prevMetaBlock
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 				return map[string]data.HeaderHandler{
 					string(notarizedShardHeaderHash): notarizedShardHeader,
 					string(prevShardHeaderHash):      prevShardHeader,
 				}, nil
+			},
+		}
+		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
+				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
 		}
 
@@ -1256,15 +1286,44 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			PrevHash: prevShardHeaderHash,
 		}
 
+		metaBlockInstance := &block.MetaBlock{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						HeaderHash:            notarizedShardHeaderHash,
+						ShardID:               0,
+						FirstPendingMetaBlock: notarizedMetaHeaderHash,
+					},
+				},
+			},
+		}
+
+		prevMetaBlock := &block.MetaBlock{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{
+						HeaderHash: notarizedShardHeaderHash,
+						ShardID:    0,
+					},
+				},
+			},
+		}
+
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.syncedHeaders = make(map[string]data.HeaderHandler)
-		epochStartProvider.epochStartMeta = metaBlock
+		epochStartProvider.epochStartMeta = metaBlockInstance
+		epochStartProvider.prevEpochStartMeta = prevMetaBlock
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 				return map[string]data.HeaderHandler{
 					string(notarizedShardHeaderHash): notarizedShardHeader,
 					string(prevShardHeaderHash):      prevShardHeader,
 				}, nil
+			},
+		}
+		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
+				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
 		}
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
@@ -1332,6 +1391,11 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 					string(notarizedMetaHeaderHash):  notarizedMetaHeader,
 					string(prevShardHeaderHash):      prevShardHeader,
 				}, nil
+			},
+		}
+		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
+				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 			},
 		}
 		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -1813,6 +1877,11 @@ func TestRequestAndProcessing(t *testing.T) {
 				}, nil
 			},
 		}
+		epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+			GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
+				return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
+			},
+		}
 		epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
@@ -1984,6 +2053,11 @@ func testRequestAndProcessingByShardId(t *testing.T, shardId uint32) {
 				string(prevNotarizedShardHeaderHash): prevNotarizedShardHeader,
 				string(notarizedMetaHeaderHash):      notarizedMetaHeader,
 			}, nil
+		},
+	}
+	epochStartProvider.epochStartShardHeaderSyncer = &updateMock.PendingEpochStartShardHeaderStub{
+		GetEpochStartHeaderCalled: func() (data.HeaderHandler, []byte, error) {
+			return &block.HeaderV2{}, []byte("epoch-start-hash"), nil
 		},
 	}
 	epochStartProvider.dataPool = dataRetrieverMock.NewPoolsHolderMock()

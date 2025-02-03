@@ -19,3 +19,21 @@ var ErrNilBlockchainHookCounter = errors.New("nil blockchain hook counter")
 
 // ErrNilMissingTrieNodesNotifier signals that a nil missing trie nodes notifier was provided
 var ErrNilMissingTrieNodesNotifier = errors.New("nil missing trie nodes notifier")
+
+// ErrNilEpochStartTriggerHandler signals that a nil epoch start trigger handler was provided
+var ErrNilEpochStartTriggerHandler = errors.New("nil epoch start trigger handler")
+
+// ErrNilRoundHandler signals that a nil round handler was provided
+var ErrNilRoundHandler = errors.New("nil round handler")
+
+// ErrNilCurrentHeader signals that a nil current header was provided
+var ErrNilCurrentHeader = errors.New("nil current header")
+
+// ErrNilEpochStartHeader signals that a nil epoch start header was provided
+var ErrNilEpochStartHeader = errors.New("nil epoch start header")
+
+// ErrNilLastCommitedEpochStartHdr signals that a nil last commited epoch start header was provided
+var ErrNilLastCommitedEpochStartHdr = errors.New("nil last commited epoch start header")
+
+// ErrLastCommitedEpochStartHdrMismatch signals that the current header epoch and last commited epoch start header epoch do not match
+var ErrLastCommitedEpochStartHdrMismatch = errors.New("current header epoch and last commited epoch start header epoch do not match")
