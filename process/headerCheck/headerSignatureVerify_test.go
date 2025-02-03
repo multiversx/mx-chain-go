@@ -746,10 +746,7 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 		args.EnableEpochsHandler = enableEpochs
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if epoch < activationEpoch {
-				return false
-			}
-			return true
+			return epoch >= activationEpoch
 		}
 
 		args.NodesCoordinator = nc
@@ -822,10 +819,7 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 				return nil
 			}})
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if epoch < activationEpoch {
-				return false
-			}
-			return true
+			return epoch >= activationEpoch
 		}
 
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
@@ -891,10 +885,7 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 				return nil
 			}})
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
-			if epoch < activationEpoch {
-				return false
-			}
-			return true
+			return epoch >= activationEpoch
 		}
 
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
