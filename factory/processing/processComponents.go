@@ -1786,7 +1786,10 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
-	id := hex.EncodeToString(pcf.nodesCoordinator.GetOwnPublicKey())[0:8]
+	id := hex.EncodeToString(pcf.nodesCoordinator.GetOwnPublicKey())
+	if len(id) > 6 {
+		id = id[0:6]
+	}
 
 	logger := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
 

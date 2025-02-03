@@ -274,7 +274,11 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 }
 
 func (ncf *networkComponentsFactory) createMainNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
-	id := ncf.cryptoComponents.PublicKeyString()[0:8]
+	id := ncf.cryptoComponents.PublicKeyString()
+	if len(id) > 6 {
+		id = id[0:8]
+	}
+
 	loggerInstance := logger.GetOrCreate(fmt.Sprintf("main/p2p/%s", id))
 
 	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, peersRatingHandler, p2p.MainNetwork)
