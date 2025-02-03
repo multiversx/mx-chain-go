@@ -1164,6 +1164,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 	args.PoolsHolder = pools
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewShardForkDetector(
+		&testscommon.LoggerStub{},
 		args.RoundHandler,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
@@ -1241,6 +1242,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 
 	args.RoundHandler = &mock.RoundHandlerMock{RoundIndex: 2}
 	args.ForkDetector, _ = sync.NewShardForkDetector(
+		&testscommon.LoggerStub{},
 		args.RoundHandler,
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},

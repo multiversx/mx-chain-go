@@ -72,6 +72,7 @@ func defaultSubround(
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 }
 
@@ -114,6 +115,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	t.Run("nil subround should error", func(t *testing.T) {
@@ -528,6 +530,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&testscommon.LoggerStub{},
 		)
 
 		srStartRound, _ := v2.NewSubroundStartRound(
@@ -580,6 +583,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&testscommon.LoggerStub{},
 		)
 
 		srStartRound, _ := v2.NewSubroundStartRound(
@@ -631,6 +635,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&testscommon.LoggerStub{},
 		)
 
 		srStartRound, _ := v2.NewSubroundStartRound(
@@ -693,6 +698,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&testscommon.LoggerStub{},
 		)
 
 		srStartRound, _ := v2.NewSubroundStartRound(
@@ -759,6 +765,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&testscommon.LoggerStub{},
 		)
 
 		srStartRound, _ := v2.NewSubroundStartRound(
@@ -791,6 +798,7 @@ func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	return sr
