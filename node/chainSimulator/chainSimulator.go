@@ -23,7 +23,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -154,6 +156,8 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		s.nodes[shardID] = node
 		s.handlers = append(s.handlers, chainHandler)
 
+		var epochStartBlockHeader data.HeaderHandler
+
 		if node.GetShardCoordinator().SelfId() == core.MetachainShardId {
 			currentRootHash, errRootHash := node.GetProcessComponents().ValidatorsStatistics().RootHash()
 			if errRootHash != nil {
@@ -177,6 +181,27 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			if err != nil {
 				return err
 			}
+
+			epochStartBlockHeader = &block.MetaBlock{
+				Nonce:     args.InitialNonce,
+				Epoch:     args.InitialEpoch,
+				Round:     uint64(args.InitialRound),
+				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+			}
+		} else {
+			epochStartBlockHeader = &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:     args.InitialNonce,
+					Epoch:     args.InitialEpoch,
+					Round:     uint64(args.InitialRound),
+					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+				},
+			}
+		}
+
+		err = node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -303,15 +328,18 @@ func (s *simulator) incrementRoundOnAllValidators() {
 // ForceChangeOfEpoch will force the change of current epoch
 // This method will call the epoch change trigger and generate block till a new epoch is reached
 func (s *simulator) ForceChangeOfEpoch() error {
+	s.mutex.Lock()
 	log.Info("force change of epoch")
 	for shardID, node := range s.nodes {
 		err := node.ForceChangeOfEpoch()
 		if err != nil {
+			s.mutex.Unlock()
 			return fmt.Errorf("force change of epoch shardID-%d: error-%w", shardID, err)
 		}
 	}
 
 	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+	s.mutex.Unlock()
 
 	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }
