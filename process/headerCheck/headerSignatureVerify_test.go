@@ -748,6 +748,9 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return epoch >= activationEpoch
 		}
+		enableEpochs.GetActivationEpochCalled = func(flag core.EnableEpochFlag) uint32 {
+			return activationEpoch
+		}
 
 		args.NodesCoordinator = nc
 		args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
@@ -821,6 +824,9 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return epoch >= activationEpoch
 		}
+		enableEpochs.GetActivationEpochCalled = func(flag core.EnableEpochFlag) uint32 {
+			return activationEpoch
+		}
 
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 		header := &dataBlock.HeaderV2{
@@ -886,6 +892,9 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 			}})
 		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return epoch >= activationEpoch
+		}
+		enableEpochs.GetActivationEpochCalled = func(flag core.EnableEpochFlag) uint32 {
+			return activationEpoch
 		}
 
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
