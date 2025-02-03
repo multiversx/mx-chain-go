@@ -216,4 +216,5 @@ type ProofHandler interface {
 	GetHeaderEpoch() uint32
 	GetHeaderNonce() uint64
 	GetHeaderShardId() uint32
+	GetIsStartOfEpoch() bool
 }
