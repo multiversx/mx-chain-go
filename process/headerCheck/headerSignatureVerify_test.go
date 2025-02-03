@@ -3,6 +3,8 @@ package headerCheck
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
@@ -710,6 +713,208 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 	err := hdrSigVerifier.VerifySignature(header)
 	require.Nil(t, err)
 	require.True(t, wasCalled)
+}
+
+func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testing.T) {
+	wasCalled := false
+	args := createHeaderSigVerifierArgs()
+	numValidatorsConsensusBeforeActivation := 7
+	numValidatorsConsensusAfterActivation := 10
+	eligibleListSize := numValidatorsConsensusAfterActivation
+	eligibleValidatorsKeys := make([]string, eligibleListSize)
+	eligibleValidators := make([]nodesCoordinator.Validator, eligibleListSize)
+	activationEpoch := uint32(1)
+
+	for i := 0; i < eligibleListSize; i++ {
+		eligibleValidatorsKeys[i] = "pubKey" + strconv.Itoa(i)
+		eligibleValidators[i], _ = nodesCoordinator.NewValidator([]byte(eligibleValidatorsKeys[i]), 1, defaultChancesSelection)
+	}
+
+	nc := &shardingMocks.NodesCoordinatorMock{
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validators []nodesCoordinator.Validator, err error) {
+			if epoch < activationEpoch {
+				return eligibleValidators[0], eligibleValidators[:numValidatorsConsensusBeforeActivation], nil
+			}
+			return eligibleValidators[0], eligibleValidators, nil
+		},
+		GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+			return eligibleValidatorsKeys, nil
+		},
+	}
+
+	t.Run("check transition block which has no previous proof", func(t *testing.T) {
+		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		args.EnableEpochsHandler = enableEpochs
+		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			if epoch < activationEpoch {
+				return false
+			}
+			return true
+		}
+
+		args.NodesCoordinator = nc
+		args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
+			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+				wasCalled = true
+				return nil
+			}})
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		header := &dataBlock.HeaderV2{
+			Header: &dataBlock.Header{
+				ShardID:            0,
+				PrevRandSeed:       []byte("prevRandSeed"),
+				PubKeysBitmap:      nil,
+				Signature:          nil,
+				Epoch:              1,
+				EpochStartMetaHash: []byte("epoch start meta hash"), // to make this the epoch start block in the shard
+
+			},
+			PreviousHeaderProof: nil,
+		}
+
+		err := hdrSigVerifier.VerifySignature(header)
+		require.Nil(t, err)
+		require.False(t, wasCalled)
+	})
+	t.Run("check shard block following the transition block, which has lower consensus size but with a proof", func(t *testing.T) {
+		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		args.EnableEpochsHandler = enableEpochs
+		args.StorageService = &genericMocks.ChainStorerMock{}
+
+		prevHeader := &dataBlock.HeaderV2{
+			Header: &dataBlock.Header{
+				Nonce:              99,
+				Round:              99,
+				ShardID:            0,
+				PrevHash:           []byte("prevPrevHash"),
+				PrevRandSeed:       []byte("prevRandSeed"),
+				PubKeysBitmap:      nil,
+				Signature:          nil,
+				Epoch:              0,
+				EpochStartMetaHash: []byte("epoch start meta hash"), // to make this the epoch start block in the shard
+			},
+			PreviousHeaderProof: nil,
+		}
+		prevHeaderHash := []byte("prevHeaderHash")
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("prevHeaderHash")) {
+					return prevHeader, nil
+				}
+				return nil, fmt.Errorf("header not found")
+			},
+		}
+		args.HeadersPool = headersPool
+		args.NodesCoordinator = nc
+		args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
+			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+				wasCalled = true
+				return nil
+			}})
+		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			if epoch < activationEpoch {
+				return false
+			}
+			return true
+		}
+
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		header := &dataBlock.HeaderV2{
+			Header: &dataBlock.Header{
+				Nonce:         100,
+				Round:         100,
+				ShardID:       0,
+				PrevHash:      prevHeaderHash,
+				PrevRandSeed:  []byte("prevRandSeed"),
+				PubKeysBitmap: nil,
+				Signature:     nil,
+				Epoch:         1,
+			},
+			PreviousHeaderProof: &dataBlock.HeaderProof{
+				PubKeysBitmap:       []byte{0x3F},
+				AggregatedSignature: []byte("aggregated signature"),
+				HeaderHash:          prevHeaderHash,
+				HeaderEpoch:         1,
+				HeaderNonce:         99,
+				HeaderShardId:       0,
+				HeaderRound:         99,
+				IsStartOfEpoch:      true,
+			},
+		}
+
+		err := hdrSigVerifier.VerifySignature(header)
+		require.Nil(t, err)
+		require.True(t, wasCalled)
+	})
+	t.Run("check regular shard block with full size consensus for previous proof", func(t *testing.T) {
+		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		args.EnableEpochsHandler = enableEpochs
+		args.StorageService = &genericMocks.ChainStorerMock{}
+
+		prevHeader := &dataBlock.HeaderV2{
+			Header: &dataBlock.Header{
+				Nonce:         100,
+				Round:         100,
+				ShardID:       0,
+				PrevHash:      []byte("prevPrevHash"),
+				PrevRandSeed:  []byte("prevRandSeed"),
+				PubKeysBitmap: nil,
+				Signature:     nil,
+				Epoch:         1,
+			},
+			PreviousHeaderProof: &dataBlock.HeaderProof{},
+		}
+		prevHeaderHash := []byte("prevHeaderHash")
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("prevHeaderHash")) {
+					return prevHeader, nil
+				}
+				return nil, fmt.Errorf("header not found")
+			},
+		}
+		args.HeadersPool = headersPool
+		args.NodesCoordinator = nc
+		args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
+			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+				wasCalled = true
+				return nil
+			}})
+		enableEpochs.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			if epoch < activationEpoch {
+				return false
+			}
+			return true
+		}
+
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		header := &dataBlock.HeaderV2{
+			Header: &dataBlock.Header{
+				Nonce:         101,
+				Round:         101,
+				ShardID:       0,
+				PrevHash:      prevHeaderHash,
+				PrevRandSeed:  []byte("prevRandSeed"),
+				PubKeysBitmap: nil,
+				Signature:     nil,
+				Epoch:         1,
+			},
+			PreviousHeaderProof: &dataBlock.HeaderProof{
+				PubKeysBitmap:       []byte{0x3F},
+				AggregatedSignature: []byte("aggregated signature"),
+				HeaderHash:          prevHeaderHash,
+				HeaderEpoch:         1,
+				HeaderNonce:         100,
+				HeaderShardId:       0,
+				HeaderRound:         100,
+				IsStartOfEpoch:      false,
+			},
+		}
+
+		err := hdrSigVerifier.VerifySignature(header)
+		require.Nil(t, err)
+		require.True(t, wasCalled)
+	})
 }
 
 func getFilledHeader() data.HeaderHandler {
