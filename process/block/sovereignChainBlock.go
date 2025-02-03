@@ -1990,8 +1990,8 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 	}
 
 	// restore last cross notarized at previous ????
-
-	return scbp.resetLastCrossNotarizedFromPrevHdr(sovChainHdr)
+	return nil
+	//	return scbp.resetLastCrossNotarizedFromPrevHdr(sovChainHdr)
 }
 
 func (scbp *sovereignChainBlockProcessor) resetLastCrossNotarizedFromPrevHdr(sovChainHdr data.SovereignChainHeaderHandler) error {
