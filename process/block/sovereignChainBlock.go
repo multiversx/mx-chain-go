@@ -1989,6 +1989,8 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
 	}
 
+	// restore last cross notarized at previous ????
+
 	return scbp.resetLastCrossNotarizedFromPrevHdr(sovChainHdr)
 }
 
@@ -2006,8 +2008,10 @@ func (scbp *sovereignChainBlockProcessor) resetLastCrossNotarizedFromPrevHdr(sov
 
 	numOfNotarizedExtendedHeaders := len(prevSovChainHdr.GetExtendedShardHeaderHashes())
 	log.Debug("sovereignChainBlockProcessor.resetLastCrossNotarizedFromPrevHdr", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
-	if numOfNotarizedExtendedHeaders <= 1 {
-		return nil
+
+	err = scbp.restoreExtendedHeaderIntoPool(prevSovChainHdr.GetExtendedShardHeaderHashes())
+	if err != nil {
+		return err
 	}
 
 	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
