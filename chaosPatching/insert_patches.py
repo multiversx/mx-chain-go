@@ -59,6 +59,20 @@ def main():
     )
 
     do_replacements(
+        file_path=Path("consensus/spos/bls/v1/subroundEndRound.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:v1/subroundEndRound_checkSignaturesValidity_returnError",
+                """if chaos.Controller.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.GetHeader()) {
+		return spos.ErrInvalidSignature
+	}
+"""
+            ),
+        ],
+        with_import=True
+    )
+
+    do_replacements(
         file_path=Path("consensus/spos/bls/v2/subroundBlock.go"),
         replacements=[
             (
@@ -70,7 +84,7 @@ def main():
                 """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header) {
         return false
 	}
-    """
+"""
             )
         ],
         with_import=True
