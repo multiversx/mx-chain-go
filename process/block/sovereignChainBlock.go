@@ -892,7 +892,7 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 	}
 
 	for _, extendedShardHdr := range extendedShardHdrs {
-		log.Trace("checkExtendedShardHeadersValidity",
+		log.Debug("checkExtendedShardHeadersValidity",
 			"extendedShardHeader nonce", extendedShardHdr.GetNonce(),
 			"extendedShardHeader round", extendedShardHdr.GetRound(),
 		)
@@ -1140,7 +1140,14 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBloc
 
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 	for _, headerInfo := range scbp.hdrsForCurrBlock.hdrHashAndInfo {
-		hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
+		log.Debug("sovereignChainBlockProcessor.sortExtendedShardHeadersForCurrentBlockByNonce",
+			"headerInfo.hdr.GetNonce()", headerInfo.hdr.GetNonce(),
+			"headerInfo.usedInBlock", headerInfo.usedInBlock,
+		)
+
+		if headerInfo.usedInBlock {
+			hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
+		}
 	}
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
