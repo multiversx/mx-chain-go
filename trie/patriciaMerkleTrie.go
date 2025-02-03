@@ -637,35 +637,33 @@ func logMapWithTrace(message string, paramName string, hashes common.ModifiedHas
 
 // GetProof computes a Merkle proof for the node that is present at the given key
 func (tr *patriciaMerkleTrie) GetProof(key []byte, rootHash []byte) ([][]byte, []byte, error) {
-	//TODO refactor this function to avoid encoding the node after it is retrieved from the DB.
-	// The encoded node is actually the value from db, thus we can use the retrieved value directly
-	if len(key) == 0 || bytes.Equal(rootHash, common.EmptyTrieHash) {
+	if common.IsEmptyTrie(rootHash) {
 		return nil, nil, ErrNilNode
 	}
 
-	rootNode, _, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
+	rootNode, encodedNode, err := getNodeFromDBAndDecode(rootHash, tr.trieStorage, tr.marshalizer, tr.hasher)
 	if err != nil {
 		return nil, nil, fmt.Errorf("trie get proof error: %w", err)
 	}
 
 	var proof [][]byte
-	hexKey := keyBytesToHex(key)
-	currentNode := rootNode
+	var errGet error
+
+	data := &nodeData{
+		currentNode: rootNode,
+		encodedNode: encodedNode,
+		hexKey:      keyBytesToHex(key),
+	}
 
 	for {
-		encodedNode, errGet := currentNode.getEncodedNode()
+		proof = append(proof, data.encodedNode)
+		value := data.currentNode.getValue()
+
+		data, errGet = data.currentNode.getNext(data.hexKey, tr.trieStorage)
 		if errGet != nil {
 			return nil, nil, errGet
 		}
-		proof = append(proof, encodedNode)
-		value := currentNode.getValue()
-
-		currentNode, hexKey, errGet = currentNode.getNext(hexKey, tr.trieStorage)
-		if errGet != nil {
-			return nil, nil, errGet
-		}
-
-		if currentNode == nil {
+		if data == nil {
 			return proof, value, nil
 		}
 	}

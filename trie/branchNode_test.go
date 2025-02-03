@@ -346,13 +346,17 @@ func TestBranchNode_getNext(t *testing.T) {
 	nextNode, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
-
-	n, key, err := bn.getNext(key, nil)
+	db := testscommon.NewMemDbMock()
+	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
+	data, err := bn.getNext(key, db)
+	assert.NotNil(t, data)
 
 	h1, _ := encodeNodeAndGetHash(nextNode)
-	h2, _ := encodeNodeAndGetHash(n)
+	h2, _ := encodeNodeAndGetHash(data.currentNode)
+	nextNodeBytes, _ := nextNode.getEncodedNode()
+	assert.Equal(t, nextNodeBytes, data.encodedNode)
 	assert.Equal(t, h1, h2)
-	assert.Equal(t, []byte("dog"), key)
+	assert.Equal(t, []byte("dog"), data.hexKey)
 	assert.Nil(t, err)
 }
 
@@ -362,9 +366,8 @@ func TestBranchNode_getNextWrongKey(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	n, key, err := bn.getNext(key, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
+	data, err := bn.getNext(key, nil)
+	assert.Nil(t, data)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 }
 
@@ -375,9 +378,8 @@ func TestBranchNode_getNextNilChild(t *testing.T) {
 	nilChildPos := byte(4)
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 
-	n, key, err := bn.getNext(key, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
+	data, err := bn.getNext(key, nil)
+	assert.Nil(t, data)
 	assert.Equal(t, ErrNodeNotFound, err)
 }
 
@@ -458,8 +460,8 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 
 	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	bnHash := bn.getHash()
-	ln, _, _ := bn.getNext(key, db)
-	lnHash := ln.getHash()
+	nd, _ := bn.getNext(key, db)
+	lnHash := nd.currentNode.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
 	goRoutinesManager := getTestGoroutinesManager()
@@ -586,8 +588,8 @@ func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 
 	bn.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	bnHash := bn.getHash()
-	ln, _, _ := bn.getNext(lnKey, db)
-	lnHash := ln.getHash()
+	nd, _ := bn.getNext(lnKey, db)
+	lnHash := nd.currentNode.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
 	goRoutinesManager := getTestGoroutinesManager()

@@ -165,9 +165,8 @@ func TestLeafNode_getNext(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := []byte("dog")
 
-	n, key, err := ln.getNext(key, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
+	data, err := ln.getNext(key, nil)
+	assert.Nil(t, data)
 	assert.Nil(t, err)
 }
 
@@ -177,9 +176,8 @@ func TestLeafNode_getNextWrongKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := append([]byte{2}, []byte("dog")...)
 
-	n, key, err := ln.getNext(wrongKey, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
+	data, err := ln.getNext(wrongKey, nil)
+	assert.Nil(t, data)
 	assert.Equal(t, ErrNodeNotFound, err)
 }
 

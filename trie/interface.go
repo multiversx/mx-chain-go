@@ -12,6 +12,12 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+type nodeData struct {
+	currentNode node
+	encodedNode []byte
+	hexKey      []byte
+}
+
 type baseTrieNode interface {
 	getHash() []byte
 	setGivenHash([]byte)
@@ -28,7 +34,7 @@ type node interface {
 	setHash(goRoutinesManager common.TrieGoroutinesManager)
 	getEncodedNode() ([]byte, error)
 	tryGet(key []byte, depth uint32, db common.TrieStorageInteractor) ([]byte, uint32, error)
-	getNext(key []byte, db common.TrieStorageInteractor) (node, []byte, error)
+	getNext(key []byte, db common.TrieStorageInteractor) (*nodeData, error)
 	insert(newData []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) node
 	delete(data []core.TrieData, goRoutinesManager common.TrieGoroutinesManager, modifiedHashes common.AtomicBytesSlice, db common.TrieStorageInteractor) (bool, node)
 	reduceNode(pos int, db common.TrieStorageInteractor) (node, bool, error)

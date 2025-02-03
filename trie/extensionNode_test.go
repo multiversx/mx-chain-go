@@ -275,7 +275,8 @@ func TestExtensionNode_getNext(t *testing.T) {
 	t.Parallel()
 
 	en, _ := getEnAndCollapsedEn()
-	nextNode, _ := getBnAndCollapsedBn(en.marsh, en.hasher)
+	db := testscommon.NewMemDbMock()
+	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -283,9 +284,12 @@ func TestExtensionNode_getNext(t *testing.T) {
 	key := append(enKey, bnKey...)
 	key = append(key, lnKey...)
 
-	n, newKey, err := en.getNext(key, nil)
-	assert.Equal(t, nextNode, n)
-	assert.Equal(t, key[1:], newKey)
+	data, err := en.getNext(key, db)
+	child, childBytes, _ := getNodeFromDBAndDecode(en.EncodedChild, db, en.marsh, en.hasher)
+	assert.NotNil(t, data)
+	assert.Equal(t, childBytes, data.encodedNode)
+	assert.Equal(t, child, data.currentNode)
+	assert.Equal(t, key[1:], data.hexKey)
 	assert.Nil(t, err)
 }
 
@@ -297,9 +301,8 @@ func TestExtensionNode_getNextWrongKey(t *testing.T) {
 	lnKey := []byte("dog")
 	key := append(bnKey, lnKey...)
 
-	n, key, err := en.getNext(key, nil)
-	assert.Nil(t, n)
-	assert.Nil(t, key)
+	data, err := en.getNext(key, nil)
+	assert.Nil(t, data)
 	assert.Equal(t, ErrNodeNotFound, err)
 }
 
@@ -352,8 +355,8 @@ func TestExtensionNode_insertInStoredEnSameKey(t *testing.T) {
 
 	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
 	enHash := en.getHash()
-	bn, _, _ := en.getNext(enKey, db)
-	bnHash := bn.getHash()
+	nd, _ := en.getNext(enKey, db)
+	bnHash := nd.currentNode.getHash()
 	expectedHashes := [][]byte{bnHash, enHash}
 
 	goRoutinesManager := getTestGoroutinesManager()
@@ -461,9 +464,9 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	en.setHash(getTestGoroutinesManager())
 
 	en.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), db, db)
-	bn, key, _ := en.getNext(key, db)
-	ln, _, _ := bn.getNext(key, db)
-	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
+	bnData, _ := en.getNext(key, db)
+	lnData, _ := bnData.currentNode.getNext(bnData.hexKey, db)
+	expectedHashes := [][]byte{lnData.currentNode.getHash(), bnData.currentNode.getHash(), en.getHash()}
 	data := []core.TrieData{{Key: lnPathKey}}
 
 	goRoutinesManager := getTestGoroutinesManager()
