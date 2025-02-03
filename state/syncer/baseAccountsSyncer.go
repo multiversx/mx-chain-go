@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 )
 
+const syncTrieIdentifier = "base sync main trie"
+
 type baseAccountsSyncer struct {
 	hasher                            hashing.Hasher
 	marshalizer                       marshal.Marshalizer
@@ -224,7 +226,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 		EnableEpochsHandler:  b.enableEpochsHandler,
 		MaxTrieLevelInMemory: b.maxTrieLevelInMemory,
 		Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
-		Identifier:           "base sync main trie ",
+		Identifier:           syncTrieIdentifier,
 	}
 	dataTrie, err := trie.NewTrie(trieArgs)
 	if err != nil {
