@@ -27,5 +27,8 @@ type ChainSimulator interface {
 	ForceResetValidatorStatisticsCache() error
 	GetValidatorPrivateKeys() []crypto.PrivateKey
 	SetKeyValueForAddress(address string, keyValueMap map[string]string) error
+	GetRestAPIInterfaces() map[uint32]string
+	ForceChangeOfEpoch() error
+	IsInterfaceNil() bool
 	Close()
 }
