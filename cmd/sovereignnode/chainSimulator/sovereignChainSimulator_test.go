@@ -1,16 +1,19 @@
 package chainSimulator
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
 
 const (
@@ -74,6 +77,112 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
+}
+
+func TestSovereignChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    20,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 1,
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
+
+	genesisBalances := make(map[string]*big.Int)
+	for _, stakeWallet := range chainSimulator.GetInitialWalletKeys().StakeWallets {
+		initialAccount, errGet := getAccount(nodeHandler, stakeWallet.Address.Bytes)
+		require.Nil(t, errGet)
+
+		genesisBalances[stakeWallet.Address.Bech32] = initialAccount.GetBalance()
+	}
+
+	time.Sleep(time.Second)
+
+	err = chainSimulator.GenerateBlocks(80)
+	require.Nil(t, err)
+
+	numAccountsWithIncreasedBalances := 0
+	for _, stakeWallet := range chainSimulator.GetInitialWalletKeys().StakeWallets {
+		account, errGet := getAccount(nodeHandler, stakeWallet.Address.Bytes)
+		require.Nil(t, errGet)
+
+		if account.GetBalance().Cmp(genesisBalances[stakeWallet.Address.Bech32]) > 0 {
+			numAccountsWithIncreasedBalances++
+		}
+	}
+
+	require.True(t, numAccountsWithIncreasedBalances > 0)
+}
+
+func getAccount(nodeHandler process.NodeHandler, addressBytes []byte) (vmcommon.UserAccountHandler, error) {
+	account, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount(addressBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return account.(vmcommon.UserAccountHandler), nil
+}
+
+func TestSovereignSimulator_TriggerChangeOfEpoch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    20,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 1,
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
+	currentEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
+	require.Equal(t, uint32(4), currentEpoch)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {
