@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2243,7 +2242,7 @@ func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 		_ = tr.Update(key, value)
 		values[i] = key
 	}
-	_ = tr.Commit()
+	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 	b.ResetTimer()
 
