@@ -15,6 +15,7 @@ type goroutinesManager struct {
 
 	mutex      sync.RWMutex
 	canProcess bool
+	identifier string
 }
 
 // NewGoroutinesManager creates a new GoroutinesManager
@@ -22,6 +23,7 @@ func NewGoroutinesManager(
 	throttler core.Throttler,
 	errorChannel common.BufferedErrChan,
 	chanClose chan struct{},
+	identifier string,
 ) (*goroutinesManager, error) {
 	if check.IfNil(throttler) {
 		return nil, ErrNilThrottler
@@ -38,6 +40,7 @@ func NewGoroutinesManager(
 		errorChannel: errorChannel,
 		chanClose:    chanClose,
 		canProcess:   true,
+		identifier:   identifier,
 	}, nil
 }
 
@@ -45,6 +48,7 @@ func NewGoroutinesManager(
 func (gm *goroutinesManager) ShouldContinueProcessing() bool {
 	select {
 	case <-gm.chanClose:
+		log.Trace("goroutines manager closed", "identifier", gm.identifier)
 		return false
 	default:
 		gm.mutex.RLock()
@@ -63,6 +67,7 @@ func (gm *goroutinesManager) CanStartGoRoutine() bool {
 		return false
 	}
 
+	log.Trace("starting processing goroutine", "identifier", gm.identifier)
 	gm.throttler.StartProcessing()
 	return true
 }
@@ -72,6 +77,7 @@ func (gm *goroutinesManager) EndGoRoutineProcessing() {
 	gm.mutex.Lock()
 	defer gm.mutex.Unlock()
 
+	log.Trace("ending processing goroutine", "identifier", gm.identifier)
 	gm.throttler.EndProcessing()
 }
 
@@ -94,6 +100,7 @@ func (gm *goroutinesManager) SetError(err error) {
 	gm.mutex.Lock()
 	defer gm.mutex.Unlock()
 
+	log.Trace("setting error", "identifier", gm.identifier, "error", err)
 	gm.errorChannel.WriteInChanNonBlocking(err)
 	gm.canProcess = false
 }

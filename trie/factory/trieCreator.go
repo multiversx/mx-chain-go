@@ -93,6 +93,7 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		EnableEpochsHandler:  args.EnableEpochsHandler,
 		MaxTrieLevelInMemory: args.MaxTrieLevelInMem,
 		Throttler:            goRoutinesThrottler,
+		Identifier:           string(common.MainTrie),
 	}
 
 	newTrie, err := trie.NewTrie(trArgs)

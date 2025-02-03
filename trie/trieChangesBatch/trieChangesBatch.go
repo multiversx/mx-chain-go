@@ -6,20 +6,25 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("trieBatch")
 
 type trieChangesBatch struct {
 	insertedData map[string]core.TrieData
 	deletedKeys  map[string]struct{}
 
-	mutex sync.RWMutex
+	identifier string
+	mutex      sync.RWMutex
 }
 
 // NewTrieChangesBatch creates a new instance of trieChangesBatch
-func NewTrieChangesBatch() *trieChangesBatch {
+func NewTrieChangesBatch(identifier string) *trieChangesBatch {
 	return &trieChangesBatch{
 		insertedData: make(map[string]core.TrieData),
 		deletedKeys:  make(map[string]struct{}),
+		identifier:   identifier,
 	}
 }
 
@@ -77,6 +82,8 @@ func (t *trieChangesBatch) GetSortedDataForInsertion() []core.TrieData {
 		data = append(data, t.insertedData[k])
 	}
 
+	log.Trace("sorted data for insertion", "identifier", t.identifier, "num insertions", len(data))
+
 	return getSortedData(data)
 }
 
@@ -89,6 +96,8 @@ func (t *trieChangesBatch) GetSortedDataForRemoval() []core.TrieData {
 	for k := range t.deletedKeys {
 		data = append(data, core.TrieData{Key: []byte(k)})
 	}
+
+	log.Trace("sorted data for removal", "identifier", t.identifier, "num deletes", len(data))
 
 	return getSortedData(data)
 }

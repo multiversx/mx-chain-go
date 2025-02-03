@@ -11,7 +11,7 @@ import (
 func TestNewTrieChangesBatch(t *testing.T) {
 	t.Parallel()
 
-	tcb := NewTrieChangesBatch()
+	tcb := NewTrieChangesBatch("")
 	assert.False(t, check.IfNil(tcb))
 	assert.Equal(t, 0, len(tcb.insertedData))
 	assert.Equal(t, 0, len(tcb.deletedKeys))
@@ -26,7 +26,7 @@ func TestTrieChangesBatch_Add(t *testing.T) {
 		Version: core.NotSpecified,
 	}
 
-	tcb := NewTrieChangesBatch()
+	tcb := NewTrieChangesBatch("")
 	tcb.deletedKeys[string(dataForInsertion.Key)] = struct{}{}
 
 	tcb.Add(dataForInsertion)
@@ -40,7 +40,7 @@ func TestTrieChangesBatch_MarkForRemoval(t *testing.T) {
 
 	keyForDeletion := []byte("keyForDeletion")
 
-	tcb := NewTrieChangesBatch()
+	tcb := NewTrieChangesBatch("")
 	tcb.insertedData[string(keyForDeletion)] = core.TrieData{
 		Key:     []byte("trieKey"),
 		Value:   []byte("trieValue"),
@@ -63,7 +63,7 @@ func TestTrieChangesBatch_Get(t *testing.T) {
 		key := []byte("key")
 		value := []byte("value")
 
-		tcb := NewTrieChangesBatch()
+		tcb := NewTrieChangesBatch("")
 		tcb.insertedData[string(key)] = core.TrieData{
 			Key:     key,
 			Value:   value,
@@ -78,7 +78,7 @@ func TestTrieChangesBatch_Get(t *testing.T) {
 		t.Parallel()
 
 		key := []byte("key")
-		tcb := NewTrieChangesBatch()
+		tcb := NewTrieChangesBatch("")
 		tcb.deletedKeys[string(key)] = struct{}{}
 
 		data, foundInBatch := tcb.Get(key)
@@ -89,7 +89,7 @@ func TestTrieChangesBatch_Get(t *testing.T) {
 		t.Parallel()
 
 		key := []byte("key")
-		tcb := NewTrieChangesBatch()
+		tcb := NewTrieChangesBatch("")
 
 		data, foundInBatch := tcb.Get(key)
 		assert.False(t, foundInBatch)
@@ -100,7 +100,7 @@ func TestTrieChangesBatch_Get(t *testing.T) {
 func TestTrieChangesBatch_GetSortedDataForInsertion(t *testing.T) {
 	t.Parallel()
 
-	tcb := NewTrieChangesBatch()
+	tcb := NewTrieChangesBatch("")
 	tcb.insertedData["key3"] = core.TrieData{Key: []byte("key3")}
 	tcb.insertedData["key1"] = core.TrieData{Key: []byte("key1")}
 	tcb.insertedData["key2"] = core.TrieData{Key: []byte("key2")}
@@ -115,7 +115,7 @@ func TestTrieChangesBatch_GetSortedDataForInsertion(t *testing.T) {
 func TestTrieChangesBatch_GetSortedDataForRemoval(t *testing.T) {
 	t.Parallel()
 
-	tcb := NewTrieChangesBatch()
+	tcb := NewTrieChangesBatch("")
 
 	tcb.deletedKeys["key3"] = struct{}{}
 	tcb.deletedKeys["key1"] = struct{}{}

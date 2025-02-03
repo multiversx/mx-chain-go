@@ -2,7 +2,7 @@ package storagePruningManager
 
 import (
 	"testing"
-	
+
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -234,7 +234,7 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	spm.CancelPrune(rootHash, state.OldRoot, trieStorage)
 	spm.PruneTrie(rootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 
-	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 }

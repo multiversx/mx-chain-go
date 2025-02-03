@@ -437,7 +437,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	}
 
 	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
-	dataTrie, err := mainTrie.Recreate(rootHashHolder)
+	dataTrie, err := mainTrie.Recreate(rootHashHolder, hex.EncodeToString(accountHandler.AddressBytes()))
 	if err != nil {
 		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
 	}
@@ -878,7 +878,7 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
-	newTrie, err := adb.mainTrie.Recreate(options)
+	newTrie, err := adb.mainTrie.Recreate(options, string(common.MainTrie))
 	if err != nil {
 		return err
 	}
@@ -925,7 +925,7 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 		userAccountRootHash := userAccount.GetRootHash()
 		if len(userAccountRootHash) > 0 {
 			rootHashHolder := holders.NewDefaultRootHashesHolder(userAccountRootHash)
-			dataTrie, errRecreate := mainTrie.Recreate(rootHashHolder)
+			dataTrie, errRecreate := mainTrie.Recreate(rootHashHolder, "")
 			if errRecreate != nil {
 				return nil, errRecreate
 			}
@@ -964,7 +964,7 @@ func getUserAccountFromBytes(accountFactory AccountFactory, marshaller marshal.M
 
 func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {
 	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	recreatedTrie, err := adb.getMainTrie().Recreate(rootHashHolder)
+	recreatedTrie, err := adb.getMainTrie().Recreate(rootHashHolder, string(common.MainTrie))
 	if err != nil {
 		return nil, err
 	}
@@ -978,7 +978,7 @@ func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie
 // GetTrie returns the trie that has the given rootHash
 func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
 	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	return adb.getMainTrie().Recreate(rootHashHolder)
+	return adb.getMainTrie().Recreate(rootHashHolder, "")
 }
 
 // Journalize adds a new object to entries list.

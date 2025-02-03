@@ -421,7 +421,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 
 		tr := initTrie()
 
-		newTr, err := tr.Recreate(nil)
+		newTr, err := tr.Recreate(nil, "")
 		assert.Nil(t, newTr)
 		assert.Equal(t, trie.ErrNilRootHashHolder, err)
 	})
@@ -434,7 +434,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 
 		rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-		newTr, err := tr.Recreate(rootHashHolder)
+		newTr, err := tr.Recreate(rootHashHolder, "")
 		assert.Nil(t, err)
 
 		assert.True(t, trie.IsBaseTrieStorageManager(newTr.GetStorageManager()))
@@ -452,7 +452,7 @@ func TestPatriciaMerkleTrie_Recreate(t *testing.T) {
 			HasValue: true,
 		}
 		rootHashHolder := holders.NewRootHashHolder(rootHash, optionalUint32)
-		newTr, err := tr.Recreate(rootHashHolder)
+		newTr, err := tr.Recreate(rootHashHolder, "")
 		assert.Nil(t, err)
 
 		assert.True(t, trie.IsTrieStorageManagerInEpoch(newTr.GetStorageManager()))
@@ -464,7 +464,7 @@ func TestPatriciaMerkleTrie_RecreateWithInvalidRootHash(t *testing.T) {
 
 	tr := initTrie()
 
-	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder([]byte{}))
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder([]byte{}), "")
 	assert.Nil(t, err)
 	root, _ := newTr.RootHash()
 	assert.Equal(t, emptyTrieHash, root)
@@ -988,7 +988,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 					HasValue: true,
 				}
 				rootHashHolder := holders.NewRootHashHolder(initialRootHash, epoch)
-				_, err := tr.Recreate(rootHashHolder)
+				_, err := tr.Recreate(rootHashHolder, "")
 				assert.Nil(t, err)
 			case 6:
 				_, err := tr.GetSerializedNode(initialRootHash)
@@ -1367,7 +1367,7 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		addDefaultDataToTrie(tr)
 		_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 		rootHash, _ := tr.RootHash()
-		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 		dtr := collapsedTrie.(dataTrie)
 		dtm := &trieMock.DataTrieMigratorStub{
 			ConsumeStorageLoadGasCalled: func() bool {
@@ -1783,7 +1783,7 @@ func TestPatriciaMerkleTrie_Get(t *testing.T) {
 
 		// collapse the trie
 		rootHash, _ := tr.RootHash()
-		tr, _ = tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+		tr, _ = tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 
 		for i := numTrieValues; i < numTrieValues+numBatchValues; i++ {
 			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"+strconv.Itoa(i)))

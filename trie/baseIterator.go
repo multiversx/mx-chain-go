@@ -18,7 +18,7 @@ func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 		return nil, ErrNilTrie
 	}
 
-	trie, err := trie.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	trie, err := trie.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 	if err != nil {
 		return nil, err
 	}

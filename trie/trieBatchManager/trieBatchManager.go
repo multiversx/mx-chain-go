@@ -8,7 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/trieChangesBatch"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("trieBatch")
 
 // ErrTrieUpdateInProgress signals that a trie update is in progress
 var ErrTrieUpdateInProgress = errors.New("trie update is in progress")
@@ -18,15 +21,17 @@ type trieBatchManager struct {
 	tempBatch    common.TrieBatcher
 
 	isUpdateInProgress bool
+	identifier         string
 	mutex              sync.RWMutex
 }
 
 // NewTrieBatchManager creates a new instance of trieBatchManager
-func NewTrieBatchManager() *trieBatchManager {
+func NewTrieBatchManager(identifier string) *trieBatchManager {
 	return &trieBatchManager{
-		currentBatch:       trieChangesBatch.NewTrieChangesBatch(),
+		currentBatch:       trieChangesBatch.NewTrieChangesBatch(identifier),
 		tempBatch:          nil,
 		isUpdateInProgress: false,
+		identifier:         identifier,
 	}
 }
 
@@ -39,9 +44,11 @@ func (t *trieBatchManager) MarkTrieUpdateInProgress() (common.TrieBatcher, error
 		return nil, ErrTrieUpdateInProgress
 	}
 
+	log.Debug("marking trie update in progress", "identifier", t.identifier)
+
 	t.isUpdateInProgress = true
 	t.tempBatch = t.currentBatch
-	t.currentBatch = trieChangesBatch.NewTrieChangesBatch()
+	t.currentBatch = trieChangesBatch.NewTrieChangesBatch(t.identifier)
 
 	return t.tempBatch, nil
 }
@@ -51,6 +58,8 @@ func (t *trieBatchManager) MarkTrieUpdateCompleted() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
+	log.Trace("marking trie update completed", "identifier", t.identifier)
+
 	t.isUpdateInProgress = false
 	t.tempBatch = nil
 }
@@ -59,6 +68,8 @@ func (t *trieBatchManager) MarkTrieUpdateCompleted() {
 func (t *trieBatchManager) Add(data core.TrieData) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
+
+	log.Trace("adding data to the current batch", "identifier", t.identifier, "key", data.Key, "value", data.Value)
 
 	t.currentBatch.Add(data)
 }
@@ -70,16 +81,19 @@ func (t *trieBatchManager) Get(key []byte) ([]byte, bool) {
 
 	val, isPresent := t.currentBatch.Get(key)
 	if isPresent {
+		log.Trace("found data in the current batch", "identifier", t.identifier, "key", key, "value", val)
 		return val, true
 	}
 
 	if t.isUpdateInProgress && !check.IfNil(t.tempBatch) {
 		val, isPresent = t.tempBatch.Get(key)
 		if isPresent {
+			log.Trace("found data in the temp batch", "identifier", t.identifier, "key", key, "value", val)
 			return val, true
 		}
 	}
 
+	log.Trace("data not found in any batch", "identifier", t.identifier, "key", key)
 	return nil, false
 }
 
@@ -87,6 +101,8 @@ func (t *trieBatchManager) Get(key []byte) ([]byte, bool) {
 func (t *trieBatchManager) MarkForRemoval(key []byte) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
+
+	log.Trace("marking key for removal in the current batch", "identifier", t.identifier, "key", key)
 
 	t.currentBatch.MarkForRemoval(key)
 }

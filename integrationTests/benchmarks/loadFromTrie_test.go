@@ -70,7 +70,7 @@ func testTrieLoadTime(t *testing.T, numChildrenPerBranch int, numTries int, maxT
 func timeTrieRecreate(tries []*keyForTrie, depth int) {
 	startTime := time.Now()
 	for j := range tries {
-		_, _ = tries[j].tr.Recreate(holders.NewDefaultRootHashesHolder(tries[j].key))
+		_, _ = tries[j].tr.Recreate(holders.NewDefaultRootHashesHolder(tries[j].key), "")
 	}
 	duration := time.Since(startTime)
 	fmt.Printf("trie with depth %d, duration %d \n", depth, duration.Nanoseconds()/int64(len(tries)))
@@ -117,7 +117,7 @@ func generateTriesWithMaxDepth(
 		key := insertKeysIntoTrie(t, tr, numTrieLevels, numChildrenPerBranch)
 
 		rootHash, _ := tr.RootHash()
-		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 
 		if numTrieLevels == 1 {
 			key = rootHash

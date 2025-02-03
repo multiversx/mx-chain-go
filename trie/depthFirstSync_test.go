@@ -123,7 +123,7 @@ func TestDepthFirstTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash), "")
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
@@ -200,7 +200,7 @@ func TestDepthFirstTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash), "")
 	require.False(t, check.IfNil(trie))
 
 	var val []byte

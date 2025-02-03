@@ -28,7 +28,7 @@ const initialModifiedHashesCapacity = 10
 
 func getTestGoroutinesManager() common.TrieGoroutinesManager {
 	th, _ := throttler.NewNumGoRoutinesThrottler(5)
-	goRoutinesManager, _ := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+	goRoutinesManager, _ := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 
 	return goRoutinesManager
 }
@@ -94,7 +94,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		maxTrieLevelInMemory:    5,
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		batchManager:            trieBatchManager.NewTrieBatchManager(),
+		batchManager:            trieBatchManager.NewTrieBatchManager(""),
 		goRoutinesManager:       getTestGoroutinesManager(),
 		RootManager:             NewRootManager(),
 		trieOperationInProgress: &atomic.Flag{},
@@ -888,7 +888,7 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("zzz"), []byte("zzz"))
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
-	collapsedTrie, _ := tr.recreate(rootHash, tr.trieStorage)
+	collapsedTrie, _ := tr.recreate(rootHash, "", tr.trieStorage)
 	collapsedRoot := collapsedTrie.GetRootNode()
 
 	collapsedTrie.Delete([]byte("zzz"))
