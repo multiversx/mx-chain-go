@@ -140,6 +140,14 @@ type EpochStartPendingMiniBlocksSyncHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PendingEpochStartShardHeaderSyncHandler defines the methods to sync pending epoch start shard headers
+type PendingEpochStartShardHeaderSyncHandler interface {
+	SyncEpochStartShardHeader(shardId uint32, epoch uint32, startNonce uint64, ctx context.Context) error
+	GetEpochStartHeader() (data.HeaderHandler, []byte, error)
+	ClearFields()
+	IsInterfaceNil() bool
+}
+
 // TransactionsSyncHandler defines the methods to sync all transactions from a set of miniblocks
 type TransactionsSyncHandler interface {
 	SyncTransactionsFor(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error

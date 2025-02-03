@@ -39,6 +39,7 @@ import (
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
+	VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -68,7 +69,7 @@ type SmartContractProcessorFacade interface {
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
-	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
+	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
@@ -469,6 +470,8 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	EpochStartRound() uint64
+	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
+	GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler, error)
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
@@ -512,6 +515,10 @@ type BlockChainHookHandler interface {
 	CurrentTimeStamp() uint64
 	CurrentRandomSeed() []byte
 	CurrentEpoch() uint32
+	RoundTime() uint64
+	EpochStartBlockNonce() uint64
+	EpochStartBlockRound() uint64
+	EpochStartBlockTimeStamp() uint64
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
@@ -524,7 +531,8 @@ type BlockChainHookHandler interface {
 	IsPaused(tokenID []byte) bool
 	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
-	SetCurrentHeader(hdr data.HeaderHandler)
+	SetCurrentHeader(hdr data.HeaderHandler) error
+	SetEpochStartHeader(hdr data.HeaderHandler) error
 	SaveCompiledCode(codeHash []byte, code []byte)
 	GetCompiledCode(codeHash []byte) (bool, []byte)
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
@@ -695,6 +703,7 @@ type feeHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
 	ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)

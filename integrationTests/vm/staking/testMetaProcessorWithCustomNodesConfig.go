@@ -94,7 +94,8 @@ type NodesRegisterData struct {
 // Block will be committed + call to validator system sc will be made to stake all nodes
 func (tmp *TestMetaProcessor) ProcessStake(t *testing.T, nodes map[string]*NodesRegisterData) {
 	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
+	err := tmp.BlockChainHook.SetCurrentHeader(header)
+	require.Nil(t, err)
 
 	txHashes := make([][]byte, 0)
 	for owner, registerData := range nodes {
@@ -128,7 +129,8 @@ func (tmp *TestMetaProcessor) doStake(
 // Block will be committed + call to validator system sc will be made to stake all nodes
 func (tmp *TestMetaProcessor) ProcessReStake(t *testing.T, blsKeys [][]byte) {
 	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
+	err := tmp.BlockChainHook.SetCurrentHeader(header)
+	require.Nil(t, err)
 
 	txHashes := make([][]byte, 0)
 	for _, blsKey := range blsKeys {
@@ -195,7 +197,8 @@ func createStakeArgs(blsKeys [][]byte) [][]byte {
 // Block will be committed + call to validator system sc will be made to unStake all nodes
 func (tmp *TestMetaProcessor) ProcessUnStake(t *testing.T, nodes map[string][][]byte) {
 	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
+	err := tmp.BlockChainHook.SetCurrentHeader(header)
+	require.Nil(t, err)
 
 	txHashes := make([][]byte, 0)
 	for owner, blsKeys := range nodes {
@@ -229,7 +232,8 @@ func (tmp *TestMetaProcessor) doUnStake(
 // Block will be committed + call to validator system sc will be made to jail all nodes
 func (tmp *TestMetaProcessor) ProcessJail(t *testing.T, blsKeys [][]byte) {
 	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
+	err := tmp.BlockChainHook.SetCurrentHeader(header)
+	require.Nil(t, err)
 
 	scrs := tmp.doJail(t, blsKeys)
 	txHashes := tmp.addTxsToCacher(scrs)
@@ -258,7 +262,8 @@ func (tmp *TestMetaProcessor) doJail(
 // Block will be committed + call to validator system sc will be made to unJail all nodes
 func (tmp *TestMetaProcessor) ProcessUnJail(t *testing.T, blsKeys [][]byte) {
 	header := tmp.createNewHeader(t, tmp.currentRound)
-	tmp.BlockChainHook.SetCurrentHeader(header)
+	err := tmp.BlockChainHook.SetCurrentHeader(header)
+	require.Nil(t, err)
 
 	txHashes := make([][]byte, 0)
 	for _, blsKey := range blsKeys {

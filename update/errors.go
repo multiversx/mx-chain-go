@@ -89,6 +89,9 @@ var ErrNilRequestersContainer = errors.New("nil requesters container")
 // ErrNilCacher signals that nil cacher was provided
 var ErrNilCacher = errors.New("nil cacher")
 
+// ErrNilHeadersPool signals that nil headers pool was provided
+var ErrNilHeadersPool = errors.New("nil headers pool")
+
 // ErrNilEpochHandler signals that nil epoch handler was provided
 var ErrNilEpochHandler = errors.New("nil epoch handler")
 

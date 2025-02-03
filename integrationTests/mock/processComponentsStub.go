@@ -61,6 +61,7 @@ type ProcessComponentsStub struct {
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
+	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
 }
 
 // Create -
@@ -300,6 +301,11 @@ func (pcs *ProcessComponentsStub) SentSignaturesTracker() process.SentSignatures
 // EpochSystemSCProcessor -
 func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return pcs.EpochSystemSCProcessorInternal
+}
+
+// BlockchainHook -
+func (pcs *ProcessComponentsStub) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	return pcs.BlockchainHookField
 }
 
 // IsInterfaceNil -
