@@ -37,6 +37,28 @@ def main():
     )
 
     do_replacements(
+        file_path=Path("consensus/spos/bls/v1/subroundSignature.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
+                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)"""
+            ),
+            (
+                "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
+                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), selfIndex, signatureShare)"""
+            ),
+            (
+                "// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures",
+                """if chaos.Controller.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader()) {
+		return true
+	}
+"""
+            )
+        ],
+        with_import=True
+    )
+
+    do_replacements(
         file_path=Path("consensus/spos/bls/v2/subroundBlock.go"),
         replacements=[
             (
@@ -51,12 +73,6 @@ def main():
     """
             )
         ],
-        with_import=True
-    )
-
-    do_replacements(
-        file_path=Path("consensus/spos/bls/v1/subroundSignature.go"),
-        replacements=[],
         with_import=True
     )
 

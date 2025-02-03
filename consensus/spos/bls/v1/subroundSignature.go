@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
-	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -103,7 +102,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
-		chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)
+		// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey
 
 		if !isSelfLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
@@ -163,9 +162,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 		return false
 	}
 
-	if chaos.Controller.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader()) {
-		return true
-	}
+	// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures
 
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
@@ -387,7 +384,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), selfIndex, signatureShare)
+		// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey
 
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
