@@ -283,7 +283,7 @@ func TestTrieDB_RecreateFromStorageShouldWork(t *testing.T) {
 	err := tr1.Commit(hashesCollector.NewDisabledHashesCollector())
 	require.Nil(t, err)
 
-	tr2, err := tr1.Recreate(holders.NewDefaultRootHashesHolder(h1))
+	tr2, err := tr1.Recreate(holders.NewDefaultRootHashesHolder(h1), "")
 	require.Nil(t, err)
 
 	valRecov, _, err := tr2.Get(key)
@@ -1290,7 +1290,7 @@ func TestTrieDbPruning_GetDataTrieTrackerAfterPruning(t *testing.T) {
 func collapseTrie(state state.UserAccountHandler, t *testing.T) {
 	stateRootHash := state.GetRootHash()
 	stateTrie := state.DataTrie().(common.Trie)
-	stateNewTrie, _ := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(stateRootHash))
+	stateNewTrie, _ := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(stateRootHash), "")
 	require.NotNil(t, stateNewTrie)
 
 	state.SetDataTrie(stateNewTrie)
@@ -1692,12 +1692,12 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	roothash := node.BlockChain.GetCurrentBlockRootHash()
-	tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
+	tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(roothash), "")
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 
 	_, _, finalRoothash := node.BlockChain.GetFinalBlockInfo()
-	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(finalRoothash))
+	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(finalRoothash), "")
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 
@@ -1709,7 +1709,7 @@ func checkTrieCanBeRecreated(tb testing.TB, node *integrationTests.TestProcessor
 	err = integrationTests.TestMarshalizer.Unmarshal(hdr, hdrBytes)
 	require.Nil(tb, err)
 
-	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(hdr.GetRootHash()))
+	tr, err = stateTrie.Recreate(holders.NewDefaultRootHashesHolder(hdr.GetRootHash()), "")
 	require.Nil(tb, err)
 	require.NotNil(tb, tr)
 }
@@ -1860,7 +1860,7 @@ func testNodeStateSnapshotAndPruning(
 	stateTrie := node.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	assert.Equal(t, 1, len(snapshotsRootHashes))
 	for i := range snapshotsRootHashes {
-		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(snapshotsRootHashes[i]))
+		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(snapshotsRootHashes[i]), "")
 		require.Nil(t, err)
 		require.NotNil(t, tr)
 	}
@@ -1868,7 +1868,7 @@ func testNodeStateSnapshotAndPruning(
 	assert.Equal(t, 1, len(prunedRootHashes))
 	// if pruning is called for a root hash in a different epoch than the commit, then recreate trie should work
 	for i := 0; i < len(prunedRootHashes)-1; i++ {
-		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(prunedRootHashes[i]))
+		tr, err := stateTrie.Recreate(holders.NewDefaultRootHashesHolder(prunedRootHashes[i]), "")
 		require.Nil(t, tr)
 		require.NotNil(t, err)
 	}

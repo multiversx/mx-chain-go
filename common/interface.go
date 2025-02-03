@@ -42,7 +42,7 @@ type Trie interface {
 	Delete(key []byte)
 	RootHash() ([]byte, error)
 	Commit(collector TrieHashesCollector) error
-	Recreate(options RootHashHolder) (Trie, error)
+	Recreate(options RootHashHolder, identifier string) (Trie, error)
 	GetSerializedNodes([]byte, uint64) ([][]byte, uint64, error)
 	GetSerializedNode([]byte) ([]byte, error)
 	GetAllLeavesOnChannel(allLeavesChan *TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder KeyBuilder, trieLeafParser TrieLeafParser) error

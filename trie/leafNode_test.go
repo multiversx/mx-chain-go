@@ -661,7 +661,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -682,7 +682,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		assert.False(t, ln.dirty)
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -707,7 +707,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -738,7 +738,7 @@ func TestLeafNode_insertBatch(t *testing.T) {
 		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -770,7 +770,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 		originalHash := ln.getHash()
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -792,7 +792,7 @@ func TestLeafNode_deleteBatch(t *testing.T) {
 		ln.commitDirty(0, 5, getTestGoroutinesManager(), hashesCollector.NewDisabledHashesCollector(), testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)

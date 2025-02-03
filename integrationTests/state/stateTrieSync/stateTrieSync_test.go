@@ -141,7 +141,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	assert.Nil(t, err)
 	cancel()
 
-	requesterTrie, err = requesterTrie.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	requesterTrie, err = requesterTrie.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 	require.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.RootHash()
@@ -563,7 +563,7 @@ func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTest
 func getDataTriesHashes(t *testing.T, tr common.Trie, dataTriesRootHashes [][]byte) [][]byte {
 	hashes := make([][]byte, 0)
 	for _, rh := range dataTriesRootHashes {
-		dt, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rh))
+		dt, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rh), "")
 		assert.Nil(t, err)
 
 		dtHashes := GetAllHashes(t, dt, rh)

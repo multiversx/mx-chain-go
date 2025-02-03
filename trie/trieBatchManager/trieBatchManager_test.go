@@ -11,7 +11,7 @@ import (
 func TestNewTrieBatchManager(t *testing.T) {
 	t.Parallel()
 
-	tbm := NewTrieBatchManager()
+	tbm := NewTrieBatchManager("")
 	assert.False(t, check.IfNil(tbm))
 
 	assert.False(t, tbm.isUpdateInProgress)
@@ -22,7 +22,7 @@ func TestNewTrieBatchManager(t *testing.T) {
 func TestTrieBatchManager_TrieUpdateInProgress(t *testing.T) {
 	t.Parallel()
 
-	tbm := NewTrieBatchManager()
+	tbm := NewTrieBatchManager("")
 	tbm.Add(core.TrieData{Key: []byte("key1")})
 	tbm.Add(core.TrieData{Key: []byte("key2")})
 	assert.False(t, tbm.isUpdateInProgress)
@@ -49,7 +49,7 @@ func TestTrieBatchManager_TrieUpdateInProgress(t *testing.T) {
 func TestTrieBatchManager_AddUpdatesCurrentBatch(t *testing.T) {
 	t.Parallel()
 
-	tbm := NewTrieBatchManager()
+	tbm := NewTrieBatchManager("")
 	tbm.Add(core.TrieData{Key: []byte("key1")})
 	_, found := tbm.currentBatch.Get([]byte("key1"))
 	assert.True(t, found)
@@ -69,7 +69,7 @@ func TestTrieBatchManager_Get(t *testing.T) {
 	t.Run("key exists in currentBatch", func(t *testing.T) {
 		t.Parallel()
 
-		tbm := NewTrieBatchManager()
+		tbm := NewTrieBatchManager("")
 		tbm.currentBatch.Add(core.TrieData{
 			Key:   key,
 			Value: value,
@@ -82,7 +82,7 @@ func TestTrieBatchManager_Get(t *testing.T) {
 	t.Run("check temp batch only if update in progress", func(t *testing.T) {
 		t.Parallel()
 
-		tbm := NewTrieBatchManager()
+		tbm := NewTrieBatchManager("")
 		tbm.currentBatch.Add(core.TrieData{
 			Key:   key,
 			Value: value,
@@ -98,7 +98,7 @@ func TestTrieBatchManager_Get(t *testing.T) {
 	t.Run("code does not panic if temp batch is nil", func(t *testing.T) {
 		t.Parallel()
 
-		tbm := NewTrieBatchManager()
+		tbm := NewTrieBatchManager("")
 		tbm.isUpdateInProgress = true
 		tbm.tempBatch = nil
 
@@ -109,7 +109,7 @@ func TestTrieBatchManager_Get(t *testing.T) {
 	t.Run("key does not exist", func(t *testing.T) {
 		t.Parallel()
 
-		tbm := NewTrieBatchManager()
+		tbm := NewTrieBatchManager("")
 
 		data, found := tbm.Get(key)
 		assert.False(t, found)
@@ -121,7 +121,7 @@ func TestTrieBatchManager_MarkForRemovalUpdatesCurrentBatch(t *testing.T) {
 	t.Parallel()
 
 	key := []byte("key")
-	tbm := NewTrieBatchManager()
+	tbm := NewTrieBatchManager("")
 	_, _ = tbm.MarkTrieUpdateInProgress()
 	tbm.MarkForRemoval(key)
 

@@ -1,6 +1,7 @@
 package trackableDataTrie
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -216,7 +217,7 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 
 	if check.IfNil(tdt.tr) {
 		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
-		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
+		newDataTrie, err := mainTrie.Recreate(emptyRootHash, hex.EncodeToString(tdt.identifier))
 		if err != nil {
 			return nil, err
 		}

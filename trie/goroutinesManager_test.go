@@ -15,28 +15,28 @@ func TestNewGoroutinesManager(t *testing.T) {
 	t.Run("nil throttler", func(t *testing.T) {
 		t.Parallel()
 
-		manager, err := NewGoroutinesManager(nil, nil, nil)
+		manager, err := NewGoroutinesManager(nil, nil, nil, "")
 		assert.Nil(t, manager)
 		assert.Equal(t, ErrNilThrottler, err)
 	})
 	t.Run("nil error channel", func(t *testing.T) {
 		t.Parallel()
 
-		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, nil, nil)
+		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, nil, nil, "")
 		assert.Nil(t, manager)
 		assert.Equal(t, ErrNilBufferedErrChan, err)
 	})
 	t.Run("nil chan close", func(t *testing.T) {
 		t.Parallel()
 
-		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), nil)
+		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), nil, "")
 		assert.Nil(t, manager)
 		assert.Equal(t, ErrNilChanClose, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), make(chan struct{}))
+		manager, err := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.NotNil(t, manager)
 		assert.Nil(t, err)
 		assert.True(t, manager.canProcess)
@@ -50,7 +50,7 @@ func TestGoroutinesManager_ShouldContinueProcessing(t *testing.T) {
 		t.Parallel()
 
 		closeChan := make(chan struct{})
-		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), closeChan)
+		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), closeChan, "")
 
 		close(closeChan)
 		assert.False(t, manager.ShouldContinueProcessing())
@@ -59,7 +59,7 @@ func TestGoroutinesManager_ShouldContinueProcessing(t *testing.T) {
 		t.Parallel()
 
 		closeChan := make(chan struct{})
-		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), closeChan)
+		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errChan.NewErrChanWrapper(), closeChan, "")
 
 		assert.True(t, manager.ShouldContinueProcessing())
 	})
@@ -86,7 +86,7 @@ func TestGoroutinesManager_CanStartGoRoutine(t *testing.T) {
 				return false
 			},
 		}
-		manager, _ := NewGoroutinesManager(throttler, errChan.NewErrChanWrapper(), make(chan struct{}))
+		manager, _ := NewGoroutinesManager(throttler, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 
 		assert.False(t, manager.CanStartGoRoutine())
 	})
@@ -102,7 +102,7 @@ func TestGoroutinesManager_CanStartGoRoutine(t *testing.T) {
 				startProcessingCalled = true
 			},
 		}
-		manager, _ := NewGoroutinesManager(throttler, errChan.NewErrChanWrapper(), make(chan struct{}))
+		manager, _ := NewGoroutinesManager(throttler, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 
 		assert.True(t, manager.CanStartGoRoutine())
 		assert.True(t, startProcessingCalled)
@@ -118,7 +118,7 @@ func TestGoroutinesManager_EndGoRoutineProcessing(t *testing.T) {
 			endProcessingCalled = true
 		},
 	}
-	manager, _ := NewGoroutinesManager(throttler, errChan.NewErrChanWrapper(), make(chan struct{}))
+	manager, _ := NewGoroutinesManager(throttler, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 	manager.EndGoRoutineProcessing()
 	assert.True(t, endProcessingCalled)
 }
@@ -129,7 +129,7 @@ func TestGoroutinesManager_SetError(t *testing.T) {
 	t.Run("should set error", func(t *testing.T) {
 		expectedErr := errors.New("error")
 		errCh := errChan.NewErrChanWrapper()
-		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errCh, make(chan struct{}))
+		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errCh, make(chan struct{}), "")
 
 		err := errCh.ReadFromChanNonBlocking()
 		assert.Nil(t, err)
@@ -146,7 +146,7 @@ func TestGoroutinesManager_SetError(t *testing.T) {
 		expectedErr := errors.New("error")
 		anotherErr := errors.New("another error")
 		errCh := errChan.NewErrChanWrapper()
-		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errCh, make(chan struct{}))
+		manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errCh, make(chan struct{}), "")
 
 		err := errCh.ReadFromChanNonBlocking()
 		assert.Nil(t, err)
@@ -165,7 +165,7 @@ func TestGoroutinesManager_GetError(t *testing.T) {
 
 	expectedErr := errors.New("error")
 	errCh := errChan.NewErrChanWrapper()
-	manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errCh, make(chan struct{}))
+	manager, _ := NewGoroutinesManager(&mock.ThrottlerStub{}, errCh, make(chan struct{}), "")
 
 	err := manager.GetError()
 	assert.Nil(t, err)

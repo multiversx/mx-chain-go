@@ -543,7 +543,7 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	tr := initTrie()
 	_ = tr.Commit(hashesCollector.NewDisabledHashesCollector())
 	rootHash, _ := tr.RootHash()
-	collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
+	collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
 
 	collapsedTrie.Delete([]byte("doe"))
 
@@ -988,7 +988,7 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -1014,7 +1014,7 @@ func TestExtensionNode_insertInSameEn(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -1052,7 +1052,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -1088,7 +1088,7 @@ func TestExtensionNode_insertInNewBn(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -1123,7 +1123,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -1148,7 +1148,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)
@@ -1174,7 +1174,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		newEn := en.insert(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
@@ -1214,7 +1214,7 @@ func TestExtensionNode_deleteBatch(t *testing.T) {
 		}
 
 		th, _ := throttler.NewNumGoRoutinesThrottler(5)
-		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}))
+		goRoutinesManager, err := NewGoroutinesManager(th, errChan.NewErrChanWrapper(), make(chan struct{}), "")
 		assert.Nil(t, err)
 
 		modifiedHashes := common.NewModifiedHashesSlice(initialModifiedHashesCapacity)

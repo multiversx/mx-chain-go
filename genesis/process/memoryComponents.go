@@ -29,6 +29,7 @@ func createAccountAdapter(
 			EnableEpochsHandler:  enableEpochsHandler,
 			MaxTrieLevelInMemory: maxTrieLevelInMemory,
 			Throttler:            trie.NewDisabledTrieGoRoutinesThrottler(),
+			Identifier:           "main trie in memory",
 		})
 	if err != nil {
 		return nil, err

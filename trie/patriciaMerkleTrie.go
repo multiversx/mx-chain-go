@@ -51,6 +51,7 @@ type patriciaMerkleTrie struct {
 
 	maxTrieLevelInMemory uint
 	chanClose            chan struct{}
+	identifier           string
 }
 
 // TrieArgs is the arguments for creating a new trie
@@ -61,6 +62,7 @@ type TrieArgs struct {
 	EnableEpochsHandler  common.EnableEpochsHandler
 	MaxTrieLevelInMemory uint
 	Throttler            core.Throttler
+	Identifier           string
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -93,7 +95,7 @@ func NewTrie(
 	}
 
 	chanClose := make(chan struct{})
-	goRoutinesManager, err := NewGoroutinesManager(args.Throttler, errChan.NewErrChanWrapper(), chanClose)
+	goRoutinesManager, err := NewGoroutinesManager(args.Throttler, errChan.NewErrChanWrapper(), chanClose, args.Identifier)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +109,12 @@ func NewTrie(
 		chanClose:               chanClose,
 		enableEpochsHandler:     args.EnableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
-		batchManager:            trieBatchManager.NewTrieBatchManager(),
+		batchManager:            trieBatchManager.NewTrieBatchManager(args.Identifier),
 		goRoutinesManager:       goRoutinesManager,
 		trieOperationInProgress: &atomic.Flag{},
 		updateTrieMutex:         sync.RWMutex{},
 		throttler:               args.Throttler,
+		identifier:              args.Identifier,
 	}, nil
 }
 
@@ -385,13 +388,13 @@ func (tr *patriciaMerkleTrie) Commit(hashesCollector common.TrieHashesCollector)
 }
 
 // Recreate returns a new trie, given the options
-func (tr *patriciaMerkleTrie) Recreate(options common.RootHashHolder) (common.Trie, error) {
+func (tr *patriciaMerkleTrie) Recreate(options common.RootHashHolder, identifier string) (common.Trie, error) {
 	if check.IfNil(options) {
 		return nil, ErrNilRootHashHolder
 	}
 
 	if !options.GetEpoch().HasValue {
-		return tr.recreate(options.GetRootHash(), tr.trieStorage)
+		return tr.recreate(options.GetRootHash(), identifier, tr.trieStorage)
 	}
 
 	tsmie, err := newTrieStorageManagerInEpoch(tr.trieStorage, options.GetEpoch().Value)
@@ -399,10 +402,10 @@ func (tr *patriciaMerkleTrie) Recreate(options common.RootHashHolder) (common.Tr
 		return nil, err
 	}
 
-	return tr.recreate(options.GetRootHash(), tsmie)
+	return tr.recreate(options.GetRootHash(), identifier, tsmie)
 }
 
-func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
+func (tr *patriciaMerkleTrie) recreate(root []byte, identifier string, tsm common.StorageManager) (*patriciaMerkleTrie, error) {
 	if common.IsEmptyTrie(root) {
 		return NewTrie(
 			TrieArgs{
@@ -412,11 +415,12 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 				EnableEpochsHandler:  tr.enableEpochsHandler,
 				MaxTrieLevelInMemory: tr.maxTrieLevelInMemory,
 				Throttler:            tr.throttler,
+				Identifier:           identifier,
 			},
 		)
 	}
 
-	newTr, _, err := tr.recreateFromDb(root, tsm)
+	newTr, _, err := tr.recreateFromDb(root, identifier, tsm)
 	if err != nil {
 		if core.IsClosingError(err) {
 			log.Debug("could not recreate", "rootHash", root, "error", err)
@@ -455,7 +459,7 @@ func (tr *patriciaMerkleTrie) IsInterfaceNil() bool {
 	return tr == nil
 }
 
-func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
+func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, identifier string, tsm common.StorageManager) (*patriciaMerkleTrie, snapshotNode, error) {
 	newTr, err := NewTrie(
 		TrieArgs{
 			tsm,
@@ -464,6 +468,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 			tr.enableEpochsHandler,
 			tr.maxTrieLevelInMemory,
 			tr.throttler,
+			identifier,
 		},
 	)
 	if err != nil {
@@ -578,7 +583,7 @@ func (tr *patriciaMerkleTrie) GetAllLeavesOnChannel(
 		return ErrNilTrieLeafParser
 	}
 
-	newTrie, err := tr.recreate(rootHash, tr.trieStorage)
+	newTrie, err := tr.recreate(rootHash, "", tr.trieStorage)
 	if err != nil {
 		close(leavesChannels.LeavesChan)
 		leavesChannels.ErrChan.Close()
