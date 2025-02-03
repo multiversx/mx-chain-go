@@ -900,7 +900,7 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 				Epoch:         1,
 			},
 			PreviousHeaderProof: &dataBlock.HeaderProof{
-				PubKeysBitmap:       []byte{0x3F},
+				PubKeysBitmap:       []byte{0xff, 0x03},
 				AggregatedSignature: []byte("aggregated signature"),
 				HeaderHash:          prevHeaderHash,
 				HeaderEpoch:         1,
