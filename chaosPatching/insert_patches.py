@@ -90,6 +90,21 @@ def main():
         with_import=True
     )
 
+    do_replacements(
+        file_path=Path("consensus/spos/bls/v2/subroundSignature.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
+                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)"""
+            ),
+            (
+                "// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
+                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), idx, signatureShare)"""
+            )
+        ],
+        with_import=True
+    )
+
 
 def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_import: bool = False):
     content = file_path.read_text()

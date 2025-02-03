@@ -11,7 +11,6 @@ import (
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
-	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -249,7 +248,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 		return false
 	}
 
-	chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), idx, signatureShare)
+	// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey
 
 	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
 	ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
@@ -294,7 +293,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 		return false
 	}
 
-	chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)
+	// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey
 
 	// leader also sends his signature here
 	ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
