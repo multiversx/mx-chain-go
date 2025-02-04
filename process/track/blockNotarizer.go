@@ -1,6 +1,7 @@
 package track
 
 import (
+	"bytes"
 	"sort"
 	"sync"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -243,6 +245,19 @@ func (bn *blockNotarizer) RemoveLastNotarizedHeader() {
 		notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
 		if notarizedHeadersCount > 1 {
 			bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][:notarizedHeadersCount-1]
+		}
+	}
+	bn.mutNotarizedHeaders.Unlock()
+}
+
+// RemoveLastNotarizedHeaderByHash removes last notarized header by hash
+func (bn *blockNotarizer) RemoveLastNotarizedHeaderByHash(hash []byte) {
+	bn.mutNotarizedHeaders.Lock()
+	for shardID := range bn.notarizedHeaders {
+		notarizedHeadersCount := len(bn.notarizedHeaders[shardID])
+		if notarizedHeadersCount > 1 && bytes.Equal(hash, bn.notarizedHeaders[shardID][notarizedHeadersCount-1].Hash) {
+			bn.notarizedHeaders[shardID] = bn.notarizedHeaders[shardID][:notarizedHeadersCount-1]
+			log.Debug("DELETED ", "extendedHdrHash", hash)
 		}
 	}
 	bn.mutNotarizedHeaders.Unlock()

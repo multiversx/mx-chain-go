@@ -35,6 +35,7 @@ type extendedShardHeaderTrackHandler interface {
 	IsGenesisLastCrossNotarizedHeader() bool
 	RemoveLastCrossNotarizedHeaders()
 	RemoveLastSelfNotarizedHeaders()
+	RemoveLastCrossNotarizedHeaderByHash(hash []byte)
 }
 
 type extendedShardHeaderRequestHandler interface {
@@ -2007,8 +2008,10 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 		return nil
 	}
 
-	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
-		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
+	for i := numOfNotarizedExtendedHeaders - 1; i > 0; i-- {
+		extendedHdrHash := sovChainHdr.GetExtendedShardHeaderHashes()[i]
+		log.Debug("CALLING DELETE ", "extendedHdrHash", extendedHdrHash)
+		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaderByHash(extendedHdrHash)
 	}
 
 	// restore last cross notarized at previous ????
