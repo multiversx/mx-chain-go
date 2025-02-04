@@ -140,8 +140,12 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, process.ErrUnexpectedHeaderProof
 	}
 
-	// safe to use proof.GetHeaderEpoch, as the transition block will be treated separately
+	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
 	epochForConsensus := proof.GetHeaderEpoch()
+	if proof.GetIsStartOfEpoch() && epochForConsensus > 0 {
+		epochForConsensus = epochForConsensus - 1
+	}
+
 	consensusPubKeys, err := hsv.nodesCoordinator.GetAllEligibleValidatorsPublicKeysForShard(
 		epochForConsensus,
 		proof.GetHeaderShardId(),
