@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	api2 "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -41,6 +42,7 @@ const (
 	roundsPerEpoch                          = 30
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
+	extraGasESDTTransfer                    = 250000
 )
 
 var (
@@ -73,6 +75,11 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	t.Run("cross shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 1))
 
 	t.Run("create new delegation contract", testRelayedV3MetaInteraction())
+
+	t.Run("receiver == relayer esdt transfer, sender is a new account", testRelayedV3ESDTTransfer(true, false))
+	t.Run("receiver == relayer esdt transfer, sender is token issuer", testRelayedV3ESDTTransfer(true, true))
+	t.Run("receiver != relayer esdt transfer, sender is a new account", testRelayedV3ESDTTransfer(false, false))
+	t.Run("receiver != relayer esdt transfer, sender is token issuer", testRelayedV3ESDTTransfer(false, true))
 }
 
 func testRelayedV3MoveBalance(
@@ -480,6 +487,157 @@ func testRelayedV3RelayedByReceiverMoveBalance() func(t *testing.T) {
 		// check intra shard logs, should be none
 		require.Nil(t, result.Logs)
 	}
+}
+
+func testRelayedV3ESDTTransfer(
+	relayedByReceiver bool,
+	senderIsIssuer bool,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+		if testing.Short() {
+			t.Skip("this is not a short test")
+		}
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000))
+
+		owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		sender := owner
+		// if sender is not owner, make the sender a new address with no balance
+		if !senderIsIssuer {
+			sender, _ = prepareSender(t, cs, false, 0, big.NewInt(0))
+		}
+
+		receiver, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		relayer := receiver
+		// if relayed tx won't be relayed by the receiver, generate the relayer
+		if !relayedByReceiver {
+			relayer, err = cs.GenerateAndMintWalletAddress(0, initialBalance)
+			require.NoError(t, err)
+		}
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		// issue new token
+		initialSupply, _ := big.NewInt(0).SetString("1000000000", 10)
+		ticker := issueToken(t, cs, owner, "TESTTOKEN", "TST", initialSupply)
+
+		transferValue := big.NewInt(1000)
+		txDataTransfer := "ESDTTransfer@" + hex.EncodeToString([]byte(ticker)) + "@" + hex.EncodeToString(transferValue.Bytes())
+
+		// if sender is not owner, send some new tokens to the sender
+		if !senderIsIssuer {
+			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasESDTTransfer
+			ownerNonce := getNonce(t, cs, owner)
+
+			esdtTransferTx := generateTransaction(owner.Bytes, ownerNonce, sender.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
+
+			_, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(esdtTransferTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+			require.NoError(t, err)
+
+			esdtBalanceSender := getESDTBalance(t, cs, sender, 0, ticker)
+			require.Equal(t, transferValue.String(), esdtBalanceSender.String())
+		}
+
+		senderBalanceBefore := getBalance(t, cs, sender)
+
+		// send relayed tx
+		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasESDTTransfer
+		senderNonce := getNonce(t, cs, sender)
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, receiver.Bytes, relayer.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		// check sender balance
+		senderBalanceAfter := getBalance(t, cs, sender)
+		require.Equal(t, senderBalanceAfter.String(), senderBalanceBefore.String())
+
+		refundValue := getRefundValue(result.SmartContractResults)
+		require.NotZero(t, refundValue.Uint64())
+
+		// check fee fields, should consume full gas
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false, false)
+		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
+		require.Equal(t, fee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
+
+		// check relayer balance
+		relayerBalanceAfter := getBalance(t, cs, relayer)
+		relayerBalanceDiff := big.NewInt(0).Sub(initialBalance, relayerBalanceAfter)
+		require.Equal(t, fee.String(), relayerBalanceDiff.String())
+
+		// check receiver esdt balance
+		expectedESDTBalanceSender := big.NewInt(0)
+		if senderIsIssuer {
+			expectedESDTBalanceSender = big.NewInt(0).Sub(initialSupply, transferValue)
+		}
+		esdtBalanceSender := getESDTBalance(t, cs, sender, 0, ticker)
+		require.Equal(t, expectedESDTBalanceSender.String(), esdtBalanceSender.String())
+
+		esdtBalanceReceiver := getESDTBalance(t, cs, receiver, 0, ticker)
+		require.Equal(t, transferValue.String(), esdtBalanceReceiver.String())
+
+		// check receiver egld balance unchanged if tx is relayed by third party
+		if !relayedByReceiver {
+			receiverBalanceAfter := getBalance(t, cs, receiver)
+			require.Equal(t, initialBalance.String(), receiverBalanceAfter.String())
+		}
+	}
+}
+
+func issueToken(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	owner dtos.WalletAddress,
+	tokenName string,
+	tokenTicker string,
+	initSupply *big.Int,
+) string {
+	issueTxData := "issue@" +
+		hex.EncodeToString([]byte(tokenName)) + "@" +
+		hex.EncodeToString([]byte(tokenTicker)) + "@" +
+		hex.EncodeToString(initSupply.Bytes()) + "@" +
+		"02"
+
+	ownerNonce := getNonce(t, cs, owner)
+	fiveEGLD := big.NewInt(0).Mul(oneEGLD, big.NewInt(5))
+	issueTx := generateTransaction(owner.Bytes, ownerNonce, vm.ESDTSCAddress, fiveEGLD, issueTxData, 60000000)
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(issueTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// generate few more blocks for refund to happen
+	_ = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
+
+	require.NotNil(t, result.Logs)
+	require.NotZero(t, len(result.Logs.Events))
+	for _, log := range result.Logs.Events {
+		if log.Identifier != "issue" {
+			continue
+		}
+
+		ticker := log.Topics[0]
+		balance := getESDTBalance(t, cs, owner, 0, string(ticker))
+		require.Equal(t, initSupply.String(), balance.String())
+
+		return string(ticker)
+	}
+
+	return ""
 }
 
 func prepareSender(
@@ -1054,6 +1212,30 @@ func getBalance(
 	require.True(t, ok)
 
 	return balance
+}
+
+func getESDTBalance(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	address dtos.WalletAddress,
+	addressShard uint32,
+	ticker string,
+) *big.Int {
+	tokenInfo, _, err := cs.GetNodeHandler(addressShard).GetFacadeHandler().GetESDTData(address.Bech32, ticker, 0, api2.AccountQueryOptions{})
+	require.NoError(t, err)
+
+	return tokenInfo.Value
+}
+
+func getNonce(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	address dtos.WalletAddress,
+) uint64 {
+	account, err := cs.GetAccount(address)
+	require.NoError(t, err)
+
+	return account.Nonce
 }
 
 func deployAdder(
