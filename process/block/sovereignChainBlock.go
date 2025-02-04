@@ -2054,7 +2054,7 @@ func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extended
 			continue
 		}
 
-		headersPool.AddHeader(extendedHdrHash, extendedHdr)
+		headersPool.AddHeaderInShard(extendedHdrHash, extendedHdr, core.MainChainShardId)
 
 		extendedHdrStorer, err := scbp.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 		if err != nil {
