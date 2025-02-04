@@ -724,8 +724,15 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 
 	scbp.ct++
 
-	//if scbp.ct == 35 {
-	//	scbp.RestoreBlockIntoPools(headerHandler, bodyHandler)
+	//if scbp.ct > 35 {
+	//	prevHsh := headerHandler.GetPrevHash()
+	//
+	//	prevHdr, _ := scbp.dataPool.Headers().GetHeaderByHash(prevHsh)
+	//
+	//	if prevHdr != nil && len(prevHdr.(data.SovereignChainHeaderHandler).GetExtendedShardHeaderHashes()) > 0 {
+	//		scbp.RestoreBlockIntoPools(prevHdr, bodyHandler)
+	//	}
+	//
 	//	return headerHandler, bodyHandler, nil
 	//}
 
@@ -2008,7 +2015,7 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 		return nil
 	}
 
-	for i := numOfNotarizedExtendedHeaders - 1; i > 0; i-- {
+	for i := numOfNotarizedExtendedHeaders - 1; i >= 0; i-- {
 		extendedHdrHash := sovChainHdr.GetExtendedShardHeaderHashes()[i]
 		log.Debug("CALLING DELETE ", "extendedHdrHash", extendedHdrHash)
 		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaderByHash(extendedHdrHash)
