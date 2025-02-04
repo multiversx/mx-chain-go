@@ -140,8 +140,12 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, process.ErrUnexpectedHeaderProof
 	}
 
-	// safe to use proof.GetHeaderEpoch, as the transition block will be treated separately
+	// TODO: remove if start of epochForConsensus block needs to be validated by the new epochForConsensus nodes
 	epochForConsensus := proof.GetHeaderEpoch()
+	if proof.GetIsStartOfEpoch() && epochForConsensus > 0 {
+		epochForConsensus = epochForConsensus - 1
+	}
+
 	consensusPubKeys, err := hsv.nodesCoordinator.GetAllEligibleValidatorsPublicKeysForShard(
 		epochForConsensus,
 		proof.GetHeaderShardId(),
@@ -310,7 +314,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 	}
 
 	prevProof := header.GetPreviousProof()
-	if common.IsEpochStartProofForFlagActivation(prevProof, hsv.enableEpochsHandler) {
+	if common.IsEpochStartProofAfterFlagActivation(prevProof, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(prevProof)
 	}
 
@@ -365,7 +369,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
 	}
 
-	if common.IsEpochStartProofForFlagActivation(proofHandler, hsv.enableEpochsHandler) {
+	if common.IsEpochStartProofAfterFlagActivation(proofHandler, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(proofHandler)
 	}
 
