@@ -97,7 +97,7 @@ func TestSovereignChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testi
 				Value:    20,
 			},
 			ApiInterface:     api.NewNoApiInterface(),
-			MinNodesPerShard: 1,
+			MinNodesPerShard: 2,
 		},
 	})
 	require.Nil(t, err)
@@ -117,7 +117,7 @@ func TestSovereignChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testi
 
 	time.Sleep(time.Second)
 
-	err = chainSimulator.GenerateBlocks(80)
+	err = chainSimulator.GenerateBlocksUntilEpochIsReached(4)
 	require.Nil(t, err)
 
 	numAccountsWithIncreasedBalances := 0
@@ -160,7 +160,7 @@ func TestSovereignSimulator_TriggerChangeOfEpoch(t *testing.T) {
 				Value:    20,
 			},
 			ApiInterface:     api.NewNoApiInterface(),
-			MinNodesPerShard: 1,
+			MinNodesPerShard: 2,
 		},
 	})
 	require.Nil(t, err)
