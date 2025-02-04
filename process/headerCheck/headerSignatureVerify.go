@@ -314,7 +314,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 	}
 
 	prevProof := header.GetPreviousProof()
-	if common.IsEpochStartProofForFlagActivation(prevProof, hsv.enableEpochsHandler) {
+	if common.IsEpochStartProofAfterFlagActivation(prevProof, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(prevProof)
 	}
 
@@ -369,7 +369,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
 	}
 
-	if common.IsEpochStartProofForFlagActivation(proofHandler, hsv.enableEpochsHandler) {
+	if common.IsEpochStartProofAfterFlagActivation(proofHandler, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(proofHandler)
 	}
 
