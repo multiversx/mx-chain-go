@@ -185,11 +185,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	if args.ShardIDStr == "1" {
+	if args.ShardIDStr == "1" && args.TrieStoragePath != "" {
 		rootHash := "0565601c40d4285d470a1f03d79475b83bee4beab9c1dbaccb20cfcd6ba21899"
-		rootHashBytes, err := hex.DecodeString(rootHash)
-		if err != nil {
-			return nil, err
+		rootHashBytes, errD := hex.DecodeString(rootHash)
+		if errD != nil {
+			return nil, errD
 		}
 
 		err = instance.StateComponentsHolder.AccountsAdapter().RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashBytes))
