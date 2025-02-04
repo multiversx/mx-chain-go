@@ -36,7 +36,8 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
-	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+	err := tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+	assert.Nil(t, err)
 
 	ownerAddresses := getAddresses(numContracts)
 
@@ -73,11 +74,11 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 	verifyValidatorSCStake(t, tpn, delegationScAddresses[1], big.NewInt(5000))
 
 	for i := range delegationScAddresses {
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(1000), 1, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(2000), 2, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(3000), 3, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(4000), 4, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(5000), 5, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(1000), 1, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(2000), 2, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(3000), 3, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(4000), 4, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(5000), 5, 1)
 	}
 
 	for i := range delegationScAddresses {
@@ -148,7 +149,8 @@ func TestDelegationSystemRedelegateMulti(t *testing.T) {
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: integrationTests.UnreachableEpoch + 1,
 	})
-	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+	err := tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+	assert.Nil(t, err)
 
 	ownerAddresses := getAddresses(numContracts)
 
@@ -185,11 +187,11 @@ func TestDelegationSystemRedelegateMulti(t *testing.T) {
 	verifyValidatorSCStake(t, tpn, delegationScAddresses[1], big.NewInt(5000))
 
 	for i := range delegationScAddresses {
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(1000), 1, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(2000), 2, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(3000), 3, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(4000), 4, 1)
-		addRewardsToDelegation(tpn, delegationScAddresses[i], big.NewInt(5000), 5, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(1000), 1, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(2000), 2, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(3000), 3, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(4000), 4, 1)
+		addRewardsToDelegation(t, tpn, delegationScAddresses[i], big.NewInt(5000), 5, 1)
 	}
 
 	for i := range delegationScAddresses {

@@ -86,13 +86,17 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
-
 	defer chainSimulator.Close()
 
 	time.Sleep(time.Second)
 
 	err = chainSimulator.GenerateBlocks(1)
 	require.Nil(t, err)
+
+	heartBeats, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetHeartbeats()
+	require.Nil(t, err)
+	require.Equal(t, 4, len(heartBeats))
+
 
 	res, _, err := chainSimulator.GetNodeHandler(1).GetFacadeHandler().GetAccount("erd1ss6u80ruas2phpmr82r42xnkd6rxy40g9jl69frppl4qez9w2jpsqj8x97", coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
