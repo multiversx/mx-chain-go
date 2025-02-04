@@ -44,7 +44,7 @@ func (t *trieBatchManager) MarkTrieUpdateInProgress() (common.TrieBatcher, error
 		return nil, ErrTrieUpdateInProgress
 	}
 
-	log.Debug("marking trie update in progress", "identifier", t.identifier)
+	log.Trace("marking trie update in progress", "identifier", t.identifier)
 
 	t.isUpdateInProgress = true
 	t.tempBatch = t.currentBatch
