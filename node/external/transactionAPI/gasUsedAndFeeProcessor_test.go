@@ -449,3 +449,56 @@ func TestComputeAndAttachGasUsedAndFeeRelayedV3WithMultipleRefunds(t *testing.T)
 	require.Equal(t, uint64(4220447), txWithRefunds.GasUsed)
 	require.Equal(t, "289704470000000", txWithRefunds.Fee)
 }
+
+func TestComputeAndAttachGasUsedAndFeeRelayedV3WithMultiESDTNFTTransfer(t *testing.T) {
+	t.Parallel()
+
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag ||
+				flag == common.RelayedTransactionsV3Flag
+		},
+	}
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(eeh))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		eeh,
+	)
+
+	txWithRefunds := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithRefunds, "testData/relayedV3MultiESDTNFTTransfer.json")
+	require.NoError(t, err)
+
+	txWithRefunds.Fee = ""
+	txWithRefunds.GasUsed = 0
+
+	snd, _ := pubKeyConverter.Decode(txWithRefunds.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithRefunds.Receiver)
+	rel, _ := pubKeyConverter.Decode(txWithRefunds.RelayerAddress)
+	val, _ := big.NewInt(0).SetString(txWithRefunds.Value, 10)
+	sig, _ := hex.DecodeString(txWithRefunds.Signature)
+	relayerSig, _ := hex.DecodeString(txWithRefunds.RelayerSignature)
+	txWithRefunds.Tx = &transaction.Transaction{
+		Nonce:            txWithRefunds.Nonce,
+		Value:            val,
+		RcvAddr:          rcv,
+		SndAddr:          snd,
+		RelayerAddr:      rel,
+		GasPrice:         txWithRefunds.GasPrice,
+		GasLimit:         txWithRefunds.GasLimit,
+		Data:             txWithRefunds.Data,
+		Signature:        sig,
+		RelayerSignature: relayerSig,
+	}
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithRefunds)
+	require.Equal(t, uint64(1500950), txWithRefunds.GasUsed)
+	require.Equal(t, "498624500000000", txWithRefunds.Fee)
+}
