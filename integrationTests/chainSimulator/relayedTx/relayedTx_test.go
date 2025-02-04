@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	api2 "github.com/multiversx/mx-chain-core-go/data/api"
+	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -1331,7 +1331,7 @@ func getESDTBalance(
 	addressShard uint32,
 	ticker string,
 ) *big.Int {
-	tokenInfo, _, err := cs.GetNodeHandler(addressShard).GetFacadeHandler().GetESDTData(address.Bech32, ticker, 0, api2.AccountQueryOptions{})
+	tokenInfo, _, err := cs.GetNodeHandler(addressShard).GetFacadeHandler().GetESDTData(address.Bech32, ticker, 0, apiData.AccountQueryOptions{})
 	require.NoError(t, err)
 
 	return tokenInfo.Value
