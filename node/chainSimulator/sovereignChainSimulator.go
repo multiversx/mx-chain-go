@@ -64,8 +64,9 @@ func (ss *sovereignChainSimulator) ForceResetValidatorStatisticsCache() error {
 // ForceChangeOfEpoch will force the change of current epoch
 // This method will call the epoch change trigger and generate block till a new epoch is reached
 func (ss *sovereignChainSimulator) ForceChangeOfEpoch() error {
-	ss.mutex.Lock()
 	log.Info("force change of epoch")
+
+	ss.mutex.Lock()
 
 	node := ss.nodes[core.SovereignChainShardId]
 	err := node.ForceChangeOfEpoch()
