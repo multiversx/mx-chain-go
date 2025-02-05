@@ -1928,7 +1928,7 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 func (sc *scProcessor) processSCPayment(
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
-	acntRcv state.UserAccountHandler,
+	acntDst state.UserAccountHandler,
 ) error {
 	if check.IfNil(acntSnd) {
 		// transaction was already processed at sender shard
@@ -1941,7 +1941,7 @@ func (sc *scProcessor) processSCPayment(
 		return err
 	}
 
-	feePayer, err := sc.getFeePayer(tx, acntSnd, acntRcv)
+	feePayer, err := sc.getFeePayer(tx, acntSnd, acntDst)
 	if err != nil {
 		return err
 	}
@@ -1970,7 +1970,7 @@ func (sc *scProcessor) processSCPayment(
 func (sc *scProcessor) getFeePayer(
 	tx data.TransactionHandler,
 	acntSnd state.UserAccountHandler,
-	acntRcv state.UserAccountHandler,
+	acntDst state.UserAccountHandler,
 ) (state.UserAccountHandler, error) {
 	if !common.IsRelayedTxV3(tx) {
 		return acntSnd, nil
@@ -1987,8 +1987,9 @@ func (sc *scProcessor) getFeePayer(
 	}
 
 	relayerIsReceiver := bytes.Equal(relayedTx.GetRelayerAddr(), tx.GetRcvAddr())
-	if relayerIsReceiver {
-		return acntRcv, nil // do not load the same account twice
+	isFixActive := sc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3FixESDTTransferFlag)
+	if relayerIsReceiver && isFixActive {
+		return acntDst, nil // do not load the same account twice
 	}
 
 	account, err := sc.getAccountFromAddress(relayedTx.GetRelayerAddr())

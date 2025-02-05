@@ -2425,16 +2425,22 @@ func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
 	acntRel := createAccount(rel)
 
 	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3FixESDTTransferFlag)
+	loadAccountCnt := 0
 	arguments.AccountsDB = &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			loadAccountCnt++
+			if bytes.Equal(address, rel) {
+				return acntRel, nil
+			}
+
 			if bytes.Equal(address, snd) {
+				require.Fail(t, "should never load again for this test")
 				return acntSrc, nil
 			}
 			if bytes.Equal(address, rcv) {
+				require.Fail(t, "should never load again for this test")
 				return acntRcv, nil
-			}
-			if bytes.Equal(address, rel) {
-				return acntRel, nil
 			}
 
 			return &stateMock.AccountWrapMock{
@@ -2475,6 +2481,7 @@ func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
 	})
 	t.Run("fee payer is receiver", func(t *testing.T) {
 		txLocal := *tx
@@ -2494,6 +2501,7 @@ func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, modifiedBalance, acntRcv.GetBalance().Uint64())
 		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
 	})
 	t.Run("fee payer is different", func(t *testing.T) {
 		txLocal := *tx
@@ -2511,6 +2519,7 @@ func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
 		require.Equal(t, modifiedBalance, acntRel.GetBalance().Uint64())
 		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
 		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 1, loadAccountCnt)
 	})
 }
 
