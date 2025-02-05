@@ -138,6 +138,12 @@ func checkMetaShardInfo(
 			return err
 		}
 
+		isSelfMeta := coordinator.SelfId() == core.MetachainShardId
+		isHeaderFromSelf := sd.GetShardID() == coordinator.SelfId()
+		if !(isSelfMeta || isHeaderFromSelf) {
+			continue
+		}
+
 		wgProofsVerification.Add(1)
 		checkProofAsync(sd.GetPreviousProof(), headerSigVerifier, &wgProofsVerification, errChan)
 	}

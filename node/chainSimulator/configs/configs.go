@@ -134,12 +134,14 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardMinNumNodes = args.MinNodesPerShard
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainMinNumNodes = args.MetaChainMinNodes
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardConsensusGroupSize = args.ConsensusGroupSize
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundDuration = args.RoundDurationInMillis
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].Hysteresis = args.Hysteresis
+	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.ConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = args.RoundDurationInMillis
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
+	}
 
 	// TODO[Sorin]: remove this once all equivalent messages PRs are merged
 	configs.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch

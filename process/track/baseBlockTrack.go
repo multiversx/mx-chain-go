@@ -131,7 +131,7 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	}
 
 	headerHash := proof.GetHeaderHash()
-	header, err := bbt.headersPool.GetHeaderByHash(headerHash)
+	header, err := bbt.getHeaderForProof(proof)
 	if err != nil {
 		log.Debug("baseBlockTrack.receivedProof with missing header", "headerHash", headerHash)
 		return
@@ -145,6 +145,16 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	)
 
 	bbt.receivedHeader(header, headerHash)
+}
+
+func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
+	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
+	headersStorer, err := bbt.store.GetStorer(headerUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, headersStorer, bbt.marshalizer, proof.GetHeaderShardId())
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {

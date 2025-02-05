@@ -70,7 +70,6 @@ type BroadcastMessenger interface {
 	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
 	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
-	PrepareBroadcastEquivalentProof(proof *block.HeaderProof, consensusIndex int, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 
@@ -217,4 +216,5 @@ type ProofHandler interface {
 	GetHeaderEpoch() uint32
 	GetHeaderNonce() uint64
 	GetHeaderShardId() uint32
+	GetIsStartOfEpoch() bool
 }

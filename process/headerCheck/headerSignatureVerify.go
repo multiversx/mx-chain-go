@@ -35,6 +35,7 @@ type ArgsHeaderSigVerifier struct {
 	FallbackHeaderValidator process.FallbackHeaderValidator
 	EnableEpochsHandler     common.EnableEpochsHandler
 	HeadersPool             dataRetriever.HeadersPool
+	StorageService          dataRetriever.StorageService
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -48,6 +49,7 @@ type HeaderSigVerifier struct {
 	fallbackHeaderValidator process.FallbackHeaderValidator
 	enableEpochsHandler     common.EnableEpochsHandler
 	headersPool             dataRetriever.HeadersPool
+	storageService          dataRetriever.StorageService
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -67,6 +69,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
 		enableEpochsHandler:     arguments.EnableEpochsHandler,
 		headersPool:             arguments.HeadersPool,
+		storageService:          arguments.StorageService,
 	}, nil
 }
 
@@ -108,6 +111,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	if check.IfNil(arguments.HeadersPool) {
 		return process.ErrNilHeadersDataPool
 	}
+	if check.IfNil(arguments.StorageService) {
+		return process.ErrNilStorageService
+	}
 
 	return nil
 }
@@ -144,7 +150,6 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		epochForConsensus,
 		proof.GetHeaderShardId(),
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +235,9 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return hsv.VerifyHeaderWithProof(header)
 	}
+	if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
+		return ErrProofNotExpected
+	}
 
 	headerCopy, err := hsv.copyHeaderWithoutSig(header)
 	if err != nil {
@@ -306,7 +314,50 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 	}
 
 	prevProof := header.GetPreviousProof()
+	if common.IsEpochStartProofAfterFlagActivation(prevProof, hsv.enableEpochsHandler) {
+		return hsv.verifyHeaderProofAtTransition(prevProof)
+	}
+
 	return hsv.VerifyHeaderProof(prevProof)
+}
+
+func (hsv *HeaderSigVerifier) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
+	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
+	headersStorer, err := hsv.storageService.GetStorer(headerUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	return process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
+}
+
+func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderProofHandler) error {
+	if check.IfNilReflect(proof) {
+		return process.ErrNilHeaderProof
+	}
+	header, err := hsv.getHeaderForProof(proof)
+	if err != nil {
+		return err
+	}
+
+	consensusPubKeys, err := hsv.getConsensusSigners(
+		header.GetPrevRandSeed(),
+		proof.GetHeaderShardId(),
+		proof.GetHeaderEpoch(),
+		proof.GetIsStartOfEpoch(),
+		proof.GetHeaderRound(),
+		proof.GetHeaderHash(),
+		proof.GetPubKeysBitmap())
+	if err != nil {
+		return err
+	}
+
+	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(proof.GetHeaderEpoch())
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
@@ -316,6 +367,10 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	}
 	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proofHandler.GetHeaderEpoch()) {
 		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
+	}
+
+	if common.IsEpochStartProofAfterFlagActivation(proofHandler, hsv.enableEpochsHandler) {
+		return hsv.verifyHeaderProofAtTransition(proofHandler)
 	}
 
 	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(proofHandler.GetHeaderEpoch())
