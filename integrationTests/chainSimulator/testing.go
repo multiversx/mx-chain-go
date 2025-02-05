@@ -59,12 +59,14 @@ func getAccount(chainSimulator ChainSimulator, address dtos.WalletAddress) (vmco
 
 // TriggerChangeOfEpoch -
 func TriggerChangeOfEpoch(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {
-	for i := 0; i < 4; i++ {
+	startEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
+
+	for i := startEpoch; i < startEpoch+4; i++ {
 		err := chainSimulator.ForceChangeOfEpoch()
 		require.Nil(t, err)
 
 		currentEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
-		require.Equal(t, uint32(i+1), currentEpoch)
+		require.Equal(t, i+1, currentEpoch)
 	}
 }
 
