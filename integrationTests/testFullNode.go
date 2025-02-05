@@ -76,6 +76,7 @@ import (
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
+// CreateNodesWithTestFullNode will create a set of nodes with full consensus and processing components
 func CreateNodesWithTestFullNode(
 	numMetaNodes int,
 	nodesPerShard int,
@@ -137,6 +138,7 @@ func CreateNodesWithTestFullNode(
 	return nodes
 }
 
+// ArgsTestFullNode defines arguments for test full node
 type ArgsTestFullNode struct {
 	*ArgTestProcessorNode
 
@@ -152,6 +154,7 @@ type ArgsTestFullNode struct {
 	StartTime     int64
 }
 
+// TestFullNode defines the structure for testing node with full processing and consensus components
 type TestFullNode struct {
 	*TestProcessorNode
 
@@ -159,6 +162,7 @@ type TestFullNode struct {
 	MultiSigner      *cryptoMocks.MultisignerMock
 }
 
+// NewTestFullNode will create a new instance of full testing node
 func NewTestFullNode(args ArgsTestFullNode) *TestFullNode {
 	tpn := newBaseTestProcessorNode(*args.ArgTestProcessorNode)
 
@@ -693,41 +697,41 @@ func (tcn *TestFullNode) initInterceptors(
 	cacheVerified, _ := storageunit.NewCache(cacherVerifiedCfg)
 	whiteListerVerifiedTxs, _ := interceptors.NewWhiteListDataVerifier(cacheVerified)
 
+	interceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
+		CoreComponents:                 coreComponents,
+		CryptoComponents:               cryptoComponents,
+		Accounts:                       accountsAdapter,
+		ShardCoordinator:               tcn.ShardCoordinator,
+		NodesCoordinator:               tcn.NodesCoordinator,
+		MainMessenger:                  tcn.MainMessenger,
+		FullArchiveMessenger:           tcn.FullArchiveMessenger,
+		Store:                          storage,
+		DataPool:                       tcn.DataPool,
+		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
+		BlockBlackList:                 blockBlackListHandler,
+		HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
+		ValidityAttester:               blockTracker,
+		EpochStartTrigger:              epochStartTrigger,
+		WhiteListHandler:               whiteLstHandler,
+		WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
+		AntifloodHandler:               &mock.NilAntifloodHandler{},
+		ArgumentsParser:                smartContract.NewArgumentParser(),
+		PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+		SizeCheckDelta:                 sizeCheckDelta,
+		RequestHandler:                 &testscommon.RequestHandlerStub{},
+		PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
+		SignaturesHandler:              &processMock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:   30,
+		MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
+		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
+		NodeOperationMode:              common.NormalOperation,
+		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+	}
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-			CoreComponents:                 coreComponents,
-			CryptoComponents:               cryptoComponents,
-			Accounts:                       accountsAdapter,
-			ShardCoordinator:               tcn.ShardCoordinator,
-			NodesCoordinator:               tcn.NodesCoordinator,
-			MainMessenger:                  tcn.MainMessenger,
-			FullArchiveMessenger:           tcn.FullArchiveMessenger,
-			Store:                          storage,
-			DataPool:                       tcn.DataPool,
-			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-			TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
-			BlockBlackList:                 blockBlackListHandler,
-			HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
-			HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
-			ValidityAttester:               blockTracker,
-			EpochStartTrigger:              epochStartTrigger,
-			WhiteListHandler:               whiteLstHandler,
-			WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
-			AntifloodHandler:               &mock.NilAntifloodHandler{},
-			ArgumentsParser:                smartContract.NewArgumentParser(),
-			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
-			SizeCheckDelta:                 sizeCheckDelta,
-			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
-			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
-			HeartbeatExpiryTimespanInSec:   30,
-			MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
-			FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
-			HardforkTrigger:                &testscommon.HardforkTriggerStub{},
-			NodeOperationMode:              common.NormalOperation,
-			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
-		}
-		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
+		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(interceptorContainerFactoryArgs)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -762,41 +766,7 @@ func (tcn *TestFullNode) initInterceptors(
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
-		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-			CoreComponents:                 coreComponents,
-			CryptoComponents:               cryptoComponents,
-			Accounts:                       accountsAdapter,
-			ShardCoordinator:               tcn.ShardCoordinator,
-			NodesCoordinator:               tcn.NodesCoordinator,
-			MainMessenger:                  tcn.MainMessenger,
-			FullArchiveMessenger:           tcn.FullArchiveMessenger,
-			Store:                          storage,
-			DataPool:                       tcn.DataPool,
-			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-			TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
-			BlockBlackList:                 blockBlackListHandler,
-			HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
-			HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
-			ValidityAttester:               blockTracker,
-			EpochStartTrigger:              epochStartTrigger,
-			WhiteListHandler:               whiteLstHandler,
-			WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
-			AntifloodHandler:               &mock.NilAntifloodHandler{},
-			ArgumentsParser:                smartContract.NewArgumentParser(),
-			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
-			SizeCheckDelta:                 sizeCheckDelta,
-			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
-			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
-			HeartbeatExpiryTimespanInSec:   30,
-			MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
-			FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
-			HardforkTrigger:                &testscommon.HardforkTriggerStub{},
-			NodeOperationMode:              common.NormalOperation,
-			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
-		}
-
-		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
+		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(interceptorContainerFactoryArgs)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
