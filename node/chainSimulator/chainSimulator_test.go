@@ -6,14 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/errors"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -121,33 +119,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	facade, err := NewChainSimulatorFacade(chainSimulator)
-	require.Nil(t, err)
-
-	genesisBalances := make(map[string]*big.Int)
-	for _, stakeWallet := range chainSimulator.initialWalletKeys.StakeWallets {
-		initialAccount, errGet := facade.GetExistingAccountFromBech32AddressString(stakeWallet.Address.Bech32)
-		require.Nil(t, errGet)
-
-		genesisBalances[stakeWallet.Address.Bech32] = initialAccount.GetBalance()
-	}
-
-	time.Sleep(time.Second)
-
-	err = chainSimulator.GenerateBlocks(80)
-	require.Nil(t, err)
-
-	numAccountsWithIncreasedBalances := 0
-	for _, stakeWallet := range chainSimulator.initialWalletKeys.StakeWallets {
-		account, errGet := facade.GetExistingAccountFromBech32AddressString(stakeWallet.Address.Bech32)
-		require.Nil(t, errGet)
-
-		if account.GetBalance().Cmp(genesisBalances[stakeWallet.Address.Bech32]) > 0 {
-			numAccountsWithIncreasedBalances++
-		}
-	}
-
-	assert.True(t, numAccountsWithIncreasedBalances > 0)
+	chainSimulatorCommon.GenerateBlocksAndEpochChange(t, chainSimulator)
 }
 
 func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {

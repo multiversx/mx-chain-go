@@ -1,19 +1,16 @@
 package chainSimulator
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
 
 const (
@@ -105,41 +102,7 @@ func TestSovereignChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testi
 
 	defer chainSimulator.Close()
 
-	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
-
-	genesisBalances := make(map[string]*big.Int)
-	for _, stakeWallet := range chainSimulator.GetInitialWalletKeys().StakeWallets {
-		initialAccount, errGet := getAccount(nodeHandler, stakeWallet.Address.Bytes)
-		require.Nil(t, errGet)
-
-		genesisBalances[stakeWallet.Address.Bech32] = initialAccount.GetBalance()
-	}
-
-	time.Sleep(time.Second)
-
-	err = chainSimulator.GenerateBlocksUntilEpochIsReached(4)
-	require.Nil(t, err)
-
-	numAccountsWithIncreasedBalances := 0
-	for _, stakeWallet := range chainSimulator.GetInitialWalletKeys().StakeWallets {
-		account, errGet := getAccount(nodeHandler, stakeWallet.Address.Bytes)
-		require.Nil(t, errGet)
-
-		if account.GetBalance().Cmp(genesisBalances[stakeWallet.Address.Bech32]) > 0 {
-			numAccountsWithIncreasedBalances++
-		}
-	}
-
-	require.True(t, numAccountsWithIncreasedBalances > 0)
-}
-
-func getAccount(nodeHandler process.NodeHandler, addressBytes []byte) (vmcommon.UserAccountHandler, error) {
-	account, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount(addressBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return account.(vmcommon.UserAccountHandler), nil
+	chainSimulatorCommon.GenerateBlocksAndEpochChange(t, chainSimulator)
 }
 
 func TestSovereignSimulator_TriggerChangeOfEpoch(t *testing.T) {
