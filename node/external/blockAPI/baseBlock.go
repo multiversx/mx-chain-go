@@ -125,6 +125,18 @@ func (bap *baseAPIBlockProcessor) getAndAttachTxsToMb(
 
 	firstProcessed := mbHeader.GetIndexOfFirstTxProcessed()
 	lastProcessed := mbHeader.GetIndexOfLastTxProcessed()
+
+	// When options.ForHyperblock is true, there are two scenarios:
+	// 1 - If not all transactions were executed, no transactions will be returned.
+	// 2 - If all transactions were executed, all transactions starting from index 0 will be returned.
+	if options.ForHyperblock {
+		allTxsWereExecuted := lastProcessed == int32(len(miniBlock.TxHashes)-1)
+		if !allTxsWereExecuted {
+			return nil
+		}
+		firstProcessed = 0
+	}
+
 	return bap.getAndAttachTxsToMbByEpoch(miniblockHash, miniBlock, header, apiMiniblock, firstProcessed, lastProcessed, options)
 }
 

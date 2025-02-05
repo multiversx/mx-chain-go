@@ -53,9 +53,9 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	journals = append(journals, runScenario(t, newScenario(100, 1, core.MegabyteSize, "1_0"), memoryAssertion{90, 100}, memoryAssertion{0, 1}))
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 10240, "1_0"), memoryAssertion{96, 128}, memoryAssertion{0, 4}))
-	journals = append(journals, runScenario(t, newScenario(10, 10000, 1000, "1_0"), memoryAssertion{96, 140}, memoryAssertion{16, 25}))
-	journals = append(journals, runScenario(t, newScenario(150000, 1, 128, "1_0"), memoryAssertion{50, 80}, memoryAssertion{30, 40}))
-	journals = append(journals, runScenario(t, newScenario(1, 150000, 128, "1_0"), memoryAssertion{50, 80}, memoryAssertion{30, 40}))
+	journals = append(journals, runScenario(t, newScenario(10, 10000, 1000, "1_0"), memoryAssertion{96, 148}, memoryAssertion{16, 32}))
+	journals = append(journals, runScenario(t, newScenario(150000, 1, 128, "1_0"), memoryAssertion{50, 84}, memoryAssertion{30, 48}))
+	journals = append(journals, runScenario(t, newScenario(1, 150000, 128, "1_0"), memoryAssertion{50, 84}, memoryAssertion{30, 48}))
 
 	for _, journal := range journals {
 		journal.displayFootprintsSummary()

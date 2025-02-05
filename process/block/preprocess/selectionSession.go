@@ -21,22 +21,24 @@ type selectionSession struct {
 	ephemeralAccountsCache map[string]vmcommon.AccountHandler
 }
 
-type argsSelectionSession struct {
-	accountsAdapter       state.AccountsAdapter
-	transactionsProcessor process.TransactionProcessor
+// ArgsSelectionSession holds the arguments for creating a new selection session.
+type ArgsSelectionSession struct {
+	AccountsAdapter       state.AccountsAdapter
+	TransactionsProcessor process.TransactionProcessor
 }
 
-func newSelectionSession(args argsSelectionSession) (*selectionSession, error) {
-	if check.IfNil(args.accountsAdapter) {
+// NewSelectionSession creates a new selection session.
+func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
+	if check.IfNil(args.AccountsAdapter) {
 		return nil, process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(args.transactionsProcessor) {
+	if check.IfNil(args.TransactionsProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
 
 	return &selectionSession{
-		accountsAdapter:        args.accountsAdapter,
-		transactionsProcessor:  args.transactionsProcessor,
+		accountsAdapter:        args.AccountsAdapter,
+		transactionsProcessor:  args.TransactionsProcessor,
 		ephemeralAccountsCache: make(map[string]vmcommon.AccountHandler),
 	}, nil
 }
