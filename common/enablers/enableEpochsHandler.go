@@ -780,6 +780,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch,
 		},
+		common.RelayedTransactionsV3Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
+		},
 	}
 }
 

@@ -488,15 +488,19 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 	return ed.ComputeGasLimitInEpoch(tx, currentEpoch)
 }
 
-// ComputeGasLimitInEpoch returns the gas limit need by the provided transaction in order to be executed in a specific epoch
+// ComputeGasLimitInEpoch returns the gas limit needed by the provided transaction in order to be executed in a specific epoch
 func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
 	gasLimit := ed.getMinGasLimit(epoch)
 
 	dataLen := uint64(len(tx.GetData()))
 	gasLimit += dataLen * ed.gasPerDataByte
 	txInstance, ok := tx.(*transaction.Transaction)
-	if ok && ed.txVersionHandler.IsGuardedTransaction(txInstance) {
-		gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
+	if ok {
+		if ed.txVersionHandler.IsGuardedTransaction(txInstance) {
+			gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
+		}
+
+		gasLimit += ed.getExtraGasLimitRelayedTx(txInstance, epoch)
 	}
 
 	return gasLimit
@@ -575,6 +579,15 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFe
 	return ed.ComputeGasLimitBasedOnBalanceInEpoch(tx, balance, currentEpoch)
 }
 
+// ComputeGasUnitsFromRefundValue will compute the gas unit based on the refund value
+func (ed *economicsData) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64 {
+	gasPrice := ed.GasPriceForProcessingInEpoch(tx, epoch)
+	refund := big.NewInt(0).Set(refundValue)
+	gasUnits := refund.Div(refund, big.NewInt(int64(gasPrice)))
+
+	return gasUnits.Uint64()
+}
+
 // ComputeGasLimitBasedOnBalanceInEpoch will compute gas limit for the given transaction based on the balance in a specific epoch
 func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.TransactionWithFeeHandler, balance *big.Int, epoch uint32) (uint64, error) {
 	balanceWithoutTransferValue := big.NewInt(0).Sub(balance, tx.GetValue())
@@ -603,6 +616,15 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 	totalGasLimit := gasLimitMoveBalance + gasLimitFromRemainedBalanceBig.Uint64()
 
 	return totalGasLimit, nil
+}
+
+// getExtraGasLimitRelayedTx returns extra gas limit for relayed tx in a specific epoch
+func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Transaction, epoch uint32) uint64 {
+	if common.IsRelayedTxV3(txInstance) {
+		return ed.MinGasLimitInEpoch(epoch)
+	}
+
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
