@@ -1,21 +1,23 @@
 package chainSimulator
 
 import (
-	"github.com/multiversx/mx-chain-go/errors"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/errors"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -176,21 +178,8 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	err = chainSimulator.ForceChangeOfEpoch()
-	require.Nil(t, err)
-
-	err = chainSimulator.ForceChangeOfEpoch()
-	require.Nil(t, err)
-
-	err = chainSimulator.ForceChangeOfEpoch()
-	require.Nil(t, err)
-
-	err = chainSimulator.ForceChangeOfEpoch()
-	require.Nil(t, err)
-
-	metaNode := chainSimulator.GetNodeHandler(core.MetachainShardId)
-	currentEpoch := metaNode.GetProcessComponents().EpochStartTrigger().Epoch()
-	require.Equal(t, uint32(4), currentEpoch)
+	nodeHandler := chainSimulator.GetNodeHandler(core.MetachainShardId)
+	chainSimulatorCommon.TriggerChangeOfEpoch(t, chainSimulator, nodeHandler)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {

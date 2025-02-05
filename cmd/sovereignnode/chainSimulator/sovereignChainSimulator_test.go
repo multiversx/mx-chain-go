@@ -169,13 +169,7 @@ func TestSovereignSimulator_TriggerChangeOfEpoch(t *testing.T) {
 	defer chainSimulator.Close()
 
 	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
-	for i := 0; i < 4; i++ {
-		err = chainSimulator.ForceChangeOfEpoch()
-		require.Nil(t, err)
-
-		currentEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
-		require.Equal(t, uint32(i+1), currentEpoch)
-	}
+	chainSimulatorCommon.TriggerChangeOfEpoch(t, chainSimulator, nodeHandler)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {

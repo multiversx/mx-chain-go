@@ -18,6 +18,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TriggerChangeOfEpoch -
+func TriggerChangeOfEpoch(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {
+	for i := 0; i < 4; i++ {
+		err := chainSimulator.ForceChangeOfEpoch()
+		require.Nil(t, err)
+
+		currentEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
+		require.Equal(t, uint32(i+1), currentEpoch)
+	}
+}
+
 // CheckSetState -
 func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {
 	keyValueMap := map[string]string{
