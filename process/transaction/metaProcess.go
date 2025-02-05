@@ -140,12 +140,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		return 0, err
 	}
 
-<<<<<<< HEAD
-	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
-
-=======
 	txType, _, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
->>>>>>> rc/spica-patch-relayedv3
 	switch txType {
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)

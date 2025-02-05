@@ -197,17 +197,13 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
-<<<<<<< HEAD
 	// TODO refactor to set the tx hash for the following state changes before the processing occurs
 	defer func() {
 		txProc.accounts.SetTxHashForLatestStateChanges(txHash, tx)
 		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
 	}()
 
-	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
-=======
 	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)
->>>>>>> rc/spica-patch-relayedv3
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		if errors.Is(err, process.ErrInsufficientFunds) {
