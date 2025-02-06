@@ -135,7 +135,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		return 0, err
 	}
 
-	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
+	txType, _, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
 	switch txType {
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
