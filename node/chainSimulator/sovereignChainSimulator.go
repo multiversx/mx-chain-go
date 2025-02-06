@@ -2,6 +2,8 @@ package chainSimulator
 
 import (
 	"fmt"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 type sovereignChainSimulator struct {
@@ -52,4 +54,29 @@ func (ss *sovereignChainSimulator) isSovereignTargetEpochReached(targetEpoch int
 	}
 
 	return true
+}
+
+// ForceResetValidatorStatisticsCache will force the reset of the cache used for the validators statistics endpoint
+func (ss *sovereignChainSimulator) ForceResetValidatorStatisticsCache() error {
+	return ss.GetNodeHandler(core.SovereignChainShardId).GetProcessComponents().ValidatorsProvider().ForceUpdate()
+}
+
+// ForceChangeOfEpoch will force the change of current epoch
+// This method will call the epoch change trigger and generate block till a new epoch is reached
+func (ss *sovereignChainSimulator) ForceChangeOfEpoch() error {
+	log.Info("force change of epoch")
+
+	ss.mutex.Lock()
+
+	node := ss.nodes[core.SovereignChainShardId]
+	err := node.ForceChangeOfEpoch()
+	if err != nil {
+		ss.mutex.Unlock()
+		return fmt.Errorf("force change of epoch error-%w", err)
+	}
+
+	epoch := node.GetProcessComponents().EpochStartTrigger().Epoch()
+	ss.mutex.Unlock()
+
+	return ss.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }
