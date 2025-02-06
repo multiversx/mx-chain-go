@@ -27,8 +27,5 @@
             "name": "shouldSkipSendingBlock",
             "triggers": ["round % 17 == 0 && randomNumber % 2 == 0"]
         }
-    ],
-    "reusableTriggers": {
-        "a": "round == 500"
-    }
+    ]
 }

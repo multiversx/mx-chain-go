@@ -20,6 +20,7 @@ type failureCircumstance struct {
 	counterProcessTransaction uint64
 
 	// Not always available:
+	nodeIndex       int
 	blockNonce      uint64
 	nodePublicKey   []byte
 	transactionHash []byte
@@ -84,6 +85,10 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	if len(circumstance.transactionHash) > 0 {
 		transactionHashLastByte := circumstance.transactionHash[len(circumstance.transactionHash)-1]
 		scope.Insert(createFailureExpressionNumericParameter(pack, parameterTransactionHashLastByte, uint64(transactionHashLastByte)))
+	}
+
+	if circumstance.nodeIndex >= 0 {
+		scope.Insert(createFailureExpressionNumericParameter(pack, "nodeIndex", uint64(circumstance.nodeIndex)))
 	}
 
 	return pack

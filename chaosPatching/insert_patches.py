@@ -52,7 +52,7 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
-                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)"""
+                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), selfIndex, signatureShare)"""
             ),
             (
                 "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
@@ -60,7 +60,12 @@ def main():
             ),
             (
                 "// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures",
-                """if chaos.Controller.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader()) {
+                """selfIndex, err := sr.SelfConsensusGroupIndex()
+    if err != nil {
+        selfIndex = -1
+    }
+
+    if chaos.Controller.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader(), selfIndex) {
 		return true
 	}
 """
@@ -74,7 +79,12 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v1/subroundEndRound_checkSignaturesValidity_returnError",
-                """if chaos.Controller.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.GetHeader()) {
+                """selfIndex, err := sr.SelfConsensusGroupIndex()
+    if err != nil {
+        selfIndex = -1
+    }
+    
+    if chaos.Controller.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.GetHeader(), selfIndex) {
 		return spos.ErrInvalidSignature
 	}
 """
@@ -92,7 +102,12 @@ def main():
             ),
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",
-                """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header) {
+                """selfIndex, err := sr.SelfConsensusGroupIndex()
+    if err != nil {
+        selfIndex = -1
+    }
+    
+    if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header, selfIndex) {
         return false
 	}
 """
@@ -106,7 +121,7 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
-                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), signatureShare)"""
+                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), selfIndex, signatureShare)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",

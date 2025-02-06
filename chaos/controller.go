@@ -73,11 +73,12 @@ func (controller *chaosController) In_shardProcess_processTransaction_shouldRetu
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
-func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(header data.HeaderHandler, signature []byte) {
+func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(header data.HeaderHandler, nodeIndex int, signature []byte) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance()
+	circumstance.nodeIndex = nodeIndex
 	circumstance.blockNonce = header.GetNonce()
 	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
 		signature[0] += 1
@@ -85,11 +86,12 @@ func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorr
 }
 
 // In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
-func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(header data.HeaderHandler, keyIndex int, signature []byte) {
+func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(header data.HeaderHandler, nodeIndex int, signature []byte) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance()
+	circumstance.nodeIndex = nodeIndex
 	circumstance.blockNonce = header.GetNonce()
 	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
 		signature[0] += 1
@@ -97,30 +99,33 @@ func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorr
 }
 
 // In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
-func (controller *chaosController) In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(header data.HeaderHandler) bool {
+func (controller *chaosController) In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(header data.HeaderHandler, nodeIndex int) bool {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance()
+	circumstance.nodeIndex = nodeIndex
 	circumstance.blockNonce = header.GetNonce()
 	return controller.shouldFail(failureShouldSkipWaitingForSignatures, circumstance)
 }
 
-func (controller *chaosController) In_subroundEndRound_checkSignaturesValidity_shouldReturnError(header data.HeaderHandler) bool {
+func (controller *chaosController) In_subroundEndRound_checkSignaturesValidity_shouldReturnError(header data.HeaderHandler, nodeIndex int) bool {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance()
+	circumstance.nodeIndex = nodeIndex
 	circumstance.blockNonce = header.GetNonce()
 	return controller.shouldFail(failureShouldReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
 // In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header data.HeaderHandler, signature []byte) {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header data.HeaderHandler, nodeIndex int, signature []byte) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance()
+	circumstance.nodeIndex = nodeIndex
 	circumstance.blockNonce = header.GetNonce()
 	if controller.shouldFail(failureShouldCorruptLeaderSignature, circumstance) {
 		signature[0] += 1
@@ -128,11 +133,12 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 }
 
 // In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header data.HeaderHandler) bool {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header data.HeaderHandler, nodeIndex int) bool {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance()
+	circumstance.nodeIndex = nodeIndex
 	circumstance.blockNonce = header.GetNonce()
 	return controller.shouldFail(failureShouldSkipSendingBlock, circumstance)
 }
@@ -150,6 +156,7 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 	}
 
 	return &failureCircumstance{
+		// Always available:
 		nodeDisplayName: controller.nodeDisplayName,
 		randomNumber:    randomNumber,
 		now:             now,
@@ -157,7 +164,14 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 		epoch:           loggerCorrelation.Epoch,
 		round:           uint64(loggerCorrelation.Round),
 
+		// Always available (counters):
 		counterProcessTransaction: controller.CallsCounters.ProcessTransaction.GetUint64(),
+
+		// Not always available:
+		nodeIndex:       -1,
+		blockNonce:      0,
+		nodePublicKey:   nil,
+		transactionHash: nil,
 	}
 }
 
