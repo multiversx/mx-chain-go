@@ -395,8 +395,8 @@ github.com/multiversx/mx-chain-logger-go v1.0.15 h1:HlNdK8etyJyL9NQ+6mIXyKPEBo+w
 github.com/multiversx/mx-chain-logger-go v1.0.15/go.mod h1:t3PRKaWB1M+i6gUfD27KXgzLJJC+mAQiN+FLlL1yoGQ=
 github.com/multiversx/mx-chain-scenario-go v1.4.4 h1:DVE2V+FPeyD/yWoC+KEfPK3jsFzHeruelESfpTlf460=
 github.com/multiversx/mx-chain-scenario-go v1.4.4/go.mod h1:kI+TWR3oIEgUkbwkHCPo2CQ3VjIge+ezGTibiSGwMxo=
-github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250128122723-700d9ae97f96 h1:JS4/1wMwTVnuAp6J74hLwKiPATRrtjSyyF0xFervRl4=
-github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250128122723-700d9ae97f96/go.mod h1:K907bMZUkW/JLKaHkkQbEJMqyMoy1xwBBUW7XHXp4hg=
+github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250206093614-af9e9aa908ba h1:69X69U3J8O1D8/8sKDiIq+ooSoLiDFrUxmgUocKvvvk=
+github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250206093614-af9e9aa908ba/go.mod h1:K907bMZUkW/JLKaHkkQbEJMqyMoy1xwBBUW7XHXp4hg=
 github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230929085947-df9b345f49ac h1:GtFxKINPiDCsqjKpTWHFN/5qvQGnFClYH4jMHNrJx/M=
 github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230929085947-df9b345f49ac/go.mod h1:syNNd30uEkKsz2V5nXCfv3u+KhkpKVw34+2DsfSuFSE=
 github.com/multiversx/mx-chain-storage-go v1.0.19 h1:2R35MoSXcuNJOFmV5xEhcXqiEGZw6AYGy9R8J9KH66Q=
