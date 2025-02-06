@@ -449,9 +449,12 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return nil
+	}
 
-	if common.ShouldBlockHavePrevProof(header, st.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
+	st.forkDetector.AddCheckpoint(header.GetNonce(), header.GetRound(), headerHash)
+	if header.GetShardID() == core.MetachainShardId || !check.IfNilReflect(header.GetPreviousProof()) {
 		st.forkDetector.SetFinalToLastCheckpoint()
 	}
 	return nil
