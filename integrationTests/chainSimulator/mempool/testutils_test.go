@@ -24,8 +24,8 @@ import (
 var (
 	oneEGLD                   = big.NewInt(1000000000000000000)
 	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany = 1500 * time.Millisecond
-	durationWaitAfterSendSome = 50 * time.Millisecond
+	durationWaitAfterSendMany = 3000 * time.Millisecond
+	durationWaitAfterSendSome = 300 * time.Millisecond
 )
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
