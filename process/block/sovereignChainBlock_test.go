@@ -1,22 +1,37 @@
 package block_test
 
 import (
+	"math/big"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageStub "github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -83,7 +98,7 @@ func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 			RequestHandler:   &testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			RoundHandler:     &testscommon.RoundHandlerMock{},
 			ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
-			Store:            &storage.ChainStorerStub{},
+			Store:            &storageStub.ChainStorerStub{},
 			StartHeaders:     createGenesisBlocks(&testscommon.ShardsCoordinatorMock{NoShards: 1}),
 			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 			WhitelistHandler: &testscommon.WhiteListHandlerStub{},
@@ -341,6 +356,154 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		},
 	}
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)
+}
+
+func createTxCoordinator(
+	store dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+	Hasher hashing.Hasher,
+	dataPool dataRetriever.PoolsHolder,
+) process.TransactionCoordinator {
+	args := shardData.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Store:                        store,
+		Marshaller:                   marshaller,
+		Hasher:                       Hasher,
+		DataPool:                     dataPool,
+		PubkeyConverter:              createMockPubkeyConverter(),
+		Accounts:                     initAccountsMock(),
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		RunTypeComponents:            processMocks.NewRunTypeComponentsStub(),
+	}
+	factory, _ := shard.NewPreProcessorsContainerFactory(args)
+	container, _ := factory.Create()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments(initAccountsMock(), dataPool, container)
+	tc, _ := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
+	return tc
+}
+
+func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx hash 1")
+
+	datapool := dataRetrieverMock.NewPoolsHolderMock()
+	marshalizerMock := &mock.MarshalizerMock{}
+	hasherMock := &mock.HasherStub{}
+
+	body := &block.Body{}
+	tx := &transaction.Transaction{
+		Nonce: 1,
+		Value: big.NewInt(0),
+	}
+	buffTx, _ := marshalizerMock.Marshal(tx)
+
+	store := &storageStubs.ChainStorerStub{
+		GetAllCalled: func(unitType dataRetriever.UnitType, keys [][]byte) (map[string][]byte, error) {
+			m := make(map[string][]byte)
+			m[string(txHash)] = buffTx
+			return m, nil
+		},
+	}
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = datapool
+	dataComponents.Storage = store
+	coreComponents.Hash = hasherMock
+	coreComponents.IntMarsh = marshalizerMock
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.TxCoordinator = createTxCoordinator(store, marshalizerMock, hasherMock, datapool)
+
+	shardArguments := CreateSovereignChainShardTrackerMockArguments()
+	sbt, _ := track.NewShardBlockTrack(shardArguments)
+	arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
+	rrh, _ := requestHandlers.NewResolverRequestHandler(
+		&dataRetrieverMock.RequestersFinderStub{},
+		&mock.RequestedItemsHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
+		1,
+		0,
+		time.Second,
+	)
+	arguments.RequestHandler, _ = requestHandlers.NewSovereignResolverRequestHandler(rrh)
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	argsSovProc := createSovChainBlockProcessorArgs()
+	argsSovProc.ShardProcessor = sp
+	sovBlockProc, _ := blproc.NewSovereignChainBlockProcessor(argsSovProc)
+
+	txHashes := make([][]byte, 0)
+	txHashes = append(txHashes, txHash)
+	miniblock := block.MiniBlock{
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+		TxHashes:        txHashes,
+	}
+	body.MiniBlocks = append(body.MiniBlocks, &miniblock)
+
+	miniblockHash := []byte("mini block hash 1")
+	hasherMock.ComputeCalled = func(s string) []byte {
+		return miniblockHash
+	}
+
+	extendedHeaderHash := []byte("meta block hash 1")
+	extendedHeader := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			ScheduledRootHash: []byte("root hash"),
+		},
+		IncomingMiniBlocks: nil,
+		IncomingEvents:     nil,
+	}
+	datapool.Headers().AddHeader(extendedHeaderHash, extendedHeader)
+
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+		return &storageStubs.StorerStub{
+			RemoveCalled: func(key []byte) error {
+				return nil
+			},
+			GetCalled: func(key []byte) ([]byte, error) {
+				return marshalizerMock.Marshal(extendedHeader)
+			},
+		}, nil
+	}
+
+	miniBlockHeader := block.MiniBlockHeader{
+		Hash:            miniblockHash,
+		SenderShardID:   miniblock.SenderShardID,
+		ReceiverShardID: miniblock.ReceiverShardID,
+	}
+
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{miniBlockHeader},
+		},
+		ExtendedShardHeaderHashes: [][]byte{extendedHeaderHash},
+	}
+
+	err := sovBlockProc.RestoreBlockIntoPools(sovHdr, body)
+	assert.Nil(t, err)
+
+	miniblockFromPool, _ := datapool.MiniBlocks().Get(miniblockHash)
+	txFromPool, _ := datapool.Transactions().SearchFirstData(txHash)
+	assert.Nil(t, err)
+	assert.Equal(t, &miniblock, miniblockFromPool)
+	assert.Equal(t, tx, txFromPool)
 }
 
 //TODO: More unit tests should be added. Created PR https://multiversxlabs.atlassian.net/browse/MX-14149
