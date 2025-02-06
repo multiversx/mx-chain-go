@@ -1,12 +1,6 @@
 name: Chain Simulator Build and Integration Test
 
 on:
-  pull_request:
-    branches:
-      - 'main'
-      - 'master'
-      - 'rc/*'
-      - 'feat/chain-go-sdk'
   workflow_dispatch:
   issue_comment:
     types: [created]
