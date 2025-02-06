@@ -45,30 +45,25 @@ type RunTypeComponentsStub struct {
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
-	blockChainHookHandlerFactory, _ := hooks.NewBlockChainHookFactory()
-	transactionCoordinatorFactory, _ := coordinator.NewShardTransactionCoordinatorFactory()
-	scResultsPreProcessorCreator, _ := preprocess.NewSmartContractResultPreProcessorFactory()
-	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
 	accountsCreator, _ := factory.NewAccountCreator(factory.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
-	vmContainerShard := factoryVm.NewVmContainerShardFactory()
 	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(systemSmartContracts.NewVMContextCreator())
 	hdrFactory, _ := block.NewShardHeaderFactory(createHeaderVersionHandler("*"))
 
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
-		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
-		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
-		SCProcessorFactory:                        scProcessorCreator,
+		BlockChainHookHandlerFactory:              hooks.NewBlockChainHookFactory(),
+		TransactionCoordinatorFactory:             coordinator.NewShardTransactionCoordinatorFactory(),
+		SCResultsPreProcessorFactory:              preprocess.NewSmartContractResultPreProcessorFactory(),
+		SCProcessorFactory:                        processProxy.NewSCProcessProxyFactory(),
 		AccountParser:                             &AccountsParserStub{},
 		AccountCreator:                            accountsCreator,
 		VMContextCreatorHandler:                   systemSmartContracts.NewVMContextCreator(),
 		ShardCoordinatorFactory:                   sharding.NewMultiShardCoordinatorFactory(),
 		TxPreProcessorFactory:                     preprocess.NewTxPreProcessorCreator(),
-		VmContainerShardFactory:                   vmContainerShard,
+		VmContainerShardFactory:                   factoryVm.NewVmContainerShardFactory(),
 		VmContainerMetaFactory:                    vmContainerMeta,
 		PreProcessorsContainerFactoryCreatorField: shard.NewPreProcessorContainerFactoryCreator(),
 		VersionedHeaderFactoryField:               hdrFactory,
@@ -78,8 +73,6 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 // NewSovereignRunTypeComponentsStub -
 func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	runTypeComponents := NewRunTypeComponentsStub()
-
-	blockChainHookHandlerFactory, _ := hooks.NewSovereignBlockChainHookFactory(runTypeComponents.BlockChainHookHandlerFactory)
 	transactionCoordinatorFactory, _ := coordinator.NewSovereignTransactionCoordinatorFactory(runTypeComponents.TransactionCoordinatorFactory)
 	scResultsPreProcessorCreator, _ := preprocess.NewSovereignSmartContractResultPreProcessorFactory(runTypeComponents.SCResultsPreProcessorFactory)
 	scProcessorCreator, _ := processorV2.NewSovereignSCProcessFactory(runTypeComponents.SCProcessorFactory)
@@ -99,7 +92,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	sovHdrFactory, _ := block.NewSovereignShardHeaderFactory(createHeaderVersionHandler("S1"))
 
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:              blockChainHookHandlerFactory,
+		BlockChainHookHandlerFactory:              hooks.NewSovereignBlockChainHookFactory(),
 		TransactionCoordinatorFactory:             transactionCoordinatorFactory,
 		SCResultsPreProcessorFactory:              scResultsPreProcessorCreator,
 		SCProcessorFactory:                        scProcessorCreator,

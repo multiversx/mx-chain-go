@@ -3,17 +3,17 @@ package sync_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardForkDetectorFactory(t *testing.T) {
 	t.Parallel()
 
-	sfdf, err := sync.NewShardForkDetectorFactory()
-	require.Nil(t, err)
+	sfdf := sync.NewShardForkDetectorFactory()
 	require.NotNil(t, sfdf)
 	require.Implements(t, new(sync.ForkDetectorCreator), sfdf)
 }
@@ -21,7 +21,7 @@ func TestNewShardForkDetectorFactory(t *testing.T) {
 func TestShardForkDetectorFactory_CreateForkDetector(t *testing.T) {
 	t.Parallel()
 
-	sfdf, _ := sync.NewShardForkDetectorFactory()
+	sfdf := sync.NewShardForkDetectorFactory()
 	args := sync.ForkDetectorFactoryArgs{
 		RoundHandler:    &testscommon.RoundHandlerMock{},
 		HeaderBlackList: &testscommon.TimeCacheStub{},
@@ -38,6 +38,6 @@ func TestShardForkDetectorFactory_CreateForkDetector(t *testing.T) {
 func TestShardForkDetectorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	sfdf, _ := sync.NewShardForkDetectorFactory()
+	sfdf := sync.NewShardForkDetectorFactory()
 	require.False(t, sfdf.IsInterfaceNil())
 }

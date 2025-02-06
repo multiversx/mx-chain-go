@@ -6,8 +6,8 @@ type shardHeaderValidatorFactory struct {
 }
 
 // NewShardHeaderValidatorFactory creates a new shard header validator factory
-func NewShardHeaderValidatorFactory() (*shardHeaderValidatorFactory, error) {
-	return &shardHeaderValidatorFactory{}, nil
+func NewShardHeaderValidatorFactory() *shardHeaderValidatorFactory {
+	return &shardHeaderValidatorFactory{}
 }
 
 // CreateHeaderValidator creates a new header validator for the chain run type normal
