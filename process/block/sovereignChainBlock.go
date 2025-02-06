@@ -732,7 +732,7 @@ func (scbp *sovereignChainBlockProcessor) shouldRequestEpochStartCrossChainHash(
 		"shouldRequestLastCrossChainHeader", shouldRequestLastCrossChainHeader,
 	)
 
-	return missingHeaderInTracker || missingHeaderInPool
+	return shouldRequestLastCrossChainHeader
 }
 
 func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {

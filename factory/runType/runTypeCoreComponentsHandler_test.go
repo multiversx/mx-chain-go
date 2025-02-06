@@ -42,12 +42,14 @@ func TestManagedRunTypeCoreComponents_Create(t *testing.T) {
 
 		require.Nil(t, managedRunTypeCoreComponents.GenesisNodesSetupFactoryCreator())
 		require.Nil(t, managedRunTypeCoreComponents.RatingsDataFactoryCreator())
+		require.Nil(t, managedRunTypeCoreComponents.EnableEpochsFactoryCreator())
 
 		err = managedRunTypeCoreComponents.Create()
 		require.NoError(t, err)
 
 		require.NotNil(t, managedRunTypeCoreComponents.GenesisNodesSetupFactoryCreator())
 		require.NotNil(t, managedRunTypeCoreComponents.RatingsDataFactoryCreator())
+		require.NotNil(t, managedRunTypeCoreComponents.EnableEpochsFactoryCreator())
 
 		require.Equal(t, factory.RunTypeCoreComponentsName, managedRunTypeCoreComponents.String())
 		require.NoError(t, managedRunTypeCoreComponents.Close())

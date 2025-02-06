@@ -884,6 +884,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
     FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 102
 
+	# RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 103
+
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 69
 
@@ -907,40 +910,40 @@ func TestEnableEpochConfig(t *testing.T) {
 
 	expectedCfg := EpochConfig{
 		EnableEpochs: EnableEpochs{
-			SCDeployEnableEpoch:                               1,
-			BuiltInFunctionsEnableEpoch:                       2,
-			RelayedTransactionsEnableEpoch:                    3,
-			PenalizedTooMuchGasEnableEpoch:                    4,
-			SwitchJailWaitingEnableEpoch:                      5,
-			BelowSignedThresholdEnableEpoch:                   6,
-			SwitchHysteresisForMinNodesEnableEpoch:            7,
-			TransactionSignedWithTxHashEnableEpoch:            8,
-			MetaProtectionEnableEpoch:                         9,
-			AheadOfTimeGasUsageEnableEpoch:                    10,
-			GasPriceModifierEnableEpoch:                       11,
-			RepairCallbackEnableEpoch:                         12,
-			BlockGasAndFeesReCheckEnableEpoch:                 13,
-			BalanceWaitingListsEnableEpoch:                    14,
-			ReturnDataToLastTransferEnableEpoch:               15,
-			SenderInOutTransferEnableEpoch:                    16,
-			StakeEnableEpoch:                                  17,
-			StakingV2EnableEpoch:                              18,
-			DoubleKeyProtectionEnableEpoch:                    19,
-			ESDTEnableEpoch:                                   20,
-			GovernanceEnableEpoch:                             21,
-			DelegationManagerEnableEpoch:                      22,
-			DelegationSmartContractEnableEpoch:                23,
-			CorrectLastUnjailedEnableEpoch:                    24,
-			RelayedTransactionsV2EnableEpoch:                  25,
-			UnbondTokensV2EnableEpoch:                         26,
-			SaveJailedAlwaysEnableEpoch:                       27,
-			ReDelegateBelowMinCheckEnableEpoch:                28,
-			ValidatorToDelegationEnableEpoch:                  29,
+			SCDeployEnableEpoch:                    1,
+			BuiltInFunctionsEnableEpoch:            2,
+			RelayedTransactionsEnableEpoch:         3,
+			PenalizedTooMuchGasEnableEpoch:         4,
+			SwitchJailWaitingEnableEpoch:           5,
+			BelowSignedThresholdEnableEpoch:        6,
+			SwitchHysteresisForMinNodesEnableEpoch: 7,
+			TransactionSignedWithTxHashEnableEpoch: 8,
+			MetaProtectionEnableEpoch:              9,
+			AheadOfTimeGasUsageEnableEpoch:         10,
+			GasPriceModifierEnableEpoch:            11,
+			RepairCallbackEnableEpoch:              12,
+			BlockGasAndFeesReCheckEnableEpoch:      13,
+			BalanceWaitingListsEnableEpoch:         14,
+			ReturnDataToLastTransferEnableEpoch:    15,
+			SenderInOutTransferEnableEpoch:         16,
+			StakeEnableEpoch:                       17,
+			StakingV2EnableEpoch:                   18,
+			DoubleKeyProtectionEnableEpoch:         19,
+			ESDTEnableEpoch:                        20,
+			GovernanceEnableEpoch:                  21,
+			DelegationManagerEnableEpoch:           22,
+			DelegationSmartContractEnableEpoch:     23,
+			CorrectLastUnjailedEnableEpoch:         24,
+			RelayedTransactionsV2EnableEpoch:       25,
+			UnbondTokensV2EnableEpoch:              26,
+			SaveJailedAlwaysEnableEpoch:            27,
+			ReDelegateBelowMinCheckEnableEpoch:     28,
+			ValidatorToDelegationEnableEpoch:       29,
 
-			IncrementSCRNonceInMultiTransferEnableEpoch:       31,
-			ESDTMultiTransferEnableEpoch:                      32,
-			GlobalMintBurnDisableEpoch:                        33,
-			ESDTTransferRoleEnableEpoch:                       34,
+			IncrementSCRNonceInMultiTransferEnableEpoch: 31,
+			ESDTMultiTransferEnableEpoch:                32,
+			GlobalMintBurnDisableEpoch:                  33,
+			ESDTTransferRoleEnableEpoch:                 34,
 
 			ComputeRewardCheckpointEnableEpoch:                36,
 			SCRSizeInvariantCheckEnableEpoch:                  37,
@@ -1006,6 +1009,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixRelayedBaseCostEnableEpoch:                            100,
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
+			RelayedTransactionsV3EnableEpoch:                         103,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -1052,4 +1056,21 @@ func TestEnableEpochConfig(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestSovereignEnableEpochConfig(t *testing.T) {
+	testString := `
+[SovereignEnableEpochs]
+
+[SovereignChainSpecificEnableEpochs]
+`
+
+	expectedCfg := SovereignEpochConfig{
+		SovereignEnableEpochs: SovereignEnableEpochs{},
+	}
+
+	cfg := SovereignEpochConfig{}
+	err := toml.Unmarshal([]byte(testString), &cfg)
+	require.Nil(t, err)
+	require.Equal(t, expectedCfg, cfg)
 }

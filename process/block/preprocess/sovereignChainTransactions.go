@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
@@ -110,7 +111,14 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+	session, err := NewSelectionSession(ArgsSelectionSession{
+		AccountsAdapter:       sct.accounts,
+		TransactionsProcessor: sct.txProcessor,
+	})
+	if err != nil {
+		return nil, err
+	}
+	sortedTxs := sortedTransactionsProvider.GetSortedTransactions(session)
 	sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
 
 	return sortedTxs, nil
