@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
