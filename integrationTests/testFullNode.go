@@ -45,7 +45,6 @@ import (
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/sync"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -160,6 +159,7 @@ type TestFullNode struct {
 
 	ShardCoordinator sharding.Coordinator
 	MultiSigner      *cryptoMocks.MultisignerMock
+	GenesisTimeField time.Time
 }
 
 // NewTestFullNode will create a new instance of full testing node
@@ -240,9 +240,10 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
+	tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 
 	roundHandler, _ := round.NewRound(
-		time.Unix(fullArgs.StartTime, 0),
+		tpn.GenesisTimeField,
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(fullArgs.RoundTime),
 		syncer,
@@ -417,7 +418,8 @@ func (tpn *TestFullNode) initNode(
 	coreComponents.ChainIdCalled = func() string {
 		return string(tpn.ChainID)
 	}
-	coreComponents.GenesisTimeField = time.Unix(args.StartTime, 0)
+
+	coreComponents.GenesisTimeField = tpn.GenesisTimeField
 	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
@@ -449,7 +451,7 @@ func (tpn *TestFullNode) initNode(
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 
 	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
-	tpn.ForkDetector = tpn.createForkDetector(args.StartTime)
+	tpn.ForkDetector = tpn.createForkDetector(args.StartTime, roundHandler)
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
@@ -572,7 +574,6 @@ func (tpn *TestFullNode) initNode(
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithStatusCoreComponents(statusCoreComponents),
-		node.WithGenesisTime(time.Unix(args.StartTime, 0)),
 		node.WithRoundDuration(args.RoundTime),
 		node.WithPublicKeySize(publicKeySize),
 	)
@@ -596,24 +597,27 @@ func (tpn *TestFullNode) initNode(
 	log.LogIfError(err)
 }
 
-func (tfn *TestFullNode) createForkDetector(startTime int64) process.ForkDetector {
+func (tfn *TestFullNode) createForkDetector(
+	startTime int64,
+	roundHandler consensus.RoundHandler,
+) process.ForkDetector {
 	var err error
 	var forkDetector process.ForkDetector
 
 	if tfn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		forkDetector, err = processSync.NewShardForkDetector(
-			tfn.RoundHandler,
+			roundHandler,
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
-			startTime,
+			tfn.GenesisTimeField.Unix(),
 			tfn.EnableEpochsHandler,
 			tfn.DataPool.Proofs())
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
-			tfn.RoundHandler,
+			roundHandler,
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
-			startTime,
+			tfn.GenesisTimeField.Unix(),
 			tfn.EnableEpochsHandler,
 			tfn.DataPool.Proofs())
 	}
@@ -629,7 +633,7 @@ func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStart
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(startTime, 0),
+			GenesisTime:        tfn.GenesisTimeField,
 			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
 			Settings: &config.EpochStartConfig{
 				MinRoundsBetweenEpochs: 1,
@@ -1093,13 +1097,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
-			roundHandler,
-			tpn.BlockBlackListHandler,
-			tpn.BlockTracker,
-			0,
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
 		arguments := block.ArgMetaProcessor{
@@ -1120,13 +1117,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
 	} else {
-		tpn.ForkDetector, _ = sync.NewShardForkDetector(
-			roundHandler,
-			tpn.BlockBlackListHandler,
-			tpn.BlockTracker,
-			0,
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs())
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
