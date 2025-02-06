@@ -98,12 +98,17 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature",
-                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header, leaderSignature)"""
+                """selfIndex, err := sr.SelfConsensusGroupIndex()
+    if err != nil {
+        selfIndex = -1
+    }
+    
+    chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header, selfIndex, leaderSignature)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",
-                """selfIndex, err := sr.SelfConsensusGroupIndex()
-    if err != nil {
+                """selfIndex, errChaos := sr.SelfConsensusGroupIndex()
+    if errChaos != nil {
         selfIndex = -1
     }
     
