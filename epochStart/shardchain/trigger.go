@@ -589,7 +589,10 @@ func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockH
 		if err != nil {
 			return
 		}
+
+		t.mutTrigger.Lock()
 		t.checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler, proof.GetHeaderHash())
+		t.mutTrigger.Unlock()
 		return
 	}
 
