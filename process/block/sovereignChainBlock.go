@@ -889,7 +889,7 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(
 	}
 
 	for _, extendedShardHdr := range extendedShardHdrs {
-		log.Debug("checkExtendedShardHeadersValidity",
+		log.Trace("checkExtendedShardHeadersValidity",
 			"extendedShardHeader nonce", extendedShardHdr.GetNonce(),
 			"extendedShardHeader round", extendedShardHdr.GetRound(),
 		)
@@ -1146,7 +1146,7 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBloc
 				process.ErrMissingHeader, extendedShardHeaderHash)
 		}
 
-		log.Debug("sovereignChainBlockProcessor.sortExtendedShardHeadersForCurrentBlockByNonce",
+		log.Trace("sovereignChainBlockProcessor.sortExtendedShardHeadersForCurrentBlockByNonce",
 			"headerInfo.hdr.GetNonce()", headerInfo.hdr.GetNonce(),
 			"headerInfo.usedInBlock", headerInfo.usedInBlock,
 		)
@@ -1977,7 +1977,9 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 	scbp.restoreBlockBody(header, body)
 
 	// TODO: MX-16507: check how/if to restore incoming scrs/cross chain txs once we have a testnet setup for it
-	// We should probably have something similar to (sp *shardProcessor) rollBackProcessedMiniBlocksInfo
+	// 1. For incoming scrs We should probably have something similar to (sp *shardProcessor) rollBackProcessedMiniBlocksInfo
+	// 2. For outgoing operations, we should analyse how to revert operations or delay them before sending (wait for them
+	// to be finalized and impossible to rollback maybe?)
 
 	sovChainHdr, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
