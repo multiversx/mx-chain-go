@@ -364,6 +364,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		EpochNotifier:                genericEpochNotifier,
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
+		EnableEpochsHandler:          enableEpochsHandler,
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)

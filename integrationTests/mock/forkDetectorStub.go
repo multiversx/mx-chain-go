@@ -21,6 +21,7 @@ type ForkDetectorStub struct {
 	ResetProbableHighestNonceCalled func()
 	SetFinalToLastCheckpointCalled  func()
 	ReceivedProofCalled             func(proof data.HeaderProofHandler)
+	AddCheckpointCalled             func(nonce uint64, round uint64, hash []byte)
 }
 
 // RestoreToGenesis -
@@ -120,6 +121,13 @@ func (fdm *ForkDetectorStub) SetFinalToLastCheckpoint() {
 func (fdm *ForkDetectorStub) ReceivedProof(proof data.HeaderProofHandler) {
 	if fdm.ReceivedProofCalled != nil {
 		fdm.ReceivedProofCalled(proof)
+	}
+}
+
+// AddCheckpoint -
+func (fdm *ForkDetectorStub) AddCheckpoint(nonce uint64, round uint64, hash []byte) {
+	if fdm.AddCheckpointCalled != nil {
+		fdm.AddCheckpointCalled(nonce, round, hash)
 	}
 }
 
