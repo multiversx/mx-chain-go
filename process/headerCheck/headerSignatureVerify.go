@@ -150,7 +150,6 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		epochForConsensus,
 		proof.GetHeaderShardId(),
 	)
-
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +314,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 	}
 
 	prevProof := header.GetPreviousProof()
-	if prevProof.GetIsStartOfEpoch() {
+	if common.IsEpochStartProofForFlagActivation(prevProof, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(prevProof)
 	}
 
@@ -332,33 +331,33 @@ func (hsv *HeaderSigVerifier) getHeaderForProof(proof data.HeaderProofHandler) (
 	return process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
 }
 
-func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(prevProof data.HeaderProofHandler) error {
-	if check.IfNilReflect(prevProof) {
+func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderProofHandler) error {
+	if check.IfNilReflect(proof) {
 		return process.ErrNilHeaderProof
 	}
-	header, err := hsv.getHeaderForProof(prevProof)
+	header, err := hsv.getHeaderForProof(proof)
 	if err != nil {
 		return err
 	}
 
 	consensusPubKeys, err := hsv.getConsensusSigners(
 		header.GetPrevRandSeed(),
-		prevProof.GetHeaderShardId(),
-		prevProof.GetHeaderEpoch(),
-		prevProof.GetIsStartOfEpoch(),
-		prevProof.GetHeaderRound(),
-		prevProof.GetHeaderHash(),
-		prevProof.GetPubKeysBitmap())
+		proof.GetHeaderShardId(),
+		proof.GetHeaderEpoch(),
+		proof.GetIsStartOfEpoch(),
+		proof.GetHeaderRound(),
+		proof.GetHeaderHash(),
+		proof.GetPubKeysBitmap())
 	if err != nil {
 		return err
 	}
 
-	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(prevProof.GetHeaderEpoch())
+	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(proof.GetHeaderEpoch())
 	if err != nil {
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, prevProof.GetHeaderHash(), prevProof.GetAggregatedSignature())
+	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
@@ -368,6 +367,10 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	}
 	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proofHandler.GetHeaderEpoch()) {
 		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
+	}
+
+	if common.IsEpochStartProofForFlagActivation(proofHandler, hsv.enableEpochsHandler) {
+		return hsv.verifyHeaderProofAtTransition(proofHandler)
 	}
 
 	multiSigVerifier, err := hsv.multiSigContainer.GetMultiSigner(proofHandler.GetHeaderEpoch())
