@@ -572,10 +572,25 @@ func GetProcessArgs(
 	)
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	if err != nil {
+		panic(err)
+	}
 
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config:                 testscommon.GetGeneralConfig(),
@@ -888,9 +903,20 @@ func GetSovereignDataComponents(coreComponents factory.CoreComponentsHolder, sha
 }
 
 func createDataComponents(dataArgs dataComp.DataComponentsFactoryArgs) factory.DataComponentsHolder {
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = dataComponents.Create()
+	if err != nil {
+		panic(err)
+	}
 	return dataComponents
 }
 
@@ -1228,7 +1254,6 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 
 // GetRunTypeComponentsWithCoreComp -
 func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolder) factory.RunTypeComponentsHolder {
-	generalCfg := GetGeneralConfig()
 	args := runType.ArgsRunTypeComponents{
 		CoreComponents: coreComponents,
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
@@ -1241,7 +1266,21 @@ func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolde
 					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 				},
 			},
-			GeneralConfig: &generalCfg,
+			GeneralConfig: &config.Config{
+				Versions: config.VersionsConfig{
+					VersionsByEpochs: []config.VersionByEpochs{
+						{
+							Version: "*",
+						},
+					},
+					Cache: config.CacheConfig{
+						Type:     "LRU",
+						Capacity: 10000,
+						Shards:   1,
+					},
+					DefaultVersion: "*",
+				},
+			},
 		},
 		InitialAccounts: createAccounts(),
 	}
