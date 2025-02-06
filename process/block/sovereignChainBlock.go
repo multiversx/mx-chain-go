@@ -35,7 +35,6 @@ type extendedShardHeaderTrackHandler interface {
 	IsGenesisLastCrossNotarizedHeader() bool
 	RemoveLastCrossNotarizedHeaders()
 	RemoveLastSelfNotarizedHeaders()
-	RemoveLastCrossNotarizedHeaderByHash(hash []byte)
 }
 
 type extendedShardHeaderRequestHandler interface {
@@ -61,8 +60,6 @@ type sovereignChainBlockProcessor struct {
 	epochEconomics        process.EndOfEpochEconomics
 
 	mainChainNotarizationStartRound uint64
-
-	ct int
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -721,20 +718,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	if haveTime == nil {
 		return nil, nil, process.ErrNilHaveTimeHandler
 	}
-
-	scbp.ct++
-
-	//if scbp.ct > 35 {
-	//	prevHsh := headerHandler.GetPrevHash()
-	//
-	//	prevHdr, _ := scbp.dataPool.Headers().GetHeaderByHash(prevHsh)
-	//
-	//	if prevHdr != nil && len(prevHdr.(data.SovereignChainHeaderHandler).GetExtendedShardHeaderHashes()) > 0 {
-	//		scbp.RestoreBlockIntoPools(prevHdr, bodyHandler)
-	//	}
-	//
-	//	return headerHandler, bodyHandler, nil
-	//}
 
 	scbp.processStatusHandler.SetBusy("sovereignChainBlockProcessor.ProcessBlock")
 	defer scbp.processStatusHandler.SetIdle()
@@ -1992,11 +1975,9 @@ func (scbp *sovereignChainBlockProcessor) saveSovereignMetricsForCommittedBlock(
 // RestoreBlockIntoPools restores block into pools
 func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	scbp.restoreBlockBody(header, body)
-	// THIS SHOULD BE ERROR
 
-	// 2. restore cross chain txs/incoming scr????
-	// 3. restore extended shard headers from hashes??? like RestoreBlockIntoPools from shard
-	// 4. what to do if we forever loose an extended header? we should request it from notifier?
+	// TODO: MX-16507: check how/if to restore incoming scrs/cross chain txs once we have a testnet setup for it
+	// We should probably have something similar to (sp *shardProcessor) rollBackProcessedMiniBlocksInfo
 
 	sovChainHdr, castOk := header.(data.SovereignChainHeaderHandler)
 	if !castOk {
@@ -2009,53 +1990,18 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 	}
 
 	scbp.extendedShardHeaderTracker.RemoveLastSelfNotarizedHeaders()
+
 	numOfNotarizedExtendedHeaders := len(sovChainHdr.GetExtendedShardHeaderHashes())
 	log.Debug("sovereignChainBlockProcessor.RestoreBlockIntoPools", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
 	if numOfNotarizedExtendedHeaders == 0 {
 		return nil
 	}
 
-	for i := numOfNotarizedExtendedHeaders - 1; i >= 0; i-- {
-		extendedHdrHash := sovChainHdr.GetExtendedShardHeaderHashes()[i]
-		log.Debug("CALLING DELETE ", "extendedHdrHash", extendedHdrHash)
-		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaderByHash(extendedHdrHash)
-	}
-
-	// restore last cross notarized at previous ????
-	return nil
-	//	return scbp.resetLastCrossNotarizedFromPrevHdr(sovChainHdr)
-}
-
-func (scbp *sovereignChainBlockProcessor) resetLastCrossNotarizedFromPrevHdr(sovChainHdr data.SovereignChainHeaderHandler) error {
-	prevHdrHash := sovChainHdr.GetPrevHash()
-	prevHdr, err := scbp.dataPool.Headers().GetHeaderByHash(prevHdrHash)
-	if err != nil {
-		return err
-	}
-
-	prevSovChainHdr, castOk := prevHdr.(data.SovereignChainHeaderHandler)
-	if !castOk {
-		return fmt.Errorf("%w in sovereignChainBlockProcessor.resetLastCrossNotarizedFromPrevHdr", errors.ErrWrongTypeAssertion)
-	}
-
-	numOfNotarizedExtendedHeaders := len(prevSovChainHdr.GetExtendedShardHeaderHashes())
-	log.Debug("sovereignChainBlockProcessor.resetLastCrossNotarizedFromPrevHdr", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
-
-	err = scbp.restoreExtendedHeaderIntoPool(prevSovChainHdr.GetExtendedShardHeaderHashes())
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < numOfNotarizedExtendedHeaders; i++ {
-		scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
-	}
-
+	scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
 	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extendedShardHeaderHashes [][]byte) error {
-	headersPool := scbp.dataPool.Headers()
-
 	for _, extendedHdrHash := range extendedShardHeaderHashes {
 		extendedHdr, errNotCritical := process.GetExtendedShardHeaderFromStorage(extendedHdrHash, scbp.marshalizer, scbp.store)
 		if errNotCritical != nil {
@@ -2064,7 +2010,7 @@ func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extended
 			continue
 		}
 
-		headersPool.AddHeaderInShard(extendedHdrHash, extendedHdr, core.MainChainShardId)
+		scbp.dataPool.Headers().AddHeaderInShard(extendedHdrHash, extendedHdr, core.MainChainShardId)
 
 		extendedHdrStorer, err := scbp.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
 		if err != nil {
@@ -2075,7 +2021,7 @@ func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extended
 
 		err = extendedHdrStorer.Remove(extendedHdrHash)
 		if err != nil {
-			log.Error("unable to remove hash from MetaBlockUnit",
+			log.Error("unable to remove hash from ExtendedShardHeadersUnit",
 				"hash", extendedHdrHash)
 			return err
 		}
