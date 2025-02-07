@@ -27,6 +27,12 @@ type RoundHandler interface {
 	IsInterfaceNil() bool
 }
 
+// RoundHandlerConsensusSwitch defines the actions which should be handled by a consensus switch round implementation
+type RoundHandlerConsensusSwitch interface {
+	RevertOneRound()
+	IsInterfaceNil() bool
+}
+
 // SubroundHandler defines the actions which should be handled by a subround implementation
 type SubroundHandler interface {
 	// DoWork implements of the subround's job

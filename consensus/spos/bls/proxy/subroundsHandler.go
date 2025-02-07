@@ -192,6 +192,8 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 		return err
 	}
 
+	log.Debug("SubroundsHandler.initSubroundsForEpoch: reset consensus round state")
+	s.worker.ResetConsensusRoundState()
 	s.chronology.StartRounds()
 	return nil
 }

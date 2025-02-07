@@ -85,6 +85,7 @@ type ConsensusStateMock struct {
 	ThresholdCalled                              func(subroundId int) int
 	FallbackThresholdCalled                      func(subroundId int) int
 	SetFallbackThresholdCalled                   func(subroundId int, threshold int)
+	ResetConsensusRoundStateCalled               func()
 }
 
 // AddReceivedHeader -
@@ -486,6 +487,13 @@ func (cnsm *ConsensusStateMock) SetFallbackThreshold(subroundId int, threshold i
 func (cnsm *ConsensusStateMock) ResetConsensusState() {
 	if cnsm.ResetConsensusStateCalled != nil {
 		cnsm.ResetConsensusStateCalled()
+	}
+}
+
+// ResetConsensusRoundState -
+func (cnsm *ConsensusStateMock) ResetConsensusRoundState() {
+	if cnsm.ResetConsensusRoundStateCalled != nil {
+		cnsm.ResetConsensusRoundStateCalled()
 	}
 }
 

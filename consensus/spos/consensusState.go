@@ -64,6 +64,15 @@ func NewConsensusState(
 	return &cns
 }
 
+// ResetConsensusRoundState method resets all the consensus round data (except messages received)
+func (cns *ConsensusState) ResetConsensusRoundState() {
+	cns.RoundCanceled = false
+	cns.ExtendedCalled = false
+	cns.WaitingAllSignaturesTimeOut = false
+	cns.ResetRoundStatus()
+	cns.ResetRoundState()
+}
+
 // ResetConsensusState method resets all the consensus data
 func (cns *ConsensusState) ResetConsensusState() {
 	cns.Body = nil
