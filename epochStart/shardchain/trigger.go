@@ -585,6 +585,14 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 // upon receiving checks if trigger can be updated
 func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
 	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
+		proof, err := t.proofsPool.GetProof(headerHandler.GetShardID(), metaBlockHash)
+		if err != nil {
+			return
+		}
+
+		t.mutTrigger.Lock()
+		t.checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler, proof.GetHeaderHash())
+		t.mutTrigger.Unlock()
 		return
 	}
 
