@@ -1,9 +1,11 @@
 package state
 
 import (
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // LoadCode -
@@ -24,6 +26,18 @@ func (adb *AccountsDB) GetAccount(address []byte) (vmcommon.AccountHandler, erro
 // GetObsoleteHashes -
 func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 	return adb.obsoleteDataTrieHashes
+}
+
+// ResetStateChangesCollector -
+func (adb *AccountsDB) ResetStateChangesCollector() (map[string]*data.StateChanges, error) {
+	stateChanges, err := adb.stateChangesCollector.Publish()
+	if err != nil {
+		return nil, err
+	}
+
+	adb.stateChangesCollector.Reset()
+
+	return stateChanges, nil
 }
 
 // GetCode -

@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -36,8 +39,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockComponentHolders() (
@@ -919,6 +920,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	arguments.StateChangesCollector = &stateMock.StateChangesCollectorStub{}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
@@ -1050,6 +1052,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			resetCountersForManagedBlockSignerCalled = true
 		},
 	}
+	arguments.StateChangesCollector = &stateMock.StateChangesCollectorStub{}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 

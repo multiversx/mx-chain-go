@@ -6,6 +6,7 @@ import (
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+
 	"github.com/multiversx/mx-chain-go/outport"
 )
 

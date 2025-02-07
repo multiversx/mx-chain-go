@@ -260,7 +260,13 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(
+		address,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		&stateMock.StateChangesCollectorStub{},
+	)
 	userAccount, _ := accounts.NewUserAccount(address, dtt, &trie.TrieLeafParserStub{})
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {

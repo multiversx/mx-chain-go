@@ -66,7 +66,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
+	_, err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 	}
 
 	newCodeEntry.NumReferences--
-	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	_, err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}

@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -157,9 +158,10 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	argsAccCreator := stateFactory.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                coreComponents.Hasher(),
+		Marshaller:            coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 
 	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
@@ -215,6 +217,7 @@ func createAccountsDB(
 		StoragePruningManager: spm,
 		AddressConverter:      coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:      &stateTests.SnapshotsManagerStub{},
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb
