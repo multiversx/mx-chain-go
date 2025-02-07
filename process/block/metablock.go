@@ -2214,15 +2214,13 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 		hasProofForShardHeader := mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash)
 		if shouldConsiderProofsForNotarization && !hasProofForShardHeader {
 			// if there is no proof for current shard header, request the next one that holds this proof
-			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs++
 			go mp.requestHandler.RequestShardHeaderByNonce(hdr.GetShardID(), hdr.GetNonce()+1)
 		}
 
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
 	}
 
-	requestedFinalityAttestingBasedOnProofs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
-	if mp.hdrsForCurrBlock.missingHdrs == 0 && !requestedFinalityAttestingBasedOnProofs {
+	if mp.hdrsForCurrBlock.missingHdrs == 0 {
 		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}
 
