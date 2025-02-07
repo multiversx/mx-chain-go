@@ -76,6 +76,7 @@ import (
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
+// CreateNodesWithTestFullNode will create a set of nodes with full consensus and processing components
 func CreateNodesWithTestFullNode(
 	numMetaNodes int,
 	nodesPerShard int,
@@ -137,6 +138,7 @@ func CreateNodesWithTestFullNode(
 	return nodes
 }
 
+// ArgsTestFullNode defines arguments for test full node
 type ArgsTestFullNode struct {
 	*ArgTestProcessorNode
 
@@ -152,13 +154,16 @@ type ArgsTestFullNode struct {
 	StartTime     int64
 }
 
+// TestFullNode defines the structure for testing node with full processing and consensus components
 type TestFullNode struct {
 	*TestProcessorNode
 
 	ShardCoordinator sharding.Coordinator
 	MultiSigner      *cryptoMocks.MultisignerMock
+	GenesisTimeField time.Time
 }
 
+// NewTestFullNode will create a new instance of full testing node
 func NewTestFullNode(args ArgsTestFullNode) *TestFullNode {
 	tpn := newBaseTestProcessorNode(*args.ArgTestProcessorNode)
 
@@ -236,9 +241,10 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
+	tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 
 	roundHandler, _ := round.NewRound(
-		time.Unix(fullArgs.StartTime, 0),
+		tpn.GenesisTimeField,
 		syncer.CurrentTime(),
 		time.Millisecond*time.Duration(fullArgs.RoundTime),
 		syncer,
@@ -388,62 +394,7 @@ func (tpn *TestFullNode) initNode(
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
 
-	var epochTrigger TestEpochStartTrigger
-	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(args.StartTime, 0),
-			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         1000,
-			},
-			Epoch:            0,
-			Storage:          createTestStore(),
-			Marshalizer:      TestMarshalizer,
-			Hasher:           TestHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         tpn.DataPool,
-		}
-		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		epochTrigger = &metachain.TestTrigger{}
-		epochTrigger.SetTrigger(epochStartTrigger)
-	} else {
-		argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool:     tpn.DataPool.MiniBlocks(),
-			ValidatorsInfoPool: tpn.DataPool.ValidatorsInfo(),
-			RequestHandler:     &testscommon.RequestHandlerStub{},
-		}
-		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
-
-		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          TestMarshalizer,
-			Hasher:               TestHasher,
-			HeaderValidator:      &mock.HeaderValidatorStub{},
-			Uint64Converter:      TestUint64Converter,
-			DataPool:             tpn.DataPool,
-			Storage:              tpn.Storage,
-			RequestHandler:       &testscommon.RequestHandlerStub{},
-			Epoch:                0,
-			Validity:             1,
-			Finality:             1,
-			EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         roundHandler,
-			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:  tpn.EnableEpochsHandler,
-		}
-		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
-		if err != nil {
-			fmt.Println("NewEpochStartTrigger shard")
-			fmt.Println(err.Error())
-		}
-		epochTrigger = &shardchain.TestTrigger{}
-		epochTrigger.SetTrigger(epochStartTrigger)
-	}
-
+	epochTrigger := tpn.createEpochStartTrigger(args.StartTime)
 	tpn.EpochStartTrigger = epochTrigger
 
 	strPk := ""
@@ -468,7 +419,8 @@ func (tpn *TestFullNode) initNode(
 	coreComponents.ChainIdCalled = func() string {
 		return string(tpn.ChainID)
 	}
-	coreComponents.GenesisTimeField = time.Unix(args.StartTime, 0)
+
+	coreComponents.GenesisTimeField = tpn.GenesisTimeField
 	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
@@ -500,38 +452,7 @@ func (tpn *TestFullNode) initNode(
 	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
 
 	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
-
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
-
-	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
-		tpn.ForkDetector, err = processSync.NewShardForkDetector(
-			log,
-			roundHandler,
-			tpn.BlockBlackListHandler,
-			tpn.BlockTracker,
-			args.StartTime,
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs(),
-		)
-	} else {
-		tpn.ForkDetector, err = processSync.NewMetaForkDetector(
-			log,
-			roundHandler,
-			tpn.BlockBlackListHandler,
-			tpn.BlockTracker,
-			args.StartTime,
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Proofs(),
-		)
-	}
-	if err != nil {
-		log.Error("error creating fork detector", "error", err)
-	}
+	tpn.ForkDetector = tpn.createForkDetector(args.StartTime, roundHandler)
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          args.KeyGen,
@@ -654,7 +575,6 @@ func (tpn *TestFullNode) initNode(
 		node.WithStateComponents(stateComponents),
 		node.WithPeerDenialEvaluator(&mock.PeerDenialEvaluatorStub{}),
 		node.WithStatusCoreComponents(statusCoreComponents),
-		node.WithGenesisTime(time.Unix(args.StartTime, 0)),
 		node.WithRoundDuration(args.RoundTime),
 		node.WithPublicKeySize(publicKeySize),
 	)
@@ -676,6 +596,106 @@ func (tpn *TestFullNode) initNode(
 		},
 	)
 	log.LogIfError(err)
+}
+
+func (tfn *TestFullNode) createForkDetector(
+	startTime int64,
+	roundHandler consensus.RoundHandler,
+) process.ForkDetector {
+	var err error
+	var forkDetector process.ForkDetector
+
+	id := hex.EncodeToString(tfn.OwnAccount.PkTxSignBytes)
+	if len(id) > 8 {
+		id = id[0:8]
+	}
+
+	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+
+	if tfn.ShardCoordinator.SelfId() != core.MetachainShardId {
+		forkDetector, err = processSync.NewShardForkDetector(
+			log,
+			roundHandler,
+			tfn.BlockBlackListHandler,
+			tfn.BlockTracker,
+			tfn.GenesisTimeField.Unix(),
+			tfn.EnableEpochsHandler,
+			tfn.DataPool.Proofs())
+	} else {
+		forkDetector, err = processSync.NewMetaForkDetector(
+			log,
+			roundHandler,
+			tfn.BlockBlackListHandler,
+			tfn.BlockTracker,
+			tfn.GenesisTimeField.Unix(),
+			tfn.EnableEpochsHandler,
+			tfn.DataPool.Proofs())
+	}
+	if err != nil {
+		log.Error("error creating fork detector", "error", err)
+		return nil
+	}
+
+	return forkDetector
+}
+
+func (tfn *TestFullNode) createEpochStartTrigger(startTime int64) TestEpochStartTrigger {
+	var epochTrigger TestEpochStartTrigger
+	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime:        tfn.GenesisTimeField,
+			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1,
+				RoundsPerEpoch:         1000,
+			},
+			Epoch:            0,
+			Storage:          createTestStore(),
+			Marshalizer:      TestMarshalizer,
+			Hasher:           TestHasher,
+			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:         tfn.DataPool,
+		}
+		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		epochTrigger = &metachain.TestTrigger{}
+		epochTrigger.SetTrigger(epochStartTrigger)
+	} else {
+		argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
+			MiniBlocksPool:     tfn.DataPool.MiniBlocks(),
+			ValidatorsInfoPool: tfn.DataPool.ValidatorsInfo(),
+			RequestHandler:     &testscommon.RequestHandlerStub{},
+		}
+		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
+
+		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tfn.DataPool,
+			Storage:              tfn.Storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   notifier.NewEpochStartSubscriptionHandler(),
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         tfn.RoundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  tfn.EnableEpochsHandler,
+		}
+		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		epochTrigger = &shardchain.TestTrigger{}
+		epochTrigger.SetTrigger(epochStartTrigger)
+	}
+
+	return epochTrigger
 }
 
 func (tcn *TestFullNode) initInterceptors(
@@ -704,41 +724,41 @@ func (tcn *TestFullNode) initInterceptors(
 	cacheVerified, _ := storageunit.NewCache(cacherVerifiedCfg)
 	whiteListerVerifiedTxs, _ := interceptors.NewWhiteListDataVerifier(cacheVerified)
 
+	interceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
+		CoreComponents:                 coreComponents,
+		CryptoComponents:               cryptoComponents,
+		Accounts:                       accountsAdapter,
+		ShardCoordinator:               tcn.ShardCoordinator,
+		NodesCoordinator:               tcn.NodesCoordinator,
+		MainMessenger:                  tcn.MainMessenger,
+		FullArchiveMessenger:           tcn.FullArchiveMessenger,
+		Store:                          storage,
+		DataPool:                       tcn.DataPool,
+		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
+		TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
+		BlockBlackList:                 blockBlackListHandler,
+		HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
+		ValidityAttester:               blockTracker,
+		EpochStartTrigger:              epochStartTrigger,
+		WhiteListHandler:               whiteLstHandler,
+		WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
+		AntifloodHandler:               &mock.NilAntifloodHandler{},
+		ArgumentsParser:                smartContract.NewArgumentParser(),
+		PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
+		SizeCheckDelta:                 sizeCheckDelta,
+		RequestHandler:                 &testscommon.RequestHandlerStub{},
+		PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
+		SignaturesHandler:              &processMock.SignaturesHandlerStub{},
+		HeartbeatExpiryTimespanInSec:   30,
+		MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
+		FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
+		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
+		NodeOperationMode:              common.NormalOperation,
+		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+	}
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		metaInterceptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-			CoreComponents:                 coreComponents,
-			CryptoComponents:               cryptoComponents,
-			Accounts:                       accountsAdapter,
-			ShardCoordinator:               tcn.ShardCoordinator,
-			NodesCoordinator:               tcn.NodesCoordinator,
-			MainMessenger:                  tcn.MainMessenger,
-			FullArchiveMessenger:           tcn.FullArchiveMessenger,
-			Store:                          storage,
-			DataPool:                       tcn.DataPool,
-			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-			TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
-			BlockBlackList:                 blockBlackListHandler,
-			HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
-			HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
-			ValidityAttester:               blockTracker,
-			EpochStartTrigger:              epochStartTrigger,
-			WhiteListHandler:               whiteLstHandler,
-			WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
-			AntifloodHandler:               &mock.NilAntifloodHandler{},
-			ArgumentsParser:                smartContract.NewArgumentParser(),
-			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
-			SizeCheckDelta:                 sizeCheckDelta,
-			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
-			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
-			HeartbeatExpiryTimespanInSec:   30,
-			MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
-			FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
-			HardforkTrigger:                &testscommon.HardforkTriggerStub{},
-			NodeOperationMode:              common.NormalOperation,
-			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
-		}
-		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
+		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(interceptorContainerFactoryArgs)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -773,41 +793,7 @@ func (tcn *TestFullNode) initInterceptors(
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
-		shardIntereptorContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
-			CoreComponents:                 coreComponents,
-			CryptoComponents:               cryptoComponents,
-			Accounts:                       accountsAdapter,
-			ShardCoordinator:               tcn.ShardCoordinator,
-			NodesCoordinator:               tcn.NodesCoordinator,
-			MainMessenger:                  tcn.MainMessenger,
-			FullArchiveMessenger:           tcn.FullArchiveMessenger,
-			Store:                          storage,
-			DataPool:                       tcn.DataPool,
-			MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
-			TxFeeHandler:                   &economicsmocks.EconomicsHandlerMock{},
-			BlockBlackList:                 blockBlackListHandler,
-			HeaderSigVerifier:              &consensusMocks.HeaderSigVerifierMock{},
-			HeaderIntegrityVerifier:        CreateHeaderIntegrityVerifier(),
-			ValidityAttester:               blockTracker,
-			EpochStartTrigger:              epochStartTrigger,
-			WhiteListHandler:               whiteLstHandler,
-			WhiteListerVerifiedTxs:         whiteListerVerifiedTxs,
-			AntifloodHandler:               &mock.NilAntifloodHandler{},
-			ArgumentsParser:                smartContract.NewArgumentParser(),
-			PreferredPeersHolder:           &p2pmocks.PeersHolderStub{},
-			SizeCheckDelta:                 sizeCheckDelta,
-			RequestHandler:                 &testscommon.RequestHandlerStub{},
-			PeerSignatureHandler:           &processMock.PeerSignatureHandlerStub{},
-			SignaturesHandler:              &processMock.SignaturesHandlerStub{},
-			HeartbeatExpiryTimespanInSec:   30,
-			MainPeerShardMapper:            mock.NewNetworkShardingCollectorMock(),
-			FullArchivePeerShardMapper:     mock.NewNetworkShardingCollectorMock(),
-			HardforkTrigger:                &testscommon.HardforkTriggerStub{},
-			NodeOperationMode:              common.NormalOperation,
-			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
-		}
-
-		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
+		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(interceptorContainerFactoryArgs)
 		if err != nil {
 			fmt.Println(err.Error())
 		}
@@ -884,26 +870,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		if check.IfNil(tpn.EpochStartTrigger) {
-			argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-				GenesisTime: time.Unix(args.StartTime, 0),
-				Settings: &config.EpochStartConfig{
-					MinRoundsBetweenEpochs: 1000,
-					RoundsPerEpoch:         10000,
-				},
-				Epoch:              0,
-				EpochStartNotifier: tpn.EpochStartNotifier,
-				Storage:            tpn.Storage,
-				Marshalizer:        TestMarshalizer,
-				Hasher:             TestHasher,
-				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-				DataPool:           tpn.DataPool,
-			}
-			epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
-			tpn.EpochStartTrigger = &metachain.TestTrigger{}
-			tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		}
-
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 
@@ -1063,35 +1029,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 			log.Error("error creating meta blockprocessor", "error", err)
 		}
 	} else {
-		if check.IfNil(tpn.EpochStartTrigger) {
-			argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
-				MiniBlocksPool:     tpn.DataPool.MiniBlocks(),
-				ValidatorsInfoPool: tpn.DataPool.ValidatorsInfo(),
-				RequestHandler:     tpn.RequestHandler,
-			}
-			peerMiniBlocksSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
-			argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-				Marshalizer:          TestMarshalizer,
-				Hasher:               TestHasher,
-				HeaderValidator:      tpn.HeaderValidator,
-				Uint64Converter:      TestUint64Converter,
-				DataPool:             tpn.DataPool,
-				Storage:              tpn.Storage,
-				RequestHandler:       tpn.RequestHandler,
-				Epoch:                0,
-				Validity:             1,
-				Finality:             1,
-				EpochStartNotifier:   tpn.EpochStartNotifier,
-				PeerMiniBlocksSyncer: peerMiniBlocksSyncer,
-				RoundHandler:         tpn.RoundHandler,
-				AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
-				EnableEpochsHandler:  tpn.EnableEpochsHandler,
-			}
-			epochStartTrigger, _ := shardchain.NewEpochStartTrigger(argsShardEpochStart)
-			tpn.EpochStartTrigger = &shardchain.TestTrigger{}
-			tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		}
-
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.BlockChainHook = tpn.BlockchainHook
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
