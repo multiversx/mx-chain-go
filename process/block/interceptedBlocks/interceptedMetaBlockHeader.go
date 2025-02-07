@@ -92,7 +92,6 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 
 	err := imh.integrity()
 	if err != nil {
-		log.Error(err.Error())
 		return err
 	}
 
@@ -114,19 +113,16 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 
 	err = imh.validityAttester.CheckBlockAgainstRoundHandler(imh.HeaderHandler())
 	if err != nil {
-		log.Error(err.Error())
 		return err
 	}
 
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
-		log.Error(err.Error())
 		return err
 	}
 
 	err = imh.sigVerifier.VerifySignature(imh.hdr)
 	if err != nil {
-		log.Error(err.Error())
 		return err
 	}
 

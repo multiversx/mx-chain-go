@@ -79,6 +79,7 @@ func createArgBaseProcessor(
 ) blproc.ArgBaseProcessor {
 	nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -1270,6 +1271,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              coreComponents.Hasher(),
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
@@ -1305,6 +1307,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              coreComponents.Hasher(),
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),

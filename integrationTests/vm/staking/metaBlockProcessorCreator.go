@@ -218,6 +218,7 @@ func createGenesisMetaBlock() *block.MetaBlock {
 
 func createHeaderValidator(coreComponents factory.CoreComponentsHolder) epochStart.HeaderValidator {
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              coreComponents.Hasher(),
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),

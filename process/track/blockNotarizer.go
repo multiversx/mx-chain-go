@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -31,6 +32,9 @@ func NewBlockNotarizer(
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 ) (*blockNotarizer, error) {
+	if check.IfNil(logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}

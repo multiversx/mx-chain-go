@@ -380,9 +380,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	dataComponents.DataPool = dataPool
 	dataComponents.Store = createTestStore()
 
-	id := hex.EncodeToString(tcn.NodesCoordinator.GetOwnPublicKey())[0:8]
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+	id := common.GetLogID(tcn.NodesCoordinator.GetOwnPublicKey())
+	log := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
 
 	forkDetector, _ := syncFork.NewShardForkDetector(
 		log,

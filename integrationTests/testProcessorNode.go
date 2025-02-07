@@ -1091,12 +1091,8 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 func (tpn *TestProcessorNode) initDataPools() {
 	tpn.ProofsPool = proofscache.NewProofsPool(3)
 
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("dtr/hc/%s", id))
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("dataRetriever/headersPool/%s", id))
 
 	tpn.DataPool = dataRetrieverMock.CreatePoolsHolderWithProofsPool(log, 1, tpn.ShardCoordinator.SelfId(), tpn.ProofsPool)
 	cacherCfg := storageunit.CacheConfig{Capacity: 10000, Type: storageunit.LRUCache, Shards: 1}
@@ -1546,12 +1542,8 @@ func (tpn *TestProcessorNode) initRequesters() {
 		tpn.createShardRequestersContainer(requestersContainerFactoryArgs)
 	}
 
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("dtr/rh/%s", id))
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("dataRetriever/requestersHandler/%s", id))
 
 	tpn.RequestersFinder, _ = containers.NewRequestersFinder(tpn.RequestersContainer, tpn.ShardCoordinator)
 	tpn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
@@ -2192,12 +2184,8 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 	accountsDb[state.UserAccountsState] = tpn.AccntState
@@ -2251,12 +2239,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
-	id = hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	logger := logger.GetOrCreate(fmt.Sprintf("p/b/%s", id))
+	id = common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	logger := logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
 
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
@@ -3153,12 +3137,8 @@ func (tpn *TestProcessorNode) initRequestedItemsHandler() {
 }
 
 func (tpn *TestProcessorNode) initBlockTracker() {
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/track/%s", id))
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("process/track/%s", id))
 
 	argBaseTracker := track.ArgBaseTracker{
 		Logger:              log,
@@ -3201,6 +3181,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
 	argsHeaderValidator := block.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              TestHasher,
 		Marshalizer:         TestMarshalizer,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,

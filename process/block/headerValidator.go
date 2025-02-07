@@ -33,6 +33,9 @@ type headerValidator struct {
 
 // NewHeaderValidator returns a new header validator
 func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
+	if check.IfNil(args.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
@@ -41,12 +44,6 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
-	}
-
-	var log logger.Logger
-	log = logger.GetOrCreate("process/block")
-	if args.Logger != nil {
-		log = args.Logger
 	}
 
 	return &headerValidator{

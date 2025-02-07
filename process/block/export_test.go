@@ -112,6 +112,7 @@ func NewShardProcessorEmptyWith3shards(
 	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

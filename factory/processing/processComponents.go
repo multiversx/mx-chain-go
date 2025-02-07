@@ -467,7 +467,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	var log logger.Logger
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
+	} else {
+		log = logger.GetOrCreate("process/block")
+	}
+
 	argsHeaderValidator := block.ArgsHeaderValidator{
+		Logger:              log,
 		Hasher:              pcf.coreData.Hasher(),
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
@@ -825,7 +834,16 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		var log logger.Logger
+		if pcf.flagsConfig.WithInstanceLogID {
+			id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+			log = logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
+		} else {
+			log = logger.GetOrCreate("process/block")
+		}
+
 		argsHeaderValidator := block.ArgsHeaderValidator{
+			Logger:              log,
 			Hasher:              pcf.coreData.Hasher(),
 			Marshalizer:         pcf.coreData.InternalMarshalizer(),
 			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
@@ -1341,7 +1359,17 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	genesisBlocks map[uint32]data.HeaderHandler,
 ) (process.BlockTracker, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+
+	var log logger.Logger
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("process/track/%s", id))
+	} else {
+		log = logger.GetOrCreate("process/track")
+	}
+
 	argBaseTracker := track.ArgBaseTracker{
+		Logger:              log,
 		Hasher:              pcf.coreData.Hasher(),
 		HeaderValidator:     headerValidator,
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),

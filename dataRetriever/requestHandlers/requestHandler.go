@@ -62,7 +62,9 @@ func NewResolverRequestHandler(
 	shardID uint32,
 	requestInterval time.Duration,
 ) (*resolverRequestHandler, error) {
-
+	if check.IfNil(log) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(finder) {
 		return nil, dataRetriever.ErrNilRequestersFinder
 	}
@@ -77,10 +79,6 @@ func NewResolverRequestHandler(
 	}
 	if requestInterval < time.Millisecond {
 		return nil, fmt.Errorf("%w:request interval is smaller than a millisecond", dataRetriever.ErrRequestIntervalTooSmall)
-	}
-
-	if log == nil {
-		log = logger.GetOrCreate("dataretriever/requesthandlers")
 	}
 
 	rrh := &resolverRequestHandler{

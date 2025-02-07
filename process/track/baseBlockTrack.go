@@ -101,14 +101,8 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
-	var log logger.Logger
-	log = logger.GetOrCreate("process/track")
-	if arguments.Logger != nil {
-		log = arguments.Logger
-	}
-
 	bbt := &baseBlockTrack{
-		log:                                   log,
+		log:                                   arguments.Logger,
 		hasher:                                arguments.Hasher,
 		headerValidator:                       arguments.HeaderValidator,
 		marshalizer:                           arguments.Marshalizer,
@@ -809,6 +803,9 @@ func (bbt *baseBlockTrack) IsInterfaceNil() bool {
 }
 
 func checkTrackerNilParameters(arguments ArgBaseTracker) error {
+	if check.IfNil(arguments.Logger) {
+		return common.ErrNilLogger
+	}
 	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
 	}

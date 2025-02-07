@@ -92,6 +92,7 @@ func createMockMetaArguments(
 ) blproc.ArgMetaProcessor {
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &mock.HasherStub{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
@@ -1977,6 +1978,7 @@ func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
 	arguments.BlockTracker = mock.NewBlockTrackerMock(bootstrapComponents.ShardCoordinator(), startHeaders)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              coreComponents.Hash,
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),

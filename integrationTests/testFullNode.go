@@ -605,12 +605,8 @@ func (tfn *TestFullNode) createForkDetector(
 	var err error
 	var forkDetector process.ForkDetector
 
-	id := hex.EncodeToString(tfn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
+	id := common.GetLogID(tfn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
 
 	if tfn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		forkDetector, err = processSync.NewShardForkDetector(
@@ -1073,6 +1069,9 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1104,6 +1103,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		Logger:                       log,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1147,12 +1147,8 @@ func (tpn *TestFullNode) initBlockTracker(
 	roundHandler consensus.RoundHandler,
 ) {
 
-	id := hex.EncodeToString(tpn.OwnAccount.PkTxSignBytes)
-	if len(id) > 8 {
-		id = id[0:8]
-	}
-
-	log := logger.GetOrCreate(fmt.Sprintf("p/b/t/%s", id))
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("block/tracker/%s", id))
 
 	argBaseTracker := track.ArgBaseTracker{
 		Logger:              log,
