@@ -247,6 +247,11 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
+		err = scbp.createEpochStartDataCrossChain(sovereignChainHeaderHandler)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 		return initialHdr, &block.Body{}, nil
@@ -678,10 +683,58 @@ func (scbp *sovereignChainBlockProcessor) requestExtendedShardHeaders(sovereignC
 	_ = core.EmptyChannel(scbp.chRcvAllExtendedShardHdrs)
 
 	if len(sovereignChainHeader.GetExtendedShardHeaderHashes()) == 0 {
-		return 0
+		return scbp.computeAndRequestEpochStartExtendedHeaderIfMissing(sovereignChainHeader)
 	}
 
 	return scbp.computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader)
+}
+
+func (scbp *sovereignChainBlockProcessor) computeAndRequestEpochStartExtendedHeaderIfMissing(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
+	if !sovereignChainHeader.IsStartOfEpochBlock() {
+		return 0
+	}
+
+	lastCrossChainData := sovereignChainHeader.GetLastFinalizedCrossChainHeaderHandler()
+	shouldCheckEpochStartCrossChainHash := lastCrossChainData != nil && len(lastCrossChainData.GetHeaderHash()) != 0
+	if !shouldCheckEpochStartCrossChainHash {
+		return 0
+	}
+
+	lastCrossChainHash := lastCrossChainData.GetHeaderHash()
+	if !scbp.shouldRequestEpochStartCrossChainHash(lastCrossChainHash) {
+		return 0
+	}
+
+	scbp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
+	scbp.hdrsForCurrBlock.missingHdrs++
+	scbp.hdrsForCurrBlock.hdrHashAndInfo[string(lastCrossChainHash)] = &hdrInfo{
+		hdr:         nil,
+		usedInBlock: false,
+	}
+	scbp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
+
+	go scbp.extendedShardHeaderRequester.RequestExtendedShardHeader(lastCrossChainHash)
+
+	return 1
+}
+
+func (scbp *sovereignChainBlockProcessor) shouldRequestEpochStartCrossChainHash(lastCrossChainHash []byte) bool {
+	_, errMissingHdrPool := process.GetExtendedShardHeaderFromPool(
+		lastCrossChainHash,
+		scbp.dataPool.Headers())
+	_, lastNotarizedHdrHash, _ := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
+
+	missingHeaderInTracker := !bytes.Equal(lastNotarizedHdrHash, lastCrossChainHash)
+	missingHeaderInPool := errMissingHdrPool != nil
+	shouldRequestLastCrossChainHeader := missingHeaderInTracker || missingHeaderInPool
+
+	log.Debug("sovereignChainBlockProcessor.checkAndRequestIfMissingEpochStartExtendedHeader",
+		"missingHeaderInTracker", missingHeaderInTracker,
+		"missingHeaderInPool", missingHeaderInPool,
+		"shouldRequestLastCrossChainHeader", shouldRequestLastCrossChainHeader,
+	)
+
+	return shouldRequestLastCrossChainHeader
 }
 
 func (scbp *sovereignChainBlockProcessor) computeExistingAndRequestMissingExtendedShardHeaders(sovereignChainHeader data.SovereignChainHeaderHandler) uint32 {
@@ -842,7 +895,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	err = scbp.verifySovereignPostProcessBlock(headerHandler, newBody, sovereignChainHeader)
+	err = scbp.verifySovereignPostProcessBlock(headerHandler, newBody, sovChainHeader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -851,9 +904,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 }
 
 // checkExtendedShardHeadersValidity checks if used extended shard headers are valid as construction
-func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(
-	sovChainHeader data.SovereignChainHeaderHandler,
-) error {
+func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sovereignChainHeader data.SovereignChainHeaderHandler) error {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 	if err != nil {
 		return err
@@ -864,13 +915,18 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(
 		"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
 	)
 
-	extendedShardHdrs, err := scbp.sortExtendedShardHeadersForCurrentBlockByNonce(sovChainHeader)
+	extendedShardHdrs, err := scbp.sortExtendedShardHeadersForCurrentBlockByNonce(sovereignChainHeader)
 	if err != nil {
 		return err
 	}
 
 	if len(extendedShardHdrs) == 0 {
 		return nil
+	}
+
+	// we should not have an epoch start block with main chain headers to be processed
+	if sovereignChainHeader.IsStartOfEpochBlock() {
+		return errors.ErrReceivedSovereignEpochStartBlockWithExtendedHeaders
 	}
 
 	if scbp.isGenesisHeaderWithNoPreviousTracking(extendedShardHdrs[0]) {
@@ -1007,7 +1063,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
 }
 
-func (scbp *sovereignChainBlockProcessor) createEpochStartDataCrossChain(sovHdr *block.SovereignChainHeader) error {
+func (scbp *sovereignChainBlockProcessor) createEpochStartDataCrossChain(sovHdr data.SovereignChainHeaderHandler) error {
 	lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 	if err != nil {
 		return err
@@ -1024,15 +1080,13 @@ func (scbp *sovereignChainBlockProcessor) createEpochStartDataCrossChain(sovHdr 
 		"lastCrossNotarizedHeaderNonce", lastCrossNotarizedHeader.GetNonce(),
 	)
 
-	sovHdr.EpochStart.LastFinalizedCrossChainHeader = block.EpochStartCrossChainData{
+	return sovHdr.SetLastFinalizedCrossChainHeaderHandler(&block.EpochStartCrossChainData{
 		ShardID:    core.MainChainShardId,
 		Epoch:      lastCrossNotarizedHeader.GetEpoch(),
 		Round:      lastCrossNotarizedHeader.GetRound(),
 		Nonce:      lastCrossNotarizedHeader.GetNonce(),
 		HeaderHash: lastCrossNotarizedHeaderHash,
-	}
-
-	return nil
+	})
 }
 
 func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
@@ -1152,7 +1206,7 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBloc
 		)
 
 		if headerInfo.usedInBlock {
-			hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
+			if headerInfo.usedInBlock {hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
 		}
 	}
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()

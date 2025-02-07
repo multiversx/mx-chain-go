@@ -63,11 +63,27 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, errors.ErrNilTopicsChecker
 	}
 
-	eventsProc := &incomingEventsProcessor{
+	depositProc := &depositEventProc{
 		marshaller:    args.Marshaller,
 		hasher:        args.Hasher,
 		dataCodec:     args.DataCodec,
 		topicsChecker: args.TopicsChecker,
+	}
+
+	executedOpProc := &executedBridgeOpEventProc{
+		depositEventProc: depositProc,
+	}
+
+	eventsProc := &incomingEventsProcessor{
+		handlers: make(map[string]IncomingEventHandler),
+	}
+	err := eventsProc.registerProcessor(eventIDDepositIncomingTransfer, depositProc)
+	if err != nil {
+		return nil, nil
+	}
+	err = eventsProc.registerProcessor(eventIDExecutedOutGoingBridgeOp, executedOpProc)
+	if err != nil {
+		return nil, nil
 	}
 
 	extendedHearProc := &extendedHeaderProcessor{
@@ -134,17 +150,17 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 	return nil
 }
 
-func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*confirmedBridgeOp) {
+func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*ConfirmedBridgeOp) {
 	for _, op := range ops {
 		// This is not a critical error. This might just happen when a leader tries to re-send unconfirmed confirmation
 		// that have been already executed, but the confirmation from notifier comes too late, and we receive a double
 		// confirmation.
-		err := ihp.outGoingPool.ConfirmOperation(op.hashOfHashes, op.hash)
+		err := ihp.outGoingPool.ConfirmOperation(op.HashOfHashes, op.Hash)
 		if err != nil {
 			log.Debug("incomingHeaderProcessor.AddHeader.addConfirmedBridgeOpsToPool",
 				"error", err,
-				"hashOfHashes", hex.EncodeToString(op.hashOfHashes),
-				"hash", hex.EncodeToString(op.hash),
+				"hashOfHashes", hex.EncodeToString(op.HashOfHashes),
+				"hash", hex.EncodeToString(op.Hash),
 			)
 		}
 	}
@@ -158,6 +174,12 @@ func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.Incomi
 	}
 
 	return createExtendedHeader(header, res.scrs)
+}
+
+// RegisterEventHandler will register an extra incoming event processor. For the registered processor, a subscription
+// should be added to NotifierConfig.SubscribedEvents from sovereignConfig.toml
+func (ihp *incomingHeaderProcessor) RegisterEventHandler(event string, proc IncomingEventHandler) error {
+	return ihp.eventsProc.registerProcessor(event, proc)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
