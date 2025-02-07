@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -614,8 +615,12 @@ func (thn *TestHeartbeatNode) createShardRequestersContainer(args requesterscont
 
 func (thn *TestHeartbeatNode) createRequestHandler() {
 	thn.RequestersFinder, _ = containers.NewRequestersFinder(thn.RequestersContainer, thn.ShardCoordinator)
+
+	id := common.GetLogID(thn.NodesCoordinator.GetOwnPublicKey())
+	log := logger.GetOrCreate(fmt.Sprintf("dataRetriever/requestersHandler/%s", id))
+
 	thn.RequestHandler, _ = requestHandlers.NewResolverRequestHandler(
-		nil,
+		log,
 		thn.RequestersFinder,
 		thn.RequestedItemsHandler,
 		thn.WhiteListHandler,

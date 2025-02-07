@@ -1316,9 +1316,22 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
+	pubKey, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
+	if err != nil {
+		return err
+	}
+
+	var resolverLog logger.Logger
+	if e.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pubKey)
+		resolverLog = logger.GetOrCreate(fmt.Sprintf("dataretriever/requesthandlers/%s", id))
+	} else {
+		resolverLog = logger.GetOrCreate("dataretriever/requesthandlers")
+	}
+
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
-		nil,
+		resolverLog,
 		finder,
 		requestedItemsHandler,
 		e.whiteListHandler,

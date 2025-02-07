@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -217,9 +218,21 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
 		return err
 	}
 
+	pubKey, err := sesb.cryptoComponentsHolder.PublicKey().ToByteArray()
+	if err != nil {
+		return err
+	}
+	var resolverLog logger.Logger
+	if sesb.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pubKey)
+		resolverLog = logger.GetOrCreate(fmt.Sprintf("dataretriever/requesthandlers/%s", id))
+	} else {
+		resolverLog = logger.GetOrCreate("dataretriever/requesthandlers")
+	}
+
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
 	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
-		nil,
+		resolverLog,
 		finder,
 		requestedItemsHandler,
 		sesb.whiteListHandler,

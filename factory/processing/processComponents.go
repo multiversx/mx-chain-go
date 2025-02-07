@@ -343,8 +343,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("dataretriever/requesthandlers/%s", id))
+	} else {
+		log = logger.GetOrCreate("dataretriever/requesthandlers")
+	}
+
 	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		nil,
+		log,
 		requestersFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,
