@@ -350,6 +350,11 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testRestoreBlockIntoPools(t, true)
+	testRestoreBlockIntoPools(t, false)
+}
+
+func testRestoreBlockIntoPools(t *testing.T, withExtendedHeader bool) {
 	store := &storageStubs.ChainStorerStub{}
 	marshaller := &mock.MarshalizerMock{}
 	expectedBody := &block.Body{
@@ -458,6 +463,10 @@ func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing
 		ExtendedShardHeaderHashes: [][]byte{extendedHeaderHash},
 	}
 
+	if !withExtendedHeader {
+		sovHdr.ExtendedShardHeaderHashes = nil
+	}
+
 	retrievedHdr, err := dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
 	require.NotNil(t, err)
 	require.Nil(t, retrievedHdr)
@@ -466,13 +475,24 @@ func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing
 	require.Nil(t, err)
 	require.True(t, wasRestoreBlockDataFromStorageCalled)
 	require.True(t, wasLastSelfNotarizedHeaderRemoved)
-	require.True(t, wasLastCrossNotarizedHeaderRemoved)
-	require.True(t, wasExtendedHdrStorerRemoved)
-	require.True(t, wasNonceHashExtendedHdrStorerRemoved)
 
-	retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
-	require.Nil(t, err)
-	require.Equal(t, extendedHeader, retrievedHdr)
+	if withExtendedHeader {
+		require.True(t, wasLastCrossNotarizedHeaderRemoved)
+		require.True(t, wasExtendedHdrStorerRemoved)
+		require.True(t, wasNonceHashExtendedHdrStorerRemoved)
+
+		retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+		require.Nil(t, err)
+		require.Equal(t, extendedHeader, retrievedHdr)
+	} else {
+		require.False(t, wasLastCrossNotarizedHeaderRemoved)
+		require.False(t, wasExtendedHdrStorerRemoved)
+		require.False(t, wasNonceHashExtendedHdrStorerRemoved)
+
+		retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+		require.NotNil(t, err)
+		require.Nil(t, retrievedHdr)
+	}
 }
 
 //TODO: More unit tests should be added. Created PR https://multiversxlabs.atlassian.net/browse/MX-14149
