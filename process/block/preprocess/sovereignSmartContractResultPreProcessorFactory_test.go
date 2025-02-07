@@ -3,9 +3,10 @@ package preprocess_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignContractResultPreProcessorFactory(t *testing.T) {
@@ -15,7 +16,7 @@ func TestNewSovereignContractResultPreProcessorFactory(t *testing.T) {
 	require.NotNil(t, err)
 	require.Nil(t, sovFact)
 
-	fact, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+	fact := preprocess.NewSmartContractResultPreProcessorFactory()
 	sovFact, err = preprocess.NewSovereignSmartContractResultPreProcessorFactory(fact)
 	require.Nil(t, err)
 	require.NotNil(t, sovFact)
@@ -25,7 +26,7 @@ func TestNewSovereignContractResultPreProcessorFactory(t *testing.T) {
 func TestSovereignContractResultPreProcessorFactory_CreateSmartContractResultPreProcessor(t *testing.T) {
 	t.Parallel()
 
-	f, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+	f := preprocess.NewSmartContractResultPreProcessorFactory()
 	fact, _ := preprocess.NewSovereignSmartContractResultPreProcessorFactory(f)
 
 	args := preprocess.SmartContractResultPreProcessorCreatorArgs{}
@@ -43,7 +44,7 @@ func TestSovereignContractResultPreProcessorFactory_CreateSmartContractResultPre
 func TestSovereignContractResultPreProcessorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	f, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+	f := preprocess.NewSmartContractResultPreProcessorFactory()
 	fact, _ := preprocess.NewSovereignSmartContractResultPreProcessorFactory(f)
 	require.False(t, fact.IsInterfaceNil())
 }

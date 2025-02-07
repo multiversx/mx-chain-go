@@ -3,12 +3,13 @@ package block_test
 import (
 	"testing"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignBlockProcessorFactory(t *testing.T) {
@@ -19,7 +20,7 @@ func TestNewSovereignBlockProcessorFactory(t *testing.T) {
 	require.Nil(t, sbpf)
 	require.NotNil(t, err)
 
-	shardFactory, _ := block.NewShardBlockProcessorFactory()
+	shardFactory := block.NewShardBlockProcessorFactory()
 	sbpf, err = block.NewSovereignBlockProcessorFactory(shardFactory)
 
 	require.NotNil(t, sbpf)
@@ -30,7 +31,7 @@ func TestNewSovereignBlockProcessorFactory(t *testing.T) {
 func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	t.Parallel()
 
-	shardFactory, _ := block.NewShardBlockProcessorFactory()
+	shardFactory := block.NewShardBlockProcessorFactory()
 	sbpf, _ := block.NewSovereignBlockProcessorFactory(shardFactory)
 
 	funcCreateMetaArgs := func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
@@ -65,7 +66,7 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 func TestSovereignBlockProcessorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	shardFactory, _ := block.NewShardBlockProcessorFactory()
+	shardFactory := block.NewShardBlockProcessorFactory()
 	sbpf, _ := block.NewSovereignBlockProcessorFactory(shardFactory)
 	require.False(t, sbpf.IsInterfaceNil())
 }
