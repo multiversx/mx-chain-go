@@ -203,9 +203,6 @@ func TestSyncWorksInShard_EmptyBlocksNoForks_With_EquivalentProofs(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG,process:TRACE,consensus:TRACE")
-	logger.ToggleLoggerName(true)
-
 	// 3 shard nodes and 1 metachain node
 	maxShards := uint32(1)
 	shardId := uint32(0)

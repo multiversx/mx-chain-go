@@ -365,7 +365,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
-		sr.Log.Debug("saverroofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
+		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
 		return
 	}
 

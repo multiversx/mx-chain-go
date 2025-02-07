@@ -145,7 +145,6 @@ func (chr *chronology) startRound(ctx context.Context) {
 
 	sr := chr.loadSubroundHandler(chr.subroundId)
 	if sr == nil {
-		// chr.log.Trace("chronology: nil subround handler", "subroundId", chr.subroundId)
 		return
 	}
 

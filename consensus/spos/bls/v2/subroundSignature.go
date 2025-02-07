@@ -152,11 +152,6 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string) bool {
 		return false
 	}
 
-	sr.Log.Error("doSignatureJob.SetSelfJobDone",
-		"subround", sr.Name(),
-		"pk", []byte(pk),
-	)
-
 	return true
 }
 
@@ -281,8 +276,6 @@ func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
-	sr.Log.Info("doSignatureJobForSingleKey: START")
-
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
 		sr.Log.Debug("doSignatureJobForSingleKey.SelfConsensusGroupIndex: not in consensus group")

@@ -227,8 +227,6 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 		return nil, err
 	}
 	if isUnknownEpoch {
-		log.Error("HeaderResolver: isUnknownEpoch")
-
 		hdrRes.mutEpochHandler.RLock()
 		metaEpoch := hdrRes.epochHandler.MetaEpoch()
 		hdrRes.mutEpochHandler.RUnlock()

@@ -78,6 +78,7 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+	logger.SetLogLevel("*:TRACE")
 
 	testConsensusBLSWithFullProcessing(t, uint32(0))
 }

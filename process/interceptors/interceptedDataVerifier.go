@@ -49,7 +49,6 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 			return nil
 		}
 
-		log.Error("interceptedDataVerifier:", "dataHash", interceptedData.Hash())
 		return process.ErrInvalidInterceptedData
 	}
 
