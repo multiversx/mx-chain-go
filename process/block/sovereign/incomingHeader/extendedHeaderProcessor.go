@@ -19,7 +19,7 @@ type extendedHeaderProcessor struct {
 	hasher      hashing.Hasher
 }
 
-func createExtendedHeader(incomingHeader sovereign.IncomingHeaderHandler, scrs []*scrInfo) (*block.ShardHeaderExtended, error) {
+func createExtendedHeader(incomingHeader sovereign.IncomingHeaderHandler, scrs []*SCRInfo) (*block.ShardHeaderExtended, error) {
 	headerV2, castOk := incomingHeader.GetHeaderHandler().(*block.HeaderV2)
 	if !castOk {
 		return nil, errInvalidHeaderType
@@ -51,14 +51,14 @@ func getEvents(events []data.EventHandler) ([]*transaction.Event, error) {
 	return ret, nil
 }
 
-func createIncomingMb(scrs []*scrInfo) []*block.MiniBlock {
+func createIncomingMb(scrs []*SCRInfo) []*block.MiniBlock {
 	if len(scrs) == 0 {
 		return make([]*block.MiniBlock, 0)
 	}
 
 	scrHashes := make([][]byte, len(scrs))
 	for idx, scrData := range scrs {
-		scrHashes[idx] = scrData.hash
+		scrHashes[idx] = scrData.Hash
 	}
 
 	return []*block.MiniBlock{
@@ -83,10 +83,10 @@ func (ehp *extendedHeaderProcessor) addPreGenesisExtendedHeaderToPool(incomingHe
 		IncomingEvents:     []*transaction.Event{},
 	}
 
-	return ehp.addExtendedHeaderAndSCRsToPool(extendedHeader, make([]*scrInfo, 0))
+	return ehp.addExtendedHeaderAndSCRsToPool(extendedHeader, make([]*SCRInfo, 0))
 }
 
-func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeader data.ShardHeaderExtendedHandler, scrs []*scrInfo) error {
+func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeader data.ShardHeaderExtendedHandler, scrs []*SCRInfo) error {
 	extendedHeaderHash, err := core.CalculateHash(ehp.marshaller, ehp.hasher, extendedHeader)
 	if err != nil {
 		return err
@@ -97,10 +97,10 @@ func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeade
 	return nil
 }
 
-func (ehp *extendedHeaderProcessor) addSCRsToPool(scrs []*scrInfo) {
+func (ehp *extendedHeaderProcessor) addSCRsToPool(scrs []*SCRInfo) {
 	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 
 	for _, scrData := range scrs {
-		ehp.txPool.AddData(scrData.hash, scrData.scr, scrData.scr.Size(), cacheID)
+		ehp.txPool.AddData(scrData.Hash, scrData.SCR, scrData.SCR.Size(), cacheID)
 	}
 }
