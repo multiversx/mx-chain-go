@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
@@ -19,8 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
@@ -384,7 +385,7 @@ func TestPreProcessorsContainerFactory_CreateSCRPreprocessor(t *testing.T) {
 		t.Parallel()
 
 		args := createMockPreProcessorsContainerFactoryArguments()
-		scrppf, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+		scrppf := preprocess.NewSmartContractResultPreProcessorFactory()
 		runTypeComps := processMocks.NewRunTypeComponentsStub()
 		runTypeComps.SCResultsPreProcessorFactory, _ = preprocess.NewSovereignSmartContractResultPreProcessorFactory(scrppf)
 		args.RunTypeComponents = runTypeComps

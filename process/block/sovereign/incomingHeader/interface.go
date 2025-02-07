@@ -3,6 +3,7 @@ package incomingHeader
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
 )
@@ -40,5 +41,11 @@ type RunTypeComponentsHolder interface {
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovBlock.DataCodecHandler
 	TopicsCheckerHandler() sovBlock.TopicsCheckerHandler
+	IsInterfaceNil() bool
+}
+
+// IncomingEventHandler defines the behaviour of an incoming cross chain event processor handler
+type IncomingEventHandler interface {
+	ProcessEvent(event data.EventHandler) (*EventResult, error)
 	IsInterfaceNil() bool
 }

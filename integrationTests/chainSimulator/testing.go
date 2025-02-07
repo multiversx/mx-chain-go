@@ -6,17 +6,69 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
+
+// GenerateBlocksAndEpochChange -
+func GenerateBlocksAndEpochChange(t *testing.T, chainSimulator ChainSimulator) {
+	genesisBalances := make(map[string]*big.Int)
+	for _, stakeWallet := range chainSimulator.GetInitialWalletKeys().StakeWallets {
+		initialAccount, errGet := getAccount(chainSimulator, stakeWallet.Address)
+		require.Nil(t, errGet)
+
+		genesisBalances[stakeWallet.Address.Bech32] = initialAccount.GetBalance()
+	}
+
+	time.Sleep(time.Second)
+
+	err := chainSimulator.GenerateBlocksUntilEpochIsReached(4)
+	require.Nil(t, err)
+
+	numAccountsWithIncreasedBalances := 0
+	for _, stakeWallet := range chainSimulator.GetInitialWalletKeys().StakeWallets {
+		account, errGet := getAccount(chainSimulator, stakeWallet.Address)
+		require.Nil(t, errGet)
+
+		if account.GetBalance().Cmp(genesisBalances[stakeWallet.Address.Bech32]) > 0 {
+			numAccountsWithIncreasedBalances++
+		}
+	}
+
+	require.True(t, numAccountsWithIncreasedBalances > 0)
+}
+
+func getAccount(chainSimulator ChainSimulator, address dtos.WalletAddress) (vmcommon.UserAccountHandler, error) {
+	shardID := GetShardForAddress(chainSimulator, address.Bech32)
+	account, err := chainSimulator.GetNodeHandler(shardID).GetStateComponents().AccountsAdapter().GetExistingAccount(address.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return account.(vmcommon.UserAccountHandler), nil
+}
+
+// TriggerChangeOfEpoch -
+func TriggerChangeOfEpoch(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {
+	startEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
+
+	for i := startEpoch; i < startEpoch+4; i++ {
+		err := chainSimulator.ForceChangeOfEpoch()
+		require.Nil(t, err)
+
+		currentEpoch := nodeHandler.GetProcessComponents().EpochStartTrigger().Epoch()
+		require.Equal(t, i+1, currentEpoch)
+	}
+}
 
 // CheckSetState -
 func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {

@@ -9,8 +9,8 @@ type sovereignScheduledTxsExecutionFactory struct {
 }
 
 // NewSovereignScheduledTxsExecutionFactory creates a new sovereign scheduled txs execution factory
-func NewSovereignScheduledTxsExecutionFactory() (*sovereignScheduledTxsExecutionFactory, error) {
-	return &sovereignScheduledTxsExecutionFactory{}, nil
+func NewSovereignScheduledTxsExecutionFactory() *sovereignScheduledTxsExecutionFactory {
+	return &sovereignScheduledTxsExecutionFactory{}
 }
 
 // CreateScheduledTxsExecutionHandler creates a new scheduled txs execution handler for sovereign chain
