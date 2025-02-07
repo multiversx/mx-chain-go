@@ -800,7 +800,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		"nonce", headerHandler.GetNonce(),
 	)
 
-	sovereignChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
+	sovChainHeader, ok := headerHandler.(data.SovereignChainHeaderHandler)
 	if !ok {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -827,7 +827,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	scbp.blockChainHook.SetCurrentHeader(headerHandler)
 
 	scbp.txCoordinator.RequestBlockTransactions(body)
-	requestedExtendedShardHdrs := scbp.requestExtendedShardHeaders(sovereignChainHeader)
+	requestedExtendedShardHdrs := scbp.requestExtendedShardHeaders(sovChainHeader)
 
 	if haveTime() < 0 {
 		return nil, nil, process.ErrTimeIsOut
@@ -854,7 +854,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		go scbp.checkAndRequestIfExtendedShardHeadersMissing()
 	}()
 
-	err = scbp.checkExtendedShardHeadersValidity(sovereignChainHeader)
+	err = scbp.checkExtendedShardHeadersValidity(sovChainHeader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -904,7 +904,9 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 }
 
 // checkExtendedShardHeadersValidity checks if used extended shard headers are valid as construction
-func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sovereignChainHeader data.SovereignChainHeaderHandler) error {
+func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(
+	sovChainHeader data.SovereignChainHeaderHandler,
+) error {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 	if err != nil {
 		return err
@@ -915,7 +917,7 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sove
 		"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
 	)
 
-	extendedShardHdrs, err := scbp.sortExtendedShardHeadersForCurrentBlockByNonce(sovereignChainHeader)
+	extendedShardHdrs, err := scbp.sortExtendedShardHeadersForCurrentBlockByNonce(sovChainHeader)
 	if err != nil {
 		return err
 	}
@@ -925,7 +927,7 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sove
 	}
 
 	// we should not have an epoch start block with main chain headers to be processed
-	if sovereignChainHeader.IsStartOfEpochBlock() {
+	if sovChainHeader.IsStartOfEpochBlock() {
 		return errors.ErrReceivedSovereignEpochStartBlockWithExtendedHeaders
 	}
 
@@ -1206,7 +1208,8 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBloc
 		)
 
 		if headerInfo.usedInBlock {
-			if headerInfo.usedInBlock {hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
+			hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
+
 		}
 	}
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
