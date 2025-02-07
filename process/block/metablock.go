@@ -2211,10 +2211,11 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 		}
 
 		shouldConsiderProofsForNotarization := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
-		if shouldConsiderProofsForNotarization && !mp.proofsPool.HasProof(core.MetachainShardId, shardData.HeaderHash) {
+		hasProofForShardHeader := mp.proofsPool.HasProof(shardData.ShardID, shardData.HeaderHash)
+		if shouldConsiderProofsForNotarization && !hasProofForShardHeader {
 			// if there is no proof for current shard header, request the next one that holds this proof
 			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs++
-			go mp.requestHandler.RequestMetaHeaderByNonce(hdr.GetNonce() + 1)
+			go mp.requestHandler.RequestShardHeaderByNonce(hdr.GetShardID(), hdr.GetNonce()+1)
 		}
 
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
