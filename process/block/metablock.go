@@ -2210,10 +2210,18 @@ func (mp *metaProcessor) computeExistingAndRequestMissingShardHeaders(metaBlock 
 			mp.hdrsForCurrBlock.highestHdrNonce[shardData.ShardID] = hdr.GetNonce()
 		}
 
+		shouldConsiderProofsForNotarization := mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+		if shouldConsiderProofsForNotarization && !mp.proofsPool.HasProof(core.MetachainShardId, shardData.HeaderHash) {
+			// if there is no proof for current shard header, request the next one that holds this proof
+			mp.hdrsForCurrBlock.missingFinalityAttestingHdrs++
+			go mp.requestHandler.RequestMetaHeaderByNonce(hdr.GetNonce() + 1)
+		}
+
 		mp.updateLastNotarizedBlockForShard(hdr, shardData.HeaderHash)
 	}
 
-	if mp.hdrsForCurrBlock.missingHdrs == 0 {
+	requestedFinalityAttestingBasedOnProofs := mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
+	if mp.hdrsForCurrBlock.missingHdrs == 0 && !requestedFinalityAttestingBasedOnProofs {
 		mp.hdrsForCurrBlock.missingFinalityAttestingHdrs = mp.requestMissingFinalityAttestingShardHeaders()
 	}
 
