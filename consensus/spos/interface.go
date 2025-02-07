@@ -125,6 +125,8 @@ type WorkerHandler interface {
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 	ResetConsensusMessages()
+	// ResetConsensusRoundState resets the consensus round state when transitioning to a different consensus version
+	ResetConsensusRoundState()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -170,6 +172,7 @@ type SentSignaturesTracker interface {
 // ConsensusStateHandler encapsulates all needed data for the Consensus
 type ConsensusStateHandler interface {
 	ResetConsensusState()
+	ResetConsensusRoundState()
 	AddReceivedHeader(headerHandler data.HeaderHandler)
 	GetReceivedHeaders() []data.HeaderHandler
 	AddMessageWithSignature(key string, message p2p.MessageP2P)

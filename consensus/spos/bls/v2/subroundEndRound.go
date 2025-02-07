@@ -393,7 +393,7 @@ func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error 
 func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) error {
 	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.GetHeader().GetEpoch())
 	if err != nil {
-		log.Trace("VerifySignatureShare returned an error: ", err)
+		log.Trace("VerifySignatureShare returned an error: ", "error", err)
 		errSetJob := sr.SetJobDone(pk, bls.SrSignature, false)
 		if errSetJob != nil {
 			return errSetJob
@@ -540,6 +540,12 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Trace("computeAggSigOnValidNodes",
+		"bitmap", bitmap,
+		"threshold", threshold,
+		"numValidSigShares", numValidSigShares,
+	)
 
 	return bitmap, sig, nil
 }
