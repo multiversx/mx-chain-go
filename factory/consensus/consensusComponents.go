@@ -270,13 +270,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	var log logger.Logger
-	if ccf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("spos/bls/v2/%s", id))
-	} else {
-		log = logger.GetOrCreate("consensus/spos/bls/v2")
-	}
+	log := ccf.createCustomLogger("consensus/spos/bls/v2")
 
 	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
 		Logger:               log,
@@ -309,6 +303,18 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	return cc, nil
+}
+
+func (ccf *consensusComponentsFactory) createCustomLogger(baseLogID string) logger.Logger {
+	var log logger.Logger
+	if ccf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("%s/%s", baseLogID, id))
+	} else {
+		log = logger.GetOrCreate(baseLogID)
+	}
+
+	return log
 }
 
 // Close will close all the inner components
@@ -351,13 +357,7 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		wd = &watchdog.DisabledWatchdog{}
 	}
 
-	var log logger.Logger
-	if ccf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("cns/chronology/%s", id))
-	} else {
-		log = logger.GetOrCreate("consensus/chronology")
-	}
+	log := ccf.createCustomLogger("consensus/chronology")
 
 	chronologyArg := chronology.ArgChronology{
 		Logger:           log,
@@ -489,13 +489,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
-	var log logger.Logger
-	if ccf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
-	} else {
-		log = logger.GetOrCreate("process/sync")
-	}
+	log := ccf.createCustomLogger("process/sync")
 
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		Logger:                       log,
@@ -630,13 +624,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		return nil, err
 	}
 
-	var log logger.Logger
-	if ccf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
-	} else {
-		log = logger.GetOrCreate("process/sync")
-	}
+	log := ccf.createCustomLogger("process/sync")
 
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
 		Logger:                       log,

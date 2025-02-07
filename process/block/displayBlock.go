@@ -42,6 +42,9 @@ type ArgsTransactionCounter struct {
 // NewTransactionCounter returns a new object that keeps track of how many transactions
 // were executed in total, and in the current block
 func NewTransactionCounter(args ArgsTransactionCounter) (*transactionCounter, error) {
+	if check.IfNil(args.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(args.AppStatusHandler) {
 		return nil, process.ErrNilAppStatusHandler
 	}
@@ -52,14 +55,8 @@ func NewTransactionCounter(args ArgsTransactionCounter) (*transactionCounter, er
 		return nil, process.ErrNilMarshalizer
 	}
 
-	var log logger.Logger
-	log = logger.GetOrCreate("process/block")
-	if args.Logger != nil {
-		log = args.Logger
-	}
-
 	return &transactionCounter{
-		log:              log,
+		log:              args.Logger,
 		mutex:            sync.RWMutex{},
 		appStatusHandler: args.AppStatusHandler,
 		currentBlockTxs:  0,

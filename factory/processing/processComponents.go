@@ -343,13 +343,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	var resolverLog logger.Logger
-	if pcf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
-		resolverLog = logger.GetOrCreate(fmt.Sprintf("dataretriever/requesthandlers/%s", id))
-	} else {
-		resolverLog = logger.GetOrCreate("dataretriever/requesthandlers")
-	}
+	resolverLog := pcf.createCustomLogger("dataretriever/requesthandlers")
 
 	requestHandler, err := requestHandlers.NewResolverRequestHandler(
 		resolverLog,
@@ -475,13 +469,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	var log logger.Logger
-	if pcf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
-	} else {
-		log = logger.GetOrCreate("process/block")
-	}
+	log := pcf.createCustomLogger("process/block")
 
 	argsHeaderValidator := block.ArgsHeaderValidator{
 		Logger:              log,
@@ -799,6 +787,19 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}, nil
 }
 
+func (pcf *processComponentsFactory) createCustomLogger(baseLogID string) logger.Logger {
+	var log logger.Logger
+
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("%s/%s", baseLogID, id))
+	} else {
+		log = logger.GetOrCreate(baseLogID)
+	}
+
+	return log
+}
+
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
 	storageService := pcf.data.StorageService()
 
@@ -842,14 +843,7 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		var log logger.Logger
-		if pcf.flagsConfig.WithInstanceLogID {
-			id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
-			log = logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
-		} else {
-			log = logger.GetOrCreate("process/block")
-		}
-
+		log := pcf.createCustomLogger("process/block")
 		argsHeaderValidator := block.ArgsHeaderValidator{
 			Logger:              log,
 			Hasher:              pcf.coreData.Hasher(),
@@ -1368,13 +1362,7 @@ func (pcf *processComponentsFactory) newBlockTracker(
 ) (process.BlockTracker, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 
-	var log logger.Logger
-	if pcf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("process/track/%s", id))
-	} else {
-		log = logger.GetOrCreate("process/track")
-	}
+	log := pcf.createCustomLogger("process/track")
 
 	argBaseTracker := track.ArgBaseTracker{
 		Logger:              log,
@@ -1821,13 +1809,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
-	var log logger.Logger
-	if pcf.flagsConfig.WithInstanceLogID {
-		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
-		log = logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
-	} else {
-		log = logger.GetOrCreate("process/sync")
-	}
+	log := pcf.createCustomLogger("process/sync")
 
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

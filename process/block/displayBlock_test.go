@@ -35,6 +35,7 @@ func createGenesisBlock(shardId uint32) *block.Header {
 
 func createMockArgsTransactionCounter() ArgsTransactionCounter {
 	return ArgsTransactionCounter{
+		Logger:           &testscommon.LoggerStub{},
 		AppStatusHandler: &statusHandler.AppStatusHandlerStub{},
 		Hasher:           &testscommon.HasherStub{},
 		Marshalizer:      &marshallerMock.MarshalizerMock{},
