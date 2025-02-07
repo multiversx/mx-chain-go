@@ -1028,7 +1028,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		argsHook.BlockChain = apiBlockchain
 
 		esdtTransferParser, _ := parsers.NewESDTTransferParser(TestMarshalizer)
-		blockChainHookImpl, _ := CreateBlockChainHook(argsHook)
+		blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 		argsNewVMFactory := shard.ArgVMContainerFactory{
 			Config:              *vmConfig,
 			BlockChainHook:      blockChainHookImpl,
@@ -1694,7 +1694,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
-	blockChainHookImpl, _ := CreateBlockChainHook(argsHook)
+	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(argsHook)
 	tpn.EnableEpochs.FailExecutionOnEveryAPIErrorEnableEpoch = 1
 	argsNewVMFactory := shard.ArgVMContainerFactory{
 		Config:              *vmConfig,
@@ -3650,14 +3650,4 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 	}
-}
-
-// CreateBlockChainHook creates a blockchain hook based on the chain run type (normal/sovereign)
-func CreateBlockChainHook(args hooks.ArgBlockChainHook) (process.BlockChainHookWithAccountsAdapter, error) {
-	blockChainHookFactory, err := hooks.NewBlockChainHookFactory()
-	if err != nil {
-		return nil, err
-	}
-
-	return blockChainHookFactory.CreateBlockChainHookHandler(args)
 }

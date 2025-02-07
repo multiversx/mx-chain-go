@@ -6,8 +6,8 @@ type validatorStatisticsProcessorFactory struct {
 }
 
 // NewValidatorStatisticsProcessorFactory creates a new validator statistics processor factory for normal chain
-func NewValidatorStatisticsProcessorFactory() (*validatorStatisticsProcessorFactory, error) {
-	return &validatorStatisticsProcessorFactory{}, nil
+func NewValidatorStatisticsProcessorFactory() *validatorStatisticsProcessorFactory {
+	return &validatorStatisticsProcessorFactory{}
 }
 
 // CreateValidatorStatisticsProcessor creates a new validator statistics processor

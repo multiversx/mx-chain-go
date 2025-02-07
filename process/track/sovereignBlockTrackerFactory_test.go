@@ -3,10 +3,11 @@ package track_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignBlockTrackerFactory(t *testing.T) {
@@ -16,7 +17,7 @@ func TestNewSovereignBlockTrackerFactory(t *testing.T) {
 	require.NotNil(t, err)
 	require.Nil(t, sbtcf)
 
-	sf, _ := track.NewShardBlockTrackerFactory()
+	sf := track.NewShardBlockTrackerFactory()
 	sbtcf, err = track.NewSovereignBlockTrackerFactory(sf)
 	require.Nil(t, err)
 	require.NotNil(t, sbtcf)
@@ -26,7 +27,7 @@ func TestNewSovereignBlockTrackerFactory(t *testing.T) {
 func TestSovereignBlockTrackerFactory_CreateBlockTracker(t *testing.T) {
 	t.Parallel()
 
-	sf, _ := track.NewShardBlockTrackerFactory()
+	sf := track.NewShardBlockTrackerFactory()
 	sbtcf, _ := track.NewSovereignBlockTrackerFactory(sf)
 
 	bt, err := sbtcf.CreateBlockTracker(track.ArgShardTracker{})
@@ -44,7 +45,7 @@ func TestSovereignBlockTrackerFactory_CreateBlockTracker(t *testing.T) {
 func TestSovereignBlockTrackerFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	sf, _ := track.NewShardBlockTrackerFactory()
+	sf := track.NewShardBlockTrackerFactory()
 	sbtcf, _ := track.NewSovereignBlockTrackerFactory(sf)
 
 	require.False(t, sbtcf.IsInterfaceNil())

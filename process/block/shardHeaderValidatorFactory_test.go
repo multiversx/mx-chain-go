@@ -3,16 +3,16 @@ package block
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardHeaderValidatorFactory(t *testing.T) {
 	t.Parallel()
 
-	shvf, err := NewShardHeaderValidatorFactory()
-	require.Nil(t, err)
+	shvf := NewShardHeaderValidatorFactory()
 	require.NotNil(t, shvf)
 	require.Implements(t, new(HeaderValidatorCreator), shvf)
 }
@@ -20,7 +20,7 @@ func TestNewShardHeaderValidatorFactory(t *testing.T) {
 func TestShardHeaderValidatorFactory_CreateHeaderValidator(t *testing.T) {
 	t.Parallel()
 
-	shvf, _ := NewShardHeaderValidatorFactory()
+	shvf := NewShardHeaderValidatorFactory()
 
 	hv, err := shvf.CreateHeaderValidator(ArgsHeaderValidator{
 		Hasher:      nil,
@@ -41,6 +41,6 @@ func TestShardHeaderValidatorFactory_CreateHeaderValidator(t *testing.T) {
 func TestShardHeaderValidatorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	shvf, _ := NewShardHeaderValidatorFactory()
+	shvf := NewShardHeaderValidatorFactory()
 	require.False(t, shvf.IsInterfaceNil())
 }
