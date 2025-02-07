@@ -27,6 +27,11 @@ func (handler *manualRoundHandler) IncrementIndex() {
 	atomic.AddInt64(&handler.index, 1)
 }
 
+// RevertOneRound -
+func (handler *manualRoundHandler) RevertOneRound() {
+	atomic.AddInt64(&handler.index, -1)
+}
+
 // Index returns the current index
 func (handler *manualRoundHandler) Index() int64 {
 	return atomic.LoadInt64(&handler.index)

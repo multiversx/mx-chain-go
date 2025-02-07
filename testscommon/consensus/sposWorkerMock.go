@@ -33,6 +33,14 @@ type SposWorkerMock struct {
 	ResetConsensusMessagesCalled           func()
 	ResetConsensusStateCalled              func()
 	ReceivedProofCalled                    func(proofHandler consensus.ProofHandler)
+	ResetConsensusRoundStateCalled         func()
+}
+
+// ResetConsensusRoundState -
+func (sposWorkerMock *SposWorkerMock) ResetConsensusRoundState() {
+	if sposWorkerMock.ResetConsensusRoundStateCalled != nil {
+		sposWorkerMock.ResetConsensusRoundStateCalled()
+	}
 }
 
 // AddReceivedMessageCall -
@@ -147,6 +155,7 @@ func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
 	}
 }
 
+// ResetConsensusState -
 func (sposWorkerMock *SposWorkerMock) ResetConsensusState() {
 	if sposWorkerMock.ResetConsensusStateCalled != nil {
 		sposWorkerMock.ResetConsensusStateCalled()

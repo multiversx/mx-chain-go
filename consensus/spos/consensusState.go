@@ -82,12 +82,7 @@ func (cns *ConsensusState) ResetConsensusState() {
 	cns.initReceivedHeaders()
 	cns.initReceivedMessagesWithSig()
 
-	cns.RoundCanceled = false
-	cns.ExtendedCalled = false
-	cns.WaitingAllSignaturesTimeOut = false
-
-	cns.ResetRoundStatus()
-	cns.ResetRoundState()
+	cns.ResetConsensusRoundState()
 }
 
 func (cns *ConsensusState) initReceivedHeaders() {
