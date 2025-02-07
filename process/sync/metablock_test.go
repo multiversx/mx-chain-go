@@ -69,6 +69,7 @@ func createMetaStore() dataRetriever.StorageService {
 
 func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       &testscommon.LoggerStub{},
 		PoolsHolder:                  createMockPools(),
 		Store:                        createStore(),
 		ChainHandler:                 initBlockchain(),

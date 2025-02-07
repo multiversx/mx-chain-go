@@ -314,7 +314,6 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	if err != nil {
 		return nil, err
 	}
-	sr.Log.Info("subroundBlock: create header with nonce", "nonce", nonce, "round", round)
 
 	err = hdr.SetPrevHash(prevHash)
 	if err != nil {
@@ -381,13 +380,10 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 	if !ok {
 		sr.Log.Debug("saveProofForPreviousHeaderIfNeeded: proof not added", "headerHash", hex.EncodeToString(proof.GetHeaderHash()))
 	}
-
-	sr.Log.Error("saveProofForPreviousHeaderIfNeeded: added proof on header", "proofHeader", proof.GetHeaderHash())
 }
 
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
-	sr.Log.Debug("receivedBlockBody: START")
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -480,22 +476,18 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 }
 
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
-	sr.Log.Debug("receivedBlockHEADER: START")
-
 	if check.IfNil(headerHandler) {
-		sr.Log.Error("receivedBlockHeader: nil header")
 		return
 	}
 
-	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
+	sr.Log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
-		sr.Log.Error("receivedBlockHeader: nil header fileds")
 		return
 	}
 
 	isHeaderForCurrentConsensus, prevHeader := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
-		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
 		return
 	}
 
@@ -533,13 +525,13 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	if !sr.CanProcessReceivedHeader(string(headerLeader)) {
-		log.Debug("subroundBlock.receivedBlockHeader - can not process received header")
+		sr.Log.Debug("subroundBlock.receivedBlockHeader - can not process received header")
 		return
 	}
 
 	marshalledHeader, err := sr.Marshalizer().Marshal(headerHandler)
 	if err != nil {
-		log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
+		sr.Log.Debug("subroundBlock.receivedBlockHeader", "error", err.Error())
 		return
 	}
 
@@ -588,11 +580,9 @@ func (sr *subroundBlock) processReceivedBlock(
 	senderPK []byte,
 ) bool {
 	if check.IfNil(sr.GetBody()) {
-		sr.Log.Error("processReceivedBlock: nil body")
 		return false
 	}
 	if check.IfNil(sr.GetHeader()) {
-		sr.Log.Error("processReceivedBlock: nil header")
 		return false
 	}
 
@@ -690,8 +680,6 @@ func (sr *subroundBlock) computeSubroundProcessingMetric(startTime time.Time, me
 // doBlockConsensusCheck method checks if the consensus in the subround Block is achieved
 func (sr *subroundBlock) doBlockConsensusCheck() bool {
 	if sr.GetRoundCanceled() {
-		sr.Log.Debug("step 1: subround has NOT been finished: round cancelled",
-			"subround", sr.Name())
 		return false
 	}
 
@@ -706,9 +694,6 @@ func (sr *subroundBlock) doBlockConsensusCheck() bool {
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 		return true
 	}
-
-	sr.Log.Debug("step 1: subround has NOT been finished",
-		"subround", sr.Name())
 
 	return false
 }

@@ -2,7 +2,6 @@ package processing
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -1786,17 +1785,18 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
-	id := hex.EncodeToString(pcf.nodesCoordinator.GetOwnPublicKey())
-	if len(id) > 6 {
-		id = id[0:6]
+	var log logger.Logger
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
+	} else {
+		log = logger.GetOrCreate("process/sync")
 	}
-
-	logger := logger.GetOrCreate(fmt.Sprintf("p/sync/%s", id))
 
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return sync.NewShardForkDetector(
-			logger,
+			log,
 			pcf.coreData.RoundHandler(),
 			headerBlackList,
 			blockTracker,
@@ -1806,7 +1806,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(
-			logger,
+			log,
 			pcf.coreData.RoundHandler(),
 			headerBlackList,
 			blockTracker,

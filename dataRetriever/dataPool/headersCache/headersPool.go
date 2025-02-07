@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
@@ -26,13 +28,12 @@ func NewHeadersPool(
 	log logger.Logger,
 	hdrsPoolConfig config.HeadersPoolConfig,
 ) (*headersPool, error) {
+	if check.IfNil(log) {
+		return nil, common.ErrNilLogger
+	}
 	err := checkHeadersPoolConfig(hdrsPoolConfig)
 	if err != nil {
 		return nil, err
-	}
-
-	if log == nil {
-		log = logger.GetOrCreate("dataRetriever/headersCache")
 	}
 
 	headersCacheObject := newHeadersCache(log, hdrsPoolConfig.MaxHeadersPerShard, hdrsPoolConfig.NumElementsToRemoveOnEviction)

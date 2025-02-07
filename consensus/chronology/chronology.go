@@ -47,19 +47,13 @@ type chronology struct {
 
 // NewChronology creates a new chronology object
 func NewChronology(arg ArgChronology) (*chronology, error) {
-	var log logger.Logger
-	log = logger.GetOrCreate("consensus/chronology")
-	if arg.Logger != nil {
-		log = arg.Logger
-	}
-
 	err := checkNewChronologyParams(arg)
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
-		log:              log,
+		log:              arg.Logger,
 		genesisTime:      arg.GenesisTime,
 		roundHandler:     arg.RoundHandler,
 		syncTimer:        arg.SyncTimer,
@@ -76,7 +70,9 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 }
 
 func checkNewChronologyParams(arg ArgChronology) error {
-
+	if check.IfNil(arg.Logger) {
+		return common.ErrNilLogger
+	}
 	if check.IfNil(arg.RoundHandler) {
 		return ErrNilRoundHandler
 	}

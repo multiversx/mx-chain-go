@@ -361,13 +361,20 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	logID, err := e.cryptoComponentsHolder.PublicKey().ToByteArray()
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
-			Config:           &e.generalConfig,
-			EconomicsData:    e.economicsData,
-			ShardCoordinator: e.shardCoordinator,
-			Marshalizer:      e.coreComponentsHolder.InternalMarshalizer(),
-			PathManager:      e.coreComponentsHolder.PathHandler(),
+			Config:            &e.generalConfig,
+			EconomicsData:     e.economicsData,
+			ShardCoordinator:  e.shardCoordinator,
+			Marshalizer:       e.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:       e.coreComponentsHolder.PathHandler(),
+			LogID:             logID,
+			WithInstanceLodID: e.flagsConfig.WithInstanceLogID,
 		},
 	)
 	if err != nil {

@@ -50,6 +50,9 @@ type metaProcessor struct {
 
 // NewMetaProcessor creates a new metaProcessor object
 func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
+	if check.IfNil(arguments.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
@@ -95,14 +98,8 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 
-	var log logger.Logger
-	log = logger.GetOrCreate("process/sync")
-	if arguments.Logger != nil {
-		log = arguments.Logger
-	}
-
 	base := &baseProcessor{
-		log:                           log,
+		log:                           arguments.Logger,
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
 		forkDetector:                  arguments.ForkDetector,

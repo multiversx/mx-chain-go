@@ -183,6 +183,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+			Logger:                       &testscommon.LoggerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

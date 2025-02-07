@@ -101,6 +101,9 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 }
 
 func checkArgs(args *SubroundsHandlerArgs) error {
+	if check.IfNil(args.Logger) {
+		return common.ErrNilLogger
+	}
 	if check.IfNil(args.Chronology) {
 		return ErrNilChronologyHandler
 	}

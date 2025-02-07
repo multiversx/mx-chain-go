@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -8,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
 )
+
+const logIDSize = 6
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
@@ -83,4 +86,19 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 
 	return nil
+}
+
+// GetLogID will encode and return log id
+func GetLogID(id []byte) string {
+	strID := hex.EncodeToString(id)
+	return trimLogID(strID)
+}
+
+// trimLogID will trim log id
+func trimLogID(id string) string {
+	if len(id) > logIDSize {
+		id = id[0:logIDSize]
+	}
+
+	return id
 }

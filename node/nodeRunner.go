@@ -1433,6 +1433,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		FullArchiveP2pConfig:  *nr.configs.FullArchiveP2pConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
+		FlagsConfig:           *nr.configs.FlagsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
 		Marshalizer:           coreComponents.InternalMarshalizer(),
 		Syncer:                coreComponents.SyncTimer(),

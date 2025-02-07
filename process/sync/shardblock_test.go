@@ -198,6 +198,7 @@ func initRoundHandler() consensus.RoundHandler {
 
 func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       &testscommon.LoggerStub{},
 		PoolsHolder:                  createMockPools(),
 		Store:                        createStore(),
 		ChainHandler:                 initBlockchain(),

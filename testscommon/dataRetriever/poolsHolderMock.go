@@ -46,7 +46,7 @@ func NewPoolsHolderMockWithLog(log logger.Logger) *PoolsHolderMock {
 
 // NewPoolsHolderMock -
 func NewPoolsHolderMock() *PoolsHolderMock {
-	return newPoolsHolderMock(nil)
+	return newPoolsHolderMock(logger.GetOrCreate("poolsHolderMock"))
 }
 
 func newPoolsHolderMock(log logger.Logger) *PoolsHolderMock {

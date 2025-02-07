@@ -173,6 +173,7 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 		FullArchiveP2pConfig:  *pr.Config.FullArchiveP2pConfig,
 		MainConfig:            *pr.Config.GeneralConfig,
 		RatingsConfig:         *pr.Config.RatingsConfig,
+		FlagsConfig:           *pr.Config.FlagsConfig,
 		StatusHandler:         pr.StatusCoreComponents.AppStatusHandler(),
 		Marshalizer:           pr.CoreComponents.InternalMarshalizer(),
 		Syncer:                pr.CoreComponents.SyncTimer(),

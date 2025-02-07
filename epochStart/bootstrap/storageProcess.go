@@ -103,13 +103,20 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 		return Parameters{}, err
 	}
 
+	logID, err := sesb.cryptoComponentsHolder.PublicKey().ToByteArray()
+	if err != nil {
+		return Parameters{}, err
+	}
+
 	sesb.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
-			Config:           &sesb.generalConfig,
-			EconomicsData:    sesb.economicsData,
-			ShardCoordinator: sesb.shardCoordinator,
-			Marshalizer:      sesb.coreComponentsHolder.InternalMarshalizer(),
-			PathManager:      sesb.coreComponentsHolder.PathHandler(),
+			Config:            &sesb.generalConfig,
+			EconomicsData:     sesb.economicsData,
+			ShardCoordinator:  sesb.shardCoordinator,
+			Marshalizer:       sesb.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:       sesb.coreComponentsHolder.PathHandler(),
+			LogID:             logID,
+			WithInstanceLodID: sesb.flagsConfig.WithInstanceLogID,
 		},
 	)
 	if err != nil {

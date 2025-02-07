@@ -31,7 +31,9 @@ func NewShardForkDetector(
 	enableEpochsHandler common.EnableEpochsHandler,
 	proofsPool process.ProofsPool,
 ) (*shardForkDetector, error) {
-
+	if check.IfNil(log) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
@@ -51,10 +53,6 @@ func NewShardForkDetector(
 	genesisHdr, _, err := blockTracker.GetSelfNotarizedHeader(core.MetachainShardId, 0)
 	if err != nil {
 		return nil, err
-	}
-
-	if log == nil {
-		log = logger.GetOrCreate("process/sync")
 	}
 
 	bfd := &baseForkDetector{

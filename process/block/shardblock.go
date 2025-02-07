@@ -56,6 +56,9 @@ type shardProcessor struct {
 
 // NewShardProcessor creates a new shardProcessor object
 func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
+	if check.IfNil(arguments.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	err := checkProcessorParameters(arguments.ArgBaseProcessor)
 	if err != nil {
 		return nil, err
@@ -80,14 +83,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		return nil, err
 	}
 
-	var log logger.Logger
-	log = logger.GetOrCreate("process/sync")
-	if arguments.Logger != nil {
-		log = arguments.Logger
-	}
-
 	base := &baseProcessor{
-		log:                           log,
+		log:                           arguments.Logger,
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
 		forkDetector:                  arguments.ForkDetector,

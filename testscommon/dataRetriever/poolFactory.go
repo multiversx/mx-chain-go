@@ -174,7 +174,7 @@ func CreatePoolsHolderWithLog(
 
 // CreatePoolsHolder -
 func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHolder {
-	return createPoolsHolder(nil, numShards, selfShard)
+	return createPoolsHolder(logger.GetOrCreate("dataRetriever/poolsHolder"), numShards, selfShard)
 }
 
 func createPoolsHolder(

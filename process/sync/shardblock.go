@@ -9,10 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // ShardBootstrap implements the bootstrap mechanism
@@ -22,6 +22,9 @@ type ShardBootstrap struct {
 
 // NewShardBootstrap creates a new Bootstrap object
 func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) {
+	if check.IfNil(arguments.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
@@ -40,14 +43,8 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
-	var log logger.Logger
-	log = logger.GetOrCreate("process/sync")
-	if arguments.Logger != nil {
-		log = arguments.Logger
-	}
-
 	base := &baseBootstrap{
-		log:                          log,
+		log:                          arguments.Logger,
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
 		store:                        arguments.Store,

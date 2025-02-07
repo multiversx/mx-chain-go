@@ -28,6 +28,7 @@ type ContextFlagsConfig struct {
 	OperationMode                string
 	RepopulateTokensSupplies     bool
 	P2PPrometheusMetricsEnabled  bool
+	WithInstanceLogID            bool
 }
 
 // ImportDbConfig will hold the import-db parameters

@@ -16,3 +16,6 @@ var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
 
 // ErrAlreadyExistingEquivalentProof signals that the provided proof was already exiting in the pool
 var ErrAlreadyExistingEquivalentProof = errors.New("already existing equivalent proof")
+
+// ErrNilLogger signals that a nil logger instance has been provided
+var ErrNilLogger = errors.New("nil logger")
