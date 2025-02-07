@@ -1821,8 +1821,7 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
 	metaBlockHashes := header.GetMetaBlockHashes()
-	lastMetablockNonce := uint64(0)
-	hasProofForLastMetablock := false
+	lastMetablockNonceWithProof := uint64(0)
 	for i := 0; i < len(metaBlockHashes); i++ {
 		hdr, err := process.GetMetaHeaderFromPool(
 			metaBlockHashes[i],
@@ -1861,14 +1860,12 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 			continue
 		}
 
-		if hdr.GetNonce() > lastMetablockNonce {
-			lastMetablockNonce = hdr.GetNonce()
-			hasProofForLastMetablock = hasProofForMetablock
+		if hdr.GetNonce() > lastMetablockNonceWithProof {
+			lastMetablockNonceWithProof = hdr.GetNonce()
 		}
 	}
 
-	requestedFinalityAttestingBasedOnProofs := sp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
-	if sp.hdrsForCurrBlock.missingHdrs == 0 && !requestedFinalityAttestingBasedOnProofs && !hasProofForLastMetablock {
+	if sp.hdrsForCurrBlock.missingHdrs == 0 && lastMetablockNonceWithProof == 0 {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
 			sp.metaBlockFinality,
