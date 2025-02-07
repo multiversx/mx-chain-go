@@ -463,6 +463,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -606,6 +607,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EpochNotifier:                ccf.coreComponents.EpochNotifier(),
 		ProcessedMiniBlocksTracker:   ccf.processComponents.ProcessedMiniBlocksTracker(),
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
+		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{

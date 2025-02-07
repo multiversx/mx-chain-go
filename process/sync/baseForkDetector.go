@@ -368,6 +368,16 @@ func (bfd *baseForkDetector) addCheckpoint(checkpoint *checkpointInfo) {
 	bfd.mutFork.Unlock()
 }
 
+// AddCheckpoint adds a new checkpoint in the list
+func (bfd *baseForkDetector) AddCheckpoint(nonce uint64, round uint64, hash []byte) {
+	checkpoint := &checkpointInfo{
+		nonce: nonce,
+		round: round,
+		hash:  hash,
+	}
+	bfd.addCheckpoint(checkpoint)
+}
+
 func (bfd *baseForkDetector) lastCheckpoint() *checkpointInfo {
 	bfd.mutFork.RLock()
 	lastIndex := len(bfd.fork.checkpoint) - 1
