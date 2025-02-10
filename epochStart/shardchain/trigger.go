@@ -570,6 +570,7 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 		return
 	}
 
+	log.Debug("received proof in trigger", "proof for header hash", headerProof.GetHeaderHash())
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
@@ -584,6 +585,11 @@ func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
 // receivedMetaBlock is a callback function when a new metablock was received
 // upon receiving checks if trigger can be updated
 func (t *trigger) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
+	if headerHandler.GetShardID() != core.MetachainShardId {
+		return
+	}
+
+	log.Debug("received meta header in trigger", "header hash", metaBlockHash)
 	if t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerHandler.GetEpoch()) {
 		proof, err := t.proofsPool.GetProof(headerHandler.GetShardID(), metaBlockHash)
 		if err != nil {
@@ -607,10 +613,12 @@ func (t *trigger) checkMetaHeaderForEpochTriggerEquivalentProofs(headerHandler d
 	if !ok {
 		return
 	}
+	log.Debug("trigger.checkMetaHeaderForEpochTriggerEquivalentProofs", "metaHdr epoch", metaHdr.GetEpoch(), "metaBlockHash", metaBlockHash)
 	if !t.shouldUpdateTrigger(metaHdr, metaBlockHash) {
 		return
 	}
 
+	log.Debug("trigger.updateTriggerHeaderData")
 	t.updateTriggerHeaderData(metaHdr, metaBlockHash)
 	t.updateTriggerFromMeta()
 }
