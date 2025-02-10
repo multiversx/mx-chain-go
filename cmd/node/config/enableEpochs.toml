@@ -337,7 +337,7 @@
     RelayedTransactionsV3EnableEpoch = 1
 
     # MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
-    MaskVMInternalDependenciesErrorsEnableEpoch = 10
+    MaskVMInternalDependenciesErrorsEnableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
