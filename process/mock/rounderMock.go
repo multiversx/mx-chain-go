@@ -21,6 +21,12 @@ func (rndm *RoundHandlerMock) BeforeGenesis() bool {
 	return false
 }
 
+// RevertOneRound -
+func (rndm *RoundHandlerMock) RevertOneRound() {
+	rndm.RoundIndex--
+	rndm.RoundTimeStamp = rndm.RoundTimeStamp.Add(-rndm.RoundTimeDuration)
+}
+
 // Index -
 func (rndm *RoundHandlerMock) Index() int64 {
 	return rndm.RoundIndex
