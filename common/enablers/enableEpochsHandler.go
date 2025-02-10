@@ -786,6 +786,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
 		},
+		common.MaskInternalDependenciesErrorsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch,
+		},
 	}
 }
 
