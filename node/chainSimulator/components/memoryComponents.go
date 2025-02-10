@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -35,7 +36,7 @@ func (store *trieStorage) SetEpochForPutOperation(_ uint32) {
 }
 
 // GetFromOldEpochsWithoutAddingToCache tries to get directly the key
-func (store *trieStorage) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+func (store *trieStorage) GetFromOldEpochsWithoutAddingToCache(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 	value, err := store.Get(key)
 
 	return value, core.OptionalUint32{}, err

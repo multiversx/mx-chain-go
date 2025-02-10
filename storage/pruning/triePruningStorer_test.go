@@ -4,13 +4,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewTriePruningStorer(t *testing.T) {
@@ -63,13 +64,13 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndR
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(cacher.Keys()))
 
-	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 	assert.True(t, epoch.HasValue)
 	assert.Equal(t, uint32(0), epoch.Value)
 
-	res, epoch, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2)
+	res, epoch, err = ps.GetFromOldEpochsWithoutAddingToCache(testKey2, 10)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.False(t, epoch.HasValue)
@@ -94,7 +95,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithCache(t *testing.T) {
 	assert.Nil(t, err)
 	ps.SetEpochForPutOperation(1)
 
-	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Equal(t, testVal1, res)
 	assert.Nil(t, err)
 	assert.False(t, epoch.HasValue)
@@ -116,7 +117,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *t
 	assert.Equal(t, 1, ps.GetNumActivePersisters())
 	_ = ps.ChangeEpochSimple(1)
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -139,7 +140,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheMoreActivePersisters(t *t
 	_ = ps.ChangeEpochSimple(2)
 	_ = ps.ChangeEpochSimple(3)
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, err)
 	assert.Equal(t, testVal1, val)
 }
@@ -175,7 +176,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheAllPersistersClosed(t *te
 	_ = ps.ChangeEpochSimple(3)
 	_ = ps.Close()
 
-	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"))
+	val, _, err := ps.GetFromOldEpochsWithoutAddingToCache([]byte("key"), 10)
 	assert.Nil(t, val)
 	assert.Equal(t, storage.ErrDBIsClosed, err)
 }
@@ -198,7 +199,7 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheDoesNotSearchInCurrentSto
 	assert.Nil(t, err)
 	ps.ClearCache()
 
-	res, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	res, _, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1, 10)
 	assert.Nil(t, res)
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "not found"))
