@@ -21,8 +21,8 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 	nodesConfig := make(map[uint32]*epochNodesConfig, nodesCoordinatorStoredEpochs)
 
 	nodesConfig[arguments.Epoch] = &epochNodesConfig{
-		nbShards:    arguments.NbShards,
-		shardID:     arguments.ShardIDAsObserver,
+		nbShards:    1,
+		shardID:     core.SovereignChainShardId,
 		eligibleMap: make(map[uint32][]Validator),
 		waitingMap:  make(map[uint32][]Validator),
 		selectors:   make(map[uint32]RandomSelector),

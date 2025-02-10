@@ -22,6 +22,11 @@ func (nsc *numberOfShardsWithMetaComputer) ComputeNumberOfShards(config *epochNo
 	return nbShards - 1, nil
 }
 
+// ShardIdFromNodesConfig returns the shard id from nodes config
+func (snsc *numberOfShardsWithMetaComputer) ShardIdFromNodesConfig(nodesConfig *epochNodesConfig) uint32 {
+	return nodesConfig.shardID
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (nsc *numberOfShardsWithMetaComputer) IsInterfaceNil() bool {
 	return nsc == nil
