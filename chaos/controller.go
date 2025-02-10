@@ -9,20 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/chaosAdapters"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type chaosController struct {
-	mutex   sync.Mutex
-	enabled bool
-	config  *chaosConfig
-
-	nodeDisplayName        string
-	currentlyEligibleNodes []chaosAdapters.Validator
-	currentlyWaitingNodes  []chaosAdapters.Validator
-
-	CallsCounters *callsCounters
+	mutex           sync.Mutex
+	enabled         bool
+	config          *chaosConfig
+	nodeDisplayName string
+	CallsCounters   *callsCounters
 }
 
 type callsCounters struct {
@@ -51,16 +46,6 @@ func (controller *chaosController) LearnNodeDisplayName(displayName string) {
 
 	log.Info("LearnNodeDisplayName", "displayName", displayName)
 	controller.nodeDisplayName = displayName
-}
-
-// LearnNodes learns the currently eligible and waiting nodes.
-func (controller *chaosController) LearnNodes(eligibleNodes []chaosAdapters.Validator, waitingNodes []chaosAdapters.Validator) {
-	controller.mutex.Lock()
-	defer controller.mutex.Unlock()
-
-	log.Info("LearnNodes", "len(eligibleNodes)", len(eligibleNodes), "len(waitingNodes)", len(waitingNodes))
-	controller.currentlyEligibleNodes = eligibleNodes
-	controller.currentlyWaitingNodes = waitingNodes
 }
 
 // In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
@@ -166,6 +151,9 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 
 		// Always available (counters):
 		counterProcessTransaction: controller.CallsCounters.ProcessTransaction.GetUint64(),
+
+		// WHEN WE KNOW INDEX, WE SHOULD NOT PUBLIC KEY, RIGHT???
+		// from learned keys? nu pot se iau ambele colectii acolo?
 
 		// Not always available:
 		nodeIndex:       -1,

@@ -1,4 +1,3 @@
-import shutil
 from pathlib import Path
 from typing import Tuple
 
@@ -13,22 +12,6 @@ def main():
             )
         ],
         with_import=True
-    )
-
-    shutil.copyfile("chaosPatching/nodesCoordinator.go.patch", "sharding/nodesCoordinator/chaos.go")
-
-    do_replacements(
-        file_path=Path("sharding/nodesCoordinator/indexHashedNodesCoordinator.go"),
-        replacements=[
-            (
-                "// chaos-testing-point:NewIndexHashedNodesCoordinator_chaosControllerLearnNodes",
-                """chaosControllerLearnNodes(currentConfig.eligibleMap, currentConfig.waitingMap)""",
-            ),
-            (
-                "// chaos-testing-point:indexHashedNodesCoordinator_EpochStartPrepare",
-                """chaosControllerLearnNodes(resUpdateNodes.Eligible, resUpdateNodes.Waiting)"""
-            )
-        ]
     )
 
     do_replacements(
