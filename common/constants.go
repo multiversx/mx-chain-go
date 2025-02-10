@@ -1242,5 +1242,6 @@ const (
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	MaskInternalDependenciesErrorsFlag                 core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
+	FixBackTransferOPCODEFlag                          core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

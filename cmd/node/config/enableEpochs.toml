@@ -339,6 +339,9 @@
     # MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
     MaskVMInternalDependenciesErrorsEnableEpoch = 2
 
+    # FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+    FixBackTransferOPCODEEnableEpoch = 2
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
