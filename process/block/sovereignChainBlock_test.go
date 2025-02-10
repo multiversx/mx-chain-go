@@ -357,6 +357,76 @@ func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsInvalidHeaderType(t *
 	require.ErrorIs(t, err, errMx.ErrWrongTypeAssertion)
 }
 
+func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWorkWhenHeaderNotCommitted(t *testing.T) {
+	t.Parallel()
+
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, errors.New("header not fully processed yet")
+		},
+	}
+	expectedBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MainChainShardId,
+				ReceiverShardID: core.SovereignChainShardId,
+				TxHashes:        [][]byte{[]byte("txHash1")},
+			},
+		},
+	}
+
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = dataPool
+	dataComponents.Storage = store
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+
+	wasRestoreBlockDataFromStorageCalled := false
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			wasRestoreBlockDataFromStorageCalled = true
+			require.Equal(t, body, expectedBody)
+			return 0, nil
+		},
+	}
+
+	wasLastSelfNotarizedHeaderRemoved := false
+	wasLastCrossNotarizedHeaderRemoved := false
+	arguments.BlockTracker = &testscommon.ExtendedShardHeaderTrackerStub{
+		RemoveLastSelfNotarizedHeadersCalled: func() {
+			wasLastSelfNotarizedHeaderRemoved = true
+		},
+		RemoveLastCrossNotarizedHeadersCalled: func() {
+			wasLastCrossNotarizedHeaderRemoved = true
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	argsSovProc := createSovChainBlockProcessorArgs()
+	argsSovProc.ShardProcessor = sp
+	sovBlockProc, _ := blproc.NewSovereignChainBlockProcessor(argsSovProc)
+
+	extendedHeaderHash := []byte("extendedHdrHash")
+	sovHdr := createSovHeaderForRestoreBlocksTest(expectedBody, extendedHeaderHash)
+
+	retrievedHdr, err := dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+	require.NotNil(t, err)
+	require.Nil(t, retrievedHdr)
+
+	err = sovBlockProc.RestoreBlockIntoPools(sovHdr, expectedBody)
+	require.Nil(t, err)
+	require.True(t, wasRestoreBlockDataFromStorageCalled)
+	require.True(t, wasLastSelfNotarizedHeaderRemoved)
+	require.True(t, wasLastCrossNotarizedHeaderRemoved)
+
+	retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+	require.NotNil(t, err)
+	require.Nil(t, retrievedHdr)
+
+}
+
 func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -461,18 +531,7 @@ func testRestoreBlockIntoPools(t *testing.T, withExtendedHeader bool) {
 		return nil, errors.New("invalid storer type")
 	}
 
-	miniBlockHeader := block.MiniBlockHeader{
-		SenderShardID:   expectedBody.MiniBlocks[0].SenderShardID,
-		ReceiverShardID: expectedBody.MiniBlocks[0].ReceiverShardID,
-	}
-
-	sovHdr := &block.SovereignChainHeader{
-		Header: &block.Header{
-			MiniBlockHeaders: []block.MiniBlockHeader{miniBlockHeader},
-		},
-		ExtendedShardHeaderHashes: [][]byte{extendedHeaderHash},
-	}
-
+	sovHdr := createSovHeaderForRestoreBlocksTest(expectedBody, extendedHeaderHash)
 	if !withExtendedHeader {
 		sovHdr.ExtendedShardHeaderHashes = nil
 	}
@@ -502,6 +561,20 @@ func testRestoreBlockIntoPools(t *testing.T, withExtendedHeader bool) {
 		retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
 		require.NotNil(t, err)
 		require.Nil(t, retrievedHdr)
+	}
+}
+
+func createSovHeaderForRestoreBlocksTest(body *block.Body, extendedHeaderHash []byte) *block.SovereignChainHeader {
+	miniBlockHeader := block.MiniBlockHeader{
+		SenderShardID:   body.MiniBlocks[0].SenderShardID,
+		ReceiverShardID: body.MiniBlocks[0].ReceiverShardID,
+	}
+
+	return &block.SovereignChainHeader{
+		Header: &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{miniBlockHeader},
+		},
+		ExtendedShardHeaderHashes: [][]byte{extendedHeaderHash},
 	}
 }
 
