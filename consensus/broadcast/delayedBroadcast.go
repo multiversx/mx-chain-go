@@ -585,7 +585,7 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	rootTopic string,
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	shardIDs := common.GetShardIDs(dbb.shardCoordinator)
+	shardIDs := common.GetShardIDs(dbb.shardCoordinator.NumberOfShards())
 	for idx := range shardIDs {
 		// interested only in cross shard data
 		if idx == dbb.shardCoordinator.SelfId() {

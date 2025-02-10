@@ -669,7 +669,7 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 func (bp *baseProcessor) filterHeadersWithoutProofs() (map[string]*hdrInfo, error) {
 	removedNonces := make(map[uint32]map[uint64]struct{})
 	noncesWithProofs := make(map[uint32]map[uint64]struct{})
-	shardIDs := common.GetShardIDs(bp.shardCoordinator)
+	shardIDs := common.GetShardIDs(bp.shardCoordinator.NumberOfShards())
 	for shard := range shardIDs {
 		removedNonces[shard] = make(map[uint64]struct{})
 		noncesWithProofs[shard] = make(map[uint64]struct{})
