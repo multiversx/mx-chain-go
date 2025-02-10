@@ -7,11 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewSnapshotTrieStorageManagerInvalidStorerType(t *testing.T) {
@@ -56,7 +57,7 @@ func TestSnapshotTrieStorageManager_Get(t *testing.T) {
 
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				return nil, core.OptionalUint32{}, storage.ErrDBIsClosed
 			},
 		}
@@ -72,7 +73,7 @@ func TestSnapshotTrieStorageManager_Get(t *testing.T) {
 		_, trieStorage := newEmptyTrie()
 		getFromOldEpochsWithoutCacheCalled := false
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				getFromOldEpochsWithoutCacheCalled = true
 				return nil, core.OptionalUint32{}, nil
 			},
@@ -156,7 +157,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		val := []byte("val")
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				return val, core.OptionalUint32{}, nil
 			},
 			PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
@@ -173,7 +174,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		val := []byte("val")
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				epoch := core.OptionalUint32{
 					Value:    4,
 					HasValue: true,
@@ -194,7 +195,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		val := []byte("val")
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				epoch := core.OptionalUint32{
 					Value:    4,
 					HasValue: true,
@@ -215,7 +216,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		val := []byte("val")
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				epoch := core.OptionalUint32{
 					Value:    3,
 					HasValue: true,
@@ -236,7 +237,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		val := []byte("val")
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				epoch := core.OptionalUint32{
 					Value:    3,
 					HasValue: true,
@@ -258,7 +259,7 @@ func TestSnapshotTrieStorageManager_AlsoAddInPreviousEpoch(t *testing.T) {
 		putInEpochCalled := false
 		_, trieStorage := newEmptyTrie()
 		trieStorage.mainStorer = &trie.SnapshotPruningStorerStub{
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte) ([]byte, core.OptionalUint32, error) {
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(_ []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				epoch := core.OptionalUint32{
 					Value:    3,
 					HasValue: true,
