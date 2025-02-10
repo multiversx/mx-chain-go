@@ -347,6 +347,16 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)
 }
 
+func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsInvalidHeaderType(t *testing.T) {
+	t.Parallel()
+
+	sovBlockProcArgs := createSovChainBlockProcessorArgs()
+	sovBlockProc, _ := blproc.NewSovereignChainBlockProcessor(sovBlockProcArgs)
+
+	err := sovBlockProc.RestoreBlockIntoPools(&block.HeaderV2{}, &block.Body{})
+	require.ErrorIs(t, err, errMx.ErrWrongTypeAssertion)
+}
+
 func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 	t.Parallel()
 
