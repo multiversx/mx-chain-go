@@ -666,10 +666,51 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
+func (bp *baseProcessor) filterHeadersWithoutProofs() (map[string]*hdrInfo, error) {
+	removedNonces := make(map[uint32]map[uint64]struct{})
+	noncesWithProofs := make(map[uint32]map[uint64]struct{})
+	shardIDs := common.GetShardIDs(bp.shardCoordinator.NumberOfShards())
+	for shard := range shardIDs {
+		removedNonces[shard] = make(map[uint64]struct{})
+		noncesWithProofs[shard] = make(map[uint64]struct{})
+	}
+	filteredHeadersInfo := make(map[string]*hdrInfo)
+
+	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) {
+			if bp.hasMissingProof(headerInfo, hdrHash) {
+				removedNonces[headerInfo.hdr.GetShardID()][headerInfo.hdr.GetNonce()] = struct{}{}
+				continue
+			}
+
+			noncesWithProofs[headerInfo.hdr.GetShardID()][headerInfo.hdr.GetNonce()] = struct{}{}
+			filteredHeadersInfo[hdrHash] = bp.hdrsForCurrBlock.hdrHashAndInfo[hdrHash]
+			continue
+		}
+
+		filteredHeadersInfo[hdrHash] = bp.hdrsForCurrBlock.hdrHashAndInfo[hdrHash]
+	}
+
+	for shard, nonces := range removedNonces {
+		for nonce := range nonces {
+			if _, ok := noncesWithProofs[shard][nonce]; !ok {
+				return nil, fmt.Errorf("%w for shard %d and nonce %d", process.ErrMissingHeaderProof, shard, nonce)
+			}
+		}
+	}
+
+	return filteredHeadersInfo, nil
+}
+
 func (bp *baseProcessor) computeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
-	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+	hdrHashAndInfo, err := bp.filterHeadersWithoutProofs()
+	if err != nil {
+		return nil, err
+	}
+
+	for hdrHash, headerInfo := range hdrHashAndInfo {
 		if headerInfo.usedInBlock != usedInBlock {
 			continue
 		}
@@ -747,7 +788,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 }
 
 func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
-	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() > 1
+	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
 	if !isFlagEnabledForHeader {
 		return false
 	}

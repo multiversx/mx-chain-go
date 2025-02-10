@@ -585,7 +585,7 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	rootTopic string,
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	shardIDs := dbb.shardIdentifiers()
+	shardIDs := common.GetShardIDs(dbb.shardCoordinator.NumberOfShards())
 	for idx := range shardIDs {
 		// interested only in cross shard data
 		if idx == dbb.shardCoordinator.SelfId() {
@@ -601,16 +601,6 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 	}
 
 	return nil
-}
-
-func (dbb *delayedBlockBroadcaster) shardIdentifiers() map[uint32]struct{} {
-	shardIdentifiers := make(map[uint32]struct{})
-	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
-		shardIdentifiers[i] = struct{}{}
-	}
-	shardIdentifiers[core.MetachainShardId] = struct{}{}
-
-	return shardIdentifiers
 }
 
 func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byte, header interface{}) {
