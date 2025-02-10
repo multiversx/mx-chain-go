@@ -6,7 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
@@ -83,4 +85,15 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 
 	return nil
+}
+
+// GetShardIDs returns a map of shard IDs based on the provided shard coordinator
+func GetShardIDs(shardCoordinator sharding.Coordinator) map[uint32]struct{} {
+	shardIdentifiers := make(map[uint32]struct{})
+	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+		shardIdentifiers[i] = struct{}{}
+	}
+	shardIdentifiers[core.MetachainShardId] = struct{}{}
+
+	return shardIdentifiers
 }
