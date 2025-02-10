@@ -15,3 +15,5 @@ var errInvalidNumTopicsIncomingEvent = errors.New("received invalid number of to
 var errInvalidIncomingEventIdentifier = errors.New("received invalid/unknown incoming event identifier")
 
 var errInvalidIncomingTopicIdentifier = errors.New("received invalid/unknown incoming topic identifier")
+
+var errNilIncomingEventHandler = errors.New("nil incoming event handler provided")
