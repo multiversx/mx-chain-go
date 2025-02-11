@@ -2403,7 +2403,7 @@ func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHand
 
 	bp.mutRequestedAttestingNoncesMap.RLock()
 	isWaitingForProofs := len(bp.requestedAttestingNoncesMap) > 0
-	defer bp.mutRequestedAttestingNoncesMap.RUnlock()
+	bp.mutRequestedAttestingNoncesMap.RUnlock()
 	if !isWaitingForProofs {
 		return
 	}
