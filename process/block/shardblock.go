@@ -293,6 +293,10 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
+	sp.mutRequestedAttestingNoncesMap.Lock()
+	sp.requestedAttestingNoncesMap = make(map[string]uint64)
+	sp.mutRequestedAttestingNoncesMap.Unlock()
+
 	// check proofs for cross notarized metablocks
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
@@ -304,10 +308,12 @@ func (sp *shardProcessor) ProcessBlock(
 			continue
 		}
 
-		err = sp.checkProofRequestingNextHeaderBlockingIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
-		if err != nil {
-			return err
-		}
+		go sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+	}
+
+	err = sp.waitAllMissingProofs()
+	if err != nil {
+		return err
 	}
 
 	defer func() {
@@ -1751,11 +1757,7 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		"hash", metaBlockHash,
 	)
 
-	if sp.isWaitingForNextHeader.IsSet() {
-		log.Trace("received meta header attesting the previous one")
-		sp.chanNextHeader <- true
-		return
-	}
+	sp.checkReceivedHeaderAndUpdateMissingAttesting(headerHandler)
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 

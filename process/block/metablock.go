@@ -423,6 +423,10 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 		return nil
 	}
 
+	mp.mutRequestedAttestingNoncesMap.Lock()
+	mp.requestedAttestingNoncesMap = make(map[string]uint64)
+	mp.mutRequestedAttestingNoncesMap.Unlock()
+
 	for _, shardData := range header.ShardInfo {
 		// TODO: consider the validation of the proof:
 		//	compare the one from proofsPool with what shardData.CurrentSignature and shardData.CurrentPubKeysBitmap hold
@@ -437,10 +441,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		err := mp.checkProofRequestingNextHeaderBlockingIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
-		if err != nil {
-			return err
-		}
+		go mp.checkProofRequestingNextHeaderIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
 
 		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 			continue
@@ -464,7 +465,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 		}
 	}
 
-	return nil
+	return mp.waitAllMissingProofs()
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
@@ -2073,11 +2074,7 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		"hash", shardHeaderHash,
 	)
 
-	if mp.isWaitingForNextHeader.IsSet() {
-		log.Trace("received shard header attesting the previous one")
-		mp.chanNextHeader <- true
-		return
-	}
+	mp.checkReceivedHeaderAndUpdateMissingAttesting(headerHandler)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
