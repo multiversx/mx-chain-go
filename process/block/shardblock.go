@@ -309,7 +309,7 @@ func (sp *shardProcessor) ProcessBlock(
 			continue
 		}
 
-		go sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
 	}
 
 	err = sp.waitAllMissingProofs()
