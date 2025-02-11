@@ -124,6 +124,7 @@ type EnableEpochs struct {
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32
 	RelayedTransactionsV3EnableEpoch                         uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
+	AutomaticActivationOfNodesDisableEpoch                   uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

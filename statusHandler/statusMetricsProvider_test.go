@@ -405,7 +405,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricRelayedTransactionsV3EnableEpoch, uint64(4))
-
+	sm.SetUInt64Value(common.MetricAutomaticActivationOfNodesDisableEpoch, uint64(4))
 	maxNodesChangeConfig := []map[string]uint64{
 		{
 			"EpochEnable":            0,
@@ -537,6 +537,7 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch:          uint64(4),
 		common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch:           uint64(4),
 		common.MetricRelayedTransactionsV3EnableEpoch:                         uint64(4),
+		common.MetricAutomaticActivationOfNodesDisableEpoch:                   uint64(4),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
