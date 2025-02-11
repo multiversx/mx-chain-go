@@ -381,6 +381,8 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch] = sm.uint64Metrics[common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch]
 	enableEpochsMetrics[common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch] = sm.uint64Metrics[common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch]
 	enableEpochsMetrics[common.MetricRelayedTransactionsV3EnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3EnableEpoch]
+	enableEpochsMetrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch] = sm.uint64Metrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch]
+	enableEpochsMetrics[common.MetricFixBackTransferOPCODEEnableEpoch] = sm.uint64Metrics[common.MetricFixBackTransferOPCODEEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 
