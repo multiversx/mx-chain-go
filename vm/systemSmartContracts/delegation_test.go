@@ -56,6 +56,7 @@ func createMockArgumentsForDelegation() ArgsNewDelegation {
 			common.ValidatorToDelegationFlag,
 			common.ReDelegateBelowMinCheckFlag,
 			common.MultiClaimOnDelegationFlag,
+			common.AutomaticActivationOfNodesDisableFlag,
 		),
 	}
 }
@@ -917,7 +918,7 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	}
 	_ = d.saveGlobalFundData(globalFund)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{
-		MaxDelegationCap:    big.NewInt(1000),
+		MaxDelegationCap:    big.NewInt(2000),
 		InitialOwnerFunds:   big.NewInt(100),
 		AutomaticActivation: true,
 	})
@@ -929,6 +930,7 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	vmInput.GasProvided = 10000
 	eei.gasRemaining = vmInput.GasProvided
 
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.AutomaticActivationOfNodesDisableFlag)
 	output := d.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 
@@ -936,6 +938,18 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	assert.Equal(t, big.NewInt(500), globalFund.TotalActive)
 
 	dStatus, _ := d.getDelegationStatus()
+	assert.Equal(t, 0, len(dStatus.StakedKeys))
+	assert.Equal(t, 1, len(dStatus.UnStakedKeys))
+	assert.Equal(t, 1, len(dStatus.NotStakedKeys))
+
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).RemoveActiveFlags(common.AutomaticActivationOfNodesDisableFlag)
+	output = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	globalFund, _ = d.getGlobalFundData()
+	assert.Equal(t, big.NewInt(1000), globalFund.TotalActive)
+
+	dStatus, _ = d.getDelegationStatus()
 	assert.Equal(t, 2, len(dStatus.StakedKeys))
 	assert.Equal(t, 0, len(dStatus.UnStakedKeys))
 	assert.Equal(t, 0, len(dStatus.NotStakedKeys))
@@ -948,11 +962,11 @@ func TestDelegationSystemSC_ExecuteDelegateStakeNodes(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	globalFund, _ = d.getGlobalFundData()
-	assert.Equal(t, big.NewInt(1000), globalFund.TotalActive)
+	assert.Equal(t, big.NewInt(1500), globalFund.TotalActive)
 
 	_, delegator, _ := d.getOrCreateDelegatorData(vmInput.CallerAddr)
 	fund, _ := d.getFund(delegator.ActiveFund)
-	assert.Equal(t, fund.Value, big.NewInt(1000))
+	assert.Equal(t, fund.Value, big.NewInt(1500))
 }
 
 func TestDelegationSystemSC_ExecuteUnStakeNodesUserErrors(t *testing.T) {
@@ -3776,6 +3790,7 @@ func TestDelegation_setAutomaticActivation(t *testing.T) {
 	eei := createDefaultEei()
 	args.Eei = eei
 
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).RemoveActiveFlags(common.AutomaticActivationOfNodesDisableFlag)
 	d, _ := NewDelegationSystemSC(args)
 	_ = d.saveDelegationContractConfig(&DelegationConfig{})
 
@@ -3787,6 +3802,15 @@ func TestDelegation_setAutomaticActivation(t *testing.T) {
 	dConfig, _ := d.getDelegationContractConfig()
 	assert.Equal(t, dConfig.AutomaticActivation, true)
 
+	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("abcd")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("false")})
+	retCode = d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.AutomaticActivationOfNodesDisableFlag)
 	vmInput = getDefaultVmInputForFunc("setAutomaticActivation", [][]byte{[]byte("abcd")})
 	retCode = d.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, retCode)
