@@ -2370,7 +2370,7 @@ func (bp *baseProcessor) requestNextHeader(currentHeaderHash []byte, nonce uint6
 	}
 }
 
-func (bp *baseProcessor) waitAllMissingProofs() error {
+func (bp *baseProcessor) waitAllMissingProofs(waitTime time.Duration) error {
 	bp.mutRequestedAttestingNoncesMap.RLock()
 	isWaitingForProofs := len(bp.requestedAttestingNoncesMap) > 0
 	bp.mutRequestedAttestingNoncesMap.RUnlock()
@@ -2381,7 +2381,7 @@ func (bp *baseProcessor) waitAllMissingProofs() error {
 	select {
 	case <-bp.allProofsReceived:
 		return nil
-	case <-time.After(bp.extraDelayRequestBlockInfo):
+	case <-time.After(waitTime):
 		bp.mutRequestedAttestingNoncesMap.RLock()
 		defer bp.mutRequestedAttestingNoncesMap.RUnlock()
 
@@ -2396,7 +2396,7 @@ func (bp *baseProcessor) waitAllMissingProofs() error {
 	}
 }
 
-func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHandler data.HeaderHandler) {
+func (bp *baseProcessor) checkReceivedHeaderIfAttestingIsNeeded(headerHandler data.HeaderHandler) {
 	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 		return
 	}
@@ -2408,29 +2408,30 @@ func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHand
 		return
 	}
 
+	allProofsReceived := bp.checkReceivedHeaderAndUpdateMissingAttesting(headerHandler)
+	if allProofsReceived {
+		bp.allProofsReceived <- true
+	}
+}
+
+func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHandler data.HeaderHandler) bool {
 	bp.mutRequestedAttestingNoncesMap.Lock()
+	defer bp.mutRequestedAttestingNoncesMap.Unlock()
 
 	receivedShard := headerHandler.GetShardID()
 	prevHash := headerHandler.GetPrevHash()
 	_, isHeaderWithoutProof := bp.requestedAttestingNoncesMap[string(prevHash)]
 	if !isHeaderWithoutProof {
 		log.Debug("received header does not have previous hash any of the requested ones")
-		bp.mutRequestedAttestingNoncesMap.Unlock()
-		return
+		return len(bp.requestedAttestingNoncesMap) == 0
 	}
 
 	if !bp.proofsPool.HasProof(receivedShard, prevHash) {
 		log.Debug("received next header but proof is still missing", "hash", hex.EncodeToString(prevHash))
-		bp.mutRequestedAttestingNoncesMap.Unlock()
-		return
+		return len(bp.requestedAttestingNoncesMap) == 0
 	}
 
 	delete(bp.requestedAttestingNoncesMap, string(prevHash))
 
-	allProofsReceived := len(bp.requestedAttestingNoncesMap) == 0
-	bp.mutRequestedAttestingNoncesMap.Unlock()
-
-	if allProofsReceived {
-		bp.allProofsReceived <- true
-	}
+	return len(bp.requestedAttestingNoncesMap) == 0
 }
