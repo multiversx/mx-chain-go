@@ -2073,6 +2073,12 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		"hash", shardHeaderHash,
 	)
 
+	if mp.isWaitingForNextHeader.IsSet() {
+		log.Trace("received shard header attesting the previous one")
+		mp.chanNextHeader <- true
+		return
+	}
+
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
 	haveMissingShardHeaders := mp.hdrsForCurrBlock.missingHdrs > 0 || mp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0

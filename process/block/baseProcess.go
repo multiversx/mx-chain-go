@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -124,8 +125,9 @@ type baseProcessor struct {
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
 
-	proofsPool     dataRetriever.ProofsPool
-	chanNextHeader chan bool
+	proofsPool             dataRetriever.ProofsPool
+	chanNextHeader         chan bool
+	isWaitingForNextHeader atomic.Flag
 }
 
 type bootStorerDataArgs struct {
@@ -2349,7 +2351,7 @@ func (bp *baseProcessor) checkProofRequestingNextHeaderBlockingIfMissing(
 		return nil
 	}
 
-	log.Trace("could not find proof for header, requesting the next one",
+	log.Debug("could not find proof for header, requesting the next one",
 		"current hash", hex.EncodeToString(headerHash),
 		"header shard", headerShard)
 	err := bp.requestNextHeaderBlocking(headerNonce+1, headerShard)
@@ -2368,6 +2370,7 @@ func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32)
 	headersPool := bp.dataPool.Headers()
 
 	_ = core.EmptyChannel(bp.chanNextHeader)
+	bp.isWaitingForNextHeader.SetValue(true)
 
 	if shardID == core.MetachainShardId {
 		go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
@@ -2388,6 +2391,7 @@ func (bp *baseProcessor) requestNextHeaderBlocking(nonce uint64, shardID uint32)
 func (bp *baseProcessor) waitForNextHeader() error {
 	select {
 	case <-bp.chanNextHeader:
+		bp.isWaitingForNextHeader.Reset()
 		return nil
 	case <-time.After(bp.extraDelayRequestBlockInfo):
 		return process.ErrTimeIsOut

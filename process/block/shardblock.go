@@ -1751,6 +1751,12 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		"hash", metaBlockHash,
 	)
 
+	if sp.isWaitingForNextHeader.IsSet() {
+		log.Trace("received meta header attesting the previous one")
+		sp.chanNextHeader <- true
+		return
+	}
+
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
 	haveMissingMetaHeaders := sp.hdrsForCurrBlock.missingHdrs > 0 || sp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
