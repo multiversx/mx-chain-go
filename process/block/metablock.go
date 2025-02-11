@@ -343,7 +343,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}
 
-	err = mp.checkProofsForShardData(header)
+	err = mp.checkProofsForShardData(header, haveTime())
 	if err != nil {
 		return err
 	}
@@ -418,10 +418,15 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error {
+func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTime time.Duration) error {
 	if !(mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.Epoch) && header.GetNonce() > 1) {
 		return nil
 	}
+
+	mp.mutRequestedAttestingNoncesMap.Lock()
+	mp.requestedAttestingNoncesMap = make(map[string]uint64)
+	mp.mutRequestedAttestingNoncesMap.Unlock()
+	_ = core.EmptyChannel(mp.allProofsReceived)
 
 	for _, shardData := range header.ShardInfo {
 		// TODO: consider the validation of the proof:
@@ -437,10 +442,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 			continue
 		}
 
-		err := mp.checkProofRequestingNextHeaderBlockingIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
-		if err != nil {
-			return err
-		}
+		mp.checkProofRequestingNextHeaderIfMissing(shardData.ShardID, shardData.HeaderHash, shardData.Nonce)
 
 		if !common.ShouldBlockHavePrevProof(shardHeader.hdr, mp.enableEpochsHandler, common.EquivalentMessagesFlag) {
 			continue
@@ -464,7 +466,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 		}
 	}
 
-	return nil
+	return mp.waitAllMissingProofs(waitTime)
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
@@ -2072,6 +2074,8 @@ func (mp *metaProcessor) receivedShardHeader(headerHandler data.HeaderHandler, s
 		"nonce", shardHeader.GetNonce(),
 		"hash", shardHeaderHash,
 	)
+
+	mp.checkReceivedHeaderIfAttestingIsNeeded(headerHandler)
 
 	mp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
