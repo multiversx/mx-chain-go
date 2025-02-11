@@ -3535,7 +3535,7 @@ func TestDelegation_ExecuteGetContractConfig(t *testing.T) {
 	assert.Equal(t, big.NewInt(0).SetUint64(serviceFee), big.NewInt(0).SetBytes(eei.output[1]))
 	assert.Equal(t, maxDelegationCap, big.NewInt(0).SetBytes(eei.output[2]))
 	assert.Equal(t, initialOwnerFunds, big.NewInt(0).SetBytes(eei.output[3]))
-	assert.Equal(t, []byte("true"), eei.output[4])
+	assert.Equal(t, []byte("false"), eei.output[4])
 	assert.Equal(t, []byte("true"), eei.output[5])
 	assert.Equal(t, []byte("true"), eei.output[6])
 	assert.Equal(t, []byte("true"), eei.output[7])
