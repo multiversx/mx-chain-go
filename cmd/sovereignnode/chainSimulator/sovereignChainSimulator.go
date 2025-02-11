@@ -11,9 +11,12 @@ import (
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
+	chainSimulatorConfigs "github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
 	sovCommon "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
+	sovChainSimConfig "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/configs"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 )
 
@@ -65,6 +68,9 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	}
 	args.NodeFactory = node.NewSovereignNodeFactory(configs.SovereignExtraConfig.GenesisConfig.NativeESDT)
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
+	args.GenerateGenesisFile = func(args chainSimulatorConfigs.ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
+		return sovChainSimConfig.GenerateSovereignGenesisFile(args, configs)
+	}
 
 	return chainSimulator.NewSovereignChainSimulator(*args.ArgsChainSimulator)
 }
