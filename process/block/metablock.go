@@ -425,6 +425,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error 
 
 	mp.mutRequestedAttestingNoncesMap.Lock()
 	mp.requestedAttestingNoncesMap = make(map[string]uint64)
+	_ = core.EmptyChannel(mp.allProofsReceived)
 	mp.mutRequestedAttestingNoncesMap.Unlock()
 
 	for _, shardData := range header.ShardInfo {

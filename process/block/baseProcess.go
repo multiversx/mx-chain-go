@@ -2401,13 +2401,15 @@ func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHand
 		return
 	}
 
-	bp.mutRequestedAttestingNoncesMap.Lock()
-	defer bp.mutRequestedAttestingNoncesMap.Unlock()
-
+	bp.mutRequestedAttestingNoncesMap.RLock()
 	isWaitingForProofs := len(bp.requestedAttestingNoncesMap) > 0
+	defer bp.mutRequestedAttestingNoncesMap.RUnlock()
 	if !isWaitingForProofs {
 		return
 	}
+
+	bp.mutRequestedAttestingNoncesMap.Lock()
+	defer bp.mutRequestedAttestingNoncesMap.Unlock()
 
 	receivedShard := headerHandler.GetShardID()
 	prevHash := headerHandler.GetPrevHash()

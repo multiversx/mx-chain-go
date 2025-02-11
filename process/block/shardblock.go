@@ -295,6 +295,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	sp.mutRequestedAttestingNoncesMap.Lock()
 	sp.requestedAttestingNoncesMap = make(map[string]uint64)
+	_ = core.EmptyChannel(sp.allProofsReceived)
 	sp.mutRequestedAttestingNoncesMap.Unlock()
 
 	// check proofs for cross notarized metablocks
