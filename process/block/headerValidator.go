@@ -11,18 +11,21 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.HeaderConstructionValidator = (*headerValidator)(nil)
 
 // ArgsHeaderValidator are the arguments needed to create a new header validator
 type ArgsHeaderValidator struct {
+	Logger              logger.Logger
 	Hasher              hashing.Hasher
 	Marshalizer         marshal.Marshalizer
 	EnableEpochsHandler core.EnableEpochsHandler
 }
 
 type headerValidator struct {
+	log                 logger.Logger
 	hasher              hashing.Hasher
 	marshalizer         marshal.Marshalizer
 	enableEpochsHandler core.EnableEpochsHandler
@@ -30,6 +33,9 @@ type headerValidator struct {
 
 // NewHeaderValidator returns a new header validator
 func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
+	if check.IfNil(args.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
@@ -41,6 +47,7 @@ func NewHeaderValidator(args ArgsHeaderValidator) (*headerValidator, error) {
 	}
 
 	return &headerValidator{
+		log:                 log,
 		hasher:              args.Hasher,
 		marshalizer:         args.Marshalizer,
 		enableEpochsHandler: args.EnableEpochsHandler,
@@ -57,7 +64,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if prevHeader.GetRound() >= currHeader.GetRound() {
-		log.Trace("round does not match",
+		h.log.Trace("round does not match",
 			"shard", currHeader.GetShardID(),
 			"local header round", prevHeader.GetRound(),
 			"received round", currHeader.GetRound())
@@ -65,7 +72,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if currHeader.GetNonce() != prevHeader.GetNonce()+1 {
-		log.Trace("nonce does not match",
+		h.log.Trace("nonce does not match",
 			"shard", currHeader.GetShardID(),
 			"local header nonce", prevHeader.GetNonce(),
 			"received nonce", currHeader.GetNonce())
@@ -78,7 +85,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if !bytes.Equal(currHeader.GetPrevHash(), prevHeaderHash) {
-		log.Trace("header hash does not match",
+		h.log.Trace("header hash does not match",
 			"shard", currHeader.GetShardID(),
 			"local header hash", prevHeaderHash,
 			"received header with prev hash", currHeader.GetPrevHash(),
@@ -87,7 +94,7 @@ func (h *headerValidator) IsHeaderConstructionValid(currHeader, prevHeader data.
 	}
 
 	if !bytes.Equal(currHeader.GetPrevRandSeed(), prevHeader.GetRandSeed()) {
-		log.Trace("header random seed does not match",
+		h.log.Trace("header random seed does not match",
 			"shard", currHeader.GetShardID(),
 			"local header random seed", prevHeader.GetRandSeed(),
 			"received header with prev random seed", currHeader.GetPrevRandSeed(),

@@ -192,7 +192,7 @@ func TestSyncEpochStartMetaHeader_ReceiveWrongHeaderTimeout(t *testing.T) {
 	metaHash := []byte("metaHash")
 	meta := &block.MetaBlock{Epoch: 1}
 	args := createMockHeadersSyncHandlerArgs()
-	args.Cache, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{
+	args.Cache, _ = headersCache.NewHeadersPool(&testscommon.LoggerStub{}, config.HeadersPoolConfig{
 		MaxHeadersPerShard:            1000,
 		NumElementsToRemoveOnEviction: 1,
 	})
@@ -238,7 +238,7 @@ func TestSyncEpochStartMetaHeader_ReceiveHeaderOk(t *testing.T) {
 			},
 		}}
 	args := createMockHeadersSyncHandlerArgs()
-	args.Cache, _ = headersCache.NewHeadersPool(config.HeadersPoolConfig{
+	args.Cache, _ = headersCache.NewHeadersPool(&testscommon.LoggerStub{}, config.HeadersPoolConfig{
 		MaxHeadersPerShard:            1000,
 		NumElementsToRemoveOnEviction: 1,
 	})

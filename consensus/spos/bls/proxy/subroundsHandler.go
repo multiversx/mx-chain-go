@@ -18,6 +18,7 @@ var log = logger.GetOrCreate("consensus/spos/bls/proxy")
 
 // SubroundsHandlerArgs struct contains the needed data for the SubroundsHandler
 type SubroundsHandlerArgs struct {
+	Logger               logger.Logger
 	Chronology           consensus.ChronologyHandler
 	ConsensusCoreHandler spos.ConsensusCoreHandler
 	ConsensusState       spos.ConsensusStateHandler
@@ -42,6 +43,7 @@ type consensusStateMachineType int
 
 // SubroundsHandler struct contains the needed data for the SubroundsHandler
 type SubroundsHandler struct {
+	log                  logger.Logger
 	chronology           consensus.ChronologyHandler
 	consensusCoreHandler spos.ConsensusCoreHandler
 	consensusState       spos.ConsensusStateHandler
@@ -78,6 +80,7 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 	}
 
 	subroundHandler := &SubroundsHandler{
+		log:                  args.Logger,
 		chronology:           args.Chronology,
 		consensusCoreHandler: args.ConsensusCoreHandler,
 		consensusState:       args.ConsensusState,
@@ -98,6 +101,9 @@ func NewSubroundsHandler(args *SubroundsHandlerArgs) (*SubroundsHandler, error) 
 }
 
 func checkArgs(args *SubroundsHandlerArgs) error {
+	if check.IfNil(args.Logger) {
+		return common.ErrNilLogger
+	}
 	if check.IfNil(args.Chronology) {
 		return ErrNilChronologyHandler
 	}
@@ -151,6 +157,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 
 		s.currentConsensusType = consensusV2
 		fct, err = v2.NewSubroundsFactory(
+			s.log,
 			s.consensusCoreHandler,
 			s.consensusState,
 			s.worker,
@@ -176,6 +183,7 @@ func (s *SubroundsHandler) initSubroundsForEpoch(epoch uint32) error {
 			s.appStatusHandler,
 			s.sentSignatureTracker,
 			s.outportHandler,
+			s.log,
 		)
 	}
 	if err != nil {

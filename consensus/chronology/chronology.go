@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/display"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -20,8 +20,6 @@ import (
 var _ consensus.ChronologyHandler = (*chronology)(nil)
 var _ closing.Closer = (*chronology)(nil)
 
-var log = logger.GetOrCreate("consensus/chronology")
-
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
 
@@ -30,6 +28,7 @@ const chronologyAlarmID = "chronology"
 
 // chronology defines the data needed by the chronology
 type chronology struct {
+	log         logger.Logger
 	genesisTime time.Time
 
 	roundHandler consensus.RoundHandler
@@ -48,13 +47,13 @@ type chronology struct {
 
 // NewChronology creates a new chronology object
 func NewChronology(arg ArgChronology) (*chronology, error) {
-
 	err := checkNewChronologyParams(arg)
 	if err != nil {
 		return nil, err
 	}
 
 	chr := chronology{
+		log:              arg.Logger,
 		genesisTime:      arg.GenesisTime,
 		roundHandler:     arg.RoundHandler,
 		syncTimer:        arg.SyncTimer,
@@ -71,7 +70,9 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 }
 
 func checkNewChronologyParams(arg ArgChronology) error {
-
+	if check.IfNil(arg.Logger) {
+		return common.ErrNilLogger
+	}
 	if check.IfNil(arg.RoundHandler) {
 		return ErrNilRoundHandler
 	}
@@ -126,7 +127,7 @@ func (chr *chronology) startRounds(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Debug("chronology's go routine is stopping...")
+			chr.log.Debug("chronology's go routine is stopping...")
 			return
 		case <-time.After(time.Millisecond):
 		}
@@ -151,7 +152,7 @@ func (chr *chronology) startRound(ctx context.Context) {
 	}
 
 	msg := fmt.Sprintf("SUBROUND %s BEGINS", sr.Name())
-	log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
+	chr.log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "."))
 	logger.SetCorrelationSubround(sr.Name())
 
 	if !sr.DoWork(ctx, chr.roundHandler) {
@@ -170,7 +171,7 @@ func (chr *chronology) updateRound() {
 	if oldRoundIndex != chr.roundHandler.Index() {
 		chr.watchdog.Reset(chronologyAlarmID)
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().Unix())
-		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
+		chr.log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
 
 		chr.initRound()

@@ -112,6 +112,7 @@ func NewShardProcessorEmptyWith3shards(
 	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
 
 	argsHeaderValidator := ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -183,6 +184,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+			Logger:                       &testscommon.LoggerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -539,8 +541,8 @@ func (bp *baseProcessor) UpdateState(
 }
 
 // GasAndFeesDelta -
-func GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
-	return gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+func (bp *baseProcessor) GasAndFeesDelta(initialGasAndFees, finalGasAndFees scheduled.GasAndFees) scheduled.GasAndFees {
+	return bp.gasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 }
 
 // RequestEpochStartInfo -
@@ -577,8 +579,8 @@ func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *blo
 }
 
 // GetScheduledMiniBlocksFromMe -
-func GetScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
-	return getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
+func (bp *baseProcessor) GetScheduledMiniBlocksFromMe(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) (block.MiniBlockSlice, error) {
+	return bp.getScheduledMiniBlocksFromMe(headerHandler, bodyHandler)
 }
 
 // CheckScheduledMiniBlocksValidity -

@@ -409,6 +409,14 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
+	var log logger.Logger
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
+	} else {
+		log = logger.GetOrCreate("process/block")
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:               pcf.coreData,
 		DataComponents:               pcf.data,
@@ -441,6 +449,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffHandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
+		Logger:                       log,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -846,6 +855,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	accountsDb[state.UserAccountsState] = pcf.state.AccountsAdapter()
 	accountsDb[state.PeerAccountsState] = pcf.state.PeerAccounts()
 
+	var log logger.Logger
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
+	} else {
+		log = logger.GetOrCreate("process/block")
+	}
+
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:               pcf.coreData,
 		DataComponents:               pcf.data,
@@ -878,6 +895,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockProcessingCutoffHandler: blockProcessingCutoffhandler,
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
+		Logger:                       log,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

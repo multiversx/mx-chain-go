@@ -132,7 +132,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	err := sr.generateNextConsensusGroup(sr.RoundHandler().Index())
 	if err != nil {
-		log.Debug("initCurrentRound.generateNextConsensusGroup",
+		sr.Log.Debug("initCurrentRound.generateNextConsensusGroup",
 			"round index", sr.RoundHandler().Index(),
 			"error", err.Error())
 
@@ -153,7 +153,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	leader, err := sr.GetLeader()
 	if err != nil {
-		log.Debug("initCurrentRound.GetLeader", "error", err.Error())
+		sr.Log.Debug("initCurrentRound.GetLeader", "error", err.Error())
 
 		sr.SetRoundCanceled(true)
 
@@ -167,7 +167,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "proposer")
 	}
 
-	log.Debug("step 0: preparing the round",
+	sr.Log.Debug("step 0: preparing the round",
 		"leader", core.GetTrimmedPk(hex.EncodeToString([]byte(leader))),
 		"messsage", msg)
 	sr.sentSignatureTracker.StartRound()
@@ -175,13 +175,13 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	pubKeys := sr.ConsensusGroup()
 	numMultiKeysInConsensusGroup := sr.computeNumManagedKeysInConsensusGroup(pubKeys)
 	if numMultiKeysInConsensusGroup > 0 {
-		log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
+		sr.Log.Debug("in consensus group with multi keys identities", "num", numMultiKeysInConsensusGroup)
 	}
 
 	sr.indexRoundIfNeeded(pubKeys)
 
 	if !sr.IsSelfInConsensusGroup() {
-		log.Debug("not in consensus group")
+		sr.Log.Debug("not in consensus group")
 		sr.AppStatusHandler().SetStringValue(common.MetricConsensusState, "not in consensus group")
 	} else {
 		if !sr.IsSelfLeader() {
@@ -192,7 +192,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	err = sr.SigningHandler().Reset(pubKeys)
 	if err != nil {
-		log.Debug("initCurrentRound.Reset", "error", err.Error())
+		sr.Log.Debug("initCurrentRound.Reset", "error", err.Error())
 
 		sr.SetRoundCanceled(true)
 
@@ -202,7 +202,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	startTime := sr.GetRoundTimeStamp()
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
-		log.Debug("canceled round, time is out",
+		sr.Log.Debug("canceled round, time is out",
 			"round", sr.SyncTimer().FormattedCurrentTime(), sr.RoundHandler().Index(),
 			"subround", sr.Name())
 
@@ -225,7 +225,7 @@ func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []st
 		pkBytes := []byte(pk)
 		if sr.IsKeyManagedBySelf(pkBytes) {
 			numMultiKeysInConsensusGroup++
-			log.Trace("in consensus group with multi key",
+			sr.Log.Trace("in consensus group with multi key",
 				"pk", core.GetTrimmedPk(hex.EncodeToString(pkBytes)))
 		}
 		sr.IncrementRoundsWithoutReceivedMessages(pkBytes)
@@ -251,14 +251,14 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 	shardId := sr.ShardCoordinator().SelfId()
 	nodesCoordinatorShardID, err := sr.NodesCoordinator().ShardIdForEpoch(epoch)
 	if err != nil {
-		log.Debug("initCurrentRound.ShardIdForEpoch",
+		sr.Log.Debug("initCurrentRound.ShardIdForEpoch",
 			"epoch", epoch,
 			"error", err.Error())
 		return
 	}
 
 	if shardId != nodesCoordinatorShardID {
-		log.Debug("initCurrentRound.ShardIdForEpoch",
+		sr.Log.Debug("initCurrentRound.ShardIdForEpoch",
 			"epoch", epoch,
 			"shardCoordinator.ShardID", shardId,
 			"nodesCoordinator.ShardID", nodesCoordinatorShardID)
@@ -267,7 +267,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 
 	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, epoch)
 	if err != nil {
-		log.Error(err.Error())
+		sr.Log.Error(err.Error())
 		return
 	}
 
@@ -299,7 +299,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	randomSeed := currentHeader.GetRandSeed()
 
-	log.Debug("random source for the next consensus group",
+	sr.Log.Debug("random source for the next consensus group",
 		"rand", randomSeed)
 
 	shardId := sr.ShardCoordinator().SelfId()
@@ -315,11 +315,11 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 		return err
 	}
 
-	log.Trace("consensus group is formed by next validators:",
+	sr.Log.Trace("consensus group is formed by next validators:",
 		"round", roundIndex)
 
 	for i := 0; i < len(nextConsensusGroup); i++ {
-		log.Trace(core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i]))))
+		sr.Log.Trace(core.GetTrimmedPk(hex.EncodeToString([]byte(nextConsensusGroup[i]))))
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)
@@ -334,12 +334,12 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 // EpochStartPrepare wis called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do initialisation on this event
 func (sr *subroundStartRound) EpochStartPrepare(metaHdr data.HeaderHandler, _ data.BodyHandler) {
-	log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHdr.GetEpoch()))
+	sr.Log.Trace(fmt.Sprintf("epoch %d start prepare in consensus", metaHdr.GetEpoch()))
 }
 
 // EpochStartAction is called upon a start of epoch event.
 func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
-	log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
+	sr.Log.Trace(fmt.Sprintf("epoch %d start action in consensus", hdr.GetEpoch()))
 
 	sr.changeEpoch(hdr.GetEpoch())
 }

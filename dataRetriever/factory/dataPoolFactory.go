@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -34,11 +35,13 @@ var log = logger.GetOrCreate("dataRetriever/factory")
 
 // ArgsDataPool holds the arguments needed for NewDataPoolFromConfig function
 type ArgsDataPool struct {
-	Config           *config.Config
-	EconomicsData    process.EconomicsDataHandler
-	ShardCoordinator sharding.Coordinator
-	Marshalizer      marshal.Marshalizer
-	PathManager      storage.PathManagerHandler
+	Config            *config.Config
+	EconomicsData     process.EconomicsDataHandler
+	ShardCoordinator  sharding.Coordinator
+	Marshalizer       marshal.Marshalizer
+	PathManager       storage.PathManagerHandler
+	LogID             []byte
+	WithInstanceLodID bool
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder
@@ -84,7 +87,15 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the rewards", err)
 	}
 
-	hdrPool, err := headersCache.NewHeadersPool(mainConfig.HeadersPoolConfig)
+	var log logger.Logger
+	if args.WithInstanceLodID {
+		id := common.GetLogID(args.LogID)
+		log = logger.GetOrCreate(fmt.Sprintf("dataRetriever/headersCache/%s", id))
+	} else {
+		log = logger.GetOrCreate("dataRetriever/headersCache")
+	}
+
+	hdrPool, err := headersCache.NewHeadersPool(log, mainConfig.HeadersPoolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the headers", err)
 	}

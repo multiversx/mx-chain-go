@@ -32,6 +32,7 @@ func TestBaseBootstrap_SyncBlocksShouldNotCallSyncIfNotConnectedToTheNetwork(t *
 
 	var numCalls uint32
 	boot := &baseBootstrap{
+		log:        &testscommon.LoggerStub{},
 		chStopSync: make(chan bool),
 		syncStarter: &mock.SyncStarterStub{
 			SyncBlockCalled: func() error {
@@ -61,6 +62,7 @@ func TestBaseBootstrap_SyncBlocksShouldCallSyncIfConnectedToTheNetwork(t *testin
 
 	var numCalls uint32
 	boot := &baseBootstrap{
+		log:        &testscommon.LoggerStub{},
 		chStopSync: make(chan bool),
 		syncStarter: &mock.SyncStarterStub{
 			SyncBlockCalled: func() error {
@@ -238,6 +240,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		Value:    2,
 	}
 	boot := &baseBootstrap{
+		log: &testscommon.LoggerStub{},
 		forkDetector: &mock.ForkDetectorMock{
 			GetHighestFinalBlockNonceCalled: func() uint64 {
 				return 10

@@ -16,6 +16,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
@@ -342,7 +343,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	resolverLog := pcf.createCustomLogger("dataretriever/requesthandlers")
+
 	requestHandler, err := requestHandlers.NewResolverRequestHandler(
+		resolverLog,
 		requestersFinder,
 		pcf.requestedItemsHandler,
 		pcf.whiteListHandler,
@@ -465,7 +469,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	log := pcf.createCustomLogger("process/block")
+
 	argsHeaderValidator := block.ArgsHeaderValidator{
+		Logger:              log,
 		Hasher:              pcf.coreData.Hasher(),
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
@@ -780,6 +787,19 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}, nil
 }
 
+func (pcf *processComponentsFactory) createCustomLogger(baseLogID string) logger.Logger {
+	var log logger.Logger
+
+	if pcf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(pcf.nodesCoordinator.GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("%s/%s", baseLogID, id))
+	} else {
+		log = logger.GetOrCreate(baseLogID)
+	}
+
+	return log
+}
+
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
 	storageService := pcf.data.StorageService()
 
@@ -823,7 +843,9 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
+		log := pcf.createCustomLogger("process/block")
 		argsHeaderValidator := block.ArgsHeaderValidator{
+			Logger:              log,
 			Hasher:              pcf.coreData.Hasher(),
 			Marshalizer:         pcf.coreData.InternalMarshalizer(),
 			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
@@ -1339,7 +1361,11 @@ func (pcf *processComponentsFactory) newBlockTracker(
 	genesisBlocks map[uint32]data.HeaderHandler,
 ) (process.BlockTracker, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+
+	log := pcf.createCustomLogger("process/track")
+
 	argBaseTracker := track.ArgBaseTracker{
+		Logger:              log,
 		Hasher:              pcf.coreData.Hasher(),
 		HeaderValidator:     headerValidator,
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
@@ -1783,9 +1809,12 @@ func (pcf *processComponentsFactory) newForkDetector(
 	headerBlackList process.TimeCacher,
 	blockTracker process.BlockTracker,
 ) (process.ForkDetector, error) {
+	log := pcf.createCustomLogger("process/sync")
+
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return sync.NewShardForkDetector(
+			log,
 			pcf.coreData.RoundHandler(),
 			headerBlackList,
 			blockTracker,
@@ -1795,6 +1824,7 @@ func (pcf *processComponentsFactory) newForkDetector(
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return sync.NewMetaForkDetector(
+			log,
 			pcf.coreData.RoundHandler(),
 			headerBlackList,
 			blockTracker,

@@ -38,6 +38,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *consensus.Con
 	}
 	antiFloodHandler := &mock2.P2PAntifloodHandlerStub{}
 	handlerArgs := &SubroundsHandlerArgs{
+		Logger:               &testscommon.LoggerStub{},
 		Chronology:           chronology,
 		ConsensusState:       consensusState,
 		Worker:               worker,

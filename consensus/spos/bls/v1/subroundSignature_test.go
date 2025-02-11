@@ -37,6 +37,7 @@ func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreM
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	srSignature, _ := v1.NewSubroundSignature(
@@ -75,6 +76,7 @@ func TestNewSubroundSignature(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	t.Run("nil subround should error", func(t *testing.T) {
@@ -152,6 +154,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	sr.ConsensusStateHandler = nil
@@ -187,6 +190,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 	container.SetHasher(nil)
 	srSignature, err := v1.NewSubroundSignature(
@@ -221,6 +225,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 	container.SetMultiSignerContainer(nil)
 	srSignature, err := v1.NewSubroundSignature(
@@ -255,6 +260,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 	container.SetRoundHandler(nil)
 
@@ -290,6 +296,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 	container.SetSyncTimer(nil)
 	srSignature, err := v1.NewSubroundSignature(
@@ -324,6 +331,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	srSignature, err := v1.NewSubroundSignature(
@@ -409,6 +417,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.LoggerStub{},
 	)
 
 	signatureSentForPks := make(map[string]struct{})

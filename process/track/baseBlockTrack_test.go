@@ -108,6 +108,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -125,6 +126,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 
 	arguments := track.ArgShardTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
+			Logger:           &testscommon.LoggerStub{},
 			Hasher:           &hashingMocks.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
@@ -153,6 +155,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 	shardCoordinatorMock.CurrentShard = core.MetachainShardId
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -170,6 +173,7 @@ func CreateMetaTrackerMockArguments() track.ArgMetaTracker {
 
 	arguments := track.ArgMetaTracker{
 		ArgBaseTracker: track.ArgBaseTracker{
+			Logger:           &testscommon.LoggerStub{},
 			Hasher:           &hashingMocks.HasherMock{},
 			HeaderValidator:  headerValidator,
 			Marshalizer:      &mock.MarshalizerMock{},
@@ -197,6 +201,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	genesisBlocks := createGenesisBlocks(shardCoordinatorMock)
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -212,6 +217,7 @@ func CreateBaseTrackerMockArguments() track.ArgBaseTracker {
 	}
 
 	arguments := track.ArgBaseTracker{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		HeaderValidator:     headerValidator,
 		Marshalizer:         &mock.MarshalizerMock{},

@@ -408,6 +408,13 @@ var (
 		Name:  "p2p-prometheus-metrics",
 		Usage: "Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics",
 	}
+
+	// withInstanceLogID defines a flag for custom instance logging id
+	// If enabled, it will append an instance id to logger name
+	withInstanceLogID = cli.BoolFlag{
+		Name:  "with-instance-log-id",
+		Usage: "Boolean option for enabling instance logging ID",
+	}
 )
 
 func getFlags() []cli.Flag {
@@ -470,6 +477,7 @@ func getFlags() []cli.Flag {
 		operationMode,
 		repopulateTokensSupplies,
 		p2pPrometheusMetrics,
+		withInstanceLogID,
 	}
 }
 
@@ -499,6 +507,7 @@ func getFlagsConfig(ctx *cli.Context, log logger.Logger) *config.ContextFlagsCon
 	flagsConfig.OperationMode = ctx.GlobalString(operationMode.Name)
 	flagsConfig.RepopulateTokensSupplies = ctx.GlobalBool(repopulateTokensSupplies.Name)
 	flagsConfig.P2PPrometheusMetricsEnabled = ctx.GlobalBool(p2pPrometheusMetrics.Name)
+	flagsConfig.WithInstanceLogID = ctx.GlobalBool(withInstanceLogID.Name)
 
 	if ctx.GlobalBool(noKey.Name) {
 		log.Warn("the provided -no-key option is deprecated and will soon be removed. To start a node without " +

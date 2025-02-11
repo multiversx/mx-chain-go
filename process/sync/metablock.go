@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -25,6 +26,9 @@ type MetaBootstrap struct {
 
 // NewMetaBootstrap creates a new Bootstrap object
 func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
+	if check.IfNil(arguments.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
@@ -53,6 +57,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base := &baseBootstrap{
+		log:                          arguments.Logger,
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
 		store:                        arguments.Store,
@@ -86,7 +91,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	if base.isInImportMode {
-		log.Warn("using always-not-synced status because the node is running in import-db")
+		base.log.Warn("using always-not-synced status because the node is running in import-db")
 	}
 
 	boot := MetaBootstrap{
@@ -146,7 +151,7 @@ func (boot *MetaBootstrap) StartSyncingBlocks() error {
 	// when a node starts it first tries to bootstrap from storage, if there already exist a database saved
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
-		log.Debug("syncFromStorer", "error", errNotCritical.Error())
+		boot.log.Debug("syncFromStorer", "error", errNotCritical.Error())
 	} else {
 		boot.setLastEpochStartRound()
 	}
@@ -213,7 +218,7 @@ func (boot *MetaBootstrap) syncAccountsDBs(key []byte, id string) error {
 }
 
 func (boot *MetaBootstrap) syncValidatorAccountsState(key []byte) error {
-	log.Warn("base sync: started syncValidatorAccountsState")
+	boot.log.Warn("base sync: started syncValidatorAccountsState")
 	return boot.validatorStatisticsDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
@@ -229,7 +234,7 @@ func (boot *MetaBootstrap) Close() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	log.Debug("requesting meta header from network",
+	boot.log.Debug("requesting meta header from network",
 		"nonce", nonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
@@ -239,7 +244,7 @@ func (boot *MetaBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *MetaBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting meta header from network",
+	boot.log.Debug("requesting meta header from network",
 		"hash", hash,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
@@ -370,7 +375,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		log.Warn("cannot convert headerHandler in block.MetaBlock")
+		boot.log.Warn("cannot convert headerHandler in block.MetaBlock")
 		return
 	}
 
@@ -381,7 +386,7 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		log.Trace("requesting in advance mini blocks",
+		boot.log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),
 			"header nonce", header.Nonce,
 		)

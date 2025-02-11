@@ -72,6 +72,7 @@ import (
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
@@ -227,7 +228,7 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.AppStatusHandler = TestAppStatusHandler
 	}
 
-	tpn.MainMessenger = CreateMessengerWithNoDiscovery()
+	tpn.MainMessenger = CreateMessengerWithNoDiscovery("main/p2p")
 
 	tpn.StatusMetrics = args.StatusMetrics
 	if check.IfNil(args.StatusMetrics) {
@@ -604,8 +605,12 @@ func (tfn *TestFullNode) createForkDetector(
 	var err error
 	var forkDetector process.ForkDetector
 
+	id := common.GetLogID(tfn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("process/sync/%s", id))
+
 	if tfn.ShardCoordinator.SelfId() != core.MetachainShardId {
 		forkDetector, err = processSync.NewShardForkDetector(
+			log,
 			roundHandler,
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
@@ -614,6 +619,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.DataPool.Proofs())
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
+			log,
 			roundHandler,
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
@@ -1063,6 +1069,9 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("process/block/%s", id))
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1094,6 +1103,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		Logger:                       log,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1137,7 +1147,11 @@ func (tpn *TestFullNode) initBlockTracker(
 	roundHandler consensus.RoundHandler,
 ) {
 
+	id := common.GetLogID(tpn.OwnAccount.PkTxSignBytes)
+	log := logger.GetOrCreate(fmt.Sprintf("block/tracker/%s", id))
+
 	argBaseTracker := track.ArgBaseTracker{
+		Logger:              log,
 		Hasher:              TestHasher,
 		HeaderValidator:     tpn.HeaderValidator,
 		Marshalizer:         TestMarshalizer,

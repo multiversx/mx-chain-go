@@ -28,6 +28,7 @@ import (
 func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 	shardCoordinatorMock := mock.NewMultipleShardsCoordinatorMock()
 	argsHeaderValidator := processBlock.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

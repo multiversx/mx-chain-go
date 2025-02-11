@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type coreComponentsHolder interface {
@@ -94,6 +95,7 @@ type ArgBaseProcessor struct {
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder             common.ManagedPeersHolder
 	SentSignaturesTracker          process.SentSignaturesTracker
+	Logger                         logger.Logger
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

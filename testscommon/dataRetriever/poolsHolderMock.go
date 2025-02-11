@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // PoolsHolderMock -
@@ -38,8 +39,17 @@ type PoolsHolderMock struct {
 	proofs                 dataRetriever.ProofsPool
 }
 
+// NewPoolsHolderMockWithLog -
+func NewPoolsHolderMockWithLog(log logger.Logger) *PoolsHolderMock {
+	return newPoolsHolderMock(log)
+}
+
 // NewPoolsHolderMock -
 func NewPoolsHolderMock() *PoolsHolderMock {
+	return newPoolsHolderMock(logger.GetOrCreate("poolsHolderMock"))
+}
+
+func newPoolsHolderMock(log logger.Logger) *PoolsHolderMock {
 	var err error
 	holder := &PoolsHolderMock{}
 
@@ -73,7 +83,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	})
 	panicIfError("NewPoolsHolderMock", err)
 
-	holder.headers, err = headersCache.NewHeadersPool(config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
+	holder.headers, err = headersCache.NewHeadersPool(log, config.HeadersPoolConfig{MaxHeadersPerShard: 1000, NumElementsToRemoveOnEviction: 100})
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.miniBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})

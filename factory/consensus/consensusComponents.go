@@ -270,7 +270,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	log := ccf.createCustomLogger("consensus/spos/bls/v2")
+
 	subroundsHandlerArgs := &proxy.SubroundsHandlerArgs{
+		Logger:               log,
 		Chronology:           cc.chronology,
 		ConsensusCoreHandler: consensusDataContainer,
 		ConsensusState:       consensusState,
@@ -300,6 +303,18 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	}
 
 	return cc, nil
+}
+
+func (ccf *consensusComponentsFactory) createCustomLogger(baseLogID string) logger.Logger {
+	var log logger.Logger
+	if ccf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(ccf.processComponents.NodesCoordinator().GetOwnPublicKey())
+		log = logger.GetOrCreate(fmt.Sprintf("%s/%s", baseLogID, id))
+	} else {
+		log = logger.GetOrCreate(baseLogID)
+	}
+
+	return log
 }
 
 // Close will close all the inner components
@@ -342,7 +357,10 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		wd = &watchdog.DisabledWatchdog{}
 	}
 
+	log := ccf.createCustomLogger("consensus/chronology")
+
 	chronologyArg := chronology.ArgChronology{
+		Logger:           log,
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
 		RoundHandler:     ccf.processComponents.RoundHandler(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
@@ -471,7 +489,10 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		return nil, err
 	}
 
+	log := ccf.createCustomLogger("process/sync")
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       log,
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
@@ -603,7 +624,10 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		return nil, err
 	}
 
+	log := ccf.createCustomLogger("process/sync")
+
 	argsBaseBootstrapper := sync.ArgBaseBootstrapper{
+		Logger:                       log,
 		PoolsHolder:                  ccf.dataComponents.Datapool(),
 		Store:                        ccf.dataComponents.StorageService(),
 		ChainHandler:                 ccf.dataComponents.Blockchain(),

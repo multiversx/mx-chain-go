@@ -9,11 +9,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type blockNotarizer struct {
+	log              logger.Logger
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 	shardCoordinator sharding.Coordinator
@@ -24,10 +27,14 @@ type blockNotarizer struct {
 
 // NewBlockNotarizer creates a block notarizer object which implements blockNotarizerHandler interface
 func NewBlockNotarizer(
+	logger logger.Logger,
 	hasher hashing.Hasher,
 	marshalizer marshal.Marshalizer,
 	shardCoordinator sharding.Coordinator,
 ) (*blockNotarizer, error) {
+	if check.IfNil(logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(hasher) {
 		return nil, process.ErrNilHasher
 	}
@@ -39,6 +46,7 @@ func NewBlockNotarizer(
 	}
 
 	bn := blockNotarizer{
+		log:              logger,
 		hasher:           hasher,
 		marshalizer:      marshalizer,
 		shardCoordinator: shardCoordinator,
@@ -124,12 +132,12 @@ func (bn *blockNotarizer) DisplayNotarizedHeaders(shardID uint32, message string
 		return
 	}
 
-	log.Debug(message,
+	bn.log.Debug(message,
 		"shard", shardID,
 		"nb", len(notarizedHeaders))
 
 	for _, hdrInfo := range notarizedHeaders {
-		log.Trace("notarized header info",
+		bn.log.Trace("notarized header info",
 			"round", hdrInfo.Header.GetRound(),
 			"nonce", hdrInfo.Header.GetNonce(),
 			"hash", hdrInfo.Hash)

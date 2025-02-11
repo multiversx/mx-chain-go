@@ -45,6 +45,7 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 		chainID,
 		currentPid,
 		appStatusHandler,
+		&testscommon.LoggerStub{},
 	)
 }
 

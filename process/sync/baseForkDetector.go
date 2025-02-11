@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type headerInfo struct {
@@ -39,6 +40,7 @@ type forkInfo struct {
 
 // baseForkDetector defines a struct with necessary data needed for fork detection
 type baseForkDetector struct {
+	log          logger.Logger
 	roundHandler consensus.RoundHandler
 
 	headers    map[uint64][]*headerInfo
@@ -223,7 +225,7 @@ func (bfd *baseForkDetector) computeProbableHighestNonce() uint64 {
 func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 	finalCheckpointNonce := bfd.finalCheckpoint().nonce
 	if nonce <= finalCheckpointNonce {
-		log.Debug("baseForkDetector.RemoveHeader: given nonce is lower or equal than final checkpoint",
+		bfd.log.Debug("baseForkDetector.RemoveHeader: given nonce is lower or equal than final checkpoint",
 			"nonce", nonce,
 			"final checkpoint nonce", finalCheckpointNonce)
 		return
@@ -257,7 +259,7 @@ func (bfd *baseForkDetector) RemoveHeader(nonce uint64, hash []byte) {
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.RemoveHeader",
+	bfd.log.Debug("forkDetector.RemoveHeader",
 		"nonce", nonce,
 		"hash", hash,
 		"probable highest nonce", probableHighestNonce,
@@ -279,7 +281,7 @@ func (bfd *baseForkDetector) removeCheckpointWithNonce(nonce uint64) {
 	bfd.fork.checkpoint = preservedCheckpoint
 	bfd.mutFork.Unlock()
 
-	log.Debug("forkDetector.removeCheckpointWithNonce",
+	bfd.log.Debug("forkDetector.removeCheckpointWithNonce",
 		"nonce", nonce,
 		"last checkpoint nonce", bfd.lastCheckpoint().nonce)
 }
@@ -346,7 +348,7 @@ func (bfd *baseForkDetector) ResetFork() {
 	bfd.ResetProbableHighestNonce()
 	bfd.setLastRoundWithForcedFork(bfd.roundHandler.Index())
 
-	log.Debug("forkDetector.ResetFork",
+	bfd.log.Debug("forkDetector.ResetFork",
 		"last round with forced fork", bfd.lastRoundWithForcedFork())
 }
 
@@ -356,7 +358,7 @@ func (bfd *baseForkDetector) ResetProbableHighestNonce() {
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.ResetProbableHighestNonce",
+	bfd.log.Debug("forkDetector.ResetProbableHighestNonce",
 		"probable highest nonce", bfd.probableHighestNonce())
 }
 
@@ -448,7 +450,7 @@ func (bfd *baseForkDetector) setHighestNonceReceived(nonce uint64) {
 	bfd.fork.highestNonceReceived = nonce
 	bfd.mutFork.Unlock()
 
-	log.Debug("forkDetector.setHighestNonceReceived",
+	bfd.log.Debug("forkDetector.setHighestNonceReceived",
 		"highest nonce received", nonce)
 }
 
@@ -595,12 +597,12 @@ func (bfd *baseForkDetector) shouldSignalFork(
 
 	if lastForkRound != process.MinForkRound {
 		if headerInfo.epoch > lastForkEpoch {
-			log.Trace("shouldSignalFork epoch change false")
+			bfd.log.Trace("shouldSignalFork epoch change false")
 			return false
 		}
 
 		if headerInfo.epoch < lastForkEpoch {
-			log.Trace("shouldSignalFork epoch change true")
+			bfd.log.Trace("shouldSignalFork epoch change true")
 			return true
 		}
 	}
@@ -744,7 +746,7 @@ func (bfd *baseForkDetector) processReceivedProof(proof data.HeaderProofHandler)
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.processReceivedProof",
+	bfd.log.Debug("forkDetector.processReceivedProof",
 		"round", hInfo.round,
 		"nonce", hInfo.nonce,
 		"hash", hInfo.hash,
@@ -770,13 +772,13 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	bfd.setHighestNonceReceived(header.GetNonce())
 
 	if state == process.BHProposed || !hasProof {
-		log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
+		bfd.log.Trace("forkDetector.processReceivedBlock: block is proposed or has no proof", "state", state, "has proof", hasProof)
 		return
 	}
 
 	isHeaderReceivedTooLate := bfd.isHeaderReceivedTooLate(header, state, process.BlockFinality)
 	if isHeaderReceivedTooLate {
-		log.Trace("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
+		bfd.log.Trace("forkDetector.processReceivedBlock: block is received too late", "initial state", state)
 		state = process.BHReceivedTooLate
 	}
 
@@ -790,7 +792,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	}
 
 	if !bfd.append(hInfo) {
-		log.Trace("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
+		bfd.log.Trace("forkDetector.processReceivedBlock: header not appended", "nonce", hInfo.nonce, "hash", hInfo.hash)
 		return
 	}
 
@@ -801,7 +803,7 @@ func (bfd *baseForkDetector) processReceivedBlock(
 	probableHighestNonce := bfd.computeProbableHighestNonce()
 	bfd.setProbableHighestNonce(probableHighestNonce)
 
-	log.Debug("forkDetector.appendHeaderInfo",
+	bfd.log.Debug("forkDetector.appendHeaderInfo",
 		"round", hInfo.round,
 		"nonce", hInfo.nonce,
 		"hash", hInfo.hash,

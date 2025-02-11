@@ -34,6 +34,7 @@ type NetworkComponentsFactoryArgs struct {
 	FullArchiveP2pConfig  p2pConfig.P2PConfig
 	MainConfig            config.Config
 	RatingsConfig         config.RatingsConfig
+	FlagsConfig           config.ContextFlagsConfig
 	StatusHandler         core.AppStatusHandler
 	Marshalizer           marshal.Marshalizer
 	Syncer                p2p.SyncTimer
@@ -49,6 +50,7 @@ type networkComponentsFactory struct {
 	fullArchiveP2PConfig  p2pConfig.P2PConfig
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
+	flagsConfig           config.ContextFlagsConfig
 	statusHandler         core.AppStatusHandler
 	marshalizer           marshal.Marshalizer
 	syncer                p2p.SyncTimer
@@ -109,6 +111,7 @@ func NewNetworkComponentsFactory(
 		ratingsConfig:         args.RatingsConfig,
 		marshalizer:           args.Marshalizer,
 		mainConfig:            args.MainConfig,
+		flagsConfig:           args.FlagsConfig,
 		statusHandler:         args.StatusHandler,
 		syncer:                args.Syncer,
 		bootstrapWaitTime:     args.BootstrapWaitTime,
@@ -274,7 +277,14 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 }
 
 func (ncf *networkComponentsFactory) createMainNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
-	loggerInstance := logger.GetOrCreate("main/p2p")
+	var loggerInstance logger.Logger
+	if ncf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(ncf.cryptoComponents.PublicKeyBytes())
+		loggerInstance = logger.GetOrCreate(fmt.Sprintf("main/p2p/%s", id))
+	} else {
+		loggerInstance = logger.GetOrCreate("main/p2p")
+	}
+
 	return ncf.createNetworkHolder(ncf.mainP2PConfig, loggerInstance, peersRatingHandler, p2p.MainNetwork)
 }
 
@@ -286,7 +296,13 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingH
 		}, nil
 	}
 
-	loggerInstance := logger.GetOrCreate("full-archive/p2p")
+	var loggerInstance logger.Logger
+	if ncf.flagsConfig.WithInstanceLogID {
+		id := common.GetLogID(ncf.cryptoComponents.PublicKeyBytes())
+		log = logger.GetOrCreate(fmt.Sprintf("full-archive/p2p/%s", id))
+	} else {
+		log = logger.GetOrCreate("full-archive/p2p")
+	}
 
 	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, peersRatingHandler, p2p.FullArchiveNetwork)
 }

@@ -210,7 +210,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		NodeShardId:          shardID,
 		TxSignPrivKeyShardId: shardID,
 	})
-	messenger := integrationTests.CreateMessengerWithNoDiscovery()
+	messenger := integrationTests.CreateMessengerWithNoDiscovery("")
 	time.Sleep(integrationTests.P2pBootstrapDelay)
 	nodeToJoinLate.MainMessenger = messenger
 

@@ -79,6 +79,7 @@ func createArgBaseProcessor(
 ) blproc.ArgBaseProcessor {
 	nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshalizer:         &mock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -132,6 +133,7 @@ func createArgBaseProcessor(
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
+		Logger:                         &testscommon.LoggerStub{},
 	}
 }
 
@@ -1269,6 +1271,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrShardGood(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              coreComponents.Hasher(),
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
@@ -1304,6 +1307,7 @@ func TestBaseProcessor_SaveLastNotarizedHdrMetaGood(t *testing.T) {
 	sp, _ := blproc.NewShardProcessor(arguments)
 
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
+		Logger:              &testscommon.LoggerStub{},
 		Hasher:              coreComponents.Hasher(),
 		Marshalizer:         coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
@@ -2374,6 +2378,10 @@ func createGasHandlerMockForProcessScheduledBlock(initial, final scheduled.GasAn
 func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 	zeroGasAndFees := process.GetZeroGasAndFees()
 
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
 	t.Run("final accumulatedFees lower then initial accumulatedFees", func(t *testing.T) {
 		t.Parallel()
 
@@ -2385,7 +2393,7 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 			AccumulatedFees: big.NewInt(10),
 		}
 
-		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		gasAndFees := sp.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final devFees lower then initial devFees", func(t *testing.T) {
@@ -2401,7 +2409,7 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 			DeveloperFees:   big.NewInt(10),
 		}
 
-		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		gasAndFees := sp.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final gasProvided lower then initial gasProvided", func(t *testing.T) {
@@ -2419,7 +2427,7 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 			GasProvided:     10,
 		}
 
-		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		gasAndFees := sp.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final gasPenalized lower then initial gasPenalized", func(t *testing.T) {
@@ -2439,7 +2447,7 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 			GasPenalized:    10,
 		}
 
-		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		gasAndFees := sp.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("final gasRefunded lower then initial gasRefunded", func(t *testing.T) {
@@ -2461,7 +2469,7 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 			GasRefunded:     10,
 		}
 
-		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		gasAndFees := sp.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 		assert.Equal(t, zeroGasAndFees, gasAndFees)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -2491,7 +2499,7 @@ func TestBaseProcessor_gasAndFeesDelta(t *testing.T) {
 			GasRefunded:     finalGasAndFees.GasRefunded - initialGasAndFees.GasRefunded,
 		}
 
-		gasAndFees := blproc.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
+		gasAndFees := sp.GasAndFeesDelta(initialGasAndFees, finalGasAndFees)
 
 		assert.Equal(t, expectedGasAndFees, gasAndFees)
 	})
@@ -2625,10 +2633,14 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 func TestBaseProcessor_getScheduledMiniBlocksFromMe(t *testing.T) {
 	t.Parallel()
 
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	sp, _ := blproc.NewShardProcessor(arguments)
+
 	t.Run("wrong body type", func(t *testing.T) {
 		t.Parallel()
 
-		retBody, err := blproc.GetScheduledMiniBlocksFromMe(&block.Header{}, &wrongBody{})
+		retBody, err := sp.GetScheduledMiniBlocksFromMe(&block.Header{}, &wrongBody{})
 		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 		assert.Nil(t, retBody)
 	})
@@ -2669,7 +2681,7 @@ func TestBaseProcessor_getScheduledMiniBlocksFromMe(t *testing.T) {
 			},
 		}
 
-		retBody, err := blproc.GetScheduledMiniBlocksFromMe(header, body)
+		retBody, err := sp.GetScheduledMiniBlocksFromMe(header, body)
 		assert.Nil(t, err)
 		assert.Equal(t, block.MiniBlockSlice{mb2}, retBody)
 	})

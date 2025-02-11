@@ -99,11 +99,13 @@ func (dcf *dataComponentsFactory) Create() (*dataComponents, error) {
 	}
 
 	dataPoolArgs := dataRetrieverFactory.ArgsDataPool{
-		Config:           &dcf.config,
-		EconomicsData:    dcf.core.EconomicsData(),
-		ShardCoordinator: dcf.shardCoordinator,
-		Marshalizer:      dcf.core.InternalMarshalizer(),
-		PathManager:      dcf.core.PathHandler(),
+		Config:            &dcf.config,
+		EconomicsData:     dcf.core.EconomicsData(),
+		ShardCoordinator:  dcf.shardCoordinator,
+		Marshalizer:       dcf.core.InternalMarshalizer(),
+		PathManager:       dcf.core.PathHandler(),
+		LogID:             dcf.crypto.PublicKeyBytes(),
+		WithInstanceLodID: dcf.flagsConfig.WithInstanceLogID,
 	}
 	datapool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataPoolArgs)
 	if err != nil {

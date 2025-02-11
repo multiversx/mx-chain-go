@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -21,6 +22,9 @@ type ShardBootstrap struct {
 
 // NewShardBootstrap creates a new Bootstrap object
 func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) {
+	if check.IfNil(arguments.Logger) {
+		return nil, common.ErrNilLogger
+	}
 	if check.IfNil(arguments.PoolsHolder) {
 		return nil, process.ErrNilPoolsHolder
 	}
@@ -40,6 +44,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 
 	base := &baseBootstrap{
+		log:                          arguments.Logger,
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
 		store:                        arguments.Store,
@@ -74,7 +79,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	}
 
 	if base.isInImportMode {
-		log.Warn("using always-not-synced status because the node is running in import-db")
+		base.log.Warn("using always-not-synced status because the node is running in import-db")
 	}
 
 	boot := ShardBootstrap{
@@ -131,7 +136,7 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 func (boot *ShardBootstrap) StartSyncingBlocks() error {
 	errNotCritical := boot.storageBootstrapper.LoadFromStorage()
 	if errNotCritical != nil {
-		log.Debug("boot.syncFromStorer",
+		boot.log.Debug("boot.syncFromStorer",
 			"error", errNotCritical.Error(),
 		)
 	}
@@ -182,7 +187,7 @@ func (boot *ShardBootstrap) Close() error {
 // requestHeaderWithNonce method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 	boot.setRequestedHeaderNonce(&nonce)
-	log.Debug("requesting shard header from network",
+	boot.log.Debug("requesting shard header from network",
 		"nonce", nonce,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
@@ -192,7 +197,7 @@ func (boot *ShardBootstrap) requestHeaderWithNonce(nonce uint64) {
 // requestHeaderWithHash method requests a block header from network when it is not found in the pool
 func (boot *ShardBootstrap) requestHeaderWithHash(hash []byte) {
 	boot.setRequestedHeaderHash(hash)
-	log.Debug("requesting shard header from network",
+	boot.log.Debug("requesting shard header from network",
 		"hash", hash,
 		"probable highest nonce", boot.forkDetector.ProbableHighestNonce(),
 	)
@@ -302,7 +307,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
-		log.Warn("cannot convert headerHandler in block.Header")
+		boot.log.Warn("cannot convert headerHandler in block.Header")
 		return
 	}
 
@@ -313,7 +318,7 @@ func (boot *ShardBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(header
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
-		log.Trace("requesting in advance mini blocks",
+		boot.log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),
 			"header nonce", header.GetNonce(),
 		)

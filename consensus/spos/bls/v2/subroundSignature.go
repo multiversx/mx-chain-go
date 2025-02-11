@@ -87,7 +87,7 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 	if check.IfNil(sr.GetHeader()) {
-		log.Error("doSignatureJob", "error", spos.ErrNilHeader)
+		sr.Log.Error("doSignatureJob", "error", spos.ErrNilHeader)
 		return false
 	}
 
@@ -98,12 +98,14 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		}
 	}
 
+	sr.Log.Info("doSignatureJob", "isSelfSingleKeyInConsensusGroup", isSelfSingleKeyInConsensusGroup)
+
 	if !sr.doSignatureJobForManagedKeys(ctx) {
 		return false
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
-	log.Debug("step 2: subround has been finished",
+	sr.Log.Debug("step 2: subround has been finished",
 		"subround", sr.Name())
 
 	return true
@@ -129,12 +131,12 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessage",
+		sr.Log.Debug("createAndSendSignatureMessage.BroadcastConsensusMessage",
 			"error", err.Error(), "pk", pkBytes)
 		return false
 	}
 
-	log.Debug("step 2: signature has been sent", "pk", pkBytes)
+	sr.Log.Debug("step 2: signature has been sent", "pk", pkBytes)
 
 	return true
 }
@@ -142,7 +144,7 @@ func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte
 func (sr *subroundSignature) completeSignatureSubRound(pk string) bool {
 	err := sr.SetJobDone(pk, sr.Current(), true)
 	if err != nil {
-		log.Debug("doSignatureJob.SetSelfJobDone",
+		sr.Log.Debug("doSignatureJob.SetSelfJobDone",
 			"subround", sr.Name(),
 			"error", err.Error(),
 			"pk", []byte(pk),
@@ -169,7 +171,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 
 	isSelfInConsensusGroup := sr.IsSelfInConsensusGroup()
 	if !isSelfInConsensusGroup {
-		log.Debug("step 2: subround has been finished",
+		sr.Log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 
@@ -177,7 +179,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	if sr.IsSelfJobDone(sr.Current()) {
-		log.Debug("step 2: subround has been finished",
+		sr.Log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
 		sr.SetStatus(sr.Current(), spos.SsFinished)
 		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
@@ -228,7 +230,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) b
 	wg.Wait()
 
 	if numMultiKeysSignaturesSent > 0 {
-		log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
+		sr.Log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
 	}
 
 	return sentSigForAllKeys.IsSet()
@@ -244,7 +246,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 		pkBytes,
 	)
 	if err != nil {
-		log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
+		sr.Log.Debug("sendSignatureForManagedKey.CreateSignatureShareForPublicKey", "error", err.Error())
 		return false
 	}
 
@@ -276,7 +278,7 @@ func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error
 func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 	selfIndex, err := sr.SelfConsensusGroupIndex()
 	if err != nil {
-		log.Debug("doSignatureJobForSingleKey.SelfConsensusGroupIndex: not in consensus group")
+		sr.Log.Debug("doSignatureJobForSingleKey.SelfConsensusGroupIndex: not in consensus group")
 		return false
 	}
 
@@ -287,13 +289,16 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 		[]byte(sr.SelfPubKey()),
 	)
 	if err != nil {
-		log.Debug("doSignatureJobForSingleKey.CreateSignatureShareForPublicKey", "error", err.Error())
+		sr.Log.Debug("doSignatureJobForSingleKey.CreateSignatureShareForPublicKey", "error", err.Error())
 		return false
 	}
 
 	// leader also sends his signature here
 	ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
 	if !ok {
+		sr.Log.Error("doSignatureJobForSingleKey: failed to send signature share",
+			"node", []byte(sr.SelfPubKey()),
+		)
 		return false
 	}
 

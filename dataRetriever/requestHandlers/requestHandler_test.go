@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -44,6 +45,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		t.Parallel()
 
 		rrh, err := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			nil,
 			&mock.RequestedItemsHandlerStub{},
 			&mock.WhiteListHandlerStub{},
@@ -59,6 +61,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		t.Parallel()
 
 		rrh, err := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{},
 			nil,
 			&mock.WhiteListHandlerStub{},
@@ -74,6 +77,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		t.Parallel()
 
 		rrh, err := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{},
 			&mock.RequestedItemsHandlerStub{},
 			nil,
@@ -89,6 +93,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		t.Parallel()
 
 		rrh, err := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{},
 			&mock.RequestedItemsHandlerStub{},
 			&mock.WhiteListHandlerStub{},
@@ -104,6 +109,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		t.Parallel()
 
 		rrh, err := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{},
 			&mock.RequestedItemsHandlerStub{},
 			&mock.WhiteListHandlerStub{},
@@ -119,6 +125,7 @@ func TestNewResolverRequestHandler(t *testing.T) {
 		t.Parallel()
 
 		rrh, err := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{},
 			&mock.RequestedItemsHandlerStub{},
 			&mock.WhiteListHandlerStub{},
@@ -146,6 +153,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 		}()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					require.Fail(t, "should have not been called")
@@ -172,6 +180,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 		}()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return nil, errExpected
@@ -199,6 +208,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 		wrongTxRequester := &dataRetrieverMocks.NonceRequesterStub{}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return wrongTxRequester, nil
@@ -225,6 +235,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return txRequester, nil
@@ -261,6 +272,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 		timeSpan := time.Second
 		timeCache := cache.NewTimeCache(timeSpan)
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return txRequester, nil
@@ -309,6 +321,7 @@ func TestResolverRequestHandler_RequestTransaction(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return txRequester, nil
@@ -347,6 +360,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 		}()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					require.Fail(t, "should not have been called")
@@ -377,6 +391,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 		}()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return nil, errExpected
@@ -408,6 +423,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -434,6 +450,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -462,6 +479,7 @@ func TestResolverRequestHandler_RequestMiniBlock(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -487,6 +505,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			createRequestersFinderStubThatShouldNotBeCalled(t),
 			&mock.RequestedItemsHandlerStub{
 				HasCalled: func(key string) bool {
@@ -505,6 +524,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			createRequestersFinderStubThatShouldNotBeCalled(t),
 			&mock.RequestedItemsHandlerStub{},
 			&mock.WhiteListHandlerStub{},
@@ -525,6 +545,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -551,6 +572,7 @@ func TestResolverRequestHandler_RequestShardHeader(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -576,6 +598,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{},
 			&mock.RequestedItemsHandlerStub{
 				HasCalled: func(key string) bool {
@@ -601,6 +624,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return req, nil
@@ -619,6 +643,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return nil, errExpected
@@ -643,6 +668,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return req, nil
@@ -669,6 +695,7 @@ func TestResolverRequestHandler_RequestMetaHeader(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -695,6 +722,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 
 		called := false
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			createRequestersFinderStubThatShouldNotBeCalled(t),
 			&mock.RequestedItemsHandlerStub{
 				HasCalled: func(key string) bool {
@@ -716,6 +744,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 
 		called := false
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, err error) {
 					called = true
@@ -743,6 +772,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 		}()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
 					return nil, errExpected
@@ -770,6 +800,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 		hdrRequester := &dataRetrieverMocks.RequesterStub{}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
 					return hdrRequester, nil
@@ -801,6 +832,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
 					return hdrRequester, nil
@@ -827,6 +859,7 @@ func TestResolverRequestHandler_RequestShardHeaderByNonce(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, shardID uint32) (requester dataRetriever.Requester, e error) {
 					return hdrRequester, nil
@@ -852,6 +885,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			createRequestersFinderStubThatShouldNotBeCalled(t),
 			&mock.RequestedItemsHandlerStub{
 				HasCalled: func(key string) bool {
@@ -870,6 +904,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return nil, errExpected
@@ -898,6 +933,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return hdrRequester, nil
@@ -924,6 +960,7 @@ func TestResolverRequestHandler_RequestMetaHeaderByNonce(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return hdrRequester, nil
@@ -953,6 +990,7 @@ func TestResolverRequestHandler_RequestScrErrorWhenGettingCrossShardRequesterSho
 	}()
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return nil, errExpected
@@ -981,6 +1019,7 @@ func TestResolverRequestHandler_RequestScrWrongResolverShouldNotPanic(t *testing
 	wrongTxRequester := &dataRetrieverMocks.NonceRequesterStub{}
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return wrongTxRequester, nil
@@ -1008,6 +1047,7 @@ func TestResolverRequestHandler_RequestScrShouldRequestScr(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return txRequester, nil
@@ -1050,6 +1090,7 @@ func TestResolverRequestHandler_RequestScrErrorsOnRequestShouldNotPanic(t *testi
 	}
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return txRequester, nil
@@ -1085,6 +1126,7 @@ func TestResolverRequestHandler_RequestRewardShouldRequestReward(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (requester dataRetriever.Requester, e error) {
 				return txRequester, nil
@@ -1123,6 +1165,7 @@ func TestRequestTrieNodes(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaCrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 					return requesterMock, nil
@@ -1150,6 +1193,7 @@ func TestRequestTrieNodes(t *testing.T) {
 		localError := errors.New("test error")
 		called := false
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaCrossShardRequesterCalled: func(baseTopic string, shId uint32) (requester dataRetriever.Requester, err error) {
 					called = true
@@ -1170,6 +1214,7 @@ func TestRequestTrieNodes(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaCrossShardRequesterCalled: func(baseTopic string, shId uint32) (requester dataRetriever.Requester, err error) {
 					require.Fail(t, "should have not been called")
@@ -1194,6 +1239,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 					require.Fail(t, "should not have been called")
@@ -1218,6 +1264,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 
 		called := false
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 					called = true
@@ -1239,6 +1286,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 
 		called := false
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 					called = true
@@ -1267,6 +1315,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 					return requesterMock, nil
@@ -1293,6 +1342,7 @@ func TestResolverRequestHandler_RequestStartOfEpochMetaBlock(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 					return requesterMock, nil
@@ -1326,6 +1376,7 @@ func TestResolverRequestHandler_RequestTrieNodeRequestFails(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 				return requesterMock, nil
@@ -1358,6 +1409,7 @@ func TestResolverRequestHandler_RequestTrieNodeShouldWork(t *testing.T) {
 	}
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 				return requesterMock, nil
@@ -1384,6 +1436,7 @@ func TestResolverRequestHandler_RequestTrieNodeNilResolver(t *testing.T) {
 	localError := errors.New("test error")
 	called := false
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 				called = true
@@ -1406,6 +1459,7 @@ func TestResolverRequestHandler_RequestTrieNodeNotAValidResolver(t *testing.T) {
 
 	called := false
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{
 			MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, err error) {
 				called = true
@@ -1439,6 +1493,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
@@ -1460,6 +1515,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 
 		req := &dataRetrieverMocks.NonceRequesterStub{}
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
@@ -1487,6 +1543,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
@@ -1527,6 +1584,7 @@ func TestResolverRequestHandler_RequestPeerAuthenticationsByHashes(t *testing.T)
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
 					assert.Equal(t, common.PeerAuthenticationTopic, baseTopic)
@@ -1553,6 +1611,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 
 		providedHash := []byte("provided hash")
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					require.Fail(t, "should not have been called")
@@ -1585,6 +1644,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return res, errExpected
@@ -1611,6 +1671,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return res, nil
@@ -1644,6 +1705,7 @@ func TestResolverRequestHandler_RequestValidatorInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					assert.Equal(t, common.ValidatorInfoTopic, baseTopic)
@@ -1669,6 +1731,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					require.Fail(t, "should not have been called")
@@ -1697,6 +1760,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return res, errExpected
@@ -1723,6 +1787,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return res, nil
@@ -1749,6 +1814,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		mbRequester := &dataRetrieverMocks.NonceRequesterStub{} // uncastable to HashSliceRequester
 		wasCalled := false
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					return mbRequester, nil
@@ -1782,6 +1848,7 @@ func TestResolverRequestHandler_RequestValidatorsInfo(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				MetaChainRequesterCalled: func(baseTopic string) (requester dataRetriever.Requester, e error) {
 					assert.Equal(t, common.ValidatorInfoTopic, baseTopic)
@@ -1807,6 +1874,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 					require.Fail(t, "should have not been called")
@@ -1826,6 +1894,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 					return nil, errExpected
@@ -1845,6 +1914,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 
 		nonceRequester := &dataRetrieverMocks.NonceRequesterStub{} // uncastable to HashSliceRequester
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 					return nonceRequester, nil
@@ -1872,6 +1942,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 			},
 		}
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 					return mbRequester, nil
@@ -1890,6 +1961,7 @@ func TestResolverRequestHandler_RequestMiniblocks(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
 					return &dataRetrieverMocks.HashSliceRequesterStub{}, nil
@@ -1910,6 +1982,7 @@ func TestResolverRequestHandler_RequestInterval(t *testing.T) {
 	t.Parallel()
 
 	rrh, _ := NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerStub{},
@@ -1927,6 +2000,7 @@ func TestResolverRequestHandler_NumPeersToQuery(t *testing.T) {
 		t.Parallel()
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				GetCalled: func(key string) (dataRetriever.Requester, error) {
 					return nil, errExpected
@@ -1959,6 +2033,7 @@ func TestResolverRequestHandler_NumPeersToQuery(t *testing.T) {
 		}
 
 		rrh, _ := NewResolverRequestHandler(
+			&testscommon.LoggerStub{},
 			&dataRetrieverMocks.RequestersFinderStub{
 				GetCalled: func(key string) (dataRetriever.Requester, error) {
 					return req, nil
@@ -1988,6 +2063,7 @@ func TestResolverRequestHandler_IsInterfaceNil(t *testing.T) {
 	require.True(t, rrh.IsInterfaceNil())
 
 	rrh, _ = NewResolverRequestHandler(
+		&testscommon.LoggerStub{},
 		&dataRetrieverMocks.RequestersFinderStub{},
 		&mock.RequestedItemsHandlerStub{},
 		&mock.WhiteListHandlerStub{},

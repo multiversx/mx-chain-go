@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -317,6 +318,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 
 func getDefaultChronologyArg() chronology.ArgChronology {
 	return chronology.ArgChronology{
+		Logger:           &testscommon.LoggerStub{},
 		GenesisTime:      time.Now(),
 		RoundHandler:     &consensusMocks.RoundHandlerMock{},
 		SyncTimer:        &consensusMocks.SyncTimerMock{},
