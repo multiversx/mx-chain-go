@@ -2409,24 +2409,28 @@ func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHand
 	}
 
 	bp.mutRequestedAttestingNoncesMap.Lock()
-	defer bp.mutRequestedAttestingNoncesMap.Unlock()
 
 	receivedShard := headerHandler.GetShardID()
 	prevHash := headerHandler.GetPrevHash()
 	_, isHeaderWithoutProof := bp.requestedAttestingNoncesMap[string(prevHash)]
 	if !isHeaderWithoutProof {
 		log.Debug("received header does not have previous hash any of the requested ones")
+		bp.mutRequestedAttestingNoncesMap.Unlock()
 		return
 	}
 
 	if !bp.proofsPool.HasProof(receivedShard, prevHash) {
 		log.Debug("received next header but proof is still missing", "hash", hex.EncodeToString(prevHash))
+		bp.mutRequestedAttestingNoncesMap.Unlock()
 		return
 	}
 
 	delete(bp.requestedAttestingNoncesMap, string(prevHash))
 
-	if len(bp.requestedAttestingNoncesMap) == 0 {
+	allProofsReceived := len(bp.requestedAttestingNoncesMap) == 0
+	bp.mutRequestedAttestingNoncesMap.Unlock()
+
+	if allProofsReceived {
 		bp.allProofsReceived <- true
 	}
 }
