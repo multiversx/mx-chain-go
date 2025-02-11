@@ -890,6 +890,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
     RelayedTransactionsV3EnableEpoch = 103
 
+    # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
+    AutomaticActivationOfNodesDisableEpoch = 104
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1011,6 +1014,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
+			AutomaticActivationOfNodesDisableEpoch:                   104,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
