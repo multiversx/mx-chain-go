@@ -2404,6 +2404,11 @@ func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHand
 	bp.mutRequestedAttestingNoncesMap.Lock()
 	defer bp.mutRequestedAttestingNoncesMap.Unlock()
 
+	isWaitingForProofs := len(bp.requestedAttestingNoncesMap) > 0
+	if !isWaitingForProofs {
+		return
+	}
+
 	receivedShard := headerHandler.GetShardID()
 	prevHash := headerHandler.GetPrevHash()
 	_, isHeaderWithoutProof := bp.requestedAttestingNoncesMap[string(prevHash)]
