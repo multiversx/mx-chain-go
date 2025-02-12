@@ -335,9 +335,11 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	require.Nil(t, err)
 
 	expectedSovChainHeader := &block.SovereignChainHeader{
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			Hash:                   expectedOutGoingMbHash,
-			OutGoingOperationsHash: bridgeOpsHash,
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				Hash:                   expectedOutGoingMbHash,
+				OutGoingOperationsHash: bridgeOpsHash,
+			},
 		},
 	}
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)

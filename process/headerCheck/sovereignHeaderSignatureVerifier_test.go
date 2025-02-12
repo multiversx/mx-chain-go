@@ -6,12 +6,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/stretchr/testify/require"
+
+	consensusMock "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignHeaderSigVerifier(t *testing.T) {
@@ -40,9 +41,11 @@ func TestSovereignHeaderSigVerifier_VerifyAggregatedSignature(t *testing.T) {
 		Header: &block.Header{
 			Nonce: 4,
 		},
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			OutGoingOperationsHash:                outGoingOpHash,
-			AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				OutGoingOperationsHash:                outGoingOpHash,
+				AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
+			},
 		},
 	}
 
@@ -67,7 +70,7 @@ func TestSovereignHeaderSigVerifier_VerifyAggregatedSignature(t *testing.T) {
 
 	t.Run("no outgoing mini block header", func(t *testing.T) {
 		sovHdrCopy := *sovHdr
-		sovHdrCopy.OutGoingMiniBlockHeader = nil
+		sovHdrCopy.OutGoingMiniBlockHeaders = nil
 		err := sovVerifier.VerifyAggregatedSignature(&sovHdrCopy, multiSigner, expectedPubKeys)
 		require.Nil(t, err)
 		require.Zero(t, verifyCalledCt)
@@ -90,15 +93,17 @@ func TestSovereignHeaderSigVerifier_VerifyLeaderSignature(t *testing.T) {
 		Header: &block.Header{
 			Nonce: 4,
 		},
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			OutGoingOperationsHash:                outGoingOpHash,
-			AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
-			LeaderSignatureOutGoingOperations:     outGoingLeaderSig,
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				OutGoingOperationsHash:                outGoingOpHash,
+				AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
+				LeaderSignatureOutGoingOperations:     outGoingLeaderSig,
+			},
 		},
 	}
 
 	verifyCalledCt := 0
-	expectedLeaderPubKey := &mock2.PublicKeyMock{}
+	expectedLeaderPubKey := &consensusMock.PublicKeyMock{}
 	signingHandler := &mock.SignerMock{
 		VerifyStub: func(public crypto.PublicKey, msg []byte, sig []byte) error {
 			require.Equal(t, expectedLeaderPubKey, public)
@@ -118,7 +123,7 @@ func TestSovereignHeaderSigVerifier_VerifyLeaderSignature(t *testing.T) {
 
 	t.Run("no outgoing mini block header", func(t *testing.T) {
 		sovHdrCopy := *sovHdr
-		sovHdrCopy.OutGoingMiniBlockHeader = nil
+		sovHdrCopy.OutGoingMiniBlockHeaders = nil
 		err := sovVerifier.VerifyLeaderSignature(&sovHdrCopy, expectedLeaderPubKey)
 		require.Nil(t, err)
 		require.Zero(t, verifyCalledCt)
@@ -141,10 +146,12 @@ func TestSovereignHeaderSigVerifier_RemoveLeaderSignature(t *testing.T) {
 		Header: &block.Header{
 			Nonce: 4,
 		},
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			OutGoingOperationsHash:                outGoingOpHash,
-			AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
-			LeaderSignatureOutGoingOperations:     outGoingLeaderSig,
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				OutGoingOperationsHash:                outGoingOpHash,
+				AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
+				LeaderSignatureOutGoingOperations:     outGoingLeaderSig,
+			},
 		},
 	}
 
@@ -157,7 +164,7 @@ func TestSovereignHeaderSigVerifier_RemoveLeaderSignature(t *testing.T) {
 
 	t.Run("no outgoing mini block header", func(t *testing.T) {
 		sovHdrCopy := *sovHdr
-		sovHdrCopy.OutGoingMiniBlockHeader = nil
+		sovHdrCopy.OutGoingMiniBlockHeaders = nil
 		err := sovVerifier.RemoveLeaderSignature(&sovHdrCopy)
 		require.Nil(t, err)
 	})
@@ -169,10 +176,12 @@ func TestSovereignHeaderSigVerifier_RemoveLeaderSignature(t *testing.T) {
 			Header: &block.Header{
 				Nonce: 4,
 			},
-			OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-				OutGoingOperationsHash:                outGoingOpHash,
-				AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
-				LeaderSignatureOutGoingOperations:     nil,
+			OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+				{
+					OutGoingOperationsHash:                outGoingOpHash,
+					AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
+					LeaderSignatureOutGoingOperations:     nil,
+				},
 			},
 		}, sovHdr)
 	})
@@ -188,10 +197,12 @@ func TestSovereignHeaderSigVerifier_RemoveAllSignatures(t *testing.T) {
 		Header: &block.Header{
 			Nonce: 4,
 		},
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			OutGoingOperationsHash:                outGoingOpHash,
-			AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
-			LeaderSignatureOutGoingOperations:     outGoingLeaderSig,
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				OutGoingOperationsHash:                outGoingOpHash,
+				AggregatedSignatureOutGoingOperations: outGoingAggregatedSig,
+				LeaderSignatureOutGoingOperations:     outGoingLeaderSig,
+			},
 		},
 	}
 
@@ -204,7 +215,7 @@ func TestSovereignHeaderSigVerifier_RemoveAllSignatures(t *testing.T) {
 
 	t.Run("no outgoing mini block header", func(t *testing.T) {
 		sovHdrCopy := *sovHdr
-		sovHdrCopy.OutGoingMiniBlockHeader = nil
+		sovHdrCopy.OutGoingMiniBlockHeaders = nil
 		err := sovVerifier.RemoveAllSignatures(&sovHdrCopy)
 		require.Nil(t, err)
 	})
@@ -216,10 +227,12 @@ func TestSovereignHeaderSigVerifier_RemoveAllSignatures(t *testing.T) {
 			Header: &block.Header{
 				Nonce: 4,
 			},
-			OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-				OutGoingOperationsHash:                outGoingOpHash,
-				AggregatedSignatureOutGoingOperations: nil,
-				LeaderSignatureOutGoingOperations:     nil,
+			OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+				{
+					OutGoingOperationsHash:                outGoingOpHash,
+					AggregatedSignatureOutGoingOperations: nil,
+					LeaderSignatureOutGoingOperations:     nil,
+				},
 			},
 		}, sovHdr)
 	})
