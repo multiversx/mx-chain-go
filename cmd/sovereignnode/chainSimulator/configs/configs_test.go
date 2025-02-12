@@ -8,7 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 )
 
-func TestGenerateSovereignGenesisFile(t *testing.T) {
+func TestCreateChainSimulatorConfigsWithSovereignGenesisFile(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
