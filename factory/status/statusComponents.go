@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	esFactory "github.com/multiversx/mx-chain-es-indexer-go/process/elasticproc/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -47,6 +48,7 @@ type StatusComponentsFactoryArgs struct {
 	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
 	IsSovereign          bool
+	ESDTPrefix           string
 }
 
 type statusComponentsFactory struct {
@@ -64,6 +66,7 @@ type statusComponentsFactory struct {
 	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
 	isSovereign          bool
+	esdtPrefix           string
 }
 
 var log = logger.GetOrCreate("factory")
@@ -109,6 +112,7 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		isInImportMode:       args.IsInImportMode,
 		cryptoComponents:     args.CryptoComponents,
 		isSovereign:          args.IsSovereign,
+		esdtPrefix:           args.ESDTPrefix,
 	}, nil
 }
 
@@ -218,6 +222,13 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 
 func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
+	mainChainElastic := esFactory.ElasticConfig{
+		Enabled:  scf.externalConfig.MainChainElasticSearchConnector.Enabled,
+		Url:      scf.externalConfig.MainChainElasticSearchConnector.URL,
+		UserName: scf.externalConfig.MainChainElasticSearchConnector.Username,
+		Password: scf.externalConfig.MainChainElasticSearchConnector.Password,
+	}
+
 	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
@@ -234,6 +245,8 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
 		Sovereign:                scf.isSovereign,
+		ESDTPrefix:               scf.esdtPrefix,
+		MainChainElastic:         mainChainElastic,
 	}
 }
 
