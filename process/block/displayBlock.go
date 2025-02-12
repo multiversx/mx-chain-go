@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type transactionCounter struct {
@@ -212,7 +213,7 @@ func (txc *transactionCounter) displaySovereignChainHeader(
 	header sovereignChainHeader,
 ) []*display.LineData {
 	lines = txc.displayExtendedShardHeaderHashesIncluded(lines, header.GetExtendedShardHeaderHashes())
-	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingMiniBlockHeaderHandler())
+	lines = txc.displayOutGoingTxData(lines, header.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB)))
 	lines = txc.displayLastCrossChainNotarizedHeader(lines, header)
 
 	return lines
