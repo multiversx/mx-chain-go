@@ -354,7 +354,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	// broadcast header and final info section
+	// chaos-testing-point:v1/subroundEndRound_doEndRoundJobByLeader_maybeSleep
 
 	sr.createAndBroadcastHeaderFinalInfo()
 

@@ -24,6 +24,14 @@
             "triggers": ["false"]
         },
         {
+            "name": "shouldSleepInEndRoundAsLeader",
+            "enabled": false,
+            "triggers": ["round % 20 == 0"],
+            "parameters": {
+                "duration": 12
+            }
+        },
+        {
             "name": "shouldCorruptLeaderSignature",
             "enabled": false,
             "triggers": ["round % 13 == 0"]

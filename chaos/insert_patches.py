@@ -60,6 +60,10 @@ def main():
 	}
 """
             ),
+            (
+                "// chaos-testing-point:v1/subroundEndRound_doEndRoundJobByLeader_maybeSleep",
+                """chaos.Controller.In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep(sr)"""
+            )
         ],
         with_import=True
     )

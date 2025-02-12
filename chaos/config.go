@@ -15,9 +15,10 @@ type chaosConfig struct {
 }
 
 type failureDefinition struct {
-	Name     string   `json:"name"`
-	Enabled  bool     `json:"enabled"`
-	Triggers []string `json:"triggers"`
+	Name       string                 `json:"name"`
+	Enabled    bool                   `json:"enabled"`
+	Triggers   []string               `json:"triggers"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {
@@ -54,4 +55,27 @@ func (config *chaosConfig) populateFailuresByName() {
 func (config *chaosConfig) getFailureByName(name failureName) (failureDefinition, bool) {
 	failure, ok := config.failuresByName[string(name)]
 	return failure, ok
+}
+
+func (config *chaosConfig) getFailureParameterAsFloat64(failureName failureName, parameterName string) float64 {
+	failure, ok := config.getFailureByName(failureName)
+	if !ok {
+		return 0
+	}
+
+	return failure.getParameterAsFloat64(parameterName)
+}
+
+func (failure *failureDefinition) getParameterAsFloat64(parameterName string) float64 {
+	value, ok := failure.Parameters[parameterName]
+	if !ok {
+		return 0
+	}
+
+	floatValue, ok := value.(float64)
+	if !ok {
+		return 0
+	}
+
+	return floatValue
 }

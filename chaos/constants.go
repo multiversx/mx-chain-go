@@ -7,6 +7,7 @@ const (
 	failureShouldCorruptSignature                     failureName = "shouldCorruptSignature"
 	failureShouldSkipWaitingForSignatures             failureName = "shouldSkipWaitingForSignatures"
 	failureShouldReturnErrorInCheckSignaturesValidity failureName = "shouldReturnErrorInCheckSignaturesValidity"
+	failureShouldSleepInEndRoundAsLeader              failureName = "shouldSleepInEndRoundAsLeader"
 	failureShouldCorruptLeaderSignature               failureName = "shouldCorruptLeaderSignature"
 	failureShouldSkipSendingBlock                     failureName = "shouldSkipSendingBlock"
 )

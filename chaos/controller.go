@@ -2,6 +2,7 @@ package chaos
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -100,6 +101,21 @@ func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidit
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
 	return controller.shouldFail(failureShouldReturnErrorInCheckSignaturesValidity, circumstance)
+}
+
+// In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep sleeps, from time to time.
+func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep(consensusState spos.ConsensusStateHandler) {
+	log.Trace("In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep")
+
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	circumstance := controller.acquireCircumstance(consensusState, "")
+
+	if controller.shouldFail(failureShouldSleepInEndRoundAsLeader, circumstance) {
+		duration := controller.config.getFailureParameterAsFloat64(failureShouldSleepInEndRoundAsLeader, "duration")
+		time.Sleep(time.Duration(duration))
+	}
 }
 
 // In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
