@@ -743,6 +743,12 @@ const (
 	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 are enabled
 	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
 
+	// MetricMaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
+	MetricMaskVMInternalDependenciesErrorsEnableEpoch = "erd_mask_vm_internal_dependencies_errors_enable_epoch"
+
+	// MetricFixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+	MetricFixBackTransferOPCODEEnableEpoch = "erd_fix_back_transfer_opcode_enable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -1242,5 +1248,6 @@ const (
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	MaskInternalDependenciesErrorsFlag                 core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
+	FixBackTransferOPCODEFlag                          core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

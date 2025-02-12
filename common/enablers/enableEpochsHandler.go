@@ -792,6 +792,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch,
 		},
+		common.FixBackTransferOPCODEFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch,
+		},
 	}
 }
 
