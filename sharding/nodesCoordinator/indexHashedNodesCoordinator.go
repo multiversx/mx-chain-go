@@ -976,7 +976,7 @@ func (ihnc *indexHashedNodesCoordinator) ShardIdForEpoch(epoch uint32) (uint32, 
 		return 0, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
-	return nodesConfig.shardID, nil
+	return ihnc.numberOfShardsComputer.ShardIdFromNodesConfig(nodesConfig), nil
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler

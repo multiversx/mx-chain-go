@@ -17,10 +17,11 @@
 
 # MainChainElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
 [MainChainElasticSearchConnector]
-    ## We do not recommend to activate this indexer on a validator node since
-    #the node might lose rating (even facing penalties) due to the fact that
-    #the indexer is called synchronously and might block due to external causes.
-    #Strongly suggested to activate this on a regular observer node.
+    # We do not recommend to activate this indexer on a validator node since
+    # the node might lose rating (even facing penalties) due to the fact that
+    # the indexer is called synchronously and might block due to external causes.
+    # Strongly suggested to activate this on a regular observer node.
+    # To use our public elastic client, set the URL to https://index.multiversx.com
     Enabled = false
     URL = "http://localhost:9201"
     Username = ""

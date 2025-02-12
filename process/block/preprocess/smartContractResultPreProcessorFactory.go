@@ -6,8 +6,8 @@ type smartContractResultPreProcessorFactory struct {
 }
 
 // NewSmartContractResultPreProcessorFactory creates a new smart contract result pre processor factory
-func NewSmartContractResultPreProcessorFactory() (*smartContractResultPreProcessorFactory, error) {
-	return &smartContractResultPreProcessorFactory{}, nil
+func NewSmartContractResultPreProcessorFactory() *smartContractResultPreProcessorFactory {
+	return &smartContractResultPreProcessorFactory{}
 }
 
 // CreateSmartContractResultPreProcessor creates a new smart contract result pre processor

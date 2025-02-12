@@ -7,8 +7,8 @@ type blockChainHookFactory struct {
 }
 
 // NewBlockChainHookFactory creates a new instance of blockChainHookFactory
-func NewBlockChainHookFactory() (BlockChainHookHandlerCreator, error) {
-	return &blockChainHookFactory{}, nil
+func NewBlockChainHookFactory() BlockChainHookHandlerCreator {
+	return &blockChainHookFactory{}
 }
 
 // CreateBlockChainHookHandler creates a blockchain hook based on the chain run type normal
