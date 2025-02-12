@@ -21,7 +21,8 @@ const (
 	parameterEpoch           failureExpressionParameterName = "epoch"
 	parameterRound           failureExpressionParameterName = "round"
 
-	parameterNodeIndex             failureExpressionParameterName = "nodeIndex"
-	parameterNodePublicKeyLastByte failureExpressionParameterName = "nodePublicKeyLastByte"
-	parameterBlockNonce            failureExpressionParameterName = "blockNonce"
+	parameterNodeIndex     failureExpressionParameterName = "nodeIndex"
+	parameterNodePublicKey failureExpressionParameterName = "nodePublicKey"
+	parameterAmILeader     failureExpressionParameterName = "amILeader"
+	parameterBlockNonce    failureExpressionParameterName = "blockNonce"
 )

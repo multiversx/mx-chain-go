@@ -25,7 +25,8 @@ type failureCircumstance struct {
 
 	// Not always available:
 	nodeIndex     int
-	nodePublicKey []byte
+	nodePublicKey string
+	amILeader     bool
 	blockNonce    uint64
 }
 
@@ -42,7 +43,8 @@ func newFailureCircumstance() *failureCircumstance {
 		round:           math.MaxUint64,
 
 		nodeIndex:     -1,
-		nodePublicKey: nil,
+		nodePublicKey: "",
+		amILeader:     false,
 		blockNonce:    0,
 	}
 }
@@ -73,7 +75,8 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 		circumstance.nodeIndex = nodeIndex
 	}
 
-	circumstance.nodePublicKey = []byte(nodePublicKey)
+	circumstance.nodePublicKey = nodePublicKey
+	circumstance.amILeader = consensusState.Leader() == nodePublicKey
 	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 }
 
@@ -88,6 +91,20 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 	}()
 
 	for _, expression := range expressions {
+		log.Trace("circumstance.anyExpression()",
+			"expression", expression,
+			"nodeDisplayName", circumstance.nodeDisplayName,
+			"randomNumber", circumstance.randomNumber,
+			"now", circumstance.now,
+			"shard", circumstance.shard,
+			"epoch", circumstance.epoch,
+			"round", circumstance.round,
+			"nodeIndex", circumstance.nodeIndex,
+			"nodePublicKey", circumstance.nodePublicKey,
+			"amILeader", circumstance.amILeader,
+			"blockNonce", circumstance.blockNonce,
+		)
+
 		result, err := types.Eval(fileSet, pack, token.NoPos, expression)
 		if err != nil {
 			log.Error("failed to evaluate expression", "error", err, "expression", expression)
@@ -120,19 +137,11 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterEpoch, uint64(circumstance.epoch)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRound, uint64(circumstance.round)))
 
-	// Not always available:
-	if circumstance.nodeIndex >= 0 {
-		scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodeIndex, uint64(circumstance.nodeIndex)))
-	}
-
-	if len(circumstance.nodePublicKey) > 0 {
-		nodePublicKeyLastByte := circumstance.nodePublicKey[len(circumstance.nodePublicKey)-1]
-		scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodePublicKeyLastByte, uint64(nodePublicKeyLastByte)))
-	}
-
-	if circumstance.blockNonce > 0 {
-		scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
-	}
+	// Not always available (set):
+	scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodeIndex, uint64(circumstance.nodeIndex)))
+	scope.Insert(createFailureExpressionStringParameter(pack, parameterNodePublicKey, circumstance.nodePublicKey))
+	scope.Insert(createFailureExpressionBoolParameter(pack, parameterAmILeader, circumstance.amILeader))
+	scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
 
 	return pack
 }
@@ -143,4 +152,8 @@ func createFailureExpressionNumericParameter(pack *types.Package, name failureEx
 
 func createFailureExpressionStringParameter(pack *types.Package, name failureExpressionParameterName, value string) *types.Const {
 	return types.NewConst(token.NoPos, pack, string(name), types.Typ[types.String], constant.MakeString(value))
+}
+
+func createFailureExpressionBoolParameter(pack *types.Package, name failureExpressionParameterName, value bool) *types.Const {
+	return types.NewConst(token.NoPos, pack, string(name), types.Typ[types.Bool], constant.MakeBool(value))
 }

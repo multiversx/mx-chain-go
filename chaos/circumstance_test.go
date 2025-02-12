@@ -16,7 +16,8 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 		round:           1001,
 
 		nodeIndex:     7,
-		nodePublicKey: []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+		nodePublicKey: "abba",
+		amILeader:     true,
 		blockNonce:    1000,
 	}
 
@@ -30,8 +31,9 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 	require.True(t, circumstance.anyExpression([]string{"randomNumber == 42", "randomNumber == 43"}))
 	require.True(t, circumstance.anyExpression([]string{"randomNumber > 41 && randomNumber < 43"}))
 	require.False(t, circumstance.anyExpression([]string{"randomNumber % 3 != 0"}))
-	require.True(t, circumstance.anyExpression([]string{"nodePublicKeyLastByte == 10"}))
+	require.True(t, circumstance.anyExpression([]string{"nodePublicKey == \"abba\""}))
 	require.True(t, circumstance.anyExpression([]string{"nodeIndex == 7"}))
+	require.True(t, circumstance.anyExpression([]string{"amILeader == true"}))
 	require.False(t, circumstance.anyExpression([]string{"a == 42"}))
 	require.True(t, circumstance.anyExpression([]string{"a == 42", "true"}))
 	require.False(t, circumstance.anyExpression([]string{"now == \"hello\""}))

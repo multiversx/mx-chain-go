@@ -55,6 +55,8 @@ func (controller *chaosController) In_shardProcess_processTransaction_shouldRetu
 
 // In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
 func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(consensusState spos.ConsensusStateHandler, signature []byte) {
+	log.Trace("In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey")
+
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
@@ -67,6 +69,8 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 
 // In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
 func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(consensusState spos.ConsensusStateHandler, nodePublicKey string, signature []byte) {
+	log.Trace("In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey")
+
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
@@ -79,6 +83,8 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 
 // In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
 func (controller *chaosController) In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(consensusState spos.ConsensusStateHandler) bool {
+	log.Trace("In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures")
+
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
@@ -87,6 +93,8 @@ func (controller *chaosController) In_V1_subroundSignature_completeSignatureSubR
 }
 
 func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(consensusState spos.ConsensusStateHandler) bool {
+	log.Trace("In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError")
+
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
@@ -96,6 +104,8 @@ func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidit
 
 // In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(consensusState spos.ConsensusStateHandler, signature []byte) {
+	log.Trace("In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature")
+
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
@@ -108,6 +118,8 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 
 // In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(consensusState spos.ConsensusStateHandler) bool {
+	log.Trace("In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock")
+
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
@@ -117,6 +129,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSend
 
 func (controller *chaosController) acquireCircumstance(consensusState spos.ConsensusStateHandler, nodePublicKey string) *failureCircumstance {
 	circumstance := newFailureCircumstance()
+	circumstance.nodeDisplayName = controller.nodeDisplayName
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
 	circumstance.enrichWithConsensusState(consensusState, nodePublicKey)
 
