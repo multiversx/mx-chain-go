@@ -24,10 +24,9 @@ type failureCircumstance struct {
 	round           uint64
 
 	// Not always available:
-	nodeIndex       int
-	blockNonce      uint64
-	nodePublicKey   []byte
-	transactionHash []byte
+	nodeIndex     int
+	nodePublicKey []byte
+	blockNonce    uint64
 }
 
 func newFailureCircumstance() *failureCircumstance {
@@ -42,10 +41,9 @@ func newFailureCircumstance() *failureCircumstance {
 		epoch:           math.MaxUint32,
 		round:           math.MaxUint64,
 
-		nodeIndex:       -1,
-		nodePublicKey:   nil,
-		blockNonce:      0,
-		transactionHash: nil,
+		nodeIndex:     -1,
+		nodePublicKey: nil,
+		blockNonce:    0,
 	}
 }
 
@@ -123,8 +121,8 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRound, uint64(circumstance.round)))
 
 	// Not always available:
-	if circumstance.blockNonce > 0 {
-		scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
+	if circumstance.nodeIndex >= 0 {
+		scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodeIndex, uint64(circumstance.nodeIndex)))
 	}
 
 	if len(circumstance.nodePublicKey) > 0 {
@@ -132,13 +130,8 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 		scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodePublicKeyLastByte, uint64(nodePublicKeyLastByte)))
 	}
 
-	if len(circumstance.transactionHash) > 0 {
-		transactionHashLastByte := circumstance.transactionHash[len(circumstance.transactionHash)-1]
-		scope.Insert(createFailureExpressionNumericParameter(pack, parameterTransactionHashLastByte, uint64(transactionHashLastByte)))
-	}
-
-	if circumstance.nodeIndex >= 0 {
-		scope.Insert(createFailureExpressionNumericParameter(pack, "nodeIndex", uint64(circumstance.nodeIndex)))
+	if circumstance.blockNonce > 0 {
+		scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
 	}
 
 	return pack
