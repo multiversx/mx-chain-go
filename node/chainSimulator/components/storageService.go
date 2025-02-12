@@ -3,6 +3,7 @@ package components
 import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
@@ -23,7 +24,7 @@ func CreateStorageService(numOfShards uint32, trieStoragePath TriePathAndRootHas
 	store.AddStorer(dataRetriever.ReceiptsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.TxLogsUnit, CreateMemUnit())
-	store.AddStorer(dataRetriever.UserAccountsUnit, CreateMemUnitForTries())
+
 	store.AddStorer(dataRetriever.PeerAccountsUnit, CreateMemUnitForTries())
 	store.AddStorer(dataRetriever.ESDTSuppliesUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RoundHdrHashDataUnit, CreateMemUnit())
@@ -38,8 +39,19 @@ func CreateStorageService(numOfShards uint32, trieStoragePath TriePathAndRootHas
 		store.AddStorer(hdrNonceHashDataUnit, CreateMemUnit())
 	}
 
+	accountsStorer, err := createAccountsStorer(trieStoragePath, config)
+	if err != nil {
+		return nil, err
+	}
+
+	store.AddStorer(dataRetriever.UserAccountsUnit, accountsStorer)
+
+	return store, nil
+}
+
+func createAccountsStorer(trieStoragePath TriePathAndRootHash, config *config.Config) (storage.Storer, error) {
 	if trieStoragePath.TriePath == "" {
-		return store, nil
+		return CreateMemUnitForTries(), nil
 	}
 
 	config.AccountsTrieStorage.DB.FilePath = trieStoragePath.TriePath
@@ -48,9 +60,7 @@ func CreateStorageService(numOfShards uint32, trieStoragePath TriePathAndRootHas
 		return nil, err
 	}
 
-	store.AddStorer(dataRetriever.UserAccountsUnit, storer)
-
-	return store, nil
+	return storer, nil
 }
 
 func createStaticStorageUnit(
