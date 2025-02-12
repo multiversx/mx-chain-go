@@ -39,6 +39,9 @@ var _ closing.Closer = (*trigger)(nil)
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniBlocks method
 const sleepTime = 1 * time.Second
 
+// processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
+const processingThresholdPercent = 85
+
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
 	Marshalizer marshal.Marshalizer
@@ -674,6 +677,14 @@ func (t *trigger) updateTriggerHeaderData(metaHdr *block.MetaBlock, metaBlockHas
 		roundDifferences := t.roundHandler.Index() - int64(metaHdr.GetRound())
 		if roundDifferences > 1 {
 			wait = 0
+		}
+
+		// wait until end of the round, but make sure it happens on this round
+		isUpdateFromEquivalentProof := t.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, metaHdr.GetEpoch())
+		if isUpdateFromEquivalentProof {
+			startTime := t.roundHandler.TimeStamp()
+			maxTime := t.roundHandler.TimeDuration() * time.Duration(processingThresholdPercent) / 100
+			wait = t.roundHandler.RemainingTime(startTime, maxTime)
 		}
 
 		time.Sleep(wait)
