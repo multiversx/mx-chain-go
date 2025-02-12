@@ -31,7 +31,7 @@ func GenerateSovereignGenesisFile(args chainSimulatorConfigs.ArgsChainSimulatorC
 		StakeWallets:   make([]*dtos.WalletKey, 0),
 	}
 	addresses := make([]data.InitialAccount, 0)
-	numOfNodes := int((args.NumNodesWaitingListShard+args.MinNodesPerShard)*args.NumOfShards + args.NumNodesWaitingListMeta + args.MetaChainMinNodes)
+	numOfNodes := int(args.NumNodesWaitingListShard + args.MinNodesPerShard)
 
 	totalStakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
 	totalStakedValue.Mul(totalStakedValue, big.NewInt(int64(numOfNodes)))
