@@ -9,15 +9,16 @@ import (
 
 // BroadcastMessengerMock -
 type BroadcastMessengerMock struct {
-	BroadcastBlockCalled                     func(data.BodyHandler, data.HeaderHandler) error
-	BroadcastHeaderCalled                    func(data.HeaderHandler, []byte) error
-	BroadcastEquivalentProofCalled           func(proof data.HeaderProofHandler, pkBytes []byte) error
-	PrepareBroadcastBlockDataValidatorCalled func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte) error
-	PrepareBroadcastHeaderValidatorCalled    func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte)
-	BroadcastMiniBlocksCalled                func(map[uint32][]byte, []byte) error
-	BroadcastTransactionsCalled              func(map[string][][]byte, []byte) error
-	BroadcastConsensusMessageCalled          func(*consensus.Message) error
-	BroadcastBlockDataLeaderCalled           func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, pkBytes []byte) error
+	BroadcastBlockCalled                                func(data.BodyHandler, data.HeaderHandler) error
+	BroadcastHeaderCalled                               func(data.HeaderHandler, []byte) error
+	BroadcastEquivalentProofCalled                      func(proof data.HeaderProofHandler, pkBytes []byte) error
+	PrepareBroadcastBlockDataValidatorCalled            func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte) error
+	PrepareBroadcastBlockDataWithEquivalentProofsCalled func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, pkBytes []byte)
+	PrepareBroadcastHeaderValidatorCalled               func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, idx int, pkBytes []byte)
+	BroadcastMiniBlocksCalled                           func(map[uint32][]byte, []byte) error
+	BroadcastTransactionsCalled                         func(map[string][][]byte, []byte) error
+	BroadcastConsensusMessageCalled                     func(*consensus.Message) error
+	BroadcastBlockDataLeaderCalled                      func(h data.HeaderHandler, mbs map[uint32][]byte, txs map[string][][]byte, pkBytes []byte) error
 }
 
 // BroadcastBlock -
@@ -69,6 +70,23 @@ func (bmm *BroadcastMessengerMock) PrepareBroadcastBlockDataValidator(
 			miniBlocks,
 			transactions,
 			idx,
+			pkBytes,
+		)
+	}
+}
+
+// PrepareBroadcastBlockDataWithEquivalentProofs -
+func (bmm *BroadcastMessengerMock) PrepareBroadcastBlockDataWithEquivalentProofs(
+	header data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	pkBytes []byte,
+) {
+	if bmm.PrepareBroadcastBlockDataWithEquivalentProofsCalled != nil {
+		bmm.PrepareBroadcastBlockDataWithEquivalentProofsCalled(
+			header,
+			miniBlocks,
+			transactions,
 			pkBytes,
 		)
 	}
