@@ -40,8 +40,7 @@
 
 [OutGoingBridge]
     # This flag enables or disables the outgoing bridge service connection.
-    # When enabled, the node will process and forward outgoing transactions to the bridge service.
-    # Disabling this flag will prevent any outgoing operations from being sent.
+    # When disabled, the node will not send the outgoing operations to the bridge service.
     Enabled = false
     GRPCHost = "localhost"
     GRPCPort = "8085"
