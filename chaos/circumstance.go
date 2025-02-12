@@ -4,7 +4,14 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
+	"math"
+	"math/rand"
 	"strconv"
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-logger-go/proto"
 )
 
 type failureCircumstance struct {
@@ -21,6 +28,55 @@ type failureCircumstance struct {
 	blockNonce      uint64
 	nodePublicKey   []byte
 	transactionHash []byte
+}
+
+func newFailureCircumstance() *failureCircumstance {
+	randomNumber := rand.Uint64()
+	now := time.Now().Unix()
+
+	return &failureCircumstance{
+		nodeDisplayName: "",
+		randomNumber:    randomNumber,
+		now:             now,
+		shard:           math.MaxUint32,
+		epoch:           math.MaxUint32,
+		round:           math.MaxUint64,
+
+		nodeIndex:       -1,
+		nodePublicKey:   nil,
+		blockNonce:      0,
+		transactionHash: nil,
+	}
+}
+
+// For simplicity, we get the current shard, epoch and round from the logger correlation facility.
+func (circumstance *failureCircumstance) enrichWithLoggerCorrelation(correlation proto.LogCorrelationMessage) {
+	shard, err := core.ConvertShardIDToUint32(correlation.Shard)
+	if err != nil {
+		shard = math.MaxInt16
+	}
+
+	circumstance.shard = shard
+	circumstance.epoch = correlation.Epoch
+	circumstance.round = uint64(correlation.Round)
+}
+
+func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState spos.ConsensusStateHandler, nodePublicKey string) {
+	if consensusState == nil {
+		return
+	}
+
+	if nodePublicKey == "" {
+		nodePublicKey = consensusState.SelfPubKey()
+	}
+
+	nodeIndex, err := consensusState.ConsensusGroupIndex(nodePublicKey)
+	if err != nil {
+		circumstance.nodeIndex = nodeIndex
+	}
+
+	circumstance.nodePublicKey = []byte(nodePublicKey)
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 }
 
 func (circumstance *failureCircumstance) anyExpression(expressions []string) bool {

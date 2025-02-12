@@ -5,7 +5,7 @@
             "enabled": false,
             "triggers": [
                 "(nodePublicKeyLastByte % 4 == 0 && transactionHashLastByte % 7 == 0)",
-                "round == 500 && iAmWaitingNode"
+                "round == 500 && randomNumber % 2 == 0"
             ]
         },
         {
