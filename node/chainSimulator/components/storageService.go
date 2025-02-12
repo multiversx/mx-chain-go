@@ -1,11 +1,14 @@
 package components
 
 import (
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
-// CreateStore creates a storage service for shard nodes
-func CreateStore(numOfShards uint32) dataRetriever.StorageService {
+// CreateStorageService creates a storage service for shard nodes
+func CreateStorageService(numOfShards uint32, trieStoragePath TriePathAndRootHash, config *config.Config) (dataRetriever.StorageService, error) {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
@@ -35,5 +38,36 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 		store.AddStorer(hdrNonceHashDataUnit, CreateMemUnit())
 	}
 
-	return store
+	if trieStoragePath.TriePath == "" {
+		return store, nil
+	}
+
+	config.AccountsTrieStorage.DB.FilePath = trieStoragePath.TriePath
+	storer, err := createStaticStorageUnit(config.AccountsTrieStorage)
+	if err != nil {
+		return nil, err
+	}
+
+	store.AddStorer(dataRetriever.UserAccountsUnit, storer)
+
+	return store, nil
+}
+
+func createStaticStorageUnit(
+	storageConf config.StorageConfig,
+) (*storageunit.Unit, error) {
+	storageUnitDBConf := factory.GetDBFromConfig(storageConf.DB)
+	dbPath := storageConf.DB.FilePath
+	storageUnitDBConf.FilePath = dbPath
+
+	persisterCreator, err := factory.NewPersisterFactory(storageConf.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	return storageunit.NewStorageUnitFromConf(
+		factory.GetCacherFromConfig(storageConf.Cache),
+		storageUnitDBConf,
+		persisterCreator,
+	)
 }
