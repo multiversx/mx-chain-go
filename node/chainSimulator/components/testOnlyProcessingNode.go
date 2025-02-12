@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -184,6 +185,18 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if args.TrieStoragePath.RootHash != "" {
+		rootHashBytes, errD := hex.DecodeString(args.TrieStoragePath.RootHash)
+		if errD != nil {
+			return nil, errD
+		}
+
+		err = instance.StateComponentsHolder.AccountsAdapter().RecreateTrie(holders.NewDefaultRootHashesHolder(rootHashBytes))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
