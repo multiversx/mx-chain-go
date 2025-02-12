@@ -684,6 +684,8 @@ func (t *trigger) updateTriggerHeaderData(metaHdr *block.MetaBlock, metaBlockHas
 		if isUpdateFromEquivalentProof {
 			startTime := t.roundHandler.TimeStamp()
 			maxTime := t.roundHandler.TimeDuration() * time.Duration(processingThresholdPercent) / 100
+			minWait := math.Min(wait.Seconds(), maxTime.Seconds())
+			maxTime = time.Duration(minWait) * time.Second
 			wait = t.roundHandler.RemainingTime(startTime, maxTime)
 		}
 
