@@ -172,6 +172,9 @@ func (controller *chaosController) shouldFail(failureName failureName, circumsta
 	if !configured {
 		return false
 	}
+	if !failure.Enabled {
+		return false
+	}
 
 	shouldFail := circumstance.anyExpression(failure.Triggers)
 	if shouldFail {

@@ -16,6 +16,7 @@ type chaosConfig struct {
 
 type failureDefinition struct {
 	Name     string   `json:"name"`
+	Enabled  bool     `json:"enabled"`
 	Triggers []string `json:"triggers"`
 }
 

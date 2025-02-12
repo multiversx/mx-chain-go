@@ -21,8 +21,6 @@ const (
 	parameterEpoch           failureExpressionParameterName = "epoch"
 	parameterRound           failureExpressionParameterName = "round"
 
-	parameterCounterProcessTransaction failureExpressionParameterName = "counterProcessTransaction"
-
 	parameterBlockNonce              failureExpressionParameterName = "blockNonce"
 	parameterNodePublicKeyLastByte   failureExpressionParameterName = "nodePublicKeyLastByte"
 	parameterTransactionHashLastByte failureExpressionParameterName = "transactionHashLastByte"

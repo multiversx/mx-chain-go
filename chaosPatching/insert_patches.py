@@ -19,9 +19,7 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:shardProcess_ProcessTransaction",
-                """chaos.Controller.CallsCounters.ProcessTransaction.Increment()
-
-    if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
+                """if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
         return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
 	}
 """
@@ -35,20 +33,15 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
-                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), selfIndex, signatureShare)"""
+                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr, signatureShare)"""
             ),
             (
                 "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
-                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), selfIndex, signatureShare)"""
+                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr, pk, signatureShare)"""
             ),
             (
                 "// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures",
-                """selfIndex, err := sr.SelfConsensusGroupIndex()
-    if err != nil {
-        selfIndex = -1
-    }
-
-    if chaos.Controller.In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr.GetHeader(), selfIndex) {
+                """if chaos.Controller.In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr) {
 		return true
 	}
 """
@@ -62,12 +55,7 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v1/subroundEndRound_checkSignaturesValidity_returnError",
-                """selfIndex, err := sr.SelfConsensusGroupIndex()
-    if err != nil {
-        selfIndex = -1
-    }
-    
-    if chaos.Controller.In_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr.GetHeader(), selfIndex) {
+                """if chaos.Controller.In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr) {
 		return spos.ErrInvalidSignature
 	}
 """
@@ -81,21 +69,11 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature",
-                """selfIndex, err := sr.SelfConsensusGroupIndex()
-    if err != nil {
-        selfIndex = -1
-    }
-    
-    chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header, selfIndex, leaderSignature)"""
+                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(sr, leaderSignature)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",
-                """selfIndex, errChaos := sr.SelfConsensusGroupIndex()
-    if errChaos != nil {
-        selfIndex = -1
-    }
-    
-    if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header, selfIndex) {
+                """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(sr) {
         return false
 	}
 """
@@ -109,11 +87,11 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
-                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr.GetHeader(), selfIndex, signatureShare)"""
+                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr, signatureShare)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
-                """chaos.Controller.In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr.GetHeader(), idx, signatureShare)"""
+                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr, pk, signatureShare)"""
             )
         ],
         with_import=True

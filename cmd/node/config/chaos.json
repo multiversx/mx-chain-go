@@ -2,6 +2,7 @@
     "failures": [
         {
             "name": "processTransactionShouldReturnError",
+            "enabled": false,
             "triggers": [
                 "(nodePublicKeyLastByte % 4 == 0 && transactionHashLastByte % 7 == 0)",
                 "round == 500 && iAmWaitingNode"
@@ -9,22 +10,27 @@
         },
         {
             "name": "shouldCorruptSignature",
+            "enabled": false,
             "triggers": ["round % 11 == 0"]
         },
         {
             "name": "shouldSkipWaitingForSignatures",
+            "enabled": false,
             "triggers": ["false"]
         },
         {
             "name": "shouldReturnErrorInCheckSignaturesValidity",
+            "enabled": false,
             "triggers": ["false"]
         },
         {
             "name": "shouldCorruptLeaderSignature",
+            "enabled": false,
             "triggers": ["round % 13 == 0"]
         },
         {
             "name": "shouldSkipSendingBlock",
+            "enabled": false,
             "triggers": ["round % 17 == 0 && randomNumber % 2 == 0"]
         }
     ]
