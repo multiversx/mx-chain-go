@@ -16,9 +16,6 @@ type failureCircumstance struct {
 	epoch           uint32
 	round           uint64
 
-	// Always available (counters):
-	counterProcessTransaction uint64
-
 	// Not always available:
 	nodeIndex       int
 	blockNonce      uint64
@@ -68,9 +65,6 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterShard, uint64(circumstance.shard)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterEpoch, uint64(circumstance.epoch)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRound, uint64(circumstance.round)))
-
-	// Always available (counters):
-	scope.Insert(createFailureExpressionNumericParameter(pack, parameterCounterProcessTransaction, circumstance.counterProcessTransaction))
 
 	// Not always available:
 	if circumstance.blockNonce > 0 {

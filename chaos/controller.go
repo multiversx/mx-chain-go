@@ -149,15 +149,8 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 		epoch:           loggerCorrelation.Epoch,
 		round:           uint64(loggerCorrelation.Round),
 
-		// Always available (counters):
-		counterProcessTransaction: controller.CallsCounters.ProcessTransaction.GetUint64(),
-
-		// WHEN WE KNOW INDEX, WE SHOULD NOT PUBLIC KEY, RIGHT???
-		// from learned keys? nu pot se iau ambele colectii acolo?
-
 		// Not always available:
 		nodeIndex:       -1,
-		blockNonce:      0,
 		nodePublicKey:   nil,
 		transactionHash: nil,
 	}
