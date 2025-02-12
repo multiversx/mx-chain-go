@@ -8,7 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
-	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -53,82 +54,76 @@ func (controller *chaosController) In_shardProcess_processTransaction_shouldRetu
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
+	circumstance := controller.acquireCircumstance(nil, "")
 	return controller.shouldFail(failureProcessTransactionShouldReturnError, circumstance)
 }
 
-// In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
-func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(header data.HeaderHandler, nodeIndex int, signature []byte) {
+// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
+func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(consensusState spos.ConsensusStateHandler, signature []byte) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
-	circumstance.nodeIndex = nodeIndex
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
 		signature[0] += 1
 	}
 }
 
-// In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
-func (controller *chaosController) In_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(header data.HeaderHandler, nodeIndex int, signature []byte) {
+// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
+func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(consensusState spos.ConsensusStateHandler, nodePublicKey string, signature []byte) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
-	circumstance.nodeIndex = nodeIndex
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstance(consensusState, nodePublicKey)
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
 		signature[0] += 1
 	}
 }
 
-// In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
-func (controller *chaosController) In_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(header data.HeaderHandler, nodeIndex int) bool {
+// In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
+func (controller *chaosController) In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(consensusState spos.ConsensusStateHandler) bool {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
-	circumstance.nodeIndex = nodeIndex
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 	return controller.shouldFail(failureShouldSkipWaitingForSignatures, circumstance)
 }
 
-func (controller *chaosController) In_subroundEndRound_checkSignaturesValidity_shouldReturnError(header data.HeaderHandler, nodeIndex int) bool {
+func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(consensusState spos.ConsensusStateHandler) bool {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
-	circumstance.nodeIndex = nodeIndex
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 	return controller.shouldFail(failureShouldReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
 // In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(header data.HeaderHandler, nodeIndex int, signature []byte) {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(consensusState spos.ConsensusStateHandler, signature []byte) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
-	circumstance.nodeIndex = nodeIndex
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 	if controller.shouldFail(failureShouldCorruptLeaderSignature, circumstance) {
 		signature[0] += 1
 	}
 }
 
 // In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(header data.HeaderHandler, nodeIndex int) bool {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(consensusState spos.ConsensusStateHandler) bool {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	circumstance := controller.acquireCircumstance()
-	circumstance.nodeIndex = nodeIndex
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 	return controller.shouldFail(failureShouldSkipSendingBlock, circumstance)
 }
 
-func (controller *chaosController) acquireCircumstance() *failureCircumstance {
+func (controller *chaosController) acquireCircumstance(consensusState spos.ConsensusStateHandler, nodePublicKey string) *failureCircumstance {
 	randomNumber := rand.Uint64()
 	now := time.Now().Unix()
 
@@ -140,7 +135,7 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 		shard = math.MaxInt16
 	}
 
-	return &failureCircumstance{
+	circumstance := &failureCircumstance{
 		// Always available:
 		nodeDisplayName: controller.nodeDisplayName,
 		randomNumber:    randomNumber,
@@ -152,8 +147,25 @@ func (controller *chaosController) acquireCircumstance() *failureCircumstance {
 		// Not always available:
 		nodeIndex:       -1,
 		nodePublicKey:   nil,
+		blockNonce:      0,
 		transactionHash: nil,
 	}
+
+	if !check.IfNil(consensusState) {
+		if nodePublicKey == "" {
+			nodePublicKey = consensusState.SelfPubKey()
+		}
+
+		nodeIndex, err := consensusState.ConsensusGroupIndex(nodePublicKey)
+		if err != nil {
+			circumstance.nodeIndex = nodeIndex
+		}
+
+		circumstance.nodePublicKey = []byte(nodePublicKey)
+		circumstance.blockNonce = consensusState.GetHeader().GetNonce()
+	}
+
+	return circumstance
 }
 
 func (controller *chaosController) shouldFail(failureName failureName, circumstance *failureCircumstance) bool {

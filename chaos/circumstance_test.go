@@ -15,8 +15,6 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 		epoch:           7,
 		round:           1001,
 
-		counterProcessTransaction: 4321,
-
 		blockNonce:      1000,
 		nodePublicKey:   []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
 		transactionHash: []byte{10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
