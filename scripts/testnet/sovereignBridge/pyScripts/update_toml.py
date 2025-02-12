@@ -1,6 +1,6 @@
 import os
-import sys
 import re
+import sys
 
 
 def update_subscribed_addresses(lines, section, identifier, main_chain_address) -> []:
@@ -68,11 +68,37 @@ def update_node_configs(config_path, esdt_prefix, sovereign_chain_address):
     update_transfer_and_execute_address(config_path + "/config.toml", sovereign_chain_address)
 
 
+def update_main_chain_elastic_url(lines, section, key, value):
+    updated_lines = []
+    section_found = False
+
+    for line in lines:
+        if line.startswith("[" + section + "]"):
+            section_found = True
+        if section_found and key in line:
+            line = re.sub(rf'({re.escape(key)}\s*=\s*)".*?"', rf'\1"{value}"', line)
+            section_found = False
+        updated_lines.append(line)
+
+    return updated_lines
+
+
+def update_external_config(file_path, main_chain_elastic):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    updated_lines = update_main_chain_elastic_url(lines, "MainChainElasticSearchConnector", "URL", main_chain_elastic)
+
+    with open(file_path, 'w') as file:
+        file.writelines(updated_lines)
+
+
 def main():
     # input arguments
     main_chain_address = sys.argv[1]
     sovereign_chain_address = sys.argv[2]
     esdt_prefix = sys.argv[3]
+    main_chain_elastic = sys.argv[4]
 
     current_path = os.getcwd()
     project = 'mx-chain-go'
@@ -83,6 +109,9 @@ def main():
 
     config_path = project_path + "/cmd/node/config"
     update_node_configs(config_path, esdt_prefix, sovereign_chain_address)
+
+    external_path = project_path + "/cmd/node/config/external.toml"
+    update_external_config(external_path, main_chain_elastic)
 
 
 if __name__ == "__main__":
