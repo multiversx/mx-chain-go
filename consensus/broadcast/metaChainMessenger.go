@@ -180,6 +180,16 @@ func (mcm *metaChainMessenger) PrepareBroadcastBlockDataValidator(
 ) {
 }
 
+// PrepareBroadcastBlockDataWithEquivalentProofs prepares the broadcast of block data with equivalent proofs
+func (mcm *metaChainMessenger) PrepareBroadcastBlockDataWithEquivalentProofs(
+	_ data.HeaderHandler,
+	miniBlocks map[uint32][]byte,
+	transactions map[string][][]byte,
+	pkBytes []byte,
+) {
+	go mcm.BroadcastBlockData(miniBlocks, transactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
+}
+
 // Close closes all the started infinite looping goroutines and subcomponents
 func (mcm *metaChainMessenger) Close() {
 	mcm.delayedBlockBroadcaster.Close()
