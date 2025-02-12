@@ -1083,28 +1083,6 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 
 	scbp.createEpochStartData(body)
 
-	//scbp.nodesCoordinator.EpochStartPrepare()
-
-	//_, err = scbp.nodesCoordinator.GetConsensusValidatorsPublicKeys([]byte("rand"), 0, 0, header.GetEpoch())
-	//if err == nil {
-	//	return errors.ErrNewBootstrapDataProvider
-	//}
-
-	scbp.nodesCoordinator.EpochStartPrepare(header, body)
-	scbp.nodesCoordinator.EpochStartPrepare(header, body)
-	//scbp.nodesCoordinator.EpochStartPrepare(header, body)
-
-	//scbp.epochStartTrigger.SetProcessed(header, body)
-
-	pubKeys, err := scbp.nodesCoordinator.GetConsensusValidatorsPublicKeys([]byte("rand"), 0, 0, header.GetEpoch())
-	if err != nil {
-		return err
-	}
-
-	for _, pk := range pubKeys {
-		log.Error("DSADSADAS", "PKL", pk)
-	}
-
 	return nil
 }
 
