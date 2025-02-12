@@ -45,6 +45,31 @@ func createMockArgsTransactionCounter() ArgsTransactionCounter {
 	}
 }
 
+func createDisplayLinesForOutGoingMb(outGoingMb *block.OutGoingMiniBlockHeader) []*display.LineData {
+	return []*display.LineData{
+		{
+			Values:              []string{"OutGoing mini block header", "Hash", hex.EncodeToString(outGoingMb.GetHash())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "Type", block.OutGoingMBType(outGoingMb.GetOutGoingMBTypeInt32()).String()},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "OutGoingTxDataHash", hex.EncodeToString(outGoingMb.GetOutGoingOperationsHash())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMb.GetAggregatedSignatureOutGoingOperations())},
+			HorizontalRuleAfter: false,
+		},
+		{
+			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMb.GetLeaderSignatureOutGoingOperations())},
+			HorizontalRuleAfter: true,
+		},
+	}
+}
+
 func TestDisplayBlock_NewTransactionCounterShouldErrWhenHasherIsNil(t *testing.T) {
 	t.Parallel()
 
@@ -110,14 +135,22 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 	shardLines := make([]*display.LineData, 0)
 
 	extendedShardHeaderHashes := [][]byte{[]byte("hash1"), []byte("hash2"), []byte("hash3")}
-	outGoingMbHeader := &block.OutGoingMiniBlockHeader{
+	outGoingMbHeader1 := &block.OutGoingMiniBlockHeader{
 		Hash:                                  []byte("outGoingTxDataHash"),
+		OutGoingMBType:                        block.OutGoingTxMB,
 		OutGoingOperationsHash:                []byte("outGoingOperationsHash"),
 		AggregatedSignatureOutGoingOperations: []byte("aggregatedSig"),
 		LeaderSignatureOutGoingOperations:     []byte("leaderSig"),
 	}
+	outGoingMbHeader2 := &block.OutGoingMiniBlockHeader{
+		Hash:                                  []byte("outGoingTxDataHash2"),
+		OutGoingMBType:                        block.ChangeValidatorSetMB,
+		OutGoingOperationsHash:                []byte("outGoingOperationsHash2"),
+		AggregatedSignatureOutGoingOperations: []byte("aggregatedSig2"),
+		LeaderSignatureOutGoingOperations:     []byte("leaderSig2"),
+	}
 	sovChainHeader := &block.SovereignChainHeader{
-		OutGoingMiniBlockHeaders:  []*block.OutGoingMiniBlockHeader{outGoingMbHeader},
+		OutGoingMiniBlockHeaders:  []*block.OutGoingMiniBlockHeader{outGoingMbHeader1, outGoingMbHeader2},
 		ExtendedShardHeaderHashes: extendedShardHeaderHashes,
 	}
 
@@ -128,6 +161,8 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 		sovChainHeader,
 	)
 
+	linesOutGoingMB1 := createDisplayLinesForOutGoingMb(outGoingMbHeader1)
+	linesOutGoingMB2 := createDisplayLinesForOutGoingMb(outGoingMbHeader2)
 	expectedLines := []*display.LineData{
 		{
 			Values:              []string{"ExtendedShardHeaderHashes", "ExtendedShardHeaderHash_1", hex.EncodeToString(extendedShardHeaderHashes[0])},
@@ -141,23 +176,9 @@ func TestDisplayBlock_DisplaySovereignChainHeader(t *testing.T) {
 			Values:              []string{"", "ExtendedShardHeaderHash_3", hex.EncodeToString(extendedShardHeaderHashes[2])},
 			HorizontalRuleAfter: true,
 		},
-		{
-			Values:              []string{"OutGoing mini block header", "Hash", hex.EncodeToString(outGoingMbHeader.GetHash())},
-			HorizontalRuleAfter: false,
-		},
-		{
-			Values:              []string{"", "OutGoingTxDataHash", hex.EncodeToString(outGoingMbHeader.GetOutGoingOperationsHash())},
-			HorizontalRuleAfter: false,
-		},
-		{
-			Values:              []string{"", "AggregatedSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetAggregatedSignatureOutGoingOperations())},
-			HorizontalRuleAfter: false,
-		},
-		{
-			Values:              []string{"", "LeaderSignatureOutGoingOperations", hex.EncodeToString(outGoingMbHeader.GetLeaderSignatureOutGoingOperations())},
-			HorizontalRuleAfter: true,
-		},
 	}
+	expectedLines = append(expectedLines, linesOutGoingMB1...)
+	expectedLines = append(expectedLines, linesOutGoingMB2...)
 	require.Equal(t, expectedLines, lines)
 
 	crossChainData := block.EpochStartCrossChainData{

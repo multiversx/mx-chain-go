@@ -40,7 +40,7 @@ type validatorStatsRootHashGetter interface {
 
 type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
-	GetOutGoingMiniBlockHeaderHandler(mbType int32) data.OutGoingMiniBlockHeaderHandler
+	GetOutGoingMiniBlockHeaderHandlers() []data.OutGoingMiniBlockHeaderHandler
 	GetEpochStartHandler() data.EpochStartHandler
 	GetLastFinalizedCrossChainHeaderHandler() data.EpochStartChainDataHandler
 }
