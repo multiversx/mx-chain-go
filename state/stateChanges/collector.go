@@ -2,8 +2,10 @@ package stateChanges
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -59,10 +61,12 @@ func (c *collector) AddStateChange(stateChange state.StateChange) {
 
 	if stateChange.GetType() == data.Write && c.collectWrite {
 		c.stateChanges = append(c.stateChanges, stateChange)
+		log.Trace("added WRITE state change to collector", "operation", stateChange.GetOperation())
 	}
 
 	if stateChange.GetType() == data.Read && c.collectRead {
 		c.stateChanges = append(c.stateChanges, stateChange)
+		log.Trace("added READ state change to collector", "operation", stateChange.GetOperation())
 	}
 }
 
@@ -91,6 +95,7 @@ func (c *collector) Reset() {
 	if c.storer != nil {
 		c.cachedTxs = make(map[string]*transaction.Transaction)
 	}
+	log.Trace("reset state changes collector")
 }
 
 // Publish will export state changes
@@ -101,23 +106,46 @@ func (c *collector) Publish() (map[string]*data.StateChanges, error) {
 	stateChangesForTxs := make(map[string]*data.StateChanges)
 	for _, stateChange := range c.stateChanges {
 		txHash := string(stateChange.GetTxHash())
+		if len(txHash) == 0 {
+			log.Warn("empty tx hash, state change event not associated to a transaction", "stateChange", stateChangeToString(stateChange))
+			continue
+		}
 
 		st, ok := stateChange.(*data.StateChange)
 		if !ok {
+			log.Warn("failed to cast state change to data.StateChange", "stateChange", stateChangeToString(stateChange))
 			continue
 		}
 
 		_, ok = stateChangesForTxs[txHash]
 		if !ok {
+			log.Trace("created new state changes for tx", "txHash", txHash)
 			stateChangesForTxs[txHash] = &data.StateChanges{
 				StateChanges: []*data.StateChange{st},
 			}
 		} else {
+			log.Trace("appended state change to existing state changes for tx", "txHash", txHash)
 			stateChangesForTxs[txHash].StateChanges = append(stateChangesForTxs[txHash].StateChanges, st)
 		}
 	}
+	log.Trace("published state changes", "numTxs", len(stateChangesForTxs))
 
 	return stateChangesForTxs, nil
+}
+
+func stateChangeToString(stateChange state.StateChange) string {
+	dataTrieChanges := make([]string, len(stateChange.GetDataTrieChanges()))
+	for i, dataTrieChange := range stateChange.GetDataTrieChanges() {
+		dataTrieChanges[i] = fmt.Sprintf("key: %v, val: %v, type: %v", hex.EncodeToString(dataTrieChange.Key), hex.EncodeToString(dataTrieChange.Val), dataTrieChange.Type)
+	}
+	return fmt.Sprintf("type: %v, operation: %v, mainTrieKey: %v, mainTrieVal: %v, index: %v, dataTrieChanges: %v",
+		stateChange.GetType(),
+		stateChange.GetOperation(),
+		hex.EncodeToString(stateChange.GetMainTrieKey()),
+		hex.EncodeToString(stateChange.GetMainTrieVal()),
+		stateChange.GetIndex(),
+		strings.Join(dataTrieChanges, ", "),
+	)
 }
 
 // Store will store the collected state changes if it has been configured with a storer
@@ -162,6 +190,7 @@ func (c *collector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transact
 			break
 		}
 
+		log.Trace("added tx hash to state change", "txHash", txHash, "index", c.stateChanges[i].GetIndex())
 		c.stateChanges[i].SetTxHash(txHash)
 	}
 }
@@ -172,13 +201,14 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 	defer c.stateChangesMut.Unlock()
 
 	if index > len(c.stateChanges) || index < 0 {
-		return state.ErrStateChangesIndexOutOfBounds
+		return fmt.Errorf("SetIndexToLastStateChange: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateChanges))
 	}
 
 	if len(c.stateChanges) == 0 {
 		return nil
 	}
 
+	log.Trace("set index to last state change", "index", index)
 	c.stateChanges[len(c.stateChanges)-1].SetIndex(int32(index))
 
 	return nil
@@ -187,7 +217,7 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 // RevertToIndex will revert to index
 func (c *collector) RevertToIndex(index int) error {
 	if index > len(c.stateChanges) || index < 0 {
-		return state.ErrStateChangesIndexOutOfBounds
+		return fmt.Errorf("RevertToIndex: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateChanges))
 	}
 
 	if index == 0 {
@@ -198,9 +228,11 @@ func (c *collector) RevertToIndex(index int) error {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
 
+	log.Trace("num state changes before revert", "num", len(c.stateChanges))
 	for i := len(c.stateChanges) - 1; i >= 0; i-- {
 		if c.stateChanges[i].GetIndex() == int32(index) {
 			c.stateChanges = c.stateChanges[:i]
+			log.Trace("reverted to index", "index", index, "num state changes after revert", len(c.stateChanges))
 			break
 		}
 	}
