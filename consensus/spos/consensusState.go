@@ -20,8 +20,11 @@ var log = logger.GetOrCreate("consensus/spos")
 type ConsensusState struct {
 	// hold the data on which validators do the consensus (could be for example a hash of the block header
 	// proposed by the leader)
-	Data   []byte
-	Body   data.BodyHandler
+	Data []byte
+
+	Body    data.BodyHandler
+	mutBody sync.RWMutex
+
 	Header data.HeaderHandler
 
 	receivedHeaders    []data.HeaderHandler
@@ -75,7 +78,7 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 
 // ResetConsensusState method resets all the consensus data
 func (cns *ConsensusState) ResetConsensusState() {
-	cns.Body = nil
+	cns.SetBody(nil)
 	cns.Header = nil
 	cns.Data = nil
 
@@ -227,7 +230,7 @@ func (cns *ConsensusState) IsNodeSelf(node string) bool {
 
 // IsBlockBodyAlreadyReceived method returns true if block body is already received and false otherwise
 func (cns *ConsensusState) IsBlockBodyAlreadyReceived() bool {
-	isBlockBodyAlreadyReceived := cns.Body != nil
+	isBlockBodyAlreadyReceived := cns.GetBody() != nil
 
 	return isBlockBodyAlreadyReceived
 }
@@ -450,11 +453,17 @@ func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
 
 // GetBody returns the body of the current round
 func (cns *ConsensusState) GetBody() data.BodyHandler {
+	cns.mutBody.RLock()
+	defer cns.mutBody.RUnlock()
+
 	return cns.Body
 }
 
 // SetBody sets the body of the current round
 func (cns *ConsensusState) SetBody(body data.BodyHandler) {
+	cns.mutBody.Lock()
+	defer cns.mutBody.Unlock()
+
 	cns.Body = body
 }
 
