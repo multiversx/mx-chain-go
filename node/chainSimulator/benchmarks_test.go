@@ -57,8 +57,8 @@ func TestChainSimulatorWithMainnetDBSwaps(t *testing.T) {
 		},
 		TrieStoragePaths: map[string]components.TriePathAndRootHash{
 			"1": {
-				TriePath: "/Users/mihai/Documents/ChainSimulatorDBS/AccountsTrie",
-				RootHash: "0565601c40d4285d470a1f03d79475b83bee4beab9c1dbaccb20cfcd6ba21899",
+				TriePath: "",
+				RootHash: "",
 			},
 		},
 	})
@@ -113,8 +113,8 @@ func TestChainSimulatorWithMainnetDB(t *testing.T) {
 		},
 		TrieStoragePaths: map[string]components.TriePathAndRootHash{
 			"1": {
-				TriePath: "/Users/mihai/Documents/ChainSimulatorDBS/AccountsTrie",
-				RootHash: "0565601c40d4285d470a1f03d79475b83bee4beab9c1dbaccb20cfcd6ba21899",
+				TriePath: "",
+				RootHash: "",
 			},
 		},
 	})
@@ -257,7 +257,6 @@ func generateTransactions(t *testing.T, initialAddr string, s *simulator, numTxs
 	return txs
 }
 
-// "454c524f4e446573647448544d2d663531643535": "120c000125d0869555f01c300000",
 func generateAddressesWithATokenAndEGLD(t *testing.T, cs *simulator, shardID uint32, numAddresses int, key, value string) [][]byte {
 	shardCoordinatorForShard := cs.GetNodeHandler(shardID).GetShardCoordinator()
 	converter := cs.GetNodeHandler(shardID).GetCoreComponents().AddressPubKeyConverter()
@@ -286,7 +285,6 @@ func generateAddressesWithATokenAndEGLD(t *testing.T, cs *simulator, shardID uin
 }
 
 func generateSwapsTransactions(t *testing.T, cs *simulator, numTxs int) []tupleTx {
-	/// "454c524f4e446573647448544d2d663531643535": "120c000125d0869555f01c300000",
 	senderAddresses := generateAddressesWithATokenAndEGLD(t, cs, 1, numTxs, "454c524f4e446573647448544d2d663531643535", "120c000125d0869555f01c300000")
 	shard1NodeHandler := cs.GetNodeHandler(1)
 
