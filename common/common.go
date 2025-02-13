@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -83,4 +84,15 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 
 	return nil
+}
+
+// GetShardIDs returns a map of shard IDs based on the number of shards
+func GetShardIDs(numShards uint32) map[uint32]struct{} {
+	shardIdentifiers := make(map[uint32]struct{})
+	for i := uint32(0); i < numShards; i++ {
+		shardIdentifiers[i] = struct{}{}
+	}
+	shardIdentifiers[core.MetachainShardId] = struct{}{}
+
+	return shardIdentifiers
 }

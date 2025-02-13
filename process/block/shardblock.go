@@ -293,6 +293,11 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
+	sp.mutRequestedAttestingNoncesMap.Lock()
+	sp.requestedAttestingNoncesMap = make(map[string]uint64)
+	sp.mutRequestedAttestingNoncesMap.Unlock()
+	_ = core.EmptyChannel(sp.allProofsReceived)
+
 	// check proofs for cross notarized metablocks
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
@@ -304,10 +309,12 @@ func (sp *shardProcessor) ProcessBlock(
 			continue
 		}
 
-		err = sp.checkProofRequestingNextHeaderBlockingIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
-		if err != nil {
-			return err
-		}
+		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+	}
+
+	err = sp.waitAllMissingProofs(haveTime())
+	if err != nil {
+		return err
 	}
 
 	defer func() {
@@ -487,10 +494,15 @@ func (sp *shardProcessor) checkEpochCorrectness(
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
 
+	epochChangeConfirmed := sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		epochChangeConfirmed = sp.epochStartTrigger.EpochStartRound() <= sp.epochStartTrigger.EpochFinalityAttestingRound()
+	}
+
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
 		header.GetEpoch() < sp.epochStartTrigger.MetaEpoch() &&
-		sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
+		epochChangeConfirmed
 	if isOldEpochAndShouldBeNew {
 		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
@@ -1750,6 +1762,8 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		"nonce", metaBlock.Nonce,
 		"hash", metaBlockHash,
 	)
+
+	sp.checkReceivedHeaderIfAttestingIsNeeded(headerHandler)
 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
