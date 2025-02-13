@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -26,7 +26,7 @@ type AccountsStub struct {
 	JournalLenCalled                     func() int
 	RevertToSnapshotCalled               func(snapshot int) error
 	RootHashCalled                       func() ([]byte, error)
-	RecreateTrieCalled                             func(options common.RootHashHolder) error
+	RecreateTrieCalled                   func(options common.RootHashHolder) error
 	PruneTrieCalled                      func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
 	CancelPruneCalled                    func(rootHash []byte, identifier state.TriePruningIdentifier)
 	SnapshotStateCalled                  func(rootHash []byte, epoch uint32)
@@ -41,7 +41,7 @@ type AccountsStub struct {
 	CloseCalled                          func() error
 	SetSyncerCalled                      func(syncer state.AccountsDBSyncer) error
 	StartSnapshotIfNeededCalled          func() error
-	SetTxHashForLatestStateChangesCalled func(txHash []byte, tx *transaction.Transaction)
+	SetTxHashForLatestStateChangesCalled func(txHash []byte, tx data.TransactionHandler)
 }
 
 // CleanCache -
@@ -252,7 +252,7 @@ func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.Roo
 }
 
 // SetTxHashForLatestStateChanges -
-func (as *AccountsStub) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
+func (as *AccountsStub) SetTxHashForLatestStateChanges(txHash []byte, tx data.TransactionHandler) {
 	if as.SetTxHashForLatestStateChangesCalled != nil {
 		as.SetTxHashForLatestStateChangesCalled(txHash, tx)
 	}

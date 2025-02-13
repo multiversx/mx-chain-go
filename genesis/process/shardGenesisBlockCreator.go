@@ -539,6 +539,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Accounts,
 		arg.Core.AddressPubKeyConverter(),
 		arg.ShardCoordinator,
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
 	)
 	if err != nil {
 		return nil, err

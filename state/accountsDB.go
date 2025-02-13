@@ -13,8 +13,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -1301,7 +1301,7 @@ func collectStats(
 }
 
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
-func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
+func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx data.TransactionHandler) {
 	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash, tx)
 }
 

@@ -1,8 +1,8 @@
 package state
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/state"
@@ -13,7 +13,7 @@ type StateChangesCollectorStub struct {
 	AddStateChangeCalled                   func(stateChange state.StateChange)
 	AddSaveAccountStateChangeCalled        func(oldAccount, account vmcommon.AccountHandler, stateChange state.StateChange)
 	ResetCalled                            func()
-	AddTxHashToCollectedStateChangesCalled func(txHash []byte, tx *transaction.Transaction)
+	AddTxHashToCollectedStateChangesCalled func(txHash []byte, tx data.TransactionHandler)
 	SetIndexToLastStateChangeCalled        func(index int) error
 	RevertToIndexCalled                    func(index int) error
 	PublishCalled                          func() (map[string]*stateChange.StateChanges, error)
@@ -43,7 +43,7 @@ func (s *StateChangesCollectorStub) Reset() {
 }
 
 // AddTxHashToCollectedStateChanges -
-func (s *StateChangesCollectorStub) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
+func (s *StateChangesCollectorStub) AddTxHashToCollectedStateChanges(txHash []byte, tx data.TransactionHandler) {
 	if s.AddTxHashToCollectedStateChangesCalled != nil {
 		s.AddTxHashToCollectedStateChangesCalled(txHash, tx)
 	}

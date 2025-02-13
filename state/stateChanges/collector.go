@@ -9,8 +9,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -31,7 +31,7 @@ type collector struct {
 	collectWrite    bool
 	stateChanges    []state.StateChange
 	stateChangesMut sync.RWMutex
-	cachedTxs       map[string]*transaction.Transaction
+	cachedTxs       map[string]coreData.TransactionHandler
 	storer          storage.Persister
 }
 
@@ -43,7 +43,7 @@ func NewCollector(opts ...CollectorOption) *collector {
 	}
 
 	if c.storer != nil {
-		c.cachedTxs = make(map[string]*transaction.Transaction)
+		c.cachedTxs = make(map[string]coreData.TransactionHandler)
 	}
 
 	log.Debug("created new state changes collector",
@@ -93,7 +93,7 @@ func (c *collector) Reset() {
 
 	c.stateChanges = make([]state.StateChange, 0)
 	if c.storer != nil {
-		c.cachedTxs = make(map[string]*transaction.Transaction)
+		c.cachedTxs = make(map[string]coreData.TransactionHandler)
 	}
 	log.Trace("reset state changes collector")
 }
@@ -177,7 +177,7 @@ func (c *collector) Store() error {
 
 // AddTxHashToCollectedStateChanges will try to set txHash field to each state change
 // if the field is not already set
-func (c *collector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
+func (c *collector) AddTxHashToCollectedStateChanges(txHash []byte, tx coreData.TransactionHandler) {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
 
