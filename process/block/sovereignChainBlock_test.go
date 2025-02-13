@@ -265,7 +265,9 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		},
 	}
 
+	epoch := uint32(4)
 	poolAddCt := 0
+	pubKeysBitmap := []byte("pubKeysBitmap")
 	outGoingOperationsPool := &sovereign.OutGoingOperationsPoolMock{
 		AddCalled: func(data *sovereignCore.BridgeOutGoingData) {
 			defer func() {
@@ -286,6 +288,8 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 							Data: bridgeOp2,
 						},
 					},
+					PubKeysBitmap: pubKeysBitmap,
+					Epoch:         epoch,
 				}, data)
 			default:
 				require.Fail(t, "should not add in pool any other operation")
@@ -308,7 +312,12 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 	})
 
-	sovChainHdr := &block.SovereignChainHeader{}
+	sovChainHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Epoch:         epoch,
+			PubKeysBitmap: pubKeysBitmap,
+		},
+	}
 	processedMb := &block.MiniBlock{
 		ReceiverShardID: core.SovereignChainShardId,
 		SenderShardID:   core.MainChainShardId,
@@ -335,6 +344,10 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	require.Nil(t, err)
 
 	expectedSovChainHeader := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Epoch:         epoch,
+			PubKeysBitmap: pubKeysBitmap,
+		},
 		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
 			{
 				Hash:                   expectedOutGoingMbHash,
