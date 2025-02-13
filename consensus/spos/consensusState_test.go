@@ -322,7 +322,7 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnFalse(t *testing.T
 
 	cns := internalInitConsensusState()
 
-	cns.Body = nil
+	cns.SetBody(nil)
 
 	assert.False(t, cns.IsBlockBodyAlreadyReceived())
 }
@@ -332,7 +332,7 @@ func TestConsensusState_IsBlockBodyAlreadyReceivedShouldReturnTrue(t *testing.T)
 
 	cns := internalInitConsensusState()
 
-	cns.Body = &block.Body{}
+	cns.SetBody(&block.Body{})
 
 	assert.True(t, cns.IsBlockBodyAlreadyReceived())
 }
@@ -342,7 +342,7 @@ func TestConsensusState_IsHeaderAlreadyReceivedShouldReturnFalse(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Header = nil
+	cns.SetHeader(nil)
 
 	assert.False(t, cns.IsHeaderAlreadyReceived())
 }
@@ -352,7 +352,7 @@ func TestConsensusState_IsHeaderAlreadyReceivedShouldReturnTrue(t *testing.T) {
 
 	cns := internalInitConsensusState()
 
-	cns.Header = &block.Header{}
+	cns.SetHeader(&block.Header{})
 
 	assert.True(t, cns.IsHeaderAlreadyReceived())
 }
