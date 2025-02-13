@@ -260,9 +260,6 @@ func (sr *subroundEndRound) prepareBroadcastBlockData() error {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
 
 	getEquivalentProofSender := sr.getEquivalentProofSender()
 	go sr.BroadcastMessenger().PrepareBroadcastBlockDataWithEquivalentProofs(sr.GetHeader(), miniBlocks, transactions, []byte(getEquivalentProofSender))

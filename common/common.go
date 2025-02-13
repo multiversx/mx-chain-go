@@ -86,7 +86,7 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	return nil
 }
 
-// GetShardIDs returns a map of shard IDs based on the provided shard coordinator
+// GetShardIDs returns a map of shard IDs based on the number of shards
 func GetShardIDs(numShards uint32) map[uint32]struct{} {
 	shardIdentifiers := make(map[uint32]struct{})
 	for i := uint32(0); i < numShards; i++ {
