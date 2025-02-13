@@ -38,7 +38,7 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyAggregatedSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
@@ -60,7 +60,7 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
@@ -82,7 +82,7 @@ func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderH
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
@@ -102,7 +102,7 @@ func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHan
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveAllSignatures", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}

@@ -38,7 +38,7 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 		return nil, fmt.Errorf("%w in sovereignSubRoundSignatureOutGoingTxData.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMBHeader) {
 		return make([]byte, 0), nil
 	}

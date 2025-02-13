@@ -66,7 +66,7 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		return errors.ErrWrongTypeAssertion
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMBHeader) {
 		return nil
 	}
@@ -109,7 +109,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return false
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingTxMB))
+	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMBHeader) {
 		sr.sendUnconfirmedOperationsIfFound(ctx)
 		return true
