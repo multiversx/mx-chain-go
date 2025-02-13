@@ -248,9 +248,23 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 			return false
 		}
 		sr.sendProof()
+		err := sr.prepareBroadcastBlockData()
+		log.LogIfError(err)
 	}
 
 	return sr.finalizeConfirmedBlock()
+}
+
+func (sr *subroundEndRound) prepareBroadcastBlockData() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	if err != nil {
+		return err
+	}
+
+	getEquivalentProofSender := sr.getEquivalentProofSender()
+	go sr.BroadcastMessenger().PrepareBroadcastBlockDataWithEquivalentProofs(sr.GetHeader(), miniBlocks, transactions, []byte(getEquivalentProofSender))
+
+	return nil
 }
 
 func (sr *subroundEndRound) waitForProof() bool {

@@ -15,9 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -25,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	testscommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 const defaultChancesSelection = 1
@@ -1001,6 +1004,65 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
 		require.Equal(t, expectedErr, err)
 	})
+
+	t.Run("should try multiple times to get header if not available", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("header hash")
+		wasVerifyAggregatedSigCalled := false
+		args := createHeaderSigVerifierArgs()
+
+		args.StorageService = &testscommonStorage.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &testscommonStorage.StorerStub{
+					SearchFirstCalled: func(key []byte) ([]byte, error) {
+						return nil, errors.New("not found")
+					},
+				}, nil
+			},
+		}
+
+		numCalls := 0
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if numCalls < 2 {
+					numCalls++
+					return nil, errors.New("not found")
+				}
+
+				return getFilledHeader(), nil
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
+			},
+		}
+		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return &cryptoMocks.MultiSignerStub{
+					VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+						wasVerifyAggregatedSigCalled = true
+						return nil
+					},
+				}, nil
+			},
+		}
+		hdrSigVerifier, err := NewHeaderSigVerifier(args)
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{0x3},
+			AggregatedSignature: make([]byte, 10),
+			HeaderHash:          headerHash,
+			IsStartOfEpoch:      true,
+		})
+		require.NoError(t, err)
+		require.True(t, wasVerifyAggregatedSigCalled)
+
+		require.Equal(t, 2, numCalls)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		headerHash := []byte("header hash")

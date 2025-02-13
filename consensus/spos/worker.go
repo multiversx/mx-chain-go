@@ -795,6 +795,11 @@ func (wrk *Worker) ResetConsensusMessages() {
 	wrk.consensusMessageValidator.resetConsensusMessages()
 }
 
+// ResetConsensusRoundState resets the consensus round state
+func (wrk *Worker) ResetConsensusRoundState() {
+	wrk.consensusState.ResetConsensusRoundState()
+}
+
 func (wrk *Worker) checkValidityAndProcessFinalInfo(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {
 	msgType := consensus.MessageType(cnsMsg.MsgType)
 
