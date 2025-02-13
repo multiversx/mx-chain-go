@@ -345,6 +345,10 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
+	if !sr.IsSelfInConsensusGroup() {
+		return false
+	}
+
 	return true
 }
 
