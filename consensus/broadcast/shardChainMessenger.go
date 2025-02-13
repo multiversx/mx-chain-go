@@ -154,6 +154,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 		return err
 	}
 
+	// todo analyze if we can treat it similar to equivalent proofs broadcast (on interceptors)
 	go scm.BroadcastBlockData(dtb.metaMiniBlocks, dtb.metaTransactions, pkBytes, common.ExtraDelayForBroadcastBlockInfo)
 	return nil
 }
@@ -227,6 +228,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 	}
 }
 
+// PrepareBroadcastBlockDataWithEquivalentProofs prepares the data to be broadcast when equivalent proofs are activated
 func (scm *shardChainMessenger) PrepareBroadcastBlockDataWithEquivalentProofs(
 	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
