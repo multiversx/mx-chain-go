@@ -103,17 +103,17 @@ func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidit
 	return controller.shouldFail(failureShouldReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
-// In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep sleeps, from time to time.
-func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep(consensusState spos.ConsensusStateHandler) {
-	log.Trace("In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep")
+// In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock delays the broadcast of the block, from time to time.
+func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock(consensusState spos.ConsensusStateHandler) {
+	log.Trace("In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcast")
 
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
 
-	if controller.shouldFail(failureShouldSleepInEndRoundAsLeader, circumstance) {
-		duration := controller.config.getFailureParameterAsFloat64(failureShouldSleepInEndRoundAsLeader, "duration")
+	if controller.shouldFail(failureShouldDelayBroadcastingFinalBlockAsLeader, circumstance) {
+		duration := controller.config.getFailureParameterAsFloat64(failureShouldDelayBroadcastingFinalBlockAsLeader, "duration")
 		time.Sleep(time.Duration(duration))
 	}
 }
@@ -129,6 +129,21 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 
 	if controller.shouldFail(failureShouldCorruptLeaderSignature, circumstance) {
 		signature[0] += 1
+	}
+}
+
+// In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature delays the leader signature, from time to time.
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(consensusState spos.ConsensusStateHandler) {
+	log.Trace("In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature")
+
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	circumstance := controller.acquireCircumstance(consensusState, "")
+
+	if controller.shouldFail(failureShouldDelayLeaderSignature, circumstance) {
+		duration := controller.config.getFailureParameterAsFloat64(failureShouldDelayLeaderSignature, "duration")
+		time.Sleep(time.Duration(duration))
 	}
 }
 

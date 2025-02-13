@@ -61,8 +61,8 @@ def main():
 """
             ),
             (
-                "// chaos-testing-point:v1/subroundEndRound_doEndRoundJobByLeader_maybeSleep",
-                """chaos.Controller.In_V1_subroundEndRound_doEndRoundJobByLeader_maybeSleep(sr)"""
+                "// chaos-testing-point:v1/subroundEndRound_doEndRoundJobByLeader_delayBroadcastingFinalBlock",
+                """chaos.Controller.In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock(sr)"""
             )
         ],
         with_import=True
@@ -74,6 +74,10 @@ def main():
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature",
                 """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(sr, leaderSignature)"""
+            ),
+            (
+                "// chaos-testing-point:v2/subroundBlock_doBlockJob_delayLeaderSignature",
+                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(sr)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",

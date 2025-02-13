@@ -24,7 +24,7 @@
             "triggers": ["false"]
         },
         {
-            "name": "shouldSleepInEndRoundAsLeader",
+            "name": "shouldDelayBroadcastingFinalBlockAsLeader",
             "enabled": false,
             "triggers": ["round % 20 == 0"],
             "parameters": {
@@ -35,6 +35,14 @@
             "name": "shouldCorruptLeaderSignature",
             "enabled": false,
             "triggers": ["round % 13 == 0"]
+        },
+        {
+            "name": "shouldDelayLeaderSignature",
+            "enabled": false,
+            "triggers": ["round % 19 == 0"],
+            "parameters": {
+                "duration": 4
+            }
         },
         {
             "name": "shouldSkipSendingBlock",

@@ -113,6 +113,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 
 	// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature
+	// chaos-testing-point:v2/subroundBlock_doBlockJob_delayLeaderSignature
 
 	err = header.SetLeaderSignature(leaderSignature)
 	if err != nil {
