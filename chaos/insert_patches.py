@@ -105,8 +105,12 @@ def main():
         with_import=True
     )
 
+    ensure_no_marker_skipped()
+
 
 def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_import: bool = False):
+    print(f"Inserting patches into {file_path}...")
+
     content = file_path.read_text()
 
     for marker, patch in replacements:
@@ -120,9 +124,25 @@ def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_i
 
 def add_chaos_import(file_content: str) -> str:
     statement = "import \"github.com/multiversx/mx-chain-go/chaos\""
+
+    if statement in file_content:
+        return file_content
+
     lines = file_content.split("\n")
     lines.insert(1, statement)
     return "\n".join(lines)
+
+
+def ensure_no_marker_skipped():
+    print("Ensuring no marker is skipped...")
+
+    all_source_files = list(Path(".").rglob("*.go"))
+
+    for file in all_source_files:
+        content = file.read_text()
+        assert "chaos-testing-point" not in content, f"Marker skipped in {file}."
+
+    print("No marker is skipped.")
 
 
 if __name__ == "__main__":

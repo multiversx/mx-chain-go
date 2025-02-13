@@ -766,8 +766,6 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 	err = ihnc.saveState(randomness, newEpoch)
 	ihnc.handleErrorLog(err, "saving nodes coordinator config failed")
 
-	// chaos-testing-point:indexHashedNodesCoordinator_EpochStartPrepare
-
 	displayNodesConfiguration(
 		resUpdateNodes.Eligible,
 		resUpdateNodes.Waiting,
