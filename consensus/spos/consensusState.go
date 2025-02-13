@@ -22,10 +22,10 @@ type ConsensusState struct {
 	// proposed by the leader)
 	Data []byte
 
-	Body    data.BodyHandler
+	body    data.BodyHandler
 	mutBody sync.RWMutex
 
-	Header    data.HeaderHandler
+	header    data.HeaderHandler
 	mutHeader sync.RWMutex
 
 	receivedHeaders    []data.HeaderHandler
@@ -457,7 +457,7 @@ func (cns *ConsensusState) GetBody() data.BodyHandler {
 	cns.mutBody.RLock()
 	defer cns.mutBody.RUnlock()
 
-	return cns.Body
+	return cns.body
 }
 
 // SetBody sets the body of the current round
@@ -465,7 +465,7 @@ func (cns *ConsensusState) SetBody(body data.BodyHandler) {
 	cns.mutBody.Lock()
 	defer cns.mutBody.Unlock()
 
-	cns.Body = body
+	cns.body = body
 }
 
 // GetHeader returns the header of the current round
@@ -473,7 +473,7 @@ func (cns *ConsensusState) GetHeader() data.HeaderHandler {
 	cns.mutHeader.RLock()
 	defer cns.mutHeader.RUnlock()
 
-	return cns.Header
+	return cns.header
 }
 
 // SetHeader sets the header of the current round
@@ -481,7 +481,7 @@ func (cns *ConsensusState) SetHeader(header data.HeaderHandler) {
 	cns.mutHeader.Lock()
 	defer cns.mutHeader.Unlock()
 
-	cns.Header = header
+	cns.header = header
 }
 
 // GetWaitingAllSignaturesTimeOut returns the state of the waiting all signatures time out
