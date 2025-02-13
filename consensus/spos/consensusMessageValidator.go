@@ -459,11 +459,11 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 
 func (cmv *consensusMessageValidator) shouldNotVerifyLeaderSignature() bool {
 	// TODO: this check needs to be removed when equivalent messages are sent separately from the final info
-	if check.IfNil(cmv.consensusState.Header) {
+	if check.IfNil(cmv.consensusState.GetHeader()) {
 		return true
 	}
 
-	return cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, cmv.consensusState.Header.GetEpoch())
+	return cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, cmv.consensusState.GetHeader().GetEpoch())
 
 }
 

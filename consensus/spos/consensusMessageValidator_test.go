@@ -226,7 +226,7 @@ func TestCheckMessageWithFinalInfo_LeaderSignatureCheck(t *testing.T) {
 		t.Parallel()
 
 		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-		consensusMessageValidatorArgs.ConsensusState.Header = &block.Header{Epoch: 2}
+		consensusMessageValidatorArgs.ConsensusState.SetHeader(&block.Header{Epoch: 2})
 
 		sigSize := SignatureSize
 		consensusMessageValidatorArgs.SignatureSize = sigSize // different signature size
@@ -252,7 +252,7 @@ func TestCheckMessageWithFinalInfo_LeaderSignatureCheck(t *testing.T) {
 				return flag == common.EquivalentMessagesFlag
 			},
 		}
-		consensusMessageValidatorArgs.ConsensusState.Header = &block.Header{Epoch: 2}
+		consensusMessageValidatorArgs.ConsensusState.SetHeader(&block.Header{Epoch: 2})
 
 		sigSize := SignatureSize
 		consensusMessageValidatorArgs.SignatureSize = sigSize // different signature size
