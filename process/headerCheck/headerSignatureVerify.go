@@ -21,7 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
-const headerWaitDelayAtTransition = 5 * time.Millisecond
+const headerWaitDelayAtTransition = 50 * time.Millisecond
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
 
@@ -339,7 +339,7 @@ func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderPro
 			break
 		}
 
-		log.Error("getHeaderForProofAtTransition: failed to get header, will wait and try again",
+		log.Debug("getHeaderForProofAtTransition: failed to get header, will wait and try again",
 			"headerHash", proof.GetHeaderHash(),
 			"error", err.Error(),
 		)
