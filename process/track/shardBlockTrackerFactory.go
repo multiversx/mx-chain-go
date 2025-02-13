@@ -6,8 +6,8 @@ type shardBlockTrackerFactory struct {
 }
 
 // NewShardBlockTrackerFactory creates a new shard block tracker factory
-func NewShardBlockTrackerFactory() (*shardBlockTrackerFactory, error) {
-	return &shardBlockTrackerFactory{}, nil
+func NewShardBlockTrackerFactory() *shardBlockTrackerFactory {
+	return &shardBlockTrackerFactory{}
 }
 
 // CreateBlockTracker creates a new block tracker for shard chain

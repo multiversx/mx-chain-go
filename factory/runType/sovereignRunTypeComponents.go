@@ -94,23 +94,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, err
 	}
 
-	sovBlockChainHookHandlerFactory, err := hooks.NewSovereignBlockChainHookFactory(rtc.blockChainHookHandlerCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignBlockChainHookFactory failed: %w", err)
-	}
-
-	epochStartBootstrapperFactory, err := bootstrap.NewSovereignEpochStartBootstrapperFactory(rtc.epochStartBootstrapperCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignEpochStartBootstrapperFactory failed: %w", err)
-	}
-
-	bootstrapperFromStorageFactory := storageBootstrap.NewSovereignShardStorageBootstrapperFactory()
-
-	bootstrapperFactory, err := storageBootstrap.NewSovereignShardBootstrapFactory(rtc.bootstrapperCreator)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignShardBootstrapFactory failed: %w", err)
-	}
-
 	blockProcessorFactory, err := block.NewSovereignBlockProcessorFactory(rtc.blockProcessorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignBlockProcessorFactory failed: %w", err)
@@ -134,11 +117,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	headerValidatorFactory, err := block.NewSovereignHeaderValidatorFactory(rtc.headerValidatorCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignHeaderValidatorFactory failed: %w", err)
-	}
-
-	scheduledTxsExecutionFactory, err := preprocess.NewSovereignScheduledTxsExecutionFactory()
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
 	}
 
 	transactionCoordinatorFactory, err := coordinator.NewSovereignTransactionCoordinatorFactory(rtc.transactionCoordinatorCreator)
@@ -234,16 +212,16 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            sovBlockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
-		bootstrapperCreator:                     bootstrapperFactory,
+		blockChainHookHandlerCreator:            hooks.NewSovereignBlockChainHookFactory(),
+		epochStartBootstrapperCreator:           bootstrap.NewSovereignEpochStartBootstrapperFactory(),
+		bootstrapperFromStorageCreator:          storageBootstrap.NewSovereignShardStorageBootstrapperFactory(),
+		bootstrapperCreator:                     storageBootstrap.NewSovereignShardBootstrapFactory(),
 		blockProcessorCreator:                   blockProcessorFactory,
 		forkDetectorCreator:                     forkDetectorFactory,
 		blockTrackerCreator:                     blockTrackerFactory,
 		requestHandlerCreator:                   requestHandlerFactory,
 		headerValidatorCreator:                  headerValidatorFactory,
-		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
+		scheduledTxsExecutionCreator:            preprocess.NewSovereignScheduledTxsExecutionFactory(),
 		transactionCoordinatorCreator:           transactionCoordinatorFactory,
 		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
 		additionalStorageServiceCreator:         storageFactory.NewSovereignAdditionalStorageServiceFactory(),

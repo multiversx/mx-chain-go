@@ -1,25 +1,21 @@
 package testscommon
 
-import "github.com/multiversx/mx-chain-go/storage/txcache"
+import (
+	"time"
+
+	"github.com/multiversx/mx-chain-go/storage/txcache"
+)
 
 type TxCacherStub struct {
 	CacherStub
-	SelectTransactionsWithBandwidthCalled func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction
-	NotifyAccountNonceCalled              func(accountKey []byte, nonce uint64)
+	SelectTransactionsCalled func(session txcache.SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64)
 }
 
-// SelectTransactionsWithBandwidth -
-func (tcs *TxCacherStub) SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
-	if tcs.SelectTransactionsWithBandwidthCalled != nil {
-		return tcs.SelectTransactionsWithBandwidthCalled(numRequested, batchSizePerSender, bandwidthPerSender)
+// SelectTransactions -
+func (tcs *TxCacherStub) SelectTransactions(session txcache.SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*txcache.WrappedTransaction, uint64) {
+	if tcs.SelectTransactionsCalled != nil {
+		return tcs.SelectTransactionsCalled(session, gasRequested, maxNum, selectionLoopMaximumDuration)
 	}
 
-	return make([]*txcache.WrappedTransaction, 0)
-}
-
-// NotifyAccountNonce -
-func (tcs *TxCacherStub) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	if tcs.NotifyAccountNonceCalled != nil {
-		tcs.NotifyAccountNonceCalled(accountKey, nonce)
-	}
+	return make([]*txcache.WrappedTransaction, 0), 0
 }

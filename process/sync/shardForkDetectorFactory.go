@@ -6,8 +6,8 @@ type shardForkDetectorFactory struct {
 }
 
 // NewShardForkDetectorFactory creates a new shard fork detector factory
-func NewShardForkDetectorFactory() (*shardForkDetectorFactory, error) {
-	return &shardForkDetectorFactory{}, nil
+func NewShardForkDetectorFactory() *shardForkDetectorFactory {
+	return &shardForkDetectorFactory{}
 }
 
 // CreateForkDetector creates a new fork detector

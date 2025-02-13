@@ -3,25 +3,25 @@ package block_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
 )
 
 func TestNewShardBlockProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	sbpf, err := block.NewShardBlockProcessorFactory()
+	sbpf := block.NewShardBlockProcessorFactory()
 	require.NotNil(t, sbpf)
-	require.Nil(t, err)
 	require.Implements(t, new(block.BlockProcessorCreator), sbpf)
 }
 
 func TestShardBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	t.Parallel()
 
-	sbpf, _ := block.NewShardBlockProcessorFactory()
+	sbpf := block.NewShardBlockProcessorFactory()
 
 	funcCreateMetaArgs := func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
 		return nil, nil
@@ -47,6 +47,6 @@ func TestShardBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 func TestShardBlockProcessorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	sbpf, _ := block.NewShardBlockProcessorFactory()
+	sbpf := block.NewShardBlockProcessorFactory()
 	require.False(t, sbpf.IsInterfaceNil())
 }

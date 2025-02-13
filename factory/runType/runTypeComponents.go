@@ -156,78 +156,13 @@ func NewRunTypeComponentsFactory(args ArgsRunTypeComponents) (*runTypeComponents
 	}, nil
 }
 
-// TODO remove the error from the factories where it's possible - MX-15415
 // Create creates the runType components
 func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
-	blockChainHookHandlerFactory, err := hooks.NewBlockChainHookFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewBlockChainHookFactory failed: %w", err)
-	}
-
-	epochStartBootstrapperFactory := bootstrap.NewEpochStartBootstrapperFactory()
-	bootstrapperFromStorageFactory := storageBootstrap.NewShardStorageBootstrapperFactory()
-
-	shardBootstrapFactory, err := storageBootstrap.NewShardBootstrapFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBootstrapFactory failed: %w", err)
-	}
-
-	blockProcessorFactory, err := block.NewShardBlockProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
-	}
-
-	forkDetectorFactory, err := sync.NewShardForkDetectorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardForkDetectorFactory failed: %w", err)
-	}
-
-	blockTrackerFactory, err := track.NewShardBlockTrackerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockTrackerFactory failed: %w", err)
-	}
-
-	requestHandlerFactory := requestHandlers.NewResolverRequestHandlerFactory()
-
-	headerValidatorFactory, err := block.NewShardHeaderValidatorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardHeaderValidatorFactory failed: %w", err)
-	}
-
-	scheduledTxsExecutionFactory, err := preprocess.NewShardScheduledTxsExecutionFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
-	}
-
-	scResultsPreProcessorCreator, err := preprocess.NewSmartContractResultPreProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSmartContractResultPreProcessorFactory failed: %w", err)
-	}
-
-	transactionCoordinatorFactory, err := coordinator.NewShardTransactionCoordinatorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardTransactionCoordinatorFactory failed: %w", err)
-	}
-
-	validatorStatisticsProcessorFactory, err := peer.NewValidatorStatisticsProcessorFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardBlockProcessorFactory failed: %w", err)
-	}
-
-	additionalStorageServiceCreator, err := storageFactory.NewShardAdditionalStorageServiceFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewShardAdditionalStorageServiceFactory failed: %w", err)
-	}
-
-	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
-
 	vmContextCreator := systemSmartContracts.NewVMContextCreator()
 	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(vmContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
-
-	vmContainerShardCreator := factoryVm.NewVmContainerShardFactory()
 
 	totalSupply, ok := big.NewInt(0).SetString(rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {
@@ -273,24 +208,24 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
-		bootstrapperCreator:                     shardBootstrapFactory,
-		blockProcessorCreator:                   blockProcessorFactory,
-		forkDetectorCreator:                     forkDetectorFactory,
-		blockTrackerCreator:                     blockTrackerFactory,
-		requestHandlerCreator:                   requestHandlerFactory,
-		headerValidatorCreator:                  headerValidatorFactory,
-		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:           transactionCoordinatorFactory,
-		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:         additionalStorageServiceCreator,
-		scProcessorCreator:                      scProcessorCreator,
-		scResultPreProcessorCreator:             scResultsPreProcessorCreator,
+		blockChainHookHandlerCreator:            hooks.NewBlockChainHookFactory(),
+		epochStartBootstrapperCreator:           bootstrap.NewEpochStartBootstrapperFactory(),
+		bootstrapperFromStorageCreator:          storageBootstrap.NewShardStorageBootstrapperFactory(),
+		bootstrapperCreator:                     storageBootstrap.NewShardBootstrapFactory(),
+		blockProcessorCreator:                   block.NewShardBlockProcessorFactory(),
+		forkDetectorCreator:                     sync.NewShardForkDetectorFactory(),
+		blockTrackerCreator:                     track.NewShardBlockTrackerFactory(),
+		requestHandlerCreator:                   requestHandlers.NewResolverRequestHandlerFactory(),
+		headerValidatorCreator:                  block.NewShardHeaderValidatorFactory(),
+		scheduledTxsExecutionCreator:            preprocess.NewShardScheduledTxsExecutionFactory(),
+		transactionCoordinatorCreator:           coordinator.NewShardTransactionCoordinatorFactory(),
+		validatorStatisticsProcessorCreator:     peer.NewValidatorStatisticsProcessorFactory(),
+		additionalStorageServiceCreator:         storageFactory.NewShardAdditionalStorageServiceFactory(),
+		scProcessorCreator:                      processProxy.NewSCProcessProxyFactory(),
+		scResultPreProcessorCreator:             preprocess.NewSmartContractResultPreProcessorFactory(),
 		consensusModel:                          consensus.ConsensusModelV1,
 		vmContainerMetaFactory:                  vmContainerMetaCreator,
-		vmContainerShardFactory:                 vmContainerShardCreator,
+		vmContainerShardFactory:                 factoryVm.NewVmContainerShardFactory(),
 		accountsParser:                          accountsParser,
 		accountsCreator:                         accountsCreator,
 		vmContextCreator:                        vmContextCreator,

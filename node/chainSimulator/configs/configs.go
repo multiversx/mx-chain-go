@@ -31,7 +31,6 @@ import (
 
 var oneEgld = big.NewInt(1000000000000000000)
 var initialStakedEgldPerNode = big.NewInt(0).Mul(oneEgld, big.NewInt(2500))
-var initialEgldPerNode = big.NewInt(0).Mul(oneEgld, big.NewInt(5000))
 var initialSupply = big.NewInt(0).Mul(oneEgld, big.NewInt(20000000)) // 20 million EGLD
 const (
 	// ChainID contains the chain id
@@ -58,6 +57,7 @@ type ArgsChainSimulatorConfigs struct {
 	NumNodesWaitingListShard    uint32
 	NumNodesWaitingListMeta     uint32
 	AlterConfigsFunction        func(cfg *config.Configs)
+	GenerateGenesisFile         func(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -84,7 +84,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	// update genesis.json
-	initialWallets, err := generateGenesisFile(args, configs)
+	initialWallets, err := args.GenerateGenesisFile(args, configs)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +191,8 @@ func SetStakingV4ActivationEpochs(cfg *config.Configs, initialEpoch uint32) {
 	cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 }
 
-func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
+// GenerateGenesisFile will generate initial wallet keys
+func GenerateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
 	addressConverter, err := factory.NewPubkeyConverter(configs.GeneralConfig.AddressPubkeyConverter)
 	if err != nil {
 		return nil, err
@@ -201,46 +202,55 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 		BalanceWallets: make(map[uint32]*dtos.WalletKey),
 		StakeWallets:   make([]*dtos.WalletKey, 0),
 	}
+
 	addresses := make([]data.InitialAccount, 0)
 	numOfNodes := int((args.NumNodesWaitingListShard+args.MinNodesPerShard)*args.NumOfShards + args.NumNodesWaitingListMeta + args.MetaChainMinNodes)
-
-	totalStakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
-	totalStakedValue.Mul(totalStakedValue, big.NewInt(int64(numOfNodes)))
-
-	initialBalance := big.NewInt(0).Set(initialSupply)
-	initialBalance.Sub(initialBalance, totalStakedValue)
-
 	for i := 0; i < numOfNodes; i++ {
-		initialEgld := big.NewInt(0).Set(initialEgldPerNode)
-
-		if i == numOfNodes-1 {
-			remainingSupply := big.NewInt(0).Set(initialBalance)
-			allBalances := big.NewInt(0).Set(initialEgld)
-			allBalances.Mul(allBalances, big.NewInt(int64(numOfNodes)))
-			remainingSupply.Sub(remainingSupply, allBalances)
-			if remainingSupply.Cmp(big.NewInt(0)) > 0 {
-				initialEgld.Add(initialEgld, remainingSupply)
-			}
+		wallet, errGenerate := generateWalletKey(addressConverter)
+		if errGenerate != nil {
+			return nil, errGenerate
 		}
 
-		walletKey, errG := generateWalletKeyForShard(0, args.NumOfShards, addressConverter)
+		stakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
+		addresses = append(addresses, data.InitialAccount{
+			Address:      wallet.Address.Bech32,
+			StakingValue: stakedValue,
+			Supply:       stakedValue,
+		})
+
+		initialWalletKeys.StakeWallets = append(initialWalletKeys.StakeWallets, wallet)
+	}
+
+	// generate an address for every shard
+	initialBalance := big.NewInt(0).Set(initialSupply)
+	totalStakedValue := big.NewInt(int64(numOfNodes))
+	totalStakedValue = totalStakedValue.Mul(totalStakedValue, big.NewInt(0).Set(initialStakedEgldPerNode))
+	initialBalance = initialBalance.Sub(initialBalance, totalStakedValue)
+
+	walletBalance := big.NewInt(0).Set(initialBalance)
+	walletBalance.Div(walletBalance, big.NewInt(int64(args.NumOfShards)))
+
+	// remainder = balance % numTotalWalletKeys
+	remainder := big.NewInt(0).Set(initialBalance)
+	remainder.Mod(remainder, big.NewInt(int64(args.NumOfShards)))
+
+	for shardID := uint32(0); shardID < args.NumOfShards; shardID++ {
+		walletKey, errG := GenerateWalletKeyForShard(shardID, args.NumOfShards, addressConverter)
 		if errG != nil {
 			return nil, errG
 		}
 
-		supply := big.NewInt(0).Set(initialEgld)
-		supply.Add(supply, big.NewInt(0).Set(initialStakedEgldPerNode))
-
 		addresses = append(addresses, data.InitialAccount{
-			Address:      walletKey.Address.Bech32,
-			Balance:      initialEgld,
-			Supply:       supply,
-			StakingValue: big.NewInt(0).Set(initialStakedEgldPerNode),
+			Address: walletKey.Address.Bech32,
+			Balance: big.NewInt(0).Set(walletBalance),
+			Supply:  big.NewInt(0).Set(walletBalance),
 		})
 
-		initialWalletKeys.StakeWallets = append(initialWalletKeys.StakeWallets, walletKey)
-		initialWalletKeys.BalanceWallets[uint32(i)] = walletKey
+		initialWalletKeys.BalanceWallets[shardID] = walletKey
 	}
+
+	addresses[len(addresses)-1].Balance.Add(walletBalance, remainder)
+	addresses[len(addresses)-1].Supply.Add(walletBalance, remainder)
 
 	addressesBytes, errM := json.Marshal(addresses)
 	if errM != nil {
@@ -410,7 +420,8 @@ func GetLatestGasScheduleFilename(directory string) (string, error) {
 	return path.Join(directory, filename), nil
 }
 
-func generateWalletKeyForShard(shardID, numOfShards uint32, converter core.PubkeyConverter) (*dtos.WalletKey, error) {
+// GenerateWalletKeyForShard will generate a wallet key in a specific shard
+func GenerateWalletKeyForShard(shardID, numOfShards uint32, converter core.PubkeyConverter) (*dtos.WalletKey, error) {
 	for {
 		walletKey, err := generateWalletKey(converter)
 		if err != nil {

@@ -130,6 +130,7 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte) (process.InterceptedDa
 		itdf.enableEpochsHandler.IsFlagEnabled(common.TransactionSignedWithTxHashFlag),
 		itdf.txSignHasher,
 		itdf.txVersionChecker,
+		itdf.enableEpochsHandler,
 	)
 }
 

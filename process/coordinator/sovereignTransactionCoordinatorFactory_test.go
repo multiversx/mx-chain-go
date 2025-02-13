@@ -3,8 +3,9 @@ package coordinator
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func TestSovereignTransactionCoordinatorFactory_NewShardTransactionCoordinatorFactory(t *testing.T) {
@@ -14,7 +15,7 @@ func TestSovereignTransactionCoordinatorFactory_NewShardTransactionCoordinatorFa
 	require.Equal(t, process.ErrNilTransactionCoordinatorCreator, err)
 	require.Nil(t, sovtcf)
 
-	stcf, _ := NewShardTransactionCoordinatorFactory()
+	stcf := NewShardTransactionCoordinatorFactory()
 	sovtcf, err = NewSovereignTransactionCoordinatorFactory(stcf)
 
 	require.Nil(t, err)
@@ -25,7 +26,7 @@ func TestSovereignTransactionCoordinatorFactory_NewShardTransactionCoordinatorFa
 func TestSovereignTransactionCoordinatorFactory_CreateTransactionCoordinator(t *testing.T) {
 	t.Parallel()
 
-	stcf, _ := NewShardTransactionCoordinatorFactory()
+	stcf := NewShardTransactionCoordinatorFactory()
 	sovtcf, _ := NewSovereignTransactionCoordinatorFactory(stcf)
 	tc, err := sovtcf.CreateTransactionCoordinator(ArgTransactionCoordinator{})
 	require.NotNil(t, err)
@@ -40,7 +41,7 @@ func TestSovereignTransactionCoordinatorFactory_CreateTransactionCoordinator(t *
 func TestSovereignTransactionCoordinatorFactory_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	stcf, _ := NewShardTransactionCoordinatorFactory()
+	stcf := NewShardTransactionCoordinatorFactory()
 	sovtcf, _ := NewSovereignTransactionCoordinatorFactory(stcf)
 	require.False(t, sovtcf.IsInterfaceNil())
 }

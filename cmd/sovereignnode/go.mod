@@ -9,7 +9,7 @@ require (
 	github.com/multiversx/mx-chain-core-go v1.2.24-0.20250213123331-9d2f4612876f
 	github.com/multiversx/mx-chain-go v1.8.4
 	github.com/multiversx/mx-chain-logger-go v1.0.15
-	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20240116102202-4cf6fbbd95a3
+	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250206093614-af9e9aa908ba
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230929085947-df9b345f49ac
 	github.com/multiversx/mx-sdk-abi-go v0.3.0
 	github.com/stretchr/testify v1.8.4
@@ -120,9 +120,9 @@ require (
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
 	github.com/multiversx/mx-chain-communication-go v1.1.1 // indirect
 	github.com/multiversx/mx-chain-crypto-go v1.2.12 // indirect
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.11-0.20241211094055-23de51462ca4 // indirect
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.15-0.20250131125841-73868f5ca49c // indirect
 	github.com/multiversx/mx-chain-scenario-go v1.4.4 // indirect
-	github.com/multiversx/mx-chain-storage-go v1.0.16 // indirect
+	github.com/multiversx/mx-chain-storage-go v1.0.19 // indirect
 	github.com/multiversx/mx-chain-vm-common-go v1.5.17-0.20241119132002-2fa80c5ec516 // indirect
 	github.com/multiversx/mx-chain-vm-go v1.5.37 // indirect
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68 // indirect
@@ -171,13 +171,13 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sync v0.4.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
