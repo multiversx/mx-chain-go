@@ -137,7 +137,7 @@ func (tp *tokensProcessor) processMultiTransferEvent(event data.EventHandler, ma
 
 		if string(tokenID) == vmcommon.EGLDIdentifier {
 			tp.processNativeEGLDTransferWithMultiTransfer(destinationAddress, markedAlteredAccounts)
-			return
+			continue
 		}
 
 		// process event for the sender address

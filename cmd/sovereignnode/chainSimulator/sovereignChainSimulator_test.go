@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -57,9 +57,12 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			PathToInitialConfig:    defaultPathToInitialConfig,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         core.OptionalUint64{},
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       2,
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    20,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 2,
 		},
 	})
 	require.Nil(t, err)
@@ -71,6 +74,65 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
+}
+
+func TestSovereignChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    20,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 2,
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	chainSimulatorCommon.GenerateBlocksAndEpochChange(t, chainSimulator)
+}
+
+func TestSovereignSimulator_TriggerChangeOfEpoch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    20,
+			},
+			ApiInterface:     api.NewNoApiInterface(),
+			MinNodesPerShard: 1,
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
+	chainSimulatorCommon.TriggerChangeOfEpoch(t, chainSimulator, nodeHandler)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {

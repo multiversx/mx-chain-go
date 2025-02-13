@@ -165,11 +165,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 	instance.epochNotifier = forking.NewGenericEpochNotifier()
-	instance.enableEpochsHandler, err = enablers.NewEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
-	if err != nil {
-		return nil, err
-	}
-
+	instance.enableEpochsHandler, err = args.RunTypeCoreComponents.EnableEpochsFactoryCreator().CreateEnableEpochsHandler(args.EnableEpochsConfig, instance.epochNotifier)
 	if err != nil {
 		return nil, err
 	}

@@ -2,9 +2,10 @@ package config
 
 // ExternalConfig will hold the configurations for external tools, such as Explorer or Elasticsearch
 type ExternalConfig struct {
-	ElasticSearchConnector ElasticSearchConfig
-	EventNotifierConnector EventNotifierConfig
-	HostDriversConfig      []HostDriversConfig
+	ElasticSearchConnector          ElasticSearchConfig
+	EventNotifierConnector          EventNotifierConfig
+	HostDriversConfig               []HostDriversConfig
+	MainChainElasticSearchConnector MainChainElasticSearchConfig
 }
 
 // ElasticSearchConfig will hold the configuration for the elastic search
@@ -17,6 +18,14 @@ type ElasticSearchConfig struct {
 	Username                  string
 	Password                  string
 	EnabledIndexes            []string
+}
+
+// MainChainElasticSearchConfig will hold the configuration for the main chain elastic search
+type MainChainElasticSearchConfig struct {
+	Enabled  bool
+	URL      string
+	Username string
+	Password string
 }
 
 // EventNotifierConfig will hold the configuration for the events notifier driver

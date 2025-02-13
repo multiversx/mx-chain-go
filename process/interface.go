@@ -42,6 +42,7 @@ import (
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
+	VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error
 	GetSenderAndReceiverAccounts(transaction *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
 	IsInterfaceNil() bool
 }
@@ -72,7 +73,7 @@ type SmartContractProcessorFacade interface {
 
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
-	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType)
+	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
@@ -724,6 +725,7 @@ type feeHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
+	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
 	ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)

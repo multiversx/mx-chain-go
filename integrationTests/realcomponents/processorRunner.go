@@ -32,8 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -50,19 +48,20 @@ import (
 
 // ProcessorRunner is a test emulation to the nodeRunner component
 type ProcessorRunner struct {
-	closers              []io.Closer
-	Config               config.Configs
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHandler
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	NodesCoordinator     nodesCoord.NodesCoordinator
-	StatusComponents     factory.StatusComponentsHolder
-	ProcessComponents    factory.ProcessComponentsHolder
-	RunTypeComponents    factory.RunTypeComponentsHolder
+	closers               []io.Closer
+	Config                config.Configs
+	CoreComponents        factory.CoreComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHandler
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	NetworkComponents     factory.NetworkComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	NodesCoordinator      nodesCoord.NodesCoordinator
+	StatusComponents      factory.StatusComponentsHolder
+	ProcessComponents     factory.ProcessComponentsHolder
+	RunTypeComponents     factory.RunTypeComponentsHolder
+	RunTypeCoreComponents factory.RunTypeCoreComponentsHolder
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
@@ -78,6 +77,10 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
+	var err error
+	require.Nil(tb, err)
+
+	pr.createRunTypeCoreComponents(tb)
 	pr.createCoreComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createRunTypeComponents(tb)
@@ -88,6 +91,21 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createStateComponents(tb)
 	pr.createStatusComponents(tb)
 	pr.createProcessComponents(tb)
+}
+
+func (pr *ProcessorRunner) createRunTypeCoreComponents(tb testing.TB) {
+	rtcFactory := runType.NewRunTypeCoreComponentsFactory()
+
+	rtcComp, err := runType.NewManagedRunTypeCoreComponents(rtcFactory)
+	require.Nil(tb, err)
+
+	err = rtcComp.Create()
+	require.Nil(tb, err)
+	require.Nil(tb, rtcComp.CheckSubcomponents())
+
+	pr.closers = append(pr.closers, rtcComp)
+	pr.RunTypeCoreComponents = rtcComp
+
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
@@ -115,18 +133,17 @@ func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
 	argsCore := factoryCore.CoreComponentsFactoryArgs{
-		Config:                   *pr.Config.GeneralConfig,
-		ConfigPathsHolder:        *pr.Config.ConfigurationPathsHolder,
-		EpochConfig:              *pr.Config.EpochConfig,
-		RoundConfig:              *pr.Config.RoundConfig,
-		RatingsConfig:            *pr.Config.RatingsConfig,
-		EconomicsConfig:          *pr.Config.EconomicsConfig,
-		ImportDbConfig:           *pr.Config.ImportDbConfig,
-		NodesFilename:            pr.Config.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:         pr.Config.FlagsConfig.WorkingDir,
-		ChanStopNodeProcess:      make(chan endProcess.ArgEndProcess),
-		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
-		RatingsDataFactory:       rating.NewRatingsDataFactory(),
+		Config:                *pr.Config.GeneralConfig,
+		ConfigPathsHolder:     *pr.Config.ConfigurationPathsHolder,
+		EpochConfig:           *pr.Config.EpochConfig,
+		RoundConfig:           *pr.Config.RoundConfig,
+		RatingsConfig:         *pr.Config.RatingsConfig,
+		EconomicsConfig:       *pr.Config.EconomicsConfig,
+		ImportDbConfig:        *pr.Config.ImportDbConfig,
+		NodesFilename:         pr.Config.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:      pr.Config.FlagsConfig.WorkingDir,
+		ChanStopNodeProcess:   make(chan endProcess.ArgEndProcess),
+		RunTypeCoreComponents: pr.RunTypeCoreComponents,
 	}
 	coreFactory, err := factoryCore.NewCoreComponentsFactory(argsCore)
 	require.Nil(tb, err)
@@ -456,6 +473,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		TxExecutionOrderHandler:  txExecutionOrderHandler,
 		RunTypeComponents:        pr.RunTypeComponents,
 		IncomingHeaderSubscriber: &disabled.IncomingHeaderProcessor{},
+		EnableEpochsFactory:      pr.RunTypeCoreComponents.EnableEpochsFactoryCreator(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

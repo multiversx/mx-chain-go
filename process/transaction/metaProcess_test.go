@@ -277,8 +277,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldWork(t *testing.T) {
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
 		},
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
@@ -323,8 +323,8 @@ func TestMetaTxProcessor_ProcessTransactionScTxShouldReturnErrWhenExecutionFails
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
 		},
 	}
 	txProc, _ := txproc.NewMetaTxProcessor(args)
@@ -439,8 +439,8 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ESDTFlag)

@@ -111,7 +111,7 @@ func (ate *apiTransactionEvaluator) ComputeTransactionGasLimit(tx *transaction.T
 		ate.mutExecution.Unlock()
 	}()
 
-	txTypeOnSender, txTypeOnDestination := ate.txTypeHandler.ComputeTransactionType(tx)
+	txTypeOnSender, txTypeOnDestination, _ := ate.txTypeHandler.ComputeTransactionType(tx)
 	if txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance {
 		return ate.computeMoveBalanceCost(tx), nil
 	}

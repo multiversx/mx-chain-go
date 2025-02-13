@@ -19,9 +19,6 @@ const PathEpochPlaceholder = "[E]"
 // PathIdentifierPlaceholder represents the placeholder for the identifier in paths
 const PathIdentifierPlaceholder = "[I]"
 
-// TxPoolNumTxsToPreemptivelyEvict instructs tx pool eviction algorithm to remove this many transactions when eviction takes place
-const TxPoolNumTxsToPreemptivelyEvict = uint32(1000)
-
 // DefaultDBPath is the default path for nodes databases
 const DefaultDBPath = "db"
 
@@ -33,3 +30,12 @@ const DefaultStaticDbString = "Static"
 
 // DefaultShardString is the default folder root name for per shard databases
 const DefaultShardString = "Shard"
+
+// TxPoolSourceMeNumItemsToPreemptivelyEvict is a configuration of the eviction algorithm
+const TxPoolSourceMeNumItemsToPreemptivelyEvict = uint32(50000)
+
+// TxPoolDestinationMeNumItemsToPreemptivelyEvict is a configuration of the eviction algorithm
+const TxPoolDestinationMeNumItemsToPreemptivelyEvict = uint32(1000)
+
+// ShardedDataNumItemsToPreemptivelyEvict is a configuration of the eviction algorithm
+const ShardedDataNumItemsToPreemptivelyEvict = uint32(1000)

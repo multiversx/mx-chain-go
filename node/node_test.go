@@ -1238,7 +1238,10 @@ func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shard
 	acc := createAcc([]byte("newaddress"))
 	esdtToken := []byte("TCK-RANDOM")
 	sftToken := []byte("SFT-RANDOM")
+	sftTokenDynamic := []byte("SFT-Dynamic")
 	nftToken := []byte("NFT-RANDOM")
+	nftTokenV2 := []byte("NFT-RANDOM-V2")
+	nftTokenDynamic := []byte("NFT-Dynamic")
 
 	esdtData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("fungible"), TokenType: []byte(core.FungibleESDT)}
 	marshalledData, _ := getMarshalizer().Marshal(esdtData)
@@ -1248,13 +1251,28 @@ func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shard
 	sftMarshalledData, _ := getMarshalizer().Marshal(sftData)
 	_ = acc.SaveKeyValue(sftToken, sftMarshalledData)
 
+	sftDataDynamic := &systemSmartContracts.ESDTDataV2{TokenName: []byte("semi fungible dynamic"), TokenType: []byte(core.DynamicSFTESDT)}
+	sftMarshalledDataDynamic, _ := getMarshalizer().Marshal(sftDataDynamic)
+	_ = acc.SaveKeyValue(sftTokenDynamic, sftMarshalledDataDynamic)
+
 	nftData := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible"), TokenType: []byte(core.NonFungibleESDT)}
 	nftMarshalledData, _ := getMarshalizer().Marshal(nftData)
 	_ = acc.SaveKeyValue(nftToken, nftMarshalledData)
 
+	nftData2 := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible v2"), TokenType: []byte(core.NonFungibleESDT)}
+	nftMarshalledData2, _ := getMarshalizer().Marshal(nftData2)
+	_ = acc.SaveKeyValue(nftTokenV2, nftMarshalledData2)
+
+	nftDataDynamic := &systemSmartContracts.ESDTDataV2{TokenName: []byte("non fungible dynamic"), TokenType: []byte(core.DynamicNFTESDT)}
+	nftMarshalledDataDyamic, _ := getMarshalizer().Marshal(nftDataDynamic)
+	_ = acc.SaveKeyValue(nftTokenDynamic, nftMarshalledDataDyamic)
+
 	esdtSuffix := append(esdtToken, acc.AddressBytes()...)
 	nftSuffix := append(nftToken, acc.AddressBytes()...)
+	nftSuffix2 := append(nftTokenV2, acc.AddressBytes()...)
+	nftDynamicSuffix := append(nftTokenDynamic, acc.AddressBytes()...)
 	sftSuffix := append(sftToken, acc.AddressBytes()...)
+	sftDynamicSuffix := append(sftTokenDynamic, acc.AddressBytes()...)
 
 	acc.SetDataTrie(
 		&trieMock.TrieStub{
@@ -1265,9 +1283,16 @@ func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shard
 
 					trieLeaf, _ = tlp.ParseLeaf(sftToken, append(sftMarshalledData, sftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(sftTokenDynamic, append(sftMarshalledDataDynamic, sftDynamicSuffix...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
 
 					trieLeaf, _ = tlp.ParseLeaf(nftToken, append(nftMarshalledData, nftSuffix...), core.NotSpecified)
 					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(nftTokenV2, append(nftMarshalledData2, nftSuffix2...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
+					trieLeaf, _ = tlp.ParseLeaf(nftTokenDynamic, append(nftMarshalledDataDyamic, nftDynamicSuffix...), core.NotSpecified)
+					leavesChannels.LeavesChan <- trieLeaf
+
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
 				}()
@@ -1316,17 +1341,27 @@ func testNodeGetAllIssuedESDTs(t *testing.T, nodeFactory node.NodeFactory, shard
 
 	value, err = n.GetAllIssuedESDTs(core.SemiFungibleESDT, context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(value))
+	assert.Equal(t, 2, len(value))
 	assert.Equal(t, string(sftToken), value[0])
+	assert.Equal(t, string(sftTokenDynamic), value[1])
 
 	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDT, context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 1, len(value))
+	assert.Equal(t, 3, len(value)) // for both versions
 	assert.Equal(t, string(nftToken), value[0])
+	assert.Equal(t, string(nftTokenV2), value[1])
+	assert.Equal(t, string(nftTokenDynamic), value[2])
+
+	value, err = n.GetAllIssuedESDTs(core.NonFungibleESDTv2, context.Background())
+	assert.Nil(t, err)
+	assert.Equal(t, 3, len(value)) // for both versions
+	assert.Equal(t, string(nftToken), value[0])
+	assert.Equal(t, string(nftTokenV2), value[1])
+	assert.Equal(t, string(nftTokenDynamic), value[2])
 
 	value, err = n.GetAllIssuedESDTs("", context.Background())
 	assert.Nil(t, err)
-	assert.Equal(t, 3, len(value))
+	assert.Equal(t, 6, len(value))
 }
 
 func TestNode_GetAllESDTTokens_ShouldWork(t *testing.T) {
@@ -3217,15 +3252,63 @@ func TestValidateTransaction_ShouldAdaptAccountNotFoundError(t *testing.T) {
 		node.WithCryptoComponents(getDefaultCryptoComponents()),
 	)
 
-	tx := &transaction.Transaction{
-		SndAddr:   bytes.Repeat([]byte("1"), 32),
-		RcvAddr:   bytes.Repeat([]byte("1"), 32),
-		Value:     big.NewInt(37),
-		Signature: []byte("signature"),
-		ChainID:   []byte("chainID"),
-	}
-	err := n.ValidateTransaction(tx)
-	require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	t.Run("normal tx", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:   bytes.Repeat([]byte("1"), 32),
+			RcvAddr:   bytes.Repeat([]byte("1"), 32),
+			Value:     big.NewInt(37),
+			Signature: []byte("signature"),
+			ChainID:   []byte("chainID"),
+		}
+
+		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	})
+	t.Run("relayed tx v3, no funds for sender", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:          bytes.Repeat([]byte("1"), 32),
+			RcvAddr:          bytes.Repeat([]byte("1"), 32),
+			Value:            big.NewInt(37),
+			Signature:        []byte("sSignature"),
+			RelayerAddr:      bytes.Repeat([]byte("2"), 32),
+			RelayerSignature: []byte("rSignature"),
+			ChainID:          []byte("chainID"),
+		}
+		err := n.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycnzvf3xycspcqad6", err.Error())
+	})
+	t.Run("relayed tx v3, no funds for relayer", func(t *testing.T) {
+		tx := &transaction.Transaction{
+			SndAddr:          bytes.Repeat([]byte("1"), 32),
+			RcvAddr:          bytes.Repeat([]byte("1"), 32),
+			Value:            big.NewInt(37),
+			Signature:        []byte("sSignature"),
+			RelayerAddr:      bytes.Repeat([]byte("2"), 32),
+			RelayerSignature: []byte("rSignature"),
+			ChainID:          []byte("chainID"),
+		}
+
+		stateComp := getDefaultStateComponents()
+		stateComp.AccountsAPI = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(addressContainer, tx.SndAddr) {
+					return &stateMock.UserAccountStub{}, nil
+				}
+
+				return nil, errors.New("account not found")
+			},
+		}
+		nLocal, _ := node.NewNode(
+			node.WithCoreComponents(getDefaultCoreComponents()),
+			node.WithBootstrapComponents(getDefaultBootstrapComponents()),
+			node.WithProcessComponents(getDefaultProcessComponents()),
+			node.WithStateComponents(stateComp),
+			node.WithCryptoComponents(getDefaultCryptoComponents()),
+		)
+
+		err := nLocal.ValidateTransaction(tx)
+		require.Equal(t, "insufficient funds for address erd1xgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeryv3jxgeqvw86cj", err.Error())
+	})
 }
 
 func TestCreateShardedStores_NilShardCoordinatorShouldError(t *testing.T) {
@@ -5472,7 +5555,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		StartTime:                time.Time{},
 		EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler:    versioning.NewTxVersionChecker(0),
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandlerField: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
 		ChanStopProcess:          make(chan endProcess.ArgEndProcess, 1),
 	}
 }

@@ -4,10 +4,14 @@ import (
 	"errors"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	state2 "github.com/multiversx/mx-chain-go/state"
@@ -17,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestTxsPreprocessor_NewSovereignChainTransactionPreprocessorShouldErrNilPreProcessor(t *testing.T) {
@@ -144,10 +146,10 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.TxCacherStub{
-					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+					SelectTransactionsCalled: func(_ txcache.SelectionSession, _ uint64, _ int, _ time.Duration) ([]*txcache.WrappedTransaction, uint64) {
 						return []*txcache.WrappedTransaction{
 							{Tx: &transaction.Transaction{Nonce: 1}},
-						}
+						}, 0
 					},
 				}
 			},
@@ -169,10 +171,10 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.TxCacherStub{
-					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+					SelectTransactionsCalled: func(_ txcache.SelectionSession, _ uint64, _ int, _ time.Duration) ([]*txcache.WrappedTransaction, uint64) {
 						return []*txcache.WrappedTransaction{
 							{Tx: &transaction.Transaction{Nonce: 1}},
-						}
+						}, 0
 					},
 				}
 			},
@@ -224,12 +226,12 @@ func TestTxsPreprocessor_CreateAndProcessMiniBlocksShouldWork(t *testing.T) {
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.TxCacherStub{
-					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+					SelectTransactionsCalled: func(_ txcache.SelectionSession, _ uint64, _ int, _ time.Duration) ([]*txcache.WrappedTransaction, uint64) {
 						return []*txcache.WrappedTransaction{
 							{Tx: tx1, TxHash: txHash1},
 							{Tx: tx2, TxHash: txHash2},
 							{Tx: tx3, TxHash: txHash3},
-						}
+						}, 0
 					},
 				}
 			},
@@ -275,10 +277,10 @@ func TestTxsPreprocessor_ComputeSortedTxsShouldWork(t *testing.T) {
 		args.TxDataPool = &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
 				return &testscommon.TxCacherStub{
-					SelectTransactionsWithBandwidthCalled: func(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction {
+					SelectTransactionsCalled: func(_ txcache.SelectionSession, _ uint64, _ int, _ time.Duration) ([]*txcache.WrappedTransaction, uint64) {
 						return []*txcache.WrappedTransaction{
 							{Tx: tx, TxHash: txHash},
-						}
+						}, 0
 					},
 				}
 			},

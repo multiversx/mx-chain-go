@@ -11,6 +11,7 @@ import (
 // FeesProcessorHandler defines the interface for the transaction fees processor
 type FeesProcessorHandler interface {
 	ComputeGasUsedAndFeeBasedOnRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int) (uint64, *big.Int)
+	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64

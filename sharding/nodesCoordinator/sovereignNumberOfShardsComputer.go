@@ -22,6 +22,11 @@ func (snsc *sovereignNumberOfShardsComputer) ComputeNumberOfShards(config *epoch
 	return nbShards, nil
 }
 
+// ShardIdFromNodesConfig always returns sovereign shard id
+func (snsc *sovereignNumberOfShardsComputer) ShardIdFromNodesConfig(_ *epochNodesConfig) uint32 {
+	return core.SovereignChainShardId
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (snsc *sovereignNumberOfShardsComputer) IsInterfaceNil() bool {
 	return snsc == nil

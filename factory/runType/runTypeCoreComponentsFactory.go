@@ -1,6 +1,7 @@
 package runType
 
 import (
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -18,6 +19,7 @@ func (rccf *runTypeCoreComponentsFactory) Create() *runTypeCoreComponents {
 	return &runTypeCoreComponents{
 		genesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
 		ratingsDataFactory:       rating.NewRatingsDataFactory(),
+		enableEpochsFactory:      enablers.NewEnableEpochsFactory(),
 	}
 }
 

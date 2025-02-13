@@ -70,6 +70,7 @@ type ArgsChainSimulator struct {
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
 	ChainProcessorFactory          ChainHandlerFactory
+	GenerateGenesisFile            func(args configs.ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error)
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -144,6 +145,11 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	if args.ChainProcessorFactory == nil {
 		args.ChainProcessorFactory = NewChainHandlerFactory()
 	}
+	if args.GenerateGenesisFile == nil {
+		args.GenerateGenesisFile = func(args configs.ArgsChainSimulatorConfigs, config *config.Configs) (*dtos.InitialWalletKeys, error) {
+			return configs.GenerateGenesisFile(args, config)
+		}
+	}
 }
 
 func createRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
@@ -193,6 +199,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		AlterConfigsFunction:        args.AlterConfigsFunction,
 		NumNodesWaitingListShard:    args.NumNodesWaitingListShard,
 		NumNodesWaitingListMeta:     args.NumNodesWaitingListMeta,
+		GenerateGenesisFile:         args.GenerateGenesisFile,
 	})
 	if err != nil {
 		return err
@@ -373,15 +380,18 @@ func (s *simulator) incrementRoundOnAllValidators() {
 // ForceChangeOfEpoch will force the change of current epoch
 // This method will call the epoch change trigger and generate block till a new epoch is reached
 func (s *simulator) ForceChangeOfEpoch() error {
+	s.mutex.Lock()
 	log.Info("force change of epoch")
 	for shardID, node := range s.nodes {
 		err := node.ForceChangeOfEpoch()
 		if err != nil {
+			s.mutex.Unlock()
 			return fmt.Errorf("force change of epoch shardID-%d: error-%w", shardID, err)
 		}
 	}
 
 	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+	s.mutex.Unlock()
 
 	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }

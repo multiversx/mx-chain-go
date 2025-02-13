@@ -8,14 +8,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-logger-go/file"
+	"github.com/urfave/cli"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/config/overridableConfig"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-logger-go/file"
-	"github.com/urfave/cli"
 	// test point 1 for custom profiler
 )
 
@@ -239,6 +240,13 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 	}
 	log.Debug("config", "file", sovereignExtraConfigPath)
 
+	configurationPaths.Epoch = ctx.GlobalString(epochConfigurationFile.Name)
+	sovereignEpochConfig, err := sovereignConfig.LoadSovereignEpochConfig(configurationPaths.Epoch)
+	if err != nil {
+		return nil, err
+	}
+	log.Debug("config sovereign", "file", configurationPaths.Epoch)
+
 	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
 		CertificatePath:   ctx.GlobalString(sovereignBridgeCertificateFile.Name),
 		CertificatePkPath: ctx.GlobalString(sovereignBridgeCertificatePkFile.Name),
@@ -277,6 +285,7 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*sovereignConfig.Sovereig
 			RoundConfig:              roundConfig,
 		},
 		SovereignExtraConfig: sovereignExtraConfig,
+		SovereignEpochConfig: sovereignEpochConfig,
 	}, nil
 }
 

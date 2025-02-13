@@ -7,8 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
-	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // SovereignSCProcessArgs - arguments for creating a new sovereign smart contract processor
@@ -77,7 +78,7 @@ func (sc *sovereignSCProcessor) ProcessSmartContractResult(scr *smartContractRes
 		return returnCode, err
 	}
 
-	txType, _ := sc.txTypeHandler.ComputeTransactionType(scr)
+	txType, _, _ := sc.txTypeHandler.ComputeTransactionType(scr)
 	switch txType {
 	case process.BuiltInFunctionCall:
 		err = sc.checkBuiltInFuncCall(string(scr.Data))

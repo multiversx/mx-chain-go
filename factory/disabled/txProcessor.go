@@ -20,6 +20,11 @@ func (txProc *TxProcessor) VerifyTransaction(_ *transaction.Transaction) error {
 	return nil
 }
 
+// VerifyGuardian does nothing as it is disabled
+func (txProc *TxProcessor) VerifyGuardian(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+	return nil
+}
+
 // GetSenderAndReceiverAccounts does nothing as it is disabled
 func (txProc *TxProcessor) GetSenderAndReceiverAccounts(_ *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
 	return nil, nil, nil

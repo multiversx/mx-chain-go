@@ -7,7 +7,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
@@ -27,8 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
@@ -43,6 +44,7 @@ type ArgsProcessComponentsHolder struct {
 	StatusCoreComponents     factory.StatusCoreComponentsHolder
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
 	RunTypeComponents        factory.RunTypeComponentsHolder
+	EnableEpochsFactory      enablers.EnableEpochsFactory
 	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 	Configs                  config.Configs
 
@@ -196,6 +198,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GenesisNonce:             args.GenesisNonce,
 		GenesisRound:             args.GenesisRound,
 		RunTypeComponents:        args.RunTypeComponents,
+		EnableEpochsFactory:      args.EnableEpochsFactory,
 		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)

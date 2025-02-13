@@ -41,6 +41,9 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		MetaChainMinNodes:           1,
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
+		GenerateGenesisFile: func(args configs.ArgsChainSimulatorConfigs, config *config.Configs) (*dtos.InitialWalletKeys, error) {
+			return configs.GenerateGenesisFile(args, config)
+		},
 	})
 	require.Nil(t, err)
 

@@ -184,6 +184,7 @@ func (fhps *FullHistoryPruningStorer) getOrOpenPersister(epoch uint32) (storage.
 		}
 
 		fhps.oldEpochsActivePersistersCache.Put([]byte(epochString), newPdata, 0)
+		log.Trace("full history pruning storer - init new storer", "epoch", epoch)
 		fhps.persistersMapByEpoch[epoch] = newPdata
 
 		return newPdata.getPersister(), nil

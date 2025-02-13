@@ -34,6 +34,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -747,6 +748,7 @@ func CreateFullGenesisBlocks(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		RunTypeComponents:       runTypeComp,
+		EnableEpochsFactory:     enablers.NewEnableEpochsFactory(),
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -865,6 +867,7 @@ func CreateGenesisMetaBlock(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		RunTypeComponents:       runTypeComp,
+		EnableEpochsFactory:     enablers.NewEnableEpochsFactory(),
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

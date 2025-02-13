@@ -1628,7 +1628,7 @@ func (tc *transactionCoordinator) checkGasProvidedByMiniBlockInReceiverShard(
 			return process.ErrMissingTransaction
 		}
 
-		_, txTypeDstShard := tc.txTypeHandler.ComputeTransactionType(txHandler)
+		_, txTypeDstShard, _ := tc.txTypeHandler.ComputeTransactionType(txHandler)
 		moveBalanceGasLimit := tc.economicsFee.ComputeGasLimit(txHandler)
 		if txTypeDstShard == process.MoveBalance {
 			gasProvidedByTxInReceiverShard = moveBalanceGasLimit

@@ -441,6 +441,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
 		managedRunTypeComponents,
+		managedRunTypeCoreComponents,
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
@@ -488,6 +489,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
 	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&bridgeCfg.ClientConfig{
+		Enabled:  snr.configs.SovereignExtraConfig.OutGoingBridge.Enabled,
 		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
 		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
 		CertificateCfg: cert.FileCfg{
@@ -1225,6 +1227,7 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
 		IsSovereign:          true,
+		ESDTPrefix:           snr.configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
@@ -1286,6 +1289,7 @@ func (snr *sovereignNodeRunner) logSessionInformation(
 // CreateManagedProcessComponents is the managed process components factory
 func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
+	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
@@ -1378,6 +1382,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:              *configs.FlagsConfig,
 		TxExecutionOrderHandler:  ordering.NewOrderedCollection(),
 		RunTypeComponents:        runTypeComponents,
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
 		IncomingHeaderSubscriber: incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
@@ -1579,18 +1584,17 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
-		Config:                   *snr.configs.GeneralConfig,
-		ConfigPathsHolder:        *snr.configs.ConfigurationPathsHolder,
-		EpochConfig:              *snr.configs.EpochConfig,
-		RoundConfig:              *snr.configs.RoundConfig,
-		ImportDbConfig:           *snr.configs.ImportDbConfig,
-		RatingsConfig:            *snr.configs.RatingsConfig,
-		EconomicsConfig:          *snr.configs.EconomicsConfig,
-		NodesFilename:            snr.configs.ConfigurationPathsHolder.Nodes,
-		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
-		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
-		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
+		Config:                *snr.configs.GeneralConfig,
+		ConfigPathsHolder:     *snr.configs.ConfigurationPathsHolder,
+		EpochConfig:           *snr.configs.EpochConfig,
+		RoundConfig:           *snr.configs.RoundConfig,
+		ImportDbConfig:        *snr.configs.ImportDbConfig,
+		RatingsConfig:         *snr.configs.RatingsConfig,
+		EconomicsConfig:       *snr.configs.EconomicsConfig,
+		NodesFilename:         snr.configs.ConfigurationPathsHolder.Nodes,
+		WorkingDirectory:      snr.configs.FlagsConfig.DbDir,
+		ChanStopNodeProcess:   chanStopNodeProcess,
+		RunTypeCoreComponents: runTypeCoreComponents,
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1683,7 +1687,7 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeCoreComponents creates the managed run type core components
 func (snr *sovereignNodeRunner) CreateManagedRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHandler, error) {
-	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
+	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory(*snr.configs.SovereignEpochConfig)
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
 	if err != nil {
 		return nil, err

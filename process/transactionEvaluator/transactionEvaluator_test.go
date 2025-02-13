@@ -114,8 +114,8 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.MoveBalance
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.MoveBalance, false
 		},
 	}
 	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
@@ -153,8 +153,8 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.MoveBalance
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.MoveBalance, false
 		},
 	}
 	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
@@ -187,8 +187,8 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 	consumedGasUnits := uint64(4000)
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
@@ -223,8 +223,8 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 	localErr := errors.New("local err")
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
@@ -253,8 +253,8 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
@@ -284,8 +284,8 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
@@ -321,8 +321,8 @@ func TestTransactionEvaluator_RelayedTxShouldErr(t *testing.T) {
 
 	args := createArgs()
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.RelayedTx, process.RelayedTx
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.RelayedTx, process.RelayedTx, false
 		},
 	}
 	tce, _ := NewAPITransactionEvaluator(args)
@@ -386,8 +386,8 @@ func TestApiTransactionEvaluator_ComputeTransactionGasLimit(t *testing.T) {
 	_ = args.BlockChain.SetCurrentBlockHeaderAndRootHash(&block.Header{Nonce: expectedNonce}, []byte("test"))
 
 	args.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
 		},
 	}
 	args.TxSimulator = &mock.TransactionSimulatorStub{

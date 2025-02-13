@@ -19,6 +19,8 @@ import (
 	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalizerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
@@ -38,41 +40,38 @@ import (
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("factory")
 
 // CoreComponentsFactoryArgs holds the arguments needed for creating a core components factory
 type CoreComponentsFactoryArgs struct {
-	Config                   config.Config
-	ConfigPathsHolder        config.ConfigurationPathsHolder
-	EpochConfig              config.EpochConfig
-	RoundConfig              config.RoundConfig
-	RatingsConfig            config.RatingsConfig
-	EconomicsConfig          config.EconomicsConfig
-	ImportDbConfig           config.ImportDbConfig
-	NodesFilename            string
-	WorkingDirectory         string
-	ChanStopNodeProcess      chan endProcess.ArgEndProcess
-	GenesisNodesSetupFactory sharding.GenesisNodesSetupFactory
-	RatingsDataFactory       rating.RatingsDataFactory
+	Config                config.Config
+	ConfigPathsHolder     config.ConfigurationPathsHolder
+	EpochConfig           config.EpochConfig
+	RoundConfig           config.RoundConfig
+	RatingsConfig         config.RatingsConfig
+	EconomicsConfig       config.EconomicsConfig
+	ImportDbConfig        config.ImportDbConfig
+	NodesFilename         string
+	WorkingDirectory      string
+	ChanStopNodeProcess   chan endProcess.ArgEndProcess
+	RunTypeCoreComponents factory.RunTypeCoreComponentsHolder
 }
 
 // coreComponentsFactory is responsible for creating the core components
 type coreComponentsFactory struct {
-	config                   config.Config
-	configPathsHolder        config.ConfigurationPathsHolder
-	epochConfig              config.EpochConfig
-	roundConfig              config.RoundConfig
-	ratingsConfig            config.RatingsConfig
-	economicsConfig          config.EconomicsConfig
-	importDbConfig           config.ImportDbConfig
-	nodesFilename            string
-	workingDir               string
-	chanStopNodeProcess      chan endProcess.ArgEndProcess
-	genesisNodesSetupFactory sharding.GenesisNodesSetupFactory
-	ratingsDataFactory       rating.RatingsDataFactory
+	config                config.Config
+	configPathsHolder     config.ConfigurationPathsHolder
+	epochConfig           config.EpochConfig
+	roundConfig           config.RoundConfig
+	ratingsConfig         config.RatingsConfig
+	economicsConfig       config.EconomicsConfig
+	importDbConfig        config.ImportDbConfig
+	nodesFilename         string
+	workingDir            string
+	chanStopNodeProcess   chan endProcess.ArgEndProcess
+	runTypeCoreComponents factory.RunTypeCoreComponentsHolder
 }
 
 // coreComponents is the DTO used for core components
@@ -115,26 +114,31 @@ type coreComponents struct {
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
 func NewCoreComponentsFactory(args CoreComponentsFactoryArgs) (*coreComponentsFactory, error) {
-	if check.IfNil(args.GenesisNodesSetupFactory) {
-		return nil, errors.ErrNilNodesSetupFactory
+	if check.IfNil(args.RunTypeCoreComponents) {
+		return nil, errors.ErrNilRunTypeCoreComponents
 	}
-	if check.IfNil(args.RatingsDataFactory) {
+	if check.IfNil(args.RunTypeCoreComponents.GenesisNodesSetupFactoryCreator()) {
+		return nil, sharding.ErrNilGenesisNodesSetupFactory
+	}
+	if check.IfNil(args.RunTypeCoreComponents.RatingsDataFactoryCreator()) {
 		return nil, errors.ErrNilRatingsDataFactory
+	}
+	if check.IfNil(args.RunTypeCoreComponents.EnableEpochsFactoryCreator()) {
+		return nil, enablers.ErrNilEnableEpochsFactory
 	}
 
 	return &coreComponentsFactory{
-		config:                   args.Config,
-		configPathsHolder:        args.ConfigPathsHolder,
-		epochConfig:              args.EpochConfig,
-		roundConfig:              args.RoundConfig,
-		ratingsConfig:            args.RatingsConfig,
-		importDbConfig:           args.ImportDbConfig,
-		economicsConfig:          args.EconomicsConfig,
-		workingDir:               args.WorkingDirectory,
-		chanStopNodeProcess:      args.ChanStopNodeProcess,
-		nodesFilename:            args.NodesFilename,
-		genesisNodesSetupFactory: args.GenesisNodesSetupFactory,
-		ratingsDataFactory:       args.RatingsDataFactory,
+		config:                args.Config,
+		configPathsHolder:     args.ConfigPathsHolder,
+		epochConfig:           args.EpochConfig,
+		roundConfig:           args.RoundConfig,
+		ratingsConfig:         args.RatingsConfig,
+		importDbConfig:        args.ImportDbConfig,
+		economicsConfig:       args.EconomicsConfig,
+		workingDir:            args.WorkingDirectory,
+		chanStopNodeProcess:   args.ChanStopNodeProcess,
+		nodesFilename:         args.NodesFilename,
+		runTypeCoreComponents: args.RunTypeCoreComponents,
 	}, nil
 }
 
@@ -191,7 +195,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	syncer.StartSyncingTime()
 	log.Debug("NTP average clock offset", "value", syncer.ClockOffset())
 
-	genesisNodesConfig, err := ccf.genesisNodesSetupFactory.CreateNodesSetup(
+	genesisNodesConfig, err := ccf.runTypeCoreComponents.GenesisNodesSetupFactoryCreator().CreateNodesSetup(
 		&sharding.NodesSetupArgs{
 			NodesFilePath:            ccf.nodesFilename,
 			AddressPubKeyConverter:   addressPubkeyConverter,
@@ -252,7 +256,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	epochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
+	enableEpochsHandler, err := ccf.runTypeCoreComponents.EnableEpochsFactoryCreator().CreateEnableEpochsHandler(ccf.epochConfig.EnableEpochs, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -287,7 +291,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		MetaMinNodes:             genesisNodesConfig.MinNumberOfMetaNodes(),
 		RoundDurationMiliseconds: genesisNodesConfig.GetRoundDuration(),
 	}
-	ratingsData, err := ccf.ratingsDataFactory.CreateRatingsData(ratingDataArgs)
+	ratingsData, err := ccf.runTypeCoreComponents.RatingsDataFactoryCreator().CreateRatingsData(ratingDataArgs)
 	if err != nil {
 		return nil, err
 	}
