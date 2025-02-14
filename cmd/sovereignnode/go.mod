@@ -120,7 +120,7 @@ require (
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
 	github.com/multiversx/mx-chain-communication-go v1.1.1 // indirect
 	github.com/multiversx/mx-chain-crypto-go v1.2.12 // indirect
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.15-0.20250131125841-73868f5ca49c // indirect
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.15-0.20250212123658-7268376e3d61 // indirect
 	github.com/multiversx/mx-chain-scenario-go v1.4.4 // indirect
 	github.com/multiversx/mx-chain-storage-go v1.0.19 // indirect
 	github.com/multiversx/mx-chain-vm-common-go v1.5.17-0.20241119132002-2fa80c5ec516 // indirect
