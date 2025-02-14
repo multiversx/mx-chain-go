@@ -40,8 +40,52 @@ func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {
 		return nil, fmt.Errorf("could not unmarshal config JSON: %v", err)
 	}
 
+	err = config.verify()
+	if err != nil {
+		return nil, fmt.Errorf("config verification failed: %v", err)
+	}
+
 	config.populateFailuresByName()
 	return &config, nil
+}
+
+func (config *chaosConfig) verify() error {
+	knownFailures := make(map[failureName]struct{})
+
+	knownFailures[failureProcessTransactionShouldReturnError] = struct{}{}
+	knownFailures[failureShouldCorruptSignature] = struct{}{}
+	knownFailures[failureShouldSkipWaitingForSignatures] = struct{}{}
+	knownFailures[failureShouldReturnErrorInCheckSignaturesValidity] = struct{}{}
+	knownFailures[failureShouldDelayBroadcastingFinalBlockAsLeader] = struct{}{}
+	knownFailures[failureShouldCorruptLeaderSignature] = struct{}{}
+	knownFailures[failureShouldDelayLeaderSignature] = struct{}{}
+	knownFailures[failureShouldSkipSendingBlock] = struct{}{}
+
+	for _, failure := range config.Failures {
+		name := failureName(failure.Name)
+
+		if _, ok := knownFailures[name]; !ok {
+			return fmt.Errorf("unknown failure: %s", name)
+		}
+
+		if len(failure.Triggers) == 0 {
+			return fmt.Errorf("failure %s has no triggers", name)
+		}
+
+		if name == failureShouldDelayBroadcastingFinalBlockAsLeader {
+			if failure.getParameterAsFloat64("duration") == 0 {
+				return fmt.Errorf("failure %s requires the parameter 'duration'", name)
+			}
+		}
+
+		if name == failureShouldDelayLeaderSignature {
+			if failure.getParameterAsFloat64("duration") == 0 {
+				return fmt.Errorf("failure %s requires the parameter 'duration'", name)
+			}
+		}
+	}
+
+	return nil
 }
 
 func (config *chaosConfig) populateFailuresByName() {

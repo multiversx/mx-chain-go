@@ -24,7 +24,7 @@ type callsCounters struct {
 func newChaosController(configFilePath string) *chaosController {
 	config, err := newChaosConfigFromFile(configFilePath)
 	if err != nil {
-		log.Warn("Could not load chaos config", "error", err)
+		log.Error("Could not load chaos config", "error", err)
 		return &chaosController{enabled: false}
 	}
 
