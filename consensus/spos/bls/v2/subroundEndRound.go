@@ -248,9 +248,23 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 			return false
 		}
 		sr.sendProof()
+		err := sr.prepareBroadcastBlockData()
+		log.LogIfError(err)
 	}
 
 	return sr.finalizeConfirmedBlock()
+}
+
+func (sr *subroundEndRound) prepareBroadcastBlockData() error {
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	if err != nil {
+		return err
+	}
+
+	getEquivalentProofSender := sr.getEquivalentProofSender()
+	go sr.BroadcastMessenger().PrepareBroadcastBlockDataWithEquivalentProofs(sr.GetHeader(), miniBlocks, transactions, []byte(getEquivalentProofSender))
+
+	return nil
 }
 
 func (sr *subroundEndRound) waitForProof() bool {
@@ -393,7 +407,7 @@ func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error 
 func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) error {
 	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.GetHeader().GetEpoch())
 	if err != nil {
-		log.Trace("VerifySignatureShare returned an error: ", err)
+		log.Trace("VerifySignatureShare returned an error: ", "error", err)
 		errSetJob := sr.SetJobDone(pk, bls.SrSignature, false)
 		if errSetJob != nil {
 			return errSetJob
@@ -540,6 +554,12 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Trace("computeAggSigOnValidNodes",
+		"bitmap", bitmap,
+		"threshold", threshold,
+		"numValidSigShares", numValidSigShares,
+	)
 
 	return bitmap, sig, nil
 }

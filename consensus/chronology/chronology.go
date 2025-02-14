@@ -120,6 +120,9 @@ func (chr *chronology) StartRounds() {
 }
 
 func (chr *chronology) startRounds(ctx context.Context) {
+	// force a round update to initialize the round
+	roundHandlerWithRevert := chr.roundHandler.(consensus.RoundHandlerConsensusSwitch)
+	roundHandlerWithRevert.RevertOneRound()
 	for {
 		select {
 		case <-ctx.Done():

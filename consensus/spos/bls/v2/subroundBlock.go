@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -25,6 +26,7 @@ type subroundBlock struct {
 
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
+	mutBlockProcessing            sync.Mutex
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -453,7 +455,10 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
 	nc := sr.NodesCoordinator()
 
-	prevBlockEpoch := sr.Blockchain().GetCurrentBlockHeader().GetEpoch()
+	prevBlockEpoch := uint32(0)
+	if sr.Blockchain().GetCurrentBlockHeader() != nil {
+		prevBlockEpoch = sr.Blockchain().GetCurrentBlockHeader().GetEpoch()
+	}
 	// TODO: remove this if first block in new epoch will be validated by epoch validators
 	// first block in epoch is validated by previous epoch validators
 	selectionEpoch := headerHandler.GetEpoch()
@@ -557,10 +562,13 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
 func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
+	return sr.shouldProcessBlock(headerLeader)
+}
+
+func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
 	if sr.IsNodeSelf(headerLeader) {
 		return false
 	}
-
 	if sr.IsJobDone(headerLeader, sr.Current()) {
 		return false
 	}
@@ -584,6 +592,9 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sr.mutBlockProcessing.Lock()
+	defer sr.mutBlockProcessing.Unlock()
+
 	defer func() {
 		sr.SetProcessingBlock(false)
 	}()
@@ -598,6 +609,11 @@ func (sr *subroundBlock) processReceivedBlock(
 			"cnsDta round", round,
 			"extended called", sr.GetExtendedCalled(),
 		)
+		return false
+	}
+
+	// check again under critical section to avoid double execution
+	if !sr.shouldProcessBlock(string(senderPK)) {
 		return false
 	}
 

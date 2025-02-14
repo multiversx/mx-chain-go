@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -40,10 +41,10 @@ func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochs
 	return isStartOfEpochBlock && isBlockInActivationEpoch
 }
 
-// IsEpochStartProofAfterFlagActivation returns true if the provided proof is the proof of the epoch start block after the activation epoch of equivalent messages
-func IsEpochStartProofAfterFlagActivation(proof consensus.ProofHandler, enableEpochsHandler EnableEpochsHandler) bool {
+// IsEpochStartProofForFlagActivation returns true if the provided proof is the proof of the epoch start block on the activation epoch of equivalent messages
+func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpochsHandler EnableEpochsHandler) bool {
 	isStartOfEpochProof := proof.GetIsStartOfEpoch()
-	isProofInActivationEpoch := proof.GetHeaderEpoch() >= enableEpochsHandler.GetActivationEpoch(EquivalentMessagesFlag)
+	isProofInActivationEpoch := proof.GetHeaderEpoch() == enableEpochsHandler.GetActivationEpoch(EquivalentMessagesFlag)
 
 	return isStartOfEpochProof && isProofInActivationEpoch
 }
@@ -83,4 +84,15 @@ func VerifyProofAgainstHeader(proof data.HeaderProofHandler, header data.HeaderH
 	}
 
 	return nil
+}
+
+// GetShardIDs returns a map of shard IDs based on the number of shards
+func GetShardIDs(numShards uint32) map[uint32]struct{} {
+	shardIdentifiers := make(map[uint32]struct{})
+	for i := uint32(0); i < numShards; i++ {
+		shardIdentifiers[i] = struct{}{}
+	}
+	shardIdentifiers[core.MetachainShardId] = struct{}{}
+
+	return shardIdentifiers
 }

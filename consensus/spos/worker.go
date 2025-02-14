@@ -580,6 +580,11 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
 	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
+
+	log.Trace("received message with signature",
+		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
+		"header hash", cnsMsg.BlockHeaderHash,
+	)
 }
 
 func (wrk *Worker) addBlockToPool(bodyBytes []byte) {
@@ -788,6 +793,11 @@ func (wrk *Worker) Close() error {
 // ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 func (wrk *Worker) ResetConsensusMessages() {
 	wrk.consensusMessageValidator.resetConsensusMessages()
+}
+
+// ResetConsensusRoundState resets the consensus round state
+func (wrk *Worker) ResetConsensusRoundState() {
+	wrk.consensusState.ResetConsensusRoundState()
 }
 
 func (wrk *Worker) checkValidityAndProcessFinalInfo(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {

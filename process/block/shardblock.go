@@ -293,23 +293,28 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
-	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
-		// check proofs for cross notarized metablocks
-		for _, metaBlockHash := range header.GetMetaBlockHashes() {
-			hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-			if !ok {
-				return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
-			}
+	sp.mutRequestedAttestingNoncesMap.Lock()
+	sp.requestedAttestingNoncesMap = make(map[string]uint64)
+	sp.mutRequestedAttestingNoncesMap.Unlock()
+	_ = core.EmptyChannel(sp.allProofsReceived)
 
-			if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
-				continue
-			}
-
-			err = sp.checkProofRequestingNextHeaderBlockingIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
-			if err != nil {
-				return err
-			}
+	// check proofs for cross notarized metablocks
+	for _, metaBlockHash := range header.GetMetaBlockHashes() {
+		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok {
+			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 		}
+
+		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
+			continue
+		}
+
+		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+	}
+
+	err = sp.waitAllMissingProofs(haveTime())
+	if err != nil {
+		return err
 	}
 
 	defer func() {
@@ -489,10 +494,15 @@ func (sp *shardProcessor) checkEpochCorrectness(
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
 	}
 
+	epochChangeConfirmed := sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
+	if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		epochChangeConfirmed = sp.epochStartTrigger.EpochStartRound() <= sp.epochStartTrigger.EpochFinalityAttestingRound()
+	}
+
 	isOldEpochAndShouldBeNew := sp.epochStartTrigger.IsEpochStart() &&
 		header.GetRound() > sp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
 		header.GetEpoch() < sp.epochStartTrigger.MetaEpoch() &&
-		sp.epochStartTrigger.EpochStartRound() < sp.epochStartTrigger.EpochFinalityAttestingRound()
+		epochChangeConfirmed
 	if isOldEpochAndShouldBeNew {
 		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
 			process.ErrEpochDoesNotMatch, header.GetEpoch(), sp.epochStartTrigger.MetaEpoch())
@@ -1753,6 +1763,8 @@ func (sp *shardProcessor) receivedMetaBlock(headerHandler data.HeaderHandler, me
 		"hash", metaBlockHash,
 	)
 
+	sp.checkReceivedHeaderIfAttestingIsNeeded(headerHandler)
+
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 
 	haveMissingMetaHeaders := sp.hdrsForCurrBlock.missingHdrs > 0 || sp.hdrsForCurrBlock.missingFinalityAttestingHdrs > 0
@@ -1822,8 +1834,8 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	defer sp.hdrsForCurrBlock.mutHdrsForBlock.Unlock()
 
-	notarizedMetaHdrsBasedOnProofs := 0
 	metaBlockHashes := header.GetMetaBlockHashes()
+	lastMetablockNonceWithProof := uint64(0)
 	for i := 0; i < len(metaBlockHashes); i++ {
 		hdr, err := process.GetMetaHeaderFromPool(
 			metaBlockHashes[i],
@@ -1845,17 +1857,29 @@ func (sp *shardProcessor) computeExistingAndRequestMissingMetaHeaders(header dat
 			usedInBlock: true,
 		}
 
-		if hdr.Nonce > sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] {
-			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.Nonce
+		if hdr.GetNonce() > sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] {
+			sp.hdrsForCurrBlock.highestHdrNonce[core.MetachainShardId] = hdr.GetNonce()
 		}
-		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.Epoch)
-		if shouldConsiderProofsForNotarization {
-			notarizedMetaHdrsBasedOnProofs++
+
+		shouldConsiderProofsForNotarization := sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hdr.GetEpoch())
+		hasProofForMetablock := sp.proofsPool.HasProof(core.MetachainShardId, metaBlockHashes[i])
+		if !shouldConsiderProofsForNotarization {
+			continue
+		}
+
+		if !hasProofForMetablock {
+			// if there is no proof for current metablock hash, request the next one that holds this proof
+			sp.hdrsForCurrBlock.missingFinalityAttestingHdrs++
+			go sp.requestHandler.RequestMetaHeaderByNonce(hdr.GetNonce() + 1)
+			continue
+		}
+
+		if hdr.GetNonce() > lastMetablockNonceWithProof {
+			lastMetablockNonceWithProof = hdr.GetNonce()
 		}
 	}
 
-	shouldRequestMissingFinalityAttestingMetaHeaders := notarizedMetaHdrsBasedOnProofs != len(metaBlockHashes)
-	if sp.hdrsForCurrBlock.missingHdrs == 0 && shouldRequestMissingFinalityAttestingMetaHeaders {
+	if sp.hdrsForCurrBlock.missingHdrs == 0 && lastMetablockNonceWithProof == 0 {
 		sp.hdrsForCurrBlock.missingFinalityAttestingHdrs = sp.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,
 			sp.metaBlockFinality,

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/bits"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -19,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
+
+const headerWaitDelayAtTransition = 50 * time.Millisecond
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
 
@@ -314,28 +317,44 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 	}
 
 	prevProof := header.GetPreviousProof()
-	if common.IsEpochStartProofAfterFlagActivation(prevProof, hsv.enableEpochsHandler) {
+	if common.IsEpochStartProofForFlagActivation(prevProof, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(prevProof)
 	}
 
 	return hsv.VerifyHeaderProof(prevProof)
 }
 
-func (hsv *HeaderSigVerifier) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
+func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
 	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
 	headersStorer, err := hsv.storageService.GetStorer(headerUnit)
 	if err != nil {
 		return nil, err
 	}
 
-	return process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
+	var header data.HeaderHandler
+
+	for {
+		header, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
+		if err == nil {
+			break
+		}
+
+		log.Debug("getHeaderForProofAtTransition: failed to get header, will wait and try again",
+			"headerHash", proof.GetHeaderHash(),
+			"error", err.Error(),
+		)
+
+		time.Sleep(headerWaitDelayAtTransition)
+	}
+
+	return header, nil
 }
 
 func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderProofHandler) error {
 	if check.IfNilReflect(proof) {
 		return process.ErrNilHeaderProof
 	}
-	header, err := hsv.getHeaderForProof(proof)
+	header, err := hsv.getHeaderForProofAtTransition(proof)
 	if err != nil {
 		return err
 	}
@@ -369,7 +388,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return fmt.Errorf("%w for flag %s", process.ErrFlagNotActive, common.EquivalentMessagesFlag)
 	}
 
-	if common.IsEpochStartProofAfterFlagActivation(proofHandler, hsv.enableEpochsHandler) {
+	if common.IsEpochStartProofForFlagActivation(proofHandler, hsv.enableEpochsHandler) {
 		return hsv.verifyHeaderProofAtTransition(proofHandler)
 	}
 

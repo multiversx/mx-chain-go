@@ -143,7 +143,7 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	workerArgs := createDefaultWorkerArgs(appStatusHandler)
 	sposWorker, _ := spos.NewWorker(workerArgs)
 
-	sposWorker.ConsensusState().Header = &block.HeaderV2{}
+	sposWorker.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	return sposWorker
 }
@@ -1278,7 +1278,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk, _ := spos.NewWorker(workerArgs)
-	wrk.ConsensusState().Header = &block.HeaderV2{}
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	wrk.SetBlockProcessor(
 		&testscommon.BlockProcessorStub{
@@ -1348,7 +1348,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		},
 	}
 	wrk, _ := spos.NewWorker(workerArgs)
-	wrk.ConsensusState().Header = &block.HeaderV2{}
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	wrk.SetBlockProcessor(
 		&testscommon.BlockProcessorStub{
@@ -1892,7 +1892,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 
 	workerArgs.HeaderSigVerifier = headerSigVerifier
 	wrk, _ := spos.NewWorker(workerArgs)
-	wrk.ConsensusState().Header = &block.HeaderV2{}
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -1934,7 +1934,7 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 
 		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 		wrk, _ := spos.NewWorker(workerArgs)
-		wrk.ConsensusState().Header = &block.HeaderV2{}
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 		hdr := &block.Header{}
 		hdr.Nonce = 1

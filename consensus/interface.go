@@ -27,6 +27,12 @@ type RoundHandler interface {
 	IsInterfaceNil() bool
 }
 
+// RoundHandlerConsensusSwitch defines the actions which should be handled by a consensus switch round implementation
+type RoundHandlerConsensusSwitch interface {
+	RevertOneRound()
+	IsInterfaceNil() bool
+}
+
 // SubroundHandler defines the actions which should be handled by a subround implementation
 type SubroundHandler interface {
 	// DoWork implements of the subround's job
@@ -70,6 +76,7 @@ type BroadcastMessenger interface {
 	BroadcastBlockDataLeader(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte) error
 	PrepareBroadcastHeaderValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
 	PrepareBroadcastBlockDataValidator(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, idx int, pkBytes []byte)
+	PrepareBroadcastBlockDataWithEquivalentProofs(header data.HeaderHandler, miniBlocks map[uint32][]byte, transactions map[string][][]byte, pkBytes []byte)
 	IsInterfaceNil() bool
 }
 
