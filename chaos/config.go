@@ -52,14 +52,14 @@ func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {
 func (config *chaosConfig) verify() error {
 	knownFailures := make(map[failureName]struct{})
 
-	knownFailures[failureProcessTransactionShouldReturnError] = struct{}{}
-	knownFailures[failureShouldCorruptSignature] = struct{}{}
-	knownFailures[failureShouldSkipWaitingForSignatures] = struct{}{}
-	knownFailures[failureShouldReturnErrorInCheckSignaturesValidity] = struct{}{}
-	knownFailures[failureShouldDelayBroadcastingFinalBlockAsLeader] = struct{}{}
-	knownFailures[failureShouldCorruptLeaderSignature] = struct{}{}
-	knownFailures[failureShouldDelayLeaderSignature] = struct{}{}
-	knownFailures[failureShouldSkipSendingBlock] = struct{}{}
+	knownFailures[failureProcessingTransactionError] = struct{}{}
+	knownFailures[failureConsensusCorruptSignature] = struct{}{}
+	knownFailures[failureConsensusV1SkipWaitingForSignatures] = struct{}{}
+	knownFailures[failureConsensusV1ReturnErrorInCheckSignaturesValidity] = struct{}{}
+	knownFailures[failureConsensusV1DelayBroadcastingFinalBlockAsLeader] = struct{}{}
+	knownFailures[failureConsensusV2CorruptLeaderSignature] = struct{}{}
+	knownFailures[failureConsensusV2DelayLeaderSignature] = struct{}{}
+	knownFailures[failureConsensusV2SkipSendingBlock] = struct{}{}
 
 	for _, failure := range config.Failures {
 		name := failureName(failure.Name)
@@ -72,13 +72,13 @@ func (config *chaosConfig) verify() error {
 			return fmt.Errorf("failure %s has no triggers", name)
 		}
 
-		if name == failureShouldDelayBroadcastingFinalBlockAsLeader {
+		if name == failureConsensusV1DelayBroadcastingFinalBlockAsLeader {
 			if failure.getParameterAsFloat64("duration") == 0 {
 				return fmt.Errorf("failure %s requires the parameter 'duration'", name)
 			}
 		}
 
-		if name == failureShouldDelayLeaderSignature {
+		if name == failureConsensusV2DelayLeaderSignature {
 			if failure.getParameterAsFloat64("duration") == 0 {
 				return fmt.Errorf("failure %s requires the parameter 'duration'", name)
 			}

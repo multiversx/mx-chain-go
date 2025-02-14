@@ -11,7 +11,7 @@ func TestChaosConfig_verify(t *testing.T) {
 		config := &chaosConfig{
 			Failures: []failureDefinition{
 				{
-					Name:     string(failureShouldSkipSendingBlock),
+					Name:     string(failureConsensusV2SkipSendingBlock),
 					Triggers: []string{"true"},
 				},
 			},
@@ -38,38 +38,38 @@ func TestChaosConfig_verify(t *testing.T) {
 		config := &chaosConfig{
 			Failures: []failureDefinition{
 				{
-					Name: string(failureShouldSkipSendingBlock),
+					Name: string(failureConsensusV2SkipSendingBlock),
 				},
 			},
 		}
 
 		err := config.verify()
-		require.ErrorContains(t, err, "failure shouldSkipSendingBlock has no triggers")
+		require.ErrorContains(t, err, "failure consensusV2SkipSendingBlock has no triggers")
 	})
 
 	t.Run("with failure entries that require parameters", func(t *testing.T) {
 		config := &chaosConfig{
 			Failures: []failureDefinition{
 				{
-					Name:     string(failureShouldDelayBroadcastingFinalBlockAsLeader),
+					Name:     string(failureConsensusV1DelayBroadcastingFinalBlockAsLeader),
 					Triggers: []string{"true"},
 				},
 			},
 		}
 
 		err := config.verify()
-		require.ErrorContains(t, err, "failure shouldDelayBroadcastingFinalBlockAsLeader requires the parameter 'duration'")
+		require.ErrorContains(t, err, "failure consensusV1DelayBroadcastingFinalBlockAsLeader requires the parameter 'duration'")
 
 		config = &chaosConfig{
 			Failures: []failureDefinition{
 				{
-					Name:     string(failureShouldDelayLeaderSignature),
+					Name:     string(failureConsensusV2DelayLeaderSignature),
 					Triggers: []string{"true"},
 				},
 			},
 		}
 
 		err = config.verify()
-		require.ErrorContains(t, err, "failure shouldDelayLeaderSignature requires the parameter 'duration'")
+		require.ErrorContains(t, err, "failure consensusV2DelayLeaderSignature requires the parameter 'duration'")
 	})
 }

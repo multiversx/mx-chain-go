@@ -51,7 +51,7 @@ func (controller *chaosController) In_shardProcess_processTransaction_shouldRetu
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(nil, "")
-	return controller.shouldFail(failureProcessTransactionShouldReturnError, circumstance)
+	return controller.shouldFail(failureProcessingTransactionError, circumstance)
 }
 
 // In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
@@ -63,7 +63,7 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
 
-	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
+	if controller.shouldFail(failureConsensusCorruptSignature, circumstance) {
 		signature[0] += 1
 	}
 }
@@ -77,7 +77,7 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 
 	circumstance := controller.acquireCircumstance(consensusState, nodePublicKey)
 
-	if controller.shouldFail(failureShouldCorruptSignature, circumstance) {
+	if controller.shouldFail(failureConsensusCorruptSignature, circumstance) {
 		signature[0] += 1
 	}
 }
@@ -90,7 +90,7 @@ func (controller *chaosController) In_V1_subroundSignature_completeSignatureSubR
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
-	return controller.shouldFail(failureShouldSkipWaitingForSignatures, circumstance)
+	return controller.shouldFail(failureConsensusV1SkipWaitingForSignatures, circumstance)
 }
 
 func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(consensusState spos.ConsensusStateHandler) bool {
@@ -100,7 +100,7 @@ func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidit
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
-	return controller.shouldFail(failureShouldReturnErrorInCheckSignaturesValidity, circumstance)
+	return controller.shouldFail(failureConsensusV1ReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
 // In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock delays the broadcast of the block, from time to time.
@@ -112,8 +112,8 @@ func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
 
-	if controller.shouldFail(failureShouldDelayBroadcastingFinalBlockAsLeader, circumstance) {
-		duration := controller.config.getFailureParameterAsFloat64(failureShouldDelayBroadcastingFinalBlockAsLeader, "duration")
+	if controller.shouldFail(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, circumstance) {
+		duration := controller.config.getFailureParameterAsFloat64(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, "duration")
 		time.Sleep(time.Duration(duration))
 	}
 }
@@ -127,7 +127,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
 
-	if controller.shouldFail(failureShouldCorruptLeaderSignature, circumstance) {
+	if controller.shouldFail(failureConsensusV2CorruptLeaderSignature, circumstance) {
 		signature[0] += 1
 	}
 }
@@ -141,8 +141,8 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLead
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
 
-	if controller.shouldFail(failureShouldDelayLeaderSignature, circumstance) {
-		duration := controller.config.getFailureParameterAsFloat64(failureShouldDelayLeaderSignature, "duration")
+	if controller.shouldFail(failureConsensusV2DelayLeaderSignature, circumstance) {
+		duration := controller.config.getFailureParameterAsFloat64(failureConsensusV2DelayLeaderSignature, "duration")
 		time.Sleep(time.Duration(duration))
 	}
 }
@@ -155,7 +155,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSend
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
-	return controller.shouldFail(failureShouldSkipSendingBlock, circumstance)
+	return controller.shouldFail(failureConsensusV2SkipSendingBlock, circumstance)
 }
 
 func (controller *chaosController) acquireCircumstance(consensusState spos.ConsensusStateHandler, nodePublicKey string) *failureCircumstance {

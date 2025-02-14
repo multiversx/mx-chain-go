@@ -1,7 +1,7 @@
 {
     "failures": [
         {
-            "name": "processTransactionShouldReturnError",
+            "name": "processingTransactionError",
             "enabled": false,
             "triggers": [
                 "(nodePublicKeyLastByte % 4 == 0 && transactionHashLastByte % 7 == 0)",
@@ -9,22 +9,22 @@
             ]
         },
         {
-            "name": "shouldCorruptSignature",
+            "name": "consensusCorruptSignature",
             "enabled": false,
             "triggers": ["round % 11 == 0"]
         },
         {
-            "name": "shouldSkipWaitingForSignatures",
+            "name": "consensusV1SkipWaitingForSignatures",
             "enabled": false,
             "triggers": ["false"]
         },
         {
-            "name": "shouldReturnErrorInCheckSignaturesValidity",
+            "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
             "enabled": false,
             "triggers": ["false"]
         },
         {
-            "name": "shouldDelayBroadcastingFinalBlockAsLeader",
+            "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
             "enabled": false,
             "triggers": ["round % 20 == 0"],
             "parameters": {
@@ -32,12 +32,12 @@
             }
         },
         {
-            "name": "shouldCorruptLeaderSignature",
+            "name": "consensusV2CorruptLeaderSignature",
             "enabled": false,
             "triggers": ["round % 13 == 0"]
         },
         {
-            "name": "shouldDelayLeaderSignature",
+            "name": "consensusV2DelayLeaderSignature",
             "enabled": false,
             "triggers": ["round % 19 == 0"],
             "parameters": {
@@ -45,7 +45,7 @@
             }
         },
         {
-            "name": "shouldSkipSendingBlock",
+            "name": "consensusV2SkipSendingBlock",
             "enabled": false,
             "triggers": ["round % 17 == 0 && randomNumber % 2 == 0"]
         }

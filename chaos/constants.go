@@ -3,14 +3,14 @@ package chaos
 type failureName string
 
 const (
-	failureProcessTransactionShouldReturnError        failureName = "processTransactionShouldReturnError"
-	failureShouldCorruptSignature                     failureName = "shouldCorruptSignature"
-	failureShouldSkipWaitingForSignatures             failureName = "shouldSkipWaitingForSignatures"
-	failureShouldReturnErrorInCheckSignaturesValidity failureName = "shouldReturnErrorInCheckSignaturesValidity"
-	failureShouldDelayBroadcastingFinalBlockAsLeader  failureName = "shouldDelayBroadcastingFinalBlockAsLeader"
-	failureShouldCorruptLeaderSignature               failureName = "shouldCorruptLeaderSignature"
-	failureShouldDelayLeaderSignature                 failureName = "shouldDelayLeaderSignature"
-	failureShouldSkipSendingBlock                     failureName = "shouldSkipSendingBlock"
+	failureProcessingTransactionError                      failureName = "processingTransactionError"
+	failureConsensusCorruptSignature                       failureName = "consensusCorruptSignature"
+	failureConsensusV1SkipWaitingForSignatures             failureName = "consensusV1SkipWaitingForSignatures"
+	failureConsensusV1ReturnErrorInCheckSignaturesValidity failureName = "consensusV1ReturnErrorInCheckSignaturesValidity"
+	failureConsensusV1DelayBroadcastingFinalBlockAsLeader  failureName = "consensusV1DelayBroadcastingFinalBlockAsLeader"
+	failureConsensusV2CorruptLeaderSignature               failureName = "consensusV2CorruptLeaderSignature"
+	failureConsensusV2DelayLeaderSignature                 failureName = "consensusV2DelayLeaderSignature"
+	failureConsensusV2SkipSendingBlock                     failureName = "consensusV2SkipSendingBlock"
 )
 
 type failureExpressionParameterName string
