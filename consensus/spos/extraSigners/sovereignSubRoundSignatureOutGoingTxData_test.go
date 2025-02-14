@@ -1,4 +1,4 @@
-package bls
+package extraSigners
 
 import (
 	"testing"
@@ -100,8 +100,12 @@ func TestSovereignSubRoundSignatureOutGoingTxData_AddSigShareToConsensusMessage(
 	err = sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), cnsMsg)
 	require.Nil(t, err)
 	require.Equal(t, &consensus.Message{
-		SignatureShare:               []byte("sigShare"),
-		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+		SignatureShare: []byte("sigShare"),
+		ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+			block.OutGoingMbTx.String(): {
+				SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+			},
+		},
 	}, cnsMsg)
 }
 
@@ -109,8 +113,12 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 	t.Parallel()
 
 	cnsMsg := &consensus.Message{
-		SignatureShare:               []byte("sigShare"),
-		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+		SignatureShare: []byte("sigShare"),
+		ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+			block.OutGoingMbTx.String(): {
+				SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+			},
+		},
 	}
 
 	expectedIdx := uint16(4)
@@ -118,7 +126,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 	signHandler := &cnsTest.SigningHandlerStub{
 		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
 			require.Equal(t, expectedIdx, index)
-			require.Equal(t, cnsMsg.SignatureShareOutGoingTxData, sig)
+			require.Equal(t, cnsMsg.ExtraSignatures[block.OutGoingMbTx.String()].SignatureShareOutGoingTxData, sig)
 
 			wasSigStored = true
 			return nil

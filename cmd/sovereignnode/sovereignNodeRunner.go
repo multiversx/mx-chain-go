@@ -43,6 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/consensus/spos/extraSigners"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -1028,7 +1029,7 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 	}
 
 	signRoundExtraSignersHolder := bls.NewSubRoundSignatureExtraSignersHolder()
-	signRoundExtraSigner, err := bls.NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
+	signRoundExtraSigner, err := extraSigners.NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1038,7 +1039,7 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 	}
 
 	endRoundExtraSignersHolder := bls.NewSubRoundEndExtraSignersHolder()
-	endRoundExtraSigner, err := bls.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
+	endRoundExtraSigner, err := extraSigners.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return nil, err
 	}

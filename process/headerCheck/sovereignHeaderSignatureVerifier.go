@@ -38,6 +38,8 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyAggregatedSignature", errors.ErrWrongTypeAssertion)
 	}
 
+	// TODO: Also here we need extra verifier
+
 	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMb) {
 		return nil
