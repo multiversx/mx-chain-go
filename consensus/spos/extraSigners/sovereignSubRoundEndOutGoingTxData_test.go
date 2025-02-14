@@ -1,6 +1,5 @@
 package extraSigners
 
-/*
 import (
 	"testing"
 
@@ -241,8 +240,12 @@ func TestSovereignSubRoundEndOutGoingTxData_HaveConsensusHeaderWithFullInfo(t *t
 	aggregatedSig := []byte("aggregatedSig")
 	leaderSig := []byte("leaderSig")
 	cnsMsg := &consensus.Message{
-		AggregatedSignatureOutGoingTxData: aggregatedSig,
-		LeaderSignatureOutGoingTxData:     leaderSig,
+		ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+			block.OutGoingMbTx.String(): {
+				AggregatedSignatureOutGoingTxData: aggregatedSig,
+				LeaderSignatureOutGoingTxData:     leaderSig,
+			},
+		},
 	}
 	outGoingOpHash := []byte("outGoingOpHash")
 
@@ -333,8 +336,12 @@ func TestSovereignSubRoundEndOutGoingTxData_AddLeaderAndAggregatedSignatures(t *
 		err := sovSigHandler.AddLeaderAndAggregatedSignatures(sovHdr, cnsMsg)
 		require.Nil(t, err)
 		require.Equal(t, &consensus.Message{
-			AggregatedSignatureOutGoingTxData: aggregatedSig,
-			LeaderSignatureOutGoingTxData:     leaderSig,
+			ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+				block.OutGoingMbTx.String(): {
+					AggregatedSignatureOutGoingTxData: aggregatedSig,
+					LeaderSignatureOutGoingTxData:     leaderSig,
+				},
+			},
 		}, cnsMsg)
 	})
 }
@@ -344,4 +351,3 @@ func TestSovereignSubRoundEndOutGoingTxData_Identifier(t *testing.T) {
 	sovSigHandler, _ := NewSovereignSubRoundEndOutGoingTxData(&cnsTest.SigningHandlerStub{})
 	require.Equal(t, "sovereignSubRoundEndOutGoingTxData", sovSigHandler.Identifier())
 }
-*/
