@@ -20,9 +20,13 @@ var log = logger.GetOrCreate("consensus/spos")
 type ConsensusState struct {
 	// hold the data on which validators do the consensus (could be for example a hash of the block header
 	// proposed by the leader)
-	Data   []byte
-	Body   data.BodyHandler
-	Header data.HeaderHandler
+	Data []byte
+
+	body    data.BodyHandler
+	mutBody sync.RWMutex
+
+	header    data.HeaderHandler
+	mutHeader sync.RWMutex
 
 	receivedHeaders    []data.HeaderHandler
 	mutReceivedHeaders sync.RWMutex
@@ -75,8 +79,8 @@ func (cns *ConsensusState) ResetConsensusRoundState() {
 
 // ResetConsensusState method resets all the consensus data
 func (cns *ConsensusState) ResetConsensusState() {
-	cns.Body = nil
-	cns.Header = nil
+	cns.SetBody(nil)
+	cns.SetHeader(nil)
 	cns.Data = nil
 
 	cns.initReceivedHeaders()
@@ -227,14 +231,14 @@ func (cns *ConsensusState) IsNodeSelf(node string) bool {
 
 // IsBlockBodyAlreadyReceived method returns true if block body is already received and false otherwise
 func (cns *ConsensusState) IsBlockBodyAlreadyReceived() bool {
-	isBlockBodyAlreadyReceived := cns.Body != nil
+	isBlockBodyAlreadyReceived := cns.GetBody() != nil
 
 	return isBlockBodyAlreadyReceived
 }
 
 // IsHeaderAlreadyReceived method returns true if header is already received and false otherwise
 func (cns *ConsensusState) IsHeaderAlreadyReceived() bool {
-	isHeaderAlreadyReceived := cns.Header != nil
+	isHeaderAlreadyReceived := cns.GetHeader() != nil
 
 	return isHeaderAlreadyReceived
 }
@@ -450,17 +454,34 @@ func (cns *ConsensusState) SetExtendedCalled(extendedCalled bool) {
 
 // GetBody returns the body of the current round
 func (cns *ConsensusState) GetBody() data.BodyHandler {
-	return cns.Body
+	cns.mutBody.RLock()
+	defer cns.mutBody.RUnlock()
+
+	return cns.body
 }
 
 // SetBody sets the body of the current round
 func (cns *ConsensusState) SetBody(body data.BodyHandler) {
-	cns.Body = body
+	cns.mutBody.Lock()
+	defer cns.mutBody.Unlock()
+
+	cns.body = body
 }
 
 // GetHeader returns the header of the current round
 func (cns *ConsensusState) GetHeader() data.HeaderHandler {
-	return cns.Header
+	cns.mutHeader.RLock()
+	defer cns.mutHeader.RUnlock()
+
+	return cns.header
+}
+
+// SetHeader sets the header of the current round
+func (cns *ConsensusState) SetHeader(header data.HeaderHandler) {
+	cns.mutHeader.Lock()
+	defer cns.mutHeader.Unlock()
+
+	cns.header = header
 }
 
 // GetWaitingAllSignaturesTimeOut returns the state of the waiting all signatures time out
@@ -477,11 +498,6 @@ func (cns *ConsensusState) SetWaitingAllSignaturesTimeOut(waitingAllSignaturesTi
 	defer cns.mutState.Unlock()
 
 	cns.WaitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
-}
-
-// SetHeader sets the header of the current round
-func (cns *ConsensusState) SetHeader(header data.HeaderHandler) {
-	cns.Header = header
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
