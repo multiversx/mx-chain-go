@@ -489,6 +489,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("starting node... executeOneComponentCreationCycle")
 
 	outGoingBridgeOpHandler, err := factoryBridge.CreateClient(&bridgeCfg.ClientConfig{
+		Enabled:  snr.configs.SovereignExtraConfig.OutGoingBridge.Enabled,
 		GRPCHost: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCHost,
 		GRPCPort: snr.configs.SovereignExtraConfig.OutGoingBridge.GRPCPort,
 		CertificateCfg: cert.FileCfg{
@@ -1226,6 +1227,7 @@ func (snr *sovereignNodeRunner) CreateManagedStatusComponents(
 		StatusCoreComponents: managedStatusCoreComponents,
 		CryptoComponents:     cryptoComponents,
 		IsSovereign:          true,
+		ESDTPrefix:           snr.configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix,
 	}
 
 	statusComponentsFactory, err := statusComp.NewStatusComponentsFactory(statArgs)
