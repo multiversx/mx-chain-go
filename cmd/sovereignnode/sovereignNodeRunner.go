@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -1030,21 +1031,21 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 	}
 
 	signRoundExtraSignersHolder := holders.NewSubRoundSignatureExtraSignersHolder()
-	signRoundExtraSigner, err := extraSigners.NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
+	signRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundSignatureExtraSigner(extraSignerHandler, block.OutGoingMbTx)
 	if err != nil {
 		return nil, err
 	}
-	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSigner)
+	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSignerOutGoingTx)
 	if err != nil {
 		return nil, err
 	}
 
 	endRoundExtraSignersHolder := holders.NewSubRoundEndExtraSignersHolder()
-	endRoundExtraSigner, err := extraSigners.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
+	endRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundEndExtraSigner(extraSignerHandler, block.OutGoingMbTx)
 	if err != nil {
 		return nil, err
 	}
-	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSigner)
+	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSignerOutGoingTx)
 	if err != nil {
 		return nil, err
 	}
