@@ -1,12 +1,13 @@
-package bls
+package extraSigners
 
 import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	cnsTest "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignSubRoundStartOutGoingTxData(t *testing.T) {

@@ -44,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/consensus/spos/extraSigners"
+	"github.com/multiversx/mx-chain-go/consensus/spos/extraSigners/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -1018,8 +1019,8 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 
 func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.ExtraSignersHolder, error) {
 	extraSignerHandler := signingHandler.ShallowClone()
-	startRoundExtraSignersHolder := bls.NewSubRoundStartExtraSignersHolder()
-	startRoundExtraSigner, err := bls.NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
+	startRoundExtraSignersHolder := holders.NewSubRoundStartExtraSignersHolder()
+	startRoundExtraSigner, err := extraSigners.NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1028,7 +1029,7 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 		return nil, err
 	}
 
-	signRoundExtraSignersHolder := bls.NewSubRoundSignatureExtraSignersHolder()
+	signRoundExtraSignersHolder := holders.NewSubRoundSignatureExtraSignersHolder()
 	signRoundExtraSigner, err := extraSigners.NewSovereignSubRoundSignatureOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return nil, err
@@ -1038,7 +1039,7 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 		return nil, err
 	}
 
-	endRoundExtraSignersHolder := bls.NewSubRoundEndExtraSignersHolder()
+	endRoundExtraSignersHolder := holders.NewSubRoundEndExtraSignersHolder()
 	endRoundExtraSigner, err := extraSigners.NewSovereignSubRoundEndOutGoingTxData(extraSignerHandler)
 	if err != nil {
 		return nil, err
@@ -1048,7 +1049,7 @@ func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.E
 		return nil, err
 	}
 
-	return bls.NewExtraSignersHolder(
+	return holders.NewExtraSignersHolder(
 		startRoundExtraSignersHolder,
 		signRoundExtraSignersHolder,
 		endRoundExtraSignersHolder)

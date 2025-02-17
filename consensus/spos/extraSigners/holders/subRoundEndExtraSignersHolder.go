@@ -1,4 +1,4 @@
-package bls
+package holders
 
 import (
 	"fmt"
@@ -6,9 +6,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 )
+
+var log = logger.GetOrCreate("extra-sig-holders")
 
 type subRoundEndExtraSignersHolder struct {
 	mutExtraSigners sync.RWMutex
