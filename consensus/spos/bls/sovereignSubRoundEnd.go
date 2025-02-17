@@ -83,7 +83,7 @@ func (sr *sovereignSubRoundEnd) updatePoolForOutGoingMiniBlock(
 	mbType := block.OutGoingMBType(outGoingMBHeader.GetOutGoingMBTypeInt32()).String()
 	extraSigData, found := cnsDta.ExtraSignatures[mbType]
 	if !found {
-		return fmt.Errorf("%w for type %s", errExtraSigShareDataNotFound, mbType)
+		return fmt.Errorf("%w for type %s", ErrExtraSigShareDataNotFound, mbType)
 	}
 
 	err := outGoingMBHeader.SetAggregatedSignatureOutGoingOperations(extraSigData.AggregatedSignatureOutGoingTxData)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
@@ -138,7 +139,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SetConsensusDataInHeader(header da
 
 	extraSigData, found := cnsMsg.ExtraSignatures[sr.mbType.String()]
 	if !found {
-		return fmt.Errorf("%w for type %s", errExtraSigShareDataNotFound, sr.mbType.String())
+		return fmt.Errorf("%w for type %s", bls.ErrExtraSigShareDataNotFound, sr.mbType.String())
 	}
 
 	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(extraSigData.AggregatedSignatureOutGoingTxData)
@@ -165,14 +166,8 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(h
 		return nil
 	}
 
-	if cnsMsg.ExtraSignatures == nil {
-		cnsMsg.ExtraSignatures = make(map[string]*consensus.ExtraSignatureData)
-	}
-
 	keyStr := sr.mbType.String()
-	if _, found := cnsMsg.ExtraSignatures[keyStr]; !found {
-		cnsMsg.ExtraSignatures[keyStr] = &consensus.ExtraSignatureData{}
-	}
+	initExtraSignatureEntry(cnsMsg, keyStr)
 
 	cnsMsg.ExtraSignatures[keyStr].AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
 	cnsMsg.ExtraSignatures[keyStr].LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()

@@ -5,7 +5,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/errors"
@@ -45,16 +44,11 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 			outGoingMBHdr.GetAggregatedSignatureOutGoingOperations(),
 		)
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 	}
 
 	return nil
-}
-
-func formatErrOutGoingMb(err error, outGoingMBHdr data.OutGoingMiniBlockHeaderHandler) error {
-	return fmt.Errorf("%w for outgoing mb type %s",
-		err, block.OutGoingMBType(outGoingMBHdr.GetOutGoingMBTypeInt32()).String())
 }
 
 // VerifyLeaderSignature verifies leader sig for outgoing operations
@@ -77,7 +71,7 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 			leaderMsgToSign,
 			outGoingMBHdr.GetLeaderSignatureOutGoingOperations())
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 	}
 
@@ -94,12 +88,12 @@ func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderH
 	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
 		err := outGoingMBHdr.SetLeaderSignatureOutGoingOperations(nil)
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 
 		err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMBHdr)
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 	}
 
@@ -116,17 +110,17 @@ func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHan
 	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
 		err := outGoingMBHdr.SetAggregatedSignatureOutGoingOperations(nil)
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 
 		err = outGoingMBHdr.SetLeaderSignatureOutGoingOperations(nil)
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 
 		err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMBHdr)
 		if err != nil {
-			return formatErrOutGoingMb(err, outGoingMBHdr)
+			return err
 		}
 	}
 

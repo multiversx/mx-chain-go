@@ -65,15 +65,8 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) AddSigShareToConsensusMessag
 		return nil
 
 	}
-
-	if cnsMsg.ExtraSignatures == nil {
-		cnsMsg.ExtraSignatures = make(map[string]*consensus.ExtraSignatureData)
-	}
-
 	keyStr := sr.mbType.String()
-	if _, found := cnsMsg.ExtraSignatures[keyStr]; !found {
-		cnsMsg.ExtraSignatures[keyStr] = &consensus.ExtraSignatureData{}
-	}
+	initExtraSignatureEntry(cnsMsg, keyStr)
 
 	cnsMsg.ExtraSignatures[keyStr].SignatureShareOutGoingTxData = sigShare
 	return nil
