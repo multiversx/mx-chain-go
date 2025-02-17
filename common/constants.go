@@ -743,6 +743,9 @@ const (
 	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 are enabled
 	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
 
+	// MetricRelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer are enabled
+	MetricRelayedTransactionsV3FixESDTTransferEnableEpoch = "erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch"
+
 	// MetricMaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
 	MetricMaskVMInternalDependenciesErrorsEnableEpoch = "erd_mask_vm_internal_dependencies_errors_enable_epoch"
 
@@ -1247,6 +1250,7 @@ const (
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	RelayedTransactionsV3FixESDTTransferFlag           core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
 	MaskInternalDependenciesErrorsFlag                 core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
 	FixBackTransferOPCODEFlag                          core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined

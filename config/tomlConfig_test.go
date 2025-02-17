@@ -890,11 +890,14 @@ func TestEnableEpochConfig(t *testing.T) {
 	# RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
     RelayedTransactionsV3EnableEpoch = 103
 
+	# RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
+    RelayedTransactionsV3FixESDTTransferEnableEpoch = 104
+
 	# MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
-	MaskVMInternalDependenciesErrorsEnableEpoch = 104
+	MaskVMInternalDependenciesErrorsEnableEpoch = 105
 
 	# FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
-	FixBackTransferOPCODEEnableEpoch = 105
+	FixBackTransferOPCODEEnableEpoch = 106
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1017,8 +1020,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
-			MaskVMInternalDependenciesErrorsEnableEpoch:              104,
-			FixBackTransferOPCODEEnableEpoch:                         105,
+			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
+			MaskVMInternalDependenciesErrorsEnableEpoch:              105,
+			FixBackTransferOPCODEEnableEpoch:                         106,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
