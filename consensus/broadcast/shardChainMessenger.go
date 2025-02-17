@@ -213,7 +213,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator CalculateHash", "error", err)
 		return
 	}
 
@@ -226,7 +226,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 
 	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator SetHeaderForValidator", "error", err)
 		return
 	}
 }
@@ -243,13 +243,13 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataWithEquivalentProofs(
 	}
 	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, 0, pkBytes)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastBlockDataWithEquivalentProofs", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataWithEquivalentProofs prepareDataToBroadcast", "error", err)
 		return
 	}
 	// everyone broadcasts as if they were the leader
 	err = scm.delayedBlockBroadcaster.SetLeaderData(dtb.delayedBroadcastData)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastBlockDataWithEquivalentProofs", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataWithEquivalentProofs SetLeaderData", "error", err)
 		return
 	}
 
@@ -270,13 +270,13 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	}
 	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, uint32(idx), pkBytes)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator prepareDataToBroadcast", "error", err)
 		return
 	}
 
 	err = scm.delayedBlockBroadcaster.SetValidatorData(dtb.delayedBroadcastData)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator SetValidatorData", "error", err)
 		return
 	}
 }
