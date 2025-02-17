@@ -641,6 +641,8 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	defer func() {
 		if err != nil {
+			log.Warn("sync block failed", "error", err)
+
 			boot.doJobOnSyncBlockFail(body, header, err)
 		}
 	}()
