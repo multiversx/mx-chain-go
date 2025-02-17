@@ -1021,11 +1021,11 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.ExtraSignersHolder, error) {
 	extraSignerHandler := signingHandler.ShallowClone()
 	startRoundExtraSignersHolder := holders.NewSubRoundStartExtraSignersHolder()
-	startRoundExtraSigner, err := extraSigners.NewSovereignSubRoundStartOutGoingTxData(extraSignerHandler)
+	startRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundStartExtraSigner(extraSignerHandler, block.OutGoingMbTx)
 	if err != nil {
 		return nil, err
 	}
-	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSigner)
+	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSignerOutGoingTx)
 	if err != nil {
 		return nil, err
 	}
