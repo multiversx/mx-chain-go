@@ -381,7 +381,7 @@ func (ln *leafNode) print(writer io.Writer, _ int, _ common.TrieStorageInteracto
 		val += fmt.Sprintf("%d", v)
 	}
 
-	_, _ = fmt.Fprintf(writer, "L: key= %v, (%v) - %v\n", ln.Key, hex.EncodeToString(ln.hash), ln.dirty)
+	_, _ = fmt.Fprintf(writer, "L: key= %v, val= %v (hash:%v) - %v - version: %v \n", hex.EncodeToString(ln.Key), hex.EncodeToString(ln.Value), hex.EncodeToString(ln.hash), ln.dirty, ln.Version)
 }
 
 func (ln *leafNode) getDirtyHashes(hashes common.ModifiedHashes) error {
