@@ -38,18 +38,23 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyAggregatedSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	// TODO: Also here we need extra verifier
-
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := multiSigVerifier.VerifyAggregatedSig(
+			pubKeysSigners,
+			outGoingMBHdr.GetOutGoingOperationsHash(),
+			outGoingMBHdr.GetAggregatedSignatureOutGoingOperations(),
+		)
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(
-		pubKeysSigners,
-		outGoingMb.GetOutGoingOperationsHash(),
-		outGoingMb.GetAggregatedSignatureOutGoingOperations(),
-	)
+	return nil
+}
+
+func formatErrOutGoingMb(err error, outGoingMBHdr data.OutGoingMiniBlockHeaderHandler) error {
+	return fmt.Errorf("%w for outgoing mb type %s",
+		err, block.OutGoingMBType(outGoingMBHdr.GetOutGoingMBTypeInt32()).String())
 }
 
 // VerifyLeaderSignature verifies leader sig for outgoing operations
@@ -62,19 +67,21 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		leaderMsgToSign := append(
+			outGoingMBHdr.GetOutGoingOperationsHash(),
+			outGoingMBHdr.GetAggregatedSignatureOutGoingOperations()...)
+
+		err := hsv.singleSigVerifier.Verify(
+			leaderPubKey,
+			leaderMsgToSign,
+			outGoingMBHdr.GetLeaderSignatureOutGoingOperations())
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
 	}
 
-	leaderMsgToSign := append(
-		outGoingMb.GetOutGoingOperationsHash(),
-		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
-
-	return hsv.singleSigVerifier.Verify(
-		leaderPubKey,
-		leaderMsgToSign,
-		outGoingMb.GetLeaderSignatureOutGoingOperations())
+	return nil
 }
 
 // RemoveLeaderSignature removes leader sig from outgoing operations
@@ -84,17 +91,19 @@ func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderH
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := outGoingMBHdr.SetLeaderSignatureOutGoingOperations(nil)
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
+
+		err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMBHdr)
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
 	}
 
-	err := outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	if err != nil {
-		return err
-	}
-
-	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	return nil
 }
 
 // RemoveAllSignatures removes aggregated + leader sig from outgoing operations
@@ -104,22 +113,24 @@ func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHan
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveAllSignatures", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := outGoingMBHdr.SetAggregatedSignatureOutGoingOperations(nil)
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
+
+		err = outGoingMBHdr.SetLeaderSignatureOutGoingOperations(nil)
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
+
+		err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMBHdr)
+		if err != nil {
+			return formatErrOutGoingMb(err, outGoingMBHdr)
+		}
 	}
 
-	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
-	if err != nil {
-		return err
-	}
-
-	err = outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	if err != nil {
-		return err
-	}
-
-	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	return nil
 }
 
 // Identifier returns the unique id of the header verifier
