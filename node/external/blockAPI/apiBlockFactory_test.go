@@ -355,6 +355,7 @@ func TestGetBlockByHashFromNormalNode(t *testing.T) {
 		DeveloperFees:          "10",
 		AccumulatedFeesInEpoch: "2000",
 		DeveloperFeesInEpoch:   "49",
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := apiBlockProc.GetBlockByHash(headerHash, api.BlockQueryOptions{})

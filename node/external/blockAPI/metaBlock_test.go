@@ -176,6 +176,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -270,6 +271,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromGenesis(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -348,6 +350,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	fetchedApiBlock, err := processor.GetBlockByHash(metablockHash, api.BlockQueryOptions{})
@@ -442,6 +445,7 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromGenesis(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByNonce(nonce, api.BlockQueryOptions{})
@@ -505,6 +509,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, api.BlockQueryOptions{})
@@ -589,6 +594,7 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		SoftwareVersion:        "32",
 		ReceiptsHash:           "72656348617368",
 		Reserved:               []byte("res"),
+		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -802,6 +808,7 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 				},
 			},
 		},
+		PreviousHeaderProof: &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, api.BlockQueryOptions{})
