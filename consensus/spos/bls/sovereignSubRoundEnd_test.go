@@ -757,11 +757,15 @@ func TestSovereignSubRoundEnd_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 	aggregatedSig := []byte("aggregatedSigOutGoing")
 	leaderSig := []byte("leaderSigOutGoing")
 	cnsData := consensus.Message{
-		HeaderHash:                        []byte("X"),
-		PubKey:                            []byte("A"),
-		InvalidSigners:                    []byte("invalidSignersData"),
-		AggregatedSignatureOutGoingTxData: aggregatedSig,
-		LeaderSignatureOutGoingTxData:     leaderSig,
+		HeaderHash:     []byte("X"),
+		PubKey:         []byte("A"),
+		InvalidSigners: []byte("invalidSignersData"),
+		ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+			block.OutGoingMbTx.String(): {
+				AggregatedSignatureOutGoingTxData: aggregatedSig,
+				LeaderSignatureOutGoingTxData:     leaderSig,
+			},
+		},
 	}
 
 	// Participant should not send any data

@@ -66,26 +66,42 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		return errors.ErrWrongTypeAssertion
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
-	if check.IfNil(outGoingMBHeader) {
-		return nil
+	for _, outGoingMbHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := sr.updatePoolForOutGoingMiniBlock(outGoingMbHdr, cnsDta)
+		if err != nil {
+			return err
+		}
 	}
 
-	err := outGoingMBHeader.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
+	return nil
+}
+
+func (sr *sovereignSubRoundEnd) updatePoolForOutGoingMiniBlock(
+	outGoingMBHeader data.OutGoingMiniBlockHeaderHandler,
+	cnsDta *consensus.Message,
+) error {
+	mbType := block.OutGoingMBType(outGoingMBHeader.GetOutGoingMBTypeInt32()).String()
+	extraSigData, found := cnsDta.ExtraSignatures[mbType]
+	if !found {
+		return fmt.Errorf("%w for type %s", errExtraSigShareDataNotFound, mbType)
+	}
+
+	err := outGoingMBHeader.SetAggregatedSignatureOutGoingOperations(extraSigData.AggregatedSignatureOutGoingTxData)
 	if err != nil {
 		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetAggregatedSignatureOutGoingOperations", "error", err)
 		return err
 	}
 
-	err = outGoingMBHeader.SetLeaderSignatureOutGoingOperations(cnsDta.LeaderSignatureOutGoingTxData)
+	err = outGoingMBHeader.SetLeaderSignatureOutGoingOperations(extraSigData.LeaderSignatureOutGoingTxData)
 	if err != nil {
 		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetLeaderSignatureOutGoingOperations", "error", err)
 		return err
 	}
 
 	log.Debug("step 3.1: block header final info has been received with outgoing mb",
-		"LeaderSignatureOutGoingTxData", cnsDta.LeaderSignatureOutGoingTxData,
-		"AggregatedSignatureOutGoingTxData", cnsDta.AggregatedSignatureOutGoingTxData,
+		"LeaderSignatureOutGoingTxData", extraSigData.LeaderSignatureOutGoingTxData,
+		"AggregatedSignatureOutGoingTxData", extraSigData.AggregatedSignatureOutGoingTxData,
+		"type", mbType,
 	)
 
 	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader, cnsDta.PubKeysBitmap)
