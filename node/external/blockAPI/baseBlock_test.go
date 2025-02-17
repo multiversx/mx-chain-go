@@ -410,6 +410,34 @@ func TestAddScheduledInfoInBlock(t *testing.T) {
 	}, apiBlock)
 }
 
+func TestAddPreviousHeaderProofInBlock(t *testing.T) {
+	blockHeader := &block.HeaderV2{
+		PreviousHeaderProof: &block.HeaderProof{
+			PubKeysBitmap:       []byte("bitmap"),
+			AggregatedSignature: []byte("sig"),
+			HeaderHash:          []byte("hash"),
+			HeaderEpoch:         1,
+			HeaderNonce:         3,
+			HeaderShardId:       2,
+			HeaderRound:         4,
+			IsStartOfEpoch:      true,
+		},
+	}
+
+	apiBlock := &api.Block{}
+	addPreviousHeaderProof(blockHeader, apiBlock)
+	require.Equal(t, &api.HeaderProof{
+		PubKeysBitmap:       "6269746d6170",
+		AggregatedSignature: "736967",
+		HeaderHash:          "68617368",
+		HeaderEpoch:         1,
+		HeaderNonce:         3,
+		HeaderShardId:       2,
+		HeaderRound:         4,
+		IsStartOfEpoch:      true,
+	}, apiBlock.PreviousHeaderProof)
+}
+
 func TestBigInToString(t *testing.T) {
 	t.Parallel()
 

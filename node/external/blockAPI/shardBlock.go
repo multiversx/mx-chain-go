@@ -231,6 +231,7 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)
+	addPreviousHeaderProof(blockHeader, apiBlock)
 
 	return apiBlock, nil
 }

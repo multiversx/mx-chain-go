@@ -601,3 +601,21 @@ func createAlteredBlockHash(hash []byte) []byte {
 
 	return alteredHash
 }
+
+func addPreviousHeaderProof(header data.HeaderHandler, apiBlock *api.Block) {
+	prevHeaderProof := header.GetPreviousProof()
+	if prevHeaderProof == nil {
+		return
+	}
+
+	apiBlock.PreviousHeaderProof = &api.HeaderProof{
+		PubKeysBitmap:       hex.EncodeToString(prevHeaderProof.GetPubKeysBitmap()),
+		AggregatedSignature: hex.EncodeToString(prevHeaderProof.GetAggregatedSignature()),
+		HeaderHash:          hex.EncodeToString(prevHeaderProof.GetHeaderHash()),
+		HeaderEpoch:         prevHeaderProof.GetHeaderEpoch(),
+		HeaderNonce:         prevHeaderProof.GetHeaderNonce(),
+		HeaderShardId:       prevHeaderProof.GetHeaderShardId(),
+		HeaderRound:         prevHeaderProof.GetHeaderRound(),
+		IsStartOfEpoch:      prevHeaderProof.GetIsStartOfEpoch(),
+	}
+}
