@@ -88,13 +88,13 @@ func (sr *sovereignSubRoundEnd) updatePoolForOutGoingMiniBlock(
 
 	err := outGoingMBHeader.SetAggregatedSignatureOutGoingOperations(extraSigData.AggregatedSignatureOutGoingTxData)
 	if err != nil {
-		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetAggregatedSignatureOutGoingOperations", "error", err)
+		log.Error("sovereignSubRoundEnd.updatePoolForOutGoingMiniBlock.SetAggregatedSignatureOutGoingOperations", "error", err)
 		return err
 	}
 
 	err = outGoingMBHeader.SetLeaderSignatureOutGoingOperations(extraSigData.LeaderSignatureOutGoingTxData)
 	if err != nil {
-		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetLeaderSignatureOutGoingOperations", "error", err)
+		log.Error("sovereignSubRoundEnd.updatePoolForOutGoingMiniBlock.SetLeaderSignatureOutGoingOperations", "error", err)
 		return err
 	}
 
@@ -106,7 +106,7 @@ func (sr *sovereignSubRoundEnd) updatePoolForOutGoingMiniBlock(
 
 	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader, cnsDta.PubKeysBitmap)
 	if err != nil {
-		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.updateBridgeDataWithSignatures", "error", err)
+		log.Error("sovereignSubRoundEnd.updatePoolForOutGoingMiniBlock.updateBridgeDataWithSignatures", "error", err)
 		return err
 	}
 
