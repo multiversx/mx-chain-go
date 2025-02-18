@@ -45,6 +45,17 @@ func (controller *chaosController) LearnNodeDisplayName(displayName string) {
 	controller.nodeDisplayName = displayName
 }
 
+// In_shardBlock_ProcessBlock_shouldReturnError returns an error when processing a block, from time to time.
+func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError() bool {
+	log.Trace("In_shardBlock_ProcessBlock_shouldReturnError")
+
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	circumstance := controller.acquireCircumstance(nil, "")
+	return controller.shouldFail(failureProcessingBlockError, circumstance)
+}
+
 // In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
 func (controller *chaosController) In_shardProcess_processTransaction_shouldReturnError() bool {
 	controller.mutex.Lock()
@@ -182,8 +193,10 @@ func (controller *chaosController) shouldFail(failureName failureName, circumsta
 
 	shouldFail := circumstance.anyExpression(failure.Triggers)
 	if shouldFail {
-		log.Info("shouldFail()", "failureName", failureName)
+		log.Info("shouldFail()", "shouldFail", shouldFail, "failureName", failureName)
 		return true
+	} else {
+		log.Trace("shouldFail()", "shouldFail", shouldFail, "failureName", failureName)
 	}
 
 	return false

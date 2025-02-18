@@ -1,12 +1,14 @@
 {
     "failures": [
         {
+            "name": "processingBlockError",
+            "enabled": true,
+            "triggers": ["shard == 0 && amILeader && round == 20"]
+        },
+        {
             "name": "processingTransactionError",
-            "enabled": false,
-            "triggers": [
-                "(nodePublicKeyLastByte % 4 == 0 && transactionHashLastByte % 7 == 0)",
-                "round == 500 && randomNumber % 2 == 0"
-            ]
+            "enabled": true,
+            "triggers": ["shard == 0 && !amILeader && round == 50"]
         },
         {
             "name": "consensusCorruptSignature",

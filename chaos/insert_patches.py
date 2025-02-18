@@ -15,14 +15,25 @@ def main():
     )
 
     do_replacements(
+        file_path=Path("process/block/shardBlock.go"),
+        replacements=[
+            (
+                "// chaos-testing-point:shardBlock_ProcessBlock",
+                """if chaos.Controller.In_shardBlock_ProcessBlock_shouldReturnError() {
+        return chaos.ErrChaoticBehavior
+	}"""),
+        ],
+        with_import=True
+    )
+
+    do_replacements(
         file_path=Path("process/transaction/shardProcess.go"),
         replacements=[
             (
                 "// chaos-testing-point:shardProcess_ProcessTransaction",
                 """if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
         return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
-	}
-"""
+	}"""
             ),
         ],
         with_import=True
@@ -43,8 +54,7 @@ def main():
                 "// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures",
                 """if chaos.Controller.In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr) {
 		return true
-	}
-"""
+	}"""
             )
         ],
         with_import=True
@@ -57,8 +67,7 @@ def main():
                 "// chaos-testing-point:v1/subroundEndRound_checkSignaturesValidity_returnError",
                 """if chaos.Controller.In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr) {
 		return spos.ErrInvalidSignature
-	}
-"""
+	}"""
             ),
             (
                 "// chaos-testing-point:v1/subroundEndRound_doEndRoundJobByLeader_delayBroadcastingFinalBlock",
@@ -83,8 +92,7 @@ def main():
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",
                 """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(sr) {
         return false
-	}
-"""
+	}"""
             )
         ],
         with_import=True

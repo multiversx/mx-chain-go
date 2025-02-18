@@ -166,6 +166,8 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
+	// chaos-testing-point:shardBlock_ProcessBlock
+
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}

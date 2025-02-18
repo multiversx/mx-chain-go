@@ -3,6 +3,7 @@ package chaos
 type failureName string
 
 const (
+	failureProcessingBlockError                            failureName = "processingBlockError"
 	failureProcessingTransactionError                      failureName = "processingTransactionError"
 	failureConsensusCorruptSignature                       failureName = "consensusCorruptSignature"
 	failureConsensusV1SkipWaitingForSignatures             failureName = "consensusV1SkipWaitingForSignatures"
