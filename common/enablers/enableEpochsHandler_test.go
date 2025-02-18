@@ -124,8 +124,9 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           107,
 		UseGasBoundedShouldFailExecutionEnableEpoch:              108,
 		RelayedTransactionsV3EnableEpoch:                         109,
-		MaskVMInternalDependenciesErrorsEnableEpoch:              110,
-		FixBackTransferOPCODEEnableEpoch:                         111,
+		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
+		MaskVMInternalDependenciesErrorsEnableEpoch:              111,
+		FixBackTransferOPCODEEnableEpoch:                         112,
 	}
 }
 
@@ -452,6 +453,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.MultiESDTNFTTransferAndExecuteByUserFlag))
 	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
+	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
 	require.Equal(t, cfg.MaskVMInternalDependenciesErrorsEnableEpoch, handler.GetActivationEpoch(common.MaskInternalDependenciesErrorsFlag))
 	require.Equal(t, cfg.FixBackTransferOPCODEEnableEpoch, handler.GetActivationEpoch(common.FixBackTransferOPCODEFlag))
 }

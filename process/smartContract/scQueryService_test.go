@@ -1082,6 +1082,7 @@ func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
 
 	numOfQueries := 100
 
+	mapsMut := sync.RWMutex{}
 	blocksInStorage := make(map[string]*block.Header)
 	seenEpochStartBlocks := make(map[uint32]bool)
 
@@ -1105,8 +1106,10 @@ func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
 				EpochStartMetaHash: []byte("meta"),
 			}
 
+			mapsMut.Lock()
 			blocksInStorage[string(hash)] = epochStartBlockHdr
 			blocksInStorage[core.EpochStartIdentifier(epoch)] = epochStartBlockHdr
+			mapsMut.Unlock()
 
 			seenEpochStartBlocks[epoch] = false
 		} else {
@@ -1118,7 +1121,9 @@ func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
 				RootHash:  hash,
 			}
 
+			mapsMut.Lock()
 			blocksInStorage[string(hash)] = queryBlockHdr
+			mapsMut.Unlock()
 		}
 	}
 
@@ -1140,8 +1145,11 @@ func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
 
 	argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
 		GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-			block := blocksInStorage[string(hash)]
-			return block.GetEpoch(), nil
+			mapsMut.RLock()
+			defer mapsMut.RUnlock()
+
+			storageBlock := blocksInStorage[string(hash)]
+			return storageBlock.GetEpoch(), nil
 		},
 	}
 
@@ -1149,6 +1157,9 @@ func TestSCQueryService_EpochStartBlockHdrConcurrent(t *testing.T) {
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
 				GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+					mapsMut.RLock()
+					defer mapsMut.RUnlock()
+
 					hdr := blocksInStorage[string(key)]
 					require.Equal(t, epoch, hdr.GetEpoch())
 					buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
