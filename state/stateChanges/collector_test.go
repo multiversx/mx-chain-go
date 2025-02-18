@@ -1,6 +1,7 @@
 package stateChanges
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -201,10 +202,10 @@ func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
 	numStateChanges := len(c.stateChanges)
 
 	err := c.RevertToIndex(-1)
-	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+	require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 
 	err = c.RevertToIndex(numStateChanges + 1)
-	require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+	require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 }
 
 func TestStateChangesCollector_RevertToIndex(t *testing.T) {
@@ -259,11 +260,11 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 		c := NewCollector(WithCollectWrite())
 
 		err := c.SetIndexToLastStateChange(-1)
-		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 
 		numStateChanges := len(c.stateChanges)
 		err = c.SetIndexToLastStateChange(numStateChanges + 1)
-		require.Equal(t, state.ErrStateChangesIndexOutOfBounds, err)
+		require.True(t, errors.Is(err, state.ErrStateChangesIndexOutOfBounds))
 	})
 
 	t.Run("should work", func(t *testing.T) {

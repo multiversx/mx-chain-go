@@ -1591,6 +1591,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
+		TestMarshalizer,
+		TestHasher,
 	)
 
 	mapDNSAddresses := make(map[string]struct{})

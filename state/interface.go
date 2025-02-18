@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -92,7 +92,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction)
+	SetTxHashForLatestStateChanges(txHash []byte, tx coreData.TransactionHandler)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -364,7 +364,7 @@ type StateChangesCollector interface {
 	Reset()
 	Publish() (map[string]*data.StateChanges, error)
 	Store() error
-	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
+	AddTxHashToCollectedStateChanges(txHash []byte, tx coreData.TransactionHandler)
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	IsInterfaceNil() bool
