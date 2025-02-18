@@ -154,7 +154,7 @@ assembleCommand_startValidatorNode() {
         -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
         -sk-index $KEY_INDEX \
         -working-directory $WORKING_DIR -config ./config/config_validator.toml \
-        --display-name validator-$SHARD-$RESTAPIPORT"
+        --display-name validator-$VALIDATOR_INDEX"
 
   if [ -n "$NODE_NICENESS" ]
   then
