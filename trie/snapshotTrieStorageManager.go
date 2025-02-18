@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -39,7 +40,7 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 
 	// test point get during snapshot
 
-	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key)
+	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, stsm.epoch)
 	if core.IsClosingError(err) {
 		return nil, err
 	}
