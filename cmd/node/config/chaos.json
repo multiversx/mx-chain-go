@@ -12,13 +12,13 @@
         },
         {
             "name": "consensusCorruptSignature",
-            "enabled": false,
-            "triggers": ["round % 11 == 0"]
+            "enabled": true,
+            "triggers": ["round % 11 == 0 && nodeIndex < consensusSize / 2"]
         },
         {
             "name": "consensusV1SkipWaitingForSignatures",
-            "enabled": false,
-            "triggers": ["false"]
+            "enabled": true,
+            "triggers": ["round % 7 == 0 && nodeIndex < consensusSize / 2"]
         },
         {
             "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
@@ -27,7 +27,8 @@
         },
         {
             "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
-            "enabled": false,
+            "enabled": true,
+            "comment": "Internally known as 'testnet soft forks'.",
             "triggers": ["round % 20 == 0"],
             "parameters": {
                 "duration": 12

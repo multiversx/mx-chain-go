@@ -27,6 +27,7 @@ type failureCircumstance struct {
 	// Not always available:
 	nodeIndex     int
 	nodePublicKey string
+	consensusSize int
 	amILeader     bool
 	blockNonce    uint64
 }
@@ -45,6 +46,7 @@ func newFailureCircumstance() *failureCircumstance {
 
 		nodeIndex:     -1,
 		nodePublicKey: "",
+		consensusSize: -1,
 		amILeader:     false,
 		blockNonce:    0,
 	}
@@ -77,6 +79,7 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 	}
 
 	circumstance.nodePublicKey = nodePublicKey
+	circumstance.consensusSize = consensusState.ConsensusGroupSize()
 	circumstance.amILeader = consensusState.Leader() == nodePublicKey
 	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
 }
@@ -102,6 +105,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 			"round", circumstance.round,
 			"nodeIndex", circumstance.nodeIndex,
 			"nodePublicKey", circumstance.nodePublicKey,
+			"consensusSize", circumstance.consensusSize,
 			"amILeader", circumstance.amILeader,
 			"blockNonce", circumstance.blockNonce,
 		)
@@ -141,6 +145,7 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	// Not always available (set):
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodeIndex, uint64(circumstance.nodeIndex)))
 	scope.Insert(createFailureExpressionStringParameter(pack, parameterNodePublicKey, circumstance.nodePublicKey))
+	scope.Insert(createFailureExpressionNumericParameter(pack, parameterConsensusSize, uint64(circumstance.consensusSize)))
 	scope.Insert(createFailureExpressionBoolParameter(pack, parameterAmILeader, circumstance.amILeader))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
 

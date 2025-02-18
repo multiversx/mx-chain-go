@@ -17,6 +17,7 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 
 		nodeIndex:     7,
 		nodePublicKey: "abba",
+		consensusSize: 42,
 		amILeader:     true,
 		blockNonce:    1000,
 	}
@@ -33,6 +34,8 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 	require.False(t, circumstance.anyExpression([]string{"randomNumber % 3 != 0"}))
 	require.True(t, circumstance.anyExpression([]string{"nodePublicKey == \"abba\""}))
 	require.True(t, circumstance.anyExpression([]string{"nodeIndex == 7"}))
+	require.True(t, circumstance.anyExpression([]string{"nodeIndex < consensusSize / 4"}))
+	require.False(t, circumstance.anyExpression([]string{"nodeIndex < consensusSize / 7"}))
 	require.True(t, circumstance.anyExpression([]string{"amILeader == true"}))
 	require.False(t, circumstance.anyExpression([]string{"a == 42"}))
 	require.True(t, circumstance.anyExpression([]string{"a == 42", "true"}))

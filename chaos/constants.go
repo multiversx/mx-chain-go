@@ -26,6 +26,7 @@ const (
 
 	parameterNodeIndex     failureExpressionParameterName = "nodeIndex"
 	parameterNodePublicKey failureExpressionParameterName = "nodePublicKey"
+	parameterConsensusSize failureExpressionParameterName = "consensusSize"
 	parameterAmILeader     failureExpressionParameterName = "amILeader"
 	parameterBlockNonce    failureExpressionParameterName = "blockNonce"
 )
