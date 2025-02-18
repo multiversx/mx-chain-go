@@ -123,6 +123,7 @@ type EnableEpochs struct {
 	MultiESDTNFTTransferAndExecuteByUserEnableEpoch          uint32
 	FixRelayedMoveBalanceToNonPayableSCEnableEpoch           uint32
 	RelayedTransactionsV3EnableEpoch                         uint32
+	RelayedTransactionsV3FixESDTTransferEnableEpoch          uint32
 	EquivalentMessagesEnableEpoch                            uint32
 	FixedOrderInConsensusEnableEpoch                         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
