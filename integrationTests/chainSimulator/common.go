@@ -185,6 +185,18 @@ func RequireInternalVMError(t *testing.T, txResult *transaction.ApiTransactionRe
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 }
 
+// RequireErrorEvent require that the transaction has specific event with error
+func RequireErrorEvent(t *testing.T, txResult *transaction.ApiTransactionResult, eventID string, errorContained string) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	event := getEvent(txResult.Logs, eventID)
+	if event == nil {
+		require.Fail(t, "%s event not found", eventID)
+		return
+	}
+	require.Contains(t, string(event.Data), errorContained)
+}
+
 func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
 	if logs == nil || len(logs.Events) == 0 {
 		return nil
