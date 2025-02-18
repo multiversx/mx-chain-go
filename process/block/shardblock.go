@@ -873,6 +873,8 @@ func (sp *shardProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	// chaos-testing-point:shardBlock_CreateBlock
+
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}

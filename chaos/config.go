@@ -52,7 +52,8 @@ func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {
 func (config *chaosConfig) verify() error {
 	knownFailures := make(map[failureName]struct{})
 
-	knownFailures[failureProcessingTransactionError] = struct{}{}
+	knownFailures[failureCreatingBlockError] = struct{}{}
+	knownFailures[failureProcessingBlockError] = struct{}{}
 	knownFailures[failureConsensusCorruptSignature] = struct{}{}
 	knownFailures[failureConsensusV1SkipWaitingForSignatures] = struct{}{}
 	knownFailures[failureConsensusV1ReturnErrorInCheckSignaturesValidity] = struct{}{}

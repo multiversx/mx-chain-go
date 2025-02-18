@@ -22,9 +22,11 @@ type callsCounters struct {
 }
 
 func newChaosController(configFilePath string) *chaosController {
+	log.Info("newChaosController", "configFilePath", configFilePath)
+
 	config, err := newChaosConfigFromFile(configFilePath)
 	if err != nil {
-		log.Error("Could not load chaos config", "error", err)
+		log.Error("could not load chaos config", "error", err)
 		return &chaosController{enabled: false}
 	}
 
@@ -45,6 +47,17 @@ func (controller *chaosController) LearnNodeDisplayName(displayName string) {
 	controller.nodeDisplayName = displayName
 }
 
+// In_shardBlock_CreateBlock_shouldReturnError returns an error when creating a block (as a leader), from time to time.
+func (controller *chaosController) In_shardBlock_CreateBlock_shouldReturnError() bool {
+	log.Trace("In_shardBlock_CreateBlock_shouldReturnError")
+
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	circumstance := controller.acquireCircumstance(nil, "")
+	return controller.shouldFail(failureCreatingBlockError, circumstance)
+}
+
 // In_shardBlock_ProcessBlock_shouldReturnError returns an error when processing a block, from time to time.
 func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError() bool {
 	log.Trace("In_shardBlock_ProcessBlock_shouldReturnError")
@@ -54,15 +67,6 @@ func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError(
 
 	circumstance := controller.acquireCircumstance(nil, "")
 	return controller.shouldFail(failureProcessingBlockError, circumstance)
-}
-
-// In_shardProcess_processTransaction_shouldReturnError returns an error when processing a transaction, from time to time.
-func (controller *chaosController) In_shardProcess_processTransaction_shouldReturnError() bool {
-	controller.mutex.Lock()
-	defer controller.mutex.Unlock()
-
-	circumstance := controller.acquireCircumstance(nil, "")
-	return controller.shouldFail(failureProcessingTransactionError, circumstance)
 }
 
 // In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
@@ -193,10 +197,8 @@ func (controller *chaosController) shouldFail(failureName failureName, circumsta
 
 	shouldFail := circumstance.anyExpression(failure.Triggers)
 	if shouldFail {
-		log.Info("shouldFail()", "shouldFail", shouldFail, "failureName", failureName)
+		log.Info("shouldFail", "failureName", failureName)
 		return true
-	} else {
-		log.Trace("shouldFail()", "shouldFail", shouldFail, "failureName", failureName)
 	}
 
 	return false

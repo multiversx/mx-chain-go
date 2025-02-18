@@ -1,14 +1,14 @@
 {
     "failures": [
         {
-            "name": "processingBlockError",
+            "name": "creatingBlockError",
             "enabled": true,
-            "triggers": ["shard == 0 && amILeader && round == 20"]
+            "triggers": ["shard == 0 && round == 20"]
         },
         {
-            "name": "processingTransactionError",
+            "name": "processingBlockError",
             "enabled": true,
-            "triggers": ["shard == 0 && !amILeader && round == 50"]
+            "triggers": ["shard == 0 && round == 25"]
         },
         {
             "name": "consensusCorruptSignature",

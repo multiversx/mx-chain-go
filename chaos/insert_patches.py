@@ -7,6 +7,10 @@ def main():
         file_path=Path("cmd/node/main.go"),
         replacements=[
             (
+                "// chaos-testing-point/node_main_startNodeRunner",
+                """chaos.Initialize()"""
+            ),
+            (
                 "// chaos-testing-point/node_main_learnNodeDisplayName",
                 """chaos.Controller.LearnNodeDisplayName(preferencesConfig.Preferences.NodeDisplayName)"""
             )
@@ -15,24 +19,18 @@ def main():
     )
 
     do_replacements(
-        file_path=Path("process/block/shardBlock.go"),
+        file_path=Path("process/block/shardblock.go"),
         replacements=[
+            (
+                "// chaos-testing-point:shardBlock_CreateBlock",
+                """if chaos.Controller.In_shardBlock_CreateBlock_shouldReturnError() {
+        return nil, nil, chaos.ErrChaoticBehavior
+	}"""
+            ),
             (
                 "// chaos-testing-point:shardBlock_ProcessBlock",
                 """if chaos.Controller.In_shardBlock_ProcessBlock_shouldReturnError() {
         return chaos.ErrChaoticBehavior
-	}"""),
-        ],
-        with_import=True
-    )
-
-    do_replacements(
-        file_path=Path("process/transaction/shardProcess.go"),
-        replacements=[
-            (
-                "// chaos-testing-point:shardProcess_ProcessTransaction",
-                """if chaos.Controller.In_shardProcess_processTransaction_shouldReturnError() {
-        return vmcommon.ExecutionFailed, chaos.ErrChaoticBehavior
 	}"""
             ),
         ],

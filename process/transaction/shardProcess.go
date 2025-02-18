@@ -174,8 +174,6 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 
 // ProcessTransaction modifies the account states in respect with the transaction data
 func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmcommon.ReturnCode, error) {
-	// chaos-testing-point:shardProcess_ProcessTransaction
-
 	if check.IfNil(tx) {
 		return 0, process.ErrNilTransaction
 	}

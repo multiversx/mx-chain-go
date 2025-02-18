@@ -97,6 +97,8 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return errLogger
 	}
 
+	// chaos-testing-point/node_main_startNodeRunner
+
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
 		return errCfg

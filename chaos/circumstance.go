@@ -1,6 +1,7 @@
 package chaos
 
 import (
+	"fmt"
 	"go/constant"
 	"go/token"
 	"go/types"
@@ -92,7 +93,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 
 	for _, expression := range expressions {
 		log.Trace("circumstance.anyExpression()",
-			"expression", expression,
+			"expression", fmt.Sprintf("[ %s ]", expression),
 			"nodeDisplayName", circumstance.nodeDisplayName,
 			"randomNumber", circumstance.randomNumber,
 			"now", circumstance.now,

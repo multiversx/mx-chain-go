@@ -7,6 +7,8 @@ import (
 var log = logger.GetOrCreate("chaos")
 var Controller *chaosController
 
-func init() {
-	Controller = newChaosController("chaos/config.json")
+// Initialize initializes the chaos controller. Make sure to call this only after logging components (file logging, as well) are set up.
+func Initialize() {
+	log.Info("initializing chaos controller")
+	Controller = newChaosController("./config/chaos.json")
 }
