@@ -33,6 +33,8 @@ var rootHash = "uncomputed root hash"
 type extendedShardHeaderTrackHandler interface {
 	ComputeLongestExtendedShardChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error)
 	IsGenesisLastCrossNotarizedHeader() bool
+	RemoveLastCrossNotarizedHeaders()
+	RemoveLastSelfNotarizedHeaders()
 }
 
 type extendedShardHeaderRequestHandler interface {
@@ -902,7 +904,9 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 }
 
 // checkExtendedShardHeadersValidity checks if used extended shard headers are valid as construction
-func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sovereignChainHeader data.SovereignChainHeaderHandler) error {
+func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(
+	sovChainHeader data.SovereignChainHeaderHandler,
+) error {
 	lastCrossNotarizedHeader, _, err := scbp.blockTracker.GetLastCrossNotarizedHeader(core.MainChainShardId)
 	if err != nil {
 		return err
@@ -913,13 +917,17 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sove
 		"lastCrossNotarizedHeader round", lastCrossNotarizedHeader.GetRound(),
 	)
 
-	extendedShardHdrs := scbp.sortExtendedShardHeadersForCurrentBlockByNonce()
+	extendedShardHdrs, err := scbp.sortExtendedShardHeadersForCurrentBlockByNonce(sovChainHeader)
+	if err != nil {
+		return err
+	}
+
 	if len(extendedShardHdrs) == 0 {
 		return nil
 	}
 
 	// we should not have an epoch start block with main chain headers to be processed
-	if sovereignChainHeader.IsStartOfEpochBlock() {
+	if sovChainHeader.IsStartOfEpochBlock() {
 		return errors.ErrReceivedSovereignEpochStartBlockWithExtendedHeaders
 	}
 
@@ -943,8 +951,15 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity(sove
 			"extendedShardHeader nonce", extendedShardHdr.GetNonce(),
 			"extendedShardHeader round", extendedShardHdr.GetRound(),
 		)
+
 		err = scbp.headerValidator.IsHeaderConstructionValid(extendedShardHdr, lastCrossNotarizedHeader)
 		if err != nil {
+			log.Error("sovereignChainBlockProcessor.checkExtendedShardHeadersValidity", "error", err,
+				"extendedShardHdr.Nonce", extendedShardHdr.GetNonce(),
+				"lastCrossNotarizedHeader.Nonce", lastCrossNotarizedHeader.GetNonce(),
+				"extendedShardHdr.Round", extendedShardHdr.GetRound(),
+				"lastCrossNotarizedHeader.Round", lastCrossNotarizedHeader.GetRound(),
+			)
 			return fmt.Errorf("%w : checkExtendedShardHeadersValidity -> isHdrConstructionValid", err)
 		}
 
@@ -1173,20 +1188,35 @@ func (scbp *sovereignChainBlockProcessor) getExtraMissingNoncesToRequest(_ data.
 	return make([]uint64, 0)
 }
 
-func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBlockByNonce() []data.HeaderHandler {
+func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeadersForCurrentBlockByNonce(
+	sovChainHeader data.SovereignChainHeaderHandler,
+) ([]data.HeaderHandler, error) {
 	hdrsForCurrentBlock := make([]data.HeaderHandler, 0)
 
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for _, headerInfo := range scbp.hdrsForCurrBlock.hdrHashAndInfo {
+	for _, extendedShardHeaderHash := range sovChainHeader.GetExtendedShardHeaderHashes() {
+		headerInfo, found := scbp.hdrsForCurrBlock.hdrHashAndInfo[string(extendedShardHeaderHash)]
+		if !found {
+			scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+			return nil, fmt.Errorf("%w : in sovereignChainBlockProcessor.sortExtendedShardHeadersForCurrentBlockByNonce = %s",
+				process.ErrMissingHeader, extendedShardHeaderHash)
+		}
+
+		log.Trace("sovereignChainBlockProcessor.sortExtendedShardHeadersForCurrentBlockByNonce",
+			"headerInfo.hdr.GetNonce()", headerInfo.hdr.GetNonce(),
+			"headerInfo.usedInBlock", headerInfo.usedInBlock,
+		)
+
 		if headerInfo.usedInBlock {
 			hdrsForCurrentBlock = append(hdrsForCurrentBlock, headerInfo.hdr)
+
 		}
 	}
 	scbp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
 	process.SortHeadersByNonce(hdrsForCurrentBlock)
 
-	return hdrsForCurrentBlock
+	return hdrsForCurrentBlock, nil
 }
 
 func (scbp *sovereignChainBlockProcessor) verifyCrossShardMiniBlockDstMe(sovereignChainHeader data.SovereignChainHeaderHandler) error {
@@ -2002,7 +2032,79 @@ func (scbp *sovereignChainBlockProcessor) saveSovereignMetricsForCommittedBlock(
 // RestoreBlockIntoPools restores block into pools
 func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	scbp.restoreBlockBody(header, body)
-	scbp.blockTracker.RemoveLastNotarizedHeaders()
+
+	// TODO: MX-16507: check how/if to restore incoming scrs/cross chain txs once we have a testnet setup for it
+	// 1. For incoming scrs We should probably have something similar to (sp *shardProcessor) rollBackProcessedMiniBlocksInfo
+	// 2. For outgoing operations, we should analyse how to revert operations or delay them before sending (wait for them
+	// to be finalized and impossible to rollback maybe?)
+
+	sovChainHdr, castOk := header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.RestoreBlockIntoPools", errors.ErrWrongTypeAssertion)
+	}
+
+	err := scbp.restoreExtendedHeaderIntoPool(sovChainHdr.GetExtendedShardHeaderHashes())
+	if err != nil {
+		return err
+	}
+
+	scbp.extendedShardHeaderTracker.RemoveLastSelfNotarizedHeaders()
+
+	numOfNotarizedExtendedHeaders := len(sovChainHdr.GetExtendedShardHeaderHashes())
+	log.Debug("sovereignChainBlockProcessor.RestoreBlockIntoPools", "numOfNotarizedExtendedHeaders", numOfNotarizedExtendedHeaders)
+	if numOfNotarizedExtendedHeaders == 0 {
+		return nil
+	}
+
+	scbp.extendedShardHeaderTracker.RemoveLastCrossNotarizedHeaders()
+	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) restoreExtendedHeaderIntoPool(extendedShardHeaderHashes [][]byte) error {
+	for _, extendedHdrHash := range extendedShardHeaderHashes {
+		extendedHdr, errNotCritical := process.GetExtendedShardHeaderFromStorage(extendedHdrHash, scbp.marshalizer, scbp.store)
+		if errNotCritical != nil {
+			log.Debug("extended header is not fully processed yet and not committed in ExtendedShardHeadersUnit",
+				"hash", extendedHdrHash)
+			continue
+		}
+
+		scbp.dataPool.Headers().AddHeaderInShard(extendedHdrHash, extendedHdr, core.MainChainShardId)
+
+		extendedHdrStorer, err := scbp.store.GetStorer(dataRetriever.ExtendedShardHeadersUnit)
+		if err != nil {
+			log.Error("unable to get storage unit",
+				"unit", dataRetriever.ExtendedShardHeadersUnit.String())
+			return err
+		}
+
+		err = extendedHdrStorer.Remove(extendedHdrHash)
+		if err != nil {
+			log.Error("unable to remove hash from ExtendedShardHeadersUnit",
+				"hash", extendedHdrHash)
+			return err
+		}
+
+		nonceToByteSlice := scbp.uint64Converter.ToByteSlice(extendedHdr.GetNonce())
+		extendedHdrNonceHashStorer, err := scbp.store.GetStorer(dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+		if err != nil {
+			log.Error("unable to get storage unit",
+				"unit", dataRetriever.ExtendedShardHeadersNonceHashDataUnit.String())
+			return err
+		}
+
+		errNotCritical = extendedHdrNonceHashStorer.Remove(nonceToByteSlice)
+		if errNotCritical != nil {
+			log.Debug("extendedHdrNonceHashStorer.Remove error not critical",
+				"error", errNotCritical.Error())
+		}
+
+		log.Debug("extended block has been restored successfully",
+			"round", extendedHdr.GetRound(),
+			"nonce", extendedHdr.GetNonce(),
+			"hash", extendedHdrHash)
+	}
+
 	return nil
 }
 

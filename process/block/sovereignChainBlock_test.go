@@ -1,22 +1,26 @@
 package block_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
-	"github.com/multiversx/mx-chain-go/errors"
+	errMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageStub "github.com/multiversx/mx-chain-go/testscommon/storage"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -83,7 +87,7 @@ func CreateSovereignChainShardTrackerMockArguments() track.ArgShardTracker {
 			RequestHandler:   &testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			RoundHandler:     &testscommon.RoundHandlerMock{},
 			ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
-			Store:            &storage.ChainStorerStub{},
+			Store:            &storageStub.ChainStorerStub{},
 			StartHeaders:     createGenesisBlocks(&testscommon.ShardsCoordinatorMock{NoShards: 1}),
 			PoolsHolder:      dataRetrieverMock.NewPoolsHolderMock(),
 			WhitelistHandler: &testscommon.WhiteListHandlerStub{},
@@ -127,7 +131,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
-		require.ErrorIs(t, err, errors.ErrNilOutgoingOperationsFormatter)
+		require.ErrorIs(t, err, errMx.ErrNilOutgoingOperationsFormatter)
 	})
 
 	t.Run("should error when outgoing operation pool is nil", func(t *testing.T) {
@@ -138,7 +142,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
-		require.Equal(t, errors.ErrNilOutGoingOperationsPool, err)
+		require.Equal(t, errMx.ErrNilOutGoingOperationsPool, err)
 	})
 
 	t.Run("should error when operations hasher is nil", func(t *testing.T) {
@@ -149,7 +153,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
-		require.Equal(t, errors.ErrNilOperationsHasher, err)
+		require.Equal(t, errMx.ErrNilOperationsHasher, err)
 	})
 
 	t.Run("should error when epoch start data creator is nil", func(t *testing.T) {
@@ -341,6 +345,237 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		},
 	}
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)
+}
+
+func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsInvalidHeaderType(t *testing.T) {
+	t.Parallel()
+
+	sovBlockProcArgs := createSovChainBlockProcessorArgs()
+	sovBlockProc, _ := blproc.NewSovereignChainBlockProcessor(sovBlockProcArgs)
+
+	err := sovBlockProc.RestoreBlockIntoPools(&block.HeaderV2{}, &block.Body{})
+	require.ErrorIs(t, err, errMx.ErrWrongTypeAssertion)
+}
+
+func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWorkWhenHeaderNotCommitted(t *testing.T) {
+	t.Parallel()
+
+	store := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return nil, errors.New("header not fully processed yet")
+		},
+	}
+	expectedBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MainChainShardId,
+				ReceiverShardID: core.SovereignChainShardId,
+				TxHashes:        [][]byte{[]byte("txHash1")},
+			},
+		},
+	}
+
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	dataComponents.DataPool = dataPool
+	dataComponents.Storage = store
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+
+	wasRestoreBlockDataFromStorageCalled := false
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			wasRestoreBlockDataFromStorageCalled = true
+			require.Equal(t, body, expectedBody)
+			return 0, nil
+		},
+	}
+
+	wasLastSelfNotarizedHeaderRemoved := false
+	wasLastCrossNotarizedHeaderRemoved := false
+	arguments.BlockTracker = &testscommon.ExtendedShardHeaderTrackerStub{
+		RemoveLastSelfNotarizedHeadersCalled: func() {
+			wasLastSelfNotarizedHeaderRemoved = true
+		},
+		RemoveLastCrossNotarizedHeadersCalled: func() {
+			wasLastCrossNotarizedHeaderRemoved = true
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	argsSovProc := createSovChainBlockProcessorArgs()
+	argsSovProc.ShardProcessor = sp
+	sovBlockProc, _ := blproc.NewSovereignChainBlockProcessor(argsSovProc)
+
+	extendedHeaderHash := []byte("extendedHdrHash")
+	sovHdr := createSovHeaderForRestoreBlocksTest(expectedBody, extendedHeaderHash)
+
+	retrievedHdr, err := dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+	require.NotNil(t, err)
+	require.Nil(t, retrievedHdr)
+
+	err = sovBlockProc.RestoreBlockIntoPools(sovHdr, expectedBody)
+	require.Nil(t, err)
+	require.True(t, wasRestoreBlockDataFromStorageCalled)
+	require.True(t, wasLastSelfNotarizedHeaderRemoved)
+	require.True(t, wasLastCrossNotarizedHeaderRemoved)
+
+	retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+	require.NotNil(t, err)
+	require.Nil(t, retrievedHdr)
+
+}
+
+func TestSovereignChainBlockProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	testRestoreBlockIntoPools(t, true)
+	testRestoreBlockIntoPools(t, false)
+}
+
+func testRestoreBlockIntoPools(t *testing.T, withExtendedHeader bool) {
+	store := &storageStubs.ChainStorerStub{}
+	marshaller := &mock.MarshalizerMock{}
+	expectedBody := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   core.MainChainShardId,
+				ReceiverShardID: core.SovereignChainShardId,
+				TxHashes:        [][]byte{[]byte("txHash1")},
+			},
+		},
+	}
+
+	extendedHdrNonce := uint64(4)
+	extendedHdrNonceToBytes := []byte("toByteData")
+	dataPool := dataRetrieverMock.NewPoolsHolderMock()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	coreComponents.UInt64ByteSliceConv = &testscommon.Uint64ByteSliceConverterStub{
+		ToByteSliceCalled: func(u uint64) []byte {
+			require.Equal(t, extendedHdrNonce, u)
+			return extendedHdrNonceToBytes
+		},
+	}
+	dataComponents.DataPool = dataPool
+	dataComponents.Storage = store
+	coreComponents.IntMarsh = marshaller
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
+
+	wasRestoreBlockDataFromStorageCalled := false
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
+			wasRestoreBlockDataFromStorageCalled = true
+			require.Equal(t, body, expectedBody)
+			return 0, nil
+		},
+	}
+
+	wasLastSelfNotarizedHeaderRemoved := false
+	wasLastCrossNotarizedHeaderRemoved := false
+	arguments.BlockTracker = &testscommon.ExtendedShardHeaderTrackerStub{
+		RemoveLastSelfNotarizedHeadersCalled: func() {
+			wasLastSelfNotarizedHeaderRemoved = true
+		},
+		RemoveLastCrossNotarizedHeadersCalled: func() {
+			wasLastCrossNotarizedHeaderRemoved = true
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+	argsSovProc := createSovChainBlockProcessorArgs()
+	argsSovProc.ShardProcessor = sp
+	sovBlockProc, _ := blproc.NewSovereignChainBlockProcessor(argsSovProc)
+
+	extendedHeaderHash := []byte("extendedHdrHash")
+	extendedHeader := &block.ShardHeaderExtended{
+		Header: &block.HeaderV2{
+			ScheduledRootHash: []byte("rootHash"),
+			Header: &block.Header{
+				Nonce: extendedHdrNonce,
+			},
+		},
+	}
+
+	wasExtendedHdrStorerRemoved := false
+	storerExtendedHdr := &storageStubs.StorerStub{
+		RemoveCalled: func(key []byte) error {
+			wasExtendedHdrStorerRemoved = true
+			require.Equal(t, extendedHeaderHash, key)
+			return nil
+		},
+		GetCalled: func(key []byte) ([]byte, error) {
+			return marshaller.Marshal(extendedHeader)
+		},
+	}
+
+	wasNonceHashExtendedHdrStorerRemoved := false
+	storerNonceHashExtendedHdr := &storageStubs.StorerStub{
+		RemoveCalled: func(key []byte) error {
+			wasNonceHashExtendedHdrStorerRemoved = true
+			require.Equal(t, extendedHdrNonceToBytes, key)
+			return nil
+		},
+	}
+
+	store.GetStorerCalled = func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+		switch unitType {
+		case dataRetriever.ExtendedShardHeadersUnit:
+			return storerExtendedHdr, nil
+		case dataRetriever.ExtendedShardHeadersNonceHashDataUnit:
+			return storerNonceHashExtendedHdr, nil
+		}
+
+		return nil, errors.New("invalid storer type")
+	}
+
+	sovHdr := createSovHeaderForRestoreBlocksTest(expectedBody, extendedHeaderHash)
+	if !withExtendedHeader {
+		sovHdr.ExtendedShardHeaderHashes = nil
+	}
+
+	retrievedHdr, err := dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+	require.NotNil(t, err)
+	require.Nil(t, retrievedHdr)
+
+	err = sovBlockProc.RestoreBlockIntoPools(sovHdr, expectedBody)
+	require.Nil(t, err)
+	require.True(t, wasRestoreBlockDataFromStorageCalled)
+	require.True(t, wasLastSelfNotarizedHeaderRemoved)
+
+	if withExtendedHeader {
+		require.True(t, wasLastCrossNotarizedHeaderRemoved)
+		require.True(t, wasExtendedHdrStorerRemoved)
+		require.True(t, wasNonceHashExtendedHdrStorerRemoved)
+
+		retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+		require.Nil(t, err)
+		require.Equal(t, extendedHeader, retrievedHdr)
+	} else {
+		require.False(t, wasLastCrossNotarizedHeaderRemoved)
+		require.False(t, wasExtendedHdrStorerRemoved)
+		require.False(t, wasNonceHashExtendedHdrStorerRemoved)
+
+		retrievedHdr, err = dataPool.Headers().GetHeaderByHash(extendedHeaderHash)
+		require.NotNil(t, err)
+		require.Nil(t, retrievedHdr)
+	}
+}
+
+func createSovHeaderForRestoreBlocksTest(body *block.Body, extendedHeaderHash []byte) *block.SovereignChainHeader {
+	miniBlockHeader := block.MiniBlockHeader{
+		SenderShardID:   body.MiniBlocks[0].SenderShardID,
+		ReceiverShardID: body.MiniBlocks[0].ReceiverShardID,
+	}
+
+	return &block.SovereignChainHeader{
+		Header: &block.Header{
+			MiniBlockHeaders: []block.MiniBlockHeader{miniBlockHeader},
+		},
+		ExtendedShardHeaderHashes: [][]byte{extendedHeaderHash},
+	}
 }
 
 //TODO: More unit tests should be added. Created PR https://multiversxlabs.atlassian.net/browse/MX-14149
