@@ -313,7 +313,7 @@ func (sc *scProcessor) prepareExecution(
 	builtInFuncCall bool,
 	failureContext *failureContext,
 ) (vmcommon.ReturnCode, *vmcommon.ContractCallInput, []byte, error) {
-	err := sc.processSCPayment(tx, acntSnd)
+	err := sc.processSCPayment(tx, acntSnd, acntDst)
 	if err != nil {
 		log.Debug("process sc payment error", "error", err.Error())
 		return 0, nil, nil, err
@@ -1815,7 +1815,7 @@ func (sc *scProcessor) doDeploySmartContract(
 		return vmcommon.Ok, err
 	}
 
-	err = sc.processSCPayment(tx, acntSnd)
+	err = sc.processSCPayment(tx, acntSnd, nil)
 	if err != nil {
 		return vmcommon.Ok, err
 	}
@@ -1940,7 +1940,11 @@ func (sc *scProcessor) printScDeployed(vmOutput *vmcommon.VMOutput, tx data.Tran
 }
 
 // taking money from sender, as VM might not have access to him because of state sharding
-func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd state.UserAccountHandler) error {
+func (sc *scProcessor) processSCPayment(
+	tx data.TransactionHandler,
+	acntSnd state.UserAccountHandler,
+	acntDst state.UserAccountHandler,
+) error {
 	if check.IfNil(acntSnd) {
 		// transaction was already processed at sender shard
 		return nil
@@ -1952,7 +1956,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return err
 	}
 
-	feePayer, err := sc.getFeePayer(tx, acntSnd)
+	feePayer, err := sc.getFeePayer(tx, acntSnd, acntDst)
 	if err != nil {
 		return err
 	}
@@ -1978,7 +1982,11 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 	return nil
 }
 
-func (sc *scProcessor) getFeePayer(tx data.TransactionHandler, acntSnd state.UserAccountHandler) (state.UserAccountHandler, error) {
+func (sc *scProcessor) getFeePayer(
+	tx data.TransactionHandler,
+	acntSnd state.UserAccountHandler,
+	acntDst state.UserAccountHandler,
+) (state.UserAccountHandler, error) {
 	if !common.IsRelayedTxV3(tx) {
 		return acntSnd, nil
 	}
@@ -1991,6 +1999,12 @@ func (sc *scProcessor) getFeePayer(tx data.TransactionHandler, acntSnd state.Use
 	relayerIsSender := bytes.Equal(relayedTx.GetRelayerAddr(), tx.GetSndAddr())
 	if relayerIsSender {
 		return acntSnd, nil // do not load the same account twice
+	}
+
+	relayerIsReceiver := bytes.Equal(relayedTx.GetRelayerAddr(), tx.GetRcvAddr())
+	isFixActive := sc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV3FixESDTTransferFlag)
+	if relayerIsReceiver && isFixActive {
+		return acntDst, nil // do not load the same account twice
 	}
 
 	account, err := sc.scProcessorHelper.GetAccountFromAddress(relayedTx.GetRelayerAddr())
