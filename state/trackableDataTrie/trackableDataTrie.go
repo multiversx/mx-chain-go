@@ -113,9 +113,10 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 		MainTrieVal: nil,
 		DataTrieChanges: []*stateChange.DataTrieChange{
 			{
-				Type: stateChange.Read,
-				Key:  key,
-				Val:  val,
+				Type:    stateChange.Read,
+				Key:     key,
+				Val:     val,
+				Version: uint32(trieValue.Version),
 			},
 		},
 	}
@@ -292,9 +293,10 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
 				&stateChange.DataTrieChange{
-					Type: stateChange.Write,
-					Key:  []byte(key),
-					Val:  nil,
+					Type:    stateChange.Write,
+					Key:     []byte(key),
+					Val:     nil,
+					Version: 0,
 				},
 			)
 		}
@@ -323,9 +325,10 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		}
 
 		newData[dataEntry.index] = &stateChange.DataTrieChange{
-			Type: stateChange.Write,
-			Key:  dataTrieKey,
-			Val:  dataTrieVal,
+			Type:    stateChange.Write,
+			Key:     dataTrieKey,
+			Val:     dataTrieVal,
+			Version: uint32(dataEntry.newVersion),
 		}
 	}
 
