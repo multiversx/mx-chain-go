@@ -1382,7 +1382,7 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 	createdBlockBody := &block.Body{MiniBlocks: miniblocks}
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, postProcessMBs...)
 
-	err = scbp.createAndSetOutGoingMiniBlock(headerHandler, createdBlockBody)
+	err = scbp.createAndSetOutGoingMiniBlockTxs(headerHandler, createdBlockBody)
 	if err != nil {
 		return nil, err
 	}
@@ -1390,7 +1390,7 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 	return scbp.applyBodyToHeader(headerHandler, createdBlockBody)
 }
 
-func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
+func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlockTxs(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
 	outGoingOperations, err := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
 	if err != nil {
@@ -1401,11 +1401,15 @@ func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHa
 		return nil
 	}
 
-	outGoingMb, outGoingOperationsHash := scbp.createOutGoingMiniBlockData(headerHandler, outGoingOperations)
+	outGoingMb, outGoingOperationsHash := scbp.createOutGoingMiniBlockData(headerHandler, outGoingOperations, block.OutGoingMbTx)
 	return scbp.setOutGoingMiniBlock(headerHandler, createdBlockBody, outGoingMb, outGoingOperationsHash)
 }
 
-func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(headerHandler data.HeaderHandler, outGoingOperations [][]byte) (*block.MiniBlock, []byte) {
+func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(
+	headerHandler data.HeaderHandler,
+	outGoingOperations [][]byte,
+	mbType block.OutGoingMBType,
+) (*block.MiniBlock, []byte) {
 	outGoingOpHashes := make([][]byte, len(outGoingOperations))
 	aggregatedOutGoingOperations := make([]byte, 0)
 	outGoingOperationsData := make([]*sovCore.OutGoingOperation, 0)
@@ -1426,6 +1430,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(headerHand
 
 	outGoingOperationsHash := scbp.operationsHasher.Compute(string(aggregatedOutGoingOperations))
 	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
+		Type:               int32(mbType),
 		Hash:               outGoingOperationsHash,
 		OutGoingOperations: outGoingOperationsData,
 		PubKeysBitmap:      headerHandler.GetPubKeysBitmap(),

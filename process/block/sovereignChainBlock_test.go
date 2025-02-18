@@ -237,7 +237,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	})
 }
 
-func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T) {
+func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlockTxs(t *testing.T) {
 	arguments := createSovChainBaseBlockProcessorArgs()
 
 	expectedLogs := []*data.LogData{
@@ -326,7 +326,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		MiniBlocks: []*block.MiniBlock{processedMb},
 	}
 
-	err := scbp.CreateAndSetOutGoingMiniBlock(sovChainHdr, blockBody)
+	err := scbp.CreateAndSetOutGoingMiniBlockTxs(sovChainHdr, blockBody)
 	require.Nil(t, err)
 	require.Equal(t, 1, poolAddCt)
 
