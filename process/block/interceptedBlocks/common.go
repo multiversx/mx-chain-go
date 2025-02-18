@@ -149,7 +149,6 @@ func checkMetaShardInfo(
 	}
 
 	wgProofsVerification.Wait()
-	close(errChan)
 
 	return <-errChan
 }
