@@ -7,10 +7,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -35,6 +37,7 @@ func runEsdtMetaDataUpdateTest(t *testing.T, tokenType string) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
+	_ = testContext.BlockchainHook.(process.BlockChainHookHandler).SetCurrentHeader(&dataBlock.Header{Round: 7})
 
 	createAccWithBalance(t, testContext.Accounts, sndAddr, big.NewInt(100000000))
 	createAccWithBalance(t, testContext.Accounts, core.ESDTSCAddress, big.NewInt(100000000))
@@ -64,7 +67,11 @@ func runEsdtMetaDataUpdateTest(t *testing.T, tokenType string) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkMetaData(t, testContext, core.SystemAccountAddress, key, defaultMetaData)
+	if tokenType == core.DynamicNFTESDT {
+		checkMetaData(t, testContext, sndAddr, key, defaultMetaData)
+	} else {
+		checkMetaData(t, testContext, core.SystemAccountAddress, key, defaultMetaData)
+	}
 }
 
 func esdtMetaDataUpdateTx(

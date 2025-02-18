@@ -100,7 +100,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool)
+	err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool, arg.Header.GetEpoch())
 	if err != nil {
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}

@@ -732,6 +732,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
 		},
+		common.UseGasBoundedShouldFailExecutionFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UseGasBoundedShouldFailExecutionEnableEpoch,
+		},
 		common.DynamicESDTFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
@@ -756,17 +762,47 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
 		},
+		common.FixRelayedBaseCostFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
+		},
+		common.MultiESDTNFTTransferAndExecuteByUserFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch,
+		},
+		common.FixRelayedMoveBalanceToNonPayableSCFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch,
+		},
 		common.RelayedTransactionsV3Flag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
 		},
-		common.FixRelayedBaseCostFlag: {
+		common.RelayedTransactionsV3FixESDTTransferFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch,
+		},
+		common.MaskInternalDependenciesErrorsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch,
+		},
+		common.FixBackTransferOPCODEFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch,
 		},
 		common.ValidationOnGobDecodeFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {

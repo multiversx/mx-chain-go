@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
@@ -21,7 +23,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -42,22 +46,23 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck   bool
-	TempDir                  string
-	PathToInitialConfig      string
-	NumOfShards              uint32
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	GenesisTimestamp         int64
-	InitialRound             int64
-	InitialEpoch             uint32
-	InitialNonce             uint64
-	RoundDurationInMillis    uint64
-	RoundsPerEpoch           core.OptionalUint64
-	ApiInterface             components.APIConfigurator
-	AlterConfigsFunction     func(cfg *config.Configs)
+	BypassTxSignatureCheck     bool
+	TempDir                    string
+	PathToInitialConfig        string
+	NumOfShards                uint32
+	MinNodesPerShard           uint32
+	MetaChainMinNodes          uint32
+	NumNodesWaitingListShard   uint32
+	NumNodesWaitingListMeta    uint32
+	GenesisTimestamp           int64
+	InitialRound               int64
+	InitialEpoch               uint32
+	InitialNonce               uint64
+	RoundDurationInMillis      uint64
+	RoundsPerEpoch             core.OptionalUint64
+	ApiInterface               components.APIConfigurator
+	AlterConfigsFunction       func(cfg *config.Configs)
+	VmQueryDelayAfterStartInMs uint64
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -129,18 +134,20 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		return err
 	}
 
+	monitor := heartbeat.NewHeartbeatMonitor()
+
 	for idx := -1; idx < int(args.NumOfShards); idx++ {
 		shardIDStr := fmt.Sprintf("%d", idx)
 		if idx == -1 {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
+		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, monitor)
 		if errCreate != nil {
 			return errCreate
 		}
 
-		chainHandler, errCreate := process.NewBlocksCreator(node)
+		chainHandler, errCreate := process.NewBlocksCreator(node, monitor)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -149,6 +156,8 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		s.nodes[shardID] = node
 		s.handlers = append(s.handlers, chainHandler)
 
+		var epochStartBlockHeader data.HeaderHandler
+
 		if node.GetShardCoordinator().SelfId() == core.MetachainShardId {
 			currentRootHash, errRootHash := node.GetProcessComponents().ValidatorsStatistics().RootHash()
 			if errRootHash != nil {
@@ -156,7 +165,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			}
 
 			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(currentRootHash)
-			if errRootHash != nil {
+			if errGet != nil {
 				return errGet
 			}
 
@@ -172,6 +181,27 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			if err != nil {
 				return err
 			}
+
+			epochStartBlockHeader = &block.MetaBlock{
+				Nonce:     args.InitialNonce,
+				Epoch:     args.InitialEpoch,
+				Round:     uint64(args.InitialRound),
+				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+			}
+		} else {
+			epochStartBlockHeader = &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:     args.InitialNonce,
+					Epoch:     args.InitialEpoch,
+					Round:     uint64(args.InitialRound),
+					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+				},
+			}
+		}
+
+		err = node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -194,7 +224,7 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 }
 
 func (s *simulator) createTestNode(
-	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
+	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string, monitor factory.HeartbeatV2Monitor,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
 		Configs:                     outputConfigs.Configs,
@@ -212,6 +242,8 @@ func (s *simulator) createTestNode(
 		MinNodesMeta:                args.MetaChainMinNodes,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
+		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		Monitor:                     monitor,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
@@ -296,15 +328,18 @@ func (s *simulator) incrementRoundOnAllValidators() {
 // ForceChangeOfEpoch will force the change of current epoch
 // This method will call the epoch change trigger and generate block till a new epoch is reached
 func (s *simulator) ForceChangeOfEpoch() error {
+	s.mutex.Lock()
 	log.Info("force change of epoch")
 	for shardID, node := range s.nodes {
 		err := node.ForceChangeOfEpoch()
 		if err != nil {
+			s.mutex.Unlock()
 			return fmt.Errorf("force change of epoch shardID-%d: error-%w", shardID, err)
 		}
 	}
 
 	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+	s.mutex.Unlock()
 
 	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
 }

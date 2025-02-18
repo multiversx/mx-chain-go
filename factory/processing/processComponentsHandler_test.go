@@ -59,6 +59,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.True(t, check.IfNil(managedProcessComponents.RoundHandler()))
 		require.True(t, check.IfNil(managedProcessComponents.ForkDetector()))
 		require.True(t, check.IfNil(managedProcessComponents.BlockProcessor()))
+		require.True(t, check.IfNil(managedProcessComponents.BlockchainHook()))
 		require.True(t, check.IfNil(managedProcessComponents.EpochStartTrigger()))
 		require.True(t, check.IfNil(managedProcessComponents.EpochStartNotifier()))
 		require.True(t, check.IfNil(managedProcessComponents.BlackListHandler()))
@@ -94,7 +95,6 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.True(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
 		require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
 		require.True(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
-		require.True(t, check.IfNil(managedProcessComponents.RelayedTxV3Processor()))
 
 		err := managedProcessComponents.Create()
 		require.NoError(t, err)
@@ -106,6 +106,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.False(t, check.IfNil(managedProcessComponents.ForkDetector()))
 		require.False(t, check.IfNil(managedProcessComponents.BlockProcessor()))
 		require.False(t, check.IfNil(managedProcessComponents.EpochStartTrigger()))
+		require.False(t, check.IfNil(managedProcessComponents.BlockchainHook()))
 		require.False(t, check.IfNil(managedProcessComponents.EpochStartNotifier()))
 		require.False(t, check.IfNil(managedProcessComponents.BlackListHandler()))
 		require.False(t, check.IfNil(managedProcessComponents.BootStorer()))
@@ -140,7 +141,6 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.False(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
 		require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
 		require.False(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
-		require.False(t, check.IfNil(managedProcessComponents.RelayedTxV3Processor()))
 
 		require.Equal(t, factory.ProcessComponentsName, managedProcessComponents.String())
 	})

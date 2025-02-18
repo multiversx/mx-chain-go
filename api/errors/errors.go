@@ -64,6 +64,9 @@ var ErrTxGenerationFailed = errors.New("transaction generation failed")
 // ErrValidationEmptyTxHash signals that an empty tx hash was provided
 var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 
+// ErrValidationEmptySCRHash signals that provided smart contract result hash is empty
+var ErrValidationEmptySCRHash = errors.New("SCRHash is empty")
+
 // ErrInvalidBlockNonce signals that an invalid block nonce was provided
 var ErrInvalidBlockNonce = errors.New("invalid block nonce")
 
@@ -78,6 +81,9 @@ var ErrValidationEmptyBlockHash = errors.New("block hash is empty")
 
 // ErrGetTransaction signals an error happening when trying to fetch a transaction
 var ErrGetTransaction = errors.New("getting transaction failed")
+
+// ErrGetSmartContractResults signals an error happening when trying to fetch smart contract results
+var ErrGetSmartContractResults = errors.New("getting smart contract results failed")
 
 // ErrGetBlock signals an error happening when trying to fetch a block
 var ErrGetBlock = errors.New("getting block failed")

@@ -58,7 +58,7 @@ type ProcessComponentsMock struct {
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
-	RelayedTxV3ProcessorField            process.RelayedTxV3Processor
+	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
 }
 
 // Create -
@@ -291,9 +291,9 @@ func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSys
 	return pcm.EpochSystemSCProcessorInternal
 }
 
-// RelayedTxV3Processor -
-func (pcm *ProcessComponentsMock) RelayedTxV3Processor() process.RelayedTxV3Processor {
-	return pcm.RelayedTxV3ProcessorField
+// BlockchainHook -
+func (pcm *ProcessComponentsMock) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	return pcm.BlockchainHookField
 }
 
 // IsInterfaceNil -

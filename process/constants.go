@@ -2,6 +2,7 @@ package process
 
 import (
 	"fmt"
+	"time"
 )
 
 // BlockHeaderState specifies which is the state of the block header received
@@ -36,8 +37,6 @@ const (
 	RelayedTx
 	// RelayedTxV2 defines the ID of a slim relayed transaction version
 	RelayedTxV2
-	// RelayedTxV3 defines the ID of a relayed v3 transaction
-	RelayedTxV3
 	// RewardTx defines ID of a reward transaction
 	RewardTx
 	// InvalidTransaction defines unknown transaction type
@@ -58,8 +57,6 @@ func (transactionType TransactionType) String() string {
 		return "RelayedTx"
 	case RelayedTxV2:
 		return "RelayedTxV2"
-	case RelayedTxV3:
-		return "RelayedTxV3"
 	case RewardTx:
 		return "RewardTx"
 	case InvalidTransaction:
@@ -82,11 +79,6 @@ const EpochChangeGracePeriod = 1
 // MaxHeaderRequestsAllowed defines the maximum number of missing cross-shard headers (gaps) which could be requested
 // in one round, when node processes a received block
 const MaxHeaderRequestsAllowed = 20
-
-// NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
-// from the transactions pool, for a specific sender, in a single pass.
-// Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
-const NumTxPerSenderBatchForFillingMiniblock = 10
 
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced
@@ -139,12 +131,6 @@ const MaxShardHeadersAllowedInOneMetaBlock = 60
 // which would be included in one meta block if they are available
 const MinShardHeadersFromSameShardInOneMetaBlock = 10
 
-// MaxNumOfTxsToSelect defines the maximum number of transactions that should be selected from the cache
-const MaxNumOfTxsToSelect = 30000
-
-// MaxGasBandwidthPerBatchPerSender defines the maximum gas bandwidth that should be selected for a sender per batch from the cache
-const MaxGasBandwidthPerBatchPerSender = 5000000
-
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300
 
@@ -152,3 +138,12 @@ const MaxHeadersToWhitelistInAdvance = 300
 // the real gas used, after which the transaction will be considered an attack and all the gas will be consumed and
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
+
+// TxCacheSelectionGasRequested defines the maximum total gas for transactions that should be selected from the cache.
+const TxCacheSelectionGasRequested = 10_000_000_000
+
+// TxCacheSelectionMaxNumTxs defines the maximum number of transactions that should be selected from the cache.
+const TxCacheSelectionMaxNumTxs = 30_000
+
+// TxCacheSelectionLoopMaximumDuration defines the maximum duration for the loop that selects transactions from the cache.
+const TxCacheSelectionLoopMaximumDuration = 250 * time.Millisecond

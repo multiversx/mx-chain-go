@@ -548,9 +548,21 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 func (e *esdt) getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 	switch tokenType {
 	case core.NonFungibleESDT, core.NonFungibleESDTv2, core.DynamicNFTESDT:
-		nftRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
+		nftRoles := [][]byte{
+			[]byte(core.ESDTRoleNFTCreate),
+			[]byte(core.ESDTRoleNFTBurn),
+			[]byte(core.ESDTRoleNFTUpdateAttributes),
+			[]byte(core.ESDTRoleNFTAddURI),
+		}
+
 		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
-			nftRoles = append(nftRoles, [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleModifyCreator), []byte(core.ESDTRoleModifyRoyalties), []byte(core.ESDTRoleSetNewURI)}...)
+			nftRoles = append(nftRoles, [][]byte{
+				[]byte(core.ESDTRoleNFTRecreate),
+				[]byte(core.ESDTRoleModifyCreator),
+				[]byte(core.ESDTRoleModifyRoyalties),
+				[]byte(core.ESDTRoleSetNewURI),
+				[]byte(core.ESDTRoleNFTUpdate),
+			}...)
 		}
 
 		return nftRoles, nil
@@ -559,8 +571,21 @@ func (e *esdt) getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 	case core.FungibleESDT:
 		return [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, nil
 	case core.DynamicSFTESDT, core.DynamicMetaESDT:
-		dynamicRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
-		dynamicRoles = append(dynamicRoles, [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleModifyCreator), []byte(core.ESDTRoleModifyRoyalties), []byte(core.ESDTRoleSetNewURI)}...)
+		dynamicRoles := [][]byte{
+			[]byte(core.ESDTRoleNFTCreate),
+			[]byte(core.ESDTRoleNFTBurn),
+			[]byte(core.ESDTRoleNFTAddQuantity),
+			[]byte(core.ESDTRoleNFTUpdateAttributes),
+			[]byte(core.ESDTRoleNFTAddURI),
+		}
+
+		dynamicRoles = append(dynamicRoles, [][]byte{
+			[]byte(core.ESDTRoleNFTRecreate),
+			[]byte(core.ESDTRoleModifyCreator),
+			[]byte(core.ESDTRoleModifyRoyalties),
+			[]byte(core.ESDTRoleSetNewURI),
+			[]byte(core.ESDTRoleNFTUpdate),
+		}...)
 
 		return dynamicRoles, nil
 	}
@@ -1641,6 +1666,11 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 			return nil
 		}
 		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTUpdate:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
@@ -1665,6 +1695,8 @@ func (e *esdt) isSpecialRoleValidForDynamicNFT(argument string) error {
 	case core.ESDTRoleModifyRoyalties:
 		return nil
 	case core.ESDTRoleNFTRecreate:
+		return nil
+	case core.ESDTRoleNFTUpdate:
 		return nil
 	default:
 		return vm.ErrInvalidArgument
@@ -1772,8 +1804,16 @@ func isDynamicTokenType(tokenType []byte) bool {
 }
 
 func rolesForDynamicWhichHasToBeSingular() []string {
-	return []string{core.ESDTRoleNFTCreate, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI,
-		core.ESDTRoleSetNewURI, core.ESDTRoleModifyCreator, core.ESDTRoleModifyRoyalties, core.ESDTRoleNFTRecreate}
+	return []string{
+		core.ESDTRoleNFTCreate,
+		core.ESDTRoleNFTUpdateAttributes,
+		core.ESDTRoleNFTAddURI,
+		core.ESDTRoleSetNewURI,
+		core.ESDTRoleModifyCreator,
+		core.ESDTRoleModifyRoyalties,
+		core.ESDTRoleNFTRecreate,
+		core.ESDTRoleNFTUpdate,
+	}
 }
 
 func (e *esdt) checkRolesForDynamicTokens(

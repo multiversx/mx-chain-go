@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -52,7 +53,7 @@ func NewShardedData(name string, config storageunit.CacheConfig) (*shardedData, 
 		NumChunks:                   config.Shards,
 		MaxNumItems:                 config.Capacity,
 		MaxNumBytes:                 uint32(config.SizeInBytes),
-		NumItemsToPreemptivelyEvict: storage.TxPoolNumTxsToPreemptivelyEvict,
+		NumItemsToPreemptivelyEvict: storage.ShardedDataNumItemsToPreemptivelyEvict,
 	}
 
 	err := configPrototype.Verify()
@@ -161,6 +162,9 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 		return
 	}
 
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("removal")
+
 	numRemoved := 0
 	for _, key := range keys {
 		if store.cache.RemoveWithResult(key) {
@@ -168,7 +172,15 @@ func (sd *shardedData) RemoveSetOfDataFromPool(keys [][]byte, cacheID string) {
 		}
 	}
 
-	log.Trace("shardedData.removeTxBulk()", "name", sd.name, "cacheID", cacheID, "numToRemove", len(keys), "numRemoved", numRemoved)
+	stopWatch.Stop("removal")
+
+	log.Debug("shardedData.removeTxBulk",
+		"name", sd.name,
+		"cacheID", cacheID,
+		"numToRemove", len(keys),
+		"numRemoved", numRemoved,
+		"duration", stopWatch.GetMeasurement("removal"),
+	)
 }
 
 // ImmunizeSetOfDataAgainstEviction  marks the items as non-evictable

@@ -1,16 +1,19 @@
 package chainSimulator
 
 import (
+	"github.com/multiversx/mx-chain-go/errors"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,13 +82,17 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
-
 	defer chainSimulator.Close()
 
 	time.Sleep(time.Second)
 
 	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
+
+	heartBeats, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetHeartbeats()
+	require.Nil(t, err)
+	require.Equal(t, 4, len(heartBeats))
+
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
@@ -379,4 +386,51 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	defer chainSimulator.Close()
 
 	chainSimulatorCommon.CheckGenerateTransactions(t, chainSimulator)
+}
+
+func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck: true,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, big.NewInt(0))
+	require.Nil(t, err)
+
+	ftx := &transaction.Transaction{
+		Nonce:     0,
+		Value:     big.NewInt(0),
+		SndAddr:   wallet0.Bytes,
+		RcvAddr:   wallet0.Bytes,
+		Data:      []byte(""),
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+		Signature: []byte("010101"),
+	}
+	_, err = chainSimulator.sendTx(ftx)
+	require.True(t, strings.Contains(err.Error(), errors.ErrInsufficientFunds.Error()))
 }

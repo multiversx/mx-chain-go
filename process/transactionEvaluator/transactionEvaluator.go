@@ -111,7 +111,7 @@ func (ate *apiTransactionEvaluator) ComputeTransactionGasLimit(tx *transaction.T
 		ate.mutExecution.Unlock()
 	}()
 
-	txTypeOnSender, txTypeOnDestination := ate.txTypeHandler.ComputeTransactionType(tx)
+	txTypeOnSender, txTypeOnDestination, _ := ate.txTypeHandler.ComputeTransactionType(tx)
 	if txTypeOnSender == process.MoveBalance && txTypeOnDestination == process.MoveBalance {
 		return ate.computeMoveBalanceCost(tx), nil
 	}
@@ -119,7 +119,7 @@ func (ate *apiTransactionEvaluator) ComputeTransactionGasLimit(tx *transaction.T
 	switch txTypeOnSender {
 	case process.SCDeployment, process.SCInvoking, process.BuiltInFunctionCall, process.MoveBalance:
 		return ate.simulateTransactionCost(tx, txTypeOnSender)
-	case process.RelayedTx, process.RelayedTxV2, process.RelayedTxV3:
+	case process.RelayedTx, process.RelayedTxV2:
 		// TODO implement in the next PR
 		return &transaction.CostResponse{
 			GasUnits:      0,

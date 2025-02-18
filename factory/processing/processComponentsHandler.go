@@ -180,9 +180,6 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
 	}
-	if check.IfNil(m.processComponents.relayedTxV3Processor) {
-		return errors.ErrNilRelayedTxV3Processor
-	}
 
 	return nil
 }
@@ -317,6 +314,22 @@ func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
 	}
 
 	return m.processComponents.blockProcessor
+}
+
+// BlockchainHook returns the block chain hook
+func (m *managedProcessComponents) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	if check.IfNil(m.processComponents.vmFactoryForProcessing) {
+		return nil
+	}
+
+	return m.processComponents.vmFactoryForProcessing.BlockChainHookImpl()
 }
 
 // BlackListHandler returns the black list handler
@@ -689,18 +702,6 @@ func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSy
 	}
 
 	return m.processComponents.epochSystemSCProcessor
-}
-
-// RelayedTxV3Processor returns the relayed tx v3 processor
-func (m *managedProcessComponents) RelayedTxV3Processor() process.RelayedTxV3Processor {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
-
-	if m.processComponents == nil {
-		return nil
-	}
-
-	return m.processComponents.relayedTxV3Processor
 }
 
 // IsInterfaceNil returns true if the interface is nil

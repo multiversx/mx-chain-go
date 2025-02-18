@@ -1,0 +1,158 @@
+{
+    "type": "normal",
+    "processingTypeOnSource": "RelayedTx",
+    "processingTypeOnDestination": "RelayedTx",
+    "hash": "94cb3bd3e2dca9920115f05549c9eee4dfc1d33e4ac3edd0741eb51165148b52",
+    "nonce": 0,
+    "round": 7,
+    "epoch": 1,
+    "value": "0",
+    "receiver": "erd1s89rm6mv6xyct38r3vqadj74rmqunamhwyz7c84a6u9thedj2wus5nlchg",
+    "sender": "erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze",
+    "gasPrice": 1000000000,
+    "gasLimit": 86229000,
+    "data": "cmVsYXllZFR4QDdiMjI2ZTZmNmU2MzY1MjIzYTMwMmMyMjczNjU2ZTY0NjU3MjIyM2EyMjY3NjM2ZjM5MzYzMjdhNTI2OTU5NTg0NTM0MzQ3MzQyMzE3Mzc2NTY0ODczNDg0YTM5MzM2NDc4NDI2NTc3NjU3NjY0NjM0Yjc1MmI1Nzc5NTUzNzZiM2QyMjJjMjI3MjY1NjM2NTY5NzY2NTcyMjIzYTIyNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE1MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDE0MTQxNDUyZjJmMzgzZDIyMmMyMjc2NjE2Yzc1NjUyMjNhMzIzNTMwMzEzMDMwMzAzMDMwMzAzMDMwMzAzMDMwMzAzMDMwMzAzMDMwMzAyYzIyNjc2MTczNTA3MjY5NjM2NTIyM2EzMTMwMzAzMDMwMzAzMDMwMzAzMDJjMjI2NzYxNzM0YzY5NmQ2OTc0MjIzYTM4MzUzMDMwMzAzMDMwMzAyYzIyNjQ2MTc0NjEyMjNhMjI1OTMzNGE2YzU5NTg1MjZjNTQ2ZDU2MzM1MjQ3NTY3MzVhNTc2NDY4NjQ0NzZjNzY2MjZiNGU3NjYyNmU1Mjc5NTk1NzRlMzA1MTQ0NDE3NzUxNDQ0MTc3MjIyYzIyNzM2OTY3NmU2MTc0NzU3MjY1MjIzYTIyNTk1MTUzNTQ0MjMwMzE0ZjUwNGY0NDU5MzM0ZDU2NDQ1NDRkNWE3NzRkNzY2NjZiNzI1MDUwMzk2ZTM1NjQ1MzU4NjI3MDQ5NWE2MjcwNDM1MTQ5MzMzNDRkNTY2NzZiNzYzMzc0Njk2MTRmNGMzNjQ0NWE2NjM4NTU2NTJmNjg2Zjc5MzkzNTRiNGI2NTVhNDI2YjcwNzAzMTU1NzY3NzU5MzY0NzU3NDI3NzNkM2QyMjJjMjI2MzY4NjE2OTZlNDk0NDIyM2EyMjU5MzI2ODY4NjE1NzM0M2QyMjJjMjI3NjY1NzI3MzY5NmY2ZTIyM2EzMjdk",
+    "signature": "bf5d14d237b951d23247e99113fa15566ebbd0dccd215b743ae9629f226ab3f9ba333622567c5606e2ed06104df52f81f05fad2488be9cb50a83e1356e0d070e",
+    "sourceShard": 1,
+    "destinationShard": 1,
+    "blockNonce": 7,
+    "blockHash": "5f2a597d07b4b5ae84195178eb6f83493bb1230c7f316b40a0d9b6efbe1a4da5",
+    "notarizedAtSourceInMetaNonce": 9,
+    "NotarizedAtSourceInMetaHash": "34cd7dc91fc9773ddd2e09d900087b96cfecf6280a6dc25a1894c2db161cded1",
+    "notarizedAtDestinationInMetaNonce": 9,
+    "notarizedAtDestinationInMetaHash": "34cd7dc91fc9773ddd2e09d900087b96cfecf6280a6dc25a1894c2db161cded1",
+    "miniblockType": "TxBlock",
+    "miniblockHash": "03ef037eb1fd03f89a9b5ece12aa422223b440cb1fd02c4a6b82d65268121d28",
+    "hyperblockNonce": 9,
+    "hyperblockHash": "34cd7dc91fc9773ddd2e09d900087b96cfecf6280a6dc25a1894c2db161cded1",
+    "timestamp": 1729691671,
+    "smartContractResults": [
+        {
+            "hash": "6e71137c75ad162d97ce45502d38f0af96362c06f03378f03a4e50bec6ce31ea",
+            "nonce": 1,
+            "value": 299005000000000,
+            "receiver": "erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze",
+            "sender": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6",
+            "prevTxHash": "c825db2f9e6d17e41ed12e1aac86eecd7a828eeea0caf63a6e6a979f02a74f70",
+            "originalTxHash": "94cb3bd3e2dca9920115f05549c9eee4dfc1d33e4ac3edd0741eb51165148b52",
+            "gasLimit": 0,
+            "gasPrice": 1000000000,
+            "callType": 0,
+            "returnMessage": "gas refund for relayer",
+            "logs": {
+                "address": "erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze",
+                "events": [
+                    {
+                        "address": "erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze",
+                        "identifier": "completedTxEvent",
+                        "topics": [
+                            "yCXbL55tF+Qe0S4arIbuzXqCju6gyvY6bmqXnwKnT3A="
+                        ],
+                        "data": null,
+                        "additionalData": null
+                    }
+                ]
+            },
+            "operation": "transfer",
+            "isRefund": true
+        },
+        {
+            "hash": "c825db2f9e6d17e41ed12e1aac86eecd7a828eeea0caf63a6e6a979f02a74f70",
+            "nonce": 0,
+            "value": 2501000000000000000000,
+            "receiver": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6",
+            "sender": "erd1s89rm6mv6xyct38r3vqadj74rmqunamhwyz7c84a6u9thedj2wus5nlchg",
+            "relayerAddress": "erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze",
+            "relayedValue": 0,
+            "data": "createNewDelegationContract@00@00",
+            "prevTxHash": "94cb3bd3e2dca9920115f05549c9eee4dfc1d33e4ac3edd0741eb51165148b52",
+            "originalTxHash": "94cb3bd3e2dca9920115f05549c9eee4dfc1d33e4ac3edd0741eb51165148b52",
+            "gasLimit": 84900500,
+            "gasPrice": 1000000000,
+            "callType": 0,
+            "logs": {
+                "address": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6",
+                "events": [
+                    {
+                        "address": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6",
+                        "identifier": "transferValueOnly",
+                        "topics": [
+                            "h5RY6SJT9AAA",
+                            "AAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAL///8="
+                        ],
+                        "data": "RGVwbG95U21hcnRDb250cmFjdA==",
+                        "additionalData": [
+                            "RGVwbG95U21hcnRDb250cmFjdA==",
+                            "X2luaXQ=",
+                            "AA==",
+                            "AA=="
+                        ]
+                    },
+                    {
+                        "address": "erd1s89rm6mv6xyct38r3vqadj74rmqunamhwyz7c84a6u9thedj2wus5nlchg",
+                        "identifier": "delegate",
+                        "topics": [
+                            "h5RY6SJT9AAA",
+                            "h5RY6SJT9AAA",
+                            "AQ==",
+                            "h5RY6SJT9AAA",
+                            "AAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAL///8="
+                        ],
+                        "data": null,
+                        "additionalData": null
+                    },
+                    {
+                        "address": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhllllsajxzat",
+                        "identifier": "transferValueOnly",
+                        "topics": [
+                            "h5RY6SJT9AAA",
+                            "AAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAB//8="
+                        ],
+                        "data": "RXhlY3V0ZU9uRGVzdENvbnRleHQ=",
+                        "additionalData": [
+                            "RXhlY3V0ZU9uRGVzdENvbnRleHQ=",
+                            "c3Rha2U="
+                        ]
+                    },
+                    {
+                        "address": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqhllllsajxzat",
+                        "identifier": "SCDeploy",
+                        "topics": [
+                            "AAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAL///8=",
+                            "gco962zRiYXE44sB1svVHsHJ93dxBewevdcKu+WyU7k=",
+                            "/uYNe6O98aIOSpF57HocNxS4JQ7FILx6+N7MEN3oAQY="
+                        ],
+                        "data": null,
+                        "additionalData": null
+                    },
+                    {
+                        "address": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6",
+                        "identifier": "writeLog",
+                        "topics": [
+                            "gco962zRiYXE44sB1svVHsHJ93dxBewevdcKu+WyU7k="
+                        ],
+                        "data": "QDZmNmJAMDAwMDAwMDAwMDAwMDAwMDAwMDEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMmZmZmZmZg==",
+                        "additionalData": [
+                            "QDZmNmJAMDAwMDAwMDAwMDAwMDAwMDAwMDEwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMmZmZmZmZg=="
+                        ]
+                    }
+                ]
+            },
+            "operation": "transfer",
+            "function": "createNewDelegationContract"
+        }
+    ],
+    "status": "success",
+    "receivers": [
+        "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6"
+    ],
+    "receiversShardIDs": [
+        4294967295
+    ],
+    "operation": "transfer",
+    "function": "createNewDelegationContract",
+    "isRelayed": true,
+    "chainID": "chain",
+    "version": 2,
+    "options": 0
+}

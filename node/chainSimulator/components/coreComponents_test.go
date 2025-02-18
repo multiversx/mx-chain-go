@@ -73,6 +73,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						MaxGasLimitPerTx:            "10000000000",
 						MinGasLimit:                 "10",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPriceModifier:       0.01,

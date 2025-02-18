@@ -6,6 +6,7 @@ import (
 
 type multipleShardsCoordinatorMock struct {
 	ComputeIdCalled func(address []byte) uint32
+	SameShardCalled func(firstAddress, secondAddress []byte) bool
 	noShards        uint32
 	CurrentShard    uint32
 }
@@ -44,7 +45,10 @@ func (scm *multipleShardsCoordinatorMock) SetSelfId(_ uint32) error {
 }
 
 // SameShard -
-func (scm *multipleShardsCoordinatorMock) SameShard(_, _ []byte) bool {
+func (scm *multipleShardsCoordinatorMock) SameShard(firstAddress, secondAddress []byte) bool {
+	if scm.SameShardCalled != nil {
+		return scm.SameShardCalled(firstAddress, secondAddress)
+	}
 	return true
 }
 

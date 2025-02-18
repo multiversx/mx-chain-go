@@ -34,7 +34,7 @@ import (
 var log = logger.GetOrCreate("stakingProvider")
 
 const gasLimitForConvertOperation = 510_000_000
-const gasLimitForDelegationContractCreationOperation = 500_000_000
+const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
 const gasLimitForMergeOperation = 600_000_000
@@ -290,6 +290,9 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.Nil(t, err)
 
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -625,6 +628,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t *
 	validatorOwnerB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	log.Info("working with the following addresses",
 		"validatorOwnerA", validatorOwnerA.Bech32, "validatorOwnerB", validatorOwnerB.Bech32)
 
@@ -864,6 +870,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	require.Nil(t, err)
 
 	delegator, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -1192,6 +1201,9 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Nil(t, err)
 
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, initialFunds)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	maxDelegationCap := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(51000)) // 51000 EGLD cap
@@ -1569,6 +1581,9 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Nil(t, err)
 
 	delegatorC, err := cs.GenerateAndMintWalletAddress(core.AllShardId, initialFunds)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Step 3: Create a new delegation contract
@@ -1954,6 +1969,9 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Nil(t, err)
 
 	validatorB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("Step 1. User A: - stake 1 node to have 100 egld more than minimum stake value")

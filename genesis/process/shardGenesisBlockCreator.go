@@ -18,13 +18,13 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	epochStart "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
-	processDisabled "github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
 	"github.com/multiversx/mx-chain-go/process/receipts"
@@ -400,6 +400,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasSchedule:              arg.GasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
+		EpochStartTrigger:        epochStart.NewEpochStartTrigger(),
+		RoundHandler:             &disabled.RoundHandler{},
 	}
 	esdtTransferParser, err := parsers.NewESDTTransferParser(arg.Core.InternalMarshalizer())
 	if err != nil {
@@ -501,40 +503,34 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	err = arg.Core.EconomicsData().SetTxTypeHandler(txTypeHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
-		VmContainer:             vmContainer,
-		ArgsParser:              smartContract.NewArgumentParser(),
-		Hasher:                  arg.Core.Hasher(),
-		Marshalizer:             arg.Core.InternalMarshalizer(),
-		AccountsDB:              arg.Accounts,
-		BlockChainHook:          vmFactoryImpl.BlockChainHookImpl(),
-		BuiltInFunctions:        builtInFuncFactory.BuiltInFunctionContainer(),
-		PubkeyConv:              arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:        arg.ShardCoordinator,
-		ScrForwarder:            scForwarder,
-		TxFeeHandler:            genesisFeeHandler,
-		EconomicsFee:            genesisFeeHandler,
-		TxTypeHandler:           txTypeHandler,
-		GasHandler:              gasHandler,
-		GasSchedule:             arg.GasSchedule,
-		TxLogsProcessor:         arg.TxLogsProcessor,
-		BadTxForwarder:          badTxInterim,
-		EnableRoundsHandler:     enableRoundsHandler,
-		EnableEpochsHandler:     enableEpochsHandler,
-		IsGenesisProcessing:     true,
-		VMOutputCacher:          txcache.NewDisabledCache(),
-		WasmVMChangeLocker:      genesisWasmVMLocker,
-		FailedTxLogsAccumulator: processDisabled.NewFailedTxLogsAccumulator(),
+		VmContainer:         vmContainer,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		Hasher:              arg.Core.Hasher(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		AccountsDB:          arg.Accounts,
+		BlockChainHook:      vmFactoryImpl.BlockChainHookImpl(),
+		BuiltInFunctions:    builtInFuncFactory.BuiltInFunctionContainer(),
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		ScrForwarder:        scForwarder,
+		TxFeeHandler:        genesisFeeHandler,
+		EconomicsFee:        genesisFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		GasHandler:          gasHandler,
+		GasSchedule:         arg.GasSchedule,
+		TxLogsProcessor:     arg.TxLogsProcessor,
+		BadTxForwarder:      badTxInterim,
+		EnableRoundsHandler: enableRoundsHandler,
+		EnableEpochsHandler: enableEpochsHandler,
+		IsGenesisProcessing: true,
+		VMOutputCacher:      txcache.NewDisabledCache(),
+		WasmVMChangeLocker:  genesisWasmVMLocker,
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, epochNotifier)
@@ -552,27 +548,25 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:                arg.Accounts,
-		Hasher:                  arg.Core.Hasher(),
-		PubkeyConv:              arg.Core.AddressPubKeyConverter(),
-		Marshalizer:             arg.Core.InternalMarshalizer(),
-		SignMarshalizer:         arg.Core.TxMarshalizer(),
-		ShardCoordinator:        arg.ShardCoordinator,
-		ScProcessor:             scProcessorProxy,
-		TxFeeHandler:            genesisFeeHandler,
-		TxTypeHandler:           txTypeHandler,
-		EconomicsFee:            genesisFeeHandler,
-		ReceiptForwarder:        receiptTxInterim,
-		BadTxForwarder:          badTxInterim,
-		ArgsParser:              smartContract.NewArgumentParser(),
-		ScrForwarder:            scForwarder,
-		EnableRoundsHandler:     enableRoundsHandler,
-		EnableEpochsHandler:     enableEpochsHandler,
-		TxVersionChecker:        arg.Core.TxVersionChecker(),
-		GuardianChecker:         disabledGuardian.NewDisabledGuardedAccountHandler(),
-		TxLogsProcessor:         arg.TxLogsProcessor,
-		RelayedTxV3Processor:    processDisabled.NewRelayedTxV3Processor(),
-		FailedTxLogsAccumulator: processDisabled.NewFailedTxLogsAccumulator(),
+		Accounts:            arg.Accounts,
+		Hasher:              arg.Core.Hasher(),
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		SignMarshalizer:     arg.Core.TxMarshalizer(),
+		ShardCoordinator:    arg.ShardCoordinator,
+		ScProcessor:         scProcessorProxy,
+		TxFeeHandler:        genesisFeeHandler,
+		TxTypeHandler:       txTypeHandler,
+		EconomicsFee:        genesisFeeHandler,
+		ReceiptForwarder:    receiptTxInterim,
+		BadTxForwarder:      badTxInterim,
+		ArgsParser:          smartContract.NewArgumentParser(),
+		ScrForwarder:        scForwarder,
+		EnableRoundsHandler: enableRoundsHandler,
+		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    arg.Core.TxVersionChecker(),
+		GuardianChecker:     disabledGuardian.NewDisabledGuardedAccountHandler(),
+		TxLogsProcessor:     arg.TxLogsProcessor,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

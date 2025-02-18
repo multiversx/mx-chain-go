@@ -21,9 +21,8 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	nodeDisabled "github.com/multiversx/mx-chain-go/node/disabled"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -101,7 +100,7 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
-	relayedTxV3Processor             process.RelayedTxV3Processor
+	blockchainHook                   process.BlockChainHookWithAccountsAdapter
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -155,12 +154,25 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs := nodeDisabled.NewDisabledWhiteListDataVerifier()
+	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
+	if err != nil {
+		return nil, err
+	}
 
 	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
@@ -195,8 +207,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,
@@ -272,7 +284,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
-		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
+		blockchainHook:                   managedProcessComponents.BlockchainHook(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -513,9 +525,9 @@ func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSys
 	return p.epochStartSystemSCProcessor
 }
 
-// RelayedTxV3Processor returns the relayed tx v3 processor
-func (p *processComponentsHolder) RelayedTxV3Processor() process.RelayedTxV3Processor {
-	return p.relayedTxV3Processor
+// BlockchainHook returns the blockchain hook
+func (p *processComponentsHolder) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	return p.blockchainHook
 }
 
 // Close will call the Close methods on all inner components

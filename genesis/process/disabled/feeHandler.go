@@ -12,6 +12,11 @@ import (
 type FeeHandler struct {
 }
 
+// ComputeGasUnitsFromRefundValue return 0
+func (fh *FeeHandler) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+	return 0
+}
+
 // GasPriceModifier returns 1.0
 func (fh *FeeHandler) GasPriceModifier() float64 {
 	return 1.0
@@ -70,6 +75,11 @@ func (fh *FeeHandler) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 // MaxGasLimitPerMiniBlockForSafeCrossShard returns max uint64
 func (fh *FeeHandler) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	return math.MaxUint64
+}
+
+// MaxGasHigherFactorAccepted returns 10
+func (fh *FeeHandler) MaxGasHigherFactorAccepted() uint64 {
+	return 10
 }
 
 // MaxGasLimitPerTx returns max uint64
@@ -164,28 +174,23 @@ func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsed(_ data.TransactionWithFeeHandle
 }
 
 // ComputeTxFeeInEpoch returns 0
-func (fh *FeeHandler) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+func (fh *FeeHandler) ComputeTxFeeInEpoch(_ data.TransactionWithFeeHandler, _ uint32) *big.Int {
 	return big.NewInt(0)
 }
 
 // ComputeGasLimitInEpoch returns 0
-func (fh *FeeHandler) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+func (fh *FeeHandler) ComputeGasLimitInEpoch(_ data.TransactionWithFeeHandler, _ uint32) uint64 {
 	return 0
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValueInEpoch returns 0
-func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int) {
+func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) (uint64, *big.Int) {
 	return 0, big.NewInt(0)
 }
 
 // ComputeTxFeeBasedOnGasUsedInEpoch returns 0
-func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
+func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(_ data.TransactionWithFeeHandler, _ uint64, _ uint32) *big.Int {
 	return big.NewInt(0)
-}
-
-// ComputeRelayedTxFees returns 0 and 0
-func (fh *FeeHandler) ComputeRelayedTxFees(_ data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
-	return big.NewInt(0), big.NewInt(0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

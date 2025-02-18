@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -65,6 +64,7 @@ func feeSettingsDummy(gasModifier float64) config.FeeSettings {
 				MaxGasLimitPerTx:            "100000",
 				MinGasLimit:                 "500",
 				ExtraGasLimitGuardedTx:      "50000",
+				MaxGasHigherFactorAccepted:  "10",
 			},
 		},
 		MinGasPrice:            "18446744073709551615",
@@ -85,6 +85,7 @@ func feeSettingsReal() config.FeeSettings {
 				MaxGasLimitPerTx:            "1500000000",
 				MinGasLimit:                 "50000",
 				ExtraGasLimitGuardedTx:      "50000",
+				MaxGasHigherFactorAccepted:  "10",
 			},
 		},
 		MinGasPrice:            "1000000000",
@@ -388,6 +389,36 @@ func TestNewEconomicsData_InvalidExtraGasLimitGuardedTxShouldErr(t *testing.T) {
 		_, err := economics.NewEconomicsData(args)
 		assert.True(t, errors.Is(err, process.ErrInvalidExtraGasLimitGuardedTx))
 	}
+}
+
+func TestNewEconomicsData_InvalidMaxGasHigherFactorAccepted(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badExtraMaxGasHigherFactorAccepted := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+	}
+
+	for _, gasLimitGuardedTx := range badExtraMaxGasHigherFactorAccepted {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = gasLimitGuardedTx
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+	}
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "0"
+	_, err := economics.NewEconomicsData(args)
+	assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "2"
+	_, err = economics.NewEconomicsData(args)
+	assert.Nil(t, err)
 }
 
 func TestNewEconomicsData_MaxGasLimitPerBlockLowerThanMinGasLimitShouldErr(t *testing.T) {
@@ -717,6 +748,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 		{
 			EnableEpoch:                 2,
@@ -727,6 +759,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 	}
 
@@ -801,6 +834,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerTx:            "500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 		{
 			EnableEpoch:                 0,
@@ -811,6 +845,7 @@ func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testin
 			MaxGasLimitPerTx:            "1500000000",
 			MinGasLimit:                 "50000",
 			ExtraGasLimitGuardedTx:      "50000",
+			MaxGasHigherFactorAccepted:  "10",
 		},
 	}
 
@@ -1621,103 +1656,4 @@ func TestEconomicsData_RewardsTopUpFactor(t *testing.T) {
 
 	value := economicsData.RewardsTopUpFactor()
 	assert.Equal(t, topUpFactor, value)
-}
-
-func TestEconomicsData_ComputeRelayedTxFees(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForEconomicsData(1)
-	minGasLimit, _ := strconv.Atoi(args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit)
-	tx := &transaction.Transaction{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  []byte("rel"),
-		SndAddr:  []byte("rel"),
-		GasPrice: 1,
-		GasLimit: uint64(minGasLimit) * 4,
-		InnerTransactions: []*transaction.Transaction{
-			{
-				Nonce:       0,
-				Value:       big.NewInt(1),
-				RcvAddr:     []byte("rcv1"),
-				SndAddr:     []byte("snd1"),
-				GasPrice:    1,
-				GasLimit:    uint64(minGasLimit),
-				RelayerAddr: []byte("rel"),
-			},
-			{
-				Nonce:       0,
-				Value:       big.NewInt(1),
-				RcvAddr:     []byte("rcv1"),
-				SndAddr:     []byte("snd2"),
-				GasPrice:    1,
-				GasLimit:    uint64(minGasLimit),
-				RelayerAddr: []byte("rel"),
-			},
-		},
-	}
-	t.Run("empty inner txs should error", func(t *testing.T) {
-		t.Parallel()
-
-		economicsData, _ := economics.NewEconomicsData(args)
-
-		txCopy := *tx
-		txCopy.InnerTransactions = []*transaction.Transaction{}
-		relayerFee, totalFee, err := economicsData.ComputeRelayedTxFees(&txCopy)
-		require.Equal(t, process.ErrEmptyInnerTransactions, err)
-		require.Equal(t, big.NewInt(0), relayerFee)
-		require.Equal(t, big.NewInt(0), totalFee)
-	})
-	t.Run("should work unguarded", func(t *testing.T) {
-		t.Parallel()
-
-		economicsData, _ := economics.NewEconomicsData(args)
-
-		_ = economicsData.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{
-			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-				return process.MoveBalance, process.MoveBalance
-			},
-		})
-
-		relayerFee, totalFee, err := economicsData.ComputeRelayedTxFees(tx)
-		require.NoError(t, err)
-		expectedRelayerFee := big.NewInt(int64(2 * uint64(minGasLimit) * tx.GetGasPrice())) // 2 move balance
-		require.Equal(t, expectedRelayerFee, relayerFee)
-		require.Equal(t, big.NewInt(int64(tx.GetGasLimit()*tx.GetGasPrice())), totalFee)
-	})
-	t.Run("should work guarded", func(t *testing.T) {
-		t.Parallel()
-
-		argsLocal := createArgsForEconomicsData(1)
-		argsLocal.TxVersionChecker = &testscommon.TxVersionCheckerStub{
-			IsGuardedTransactionCalled: func(tx *transaction.Transaction) bool {
-				return len(tx.InnerTransactions) > 0 // only the relayed tx is guarded
-			},
-		}
-		economicsData, _ := economics.NewEconomicsData(argsLocal)
-
-		extraGasLimitGuardedTx, _ := strconv.Atoi(argsLocal.Economics.FeeSettings.GasLimitSettings[0].ExtraGasLimitGuardedTx)
-
-		txCopy := *tx
-		txCopy.GasLimit += uint64(extraGasLimitGuardedTx)
-		relayerFee, totalFee, err := economicsData.ComputeRelayedTxFees(&txCopy)
-		require.NoError(t, err)
-		expectedRelayerFee := big.NewInt(int64(2*uint64(minGasLimit)*txCopy.GetGasPrice() + uint64(extraGasLimitGuardedTx)*txCopy.GetGasPrice())) // 2 move balance
-		require.Equal(t, expectedRelayerFee, relayerFee)
-		require.Equal(t, big.NewInt(int64(txCopy.GetGasLimit()*txCopy.GetGasPrice())), totalFee)
-	})
-}
-
-func TestEconomicsData_SetTxTypeHandler(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForEconomicsData(1)
-	economicsData, _ := economics.NewEconomicsData(args)
-	assert.NotNil(t, economicsData)
-
-	err := economicsData.SetTxTypeHandler(nil)
-	require.Equal(t, process.ErrNilTxTypeHandler, err)
-
-	err = economicsData.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{})
-	require.NoError(t, err)
 }

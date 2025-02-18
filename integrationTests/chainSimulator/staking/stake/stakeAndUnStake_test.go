@@ -103,6 +103,9 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	// Step 3 --- generate and send a stake transaction with the BLS key of the validator key that was added at step 1
 	stakeValue, _ := big.NewInt(0).SetString("2500000000000000000000", 10)
 	tx := &transaction.Transaction{
@@ -237,6 +240,9 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	})
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	// Step 3 --- generate and send a stake transaction with the BLS keys of the validators key that were added at step 1
 	validatorData := ""
 	for _, blsKey := range blsKeys {
@@ -351,6 +357,9 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
 	walletAddressShardID := uint32(0)
 	walletAddress, err := cs.GenerateAndMintWalletAddress(walletAddressShardID, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
@@ -583,6 +592,9 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	stakeValue := big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
 	txStake := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
@@ -809,6 +821,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
@@ -1092,6 +1107,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	stakeValue := big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
 	txStake := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
@@ -1320,6 +1338,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -1554,6 +1575,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -1827,6 +1851,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
 	txStake := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
@@ -1857,7 +1884,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
-	unStakeTxFee, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
+	unStakeTxFee1, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
 
 	testEpoch := targetEpoch + 1
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
@@ -1871,6 +1898,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
+	unStakeTxFee2, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
+
 	testEpoch++
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
@@ -1882,6 +1911,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
+
+	unStakeTxFee3, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
 
 	testEpoch++
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
@@ -1950,9 +1981,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	txsFee.Add(txsFee, stakeTxFee)
 	txsFee.Add(txsFee, unBondTxFee)
-	txsFee.Add(txsFee, unStakeTxFee)
-	txsFee.Add(txsFee, unStakeTxFee)
-	txsFee.Add(txsFee, unStakeTxFee)
+	txsFee.Add(txsFee, unStakeTxFee1)
+	txsFee.Add(txsFee, unStakeTxFee2)
+	txsFee.Add(txsFee, unStakeTxFee3)
 
 	balanceAfterUnbonding.Add(balanceAfterUnbonding, txsFee)
 
@@ -2181,6 +2212,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -2522,6 +2556,9 @@ func createStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.Chai
 
 	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)

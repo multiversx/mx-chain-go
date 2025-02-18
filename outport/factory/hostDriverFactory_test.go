@@ -15,7 +15,7 @@ func TestCreateHostDriver(t *testing.T) {
 
 	args := ArgsHostDriverFactory{
 		HostConfig: config.HostDriversConfig{
-			URL:                "localhost",
+			URL:                "ws://localhost",
 			RetryDurationInSec: 1,
 			MarshallerType:     "json",
 			Mode:               data.ModeClient,

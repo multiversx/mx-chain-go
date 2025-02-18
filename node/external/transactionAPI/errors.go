@@ -31,3 +31,6 @@ var ErrCannotRetrieveTransactions = errors.New("transactions cannot be retrieved
 
 // ErrInvalidAddress signals that the address is invalid
 var ErrInvalidAddress = errors.New("invalid address")
+
+// ErrDBLookExtensionIsNotEnabled signals that the db look extension is not enabled
+var ErrDBLookExtensionIsNotEnabled = errors.New("db look extension is not enabled")
