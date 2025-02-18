@@ -150,7 +150,16 @@ func checkMetaShardInfo(
 
 	wgProofsVerification.Wait()
 
-	return <-errChan
+	return readFromChanNonBlocking(errChan)
+}
+
+func readFromChanNonBlocking(errChan chan error) error {
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		return nil
+	}
 }
 
 func checkProofAsync(
