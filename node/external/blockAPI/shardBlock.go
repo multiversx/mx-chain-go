@@ -2,9 +2,9 @@ package blockAPI
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
