@@ -47,12 +47,6 @@ def main():
             (
                 "// chaos-testing-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
                 """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr, pk, signatureShare)"""
-            ),
-            (
-                "// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures",
-                """if chaos.Controller.In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(sr) {
-		return true
-	}"""
             )
         ],
         with_import=True

@@ -55,7 +55,6 @@ func (config *chaosConfig) verify() error {
 	knownFailures[failureCreatingBlockError] = struct{}{}
 	knownFailures[failureProcessingBlockError] = struct{}{}
 	knownFailures[failureConsensusCorruptSignature] = struct{}{}
-	knownFailures[failureConsensusV1SkipWaitingForSignatures] = struct{}{}
 	knownFailures[failureConsensusV1ReturnErrorInCheckSignaturesValidity] = struct{}{}
 	knownFailures[failureConsensusV1DelayBroadcastingFinalBlockAsLeader] = struct{}{}
 	knownFailures[failureConsensusV2CorruptLeaderSignature] = struct{}{}

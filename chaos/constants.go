@@ -6,7 +6,6 @@ const (
 	failureCreatingBlockError                              failureName = "creatingBlockError"
 	failureProcessingBlockError                            failureName = "processingBlockError"
 	failureConsensusCorruptSignature                       failureName = "consensusCorruptSignature"
-	failureConsensusV1SkipWaitingForSignatures             failureName = "consensusV1SkipWaitingForSignatures"
 	failureConsensusV1ReturnErrorInCheckSignaturesValidity failureName = "consensusV1ReturnErrorInCheckSignaturesValidity"
 	failureConsensusV1DelayBroadcastingFinalBlockAsLeader  failureName = "consensusV1DelayBroadcastingFinalBlockAsLeader"
 	failureConsensusV2CorruptLeaderSignature               failureName = "consensusV2CorruptLeaderSignature"

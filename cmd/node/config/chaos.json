@@ -16,11 +16,6 @@
             "triggers": ["round % 11 == 0 && nodeIndex < consensusSize / 2"]
         },
         {
-            "name": "consensusV1SkipWaitingForSignatures",
-            "enabled": true,
-            "triggers": ["round % 7 == 0 && nodeIndex < consensusSize / 2"]
-        },
-        {
             "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
             "enabled": false,
             "triggers": ["false"]
@@ -28,7 +23,7 @@
         {
             "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
             "enabled": true,
-            "comment": "Internally known as 'testnet soft forks'.",
+            "comment": "Internally known as 'testnet soft forks'. ???",
             "triggers": ["round % 20 == 0"],
             "parameters": {
                 "duration": 12

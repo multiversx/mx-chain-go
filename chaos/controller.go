@@ -97,17 +97,6 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 	}
 }
 
-// In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures skips waiting for signatures, from time to time.
-func (controller *chaosController) In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures(consensusState spos.ConsensusStateHandler) bool {
-	log.Trace("In_V1_subroundSignature_completeSignatureSubRound_shouldSkipWaitingForSignatures")
-
-	controller.mutex.Lock()
-	defer controller.mutex.Unlock()
-
-	circumstance := controller.acquireCircumstance(consensusState, "")
-	return controller.shouldFail(failureConsensusV1SkipWaitingForSignatures, circumstance)
-}
-
 func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(consensusState spos.ConsensusStateHandler) bool {
 	log.Trace("In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError")
 

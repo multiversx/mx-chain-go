@@ -162,8 +162,6 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 		return false
 	}
 
-	// chaos-testing-point:v1/subroundSignature_completeSignatureSubRound_skipWaitingForSignatures
-
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
 	}
