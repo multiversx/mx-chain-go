@@ -724,6 +724,7 @@ func (t *trigger) updateTriggerFromMeta() {
 		}
 
 		canActivateEpochStart, finalityAttestingRound := t.checkIfTriggerCanBeActivated(currMetaInfo.hash, currMetaInfo.hdr)
+		log.Debug("trigger.updateTriggerFromMeta", "canActivateEpochStart", canActivateEpochStart, "finalityAttestingRound", finalityAttestingRound)
 		if canActivateEpochStart && t.metaEpoch < currMetaInfo.hdr.GetEpoch() {
 			t.metaEpoch = currMetaInfo.hdr.GetEpoch()
 			t.isEpochStart = true
