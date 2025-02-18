@@ -212,6 +212,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          105,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           106,
 			RelayedTransactionsV3EnableEpoch:                         107,
+			RelayedTransactionsV3FixESDTTransferEnableEpoch:          108,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -334,6 +335,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_multi_esdt_transfer_execute_by_user_enable_epoch":                 uint32(105),
 		"erd_fix_relayed_move_balance_to_non_payable_sc_enable_epoch":          uint32(106),
 		"erd_relayed_transactions_v3_enable_epoch":                             uint32(107),
+		"erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch":           uint32(108),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",

@@ -124,8 +124,9 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           107,
 		UseGasBoundedShouldFailExecutionEnableEpoch:              108,
 		RelayedTransactionsV3EnableEpoch:                         109,
-		EquivalentMessagesEnableEpoch:                            110,
-		FixedOrderInConsensusEnableEpoch:                         111,
+		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
+		EquivalentMessagesEnableEpoch:                            111,
+		FixedOrderInConsensusEnableEpoch:                         112,
 	}
 }
 
@@ -454,6 +455,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.MultiESDTNFTTransferAndExecuteByUserFlag))
 	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
+	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
 	require.Equal(t, cfg.EquivalentMessagesEnableEpoch, handler.GetActivationEpoch(common.EquivalentMessagesFlag))
 	require.Equal(t, cfg.FixedOrderInConsensusEnableEpoch, handler.GetActivationEpoch(common.FixedOrderInConsensusFlag))
 }
