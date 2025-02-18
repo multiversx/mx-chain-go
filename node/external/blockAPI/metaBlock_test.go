@@ -3,6 +3,7 @@ package blockAPI
 import (
 	"encoding/hex"
 	"encoding/json"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"math/big"
 	"testing"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverTestsCommon "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -63,6 +65,8 @@ func createMockMetaAPIProcessor(
 		AlteredAccountsProvider:      &testscommon.AlteredAccountsProviderStub{},
 		AccountsRepository:           &state.AccountsRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProofsPool:                   &dataRetrieverTestsCommon.ProofsPoolMock{},
+		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
 	}, nil)
 }
 
@@ -176,7 +180,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNode(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
-		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -271,7 +274,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromGenesis(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
-		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -350,7 +352,6 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromHistoryNode(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
-		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	fetchedApiBlock, err := processor.GetBlockByHash(metablockHash, api.BlockQueryOptions{})
@@ -445,7 +446,6 @@ func TestMetaAPIBlockProcessor_GetBlockByNonceFromGenesis(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
-		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByNonce(nonce, api.BlockQueryOptions{})
@@ -509,7 +509,6 @@ func TestMetaAPIBlockProcessor_GetBlockByRoundFromStorer(t *testing.T) {
 		AccumulatedFeesInEpoch: "10",
 		DeveloperFeesInEpoch:   "5",
 		Status:                 BlockStatusOnChain,
-		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByRound(round+1, api.BlockQueryOptions{})
@@ -594,7 +593,6 @@ func TestMetaAPIBlockProcessor_GetBlockByHashFromHistoryNodeStatusReverted(t *te
 		SoftwareVersion:        "32",
 		ReceiptsHash:           "72656348617368",
 		Reserved:               []byte("res"),
-		PreviousHeaderProof:    &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProcessor.GetBlockByHash(headerHash, api.BlockQueryOptions{})
@@ -808,7 +806,6 @@ func TestMetaAPIBlockProcessor_GetBlockByRound_GetBlockByNonce_EpochStartBlock(t
 				},
 			},
 		},
-		PreviousHeaderProof: &api.HeaderProof{},
 	}
 
 	blk, err := metaAPIBlockProc.GetBlockByNonce(nonce, api.BlockQueryOptions{})
