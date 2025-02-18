@@ -22,8 +22,8 @@
         },
         {
             "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
-            "enabled": true,
-            "comment": "Internally known as 'testnet soft forks'. ???",
+            "enabled": false,
+            "comment": "Internally known as 'testnet soft forks'.",
             "triggers": ["round % 20 == 0"],
             "parameters": {
                 "duration": 12
@@ -31,12 +31,12 @@
         },
         {
             "name": "consensusV2CorruptLeaderSignature",
-            "enabled": false,
+            "enabled": true,
             "triggers": ["round % 13 == 0"]
         },
         {
             "name": "consensusV2DelayLeaderSignature",
-            "enabled": false,
+            "enabled": true,
             "triggers": ["round % 19 == 0"],
             "parameters": {
                 "duration": 4
@@ -44,8 +44,8 @@
         },
         {
             "name": "consensusV2SkipSendingBlock",
-            "enabled": false,
-            "triggers": ["round % 17 == 0 && randomNumber % 2 == 0"]
+            "enabled": true,
+            "triggers": ["round % 7 == 0 && randomNumber % 2 == 0"]
         }
     ]
 }
