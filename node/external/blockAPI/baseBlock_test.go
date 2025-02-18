@@ -415,6 +415,8 @@ func TestAddScheduledInfoInBlock(t *testing.T) {
 }
 
 func TestProofToAPIProof(t *testing.T) {
+	t.Parallel()
+
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       []byte("bitmap"),
 		AggregatedSignature: []byte("sig"),
@@ -428,9 +430,9 @@ func TestProofToAPIProof(t *testing.T) {
 
 	proofToAPIProof(headerProof)
 	require.Equal(t, &api.HeaderProof{
-		PubKeysBitmap:       "6269746d6170",
-		AggregatedSignature: "736967",
-		HeaderHash:          "68617368",
+		PubKeysBitmap:       hex.EncodeToString(headerProof.PubKeysBitmap),
+		AggregatedSignature: hex.EncodeToString(headerProof.AggregatedSignature),
+		HeaderHash:          hex.EncodeToString(headerProof.HeaderHash),
 		HeaderEpoch:         1,
 		HeaderNonce:         3,
 		HeaderShardId:       2,
@@ -440,7 +442,11 @@ func TestProofToAPIProof(t *testing.T) {
 }
 
 func TestAddProofs(t *testing.T) {
+	t.Parallel()
+
 	t.Run("no proofs for required block should error", func(t *testing.T) {
+		t.Parallel()
+
 		baseAPIBlockProc := createBaseBlockProcessor()
 		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
@@ -461,6 +467,8 @@ func TestAddProofs(t *testing.T) {
 	})
 
 	t.Run("proof for current block returned from pool", func(t *testing.T) {
+		t.Parallel()
+
 		baseAPIBlockProc := createBaseBlockProcessor()
 		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
@@ -491,6 +499,8 @@ func TestAddProofs(t *testing.T) {
 	})
 
 	t.Run("no previous proof only current proof", func(t *testing.T) {
+		t.Parallel()
+
 		baseAPIBlockProc := createBaseBlockProcessor()
 		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
@@ -520,6 +530,8 @@ func TestAddProofs(t *testing.T) {
 	})
 
 	t.Run("proof for block returned from next block", func(t *testing.T) {
+		t.Parallel()
+
 		baseAPIBlockProc := createBaseBlockProcessor()
 		baseAPIBlockProc.proofsPool = &dataRetrieverTestsCommon.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
