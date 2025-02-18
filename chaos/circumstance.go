@@ -75,6 +75,8 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 
 	nodeIndex, err := consensusState.ConsensusGroupIndex(nodePublicKey)
 	if err != nil {
+		log.Warn("failureCircumstance.enrichWithConsensusState(): error getting node index", "error", err)
+	} else {
 		circumstance.nodeIndex = nodeIndex
 	}
 
@@ -95,7 +97,21 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 	}()
 
 	for _, expression := range expressions {
-		log.Trace("circumstance.anyExpression()",
+		result, err := types.Eval(fileSet, pack, token.NoPos, expression)
+		if err != nil {
+			log.Error("failed to evaluate expression", "error", err, "expression", expression)
+			continue
+		}
+
+		resultAsString := result.Value.String()
+		resultAsBool, err := strconv.ParseBool(resultAsString)
+		if err != nil {
+			log.Error("failed to parse result as bool", "error", err, "expression", expression, "result", result.Value.String())
+			continue
+		}
+
+		log.Trace("failureCircumstance.anyExpression()",
+			"result", resultAsString,
 			"expression", fmt.Sprintf("[ %s ]", expression),
 			"nodeDisplayName", circumstance.nodeDisplayName,
 			"randomNumber", circumstance.randomNumber,
@@ -109,18 +125,6 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 			"amILeader", circumstance.amILeader,
 			"blockNonce", circumstance.blockNonce,
 		)
-
-		result, err := types.Eval(fileSet, pack, token.NoPos, expression)
-		if err != nil {
-			log.Error("failed to evaluate expression", "error", err, "expression", expression)
-			continue
-		}
-
-		resultAsBool, err := strconv.ParseBool(result.Value.String())
-		if err != nil {
-			log.Error("failed to parse result as bool", "error", err, "expression", expression, "result", result.Value.String())
-			continue
-		}
 
 		if resultAsBool {
 			return true
