@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-logger-go/proto"
 )
@@ -65,7 +66,7 @@ func (circumstance *failureCircumstance) enrichWithLoggerCorrelation(correlation
 }
 
 func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState spos.ConsensusStateHandler, nodePublicKey string) {
-	if consensusState == nil {
+	if check.IfNil(consensusState) {
 		return
 	}
 
@@ -83,7 +84,13 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 	circumstance.nodePublicKey = nodePublicKey
 	circumstance.consensusSize = consensusState.ConsensusGroupSize()
 	circumstance.amILeader = consensusState.Leader() == nodePublicKey
-	circumstance.blockNonce = consensusState.GetHeader().GetNonce()
+
+	header := consensusState.GetHeader()
+	if check.IfNil(header) {
+		log.Debug("failureCircumstance.enrichWithConsensusState(): header is nil")
+	} else {
+		circumstance.blockNonce = header.GetNonce()
+	}
 }
 
 func (circumstance *failureCircumstance) anyExpression(expressions []string) bool {
