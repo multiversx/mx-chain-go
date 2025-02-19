@@ -49,9 +49,32 @@ Failures are configured in `cmd/node/config/chaos.json`. Let's take the example 
 
 ### `consensusV1ReturnErrorInCheckSignaturesValidity`
 
-In subround `END ROUND`, in `checkSignaturesValidity`, return an early error. Note that this failure is available both for leaders and for validators. Adjust the failure triggers accordingly.
+In subround `END ROUND`, in `checkSignaturesValidity`, return an early error. Note that this failure is available both for leaders and for validators. Adjust the failure triggers accordingly. For example:
+
+```json
+{
+    "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
+    "enabled": true,
+    "triggers": [
+        "!iAmLeader && round % 11 == 0 && nodeIndex < consensusSize / 3",
+        "iAmLeader && round % 13 == 0"
+    ]
+}
+```
 
 ### `consensusV1DelayBroadcastingFinalBlockAsLeader`
+
+This failure is internally known as _testnet soft forks_. In subround `END ROUND`, as a leader, delay broadcasting the final block. For example:
+
+```json
+{
+    "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
+    "enabled": true,
+    "triggers": [
+        "round % 20 == 0"
+    ]
+}
+```
 
 ### `consensusV2CorruptLeaderSignature`
 

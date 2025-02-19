@@ -29,3 +29,7 @@ const (
 	parameterAmILeader     failureExpressionParameterName = "amILeader"
 	parameterBlockNonce    failureExpressionParameterName = "blockNonce"
 )
+
+const (
+	defaultConfigFilePath = "./config/chaos.json"
+)

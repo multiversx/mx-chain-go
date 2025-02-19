@@ -2,28 +2,32 @@
     "failures": [
         {
             "name": "creatingBlockError",
-            "enabled": true,
+            "enabled": false,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["shard == 0 && round == 20"]
         },
         {
             "name": "processingBlockError",
-            "enabled": true,
+            "enabled": false,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["shard == 0 && round == 25"]
         },
         {
             "name": "consensusCorruptSignature",
-            "enabled": true,
-            "triggers": ["round % 11 == 0 && nodeIndex < consensusSize / 2"]
+            "enabled": false,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
+            "triggers": ["round % 11 == 0 && nodeIndex < consensusSize / 3"]
         },
         {
             "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
             "enabled": false,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["false"]
         },
         {
             "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
             "enabled": false,
-            "comment": "Internally known as 'testnet soft forks'.",
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["round % 20 == 0"],
             "parameters": {
                 "duration": 12
@@ -32,11 +36,13 @@
         {
             "name": "consensusV2CorruptLeaderSignature",
             "enabled": true,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["round % 13 == 0"]
         },
         {
             "name": "consensusV2DelayLeaderSignature",
             "enabled": true,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["round % 19 == 0"],
             "parameters": {
                 "duration": 4
@@ -45,6 +51,7 @@
         {
             "name": "consensusV2SkipSendingBlock",
             "enabled": true,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["round % 7 == 0 && randomNumber % 2 == 0"]
         }
     ]
