@@ -39,7 +39,7 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 1, false)
+	runFullConsensusTest(t, blsConsensusType, 1)
 }
 
 func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
@@ -47,15 +47,7 @@ func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 5, false)
-}
-
-func TestConsensusBLSFullTestSingleKeys_WithEquivalentProofs(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	runFullConsensusTest(t, blsConsensusType, 1, true)
+	runFullConsensusTest(t, blsConsensusType, 5)
 }
 
 func TestConsensusBLSNotEnoughValidators(t *testing.T) {
@@ -393,7 +385,6 @@ func runFullConsensusTest(
 	t *testing.T,
 	consensusType string,
 	numKeysOnEachNode int,
-	withEquivalentProofs bool,
 ) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
@@ -410,13 +401,9 @@ func runFullConsensusTest(
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
-	equivalentProodsActivationEpoch := integrationTests.UnreachableEpoch
-	if withEquivalentProofs {
-		equivalentProodsActivationEpoch = 0
-	}
-
-	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProodsActivationEpoch
-	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProodsActivationEpoch
+	equivalentProofsActivationEpoch := integrationTests.UnreachableEpoch
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentProofsActivationEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,
