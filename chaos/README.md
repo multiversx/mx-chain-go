@@ -39,3 +39,22 @@ Failures are configured in `cmd/node/config/chaos.json`. Let's take the example 
     ]
 ```
 
+## Failures
+
+### `creatingBlockError`
+
+### `processingBlockError`
+
+### `consensusCorruptSignature`
+
+### `consensusV1ReturnErrorInCheckSignaturesValidity`
+
+In subround `END ROUND`, in `checkSignaturesValidity`, return an early error. Note that this failure is available both for leaders and for validators. Adjust the failure triggers accordingly.
+
+### `consensusV1DelayBroadcastingFinalBlockAsLeader`
+
+### `consensusV2CorruptLeaderSignature`
+
+### `consensusV2DelayLeaderSignature`
+
+### `consensusV2SkipSendingBlock`
