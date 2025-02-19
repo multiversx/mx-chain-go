@@ -2,19 +2,19 @@
     "failures": [
         {
             "name": "creatingBlockError",
-            "enabled": false,
+            "enabled": true,
             "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["shard == 0 && round == 20"]
+            "triggers": ["shard == 0 && round % 29"]
         },
         {
             "name": "processingBlockError",
             "enabled": false,
             "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["shard == 0 && round == 25"]
+            "triggers": ["shard == 1 && round % 29 && randomNumber % 3 == 0"]
         },
         {
             "name": "consensusCorruptSignature",
-            "enabled": false,
+            "enabled": true,
             "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
             "triggers": ["round % 11 == 0 && nodeIndex < consensusSize / 3"]
         },

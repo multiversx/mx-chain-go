@@ -86,9 +86,7 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 	circumstance.amILeader = consensusState.Leader() == nodePublicKey
 
 	header := consensusState.GetHeader()
-	if check.IfNil(header) {
-		log.Debug("failureCircumstance.enrichWithConsensusState(): header is nil")
-	} else {
+	if !check.IfNil(header) {
 		circumstance.blockNonce = header.GetNonce()
 	}
 }
