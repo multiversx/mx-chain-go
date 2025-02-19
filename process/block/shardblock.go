@@ -1090,7 +1090,7 @@ func (sp *shardProcessor) CommitBlock(
 		sp.lastRestartNonce = header.GetNonce()
 	}
 
-	sp.updateState(selfNotarizedHeaders, header)
+	sp.updateState(selfNotarizedHeaders, header, currentHeaderHash)
 
 	highestFinalBlockNonce := sp.forkDetector.GetHighestFinalBlockNonce()
 	log.Debug("highest final shard block",
@@ -1227,7 +1227,7 @@ func (sp *shardProcessor) displayPoolsInfo() {
 	sp.displayMiniBlocksPool()
 }
 
-func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler) {
+func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler, currentHeaderHash []byte) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
 	for _, header := range headers {
@@ -1311,16 +1311,10 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
-	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, currentHeader)
-	if err != nil {
-		log.Debug("updateState.CalculateHash", "error", err.Error())
-		return
-	}
-	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
-	sp.setFinalizedHeaderHashInIndexer(headerHash)
-
-	sp.setFinalBlockInfo(currentHeader, headerHash, scheduledHeaderRootHash)
+	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
+	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
 func (sp *shardProcessor) setFinalBlockInfo(
