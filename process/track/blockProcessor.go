@@ -465,9 +465,10 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		"highest round in received headers", highestRoundInReceivedHeaders)
 
 	fromNonce := latestValidHeader.GetNonce()
+	shardID := latestValidHeader.GetShardID()
 	// remove first header from pool - to force re-triggering the callbacks on receiving the header (edge case for epoch change)
-	bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, latestValidHeader.GetShardID())
-	bp.requestHeaders(latestValidHeader.GetShardID(), fromNonce)
+	bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, shardID)
+	bp.requestHeaders(shardID, fromNonce)
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
