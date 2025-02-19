@@ -560,6 +560,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		statusHandler.SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}(managedStatusCoreComponents.AppStatusHandler())
 
+	// chaos-point/nodeRunner_handleNodeComponents
+
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 

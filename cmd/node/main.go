@@ -97,7 +97,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return errLogger
 	}
 
-	// chaos-testing-point/node_main_startNodeRunner
+	// chaos-point/node_main_initializeChaos
 
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
@@ -123,6 +123,8 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 	if err != nil {
 		return err
 	}
+
+	// chaos-point/node_main_handleNodeConfig
 
 	memBallastValue := c.GlobalUint64(memBallast.Name)
 	if memBallastValue > 0 {
@@ -263,8 +265,6 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 	if ctx.IsSet(identityFlagName.Name) {
 		preferencesConfig.Preferences.Identity = ctx.GlobalString(identityFlagName.Name)
 	}
-
-	// chaos-testing-point/node_main_learnNodeDisplayName
 
 	return &config.Configs{
 		GeneralConfig:            generalConfig,

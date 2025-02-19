@@ -5,6 +5,7 @@ type failureName string
 const (
 	failureCreatingBlockError                              failureName = "creatingBlockError"
 	failureProcessingBlockError                            failureName = "processingBlockError"
+	failurePanicOnEpochChange                              failureName = "panicOnEpochChange"
 	failureConsensusCorruptSignature                       failureName = "consensusCorruptSignature"
 	failureConsensusV1ReturnErrorInCheckSignaturesValidity failureName = "consensusV1ReturnErrorInCheckSignaturesValidity"
 	failureConsensusV1DelayBroadcastingFinalBlockAsLeader  failureName = "consensusV1DelayBroadcastingFinalBlockAsLeader"

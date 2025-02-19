@@ -354,7 +354,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 		return false
 	}
 
-	// chaos-testing-point:v1/subroundEndRound_doEndRoundJobByLeader_delayBroadcastingFinalBlock
+	// chaos-point:v1/subroundEndRound_doEndRoundJobByLeader_delayBroadcastingFinalBlock
 
 	sr.createAndBroadcastHeaderFinalInfo()
 
@@ -870,7 +870,7 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 }
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
-	// chaos-testing-point:v1/subroundEndRound_checkSignaturesValidity_returnError
+	// chaos-point:v1/subroundEndRound_checkSignaturesValidity_returnError
 
 	consensusGroup := sr.ConsensusGroup()
 	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, bitmap)

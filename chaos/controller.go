@@ -4,22 +4,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type chaosController struct {
-	mutex           sync.Mutex
-	enabled         bool
-	config          *chaosConfig
-	nodeDisplayName string
-	CallsCounters   *callsCounters
-}
+	mutex   sync.Mutex
+	enabled bool
+	config  *chaosConfig
 
-type callsCounters struct {
-	ProcessTransaction atomic.Counter
+	nodeConfig *config.Configs
+	node       NodeHandler
 }
 
 func newChaosController(configFilePath string) *chaosController {
@@ -32,23 +29,47 @@ func newChaosController(configFilePath string) *chaosController {
 	}
 
 	return &chaosController{
-		mutex:         sync.Mutex{},
-		enabled:       true,
-		config:        config,
-		CallsCounters: &callsCounters{},
+		mutex:   sync.Mutex{},
+		enabled: true,
+		config:  config,
 	}
 }
 
-// LearnNodeDisplayName learns the display name of the current node.
-func (controller *chaosController) LearnNodeDisplayName(displayName string) {
+// HandleNodeConfig -
+func (controller *chaosController) HandleNodeConfig(config *config.Configs) {
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
-	log.Info("LearnNodeDisplayName", "displayName", displayName)
-	controller.nodeDisplayName = displayName
+	log.Info("HandleNodeConfig")
+
+	controller.nodeConfig = config
 }
 
-// In_shardBlock_CreateBlock_shouldReturnError returns an error when creating a block (as a leader), from time to time.
+// HandleNode -
+func (controller *chaosController) HandleNode(node NodeHandler) {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	log.Info("HandleNode")
+
+	controller.node = node
+	controller.node.GetCoreComponents().EpochNotifier().RegisterNotifyHandler(controller)
+}
+
+func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64) {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	log.Info("EpochConfirmed", "epoch", epoch, "timestamp", timestamp)
+
+	circumstance := controller.acquireCircumstance(nil, "")
+
+	if controller.shouldFail(failurePanicOnEpochChange, circumstance) {
+		// TBD
+	}
+}
+
+// In_shardBlock_CreateBlock_shouldReturnError -
 func (controller *chaosController) In_shardBlock_CreateBlock_shouldReturnError() bool {
 	log.Trace("In_shardBlock_CreateBlock_shouldReturnError")
 
@@ -59,7 +80,7 @@ func (controller *chaosController) In_shardBlock_CreateBlock_shouldReturnError()
 	return controller.shouldFail(failureCreatingBlockError, circumstance)
 }
 
-// In_shardBlock_ProcessBlock_shouldReturnError returns an error when processing a block, from time to time.
+// In_shardBlock_ProcessBlock_shouldReturnError -
 func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError() bool {
 	log.Trace("In_shardBlock_ProcessBlock_shouldReturnError")
 
@@ -70,7 +91,7 @@ func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError(
 	return controller.shouldFail(failureProcessingBlockError, circumstance)
 }
 
-// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey corrupts the signature, from time to time.
+// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey -
 func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(consensusState spos.ConsensusStateHandler, signature []byte) {
 	log.Trace("In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey")
 
@@ -84,7 +105,7 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 	}
 }
 
-// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey corrupts the signature, from time to time.
+// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey -
 func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(consensusState spos.ConsensusStateHandler, nodePublicKey string, signature []byte) {
 	log.Trace("In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey")
 
@@ -98,6 +119,7 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 	}
 }
 
+// In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError -
 func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(consensusState spos.ConsensusStateHandler) bool {
 	log.Trace("In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError")
 
@@ -108,7 +130,7 @@ func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidit
 	return controller.shouldFail(failureConsensusV1ReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
-// In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock delays the broadcast of the block, from time to time.
+// In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock -
 func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock(consensusState spos.ConsensusStateHandler) {
 	log.Trace("In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcast")
 
@@ -123,7 +145,7 @@ func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_
 	}
 }
 
-// In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
+// In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature -
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(consensusState spos.ConsensusStateHandler, header data.HeaderHandler, signature []byte) {
 	log.Trace("In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature")
 
@@ -138,7 +160,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 	}
 }
 
-// In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature delays the leader signature, from time to time.
+// In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature -
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(consensusState spos.ConsensusStateHandler, header data.HeaderHandler) {
 	log.Trace("In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature")
 
@@ -154,7 +176,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLead
 	}
 }
 
-// In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
+// In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock -
 func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(consensusState spos.ConsensusStateHandler, header data.HeaderHandler) bool {
 	log.Trace("In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock")
 
@@ -169,7 +191,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSend
 
 func (controller *chaosController) acquireCircumstance(consensusState spos.ConsensusStateHandler, nodePublicKey string) *failureCircumstance {
 	circumstance := newFailureCircumstance()
-	circumstance.nodeDisplayName = controller.nodeDisplayName
+	circumstance.nodeDisplayName = controller.nodeConfig.PreferencesConfig.Preferences.NodeDisplayName
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
 	circumstance.enrichWithConsensusState(consensusState, nodePublicKey)
 
@@ -196,4 +218,9 @@ func (controller *chaosController) shouldFail(failureName failureName, circumsta
 	}
 
 	return false
+}
+
+// IsInterfaceNil -
+func (controller *chaosController) IsInterfaceNil() bool {
+	return controller == nil
 }

@@ -248,7 +248,7 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 		return false
 	}
 
-	// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey
+	// chaos-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey
 
 	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
 	ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
@@ -293,7 +293,7 @@ func (sr *subroundSignature) doSignatureJobForSingleKey() bool {
 		return false
 	}
 
-	// chaos-testing-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey
+	// chaos-point:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey
 
 	// leader also sends his signature here
 	ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
