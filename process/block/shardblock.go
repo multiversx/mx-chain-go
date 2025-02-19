@@ -401,6 +401,8 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 		return nil
 	}
 
+	// force header cleanup from pool so that the receiving of the epoch start meta block will reach the trigger
+	sp.dataPool.Headers().RemoveHeaderByHash(header.GetEpochStartMetaHash())
 	go sp.requestHandler.RequestMetaHeader(header.GetEpochStartMetaHash())
 
 	headersPool := sp.dataPool.Headers()
