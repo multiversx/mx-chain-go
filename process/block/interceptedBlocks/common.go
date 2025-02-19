@@ -127,7 +127,10 @@ func checkMetaShardInfo(
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) error {
 	wgProofsVerification := sync.WaitGroup{}
+
 	errChan := make(chan error, len(shardInfo))
+	defer close(errChan)
+
 	for _, sd := range shardInfo {
 		if sd.GetShardID() >= coordinator.NumberOfShards() && sd.GetShardID() != core.MetachainShardId {
 			return process.ErrInvalidShardId
@@ -149,9 +152,17 @@ func checkMetaShardInfo(
 	}
 
 	wgProofsVerification.Wait()
-	close(errChan)
 
-	return <-errChan
+	return readFromChanNonBlocking(errChan)
+}
+
+func readFromChanNonBlocking(errChan chan error) error {
+	select {
+	case err := <-errChan:
+		return err
+	default:
+		return nil
+	}
 }
 
 func checkProofAsync(

@@ -294,6 +294,12 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 		return false
 	}
 
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	// placeholder for subroundEndRound.doEndRoundJobByLeader script
+	if !ok {
+		return false
+	}
+
 	err := sr.commitBlock()
 	if err != nil {
 		return false
@@ -329,12 +335,6 @@ func (sr *subroundEndRound) sendProof() {
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return
-	}
-
-	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	// placeholder for subroundEndRound.doEndRoundJobByLeader script
-	if !ok {
 		return
 	}
 
