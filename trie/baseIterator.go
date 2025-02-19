@@ -3,6 +3,7 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 )
 
 type baseIterator struct {
@@ -12,9 +13,14 @@ type baseIterator struct {
 }
 
 // newBaseIterator creates a new instance of trie iterator
-func newBaseIterator(trie common.Trie) (*baseIterator, error) {
+func newBaseIterator(trie common.Trie, rootHash []byte) (*baseIterator, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilTrie
+	}
+
+	trie, err := trie.Recreate(holders.NewDefaultRootHashesHolder(rootHash), "")
+	if err != nil {
+		return nil, err
 	}
 
 	pmt, ok := trie.(*patriciaMerkleTrie)
@@ -23,13 +29,14 @@ func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 	}
 
 	trieStorage := trie.GetStorageManager()
-	nextNodes, err := pmt.root.getChildren(trieStorage)
+	rootNode := pmt.GetRootNode()
+	nextNodes, err := rootNode.getChildren(trieStorage)
 	if err != nil {
 		return nil, err
 	}
 
 	return &baseIterator{
-		currentNode: pmt.root,
+		currentNode: rootNode,
 		nextNodes:   nextNodes,
 		db:          trieStorage,
 	}, nil
@@ -55,20 +62,10 @@ func (it *baseIterator) next() ([]node, error) {
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node
 func (it *baseIterator) MarshalizedNode() ([]byte, error) {
-	err := it.currentNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
 	return it.currentNode.getEncodedNode()
 }
 
 // GetHash returns the current node hash
-func (it *baseIterator) GetHash() ([]byte, error) {
-	err := it.currentNode.setHash()
-	if err != nil {
-		return nil, err
-	}
-
-	return it.currentNode.getHash(), nil
+func (it *baseIterator) GetHash() []byte {
+	return it.currentNode.getHash()
 }
