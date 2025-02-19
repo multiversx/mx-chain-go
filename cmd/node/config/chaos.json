@@ -13,6 +13,12 @@
             "triggers": ["shard == 1 && round % 29 && randomNumber % 3 == 0"]
         },
         {
+            "name": "panicOnEpochChange",
+            "enabled": true,
+            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
+            "triggers": ["epoch == 1 && nodeDisplayName == \"validator-4\""]
+        },
+        {
             "name": "consensusCorruptSignature",
             "enabled": true,
             "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",

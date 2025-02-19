@@ -97,8 +97,6 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return errLogger
 	}
 
-	// chaos-point/node_main_initializeChaos
-
 	cfgs, errCfg := readConfigs(c, log)
 	if errCfg != nil {
 		return errCfg
@@ -124,7 +122,8 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 		return err
 	}
 
-	// chaos-point/node_main_handleNodeConfig
+	// chaos:setup
+	// chaos:node_main_handleNodeConfig
 
 	memBallastValue := c.GlobalUint64(memBallast.Name)
 	if memBallastValue > 0 {

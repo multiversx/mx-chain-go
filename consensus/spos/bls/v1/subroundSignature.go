@@ -102,7 +102,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 			return false
 		}
 
-		// chaos-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey
+		// chaos:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey
 
 		if !isSelfLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
@@ -382,7 +382,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		// chaos-point:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey
+		// chaos:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey
 
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
