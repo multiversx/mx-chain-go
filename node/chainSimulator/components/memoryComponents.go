@@ -35,7 +35,7 @@ func (store *trieStorage) SetEpochForPutOperation(_ uint32) {
 }
 
 // GetFromOldEpochsWithoutAddingToCache tries to get directly the key
-func (store *trieStorage) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+func (store *trieStorage) GetFromOldEpochsWithoutAddingToCache(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 	value, err := store.Get(key)
 
 	return value, core.OptionalUint32{}, err
