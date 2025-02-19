@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -66,6 +67,7 @@ func CreateBlockProcessorMockArguments() track.ArgBlockProcessor {
 		ProofsPool:          &dataRetriever.ProofsPoolMock{},
 		Marshaller:          &testscommon.MarshallerStub{},
 		Hasher:              &hashingMocks.HasherMock{},
+		HeadersPool:         &pool.HeadersPoolStub{},
 	}
 
 	return arguments
