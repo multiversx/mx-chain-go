@@ -145,7 +145,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 	if miniBlocks == nil {
 		return nil
 	}
-	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, pkBytes)
+	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, 0, pkBytes)
 	if err != nil {
 		return err
 	}
@@ -169,6 +169,7 @@ func (scm *shardChainMessenger) prepareDataToBroadcast(
 	header data.HeaderHandler,
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,
+	order uint32,
 	pkBytes []byte,
 ) (*dataToBroadcast, error) {
 	if check.IfNil(header) {
@@ -183,9 +184,11 @@ func (scm *shardChainMessenger) prepareDataToBroadcast(
 
 	dtb := &dataToBroadcast{
 		delayedBroadcastData: &shared.DelayedBroadcastData{
+			Header:         header,
 			HeaderHash:     headerHash,
 			MiniBlocksData: miniBlocks,
 			Transactions:   transactions,
+			Order:          order,
 			PkBytes:        pkBytes,
 		},
 		metaMiniBlocks:   metaMiniBlocks,
@@ -210,7 +213,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 
 	headerHash, err := core.CalculateHash(scm.marshalizer, scm.hasher, header)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator CalculateHash", "error", err)
 		return
 	}
 
@@ -223,7 +226,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 
 	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastHeaderValidator SetHeaderForValidator", "error", err)
 		return
 	}
 }
@@ -238,13 +241,15 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataWithEquivalentProofs(
 	if len(miniBlocks) == 0 {
 		return
 	}
-	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, pkBytes)
+	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, 0, pkBytes)
 	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataWithEquivalentProofs prepareDataToBroadcast", "error", err)
 		return
 	}
 	// everyone broadcasts as if they were the leader
 	err = scm.delayedBlockBroadcaster.SetLeaderData(dtb.delayedBroadcastData)
 	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataWithEquivalentProofs SetLeaderData", "error", err)
 		return
 	}
 
@@ -263,21 +268,15 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 	if len(miniBlocks) == 0 {
 		return
 	}
-	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, pkBytes)
+	dtb, err := scm.prepareDataToBroadcast(header, miniBlocks, transactions, uint32(idx), pkBytes)
 	if err != nil {
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator prepareDataToBroadcast", "error", err)
 		return
 	}
-
-	err = scm.delayedBlockBroadcaster.SetLeaderData(dtb.delayedBroadcastData)
-	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
-		return
-	}
-	dtb.delayedBroadcastData.Order = uint32(idx)
 
 	err = scm.delayedBlockBroadcaster.SetValidatorData(dtb.delayedBroadcastData)
 	if err != nil {
-		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator", "error", err)
+		log.Error("shardChainMessenger.PrepareBroadcastBlockDataValidator SetValidatorData", "error", err)
 		return
 	}
 }
