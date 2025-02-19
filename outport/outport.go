@@ -84,6 +84,11 @@ func prepareBlockData(
 		return nil, err
 	}
 
+	proof, err := outportcore.GetHeaderProof(headerBodyData.HeaderProof)
+	if err != nil {
+		return nil, err
+	}
+
 	return &outportcore.BlockData{
 		ShardID:              headerBodyData.Header.GetShardID(),
 		HeaderBytes:          headerBytes,
@@ -91,6 +96,7 @@ func prepareBlockData(
 		HeaderHash:           headerBodyData.HeaderHash,
 		Body:                 body,
 		IntraShardMiniBlocks: headerBodyData.IntraShardMiniBlocks,
+		HeaderProof:          proof,
 	}, nil
 }
 
