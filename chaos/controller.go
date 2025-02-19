@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -123,13 +124,14 @@ func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_
 }
 
 // In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature corrupts the signature, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(consensusState spos.ConsensusStateHandler, signature []byte) {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(consensusState spos.ConsensusStateHandler, header data.HeaderHandler, signature []byte) {
 	log.Trace("In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature")
 
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = header.GetNonce()
 
 	if controller.shouldFail(failureConsensusV2CorruptLeaderSignature, circumstance) {
 		signature[0] += 1
@@ -137,13 +139,14 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 }
 
 // In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature delays the leader signature, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(consensusState spos.ConsensusStateHandler) {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(consensusState spos.ConsensusStateHandler, header data.HeaderHandler) {
 	log.Trace("In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature")
 
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = header.GetNonce()
 
 	if controller.shouldFail(failureConsensusV2DelayLeaderSignature, circumstance) {
 		duration := controller.config.getFailureParameterAsFloat64(failureConsensusV2DelayLeaderSignature, "duration")
@@ -152,13 +155,15 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLead
 }
 
 // In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock skips sending a block, from time to time.
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(consensusState spos.ConsensusStateHandler) bool {
+func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(consensusState spos.ConsensusStateHandler, header data.HeaderHandler) bool {
 	log.Trace("In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock")
 
 	controller.mutex.Lock()
 	defer controller.mutex.Unlock()
 
 	circumstance := controller.acquireCircumstance(consensusState, "")
+	circumstance.blockNonce = header.GetNonce()
+
 	return controller.shouldFail(failureConsensusV2SkipSendingBlock, circumstance)
 }
 

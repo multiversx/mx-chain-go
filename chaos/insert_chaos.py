@@ -74,15 +74,15 @@ def main():
         replacements=[
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_corruptLeaderSignature",
-                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(sr, leaderSignature)"""
+                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(sr, header, leaderSignature)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_delayLeaderSignature",
-                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(sr)"""
+                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(sr, header)"""
             ),
             (
                 "// chaos-testing-point:v2/subroundBlock_doBlockJob_skipSendingBlock",
-                """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(sr) {
+                """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(sr, header) {
         return false
 	}"""
             )
