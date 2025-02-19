@@ -1298,15 +1298,42 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 			sp.accountsDB[state.UserAccountsState],
 		)
 
-		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
-
-		finalRootHash := scheduledHeaderRootHash
-		if len(finalRootHash) == 0 {
-			finalRootHash = header.GetRootHash()
+		if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+			continue
 		}
 
-		sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
+		sp.setFinalizedHeaderHashInIndexer(header.GetPrevHash())
+
+		sp.setFinalBlockInfo(header, headerHash, scheduledHeaderRootHash)
 	}
+
+	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentHeader.GetEpoch()) {
+		return
+	}
+
+	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, currentHeader)
+	if err != nil {
+		log.Debug("updateState.CalculateHash", "error", err.Error())
+		return
+	}
+	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+
+	sp.setFinalizedHeaderHashInIndexer(headerHash)
+
+	sp.setFinalBlockInfo(currentHeader, headerHash, scheduledHeaderRootHash)
+}
+
+func (sp *shardProcessor) setFinalBlockInfo(
+	header data.HeaderHandler,
+	headerHash []byte,
+	scheduledHeaderRootHash []byte,
+) {
+	finalRootHash := scheduledHeaderRootHash
+	if len(finalRootHash) == 0 {
+		finalRootHash = header.GetRootHash()
+	}
+
+	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 }
 
 func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHandler) {
