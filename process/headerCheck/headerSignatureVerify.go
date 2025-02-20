@@ -38,6 +38,7 @@ type ArgsHeaderSigVerifier struct {
 	FallbackHeaderValidator process.FallbackHeaderValidator
 	EnableEpochsHandler     common.EnableEpochsHandler
 	HeadersPool             dataRetriever.HeadersPool
+	ProofsPool              dataRetriever.ProofsPool
 	StorageService          dataRetriever.StorageService
 }
 
@@ -52,6 +53,7 @@ type HeaderSigVerifier struct {
 	fallbackHeaderValidator process.FallbackHeaderValidator
 	enableEpochsHandler     common.EnableEpochsHandler
 	headersPool             dataRetriever.HeadersPool
+	proofsPool              dataRetriever.ProofsPool
 	storageService          dataRetriever.StorageService
 }
 
@@ -72,6 +74,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		fallbackHeaderValidator: arguments.FallbackHeaderValidator,
 		enableEpochsHandler:     arguments.EnableEpochsHandler,
 		headersPool:             arguments.HeadersPool,
+		proofsPool:              arguments.ProofsPool,
 		storageService:          arguments.StorageService,
 	}, nil
 }
@@ -113,6 +116,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.HeadersPool) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.ProofsPool) {
+		return process.ErrNilProofsPool
 	}
 	if check.IfNil(arguments.StorageService) {
 		return process.ErrNilStorageService
@@ -376,7 +382,14 @@ func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderPro
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
+	err = multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
+	if err != nil {
+		return err
+	}
+
+	_ = hsv.proofsPool.AddProof(proof)
+
+	return nil
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
