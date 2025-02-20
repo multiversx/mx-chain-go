@@ -26,9 +26,14 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
+	totalTxs := len(sortedTxs)
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
+			percentageProcessed := float64(index) / float64(totalTxs)
+			CurrentMaxGasLimitPercentage = CurrentMaxGasLimitPercentage * percentageProcessed
+			log.Debug("createAndProcessMiniBlocksFromMeV2: time is out", "percentage processed", percentageProcessed, "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
+			ConsecutiveProcessedBlocksWithTransactions = 0
 			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
@@ -82,6 +87,16 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			txMbInfo,
 			mbInfo)
+	}
+
+	ConsecutiveProcessedBlocksWithTransactions++
+	if ConsecutiveProcessedBlocksWithTransactions >= 5 {
+		CurrentMaxGasLimitPercentage = CurrentMaxGasLimitPercentage * 1.1
+		if CurrentMaxGasLimitPercentage > 1.0 {
+			CurrentMaxGasLimitPercentage = 1.0
+		}
+		log.Debug("createAndProcessMiniBlocksFromMeV2: increasing CurrentMaxGasLimitPercentage", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
+		ConsecutiveProcessedBlocksWithTransactions = 0
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
@@ -273,7 +288,11 @@ func (txs *transactions) createScheduledMiniBlocks(
 			log.Debug("time is out in createScheduledMiniBlocks")
 			break
 		}
-
+		maxGasLimitForScheduled := uint64(CurrentMaxGasLimitPercentage * float64(txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())))
+		if mbInfo.gasInfo.totalGasConsumedInSelfShard >= maxGasLimitForScheduled {
+			log.Debug("stopped processing transactions because the gas limit is reached", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage, "maxGasLimitForScheduled", maxGasLimitForScheduled)
+			break
+		}
 		tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
 			isShardStuck,
 			sortedTxs[index],

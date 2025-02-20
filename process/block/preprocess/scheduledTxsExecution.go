@@ -173,8 +173,13 @@ func (ste *scheduledTxsExecution) ExecuteAll(haveTime func() time.Duration) erro
 
 	mapAllIntermediateTxsBeforeScheduledExecution := ste.txCoordinator.GetAllIntermediateTxs()
 
-	for _, txData := range ste.scheduledTxs {
+	totalTxs := len(ste.scheduledTxs)
+
+	for i, txData := range ste.scheduledTxs {
 		if haveTime() <= 0 {
+			percentageProcessed := float64(i) / float64(totalTxs)
+			CurrentMaxGasLimitPercentage = CurrentMaxGasLimitPercentage * percentageProcessed
+			log.Debug("scheduledTxsExecution.ExecuteAll: time is out", "percentage processed", percentageProcessed, "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
 			return process.ErrTimeIsOut
 		}
 
