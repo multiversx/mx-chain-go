@@ -5,25 +5,33 @@ import (
 	"time"
 )
 
-func (controller *chaosController) doFailPanic(failureName string, _ PointInput) error {
-	panic(fmt.Sprintf("chaos: %s", failureName))
+func (controller *chaosController) doFailPanic(failure string, input PointInput) error {
+	log.Info("doFailPanic()", "failure", failure, "point", input.Name)
+
+	panic(fmt.Sprintf("chaos: %s", failure))
 }
 
-func (controller *chaosController) doFailReturnError(_ string, _ PointInput) error {
+func (controller *chaosController) doFailReturnError(failure string, input PointInput) error {
+	log.Info("doFailReturnError()", "failure", failure, "point", input.Name)
 	return ErrChaoticBehavior
 }
 
-func (controller *chaosController) doFailEarlyReturn(_ string, _ PointInput) error {
+func (controller *chaosController) doFailEarlyReturn(failure string, input PointInput) error {
+	log.Info("doFailEarlyReturn()", "failure", failure, "point", input.Name)
 	return ErrEarlyReturn
 }
 
-func (controller *chaosController) doFailCorruptSignature(_ string, input PointInput) error {
+func (controller *chaosController) doFailCorruptSignature(failure string, input PointInput) error {
+	log.Info("doFailCorruptSignature()", "failure", failure, "point", input.Name)
+
 	input.Signature[0] += 1
 	return nil
 }
 
-func (controller *chaosController) doFailSleep(failureName string, _ PointInput) error {
-	duration := controller.profile.getFailureParameterAsFloat64(failureName, "duration")
+func (controller *chaosController) doFailSleep(failure string, input PointInput) error {
+	log.Info("doFailSleep()", "failure", failure, "point", input.Name)
+
+	duration := controller.profile.getFailureParameterAsFloat64(failure, "duration")
 	time.Sleep(time.Duration(duration) * time.Second)
 
 	return nil

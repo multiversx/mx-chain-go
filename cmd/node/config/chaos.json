@@ -14,7 +14,7 @@
                     ],
                     "triggers": [
                         "point == \"shardBlockCreateBlock\" && shard == 0 && round % 29 == 0",
-                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
+                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 4 == 0"
                     ]
                 },
                 {
@@ -26,7 +26,7 @@
                         "consensusV1SubroundSignatureDoSignatureJobWhenMultiKey"
                     ],
                     "triggers": [
-                        "epoch == 0 && round % 11 == 0 && nodeIndex < consensusSize / 3"
+                        "epoch == 0 && round % 7 == 0 && nodeIndex < consensusSize / 3 - 1"
                     ]
                 },
                 {
@@ -37,12 +37,12 @@
                         "consensusV1SubroundEndRoundCheckSignaturesValidity"
                     ],
                     "triggers": [
-                        "epoch == 1 && round % 13 == 0 && nodeIndex < consensusSize / 3"
+                        "epoch == 1 && round % 13 == 0 && nodeIndex < consensusSize / 3 - 1"
                     ]
                 },
                 {
                     "name": "classic soft fork",
-                    "enabled": false,
+                    "enabled": true,
                     "type": "sleep",
                     "onPoints": [
                         "consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock"
@@ -67,7 +67,7 @@
                     ],
                     "triggers": [
                         "point == \"shardBlockCreateBlock\" && shard == 0 && round % 29 == 0",
-                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
+                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 4 == 0"
                     ]
                 },
                 {

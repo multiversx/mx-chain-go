@@ -65,7 +65,7 @@ def main():
             ),
             (
                 "// chaos:consensusV1SubroundSignatureDoSignatureJobWhenMultiKey",
-                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare})"""
+                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV1SubroundSignatureDoSignatureJobWhenMultiKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare})"""
             )
         ],
         with_import=True

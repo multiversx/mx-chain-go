@@ -151,6 +151,18 @@ func (profile *chaosProfile) getFailureParameterAsFloat64(failureName string, pa
 	return failure.getParameterAsFloat64(parameterName)
 }
 
+func (profile *chaosProfile) getFailuresOnPoint(point string) []failureDefinition {
+	var failures []failureDefinition
+
+	for _, failure := range profile.Failures {
+		if failure.Enabled && failure.isOnPoint(point) {
+			failures = append(failures, failure)
+		}
+	}
+
+	return failures
+}
+
 func (failure *failureDefinition) getParameterAsFloat64(parameterName string) float64 {
 	value, ok := failure.Parameters[parameterName]
 	if !ok {

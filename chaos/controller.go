@@ -67,26 +67,28 @@ func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64
 
 // HandlePoint -
 func (controller *chaosController) HandlePoint(input PointInput) error {
-	log.Trace("HandlePoint",
-		"point", input.Name,
-		"hasConsensusState", !check.IfNil(input.ConsensusState),
-		"hasNodePublicKey", len(input.NodePublicKey) > 0,
-		"hasHeader", !check.IfNil(input.Header),
-		"hasSignature", len(input.Signature) > 0,
-	)
-
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(input)
+	if !controller.enabled {
+		return nil
+	}
 
-	for _, failure := range controller.profile.Failures {
-		if !failure.isOnPoint(input.Name) {
-			continue
-		}
+	failures := controller.profile.getFailuresOnPoint(input.Name)
+	if len(failures) == 0 {
+		return nil
+	}
 
-		shouldFail := controller.shouldFailNoLock(failure.Name, circumstance)
+	for _, failure := range failures {
+		circumstance := controller.acquireCircumstanceNoLock(failure.Name, input)
+
+		shouldFail := circumstance.anyExpression(failure.Triggers)
 		if shouldFail {
+			log.Info("HandlePoint FAIL",
+				"failure", failure.Name,
+				"point", input.Name,
+			)
+
 			switch failType(failure.Type) {
 			case failTypePanic:
 				return controller.doFailPanic(failure.Name, input)
@@ -102,42 +104,49 @@ func (controller *chaosController) HandlePoint(input PointInput) error {
 				return fmt.Errorf("unknown failure type: %s", failure.Type)
 			}
 		}
+
+		log.Trace("HandlePoint OK",
+			"failure", failure.Name,
+			"point", input.Name,
+			"hasConsensusState", !check.IfNil(input.ConsensusState),
+			"hasNodePublicKey", len(input.NodePublicKey) > 0,
+			"hasHeader", !check.IfNil(input.Header),
+			"hasSignature", len(input.Signature) > 0,
+		)
 	}
 
 	return nil
 }
 
-func (controller *chaosController) acquireCircumstanceNoLock(input PointInput) *failureCircumstance {
+func (controller *chaosController) acquireCircumstanceNoLock(failure string, input PointInput) *failureCircumstance {
 	circumstance := newFailureCircumstance()
 	circumstance.point = input.Name
+	circumstance.failure = failure
 	circumstance.nodeDisplayName = controller.nodeConfig.PreferencesConfig.Preferences.NodeDisplayName
+
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
 	circumstance.enrichWithConsensusState(input.ConsensusState, input.NodePublicKey)
 	circumstance.enrichWithBlockHeader(input.Header)
 
+	log.Trace("circumstance",
+		"failure", circumstance.failure,
+		"point", circumstance.point,
+		"nodeDisplayName", circumstance.nodeDisplayName,
+		"randomNumber", circumstance.randomNumber,
+		"now", circumstance.now,
+		"uptime", circumstance.uptime,
+		"shard", circumstance.shard,
+		"epoch", circumstance.epoch,
+		"round", circumstance.round,
+		"nodeIndex", circumstance.nodeIndex,
+		"nodePublicKey", circumstance.nodePublicKey,
+		"consensusSize", circumstance.consensusSize,
+		"amILeader", circumstance.amILeader,
+		"blockNonce", circumstance.blockNonce,
+		"blockIsStartOfEpoch", circumstance.blockIsStartOfEpoch,
+	)
+
 	return circumstance
-}
-
-func (controller *chaosController) shouldFailNoLock(failureName string, circumstance *failureCircumstance) bool {
-	if !controller.enabled {
-		return false
-	}
-
-	failure, configured := controller.profile.getFailureByName(failureName)
-	if !configured {
-		return false
-	}
-	if !failure.Enabled {
-		return false
-	}
-
-	shouldFail := circumstance.anyExpression(failure.Triggers)
-	if shouldFail {
-		log.Info("shouldFail", "failureName", failureName)
-		return true
-	}
-
-	return false
 }
 
 // IsInterfaceNil -

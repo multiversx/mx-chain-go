@@ -20,6 +20,7 @@ import (
 type failureCircumstance struct {
 	// Always available:
 	point           string
+	failure         string
 	randomNumber    uint64
 	now             int64
 	uptime          int64
@@ -104,7 +105,7 @@ func (circumstance *failureCircumstance) enrichWithBlockHeader(header data.Heade
 	circumstance.blockIsStartOfEpoch = header.IsStartOfEpochBlock()
 }
 
-func (circumstance *failureCircumstance) anyExpression(expressions []string) bool {
+func (circumstance *failureCircumstance) anyExpression(triggerExpressions []string) bool {
 	fileSet := token.NewFileSet()
 	pack := circumstance.createGoPackage()
 
@@ -114,7 +115,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 		}
 	}()
 
-	for _, expression := range expressions {
+	for _, expression := range triggerExpressions {
 		result, err := types.Eval(fileSet, pack, token.NoPos, expression)
 		if err != nil {
 			log.Error("failed to evaluate expression", "error", err, "expression", expression)
@@ -130,21 +131,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 
 		log.Trace("evaluated expression",
 			"result", resultAsString,
-			"point", circumstance.point,
 			"expression", fmt.Sprintf("[ %s ]", expression),
-			"nodeDisplayName", circumstance.nodeDisplayName,
-			"randomNumber", circumstance.randomNumber,
-			"now", circumstance.now,
-			"uptime", circumstance.uptime,
-			"shard", circumstance.shard,
-			"epoch", circumstance.epoch,
-			"round", circumstance.round,
-			"nodeIndex", circumstance.nodeIndex,
-			"nodePublicKey", circumstance.nodePublicKey,
-			"consensusSize", circumstance.consensusSize,
-			"amILeader", circumstance.amILeader,
-			"blockNonce", circumstance.blockNonce,
-			"blockIsStartOfEpoch", circumstance.blockIsStartOfEpoch,
 		)
 
 		if resultAsBool {
