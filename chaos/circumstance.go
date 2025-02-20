@@ -1,6 +1,7 @@
 package chaos
 
 import (
+	"encoding/hex"
 	"fmt"
 	"go/constant"
 	"go/token"
@@ -90,7 +91,7 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 		circumstance.nodeIndex = nodeIndex
 	}
 
-	circumstance.nodePublicKey = nodePublicKey
+	circumstance.nodePublicKey = hex.EncodeToString([]byte(nodePublicKey))
 	circumstance.consensusSize = consensusState.ConsensusGroupSize()
 	circumstance.amILeader = consensusState.Leader() == nodePublicKey
 	circumstance.enrichWithBlockHeader(consensusState.GetHeader())
