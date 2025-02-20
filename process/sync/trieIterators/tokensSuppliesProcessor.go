@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -91,7 +92,7 @@ func (t *tokensSuppliesProcessor) HandleTrieAccountIteration(userAccount state.U
 		}
 
 		tokenName := string(tokenKey)[lenESDTPrefix:]
-		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
+		tokenID, _, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 		t.addToBalance(tokenID, nonce, esToken.Value)
 	}
 

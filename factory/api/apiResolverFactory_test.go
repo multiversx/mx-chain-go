@@ -94,6 +94,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 			GeneralConfig:   &cfg,
 			EpochConfig:     &config.EpochConfig{},
 			EconomicsConfig: &economicsConfig,
+			SystemSCConfig:  &config.SystemSmartContractsConfig{},
 		},
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -292,6 +293,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
 				MaxNumAddressesInTransferRole: 1,
 				AutomaticCrawlerAddresses:     []string{"addr1"},
+				DNSV2Addresses:                []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 			},
 			SmartContractDataPool: config.CacheConfig{
 				Type:     "LRU",
@@ -365,8 +367,10 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 				return gasSchedule
 			},
 		},
-		MessageSigVerifier:    &testscommon.MessageSignVerifierMock{},
-		SystemSCConfig:        &config.SystemSmartContractsConfig{},
+		MessageSigVerifier: &testscommon.MessageSignVerifierMock{},
+		SystemSCConfig: &config.SystemSmartContractsConfig{
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{},
+		},
 		Bootstrapper:          testsMocks.NewTestBootstrapperMock(),
 		AllowVMQueriesChan:    make(chan struct{}, 1),
 		WorkingDir:            "",

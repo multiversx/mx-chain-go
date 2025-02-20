@@ -23,6 +23,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -41,8 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -639,7 +640,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 			return nil, api.BlockInfo{}, ErrCannotCastUserAccountHandlerToVmCommonUserAccountHandler
 		}
 
-		tokenID, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
+		tokenID, hasPrefix, nonce := common.ExtractTokenIDAndNonceFromTokenStorageKey([]byte(tokenName))
 
 		esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
 		esdtToken, _, err = n.esdtStorageHandler.GetESDTNFTTokenOnDestinationWithCustomSystemAccount(userAccountVmCommon, esdtTokenKey, nonce, systemAccount)
@@ -654,7 +655,7 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 				return nil, api.BlockInfo{}, errEncode
 			}
 			esdtToken.TokenMetaData.Creator = []byte(esdtTokenCreatorAddr)
-			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce)
+			tokenName = adjustNftTokenIdentifier(tokenName, esdtToken.TokenMetaData.Nonce, hasPrefix)
 		}
 
 		allESDTs[tokenName] = esdtToken
@@ -672,8 +673,13 @@ func (n *Node) GetAllESDTTokens(address string, options api.AccountQueryOptions,
 	return allESDTs, blockInfo, nil
 }
 
-func adjustNftTokenIdentifier(token string, nonce uint64) string {
+func adjustNftTokenIdentifier(token string, nonce uint64, hasPrefix bool) string {
 	splitToken := strings.Split(token, "-")
+	splitTokenWithPrefix := splitToken
+	if hasPrefix {
+		splitToken = splitToken[1:]
+	}
+
 	if len(splitToken) < 2 {
 		return token
 	}
@@ -687,6 +693,10 @@ func adjustNftTokenIdentifier(token string, nonce uint64) string {
 		splitToken[0],
 		splitToken[1][:esdtTickerNumChars],
 		hex.EncodeToString(nonceBytes))
+
+	if hasPrefix {
+		formattedTokenIdentifier = fmt.Sprintf("%s-%s", splitTokenWithPrefix[0], formattedTokenIdentifier)
+	}
 
 	return formattedTokenIdentifier
 }
