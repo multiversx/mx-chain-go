@@ -2379,7 +2379,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
-	err = sc.processSCPayment(tx, nil)
+	err = sc.processSCPayment(tx, nil, nil)
 	require.Nil(t, err)
 }
 
@@ -2410,9 +2410,118 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	currBalance := acntSrc.GetBalance().Uint64()
 
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Equal(t, process.ErrInsufficientFunds, err)
 	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
+}
+
+func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
+	t.Parallel()
+
+	snd := []byte("SRC")
+	acntSrc := createAccount(snd)
+	rcv := []byte("DST")
+	acntRcv := createAccount(rcv)
+	rel := []byte("REL")
+	acntRel := createAccount(rel)
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3FixESDTTransferFlag)
+	loadAccountCnt := 0
+	arguments.AccountsDB = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			loadAccountCnt++
+			if bytes.Equal(address, rel) {
+				return acntRel, nil
+			}
+
+			if bytes.Equal(address, snd) {
+				require.Fail(t, "should never load again for this test")
+				return acntSrc, nil
+			}
+			if bytes.Equal(address, rcv) {
+				require.Fail(t, "should never load again for this test")
+				return acntRcv, nil
+			}
+
+			return &stateMock.AccountWrapMock{
+				Balance: big.NewInt(0),
+			}, errors.New("account not found")
+		},
+	}
+	sc, err := NewSmartContractProcessorV2(arguments)
+
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = snd
+	tx.RcvAddr = rcv
+	tx.RelayerAddr = rel
+
+	tx.Value = big.NewInt(0)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	t.Run("fee payer is sender", func(t *testing.T) {
+		txLocal := *tx
+		txLocal.SndAddr = snd
+		txLocal.RcvAddr = rcv
+		txLocal.RelayerAddr = snd
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntSrc.AddToBalance(totalFee)
+
+		currBalance := acntSrc.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
+	})
+	t.Run("fee payer is receiver", func(t *testing.T) {
+		txLocal := *tx
+		txLocal.SndAddr = snd
+		txLocal.RcvAddr = rcv
+		txLocal.RelayerAddr = rcv
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntRcv.AddToBalance(totalFee)
+
+		currBalance := acntRcv.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntRcv.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
+	})
+	t.Run("fee payer is different", func(t *testing.T) {
+		txLocal := *tx
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntRel.AddToBalance(totalFee)
+
+		currBalance := acntRel.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntRel.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 1, loadAccountCnt)
+	})
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -2437,7 +2546,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
@@ -2476,7 +2585,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - txFee.Uint64()
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
