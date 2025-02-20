@@ -2,6 +2,7 @@ package containers
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -25,6 +26,8 @@ func NewRequestersContainer() *requestersContainer {
 	}
 }
 
+// TODO: THIS STILL CONTAINS META STUFF FOR SOVEREIGN
+
 // Get returns the object stored at a certain key.
 // Returns an error if the element does not exist
 func (rc *requestersContainer) Get(key string) (dataRetriever.Requester, error) {
@@ -47,6 +50,9 @@ func (rc *requestersContainer) Add(key string, requester dataRetriever.Requester
 	if check.IfNil(requester) {
 		return dataRetriever.ErrNilContainerElement
 	}
+
+	log.Error("requestersContainer.Add", "key", key, "requester", fmt.Sprintf("%T", requester))
+	debug.PrintStack()
 
 	ok := rc.objects.Insert(key, requester)
 	if !ok {
