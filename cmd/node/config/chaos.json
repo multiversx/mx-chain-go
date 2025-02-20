@@ -13,7 +13,7 @@
                     "name": "processingBlockError",
                     "enabled": false,
                     "triggers": [
-                        "shard == 1 && round % 29 == 0 && nodeIndex > consensusSize * 2 / 3"
+                        "shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
                     ]
                 },
                 {
@@ -52,14 +52,14 @@
                     "name": "processingBlockError",
                     "enabled": false,
                     "triggers": [
-                        "shard == 1 && round % 29 == 0 && nodeIndex > consensusSize * 2 / 3"
+                        "shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
                     ]
                 },
                 {
                     "name": "panicOnEpochChange",
                     "enabled": true,
                     "triggers": [
-                        "shard == 4294967295 && epoch == 1 && nodeIndex == 0"
+                        "shard == 4294967295 && randomNumber % 5 == 0 && uptime > 60"
                     ]
                 },
                 {

@@ -10,6 +10,7 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 	circumstance := &failureCircumstance{
 		randomNumber:    42,
 		now:             1234567890,
+		uptime:          3600,
 		nodeDisplayName: "dummy",
 		shard:           1,
 		epoch:           7,
@@ -32,6 +33,8 @@ func TestCircumstance_EvalExpression(t *testing.T) {
 	require.True(t, circumstance.anyExpression([]string{"randomNumber == 42", "randomNumber == 43"}))
 	require.True(t, circumstance.anyExpression([]string{"randomNumber > 41 && randomNumber < 43"}))
 	require.False(t, circumstance.anyExpression([]string{"randomNumber % 3 != 0"}))
+	require.True(t, circumstance.anyExpression([]string{"now % 10 == 0"}))
+	require.True(t, circumstance.anyExpression([]string{"uptime > 2400"}))
 	require.True(t, circumstance.anyExpression([]string{"nodePublicKey == \"abba\""}))
 	require.True(t, circumstance.anyExpression([]string{"nodeIndex == 7"}))
 	require.True(t, circumstance.anyExpression([]string{"nodeIndex < consensusSize / 4"}))

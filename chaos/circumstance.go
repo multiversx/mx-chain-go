@@ -20,6 +20,7 @@ type failureCircumstance struct {
 	// Always available:
 	randomNumber    uint64
 	now             int64
+	uptime          int64
 	nodeDisplayName string
 	shard           uint32
 	epoch           uint32
@@ -36,11 +37,13 @@ type failureCircumstance struct {
 func newFailureCircumstance() *failureCircumstance {
 	randomNumber := rand.Uint64()
 	now := time.Now().Unix()
+	uptime := time.Since(startTime).Seconds()
 
 	return &failureCircumstance{
 		nodeDisplayName: "",
 		randomNumber:    randomNumber,
 		now:             now,
+		uptime:          int64(uptime),
 		shard:           math.MaxUint32,
 		epoch:           math.MaxUint32,
 		round:           math.MaxUint64,
@@ -121,6 +124,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 			"nodeDisplayName", circumstance.nodeDisplayName,
 			"randomNumber", circumstance.randomNumber,
 			"now", circumstance.now,
+			"uptime", circumstance.uptime,
 			"shard", circumstance.shard,
 			"epoch", circumstance.epoch,
 			"round", circumstance.round,
@@ -146,6 +150,7 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	// Always available:
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRandomNumber, circumstance.randomNumber))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterNow, uint64(circumstance.now)))
+	scope.Insert(createFailureExpressionNumericParameter(pack, parameterUptime, uint64(circumstance.uptime)))
 	scope.Insert(createFailureExpressionStringParameter(pack, parameterNodeDisplayName, circumstance.nodeDisplayName))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterShard, uint64(circumstance.shard)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterEpoch, uint64(circumstance.epoch)))
