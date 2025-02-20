@@ -114,8 +114,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	// chaos:v2/subroundBlock_doBlockJob_corruptLeaderSignature
-	// chaos:v2/subroundBlock_doBlockJob_delayLeaderSignature
+	// chaos:consensusV2SubroundBlockDoBlockJob
 
 	err = header.SetLeaderSignature(leaderSignature)
 	if err != nil {
@@ -128,8 +127,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
 		return false
 	}
-
-	// chaos:v2/subroundBlock_doBlockJob_skipSendingBlock
 
 	sentWithSuccess := sr.sendBlock(header, body, leader)
 	if !sentWithSuccess {

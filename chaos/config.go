@@ -23,6 +23,8 @@ type chaosProfile struct {
 type failureDefinition struct {
 	Name       string                 `json:"name"`
 	Enabled    bool                   `json:"enabled"`
+	Type       string                 `json:"type"`
+	OnPoints   []string               `json:"onPoints"`
 	Triggers   []string               `json:"triggers"`
 	Parameters map[string]interface{} `json:"parameters"`
 }
@@ -88,38 +90,35 @@ func (config *chaosConfig) verify() error {
 }
 
 func (profile *chaosProfile) verify() error {
-	knownFailures := make(map[failureName]struct{})
-
-	knownFailures[failureCreatingBlockError] = struct{}{}
-	knownFailures[failureProcessingBlockError] = struct{}{}
-	knownFailures[failurePanicOnEpochChange] = struct{}{}
-	knownFailures[failureConsensusCorruptSignature] = struct{}{}
-	knownFailures[failureConsensusV1ReturnErrorInCheckSignaturesValidity] = struct{}{}
-	knownFailures[failureConsensusV1DelayBroadcastingFinalBlockAsLeader] = struct{}{}
-	knownFailures[failureConsensusV2CorruptLeaderSignature] = struct{}{}
-	knownFailures[failureConsensusV2DelayLeaderSignature] = struct{}{}
-	knownFailures[failureConsensusV2SkipSendingBlock] = struct{}{}
-
 	for _, failure := range profile.Failures {
-		name := failureName(failure.Name)
+		name := failure.Name
+		failType := failType(failure.Type)
 
-		if _, ok := knownFailures[name]; !ok {
-			return fmt.Errorf("unknown failure: %s", name)
+		if len(name) == 0 {
+			return fmt.Errorf("all failures must have a name")
 		}
 
-		if len(failure.Triggers) == 0 {
-			return fmt.Errorf("failure %s has no triggers", name)
+		if _, ok := knownFailTypes[failType]; !ok {
+			return fmt.Errorf("failure '%s' has unknown fail type: %s", name, failType)
 		}
 
-		if name == failureConsensusV1DelayBroadcastingFinalBlockAsLeader {
-			if failure.getParameterAsFloat64("duration") == 0 {
-				return fmt.Errorf("failure %s requires the parameter 'duration'", name)
+		if len(failure.OnPoints) == 0 {
+			return fmt.Errorf("failure '%s' has no points configured", name)
+		}
+
+		for _, point := range failure.OnPoints {
+			if _, ok := knownPoints[pointName(point)]; !ok {
+				return fmt.Errorf("failure '%s' has unknown activation point: %s", name, point)
 			}
 		}
 
-		if name == failureConsensusV2DelayLeaderSignature {
+		if len(failure.Triggers) == 0 {
+			return fmt.Errorf("failure '%s' has no triggers configured", name)
+		}
+
+		if failType == failTypeSleep {
 			if failure.getParameterAsFloat64("duration") == 0 {
-				return fmt.Errorf("failure %s requires the parameter 'duration'", name)
+				return fmt.Errorf("failure '%s', with fail type '%s', requires the parameter 'duration'", name, failType)
 			}
 		}
 	}
@@ -135,12 +134,12 @@ func (profile *chaosProfile) populateFailuresByName() {
 	}
 }
 
-func (profile *chaosProfile) getFailureByName(name failureName) (failureDefinition, bool) {
-	failure, ok := profile.failuresByName[string(name)]
+func (profile *chaosProfile) getFailureByName(name string) (failureDefinition, bool) {
+	failure, ok := profile.failuresByName[name]
 	return failure, ok
 }
 
-func (profile *chaosProfile) getFailureParameterAsFloat64(failureName failureName, parameterName string) float64 {
+func (profile *chaosProfile) getFailureParameterAsFloat64(failureName string, parameterName string) float64 {
 	failure, ok := profile.getFailureByName(failureName)
 	if !ok {
 		return 0
@@ -161,4 +160,14 @@ func (failure *failureDefinition) getParameterAsFloat64(parameterName string) fl
 	}
 
 	return floatValue
+}
+
+func (failure *failureDefinition) isOnPoint(pointName string) bool {
+	for _, point := range failure.OnPoints {
+		if point == pointName {
+			return true
+		}
+	}
+
+	return false
 }

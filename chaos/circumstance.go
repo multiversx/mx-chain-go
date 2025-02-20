@@ -19,6 +19,7 @@ import (
 
 type failureCircumstance struct {
 	// Always available:
+	point           string
 	randomNumber    uint64
 	now             int64
 	uptime          int64
@@ -128,6 +129,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 		log.Trace("failureCircumstance.anyExpression()",
 			"result", resultAsString,
 			"expression", fmt.Sprintf("[ %s ]", expression),
+			"point", circumstance.point,
 			"nodeDisplayName", circumstance.nodeDisplayName,
 			"randomNumber", circumstance.randomNumber,
 			"now", circumstance.now,
@@ -156,6 +158,7 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	scope := pack.Scope()
 
 	// Always available:
+	scope.Insert(createFailureExpressionStringParameter(pack, parameterPoint, circumstance.point))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRandomNumber, circumstance.randomNumber))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterNow, uint64(circumstance.now)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterUptime, uint64(circumstance.uptime)))

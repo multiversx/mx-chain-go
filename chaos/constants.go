@@ -1,22 +1,54 @@
 package chaos
 
-type failureName string
+type failType string
 
 const (
-	failureCreatingBlockError                              failureName = "creatingBlockError"
-	failureProcessingBlockError                            failureName = "processingBlockError"
-	failurePanicOnEpochChange                              failureName = "panicOnEpochChange"
-	failureConsensusCorruptSignature                       failureName = "consensusCorruptSignature"
-	failureConsensusV1ReturnErrorInCheckSignaturesValidity failureName = "consensusV1ReturnErrorInCheckSignaturesValidity"
-	failureConsensusV1DelayBroadcastingFinalBlockAsLeader  failureName = "consensusV1DelayBroadcastingFinalBlockAsLeader"
-	failureConsensusV2CorruptLeaderSignature               failureName = "consensusV2CorruptLeaderSignature"
-	failureConsensusV2DelayLeaderSignature                 failureName = "consensusV2DelayLeaderSignature"
-	failureConsensusV2SkipSendingBlock                     failureName = "consensusV2SkipSendingBlock"
+	failTypePanic            failType = "panic"
+	failTypeReturnError      failType = "returnError"
+	failTypeCorruptSignature failType = "corruptSignature"
+	failTypeSleep            failType = "sleep"
 )
+
+var knownFailTypes = map[failType]struct{}{
+	failTypePanic:            {},
+	failTypeReturnError:      {},
+	failTypeCorruptSignature: {},
+	failTypeSleep:            {},
+}
+
+type pointName string
+
+const (
+	pointShardBlockCreateBlock  pointName = "shardBlockCreateBlock"
+	pointShardBlockProcessBlock pointName = "shardBlockProcessBlock"
+	pointEpochConfirmed         pointName = "epochConfirmed"
+
+	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey                      pointName = "consensusV1SubroundSignatureDoSignatureJobWhenSingleKey"
+	pointConsensusV1SubroundSignatureDoSignatureJobWhenMultiKey                       pointName = "consensusV1SubroundSignatureDoSignatureJobWhenMultiKey"
+	pointConsensusV1SubroundEndRoundCheckSignaturesValidity                           pointName = "consensusV1SubroundEndRoundCheckSignaturesValidity"
+	pointConsensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock pointName = "consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock"
+
+	pointConsensusV2SubroundBlockDoBlockJob                      pointName = "consensusV2SubroundBlockDoBlockJob"
+	pointConsensusV2SubroundSignatureDoSignatureJobWhenSingleKey pointName = "consensusV2SubroundSignatureDoSignatureJobWhenSingleKey"
+	pointConsensusV2SubroundSignatureDoSignatureJobWhenMultiKey  pointName = "consensusV2SubroundSignatureDoSignatureJobWhenMultiKey"
+)
+
+var knownPoints = map[pointName]struct{}{
+	pointShardBlockCreateBlock:                                                        {},
+	pointShardBlockProcessBlock:                                                       {},
+	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey:                      {},
+	pointConsensusV1SubroundSignatureDoSignatureJobWhenMultiKey:                       {},
+	pointConsensusV1SubroundEndRoundCheckSignaturesValidity:                           {},
+	pointConsensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock: {},
+	pointConsensusV2SubroundBlockDoBlockJob:                                           {},
+	pointConsensusV2SubroundSignatureDoSignatureJobWhenSingleKey:                      {},
+	pointConsensusV2SubroundSignatureDoSignatureJobWhenMultiKey:                       {},
+}
 
 type failureExpressionParameterName string
 
 const (
+	parameterPoint           failureExpressionParameterName = "point"
 	parameterRandomNumber    failureExpressionParameterName = "randomNumber"
 	parameterNow             failureExpressionParameterName = "now"
 	parameterUptime          failureExpressionParameterName = "uptime"

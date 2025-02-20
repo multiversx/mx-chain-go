@@ -8,7 +8,7 @@ Chaos points are marked in the production code using regular Go comments. For ex
 
 ```go
 func (...) CreateBlock(...) (...) {
-	// chaos:shardBlock_CreateBlock
+	// chaos:shardBlockCreateBlock
     
     ...
 ```

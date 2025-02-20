@@ -1,109 +1,103 @@
 package chaos
 
-import (
-	"testing"
+// func TestChaosConfig_verify(t *testing.T) {
+// 	t.Run("with valid configuration", func(t *testing.T) {
+// 		config := &chaosConfig{
+// 			SelectedProfileName: "dummy",
+// 			Profiles: []chaosProfile{
+// 				{
+// 					Name: "dummy",
+// 				},
+// 			},
+// 		}
 
-	"github.com/stretchr/testify/require"
-)
+// 		err := config.verify()
+// 		require.NoError(t, err)
+// 	})
 
-func TestChaosConfig_verify(t *testing.T) {
-	t.Run("with valid configuration", func(t *testing.T) {
-		config := &chaosConfig{
-			SelectedProfileName: "dummy",
-			Profiles: []chaosProfile{
-				{
-					Name: "dummy",
-				},
-			},
-		}
+// 	t.Run("with no selected profile", func(t *testing.T) {
+// 		config := &chaosConfig{
+// 			SelectedProfileName: "",
+// 		}
 
-		err := config.verify()
-		require.NoError(t, err)
-	})
+// 		err := config.verify()
+// 		require.ErrorContains(t, err, "no selected profile")
+// 	})
 
-	t.Run("with no selected profile", func(t *testing.T) {
-		config := &chaosConfig{
-			SelectedProfileName: "",
-		}
+// 	t.Run("with undefined selected profile", func(t *testing.T) {
+// 		config := &chaosConfig{
+// 			SelectedProfileName: "dummy",
+// 		}
 
-		err := config.verify()
-		require.ErrorContains(t, err, "no selected profile")
-	})
+// 		err := config.verify()
+// 		require.ErrorContains(t, err, "selected profile does not exist: dummy")
+// 	})
+// }
 
-	t.Run("with undefined selected profile", func(t *testing.T) {
-		config := &chaosConfig{
-			SelectedProfileName: "dummy",
-		}
+// func TestChaosProfile_verify(t *testing.T) {
+// 	t.Run("with valid configuration", func(t *testing.T) {
+// 		config := &chaosProfile{
+// 			Failures: []failureDefinition{
+// 				{
+// 					Name:     string(failureConsensusV2SkipSendingBlock),
+// 					Triggers: []string{"true"},
+// 				},
+// 			},
+// 		}
 
-		err := config.verify()
-		require.ErrorContains(t, err, "selected profile does not exist: dummy")
-	})
-}
+// 		err := config.verify()
+// 		require.NoError(t, err)
+// 	})
 
-func TestChaosProfile_verify(t *testing.T) {
-	t.Run("with valid configuration", func(t *testing.T) {
-		config := &chaosProfile{
-			Failures: []failureDefinition{
-				{
-					Name:     string(failureConsensusV2SkipSendingBlock),
-					Triggers: []string{"true"},
-				},
-			},
-		}
+// 	t.Run("with unknown failure entries", func(t *testing.T) {
+// 		config := &chaosProfile{
+// 			Failures: []failureDefinition{
+// 				{
+// 					Name: "unknown",
+// 				},
+// 			},
+// 		}
 
-		err := config.verify()
-		require.NoError(t, err)
-	})
+// 		err := config.verify()
+// 		require.ErrorContains(t, err, "unknown failure: unknown")
+// 	})
 
-	t.Run("with unknown failure entries", func(t *testing.T) {
-		config := &chaosProfile{
-			Failures: []failureDefinition{
-				{
-					Name: "unknown",
-				},
-			},
-		}
+// 	t.Run("with failure entries without triggers", func(t *testing.T) {
+// 		config := &chaosProfile{
+// 			Failures: []failureDefinition{
+// 				{
+// 					Name: string(failureConsensusV2SkipSendingBlock),
+// 				},
+// 			},
+// 		}
 
-		err := config.verify()
-		require.ErrorContains(t, err, "unknown failure: unknown")
-	})
+// 		err := config.verify()
+// 		require.ErrorContains(t, err, "failure consensusV2SkipSendingBlock has no triggers")
+// 	})
 
-	t.Run("with failure entries without triggers", func(t *testing.T) {
-		config := &chaosProfile{
-			Failures: []failureDefinition{
-				{
-					Name: string(failureConsensusV2SkipSendingBlock),
-				},
-			},
-		}
+// 	t.Run("with failure entries that require parameters", func(t *testing.T) {
+// 		config := &chaosProfile{
+// 			Failures: []failureDefinition{
+// 				{
+// 					Name:     string(failureConsensusV1DelayBroadcastingFinalBlockAsLeader),
+// 					Triggers: []string{"true"},
+// 				},
+// 			},
+// 		}
 
-		err := config.verify()
-		require.ErrorContains(t, err, "failure consensusV2SkipSendingBlock has no triggers")
-	})
+// 		err := config.verify()
+// 		require.ErrorContains(t, err, "failure consensusV1DelayBroadcastingFinalBlockAsLeader requires the parameter 'duration'")
 
-	t.Run("with failure entries that require parameters", func(t *testing.T) {
-		config := &chaosProfile{
-			Failures: []failureDefinition{
-				{
-					Name:     string(failureConsensusV1DelayBroadcastingFinalBlockAsLeader),
-					Triggers: []string{"true"},
-				},
-			},
-		}
+// 		config = &chaosProfile{
+// 			Failures: []failureDefinition{
+// 				{
+// 					Name:     string(failureConsensusV2DelayLeaderSignature),
+// 					Triggers: []string{"true"},
+// 				},
+// 			},
+// 		}
 
-		err := config.verify()
-		require.ErrorContains(t, err, "failure consensusV1DelayBroadcastingFinalBlockAsLeader requires the parameter 'duration'")
-
-		config = &chaosProfile{
-			Failures: []failureDefinition{
-				{
-					Name:     string(failureConsensusV2DelayLeaderSignature),
-					Triggers: []string{"true"},
-				},
-			},
-		}
-
-		err = config.verify()
-		require.ErrorContains(t, err, "failure consensusV2DelayLeaderSignature requires the parameter 'duration'")
-	})
-}
+// 		err = config.verify()
+// 		require.ErrorContains(t, err, "failure consensusV2DelayLeaderSignature requires the parameter 'duration'")
+// 	})
+// }

@@ -1,12 +1,11 @@
 package chaos
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -60,147 +59,80 @@ func (controller *chaosController) HandleNode(node NodeHandler) {
 func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64) {
 	log.Info("EpochConfirmed", "epoch", epoch, "timestamp", timestamp)
 
+	controller.HandlePoint(PointInput{
+		Name: string(pointEpochConfirmed),
+	})
+}
+
+// HandlePoint -
+func (controller *chaosController) HandlePoint(input PointInput) error {
+	log.Trace("HandlePoint", "point", input.Name)
+
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(nil, "", nil)
-	if controller.shouldFailNoLock(failurePanicOnEpochChange, circumstance) {
-		panic("chaos: panic on epoch change")
+	circumstance := controller.acquireCircumstanceNoLock(input)
+
+	for _, failure := range controller.profile.Failures {
+		if !failure.isOnPoint(input.Name) {
+			continue
+		}
+
+		shouldFail := controller.shouldFailNoLock(failure.Name, circumstance)
+		if shouldFail {
+			switch failType(failure.Type) {
+			case failTypePanic:
+				return controller.doFailPanic(failure.Name, input)
+			case failTypeReturnError:
+				return controller.doFailReturnError(failure.Name, input)
+			case failTypeCorruptSignature:
+				return controller.doFailCorruptSignature(failure.Name, input)
+			case failTypeSleep:
+				return controller.doFailSleep(failure.Name, input)
+			default:
+				return fmt.Errorf("unknown failure type: %s", failure.Type)
+			}
+		}
 	}
+
+	return nil
 }
 
-// In_shardBlock_CreateBlock_shouldReturnError -
-func (controller *chaosController) In_shardBlock_CreateBlock_shouldReturnError() bool {
-	log.Trace("In_shardBlock_CreateBlock_shouldReturnError")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(nil, "", nil)
-	return controller.shouldFailNoLock(failureCreatingBlockError, circumstance)
+func (controller *chaosController) doFailPanic(failureName string, _ PointInput) error {
+	panic(fmt.Sprintf("chaos: %s", failureName))
 }
 
-// In_shardBlock_ProcessBlock_shouldReturnError -
-func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError() bool {
-	log.Trace("In_shardBlock_ProcessBlock_shouldReturnError")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(nil, "", nil)
-	return controller.shouldFailNoLock(failureProcessingBlockError, circumstance)
+func (controller *chaosController) doFailReturnError(_ string, _ PointInput) error {
+	return ErrChaoticBehavior
 }
 
-// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey -
-func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(consensusState spos.ConsensusStateHandler, signature []byte) {
-	log.Trace("In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", nil)
-
-	if controller.shouldFailNoLock(failureConsensusCorruptSignature, circumstance) {
-		signature[0] += 1
-	}
+func (controller *chaosController) doFailCorruptSignature(_ string, input PointInput) error {
+	input.Signature[0] += 1
+	return ErrChaoticBehavior
 }
 
-// In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey -
-func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(consensusState spos.ConsensusStateHandler, nodePublicKey string, signature []byte) {
-	log.Trace("In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey")
+func (controller *chaosController) doFailSleep(failureName string, _ PointInput) error {
+	duration := controller.profile.getFailureParameterAsFloat64(failureName, "duration")
+	time.Sleep(time.Duration(duration) * time.Second)
 
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, nodePublicKey, nil)
-
-	if controller.shouldFailNoLock(failureConsensusCorruptSignature, circumstance) {
-		signature[0] += 1
-	}
+	return ErrChaoticBehavior
 }
 
-// In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError -
-func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(consensusState spos.ConsensusStateHandler) bool {
-	log.Trace("In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", nil)
-	return controller.shouldFailNoLock(failureConsensusV1ReturnErrorInCheckSignaturesValidity, circumstance)
-}
-
-// In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock -
-func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock(consensusState spos.ConsensusStateHandler) {
-	log.Trace("In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcast")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", nil)
-
-	if controller.shouldFailNoLock(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, circumstance) {
-		duration := controller.profile.getFailureParameterAsFloat64(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, "duration")
-		time.Sleep(time.Duration(duration))
-	}
-}
-
-// In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature -
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(consensusState spos.ConsensusStateHandler, header data.HeaderHandler, signature []byte) {
-	log.Trace("In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", header)
-
-	if controller.shouldFailNoLock(failureConsensusV2CorruptLeaderSignature, circumstance) {
-		signature[0] += 1
-	}
-}
-
-// In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature -
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(consensusState spos.ConsensusStateHandler, header data.HeaderHandler) {
-	log.Trace("In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", header)
-
-	if controller.shouldFailNoLock(failureConsensusV2DelayLeaderSignature, circumstance) {
-		duration := controller.profile.getFailureParameterAsFloat64(failureConsensusV2DelayLeaderSignature, "duration")
-		time.Sleep(time.Duration(duration))
-	}
-}
-
-// In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock -
-func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(consensusState spos.ConsensusStateHandler, header data.HeaderHandler) bool {
-	log.Trace("In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock")
-
-	controller.mutex.RLock()
-	defer controller.mutex.RUnlock()
-
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", header)
-
-	return controller.shouldFailNoLock(failureConsensusV2SkipSendingBlock, circumstance)
-}
-
-// Should only be called wi
-func (controller *chaosController) acquireCircumstanceNoLock(consensusState spos.ConsensusStateHandler, nodePublicKey string, header data.HeaderHandler) *failureCircumstance {
+func (controller *chaosController) acquireCircumstanceNoLock(input PointInput) *failureCircumstance {
 	circumstance := newFailureCircumstance()
+	circumstance.point = input.Name
 	circumstance.nodeDisplayName = controller.nodeConfig.PreferencesConfig.Preferences.NodeDisplayName
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
-	circumstance.enrichWithConsensusState(consensusState, nodePublicKey)
+	circumstance.enrichWithConsensusState(input.ConsensusState, input.NodePublicKey)
 
 	// Provide header on a best-effort basis.
-	circumstance.enrichWithBlockHeader(consensusState.GetHeader())
-	circumstance.enrichWithBlockHeader(header)
+	circumstance.enrichWithBlockHeader(input.ConsensusState.GetHeader())
+	circumstance.enrichWithBlockHeader(input.Header)
 
 	return circumstance
 }
 
-func (controller *chaosController) shouldFailNoLock(failureName failureName, circumstance *failureCircumstance) bool {
+func (controller *chaosController) shouldFailNoLock(failureName string, circumstance *failureCircumstance) bool {
 	if !controller.enabled {
 		return false
 	}

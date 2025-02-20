@@ -166,7 +166,7 @@ func (sp *shardProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
-	// chaos:shardBlock_ProcessBlock
+	// chaos:shardBlockProcessBlock
 
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
@@ -875,7 +875,7 @@ func (sp *shardProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,
 ) (data.HeaderHandler, data.BodyHandler, error) {
-	// chaos:shardBlock_CreateBlock
+	// chaos:shardBlockCreateBlock
 
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader

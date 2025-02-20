@@ -3,6 +3,8 @@ from typing import Tuple
 
 
 def main():
+    # Insert setup points:
+
     do_replacements(
         file_path=Path("cmd/node/main.go"),
         replacements=[
@@ -29,18 +31,20 @@ def main():
         with_import=True
     )
 
+    # Insert chaos points:
+
     do_replacements(
         file_path=Path("process/block/shardblock.go"),
         replacements=[
             (
-                "// chaos:shardBlock_CreateBlock",
-                """if chaos.Controller.In_shardBlock_CreateBlock_shouldReturnError() {
+                "// chaos:shardBlockCreateBlock",
+                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"shardBlockCreateBlock\" }) != nil {
         return nil, nil, chaos.ErrChaoticBehavior
 	}"""
             ),
             (
-                "// chaos:shardBlock_ProcessBlock",
-                """if chaos.Controller.In_shardBlock_ProcessBlock_shouldReturnError() {
+                "// chaos:shardBlockProcessBlock",
+                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"shardBlockProcessBlock\" }) != nil {
         return chaos.ErrChaoticBehavior
 	}"""
             ),
@@ -52,12 +56,12 @@ def main():
         file_path=Path("consensus/spos/bls/v1/subroundSignature.go"),
         replacements=[
             (
-                "// chaos:v1/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
-                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr, signatureShare)"""
+                "// chaos:consensusV1SubroundSignatureDoSignatureJobWhenSingleKey",
+                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, Signature: signatureShare })"""
             ),
             (
-                "// chaos:v1/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
-                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr, pk, signatureShare)"""
+                "// chaos:consensusV1SubroundSignatureDoSignatureJobWhenMultiKey",
+                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare })"""
             )
         ],
         with_import=True
@@ -67,14 +71,14 @@ def main():
         file_path=Path("consensus/spos/bls/v1/subroundEndRound.go"),
         replacements=[
             (
-                "// chaos:v1/subroundEndRound_checkSignaturesValidity_returnError",
-                """if chaos.Controller.In_V1_subroundEndRound_checkSignaturesValidity_shouldReturnError(sr) {
+                "// chaos:consensusV1SubroundEndRoundCheckSignaturesValidity",
+                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundEndRoundCheckSignaturesValidity\", ConsensusState: sr }) != nil {
 		return spos.ErrInvalidSignature
 	}"""
             ),
             (
-                "// chaos:v1/subroundEndRound_doEndRoundJobByLeader_delayBroadcastingFinalBlock",
-                """chaos.Controller.In_V1_subroundEndRound_doEndRoundJobByLeader_maybeDelayBroadcastingFinalBlock(sr)"""
+                "// chaos:consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock",
+                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock\", ConsensusState: sr })"""
             )
         ],
         with_import=True
@@ -84,16 +88,8 @@ def main():
         file_path=Path("consensus/spos/bls/v2/subroundBlock.go"),
         replacements=[
             (
-                "// chaos:v2/subroundBlock_doBlockJob_corruptLeaderSignature",
-                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeCorruptLeaderSignature(sr, header, leaderSignature)"""
-            ),
-            (
-                "// chaos:v2/subroundBlock_doBlockJob_delayLeaderSignature",
-                """chaos.Controller.In_V2_subroundBlock_doBlockJob_maybeDelayLeaderSignature(sr, header)"""
-            ),
-            (
-                "// chaos:v2/subroundBlock_doBlockJob_skipSendingBlock",
-                """if chaos.Controller.In_V2_subroundBlock_doBlockJob_shouldSkipSendingBlock(sr, header) {
+                "// chaos:consensusV2SubroundBlockDoBlockJob",
+                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV2SubroundBlockDoBlockJob\", ConsensusState: sr, Header: header, Signature: leaderSignature }) {
         return false
 	}"""
             )
@@ -105,12 +101,12 @@ def main():
         file_path=Path("consensus/spos/bls/v2/subroundSignature.go"),
         replacements=[
             (
-                "// chaos:v2/subroundSignature_doSignatureJob_corruptSignatureWhenSingleKey",
-                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenSingleKey(sr, signatureShare)"""
+                "// chaos:consensusV2SubroundSignatureDoSignatureJobWhenSingleKey",
+                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV2SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, Signature: signatureShare })"""
             ),
             (
-                "// chaos:v2/subroundSignature_doSignatureJob_corruptSignatureWhenMultiKey",
-                """chaos.Controller.In_V1_and_V2_subroundSignature_doSignatureJob_maybeCorruptSignature_whenMultiKey(sr, pk, signatureShare)"""
+                "// chaos:consensusV2SubroundSignatureDoSignatureJobWhenMultiKey",
+                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV2SubroundSignatureDoSignatureJobWhenMultiKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare })"""
             )
         ],
         with_import=True
