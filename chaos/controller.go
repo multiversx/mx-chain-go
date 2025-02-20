@@ -13,7 +13,7 @@ import (
 type chaosController struct {
 	mutex      sync.RWMutex
 	enabled    bool
-	config     *chaosConfig
+	profile    chaosProfile
 	nodeConfig *config.Configs
 	node       NodeHandler
 }
@@ -31,7 +31,7 @@ func (controller *chaosController) Setup() {
 	}
 
 	controller.mutex.Lock()
-	controller.config = config
+	controller.profile = config.selectedProfile
 	controller.enabled = true
 	controller.mutex.Unlock()
 }
@@ -140,7 +140,7 @@ func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_
 	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
 
 	if controller.shouldFailNoLock(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, circumstance) {
-		duration := controller.config.getFailureParameterAsFloat64(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, "duration")
+		duration := controller.profile.getFailureParameterAsFloat64(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, "duration")
 		time.Sleep(time.Duration(duration))
 	}
 }
@@ -171,7 +171,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLead
 	circumstance.blockNonce = header.GetNonce()
 
 	if controller.shouldFailNoLock(failureConsensusV2DelayLeaderSignature, circumstance) {
-		duration := controller.config.getFailureParameterAsFloat64(failureConsensusV2DelayLeaderSignature, "duration")
+		duration := controller.profile.getFailureParameterAsFloat64(failureConsensusV2DelayLeaderSignature, "duration")
 		time.Sleep(time.Duration(duration))
 	}
 }
@@ -204,7 +204,7 @@ func (controller *chaosController) shouldFailNoLock(failureName failureName, cir
 		return false
 	}
 
-	failure, configured := controller.config.getFailureByName(failureName)
+	failure, configured := controller.profile.getFailureByName(failureName)
 	if !configured {
 		return false
 	}

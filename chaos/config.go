@@ -8,10 +8,16 @@ import (
 )
 
 type chaosConfig struct {
+	Profiles            []chaosProfile `json:"profiles"`
+	SelectedProfileName string         `json:"selectedProfile"`
+	selectedProfile     chaosProfile
+}
+
+type chaosProfile struct {
+	Name             string              `json:"name"`
 	Failures         []failureDefinition `json:"failures"`
 	ReusableTriggers []string            `json:"reusableTriggers"`
-
-	failuresByName map[string]failureDefinition
+	failuresByName   map[string]failureDefinition
 }
 
 type failureDefinition struct {
@@ -45,11 +51,43 @@ func newChaosConfigFromFile(filePath string) (*chaosConfig, error) {
 		return nil, fmt.Errorf("config verification failed: %v", err)
 	}
 
-	config.populateFailuresByName()
+	for _, profile := range config.Profiles {
+		profile.populateFailuresByName()
+
+		if profile.Name == config.SelectedProfileName {
+			config.selectedProfile = profile
+		}
+	}
+
 	return &config, nil
 }
 
 func (config *chaosConfig) verify() error {
+	if len(config.SelectedProfileName) == 0 {
+		return fmt.Errorf("no selected profile")
+	}
+
+	selectedProfileExists := false
+
+	for _, profile := range config.Profiles {
+		err := profile.verify()
+		if err != nil {
+			return fmt.Errorf("profile %s verification failed: %v", profile.Name, err)
+		}
+
+		if profile.Name == config.SelectedProfileName {
+			selectedProfileExists = true
+		}
+	}
+
+	if !selectedProfileExists {
+		return fmt.Errorf("selected profile does not exist: %s", config.SelectedProfileName)
+	}
+
+	return nil
+}
+
+func (profile *chaosProfile) verify() error {
 	knownFailures := make(map[failureName]struct{})
 
 	knownFailures[failureCreatingBlockError] = struct{}{}
@@ -62,7 +100,7 @@ func (config *chaosConfig) verify() error {
 	knownFailures[failureConsensusV2DelayLeaderSignature] = struct{}{}
 	knownFailures[failureConsensusV2SkipSendingBlock] = struct{}{}
 
-	for _, failure := range config.Failures {
+	for _, failure := range profile.Failures {
 		name := failureName(failure.Name)
 
 		if _, ok := knownFailures[name]; !ok {
@@ -89,21 +127,21 @@ func (config *chaosConfig) verify() error {
 	return nil
 }
 
-func (config *chaosConfig) populateFailuresByName() {
-	config.failuresByName = make(map[string]failureDefinition)
+func (profile *chaosProfile) populateFailuresByName() {
+	profile.failuresByName = make(map[string]failureDefinition)
 
-	for _, failure := range config.Failures {
-		config.failuresByName[failure.Name] = failure
+	for _, failure := range profile.Failures {
+		profile.failuresByName[failure.Name] = failure
 	}
 }
 
-func (config *chaosConfig) getFailureByName(name failureName) (failureDefinition, bool) {
-	failure, ok := config.failuresByName[string(name)]
+func (profile *chaosProfile) getFailureByName(name failureName) (failureDefinition, bool) {
+	failure, ok := profile.failuresByName[string(name)]
 	return failure, ok
 }
 
-func (config *chaosConfig) getFailureParameterAsFloat64(failureName failureName, parameterName string) float64 {
-	failure, ok := config.getFailureByName(failureName)
+func (profile *chaosProfile) getFailureParameterAsFloat64(failureName failureName, parameterName string) float64 {
+	failure, ok := profile.getFailureByName(failureName)
 	if !ok {
 		return 0
 	}

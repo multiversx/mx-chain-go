@@ -1,64 +1,86 @@
 {
-    "failures": [
+    "selectedProfile": "andromeda-a",
+    "profiles": [
         {
-            "name": "creatingBlockError",
-            "enabled": true,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["shard == 0 && round % 29"]
+            "name": "spica-a",
+            "failures": [
+                {
+                    "name": "creatingBlockError",
+                    "enabled": true,
+                    "triggers": ["shard == 0 && round % 29 == 0"]
+                },
+                {
+                    "name": "processingBlockError",
+                    "enabled": false,
+                    "triggers": [
+                        "shard == 1 && round % 29 == 0 && nodeIndex > consensusSize * 2 / 3"
+                    ]
+                },
+                {
+                    "name": "consensusCorruptSignature",
+                    "enabled": true,
+                    "triggers": [
+                        "epoch == 0 && round % 11 == 0 && nodeIndex < consensusSize / 3"
+                    ]
+                },
+                {
+                    "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
+                    "enabled": true,
+                    "triggers": [
+                        "epoch == 1 && round % 13 == 0 && nodeIndex < consensusSize / 3"
+                    ]
+                },
+                {
+                    "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
+                    "enabled": false,
+                    "triggers": ["round % 20 == 0"],
+                    "parameters": {
+                        "duration": 12
+                    }
+                }
+            ]
         },
         {
-            "name": "processingBlockError",
-            "enabled": false,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["shard == 1 && round % 29 && randomNumber % 3 == 0"]
-        },
-        {
-            "name": "panicOnEpochChange",
-            "enabled": true,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["epoch == 1 && nodeDisplayName == \"validator-4\""]
-        },
-        {
-            "name": "consensusCorruptSignature",
-            "enabled": true,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["round % 11 == 0 && nodeIndex < consensusSize / 3"]
-        },
-        {
-            "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
-            "enabled": false,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["false"]
-        },
-        {
-            "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
-            "enabled": false,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["round % 20 == 0"],
-            "parameters": {
-                "duration": 12
-            }
-        },
-        {
-            "name": "consensusV2CorruptLeaderSignature",
-            "enabled": true,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["round % 13 == 0"]
-        },
-        {
-            "name": "consensusV2DelayLeaderSignature",
-            "enabled": true,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["round % 19 == 0"],
-            "parameters": {
-                "duration": 4
-            }
-        },
-        {
-            "name": "consensusV2SkipSendingBlock",
-            "enabled": true,
-            "comment": "https://github.com/multiversx/mx-chain-go/blob/MX-16463-chaos-testing/chaos/README.md#failures",
-            "triggers": ["round % 7 == 0 && randomNumber % 2 == 0"]
+            "name": "andromeda-a",
+            "failures": [
+                {
+                    "name": "creatingBlockError",
+                    "enabled": true,
+                    "triggers": ["shard == 0 && round % 29 == 0"]
+                },
+                {
+                    "name": "processingBlockError",
+                    "enabled": false,
+                    "triggers": [
+                        "shard == 1 && round % 29 == 0 && nodeIndex > consensusSize * 2 / 3"
+                    ]
+                },
+                {
+                    "name": "panicOnEpochChange",
+                    "enabled": true,
+                    "triggers": [
+                        "shard == 4294967295 && epoch == 1 && nodeIndex == 0"
+                    ]
+                },
+                {
+                    "name": "consensusV2CorruptLeaderSignature",
+                    "enabled": true,
+                    "triggers": ["round % 13 == 0"]
+                },
+                {
+                    "name": "consensusV2DelayLeaderSignature",
+                    "enabled": true,
+                    "triggers": ["round % 19 == 0"],
+                    "parameters": {
+                        "duration": 4
+                    }
+                },
+                {
+                    "name": "consensusV2SkipSendingBlock",
+                    "enabled": true,
+                    "triggers": ["round % 7 == 0 && randomNumber % 2 == 0"]
+                }
+            ]
         }
     ]
 }
