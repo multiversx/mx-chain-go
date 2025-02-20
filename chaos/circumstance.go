@@ -43,6 +43,7 @@ func newFailureCircumstance() *failureCircumstance {
 	uptime := time.Since(startTime).Seconds()
 
 	return &failureCircumstance{
+		point:           "",
 		nodeDisplayName: "",
 		randomNumber:    randomNumber,
 		now:             now,
@@ -91,6 +92,7 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 	circumstance.nodePublicKey = nodePublicKey
 	circumstance.consensusSize = consensusState.ConsensusGroupSize()
 	circumstance.amILeader = consensusState.Leader() == nodePublicKey
+	circumstance.enrichWithBlockHeader(consensusState.GetHeader())
 }
 
 func (circumstance *failureCircumstance) enrichWithBlockHeader(header data.HeaderHandler) {
@@ -126,10 +128,10 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 			continue
 		}
 
-		log.Trace("failureCircumstance.anyExpression()",
+		log.Trace("evaluated expression",
 			"result", resultAsString,
-			"expression", fmt.Sprintf("[ %s ]", expression),
 			"point", circumstance.point,
+			"expression", fmt.Sprintf("[ %s ]", expression),
 			"nodeDisplayName", circumstance.nodeDisplayName,
 			"randomNumber", circumstance.randomNumber,
 			"now", circumstance.now,

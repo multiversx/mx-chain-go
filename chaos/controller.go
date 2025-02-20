@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -66,7 +67,13 @@ func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64
 
 // HandlePoint -
 func (controller *chaosController) HandlePoint(input PointInput) error {
-	log.Trace("HandlePoint", "point", input.Name)
+	log.Trace("HandlePoint",
+		"point", input.Name,
+		"hasConsensusState", !check.IfNil(input.ConsensusState),
+		"hasNodePublicKey", len(input.NodePublicKey) > 0,
+		"hasHeader", !check.IfNil(input.Header),
+		"hasSignature", len(input.Signature) > 0,
+	)
 
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
@@ -106,9 +113,6 @@ func (controller *chaosController) acquireCircumstanceNoLock(input PointInput) *
 	circumstance.nodeDisplayName = controller.nodeConfig.PreferencesConfig.Preferences.NodeDisplayName
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
 	circumstance.enrichWithConsensusState(input.ConsensusState, input.NodePublicKey)
-
-	// Provide header on a best-effort basis.
-	circumstance.enrichWithBlockHeader(input.ConsensusState.GetHeader())
 	circumstance.enrichWithBlockHeader(input.Header)
 
 	return circumstance
