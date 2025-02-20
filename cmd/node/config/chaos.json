@@ -5,34 +5,48 @@
             "name": "spica-a",
             "failures": [
                 {
-                    "name": "creatingBlockError",
+                    "name": "a",
                     "enabled": true,
-                    "triggers": ["shard == 0 && round % 29 == 0"]
-                },
-                {
-                    "name": "processingBlockError",
-                    "enabled": false,
+                    "type": "returnError",
+                    "onPoints": [
+                        "shardBlockCreateBlock",
+                        "shardBlockProcessBlock"
+                    ],
                     "triggers": [
-                        "shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
+                        "point == \"shardBlockCreateBlock\" && shard == 0 && round % 29 == 0",
+                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
                     ]
                 },
                 {
-                    "name": "consensusCorruptSignature",
+                    "name": "b",
                     "enabled": true,
+                    "type": "corruptSignature",
+                    "onPoints": [
+                        "consensusV1SubroundSignatureDoSignatureJobWhenSingleKey",
+                        "consensusV1SubroundSignatureDoSignatureJobWhenMultiKey"
+                    ],
                     "triggers": [
                         "epoch == 0 && round % 11 == 0 && nodeIndex < consensusSize / 3"
                     ]
                 },
                 {
-                    "name": "consensusV1ReturnErrorInCheckSignaturesValidity",
+                    "name": "c",
                     "enabled": true,
+                    "type": "returnError",
+                    "onPoints": [
+                        "consensusV1SubroundEndRoundCheckSignaturesValidity"
+                    ],
                     "triggers": [
                         "epoch == 1 && round % 13 == 0 && nodeIndex < consensusSize / 3"
                     ]
                 },
                 {
-                    "name": "consensusV1DelayBroadcastingFinalBlockAsLeader",
+                    "name": "classic soft fork",
                     "enabled": false,
+                    "type": "sleep",
+                    "onPoints": [
+                        "consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock"
+                    ],
                     "triggers": ["round % 20 == 0"],
                     "parameters": {
                         "duration": 12
@@ -44,40 +58,49 @@
             "name": "andromeda-a",
             "failures": [
                 {
-                    "name": "creatingBlockError",
+                    "name": "a",
                     "enabled": true,
-                    "triggers": ["shard == 0 && round % 29 == 0"]
-                },
-                {
-                    "name": "processingBlockError",
-                    "enabled": false,
+                    "type": "returnError",
+                    "onPoints": [
+                        "shardBlockCreateBlock",
+                        "shardBlockProcessBlock"
+                    ],
                     "triggers": [
-                        "shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
+                        "point == \"shardBlockCreateBlock\" && shard == 0 && round % 29 == 0",
+                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 3 == 0"
                     ]
                 },
                 {
-                    "name": "panicOnEpochChange",
+                    "name": "b",
                     "enabled": true,
+                    "type": "panic",
+                    "onPoints": ["epochConfirmed"],
                     "triggers": [
                         "shard == 4294967295 && randomNumber % 5 == 0 && uptime > 60"
                     ]
                 },
                 {
-                    "name": "consensusV2CorruptLeaderSignature",
+                    "name": "c-corrupt",
                     "enabled": true,
+                    "type": "corruptSignature",
+                    "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
                     "triggers": ["round % 13 == 0"]
                 },
                 {
-                    "name": "consensusV2DelayLeaderSignature",
+                    "name": "c-delay",
                     "enabled": true,
+                    "type": "sleep",
+                    "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
                     "triggers": ["round % 19 == 0"],
                     "parameters": {
                         "duration": 4
                     }
                 },
                 {
-                    "name": "consensusV2SkipSendingBlock",
+                    "name": "c-do-not-send",
                     "enabled": true,
+                    "type": "earlyReturn",
+                    "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
                     "triggers": ["round % 7 == 0 && randomNumber % 2 == 0"]
                 }
             ]

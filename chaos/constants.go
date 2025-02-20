@@ -36,8 +36,9 @@ const (
 )
 
 var knownPoints = map[pointName]struct{}{
-	pointShardBlockCreateBlock:                                                        {},
-	pointShardBlockProcessBlock:                                                       {},
+	pointShardBlockCreateBlock:  {},
+	pointShardBlockProcessBlock: {},
+	pointEpochConfirmed:         {},
 	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey:                      {},
 	pointConsensusV1SubroundSignatureDoSignatureJobWhenMultiKey:                       {},
 	pointConsensusV1SubroundEndRoundCheckSignaturesValidity:                           {},
