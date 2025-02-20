@@ -10,7 +10,11 @@ def main():
         replacements=[
             (
                 "// chaos:setup",
-                """chaos.Controller.Setup()"""
+                """errChaosSetup := chaos.Controller.Setup()
+    if errChaosSetup != nil {
+        return errChaosSetup
+    }
+"""
             ),
             (
                 "// chaos:node_main_handleNodeConfig",
@@ -38,13 +42,13 @@ def main():
         replacements=[
             (
                 "// chaos:shardBlockCreateBlock",
-                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"shardBlockCreateBlock\" }) != nil {
+                """if chaos.Controller.HandlePoint(chaos.PointInput{Name: \"shardBlockCreateBlock\"}) != nil {
         return nil, nil, chaos.ErrChaoticBehavior
 	}"""
             ),
             (
                 "// chaos:shardBlockProcessBlock",
-                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"shardBlockProcessBlock\" }) != nil {
+                """if chaos.Controller.HandlePoint(chaos.PointInput{Name: \"shardBlockProcessBlock\"}) != nil {
         return chaos.ErrChaoticBehavior
 	}"""
             ),
@@ -57,11 +61,11 @@ def main():
         replacements=[
             (
                 "// chaos:consensusV1SubroundSignatureDoSignatureJobWhenSingleKey",
-                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, Signature: signatureShare })"""
+                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, Signature: signatureShare})"""
             ),
             (
                 "// chaos:consensusV1SubroundSignatureDoSignatureJobWhenMultiKey",
-                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare })"""
+                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare})"""
             )
         ],
         with_import=True
@@ -72,13 +76,13 @@ def main():
         replacements=[
             (
                 "// chaos:consensusV1SubroundEndRoundCheckSignaturesValidity",
-                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundEndRoundCheckSignaturesValidity\", ConsensusState: sr }) != nil {
+                """if chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV1SubroundEndRoundCheckSignaturesValidity\", ConsensusState: sr}) != nil {
 		return spos.ErrInvalidSignature
 	}"""
             ),
             (
                 "// chaos:consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock",
-                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock\", ConsensusState: sr })"""
+                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock\", ConsensusState: sr})"""
             )
         ],
         with_import=True
@@ -89,9 +93,10 @@ def main():
         replacements=[
             (
                 "// chaos:consensusV2SubroundBlockDoBlockJob",
-                """if chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV2SubroundBlockDoBlockJob\", ConsensusState: sr, Header: header, Signature: leaderSignature }) {
+                """errChaos := chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV2SubroundBlockDoBlockJob\", ConsensusState: sr, Header: header, Signature: leaderSignature})
+    if errChaos == chaos.ErrEarlyReturn {
         return false
-	}"""
+    }"""
             )
         ],
         with_import=True
@@ -102,11 +107,11 @@ def main():
         replacements=[
             (
                 "// chaos:consensusV2SubroundSignatureDoSignatureJobWhenSingleKey",
-                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV2SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, Signature: signatureShare })"""
+                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV2SubroundSignatureDoSignatureJobWhenSingleKey\", ConsensusState: sr, Signature: signatureShare})"""
             ),
             (
                 "// chaos:consensusV2SubroundSignatureDoSignatureJobWhenMultiKey",
-                """chaos.Controller.HandlePoint(chaos.PointInput{ Name: \"consensusV2SubroundSignatureDoSignatureJobWhenMultiKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare })"""
+                """chaos.Controller.HandlePoint(chaos.PointInput{Name: \"consensusV2SubroundSignatureDoSignatureJobWhenMultiKey\", ConsensusState: sr, NodePublicKey: pk, Signature: signatureShare})"""
             )
         ],
         with_import=True

@@ -3,7 +3,6 @@ package chaos
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -22,17 +21,18 @@ func newChaosController() *chaosController {
 }
 
 // Setup sets up the chaos controller. Make sure to call this only after logging components (file logging, as well) are set up.
-func (controller *chaosController) Setup() {
+func (controller *chaosController) Setup() error {
 	config, err := newChaosConfigFromFile(defaultConfigFilePath)
 	if err != nil {
-		log.Error("could not load chaos config", "error", err)
-		return
+		return fmt.Errorf("could not load chaos config: %w", err)
 	}
 
 	controller.mutex.Lock()
 	controller.profile = config.selectedProfile
 	controller.enabled = true
 	controller.mutex.Unlock()
+
+	return nil
 }
 
 // HandleNodeConfig -
@@ -85,6 +85,8 @@ func (controller *chaosController) HandlePoint(input PointInput) error {
 				return controller.doFailPanic(failure.Name, input)
 			case failTypeReturnError:
 				return controller.doFailReturnError(failure.Name, input)
+			case failTypeEarlyReturn:
+				return controller.doFailEarlyReturn(failure.Name, input)
 			case failTypeCorruptSignature:
 				return controller.doFailCorruptSignature(failure.Name, input)
 			case failTypeSleep:
@@ -96,26 +98,6 @@ func (controller *chaosController) HandlePoint(input PointInput) error {
 	}
 
 	return nil
-}
-
-func (controller *chaosController) doFailPanic(failureName string, _ PointInput) error {
-	panic(fmt.Sprintf("chaos: %s", failureName))
-}
-
-func (controller *chaosController) doFailReturnError(_ string, _ PointInput) error {
-	return ErrChaoticBehavior
-}
-
-func (controller *chaosController) doFailCorruptSignature(_ string, input PointInput) error {
-	input.Signature[0] += 1
-	return ErrChaoticBehavior
-}
-
-func (controller *chaosController) doFailSleep(failureName string, _ PointInput) error {
-	duration := controller.profile.getFailureParameterAsFloat64(failureName, "duration")
-	time.Sleep(time.Duration(duration) * time.Second)
-
-	return ErrChaoticBehavior
 }
 
 func (controller *chaosController) acquireCircumstanceNoLock(input PointInput) *failureCircumstance {

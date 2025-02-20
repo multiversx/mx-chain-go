@@ -5,6 +5,7 @@ type failType string
 const (
 	failTypePanic            failType = "panic"
 	failTypeReturnError      failType = "returnError"
+	failTypeEarlyReturn      failType = "earlyReturn"
 	failTypeCorruptSignature failType = "corruptSignature"
 	failTypeSleep            failType = "sleep"
 )
@@ -12,6 +13,7 @@ const (
 var knownFailTypes = map[failType]struct{}{
 	failTypePanic:            {},
 	failTypeReturnError:      {},
+	failTypeEarlyReturn:      {},
 	failTypeCorruptSignature: {},
 	failTypeSleep:            {},
 }
