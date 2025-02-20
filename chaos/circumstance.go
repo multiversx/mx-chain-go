@@ -157,12 +157,18 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRound, uint64(circumstance.round)))
 
 	// Not always available (set):
-	scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodeIndex, uint64(circumstance.nodeIndex)))
-	scope.Insert(createFailureExpressionStringParameter(pack, parameterNodePublicKey, circumstance.nodePublicKey))
-	scope.Insert(createFailureExpressionNumericParameter(pack, parameterConsensusSize, uint64(circumstance.consensusSize)))
-	scope.Insert(createFailureExpressionBoolParameter(pack, parameterAmILeader, circumstance.amILeader))
-	scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
-	scope.Insert(createFailureExpressionBoolParameter(pack, parameterBlockIsStartOfEpoch, circumstance.blockIsStartOfEpoch))
+
+	if circumstance.nodeIndex >= 0 {
+		scope.Insert(createFailureExpressionNumericParameter(pack, parameterNodeIndex, uint64(circumstance.nodeIndex)))
+		scope.Insert(createFailureExpressionStringParameter(pack, parameterNodePublicKey, circumstance.nodePublicKey))
+		scope.Insert(createFailureExpressionNumericParameter(pack, parameterConsensusSize, uint64(circumstance.consensusSize)))
+		scope.Insert(createFailureExpressionBoolParameter(pack, parameterAmILeader, circumstance.amILeader))
+	}
+
+	if circumstance.blockNonce > 0 {
+		scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
+		scope.Insert(createFailureExpressionBoolParameter(pack, parameterBlockIsStartOfEpoch, circumstance.blockIsStartOfEpoch))
+	}
 
 	return pack
 }
