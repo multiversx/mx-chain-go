@@ -50,6 +50,9 @@ startSingleObserver() {
   local SHARD=$1
   local OBSERVER_INDEX=$2
   local startCommand="$(assembleCommand_startObserverNode $SHARD $OBSERVER_INDEX)"
+
+  echo "startSingleObserver:"
+  echo "$startCommand"
   runCommandInTerminal "$startCommand"
 }
 

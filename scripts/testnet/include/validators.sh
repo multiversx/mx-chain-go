@@ -89,6 +89,9 @@ startSingleValidator() {
   else
     startCommand="$(assembleCommand_startValidatorNode $VALIDATOR_INDEX $DIR_NAME)"
   fi
+
+  echo "startSingleValidator:"
+  echo "$startCommand"
   runCommandInTerminal "$startCommand"
 }
 
