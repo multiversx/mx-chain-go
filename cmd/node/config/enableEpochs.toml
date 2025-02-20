@@ -346,7 +346,7 @@
     FixBackTransferOPCODEEnableEpoch = 2
 
     # ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
-    ValidationOnGobDecodeEnableEpoch = 5
+    ValidationOnGobDecodeEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
