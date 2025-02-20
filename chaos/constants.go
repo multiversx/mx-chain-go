@@ -19,16 +19,18 @@ type failureExpressionParameterName string
 const (
 	parameterRandomNumber    failureExpressionParameterName = "randomNumber"
 	parameterNow             failureExpressionParameterName = "now"
+	parameterUptime          failureExpressionParameterName = "uptime"
 	parameterNodeDisplayName failureExpressionParameterName = "nodeDisplayName"
 	parameterShard           failureExpressionParameterName = "shard"
 	parameterEpoch           failureExpressionParameterName = "epoch"
 	parameterRound           failureExpressionParameterName = "round"
 
-	parameterNodeIndex     failureExpressionParameterName = "nodeIndex"
-	parameterNodePublicKey failureExpressionParameterName = "nodePublicKey"
-	parameterConsensusSize failureExpressionParameterName = "consensusSize"
-	parameterAmILeader     failureExpressionParameterName = "amILeader"
-	parameterBlockNonce    failureExpressionParameterName = "blockNonce"
+	parameterNodeIndex           failureExpressionParameterName = "nodeIndex"
+	parameterNodePublicKey       failureExpressionParameterName = "nodePublicKey"
+	parameterConsensusSize       failureExpressionParameterName = "consensusSize"
+	parameterAmILeader           failureExpressionParameterName = "amILeader"
+	parameterBlockNonce          failureExpressionParameterName = "blockNonce"
+	parameterBlockIsStartOfEpoch failureExpressionParameterName = "blockIsStartOfEpoch"
 )
 
 const (

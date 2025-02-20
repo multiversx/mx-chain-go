@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-logger-go/proto"
 )
@@ -27,11 +28,12 @@ type failureCircumstance struct {
 	round           uint64
 
 	// Not always available:
-	nodeIndex     int
-	nodePublicKey string
-	consensusSize int
-	amILeader     bool
-	blockNonce    uint64
+	nodeIndex           int
+	nodePublicKey       string
+	consensusSize       int
+	amILeader           bool
+	blockNonce          uint64
+	blockIsStartOfEpoch bool
 }
 
 func newFailureCircumstance() *failureCircumstance {
@@ -48,11 +50,12 @@ func newFailureCircumstance() *failureCircumstance {
 		epoch:           math.MaxUint32,
 		round:           math.MaxUint64,
 
-		nodeIndex:     -1,
-		nodePublicKey: "",
-		consensusSize: -1,
-		amILeader:     false,
-		blockNonce:    0,
+		nodeIndex:           -1,
+		nodePublicKey:       "",
+		consensusSize:       -1,
+		amILeader:           false,
+		blockNonce:          0,
+		blockIsStartOfEpoch: false,
 	}
 }
 
@@ -87,11 +90,15 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 	circumstance.nodePublicKey = nodePublicKey
 	circumstance.consensusSize = consensusState.ConsensusGroupSize()
 	circumstance.amILeader = consensusState.Leader() == nodePublicKey
+}
 
-	header := consensusState.GetHeader()
-	if !check.IfNil(header) {
-		circumstance.blockNonce = header.GetNonce()
+func (circumstance *failureCircumstance) enrichWithBlockHeader(header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
 	}
+
+	circumstance.blockNonce = header.GetNonce()
+	circumstance.blockIsStartOfEpoch = header.IsStartOfEpochBlock()
 }
 
 func (circumstance *failureCircumstance) anyExpression(expressions []string) bool {
@@ -133,6 +140,7 @@ func (circumstance *failureCircumstance) anyExpression(expressions []string) boo
 			"consensusSize", circumstance.consensusSize,
 			"amILeader", circumstance.amILeader,
 			"blockNonce", circumstance.blockNonce,
+			"blockIsStartOfEpoch", circumstance.blockIsStartOfEpoch,
 		)
 
 		if resultAsBool {
@@ -162,6 +170,7 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterConsensusSize, uint64(circumstance.consensusSize)))
 	scope.Insert(createFailureExpressionBoolParameter(pack, parameterAmILeader, circumstance.amILeader))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterBlockNonce, circumstance.blockNonce))
+	scope.Insert(createFailureExpressionBoolParameter(pack, parameterBlockIsStartOfEpoch, circumstance.blockIsStartOfEpoch))
 
 	return pack
 }

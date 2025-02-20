@@ -63,7 +63,7 @@ func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(nil, "")
+	circumstance := controller.acquireCircumstanceNoLock(nil, "", nil)
 	if controller.shouldFailNoLock(failurePanicOnEpochChange, circumstance) {
 		panic("chaos: panic on epoch change")
 	}
@@ -76,7 +76,7 @@ func (controller *chaosController) In_shardBlock_CreateBlock_shouldReturnError()
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(nil, "")
+	circumstance := controller.acquireCircumstanceNoLock(nil, "", nil)
 	return controller.shouldFailNoLock(failureCreatingBlockError, circumstance)
 }
 
@@ -87,7 +87,7 @@ func (controller *chaosController) In_shardBlock_ProcessBlock_shouldReturnError(
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(nil, "")
+	circumstance := controller.acquireCircumstanceNoLock(nil, "", nil)
 	return controller.shouldFailNoLock(failureProcessingBlockError, circumstance)
 }
 
@@ -98,7 +98,7 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", nil)
 
 	if controller.shouldFailNoLock(failureConsensusCorruptSignature, circumstance) {
 		signature[0] += 1
@@ -112,7 +112,7 @@ func (controller *chaosController) In_V1_and_V2_subroundSignature_doSignatureJob
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, nodePublicKey)
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, nodePublicKey, nil)
 
 	if controller.shouldFailNoLock(failureConsensusCorruptSignature, circumstance) {
 		signature[0] += 1
@@ -126,7 +126,7 @@ func (controller *chaosController) In_V1_subroundEndRound_checkSignaturesValidit
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", nil)
 	return controller.shouldFailNoLock(failureConsensusV1ReturnErrorInCheckSignaturesValidity, circumstance)
 }
 
@@ -137,7 +137,7 @@ func (controller *chaosController) In_V1_subroundEndRound_doEndRoundJobByLeader_
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", nil)
 
 	if controller.shouldFailNoLock(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, circumstance) {
 		duration := controller.profile.getFailureParameterAsFloat64(failureConsensusV1DelayBroadcastingFinalBlockAsLeader, "duration")
@@ -152,8 +152,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeCorruptLe
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", header)
 
 	if controller.shouldFailNoLock(failureConsensusV2CorruptLeaderSignature, circumstance) {
 		signature[0] += 1
@@ -167,8 +166,7 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_maybeDelayLead
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", header)
 
 	if controller.shouldFailNoLock(failureConsensusV2DelayLeaderSignature, circumstance) {
 		duration := controller.profile.getFailureParameterAsFloat64(failureConsensusV2DelayLeaderSignature, "duration")
@@ -183,18 +181,21 @@ func (controller *chaosController) In_V2_subroundBlock_doBlockJob_shouldSkipSend
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
-	circumstance := controller.acquireCircumstanceNoLock(consensusState, "")
-	circumstance.blockNonce = header.GetNonce()
+	circumstance := controller.acquireCircumstanceNoLock(consensusState, "", header)
 
 	return controller.shouldFailNoLock(failureConsensusV2SkipSendingBlock, circumstance)
 }
 
 // Should only be called wi
-func (controller *chaosController) acquireCircumstanceNoLock(consensusState spos.ConsensusStateHandler, nodePublicKey string) *failureCircumstance {
+func (controller *chaosController) acquireCircumstanceNoLock(consensusState spos.ConsensusStateHandler, nodePublicKey string, header data.HeaderHandler) *failureCircumstance {
 	circumstance := newFailureCircumstance()
 	circumstance.nodeDisplayName = controller.nodeConfig.PreferencesConfig.Preferences.NodeDisplayName
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
 	circumstance.enrichWithConsensusState(consensusState, nodePublicKey)
+
+	// Provide header on a best-effort basis.
+	circumstance.enrichWithBlockHeader(consensusState.GetHeader())
+	circumstance.enrichWithBlockHeader(header)
 
 	return circumstance
 }
