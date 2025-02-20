@@ -25,7 +25,7 @@ require (
 	github.com/multiversx/mx-chain-vm-go v1.5.38-0.20250218163500-604d44bde745
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.69-0.20250220133402-01591d72f671
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.70-0.20250220133720-4abbb3b36387
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.99-0.20250220134915-8fe9989311f4
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.99-0.20250220144348-9455d2a4e6e6
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.20.5
