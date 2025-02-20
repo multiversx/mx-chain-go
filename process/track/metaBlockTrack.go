@@ -51,6 +51,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		ProofsPool:                            arguments.ProofsPool,
 		Marshaller:                            arguments.Marshalizer,
 		Hasher:                                arguments.Hasher,
+		HeadersPool:                           arguments.PoolsHolder.Headers(),
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)

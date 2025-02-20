@@ -2,6 +2,7 @@ package outport
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -84,6 +85,14 @@ func prepareBlockData(
 		return nil, err
 	}
 
+	var proof *block.HeaderProof
+	if !check.IfNilReflect(headerBodyData.HeaderProof) {
+		proof, err = outportcore.GetHeaderProof(headerBodyData.HeaderProof)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &outportcore.BlockData{
 		ShardID:              headerBodyData.Header.GetShardID(),
 		HeaderBytes:          headerBytes,
@@ -91,6 +100,7 @@ func prepareBlockData(
 		HeaderHash:           headerBodyData.HeaderHash,
 		Body:                 body,
 		IntraShardMiniBlocks: headerBodyData.IntraShardMiniBlocks,
+		HeaderProof:          proof,
 	}, nil
 }
 
