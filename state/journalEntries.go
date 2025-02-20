@@ -107,7 +107,7 @@ func (jea *journalEntryCode) IsInterfaceNil() bool {
 	return jea == nil
 }
 
-// JournalEntryAccount represents a journal entry for account fields change
+// journalEntryAccount represents a journal entry for account fields change
 type journalEntryAccount struct {
 	account vmcommon.AccountHandler
 }
