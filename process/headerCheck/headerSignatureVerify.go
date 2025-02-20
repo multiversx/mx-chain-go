@@ -327,7 +327,14 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 		return hsv.verifyHeaderProofAtTransition(prevProof)
 	}
 
-	return hsv.VerifyHeaderProof(prevProof)
+	err = hsv.VerifyHeaderProof(prevProof)
+	if err != nil {
+		return err
+	}
+
+	_ = hsv.proofsPool.AddProof(prevProof)
+
+	return nil
 }
 
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
@@ -382,14 +389,7 @@ func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderPro
 		return err
 	}
 
-	err = multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
-	if err != nil {
-		return err
-	}
-
-	_ = hsv.proofsPool.AddProof(proof)
-
-	return nil
+	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
