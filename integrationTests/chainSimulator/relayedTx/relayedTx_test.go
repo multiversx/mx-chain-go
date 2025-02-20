@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -1476,4 +1477,66 @@ func checkSCRSucceeded(
 
 		require.Equal(t, core.CompletedTxEventIdentifier, event.Identifier)
 	}
+}
+
+func TestCompletedTxEvent(t *testing.T) {
+	fftId := "FFT-123456"
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SCProcessorV2EnableEpoch = 0
+	}
+
+	cs := startChainSimulator(t, alterConfigsFunc)
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	wallet1, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	wallet2, err := cs.GenerateAndMintWalletAddress(2, big.NewInt(0))
+	require.NoError(t, err)
+
+	data := &esdt.ESDigitalToken{
+		Type:  uint32(core.NonFungibleV2),
+		Value: big.NewInt(1),
+	}
+	buff, err := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer().Marshal(data)
+	require.NoError(t, err)
+
+	err = cs.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: wallet1.Bech32,
+			Balance: initialBalance.String(),
+			Pairs:   map[string]string{hex.EncodeToString([]byte("ELRONDesdt" + fftId)): hex.EncodeToString(buff)},
+		},
+	})
+	require.NoError(t, err)
+
+	owner, err := cs.GenerateAndMintWalletAddress(1, initialBalance)
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	// deploy test contract
+	pkConv := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter()
+
+	scCode := wasm.GetSCCode("testData/contract.wasm")
+	deployTx := generateTransaction(owner.Bytes, 0, make([]byte, 32), big.NewInt(0), scCode, 100000000)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(deployTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	scAddress := result.Logs.Events[0].Address
+	scAddressBytes, _ := pkConv.Decode(scAddress)
+
+	// execute tx
+	multiESDTNFTTransferData := "MultiESDTNFTTransfer@" +
+		hex.EncodeToString(scAddressBytes) + "@01@" + hex.EncodeToString([]byte(fftId)) + "@00@01@" +
+		hex.EncodeToString([]byte("transfer_received")) + "@" + hex.EncodeToString(wallet2.Bytes)
+
+	tx := generateTransaction(wallet1.Bytes, 0, wallet1.Bytes, big.NewInt(0), multiESDTNFTTransferData, 10000000)
+	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	println(result.Status)
 }
