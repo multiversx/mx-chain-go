@@ -24,6 +24,10 @@ type ArgsNewValidatorAccountsSyncer struct {
 
 // NewValidatorAccountsSyncer creates a validator account syncer
 func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validatorAccountsSyncer, error) {
+	return newValidatorAccountsSyncer(args, core.MetachainShardId)
+}
+
+func newValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer, shardID uint32) (*validatorAccountsSyncer, error) {
 	err := checkArgs(args.ArgsNewBaseAccountsSyncer)
 	if err != nil {
 		return nil, err
@@ -41,7 +45,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		trieStorageManager:                args.TrieStorageManager,
 		requestHandler:                    args.RequestHandler,
 		timeoutHandler:                    timeoutHandler,
-		shardId:                           core.MetachainShardId,
+		shardId:                           shardID,
 		cacher:                            args.Cacher,
 		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
 		name:                              "peer accounts",

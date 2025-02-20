@@ -377,8 +377,8 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 	return resolver, nil
 }
 
-func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error {
-	identifierValidatorInfo := common.ValidatorInfoTopic
+func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver(topicID string) error {
+	identifierValidatorInfo := topicID
 	shardC := brcf.shardCoordinator
 	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId())
 	if err != nil {
@@ -416,4 +416,37 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 	}
 
 	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
+}
+
+func (brcf *baseResolversContainerFactory) generateAccountAndValidatorTrieNodesResolvers(shardID uint32) error {
+	keys := make([]string, 0)
+	resolversSlice := make([]dataRetriever.Resolver, 0)
+
+	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	resolver, err := brcf.createTrieNodesResolver(
+		identifierTrieNodes,
+		dataRetriever.UserAccountsUnit.String(),
+		shardID,
+	)
+	if err != nil {
+		return err
+	}
+
+	resolversSlice = append(resolversSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
+
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	resolver, err = brcf.createTrieNodesResolver(
+		identifierTrieNodes,
+		dataRetriever.PeerAccountsUnit.String(),
+		shardID,
+	)
+	if err != nil {
+		return err
+	}
+
+	resolversSlice = append(resolversSlice, resolver)
+	keys = append(keys, identifierTrieNodes)
+
+	return brcf.container.AddMultiple(keys, resolversSlice)
 }

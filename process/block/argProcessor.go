@@ -1,11 +1,6 @@
 package block
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -18,10 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 )
 
 type coreComponentsHolder interface {
 	Hasher() hashing.Hasher
+	AddressPubKeyConverter() core.PubkeyConverter
 	InternalMarshalizer() marshal.Marshalizer
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	EpochNotifier() process.EpochNotifier
@@ -66,6 +68,7 @@ type ArgBaseProcessor struct {
 	BootstrapComponents  bootstrapComponentsHolder
 	StatusComponents     statusComponentsHolder
 	StatusCoreComponents statusCoreComponentsHolder
+	RunTypeComponents    runTypeComponentsHolder
 
 	Config                         config.Config
 	PrefsConfig                    config.Preferences
@@ -94,6 +97,7 @@ type ArgBaseProcessor struct {
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder             common.ManagedPeersHolder
 	SentSignaturesTracker          process.SentSignaturesTracker
+	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -114,4 +118,14 @@ type ArgMetaProcessor struct {
 	EpochValidatorInfoCreator    process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
+}
+
+// ExtraArgsMetaBlockProcessor holds extra arguments needed to create a meta block processor
+type ExtraArgsMetaBlockProcessor struct {
+	EpochStartDataCreator     process.EpochStartDataCreator
+	EpochValidatorInfoCreator process.EpochStartValidatorInfoCreator
+	EpochRewardsCreator       process.RewardsCreator
+	EpochSystemSCProcessor    process.EpochStartSystemSCProcessor
+	SCToProtocol              process.SmartContractToProtocolHandler
+	EpochEconomics            process.EndOfEpochEconomics
 }

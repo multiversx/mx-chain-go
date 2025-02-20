@@ -21,7 +21,7 @@ type IndexingData struct {
 
 // AccountsParserArgs holds all dependencies required by the accounts parser in order to create new instances
 type AccountsParserArgs struct {
-	GenesisFilePath string
+	InitialAccounts []InitialAccountHandler
 	EntireSupply    *big.Int
 	MinterAddress   string
 	PubkeyConverter core.PubkeyConverter

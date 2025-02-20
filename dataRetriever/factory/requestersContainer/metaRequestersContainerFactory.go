@@ -80,7 +80,7 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		return nil, err
 	}
 
-	err = mrcf.generateTrieNodesRequesters()
+	err = mrcf.generateAccountAndValidatorTrieNodesRequesters(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -196,41 +196,6 @@ func (mrcf *metaRequestersContainerFactory) createMetaChainHeaderRequester(
 		NonceConverter: mrcf.uint64ByteSliceConverter,
 	}
 	return requesters.NewHeaderRequester(arg)
-}
-
-func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error {
-	keys := make([]string, 0)
-	requestersSlice := make([]dataRetriever.Requester, 0)
-
-	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	requester, err := mrcf.createTrieNodesRequester(
-		identifierTrieNodes,
-		0,
-		mrcf.numTotalPeers,
-		core.MetachainShardId,
-	)
-	if err != nil {
-		return err
-	}
-
-	requestersSlice = append(requestersSlice, requester)
-	keys = append(keys, identifierTrieNodes)
-
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	requester, err = mrcf.createTrieNodesRequester(
-		identifierTrieNodes,
-		0,
-		mrcf.numTotalPeers,
-		core.MetachainShardId,
-	)
-	if err != nil {
-		return err
-	}
-
-	requestersSlice = append(requestersSlice, requester)
-	keys = append(keys, identifierTrieNodes)
-
-	return mrcf.container.AddMultiple(keys, requestersSlice)
 }
 
 func (mrcf *metaRequestersContainerFactory) generateRewardsRequesters(topic string) error {

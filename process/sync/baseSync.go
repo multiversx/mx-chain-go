@@ -114,8 +114,9 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	outportHandler   outport.OutportHandler
-	accountsDBSyncer process.AccountsDBSyncer
+	outportHandler    outport.OutportHandler
+	accountsDBSyncer  process.AccountsDBSyncer
+	validatorDBSyncer process.AccountsDBSyncer
 
 	chRcvMiniBlocks              chan bool
 	mutRcvMiniBlocks             sync.Mutex
@@ -128,6 +129,12 @@ type baseBootstrap struct {
 	processWaitTime              time.Duration
 
 	repopulateTokensSupplies bool
+
+	processAndCommitFunc                func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	handleScheduledRollBackToHeaderFunc func(header data.HeaderHandler, headerHash []byte) []byte
+	getRootHashFromBlockFunc            func(header data.HeaderHandler, headerHash []byte) []byte
+	doProcessReceivedHeaderJobFunc      func(headerHandler data.HeaderHandler, headerHash []byte)
+	syncShardAccountsDBsFunc            func(key []byte, id string) error
 }
 
 // setRequestedHeaderNonce method sets the header nonce requested by the sync mechanism
@@ -159,6 +166,10 @@ func (boot *baseBootstrap) requestedHeaderHash() []byte {
 }
 
 func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	boot.doProcessReceivedHeaderJobFunc(headerHandler, headerHash)
+}
+
+func (boot *baseBootstrap) doProcessReceivedHeaderJob(headerHandler data.HeaderHandler, headerHash []byte) {
 	if boot.shardCoordinator.SelfId() != headerHandler.GetShardID() {
 		return
 	}
@@ -488,6 +499,9 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.ScheduledTxsExecutionHandler) {
 		return process.ErrNilScheduledTxsExecutionHandler
 	}
+	if check.IfNil(arguments.ValidatorDBSyncer) {
+		return process.ErrNilAccountsDBSyncer
+	}
 	if arguments.ProcessWaitTime < minimumProcessWaitTime {
 		return fmt.Errorf("%w, minimum is %v, provided is %v", process.ErrInvalidProcessWaitTime, minimumProcessWaitTime, arguments.ProcessWaitTime)
 	}
@@ -648,8 +662,23 @@ func (boot *baseBootstrap) syncBlock() error {
 		return waitTime - time.Since(startTime)
 	}
 
+	err = boot.processAndCommitFunc(header, body, haveTime)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("block has been synced successfully",
+		"nonce", header.GetNonce(),
+	)
+
+	boot.cleanNoncesSyncedWithErrorsBehindFinal()
+
+	return nil
+}
+
+func (boot *baseBootstrap) processAndCommit(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	startProcessBlockTime := time.Now()
-	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
+	_, _, err := boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -678,17 +707,8 @@ func (boot *baseBootstrap) syncBlock() error {
 			"time [s]", elapsedTime,
 		)
 	}
-	if err != nil {
-		return err
-	}
 
-	log.Debug("block has been synced successfully",
-		"nonce", header.GetNonce(),
-	)
-
-	boot.cleanNoncesSyncedWithErrorsBehindFinal()
-
-	return nil
+	return err
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
@@ -726,20 +746,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	defer func() {
 		if !roleBackOneBlockExecuted {
-			err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
-			if err != nil {
-				rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
-				if currHeader != nil {
-					rootHash = currHeader.GetRootHash()
-				}
-				scheduledInfo := &process.ScheduledInfo{
-					RootHash:        rootHash,
-					IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-					GasAndFees:      process.GetZeroGasAndFees(),
-					MiniBlocks:      make(block.MiniBlockSlice, 0),
-				}
-				boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
-			}
+			_ = boot.handleScheduledRollBackToHeaderFunc(currHeader, currHeaderHash)
 		}
 	}()
 
@@ -805,17 +812,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 			return err
 		}
 
-		err = boot.scheduledTxsExecutionHandler.RollBackToBlock(prevHeaderHash)
-		if err != nil {
-			scheduledInfo := &process.ScheduledInfo{
-				RootHash:        prevHeader.GetRootHash(),
-				IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-				GasAndFees:      process.GetZeroGasAndFees(),
-				MiniBlocks:      make(block.MiniBlockSlice, 0),
-			}
-			boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
-		}
-
+		_ = boot.handleScheduledRollBackToHeaderFunc(prevHeader, prevHeaderHash)
 		err = boot.outportHandler.RevertIndexedBlock(&outportcore.HeaderDataWithBody{
 			Body:       currBody,
 			HeaderHash: currHeaderHash,
@@ -840,6 +837,27 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 
 	log.Debug("ending roll back")
 	return nil
+}
+
+func (boot *baseBootstrap) handleScheduledRollBackToHeader(header data.HeaderHandler, headerHash []byte) []byte {
+	err := boot.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
+	if err != nil {
+		rootHash := boot.chainHandler.GetGenesisHeader().GetRootHash()
+		if header != nil {
+			rootHash = header.GetRootHash()
+		}
+
+		scheduledInfo := &process.ScheduledInfo{
+			RootHash:        rootHash,
+			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
+			GasAndFees:      process.GetZeroGasAndFees(),
+			MiniBlocks:      make(block.MiniBlockSlice, 0),
+		}
+
+		boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
+	}
+
+	return boot.scheduledTxsExecutionHandler.GetScheduledRootHash()
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
@@ -882,8 +900,8 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 	var err error
 
-	prevHeaderRootHash := boot.getRootHashFromBlock(prevHeader, prevHeaderHash)
-	currHeaderRootHash := boot.getRootHashFromBlock(currHeader, currHeaderHash)
+	prevHeaderRootHash := boot.getRootHashFromBlockFunc(prevHeader, prevHeaderHash)
+	currHeaderRootHash := boot.getRootHashFromBlockFunc(currHeader, currHeaderHash)
 
 	defer func() {
 		if err != nil {
@@ -1002,18 +1020,9 @@ func (boot *baseBootstrap) restoreState(
 
 	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
 
-	err = boot.scheduledTxsExecutionHandler.RollBackToBlock(currHeaderHash)
-	if err != nil {
-		scheduledInfo := &process.ScheduledInfo{
-			RootHash:        currHeader.GetRootHash(),
-			IntermediateTxs: make(map[block.Type][]data.TransactionHandler),
-			GasAndFees:      process.GetZeroGasAndFees(),
-			MiniBlocks:      make(block.MiniBlockSlice, 0),
-		}
-		boot.scheduledTxsExecutionHandler.SetScheduledInfo(scheduledInfo)
-	}
+	rootHash := boot.handleScheduledRollBackToHeaderFunc(currHeader, currHeaderHash)
 
-	err = boot.blockProcessor.RevertStateToBlock(currHeader, boot.scheduledTxsExecutionHandler.GetScheduledRootHash())
+	err = boot.blockProcessor.RevertStateToBlock(currHeader, rootHash)
 	if err != nil {
 		log.Debug("RevertState", "error", err.Error())
 	}
@@ -1232,6 +1241,27 @@ func (boot *baseBootstrap) handleTokensSuppliesRepopulation() error {
 	}
 
 	return tokensSuppliesProc.SaveSupplies()
+}
+
+func (boot *baseBootstrap) syncAccountsDBs(key []byte, id string) error {
+	// TODO: refactor this in order to avoid treatment based on identifier
+	switch id {
+	case dataRetriever.UserAccountsUnit.String():
+		return boot.syncUserAccountsState(key)
+	case dataRetriever.PeerAccountsUnit.String():
+		return boot.syncValidatorAccountsState(key)
+	default:
+		return fmt.Errorf("invalid trie identifier, id: %s", id)
+	}
+}
+
+func (boot *baseBootstrap) syncShardAccountsDBs(key []byte, _ string) error {
+	return boot.syncUserAccountsState(key)
+}
+
+func (boot *baseBootstrap) syncValidatorAccountsState(key []byte) error {
+	log.Warn("base sync: started syncValidatorAccountsState")
+	return boot.validatorDBSyncer.SyncAccounts(key, storageMarker.NewDisabledStorageMarker())
 }
 
 // Close will close the endless running go routine

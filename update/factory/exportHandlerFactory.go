@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
+	"github.com/multiversx/mx-chain-go/errors"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -34,42 +35,6 @@ import (
 )
 
 var log = logger.GetOrCreate("update/factory")
-
-// ArgsExporter is the argument structure to create a new exporter
-type ArgsExporter struct {
-	CoreComponents                   process.CoreComponentsHolder
-	CryptoComponents                 process.CryptoComponentsHolder
-	StatusCoreComponents             process.StatusCoreComponentsHolder
-	NetworkComponents                mxFactory.NetworkComponentsHolder
-	HeaderValidator                  epochStart.HeaderValidator
-	DataPool                         dataRetriever.PoolsHolder
-	StorageService                   dataRetriever.StorageService
-	RequestHandler                   process.RequestHandler
-	ShardCoordinator                 sharding.Coordinator
-	ActiveAccountsDBs                map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ExistingResolvers                dataRetriever.ResolversContainer
-	ExistingRequesters               dataRetriever.RequestersContainer
-	ExportFolder                     string
-	ExportTriesStorageConfig         config.StorageConfig
-	ExportStateStorageConfig         config.StorageConfig
-	ExportStateKeysConfig            config.StorageConfig
-	MaxTrieLevelInMemory             uint
-	WhiteListHandler                 process.WhiteListHandler
-	WhiteListerVerifiedTxs           process.WhiteListHandler
-	MainInterceptorsContainer        process.InterceptorsContainer
-	FullArchiveInterceptorsContainer process.InterceptorsContainer
-	NodesCoordinator                 nodesCoordinator.NodesCoordinator
-	HeaderSigVerifier                process.InterceptedHeaderSigVerifier
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	ValidityAttester                 process.ValidityAttester
-	RoundHandler                     process.RoundHandler
-	InterceptorDebugConfig           config.InterceptorResolverDebugConfig
-	MaxHardCapForMissingNodes        int
-	NumConcurrentTrieSyncers         int
-	TrieSyncerVersion                int
-	CheckNodesOnDisk                 bool
-	NodeOperationMode                common.NodeOperation
-}
 
 type exportHandlerFactory struct {
 	coreComponents                   process.CoreComponentsHolder
@@ -108,10 +73,12 @@ type exportHandlerFactory struct {
 	trieSyncerVersion                int
 	checkNodesOnDisk                 bool
 	nodeOperationMode                common.NodeOperation
+
+	shardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 // NewExportHandlerFactory creates an exporter factory
-func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
+func NewExportHandlerFactory(args mxFactory.ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, update.ErrNilShardCoordinator
 	}
@@ -231,6 +198,9 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, update.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
 
 	e := &exportHandlerFactory{
 		coreComponents:                   args.CoreComponents,
@@ -266,6 +236,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		checkNodesOnDisk:                 args.CheckNodesOnDisk,
 		statusCoreComponents:             args.StatusCoreComponents,
 		nodeOperationMode:                args.NodeOperationMode,
+		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
 
 	return e, nil
@@ -374,13 +345,14 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	})
 
 	argsRequesters := ArgsRequestersContainerFactory{
-		ShardCoordinator:       e.shardCoordinator,
-		MainMessenger:          e.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:   e.networkComponents.FullArchiveNetworkMessenger(),
-		Marshaller:             e.coreComponents.InternalMarshalizer(),
-		ExistingRequesters:     e.existingRequesters,
-		OutputAntifloodHandler: e.networkComponents.OutputAntiFloodHandler(),
-		PeersRatingHandler:     e.networkComponents.PeersRatingHandler(),
+		ShardCoordinator:        e.shardCoordinator,
+		MainMessenger:           e.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:    e.networkComponents.FullArchiveNetworkMessenger(),
+		Marshaller:              e.coreComponents.InternalMarshalizer(),
+		ExistingRequesters:      e.existingRequesters,
+		OutputAntifloodHandler:  e.networkComponents.OutputAntiFloodHandler(),
+		PeersRatingHandler:      e.networkComponents.PeersRatingHandler(),
+		ShardCoordinatorFactory: e.shardCoordinatorFactory,
 	}
 	requestersFactory, err := NewRequestersContainerFactory(argsRequesters)
 	if err != nil {
@@ -588,6 +560,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
 		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
 		NodeOperationMode:                e.nodeOperationMode,
+		ShardCoordinatorFactory:          e.shardCoordinatorFactory,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

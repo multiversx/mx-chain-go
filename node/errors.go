@@ -138,3 +138,9 @@ var ErrNilStatusHandler = errors.New("nil status handler")
 
 // ErrNilCreateTransactionArgs signals that create transaction args is nil
 var ErrNilCreateTransactionArgs = errors.New("nil args for create transaction")
+
+// ErrNilNodeRunner signals that a nil node runner was provided
+var ErrNilNodeRunner = errors.New("nil node runner")
+
+// ErrEmptyNativeEsdt signals that an empty native esdt token has been provided
+var ErrEmptyNativeEsdt = errors.New("empty native esdt token")

@@ -1,0 +1,82 @@
+[ExtendedShardHdrNonceHashStorage]
+    [ExtendedShardHdrNonceHashStorage.Cache]
+        Name = "ExtendedShardHdrNonceHashStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ExtendedShardHdrNonceHashStorage.DB]
+        FilePath = "ExtendedShardHdrNonceHash"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+
+[ExtendedShardHeaderStorage]
+    [ExtendedShardHeaderStorage.Cache]
+        Name = "ExtendedShardHeaderStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 3145728 #3MB
+    [ExtendedShardHeaderStorage.DB]
+        FilePath = "ExtendedShardHeader"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[MainChainNotarization]
+    # This defines the starting round from which all sovereign chain nodes should starting notarizing main chain headers
+    MainChainNotarizationStartRound = 11
+
+[OutgoingSubscribedEvents]
+    # Time to wait in seconds for outgoing operations that need to be bridged from sovereign chain to main chain.
+    # If no confirmation of bridged data is received after this time, next leader should retry sending data.
+    TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 90
+    
+    SubscribedEvents = [
+        { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+    ]
+
+[OutGoingBridge]
+    # This flag enables or disables the outgoing bridge service connection.
+    # When disabled, the node will not send the outgoing operations to the bridge service.
+    Enabled = false
+    GRPCHost = "localhost"
+    GRPCPort = "8085"
+    # Hasher type for outgoing operations
+    Hasher = "sha256"
+
+[NotifierConfig]
+    # This flag indicates whether the node will establish a WebSocket receiver connection from a light node or observer.
+    # Running an additional main chain light node as a notifier requires extra hardware resources.
+    # When disabled, the node will rely on and trust incoming headers from the main chain proposed by other leaders.
+    # Disabling this flag can be useful in scenarios where additional validation infrastructure isn't necessary.
+    Enabled = false
+
+    SubscribedEvents = [
+        { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] },
+        { Identifier = "execute", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+    ]
+    [NotifierConfig.WebSocket]
+        Url = "ws://localhost:22111"
+        # Possible values: json, gogo protobuf. Should be compatible with mx-chain-node outport driver config
+        MarshallerType = "gogo protobuf"
+        # Retry duration (receive/send ack signal) in seconds
+        RetryDuration = 5
+        # Signals if in case of data payload processing error, we should send the ack signal or not
+        BlockingAckOnError = false
+        # Possible values: sha256, keccak, blake2b. Should be compatible with mx-chain-node outport driver config
+        HasherType = "blake2b"
+        # This flag describes the mode to start the WebSocket connector. Can be "client" or "server"
+        Mode = "client"
+        # This flag specifies if we should send an acknowledge signal upon receiving data
+        WithAcknowledge = true
+        # The duration in seconds to wait for an acknowledgement message
+        AcknowledgeTimeout = 60
+        # Payload version to process
+        Version = 1
+
+[GenesisConfig]
+    # NativeESDT specifies the sovereign shard's native esdt currency
+    NativeESDT = "WEGLD-bd4d79"

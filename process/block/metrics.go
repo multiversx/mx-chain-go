@@ -75,7 +75,7 @@ func getMetricsFromHeader(
 	appStatusHandler core.AppStatusHandler,
 ) {
 	headerSize := uint64(0)
-	marshalizedHeader, err := marshalizer.Marshal(header)
+	marshalizedHeader, err := marshalizer.Marshal(header.ShallowClone())
 	if err == nil {
 		headerSize = uint64(len(marshalizedHeader))
 	}
@@ -84,7 +84,7 @@ func getMetricsFromHeader(
 	appStatusHandler.SetUInt64Value(common.MetricTxPoolLoad, numTxWithDst)
 }
 
-func saveMetricsForCommittedShardBlock(
+func saveMetricsForCommittedShardAndCrossBlock(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	appStatusHandler core.AppStatusHandler,
 	currentBlockHash string,
@@ -93,12 +93,23 @@ func saveMetricsForCommittedShardBlock(
 	shardHeader data.HeaderHandler,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
+	baseSaveMetricsForCommittedShardBlock(nodesCoordinator, appStatusHandler, currentBlockHash, highestFinalBlockNonce, shardHeader, managedPeersHolder)
+	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
+	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
+}
+
+func baseSaveMetricsForCommittedShardBlock(
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	appStatusHandler core.AppStatusHandler,
+	currentBlockHash string,
+	highestFinalBlockNonce uint64,
+	shardHeader data.HeaderHandler,
+	managedPeersHolder common.ManagedPeersHolder,
+) {
 	incrementMetricCountConsensusAcceptedBlocks(shardHeader, shardHeader.GetEpoch(), nodesCoordinator, appStatusHandler, managedPeersHolder)
 	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(shardHeader.GetEpoch()))
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, currentBlockHash)
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
-	appStatusHandler.SetStringValue(common.MetricCrossCheckBlockHeight, fmt.Sprintf("meta %d", metaBlock.GetNonce()))
-	appStatusHandler.SetUInt64Value(common.MetricCrossCheckBlockHeightMeta, metaBlock.GetNonce())
 }
 
 func saveMetricsForCommitMetachainBlock(
@@ -214,6 +225,10 @@ func indexValidatorsRating(
 	valStatProc process.ValidatorStatisticsProcessor,
 	metaBlock data.HeaderHandler,
 ) {
+	if metaBlock.GetNonce() != 1 && !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
 	// TODO use validatorInfoProvider  to get information about rating
 	latestHash, err := valStatProc.RootHash()
 	if err != nil {
@@ -263,12 +278,12 @@ func calculateRoundDuration(
 	return diffTimeStamp / diffRounds
 }
 
-func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock *block.MetaBlock) {
-	economics := epochStartMetaBlock.EpochStart.Economics
+func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock data.MetaHeaderHandler) {
+	economics := epochStartMetaBlock.GetEpochStartHandler().GetEconomicsHandler()
 
-	statusHandler.SetStringValue(common.MetricTotalSupply, economics.TotalSupply.String())
-	statusHandler.SetStringValue(common.MetricInflation, economics.TotalNewlyMinted.String())
-	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
-	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
-	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
+	statusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
+	statusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
+	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
+	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 )
 
 const ProcessingThresholdPercent = processingThresholdPercent
@@ -99,22 +100,37 @@ func (fct *factory) SetWorker(worker spos.WorkerHandler) {
 
 // GenerateStartRoundSubround generates the instance of subround StartRound and added it to the chronology subrounds list
 func (fct *factory) GenerateStartRoundSubround() error {
-	return fct.generateStartRoundSubround()
+	return fct.generateStartRoundSubround(&subRounds.SubRoundStartExtraSignersHolderMock{})
 }
 
-// GenerateBlockSubround generates the instance of subround Block and added it to the chronology subrounds list
-func (fct *factory) GenerateBlockSubround() error {
-	return fct.generateBlockSubround()
+// GenerateBlockSubroundV1 generates the instance of subround Block V1 and added it to the chronology subrounds list
+func (fct *factory) GenerateBlockSubroundV1() error {
+	return fct.generateBlockSubroundV1()
 }
 
-// GenerateSignatureSubround generates the instance of subround Signature and added it to the chronology subrounds list
-func (fct *factory) GenerateSignatureSubround() error {
-	return fct.generateSignatureSubround()
+// GenerateBlockSubroundV2 generates the instance of subround Block V2 and added it to the chronology subrounds list
+func (fct *factory) GenerateBlockSubroundV2() error {
+	return fct.generateBlockSubroundV2()
 }
 
-// GenerateEndRoundSubround generates the instance of subround EndRound and added it to the chronology subrounds list
-func (fct *factory) GenerateEndRoundSubround() error {
-	return fct.generateEndRoundSubround()
+// GenerateSignatureSubroundV1 generates the instance of subround Signature V1 and added it to the chronology subrounds list
+func (fct *factory) GenerateSignatureSubroundV1() error {
+	return fct.generateSignatureSubroundV1(&subRounds.SubRoundSignatureExtraSignersHolderMock{})
+}
+
+// GenerateSignatureSubroundV2 generates the instance of subround Signature V2 and added it to the chronology subrounds list
+func (fct *factory) GenerateSignatureSubroundV2() error {
+	return fct.generateSignatureSubroundV2(&subRounds.SubRoundSignatureExtraSignersHolderMock{})
+}
+
+// GenerateEndRoundSubroundV1 generates the instance of subround EndRound V1 and added it to the chronology subrounds list
+func (fct *factory) GenerateEndRoundSubroundV1() error {
+	return fct.generateEndRoundSubroundV1(&subRounds.SubRoundEndExtraSignersHolderMock{})
+}
+
+// GenerateEndRoundSubroundV2 generates the instance of subround EndRound V2 and added it to the chronology subrounds list
+func (fct *factory) GenerateEndRoundSubroundV2() error {
+	return fct.generateEndRoundSubroundV2(&subRounds.SubRoundEndExtraSignersHolderMock{})
 }
 
 // AppStatusHandler gets the app status handler object
@@ -169,6 +185,11 @@ func (sr *subroundBlock) BlockChain() data.ChainHandler {
 
 // DoBlockJob method does the job of the subround Block
 func (sr *subroundBlock) DoBlockJob() bool {
+	return sr.doBlockJob(context.Background())
+}
+
+// DoBlockJob method does the job of the subround Block
+func (sr *subroundBlockV2) DoBlockJob() bool {
 	return sr.doBlockJob(context.Background())
 }
 
@@ -252,6 +273,16 @@ func (sr *subroundSignature) AreSignaturesCollected(threshold int) (bool, int) {
 	return sr.areSignaturesCollected(threshold)
 }
 
+// GetProcessedHeaderHash gets the processed header hash
+func (sr *subroundSignature) GetProcessedHeaderHash() []byte {
+	return sr.getProcessedHeaderHash()
+}
+
+// GetMessageToSign gets the message that should be signed
+func (sr *subroundSignatureV2) GetMessageToSign() []byte {
+	return sr.getMessageToSign()
+}
+
 // subroundEndRound
 
 // SubroundEndRound defines a type for the subroundEndRound structure
@@ -294,6 +325,11 @@ func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
 
 // ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
 func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
+}
+
+// ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
+func (sr *sovereignSubRoundEnd) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
 	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
 }
 
@@ -355,4 +391,34 @@ func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker
 // GetStringValue calls the unexported getStringValue function
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
+}
+
+// GetHeaderHashToVerifySig gets header hash on which the signature should be verified
+func (sr *subroundEndRound) GetHeaderHashToVerifySig(cnsMsg *consensus.Message) []byte {
+	return sr.getHeaderHashToVerifySig(cnsMsg)
+}
+
+// GenerateConsensusBitmap generates a bitmap in which each node will be marked with 1 if its job has been done
+func (sr *subroundEndRound) GenerateConsensusBitmap() []byte {
+	return sr.generateBitmap()
+}
+
+// GetProcessedHeaderHash gets the processed header hash
+func (sr *subroundEndRound) GetProcessedHeaderHash() []byte {
+	return sr.getProcessedHeaderHash()
+}
+
+// GetMessageToVerifySig gets the message on which the signature should be verified
+func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
+	return sr.getMessageToVerifySig()
+}
+
+// DoSovereignEndRoundJob -
+func (sr *sovereignSubRoundEnd) DoSovereignEndRoundJob(ctx context.Context) bool {
+	return sr.doSovereignEndRoundJob(ctx)
+}
+
+// GetInternalHeader -
+func (sr *sovereignSubRoundEnd) GetInternalHeader() data.HeaderHandler {
+	return sr.Header
 }

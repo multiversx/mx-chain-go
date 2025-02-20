@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	genesisCommon "github.com/multiversx/mx-chain-go/genesis/process/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -225,29 +226,7 @@ func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
 }
 
 func (s *systemSCProcessor) updateToGovernanceV2() error {
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.GovernanceSCAddress,
-			CallValue:  big.NewInt(0),
-			Arguments:  [][]byte{},
-		},
-		RecipientAddr: vm.GovernanceSCAddress,
-		Function:      "initV2",
-	}
-	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
-	if errRun != nil {
-		return fmt.Errorf("%w when updating to governanceV2", errRun)
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return fmt.Errorf("got return code %s when updating to governanceV2", vmOutput.ReturnCode)
-	}
-
-	err := s.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return genesisCommon.InitGovernanceV2(s.systemVM, s.userAccountsDB)
 }
 
 // IsInterfaceNil returns true if underlying object is nil

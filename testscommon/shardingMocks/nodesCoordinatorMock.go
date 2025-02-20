@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -30,6 +30,7 @@ type NodesCoordinatorMock struct {
 	GetAllShuffledOutValidatorsPublicKeysCalled       func(epoch uint32) (map[uint32][][]byte, error)
 	GetShuffledOutToAuctionValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
 	GetNumTotalEligibleCalled                         func() uint64
+	NodesCoordinatorToRegistryCalled                  func(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler
 }
 
 // NewNodesCoordinatorMock -
@@ -304,6 +305,20 @@ func (ncm *NodesCoordinatorMock) ValidatorsWeights(validators []nodesCoordinator
 // GetWaitingEpochsLeftForPublicKey always returns 0
 func (ncm *NodesCoordinatorMock) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
 	return 0, nil
+}
+
+// EpochStartPrepare -
+func (ncm *NodesCoordinatorMock) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+
+}
+
+// NodesCoordinatorToRegistry -
+func (ncm *NodesCoordinatorMock) NodesCoordinatorToRegistry(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
+	if ncm.NodesCoordinatorToRegistryCalled != nil {
+		return ncm.NodesCoordinatorToRegistryCalled(epoch)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -

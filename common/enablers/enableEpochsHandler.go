@@ -120,6 +120,8 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RepairCallbackEnableEpoch,
 		},
+		// TODO: MX-15702 This flag cannot be enabled from epoch 0.
+		// We need a logic to put all "mainnet legacy" flags on 0 after we merge core run type components
 		common.ReturnDataToLastTransferFlagAfterEpoch: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch > handler.enableEpochsConfig.ReturnDataToLastTransferEnableEpoch
@@ -150,6 +152,8 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV2EnableEpoch,
 		},
+		// TODO: MX-15702 This flag cannot be enabled from epoch 0.
+		// We need a logic to put all "mainnet legacy" flags on 0 after we merge core run type components
 		common.StakingV2FlagAfterEpoch: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch > handler.enableEpochsConfig.StakingV2EnableEpoch
@@ -792,6 +796,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch,
 		},
+		common.ConsensusModelV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ConsensusModelV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ConsensusModelV2EnableEpoch,
+		},
 	}
 }
 
@@ -858,16 +868,6 @@ func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
 	handler.epochMut.RUnlock()
 
 	return currentEpoch
-}
-
-// StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
-func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
-}
-
-// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
-func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
-	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
@@ -32,6 +33,7 @@ type StateComponentsFactoryArgs struct {
 	ProcessingMode           common.NodeProcessingMode
 	ShouldSerializeSnapshots bool
 	ChainHandler             chainData.ChainHandler
+	AccountsCreator          state.AccountFactory
 }
 
 type stateComponentsFactory struct {
@@ -42,6 +44,7 @@ type stateComponentsFactory struct {
 	processingMode           common.NodeProcessingMode
 	shouldSerializeSnapshots bool
 	chainHandler             chainData.ChainHandler
+	accountsCreator          state.AccountFactory
 }
 
 // stateComponents struct holds the state components of the MultiversX protocol
@@ -66,6 +69,9 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	if check.IfNil(args.StatusCore) {
 		return nil, errors.ErrNilStatusCoreComponents
 	}
+	if check.IfNil(args.AccountsCreator) {
+		return nil, state.ErrNilAccountFactory
+	}
 
 	return &stateComponentsFactory{
 		config:                   args.Config,
@@ -75,6 +81,7 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 		processingMode:           args.ProcessingMode,
 		shouldSerializeSnapshots: args.ShouldSerializeSnapshots,
 		chainHandler:             args.ChainHandler,
+		accountsCreator:          args.AccountsCreator,
 	}, nil
 }
 
@@ -136,16 +143,6 @@ func (scf *stateComponentsFactory) createSnapshotManager(
 }
 
 func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              scf.core.Hasher(),
-		Marshaller:          scf.core.InternalMarshalizer(),
-		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
-	}
-	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	merkleTrie := triesContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
@@ -162,7 +159,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, err
 	}
 
-	snapshotsManager, err := scf.createSnapshotManager(accountFactory, sm, iteratorChannelsProvider.NewUserStateIteratorChannelsProvider())
+	snapshotsManager, err := scf.createSnapshotManager(scf.accountsCreator, sm, iteratorChannelsProvider.NewUserStateIteratorChannelsProvider())
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -171,7 +168,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		Trie:                  merkleTrie,
 		Hasher:                scf.core.Hasher(),
 		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
+		AccountFactory:        scf.accountsCreator,
 		StoragePruningManager: storagePruning,
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      snapshotsManager,
@@ -185,7 +182,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		Trie:                  merkleTrie,
 		Hasher:                scf.core.Hasher(),
 		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
+		AccountFactory:        scf.accountsCreator,
 		StoragePruningManager: storagePruning,
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      disabled.NewDisabledSnapshotsManager(),

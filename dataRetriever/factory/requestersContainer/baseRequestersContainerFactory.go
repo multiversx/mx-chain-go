@@ -107,7 +107,7 @@ func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
 		return err
 	}
 
-	err = brcf.generateValidatorInfoRequester()
+	err = brcf.generateValidatorInfoRequester(common.ValidatorInfoTopic)
 	if err != nil {
 		return err
 	}
@@ -323,8 +323,8 @@ func (brcf *baseRequestersContainerFactory) createTrieNodesRequester(
 	return requesters.NewTrieNodeRequester(arg)
 }
 
-func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() error {
-	identifierValidatorInfo := common.ValidatorInfoTopic
+func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester(topicID string) error {
+	identifierValidatorInfo := topicID
 	shardC := brcf.shardCoordinator
 	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
@@ -343,4 +343,39 @@ func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() err
 	}
 
 	return brcf.container.Add(identifierValidatorInfo, requester)
+}
+
+func (brcf *baseRequestersContainerFactory) generateAccountAndValidatorTrieNodesRequesters(shardID uint32) error {
+	keys := make([]string, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
+
+	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	requester, err := brcf.createTrieNodesRequester(
+		identifierTrieNodes,
+		0,
+		brcf.numTotalPeers,
+		shardID,
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifierTrieNodes)
+
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	requester, err = brcf.createTrieNodesRequester(
+		identifierTrieNodes,
+		0,
+		brcf.numTotalPeers,
+		shardID,
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifierTrieNodes)
+
+	return brcf.container.AddMultiple(keys, requestersSlice)
 }

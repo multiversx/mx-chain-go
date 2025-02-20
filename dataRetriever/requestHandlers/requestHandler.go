@@ -10,11 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
@@ -49,6 +50,8 @@ type resolverRequestHandler struct {
 	trieHashesAccumulator map[string]struct{}
 	lastTrieRequestTime   time.Time
 	mutexTrieHashes       sync.Mutex
+
+	baseRequestHandler baseRequestHandler
 }
 
 // NewResolverRequestHandler creates a requestHandler interface implementation with request functions
@@ -86,6 +89,10 @@ func NewResolverRequestHandler(
 		whiteList:             whiteList,
 		requestInterval:       requestInterval,
 		trieHashesAccumulator: make(map[string]struct{}),
+		baseRequestHandler: &baseRequest{
+			shardID:          shardID,
+			requestersFinder: finder,
+		},
 	}
 
 	rrh.sweepTime = time.Now()
@@ -221,7 +228,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 		"hash", miniblockHash,
 	)
 
-	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
+	requester, err := rrh.baseRequestHandler.getMiniBlocksRequester(destShardID)
 	if err != nil {
 		log.Error("RequestMiniBlock.CrossShardRequester",
 			"error", err.Error(),
@@ -260,7 +267,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		"num mbs", len(unrequestedHashes),
 	)
 
-	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
+	requester, err := rrh.baseRequestHandler.getMiniBlocksRequester(destShardID)
 	if err != nil {
 		log.Error("RequestMiniBlocks.CrossShardRequester",
 			"error", err.Error(),
@@ -304,7 +311,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		"hash", hash,
 	)
 
-	headerRequester, err := rrh.getShardHeaderRequester(shardID)
+	headerRequester, err := rrh.baseRequestHandler.getShardHeaderRequester(shardID)
 	if err != nil {
 		log.Error("RequestShardHeader.getShardHeaderRequester",
 			"error", err.Error(),
@@ -339,7 +346,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		"hash", hash,
 	)
 
-	requester, err := rrh.getMetaHeaderRequester()
+	requester, err := rrh.baseRequestHandler.getMetaHeaderRequester()
 	if err != nil {
 		log.Error("RequestMetaHeader.getMetaHeaderRequester",
 			"error", err.Error(),
@@ -383,7 +390,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		"nonce", nonce,
 	)
 
-	requester, err := rrh.getShardHeaderRequester(shardID)
+	requester, err := rrh.baseRequestHandler.getShardHeaderRequester(shardID)
 	if err != nil {
 		log.Error("RequestShardHeaderByNonce.getShardHeaderRequester",
 			"error", err.Error(),
@@ -450,13 +457,8 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		"added", len(hashes),
 	)
 
-	requester, err := rrh.requestersFinder.MetaCrossShardRequester(topic, destShardID)
+	requester, err := rrh.baseRequestHandler.getTrieNodesRequester(topic, destShardID)
 	if err != nil {
-		log.Error("requestersFinder.MetaCrossShardRequester",
-			"error", err.Error(),
-			"topic", topic,
-			"shard", destShardID,
-		)
 		return
 	}
 
@@ -500,12 +502,8 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 		"chunk index", chunkIndex,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(topic)
+	requester, err := rrh.baseRequestHandler.getTrieNodeRequester(topic)
 	if err != nil {
-		log.Error("requestersFinder.MetaChainRequester",
-			"error", err.Error(),
-			"topic", topic,
-		)
 		return
 	}
 
@@ -541,7 +539,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		"nonce", nonce,
 	)
 
-	headerRequester, err := rrh.getMetaHeaderRequester()
+	headerRequester, err := rrh.baseRequestHandler.getMetaHeaderRequester()
 	if err != nil {
 		log.Error("RequestMetaHeaderByNonce.getMetaHeaderRequester",
 			"error", err.Error(),
@@ -579,7 +577,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 		"epoch", epoch,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+	requester, err := rrh.baseRequestHandler.getValidatorsInfoRequester()
 	if err != nil {
 		log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),
@@ -621,7 +619,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 		"epoch", epoch,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+	requester, err := rrh.baseRequestHandler.getValidatorsInfoRequester()
 	if err != nil {
 		log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),
@@ -678,54 +676,6 @@ func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte, suffix strin
 	}
 }
 
-func (rrh *resolverRequestHandler) getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error) {
-	isMetachainNode := rrh.shardID == core.MetachainShardId
-	shardIdMissmatch := rrh.shardID != shardID
-	requestOnMetachain := shardID == core.MetachainShardId
-	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
-	if isRequestInvalid {
-		return nil, dataRetriever.ErrBadRequest
-	}
-
-	// requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
-	// the cross shard id
-	crossShardID := core.MetachainShardId
-	if isMetachainNode {
-		crossShardID = shardID
-	}
-
-	headerRequester, err := rrh.requestersFinder.CrossShardRequester(factory.ShardBlocksTopic, crossShardID)
-	if err != nil {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
-			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)
-
-		log.Warn("available requesters in container",
-			"requesters", rrh.requestersFinder.RequesterKeys(),
-		)
-		return nil, err
-	}
-
-	return headerRequester, nil
-}
-
-func (rrh *resolverRequestHandler) getMetaHeaderRequester() (HeaderRequester, error) {
-	requester, err := rrh.requestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
-	if err != nil {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d",
-			err, factory.MetachainBlocksTopic, rrh.shardID)
-		return nil, err
-	}
-
-	headerRequester, ok := requester.(HeaderRequester)
-	if !ok {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, expected HeaderRequester",
-			dataRetriever.ErrWrongTypeInContainer, factory.ShardBlocksTopic, rrh.shardID)
-		return nil, err
-	}
-
-	return headerRequester, nil
-}
-
 // RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers
 func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 	epochStartIdentifier := []byte(core.EpochStartIdentifier(epoch))
@@ -740,7 +690,7 @@ func (rrh *resolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
 		"hash", epochStartIdentifier,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(baseTopic)
+	requester, err := rrh.baseRequestHandler.getStartOfEpochMetaBlockRequester(baseTopic)
 	if err != nil {
 		log.Error("RequestStartOfEpochMetaBlock.MetaChainRequester",
 			"error", err.Error(),

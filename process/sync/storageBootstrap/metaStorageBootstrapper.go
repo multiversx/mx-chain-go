@@ -54,6 +54,9 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		return nil, err
 	}
 
+	base.getScheduledRootHashMethod = base.getScheduledRootHash
+	base.setScheduledInfoMethod = base.setScheduledInfo
+
 	return &boot, nil
 }
 

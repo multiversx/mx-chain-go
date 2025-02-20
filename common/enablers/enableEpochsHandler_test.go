@@ -92,6 +92,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                       75,
 		MaxBlockchainHookCountersEnableEpoch:                     76,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:                77,
+		ConsensusModelV2EnableEpoch:                              77,
 		AlwaysSaveTokenMetaDataEnableEpoch:                       78,
 		RuntimeCodeSizeFixEnableEpoch:                            79,
 		RelayedNonceFixEnableEpoch:                               80,
@@ -327,6 +328,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
+	require.True(t, handler.IsFlagEnabled(common.ConsensusModelV2Flag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -452,6 +454,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
+	require.Equal(t, cfg.ConsensusModelV2EnableEpoch, handler.GetActivationEpoch(common.ConsensusModelV2Flag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

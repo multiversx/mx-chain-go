@@ -5,15 +5,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	updateMock "github.com/multiversx/mx-chain-go/update/mock"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockArgHeaderRequester(argBase ArgBaseRequester) ArgHeaderRequester {
 	return ArgHeaderRequester{
 		ArgBaseRequester: argBase,
-		NonceConverter:   &mock.Uint64ByteSliceConverterMock{},
+		NonceConverter:   &updateMock.Uint64ByteSliceConverterStub{},
 	}
 }
 

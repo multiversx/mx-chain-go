@@ -243,20 +243,7 @@ func TestShardRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	rcf, _ := requesterscontainer.NewShardRequestersContainerFactory(args)
 
 	container, _ := rcf.Create()
-
-	numRequesterSCRs := noOfShards + 1
-	numRequesterTxs := noOfShards + 1
-	numRequesterRewardTxs := 1
-	numRequesterHeaders := 1
-	numRequesterMiniBlocks := noOfShards + 2
-	numRequesterMetaBlockHeaders := 1
-	numRequesterTrieNodes := 1
-	numRequesterPeerAuth := 1
-	numRequesterValidatorInfo := 1
-	totalRequesters := numRequesterTxs + numRequesterHeaders + numRequesterMiniBlocks + numRequesterMetaBlockHeaders +
-		numRequesterSCRs + numRequesterRewardTxs + numRequesterTrieNodes + numRequesterPeerAuth + numRequesterValidatorInfo
-
-	assert.Equal(t, totalRequesters, container.Len())
+	assert.Equal(t, getNumRequesters(noOfShards), container.Len())
 }
 
 func getArguments() requesterscontainer.FactoryArgs {
@@ -278,4 +265,18 @@ func getArguments() requesterscontainer.FactoryArgs {
 		PeersRatingHandler:              &p2pmocks.PeersRatingHandlerStub{},
 		SizeCheckDelta:                  0,
 	}
+}
+
+func getNumRequesters(noOfShards int) int {
+	numRequesterSCRs := noOfShards + 1
+	numRequesterTxs := noOfShards + 1
+	numRequesterRewardTxs := 1
+	numRequesterHeaders := 1
+	numRequesterMiniBlocks := noOfShards + 2
+	numRequesterMetaBlockHeaders := 1
+	numRequesterTrieNodes := 1
+	numRequesterPeerAuth := 1
+	numRequesterValidatorInfo := 1
+	return numRequesterTxs + numRequesterHeaders + numRequesterMiniBlocks + numRequesterMetaBlockHeaders +
+		numRequesterSCRs + numRequesterRewardTxs + numRequesterTrieNodes + numRequesterPeerAuth + numRequesterValidatorInfo
 }

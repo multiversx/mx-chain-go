@@ -335,6 +335,15 @@ func (txProc *baseTxProcessor) VerifyTransaction(tx *transaction.Transaction) er
 	return txProc.checkTxValues(tx, senderAccount, receiverAccount, false)
 }
 
+// GetSenderAndReceiverAccounts gets the accounts for sender and receiver
+func (txProc *baseTxProcessor) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	if check.IfNil(tx) {
+		return nil, nil, process.ErrNilTransaction
+	}
+
+	return txProc.getAccounts(tx.SndAddr, tx.RcvAddr)
+}
+
 // Setting a guardian is allowed with regular transactions on a guarded account
 // but in this case is set with the default epochs delay
 func (txProc *baseTxProcessor) checkOperationAllowedToBypassGuardian(tx *transaction.Transaction) error {

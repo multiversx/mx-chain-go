@@ -48,7 +48,7 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 
 	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {
-		acc, err := oap.sc.getAccountFromAddress(outAcc.Address)
+		acc, err := oap.sc.scProcessorHelper.GetAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return false, nil, err
 		}

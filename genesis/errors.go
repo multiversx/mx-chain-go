@@ -175,3 +175,9 @@ var ErrNilRoundConfig = errors.New("nil round config")
 
 // ErrNilGasSchedule signals that an operation has been attempted with a nil gas schedule
 var ErrNilGasSchedule = errors.New("nil gas schedule")
+
+// ErrScheduledRootHashForHeaderNotFound signals that scheduled root hash for header was not found
+var ErrScheduledRootHashForHeaderNotFound = errors.New("scheduled root hash for header was not found")
+
+// ErrScheduledRootHashForHeaderWithEpochNotFound signals that scheduled root hash for header with epoch was not found
+var ErrScheduledRootHashForHeaderWithEpochNotFound = errors.New("scheduled root hash for header with epoch was not found")

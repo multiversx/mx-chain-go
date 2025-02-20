@@ -57,6 +57,7 @@ type ArgsChainSimulatorConfigs struct {
 	NumNodesWaitingListShard    uint32
 	NumNodesWaitingListMeta     uint32
 	AlterConfigsFunction        func(cfg *config.Configs)
+	GenerateGenesisFile         func(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -83,7 +84,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	// update genesis.json
-	initialWallets, err := generateGenesisFile(args, configs)
+	initialWallets, err := args.GenerateGenesisFile(args, configs)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +191,8 @@ func SetStakingV4ActivationEpochs(cfg *config.Configs, initialEpoch uint32) {
 	cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 }
 
-func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
+// GenerateGenesisFile will generate initial wallet keys
+func GenerateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
 	addressConverter, err := factory.NewPubkeyConverter(configs.GeneralConfig.AddressPubkeyConverter)
 	if err != nil {
 		return nil, err
@@ -233,7 +235,7 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 	remainder.Mod(remainder, big.NewInt(int64(args.NumOfShards)))
 
 	for shardID := uint32(0); shardID < args.NumOfShards; shardID++ {
-		walletKey, errG := generateWalletKeyForShard(shardID, args.NumOfShards, addressConverter)
+		walletKey, errG := GenerateWalletKeyForShard(shardID, args.NumOfShards, addressConverter)
 		if errG != nil {
 			return nil, errG
 		}
@@ -418,7 +420,8 @@ func GetLatestGasScheduleFilename(directory string) (string, error) {
 	return path.Join(directory, filename), nil
 }
 
-func generateWalletKeyForShard(shardID, numOfShards uint32, converter core.PubkeyConverter) (*dtos.WalletKey, error) {
+// GenerateWalletKeyForShard will generate a wallet key in a specific shard
+func GenerateWalletKeyForShard(shardID, numOfShards uint32, converter core.PubkeyConverter) (*dtos.WalletKey, error) {
 	for {
 		walletKey, err := generateWalletKey(converter)
 		if err != nil {

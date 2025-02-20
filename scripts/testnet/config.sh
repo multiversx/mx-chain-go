@@ -28,13 +28,23 @@ updateNodeConfig
 if [ $USE_PROXY -eq 1 ]; then
   prepareFolders_Proxy
   copyProxyConfig
-  updateProxyConfig
+
+  if [ $SOVEREIGN_DEPLOY -eq 1 ]; then
+    updateSovereignProxyConfig
+  else
+    updateProxyConfig
+  fi
 fi
 
 if [ $USE_TXGEN -eq 1 ]; then
   prepareFolders_TxGen
   copyTxGenConfig
-  updateTxGenConfig
+
+  if [ $SOVEREIGN_DEPLOY -eq 1 ]; then
+      updateSovereignTxGenConfig
+    else
+      updateTxGenConfig
+    fi
 fi
 
 if [ $USE_HARDFORK -eq 1 ]; then

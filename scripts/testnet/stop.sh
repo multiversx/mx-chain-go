@@ -12,6 +12,7 @@ source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
 source "$MULTIVERSXTESTNETSCRIPTSDIR/include/validators.sh"
 source "$MULTIVERSXTESTNETSCRIPTSDIR/include/observers.sh"
 source "$MULTIVERSXTESTNETSCRIPTSDIR/include/tools.sh"
+source "$MULTIVERSXTESTNETSCRIPTSDIR/include/build.sh"
 
 if [ $USE_PROXY -eq 1 ]; then
   stopProxy
@@ -24,6 +25,10 @@ fi
 stopValidators
 stopObservers
 stopSeednode
+
+if [ $USE_ELASTICSEARCH -eq 1 ]; then
+  stopElasticsearch
+fi
 
 if [ $USETMUX -eq 1 ] && [ $KEEPOPEN -eq 0 ]
 then

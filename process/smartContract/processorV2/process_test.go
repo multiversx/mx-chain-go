@@ -10,6 +10,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -39,13 +43,10 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
 )
 
 const maxEpoch = math.MaxUint32
@@ -2146,7 +2147,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("SRC"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("SRC"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 }
@@ -2177,7 +2178,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 	require.Equal(t, 1, getCalled)
@@ -2209,7 +2210,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 0, getCalled)
@@ -2242,7 +2243,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.NotNil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 1, getCalled)

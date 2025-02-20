@@ -2,15 +2,17 @@ package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // TxProcessorStub -
 type TxProcessorStub struct {
-	ProcessTransactionCalled func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
-	VerifyTransactionCalled  func(tx *transaction.Transaction) error
-	VerifyGuardianCalled     func(tx *transaction.Transaction, account state.UserAccountHandler) error
+	ProcessTransactionCalled           func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
+	VerifyTransactionCalled            func(tx *transaction.Transaction) error
+	VerifyGuardianCalled               func(tx *transaction.Transaction, account state.UserAccountHandler) error
+	GetSenderAndReceiverAccountsCalled func(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
 }
 
 // ProcessTransaction -
@@ -38,6 +40,15 @@ func (tps *TxProcessorStub) VerifyGuardian(tx *transaction.Transaction, account 
 	}
 
 	return nil
+}
+
+// GetSenderAndReceiverAccounts -
+func (tps *TxProcessorStub) GetSenderAndReceiverAccounts(tx *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error) {
+	if tps.GetSenderAndReceiverAccountsCalled != nil {
+		return tps.GetSenderAndReceiverAccountsCalled(tx)
+	}
+
+	return nil, nil, nil
 }
 
 // IsInterfaceNil -

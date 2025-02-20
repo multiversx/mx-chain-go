@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
@@ -25,6 +26,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -33,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -40,6 +43,7 @@ type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
 	VerifyTransaction(transaction *transaction.Transaction) error
 	VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error
+	GetSenderAndReceiverAccounts(transaction *transaction.Transaction) (state.UserAccountHandler, state.UserAccountHandler, error)
 	IsInterfaceNil() bool
 }
 
@@ -114,6 +118,18 @@ type HdrValidatorHandler interface {
 	HeaderHandler() data.HeaderHandler
 }
 
+// InterceptedMiniBlockHandler defines the needed functionality for an intercepted mini block
+type InterceptedMiniBlockHandler interface {
+	Hash() []byte
+	Miniblock() *block.MiniBlock
+}
+
+// ExtendedHeaderValidatorHandler defines extended header validator functionality
+type ExtendedHeaderValidatorHandler interface {
+	Hash() []byte
+	GetExtendedHeader() data.ShardHeaderExtendedHandler
+}
+
 // InterceptedDataFactory can create new instances of InterceptedData
 type InterceptedDataFactory interface {
 	Create(buff []byte) (InterceptedData, error)
@@ -158,7 +174,7 @@ type TransactionCoordinator interface {
 	RemoveBlockDataFromPool(body *block.Body) error
 	RemoveTxsFromPool(body *block.Body) error
 
-	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error)
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -236,7 +252,7 @@ type PreProcessor interface {
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
-	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) (block.MiniBlockSlice, error)
 	RequestBlockTransactions(body *block.Body) int
 
 	RequestTransactionsForMiniBlock(miniBlock *block.MiniBlock) int
@@ -251,7 +267,7 @@ type PreProcessor interface {
 
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
-	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error)
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlock()
@@ -282,10 +298,16 @@ type ScheduledBlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorStatsHeader defines a common header which contains validator stats root hash
+type ValidatorStatsHeader interface {
+	data.HeaderHandler
+	GetValidatorStatsRootHash() []byte
+}
+
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
-	UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error)
-	RevertPeerState(header data.MetaHeaderHandler) error
+	UpdatePeerState(header data.CommonHeaderHandler, cache map[string]data.CommonHeaderHandler) ([]byte, error)
+	RevertPeerState(header ValidatorStatsHeader) error
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
@@ -461,6 +483,13 @@ type VirtualMachinesContainerFactory interface {
 	Close() error
 	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
+}
+
+// MetaVirtualMachinesContainerFactory defines the extended functionality to create virtual machine containers for meta
+type MetaVirtualMachinesContainerFactory interface {
+	VirtualMachinesContainerFactory
+	CreateForGenesis() (VirtualMachinesContainer, error)
+	SystemSmartContractContainer() vm.SystemSCContainer
 }
 
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
@@ -665,8 +694,8 @@ type RewardsHandler interface {
 
 // EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
 type EndOfEpochEconomics interface {
-	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics) error
+	ComputeEndOfEpochEconomics(metaBlock data.MetaHeaderHandler) (*block.Economics, error)
+	VerifyRewardsPerBlock(metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics) error
 	IsInterfaceNil() bool
 }
 
@@ -1142,6 +1171,7 @@ type RoundNotifier interface {
 
 // EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
 type EnableRoundsHandler interface {
+	RoundConfirmed(round uint64, timestamp uint64)
 	IsDisableAsyncCallV1Enabled() bool
 	IsInterfaceNil() bool
 }
@@ -1329,7 +1359,7 @@ type PreProcessorExecutionInfoHandler interface {
 // ProcessedMiniBlocksTracker handles tracking of processed mini blocks
 type ProcessedMiniBlocksTracker interface {
 	SetProcessedMiniBlockInfo(metaBlockHash []byte, miniBlockHash []byte, processedMbInfo *processedMb.ProcessedMiniBlockInfo)
-	RemoveMetaBlockHash(metaBlockHash []byte)
+	RemoveHeaderHash(metaBlockHash []byte)
 	RemoveMiniBlockHash(miniBlockHash []byte)
 	GetProcessedMiniBlocksInfo(metaBlockHash []byte) map[string]*processedMb.ProcessedMiniBlockInfo
 	GetProcessedMiniBlockInfo(miniBlockHash []byte) (*processedMb.ProcessedMiniBlockInfo, []byte)
@@ -1359,5 +1389,54 @@ type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
+	IsInterfaceNil() bool
+}
+
+// IncomingHeaderSubscriber defines a subscriber to incoming headers
+type IncomingHeaderSubscriber interface {
+	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
+	CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error)
+	IsInterfaceNil() bool
+}
+
+// ExtraHeaderSigVerifierHandler defines the required properties of an extra header sig verifier for additional data
+type ExtraHeaderSigVerifierHandler interface {
+	VerifyAggregatedSignature(header data.HeaderHandler, multiSigVerifier crypto.MultiSigner, pubKeysSigners [][]byte) error
+	VerifyLeaderSignature(header data.HeaderHandler, leaderPubKey crypto.PublicKey) error
+	RemoveLeaderSignature(header data.HeaderHandler) error
+	RemoveAllSignatures(header data.HeaderHandler) error
+	Identifier() string
+	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger Debugger) error
+}
+
+// DebuggerBlockProcessor is the interface for block execution engine with debugger
+type DebuggerBlockProcessor interface {
+	BlockProcessor
+	ProcessDebuggerSetter
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	IsInterfaceNil() bool
+}
+
+// ScrProcessingDataHandler is an interface for scr data to be processed after validation checks
+type ScrProcessingDataHandler interface {
+	GetHash() []byte
+	GetSnapshot() int
+	GetSender() state.UserAccountHandler
+	GetDestination() state.UserAccountHandler
+}
+
+// SCProcessorHelperHandler is an interface for smart contract processor helper
+type SCProcessorHelperHandler interface {
+	GetAccountFromAddress(address []byte) (state.UserAccountHandler, error)
+	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 	IsInterfaceNil() bool
 }

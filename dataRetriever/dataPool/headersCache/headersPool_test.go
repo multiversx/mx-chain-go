@@ -95,6 +95,39 @@ func TestNewHeadersCacher_AddHeadersInCache(t *testing.T) {
 	require.Equal(t, expectedHeaders, headers)
 }
 
+func TestHeadersPool_AddHeaderInShard(t *testing.T) {
+	t.Parallel()
+
+	headersCacher, _ := headersCache.NewHeadersPool(
+		config.HeadersPoolConfig{
+			MaxHeadersPerShard:            1000,
+			NumElementsToRemoveOnEviction: 100},
+	)
+
+	nonce := uint64(4)
+	shardId := core.MainChainShardId
+	headers, hashes, err := headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	require.Equal(t, headersCache.ErrHeaderNotFound, err)
+	require.Empty(t, headers)
+	require.Empty(t, hashes)
+
+	headerHash1 := []byte("hash1")
+	headerHash2 := []byte("hash2")
+	testHdr1 := &block.Header{Nonce: nonce}
+	testHdr2 := &block.Header{Nonce: nonce, TimeStamp: 1}
+
+	headersCacher.AddHeaderInShard([]byte("nil header hash"), nil, shardId)
+	headersCacher.AddHeaderInShard(headerHash1, testHdr1, shardId)
+	headersCacher.AddHeaderInShard(headerHash2, testHdr2, shardId)
+
+	expectedHeaders := []data.HeaderHandler{testHdr1, testHdr2}
+	expectedHashes := [][]byte{headerHash1, headerHash2}
+	headers, hashes, err = headersCacher.GetHeadersByNonceAndShardId(nonce, shardId)
+	require.Nil(t, err)
+	require.Equal(t, expectedHashes, hashes)
+	require.Equal(t, expectedHeaders, headers)
+}
+
 func Test_RemoveHeaderByHash(t *testing.T) {
 	t.Parallel()
 

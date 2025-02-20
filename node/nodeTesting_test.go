@@ -422,9 +422,11 @@ func getDefaultStateComponents() *factoryMocks.StateComponentsMock {
 
 func getDefaultNetworkComponents() *factoryMock.NetworkComponentsMock {
 	return &factoryMock.NetworkComponentsMock{
-		Messenger:       &p2pmocks.MessengerStub{},
-		InputAntiFlood:  &mock.P2PAntifloodHandlerStub{},
-		OutputAntiFlood: &mock.P2PAntifloodHandlerStub{},
-		PeerBlackList:   &mock.PeerBlackListHandlerStub{},
+		Messenger:                        &p2pmocks.MessengerStub{},
+		InputAntiFlood:                   &mock.P2PAntifloodHandlerStub{},
+		OutputAntiFlood:                  &mock.P2PAntifloodHandlerStub{},
+		PeerBlackList:                    &mock.PeerBlackListHandlerStub{},
+		PubKeyCacherField:                &testscommon.TimeCacheStub{},
+		FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
 	}
 }

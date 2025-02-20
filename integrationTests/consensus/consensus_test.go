@@ -12,10 +12,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
@@ -52,6 +55,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	consensusModel consensus.ConsensusModel,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -63,6 +67,7 @@ func initNodesAndTest(
 		roundTime,
 		consensusType,
 		numKeysOnEachNode,
+		consensusModel,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -79,14 +84,14 @@ func initNodesAndTest(
 					header data.HeaderHandler,
 					body data.BodyHandler,
 					haveTime func() time.Duration,
-				) error {
+				) (data.HeaderHandler, data.BodyHandler, error) {
 					fmt.Println(
 						"process block invalid ",
 						header.GetRound(),
 						header.GetNonce(),
 						getPkEncoded(nodes[shardID][iCopy].NodeKeys.Pk),
 					)
-					return process.ErrBlockHashDoesNotMatch
+					return nil, nil, process.ErrBlockHashDoesNotMatch
 				}
 				nodes[shardID][i].BlockProcessor.CreateBlockCalled = func(
 					header data.HeaderHandler,
@@ -101,9 +106,15 @@ func initNodesAndTest(
 	return nodes
 }
 
-func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mutex *sync.Mutex, nonceForRoundMap map[uint64]uint64, totalCalled *int) error {
-	for _, n := range nodes {
+func startNodesWithCommitBlock(
+	nodes []*integrationTests.TestConsensusNode,
+	mutex *sync.Mutex,
+	nonceForRoundMap map[uint64]uint64,
+	totalCalled *int,
+) error {
+	for idx, n := range nodes {
 		nCopy := n
+		i := idx
 		n.BlockProcessor.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 			nCopy.BlockProcessor.NumCommitBlockCalled++
 			headerHash, _ := core.CalculateHash(
@@ -120,6 +131,13 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			nonceForRoundMap[header.GetRound()] = header.GetNonce()
 			*totalCalled += 1
 			mutex.Unlock()
+
+			log.Debug("BlockProcessor.CommitBlockCalled",
+				"node index", i,
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"shard", header.GetShardID(),
+			)
 
 			return nil
 		}
@@ -157,6 +175,9 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
 			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:       n.Node.IsInImportMode(),
+			RunTypeComponents:    n.Node.GetRunTypeComponents(),
+			SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
+			ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
 		}
 
 		consensusFactory, err := consensusComp.NewConsensusComponentsFactory(consensusArgs)
@@ -215,7 +236,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4 * numKeysOnEachNode)
@@ -229,7 +250,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		"consensusSize", consensusSize,
 	)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode, consensusModel)
 
 	defer func() {
 		for shardID := range nodes {
@@ -270,29 +291,37 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 	}
 }
 
-func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
+func TestConsensusBLSFullTestSingleKeysConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 1)
+	runFullConsensusTest(t, blsConsensusType, 1, consensus.ConsensusModelV1)
 }
 
-func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
+func TestConsensusBLSFullTestSingleKeysConsensusModelV2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 5)
+	runFullConsensusTest(t, blsConsensusType, 1, consensus.ConsensusModelV2)
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
+func TestConsensusBLSFullTestMultiKeysConsensusModelV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runFullConsensusTest(t, blsConsensusType, 5, consensus.ConsensusModelV1)
+}
+
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, consensusModel)
 
 	defer func() {
 		for shardID := range nodes {
@@ -325,12 +354,20 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	}
 }
 
-func TestConsensusBLSNotEnoughValidators(t *testing.T) {
+func TestConsensusBLSNotEnoughValidatorsConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	runConsensusWithNotEnoughValidators(t, blsConsensusType)
+	runConsensusWithNotEnoughValidators(t, blsConsensusType, consensus.ConsensusModelV1)
+}
+
+func TestConsensusBLSNotEnoughValidatorsConsensusModelV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runConsensusWithNotEnoughValidators(t, blsConsensusType, consensus.ConsensusModelV2)
 }
 
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {

@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -170,7 +171,7 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, nil, err
 	}
 
-	err = micf.generateTrieNodesInterceptors()
+	err = micf.generateValidatorAndAccountTrieNodesInterceptors(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -190,7 +191,7 @@ func (micf *metaInterceptorsContainerFactory) Create() (process.InterceptorsCont
 		return nil, nil, err
 	}
 
-	err = micf.generateValidatorInfoInterceptor()
+	err = micf.generateValidatorInfoInterceptor(common.ValidatorInfoTopic)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -278,31 +279,6 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 	}
 
 	return micf.createTopicAndAssignHandler(topic, interceptor, true)
-}
-
-func (micf *metaInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
-	keys := make([]string, 0)
-	trieInterceptors := make([]process.Interceptor, 0)
-
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	interceptor, err := micf.createOneTrieNodesInterceptor(identifierTrieNodes)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTrieNodes)
-	trieInterceptors = append(trieInterceptors, interceptor)
-
-	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	interceptor, err = micf.createOneTrieNodesInterceptor(identifierTrieNodes)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTrieNodes)
-	trieInterceptors = append(trieInterceptors, interceptor)
-
-	return micf.addInterceptorsToContainers(keys, trieInterceptors)
 }
 
 //------- Reward transactions interceptors

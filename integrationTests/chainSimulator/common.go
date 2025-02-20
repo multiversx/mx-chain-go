@@ -61,6 +61,14 @@ type Account struct {
 	Nonce  uint64
 }
 
+// GetSysAccBytesAddress will return the system account bytes address
+func GetSysAccBytesAddress(t *testing.T, nodeHandler process.NodeHandler) []byte {
+	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+	require.Nil(t, err)
+
+	return addressBytes
+}
+
 // GetSysContactDeployAddressBytes will return the system contract deploy address
 func GetSysContactDeployAddressBytes(t *testing.T, nodeHandler process.NodeHandler) []byte {
 	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
@@ -360,6 +368,24 @@ func SetEsdtInWallet(
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
+}
+
+// IssueSemiFungible will issue a semi fungible token
+func IssueSemiFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	sftName string,
+	sftTicker string,
+) string {
+	issueArgs := "issueSemiFungible" +
+		"@" + hex.EncodeToString([]byte(sftName)) +
+		"@" + hex.EncodeToString([]byte(sftTicker))
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+
+	return GetIssuedEsdtIdentifier(t, cs, sftTicker, core.SemiFungibleESDT)
 }
 
 // RegisterAndSetAllRoles will issue an esdt collection with all roles enabled

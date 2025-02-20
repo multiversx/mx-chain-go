@@ -1,30 +1,34 @@
 package chainSimulator
 
 import (
-	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+
+	chainData "github.com/multiversx/mx-chain-core-go/data"
 )
 
 // NodeHandlerMock -
 type NodeHandlerMock struct {
-	GetProcessComponentsCalled    func() factory.ProcessComponentsHolder
-	GetChainHandlerCalled         func() chainData.ChainHandler
-	GetBroadcastMessengerCalled   func() consensus.BroadcastMessenger
-	GetShardCoordinatorCalled     func() sharding.Coordinator
-	GetCryptoComponentsCalled     func() factory.CryptoComponentsHolder
-	GetCoreComponentsCalled       func() factory.CoreComponentsHolder
-	GetDataComponentsCalled       func() factory.DataComponentsHandler
-	GetStateComponentsCalled      func() factory.StateComponentsHolder
-	GetFacadeHandlerCalled        func() shared.FacadeHandler
-	GetStatusCoreComponentsCalled func() factory.StatusCoreComponentsHolder
-	SetKeyValueForAddressCalled   func(addressBytes []byte, state map[string]string) error
-	SetStateForAddressCalled      func(address []byte, state *dtos.AddressState) error
-	RemoveAccountCalled           func(address []byte) error
-	CloseCalled                   func() error
+	GetProcessComponentsCalled     func() factory.ProcessComponentsHolder
+	GetChainHandlerCalled          func() chainData.ChainHandler
+	GetBroadcastMessengerCalled    func() consensus.BroadcastMessenger
+	GetShardCoordinatorCalled      func() sharding.Coordinator
+	GetCryptoComponentsCalled      func() factory.CryptoComponentsHolder
+	GetCoreComponentsCalled        func() factory.CoreComponentsHolder
+	GetDataComponentsCalled        func() factory.DataComponentsHandler
+	GetStateComponentsCalled       func() factory.StateComponentsHolder
+	GetFacadeHandlerCalled         func() shared.FacadeHandler
+	GetStatusCoreComponentsCalled  func() factory.StatusCoreComponentsHolder
+	SetKeyValueForAddressCalled    func(addressBytes []byte, state map[string]string) error
+	SetStateForAddressCalled       func(address []byte, state *dtos.AddressState) error
+	RemoveAccountCalled            func(address []byte) error
+	GetRunTypeComponentsCalled     func() factory.RunTypeComponentsHolder
+	GetIncomingHeaderHandlerCalled func() process.IncomingHeaderSubscriber
+	CloseCalled                    func() error
 }
 
 // ForceChangeOfEpoch -
@@ -108,6 +112,22 @@ func (mock *NodeHandlerMock) GetFacadeHandler() shared.FacadeHandler {
 func (mock *NodeHandlerMock) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	if mock.GetStatusCoreComponentsCalled != nil {
 		return mock.GetStatusCoreComponentsCalled()
+	}
+	return nil
+}
+
+// GetRunTypeComponents -
+func (mock *NodeHandlerMock) GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	if mock.GetRunTypeComponentsCalled != nil {
+		return mock.GetRunTypeComponentsCalled()
+	}
+	return nil
+}
+
+// GetIncomingHeaderSubscriber -
+func (mock *NodeHandlerMock) GetIncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
+	if mock.GetStatusCoreComponentsCalled != nil {
+		return mock.GetIncomingHeaderHandlerCalled()
 	}
 	return nil
 }

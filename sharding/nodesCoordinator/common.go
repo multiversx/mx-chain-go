@@ -10,6 +10,12 @@ import (
 
 var log = logger.GetOrCreate("sharding/nodesCoordinator")
 
+// NodesCoordinatorWithRaterArgs is a struct placeholder for necessary arguments to create a nodes coordinator with rater
+type NodesCoordinatorWithRaterArgs struct {
+	ArgNodesCoordinator ArgNodesCoordinator
+	ChanceComputer      ChanceComputer
+}
+
 func computeStartIndexAndNumAppearancesForValidator(expEligibleList []uint32, idx int64) (int64, int64) {
 	val := expEligibleList[idx]
 	startIdx := int64(0)

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -67,6 +68,8 @@ type headerDataForValidator struct {
 	prevRandSeed []byte
 }
 
+type extractMiniBlockHashesCrossFromMeFunc func(header data.HeaderHandler) map[string]map[string]struct{}
+
 type delayedBlockBroadcaster struct {
 	alarm                      timersScheduler
 	interceptorsContainer      process.InterceptorsContainer
@@ -87,6 +90,26 @@ type delayedBlockBroadcaster struct {
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
 func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBlockBroadcaster, error) {
+	dbb, err := baseCreateDelayedBroadcaster(args)
+	if err != nil {
+		return nil, err
+	}
+
+	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
+	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dbb.registerMiniBlockInterceptorCallback(dbb.interceptedMiniBlockData)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbb, nil
+}
+
+func baseCreateDelayedBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBlockBroadcaster, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, spos.ErrNilShardCoordinator
 	}
@@ -105,7 +128,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, err
 	}
 
-	dbb := &delayedBlockBroadcaster{
+	return &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
@@ -118,20 +141,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		mutDataForBroadcast:        sync.RWMutex{},
 		cacheHeaders:               cacheHeaders,
 		mutHeadersCache:            sync.RWMutex{},
-	}
-
-	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
-	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dbb.registerMiniBlockInterceptorCallback(dbb.interceptedMiniBlockData)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbb, nil
+	}, nil
 }
 
 // SetLeaderData sets the data for consensus leader delayed broadcast
@@ -209,6 +219,10 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeader
 
 // SetValidatorData sets the data for consensus validator delayed broadcast
 func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroadcastData) error {
+	return dbb.setValidatorData(broadcastData, dbb.extractMiniBlockHashesCrossFromMe)
+}
+
+func (dbb *delayedBlockBroadcaster) setValidatorData(broadcastData *delayedBroadcastData, extractMiniBlockHashesCrossFromMe extractMiniBlockHashesCrossFromMeFunc) error {
 	if broadcastData == nil {
 		return spos.ErrNilParameter
 	}
@@ -221,7 +235,7 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 	)
 
 	dbb.mutDataForBroadcast.Lock()
-	broadcastData.miniBlockHashes = dbb.extractMiniBlockHashesCrossFromMe(broadcastData.header)
+	broadcastData.miniBlockHashes = extractMiniBlockHashesCrossFromMe(broadcastData.header)
 	dbb.valBroadcastData = append(dbb.valBroadcastData, broadcastData)
 
 	if len(dbb.valBroadcastData) > int(dbb.maxValidatorDelayCacheSize) {

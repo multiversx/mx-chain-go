@@ -2,7 +2,7 @@ package blockAPI
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/transaction/status"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -22,7 +22,7 @@ type ArgAPIBlockProcessor struct {
 	Uint64ByteSliceConverter     typeConverters.Uint64ByteSliceConverter
 	HistoryRepo                  dblookupext.HistoryRepository
 	APITransactionHandler        APITransactionHandler
-	StatusComputer               transaction.StatusComputerHandler
+	StatusComputer               status.StatusComputerHandler
 	Hasher                       hashing.Hasher
 	AddressPubkeyConverter       core.PubkeyConverter
 	LogsFacade                   logsFacade

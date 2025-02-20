@@ -3,18 +3,13 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math"
 	"math/big"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -23,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	vmFactory "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -44,6 +40,13 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -304,7 +307,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Epoch:     arg.StartEpochNum,
 		TimeStamp: arg.GenesisTime,
 	}
-	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
+	enableEpochsHandler, err := arg.EnableEpochsFactory.CreateEnableEpochsHandler(enableEpochsConfig, epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -343,12 +346,12 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, err := arg.RunTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
 
-	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
+	_, virtualMachineFactory, err := arg.RunTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(vmFactory.ArgsVmContainerFactory{
 		BlockChainHook:      blockChainHookImpl,
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           arg.Economics,
@@ -364,13 +367,17 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ShardCoordinator:    arg.ShardCoordinator,
 		EnableEpochsHandler: enableEpochsHandler,
 		NodesCoordinator:    &disabled.NodesCoordinator{},
-	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	vmContainer, err := virtualMachineFactory.CreateForGenesis()
+	metaVMFactory, castOk := virtualMachineFactory.(process.MetaVirtualMachinesContainerFactory)
+	if !castOk {
+		return nil, fmt.Errorf("%w in metaGenesisBlockCreator when trying to cast virtualMachineFactory to MetaVirtualMachinesContainerFactory", process.ErrWrongTypeAssertion)
+	}
+
+	vmContainer, err := metaVMFactory.CreateForGenesis()
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +449,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Hasher:              arg.Core.Hasher(),
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
-		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
+		BlockChainHook:      metaVMFactory.BlockChainHookImpl(),
 		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
@@ -459,9 +466,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		IsGenesisProcessing: true,
 		WasmVMChangeLocker:  &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:      txcache.NewDisabledCache(),
+		EpochNotifier:       epochNotifier,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -491,28 +499,30 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
-	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Data.StorageService(),
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Data.Datapool(),
-		arg.Accounts,
-		disabledRequestHandler,
-		txProcessor,
-		scProcessorProxy,
-		arg.Economics,
-		gasHandler,
-		disabledBlockTracker,
-		arg.Core.AddressPubKeyConverter(),
-		disabledBlockSizeComputationHandler,
-		disabledBalanceComputationHandler,
-		enableEpochsHandler,
-		txTypeHandler,
-		disabledScheduledTxsExecutionHandler,
-		disabledProcessedMiniBlocksTracker,
-		arg.TxExecutionOrderHandler,
-	)
+	argsPreProc := metachain.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             arg.ShardCoordinator,
+		Store:                        arg.Data.StorageService(),
+		Marshaller:                   arg.Core.InternalMarshalizer(),
+		Hasher:                       arg.Core.Hasher(),
+		DataPool:                     arg.Data.Datapool(),
+		Accounts:                     arg.Accounts,
+		RequestHandler:               disabledRequestHandler,
+		TxProcessor:                  txProcessor,
+		ScResultProcessor:            scProcessorProxy,
+		EconomicsFee:                 arg.Economics,
+		GasHandler:                   gasHandler,
+		BlockTracker:                 disabledBlockTracker,
+		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
+		BlockSizeComputation:         disabledBlockSizeComputationHandler,
+		BalanceComputation:           disabledBalanceComputationHandler,
+		EnableEpochsHandler:          enableEpochsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		TxPreProcessorCreator:        arg.RunTypeComponents.TxPreProcessorCreator(),
+	}
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}
@@ -567,7 +577,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmContainer,
 		EconomicsFee:             arg.Economics,
-		BlockChainHook:           virtualMachineFactory.BlockChainHookImpl(),
+		BlockChainHook:           metaVMFactory.BlockChainHookImpl(),
 		MainBlockChain:           arg.Data.Blockchain(),
 		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       &sync.RWMutex{},
@@ -587,8 +597,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	return &genesisProcessors{
 		txCoordinator:  txCoordinator,
-		systemSCs:      virtualMachineFactory.SystemSmartContractContainer(),
-		blockchainHook: virtualMachineFactory.BlockChainHookImpl(),
+		systemSCs:      metaVMFactory.SystemSmartContractContainer(),
+		blockchainHook: metaVMFactory.BlockChainHookImpl(),
 		txProcessor:    txProcessor,
 		scProcessor:    scProcessorProxy,
 		scrProcessor:   scProcessorProxy,

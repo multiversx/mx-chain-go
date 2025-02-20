@@ -70,7 +70,12 @@ func NewInterceptedShardHeaderDataFactory(argument *ArgInterceptedDataFactory) (
 
 // Create creates instances of InterceptedData by unmarshalling provided buffer
 func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.InterceptedData, error) {
-	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
+	arg := ishdf.createArgsInterceptedBlockHeader(buff)
+	return interceptedBlocks.NewInterceptedHeader(arg)
+}
+
+func (ishdf *interceptedShardHeaderDataFactory) createArgsInterceptedBlockHeader(buff []byte) *interceptedBlocks.ArgInterceptedBlockHeader {
+	return &interceptedBlocks.ArgInterceptedBlockHeader{
 		HdrBuff:                 buff,
 		Marshalizer:             ishdf.marshalizer,
 		Hasher:                  ishdf.hasher,
@@ -80,8 +85,6 @@ func (ishdf *interceptedShardHeaderDataFactory) Create(buff []byte) (process.Int
 		ValidityAttester:        ishdf.validityAttester,
 		EpochStartTrigger:       ishdf.epochStartTrigger,
 	}
-
-	return interceptedBlocks.NewInterceptedHeader(arg)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

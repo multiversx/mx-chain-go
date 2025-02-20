@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // StatusComponentsStub -
@@ -43,6 +44,19 @@ func (scs *StatusComponentsStub) SoftwareVersionChecker() statistics.SoftwareVer
 // ManagedPeersMonitor -
 func (scs *StatusComponentsStub) ManagedPeersMonitor() common.ManagedPeersMonitor {
 	return scs.ManagedPeersMonitorField
+}
+
+func (scs *StatusComponentsStub) SetForkDetector(forkDetector process.ForkDetector) error {
+	return nil
+}
+
+func (scs *StatusComponentsStub) StartPolling() error {
+	return nil
+}
+
+// String -
+func (scs *StatusComponentsStub) String() string {
+	return "StatusComponentsMock"
 }
 
 // IsInterfaceNil -

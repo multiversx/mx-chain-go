@@ -11,6 +11,17 @@ startValidators() {
   fi
 }
 
+startSovereignValidators() {
+  setTerminalSession "multiversx-nodes"
+  setTerminalLayout "tiled"
+  setWorkdirForNextCommands "$TESTNETDIR/node"
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+    iterateOverSovereignValidatorsMultiKey startSingleValidator
+  else
+    iterateOverSovereignValidators startSingleValidator
+  fi
+}
+
 pauseValidators() {
   iterateOverValidators pauseSingleValidator
 }
@@ -50,6 +61,23 @@ iterateOverValidators() {
   done
 }
 
+iterateOverSovereignValidators() {
+  local callback=$1
+  local VALIDATOR_INDEX=$META_VALIDATORCOUNT
+
+  # Iterate over Shard Validators
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_VALIDATORCOUNT); do
+      if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+        $callback $SHARD $VALIDATOR_INDEX
+        sleep 0.5
+      fi
+      (( VALIDATOR_INDEX++ ))
+    done
+  done
+}
+
 iterateOverValidatorsMultiKey() {
   local callback=$1
   local VALIDATOR_INDEX=0
@@ -71,6 +99,16 @@ iterateOverValidatorsMultiKey() {
     sleep 0.5
   fi
    (( VALIDATOR_INDEX++ ))
+}
+
+iterateOverSovereignValidatorsMultiKey() {
+  local callback=$1
+  local VALIDATOR_INDEX=0
+  local SHARD="0"
+  if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+    $callback $SHARD $VALIDATOR_INDEX
+    sleep 0.5
+  fi
 }
 
 startSingleValidator() {
@@ -151,9 +189,9 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/$DIR_NAME$VALIDATOR_INDEX
 
   local node_command="./node \
-        -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
-        -sk-index $KEY_INDEX \
-        -working-directory $WORKING_DIR -config ./config/config_validator.toml"
+        --port $PORT --profile-mode --log-save --log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service --rest-api-interface localhost:$RESTAPIPORT \
+        --sk-index $KEY_INDEX \
+        --working-directory $WORKING_DIR --config-external ./config/external_validator.toml --config ./config/config_validator.toml"
 
   if [ -n "$NODE_NICENESS" ]
   then

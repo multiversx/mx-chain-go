@@ -4,21 +4,70 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory"
 	coreComp "github.com/multiversx/mx-chain-go/factory/core"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/stretchr/testify/require"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 )
 
-func TestNewCoreComponentsFactory_OkValuesShouldWork(t *testing.T) {
+func TestNewCoreComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetCoreArgs()
-	ccf, _ := coreComp.NewCoreComponentsFactory(args)
+	t.Run("should work", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.NotNil(t, ccf)
+		require.Nil(t, err)
+	})
+	t.Run("nil run type core components, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		args.RunTypeCoreComponents = nil
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilRunTypeCoreComponents, err)
+	})
+	t.Run("nil genesis nodes setup factory, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		rtCoreMock := getRunTypeCoreComponentsMock(componentsMock.GetRunTypeCoreComponents())
+		rtCoreMock.GenesisNodesSetupFactory = nil
+		args.RunTypeCoreComponents = rtCoreMock
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, sharding.ErrNilGenesisNodesSetupFactory, err)
+	})
+	t.Run("nil ratings data factory, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		rtCoreMock := getRunTypeCoreComponentsMock(componentsMock.GetRunTypeCoreComponents())
+		rtCoreMock.RatingsDataFactory = nil
+		args.RunTypeCoreComponents = rtCoreMock
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilRatingsDataFactory, err)
+	})
+	t.Run("nil enable epochs factory, should return error", func(t *testing.T) {
+		args := componentsMock.GetCoreArgs()
+		rtCoreMock := getRunTypeCoreComponentsMock(componentsMock.GetRunTypeCoreComponents())
+		rtCoreMock.EnableEpochsFactory = nil
+		args.RunTypeCoreComponents = rtCoreMock
+		ccf, err := coreComp.NewCoreComponentsFactory(args)
+		require.Nil(t, ccf)
+		require.Equal(t, enablers.ErrNilEnableEpochsFactory, err)
+	})
+}
 
-	require.NotNil(t, ccf)
+func getRunTypeCoreComponentsMock(rtc factory.RunTypeCoreComponentsHolder) *genesisMocks.RunTypeCoreComponentsStub {
+	return &genesisMocks.RunTypeCoreComponentsStub{
+		GenesisNodesSetupFactory: rtc.GenesisNodesSetupFactoryCreator(),
+		RatingsDataFactory:       rtc.RatingsDataFactoryCreator(),
+		EnableEpochsFactory:      rtc.EnableEpochsFactoryCreator(),
+	}
 }
 
 func TestCoreComponentsFactory_CreateCoreComponentsNoHasherConfigShouldErr(t *testing.T) {

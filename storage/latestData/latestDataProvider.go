@@ -10,13 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/epochStart/metachain"
-	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
@@ -50,10 +44,15 @@ type latestDataProvider struct {
 	parentDir             string
 	defaultEpochString    string
 	defaultShardString    string
+	epochStartRoundLoader epochStartRoundLoaderHandler
 }
 
 // NewLatestDataProvider returns a new instance of latestDataProvider
 func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, error) {
+	return newLatestDataProvider(args, newEpochStartRoundLoader())
+}
+
+func newLatestDataProvider(args ArgsLatestDataProvider, epochStartRoundLoader epochStartRoundLoaderHandler) (*latestDataProvider, error) {
 	if check.IfNil(args.DirectoryReader) {
 		return nil, storage.ErrNilDirectoryReader
 	}
@@ -68,6 +67,7 @@ func NewLatestDataProvider(args ArgsLatestDataProvider) (*latestDataProvider, er
 		defaultShardString:    args.DefaultShardString,
 		defaultEpochString:    args.DefaultEpochString,
 		bootstrapDataProvider: args.BootstrapDataProvider,
+		epochStartRoundLoader: epochStartRoundLoader,
 	}, nil
 }
 
@@ -206,7 +206,7 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 		if err != nil {
 			return &iteratedShardData{}
 		}
-		epochStartRound, err := ldp.loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
+		epochStartRound, err := ldp.epochStartRoundLoader.loadEpochStartRound(shardID, bootstrapData.EpochStartTriggerConfigKey, storer)
 		if err != nil {
 			return &iteratedShardData{}
 		}
@@ -220,38 +220,6 @@ func (ldp *latestDataProvider) loadDataForShard(currentHighestRound int64, shard
 	}
 
 	return &iteratedShardData{}
-}
-
-// loadEpochStartRound will return the epoch start round from the bootstrap unit
-func (ldp *latestDataProvider) loadEpochStartRound(
-	shardID uint32,
-	key []byte,
-	storer storage.Storer,
-) (uint64, error) {
-	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
-	trigData, err := storer.Get(trigInternalKey)
-	if err != nil {
-		return 0, err
-	}
-
-	var state *block.MetaTriggerRegistry
-	marshaller := &marshal.GogoProtoMarshalizer{}
-	if shardID == core.MetachainShardId {
-		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
-		if err != nil {
-			return 0, err
-		}
-
-		return state.CurrEpochStartRound, nil
-	}
-
-	var trigHandler data.TriggerRegistryHandler
-	trigHandler, err = shardchain.UnmarshalTrigger(marshaller, trigData)
-	if err != nil {
-		return 0, err
-	}
-
-	return trigHandler.GetEpochStartRound(), nil
 }
 
 // GetLastEpochFromDirNames returns the last epoch found in storage directory

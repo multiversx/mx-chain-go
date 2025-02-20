@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,6 +20,7 @@ func initNodesWithTestSigner(
 	numInvalid uint32,
 	roundTime uint64,
 	consensusType string,
+	consensusModel consensus.ConsensusModel,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -30,6 +32,7 @@ func initNodesWithTestSigner(
 		roundTime,
 		consensusType,
 		1,
+		consensusModel,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -62,11 +65,23 @@ func initNodesWithTestSigner(
 	return nodes
 }
 
-func TestConsensusWithInvalidSigners(t *testing.T) {
+func TestConsensusWithInvalidSignersConsensusModelV1(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	runConsensusWithInvalidSigners(t, consensus.ConsensusModelV1)
+}
+
+func TestConsensusWithInvalidSignersConsensusModelV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	runConsensusWithInvalidSigners(t, consensus.ConsensusModelV2)
+}
+
+func runConsensusWithInvalidSigners(t *testing.T, consensusModel consensus.ConsensusModel) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
@@ -74,7 +89,7 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
-	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType)
+	nodes := initNodesWithTestSigner(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, blsConsensusType, consensusModel)
 
 	defer func() {
 		for shardID := range nodes {

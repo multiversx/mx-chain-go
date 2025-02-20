@@ -4,13 +4,15 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
@@ -453,8 +455,8 @@ func TestCheckMiniBlocksHeaders_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	err1 := checkMiniBlocksHeaders(nil, shardCoordinator)
-	err2 := checkMiniBlocksHeaders(make([]data.MiniBlockHeaderHandler, 0), shardCoordinator)
+	err1 := checkMiniBlocksHeaders(nil, shardCoordinator, core.MainChainShardId)
+	err2 := checkMiniBlocksHeaders(make([]data.MiniBlockHeaderHandler, 0), shardCoordinator, core.MainChainShardId)
 
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
@@ -473,7 +475,7 @@ func TestCheckMiniBlocksHeaders_WrongMiniblockSenderShardIdShouldErr(t *testing.
 		Type:            0,
 	}
 
-	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
+	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator, core.MainChainShardId)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -491,7 +493,7 @@ func TestCheckMiniBlocksHeaders_WrongMiniblockReceiverShardIdShouldErr(t *testin
 		Type:            0,
 	}
 
-	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
+	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator, core.MainChainShardId)
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -509,7 +511,7 @@ func TestCheckMiniBlocksHeaders_ReservedPopulatedShouldErr(t *testing.T) {
 		Reserved:        []byte("rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"),
 	}
 
-	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
+	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator, core.MainChainShardId)
 
 	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
@@ -527,7 +529,7 @@ func TestCheckMiniBlocksHeaders_ReservedPopulatedCorrectly(t *testing.T) {
 		Reserved:        []byte("r"),
 	}
 
-	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
+	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator, core.MainChainShardId)
 
 	assert.Nil(t, err)
 }
@@ -544,7 +546,7 @@ func TestCheckMiniBlocksHeaders_OkValsShouldWork(t *testing.T) {
 		Type:            0,
 	}
 
-	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
+	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator, core.MainChainShardId)
 
 	assert.Nil(t, err)
 }

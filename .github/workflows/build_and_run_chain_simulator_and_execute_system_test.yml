@@ -6,6 +6,7 @@ on:
       - 'main'
       - 'master'
       - 'rc/*'
+      - 'feat/chain-go-sdk'
   workflow_dispatch:
   issue_comment:
     types: [created]
@@ -45,6 +46,9 @@ jobs:
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
           elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.base.ref }}" == "feat/chain-go-sdk" ]]; then
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
           else

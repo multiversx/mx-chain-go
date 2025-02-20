@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -19,7 +20,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -81,6 +84,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},
+		VMContextCreatorHandler: &vmContext.VMContextCreatorStub{},
 	}
 }
 
@@ -264,6 +268,18 @@ func TestNewVMContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 	assert.True(t, errors.Is(err, vm.ErrNilEnableEpochsHandler))
 }
 
+func TestNewVMContainerFactory_NilVMContextCreator(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.VMContextCreatorHandler = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	require.True(t, check.IfNil(vmf))
+	require.True(t, errors.Is(err, errorsCommon.ErrNilVMContextCreator))
+}
+
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
 	t.Parallel()
 
@@ -392,6 +408,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},
+		VMContextCreatorHandler: systemSmartContracts.NewVMContextCreator(),
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

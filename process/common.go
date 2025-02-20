@@ -28,6 +28,12 @@ var log = logger.GetOrCreate("process")
 
 const VMStoragePrefix = "VM@"
 
+//TODO: If sovereign chain will have V2, the mechanism of getting header version when a new headers is created, should be like
+//the one used in main chain through versionedHeaderFactory.Create
+
+// SovereignHeaderVersion defines the software version of the new sovereign header created
+var SovereignHeaderVersion = []byte("S1")
+
 // ShardedCacheSearchMethod defines the algorithm for searching through a sharded cache
 type ShardedCacheSearchMethod byte
 
@@ -105,6 +111,30 @@ func GetMetaHeader(
 	return hdr, nil
 }
 
+// GetSovereignChainHeader gets the header, which is associated with the given hash, from pool or storage
+func GetSovereignChainHeader(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (data.HeaderHandler, error) {
+
+	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, err := GetCommonHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		hdr, err = GetSovereignChainHeaderFromStorage(hash, marshalizer, storageService)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return hdr, nil
+}
+
 // GetShardHeaderFromPool gets the header, which is associated with the given hash, from pool
 func GetShardHeaderFromPool(
 	hash []byte,
@@ -124,6 +154,25 @@ func GetShardHeaderFromPool(
 	return hdr, nil
 }
 
+// GetCommonHeaderFromPool gets the header, which is associated with the given hash, from pool
+func GetCommonHeaderFromPool(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+) (data.HeaderHandler, error) {
+
+	obj, err := getHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, ok := obj.(data.HeaderHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return hdr, nil
+}
+
 // GetMetaHeaderFromPool gets the header, which is associated with the given hash, from pool
 func GetMetaHeaderFromPool(
 	hash []byte,
@@ -136,6 +185,25 @@ func GetMetaHeaderFromPool(
 	}
 
 	hdr, ok := obj.(*block.MetaBlock)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return hdr, nil
+}
+
+// GetExtendedShardHeaderFromPool gets the header, which is associated with the given hash, from pool
+func GetExtendedShardHeaderFromPool(
+	hash []byte,
+	headersCacher dataRetriever.HeadersPool,
+) (*block.ShardHeaderExtended, error) {
+
+	obj, err := getHeaderFromPool(hash, headersCacher)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, ok := obj.(*block.ShardHeaderExtended)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -176,6 +244,26 @@ func GetShardHeaderFromStorage(
 	return hdr, nil
 }
 
+// GetSovereignChainHeaderFromStorage gets the header, which is associated with the given hash, from storage
+func GetSovereignChainHeaderFromStorage(
+	hash []byte,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (data.HeaderHandler, error) {
+
+	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.BlockHeaderUnit, hash, marshalizer, storageService)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr, err := UnmarshalSovereignChainHeader(marshalizer, buffHdr)
+	if err != nil {
+		return nil, ErrUnmarshalWithoutSuccess
+	}
+
+	return hdr, nil
+}
+
 // GetMetaHeaderFromStorage gets the header, which is associated with the given hash, from storage
 func GetMetaHeaderFromStorage(
 	hash []byte,
@@ -195,6 +283,51 @@ func GetMetaHeaderFromStorage(
 	}
 
 	return hdr, nil
+}
+
+// GetExtendedShardHeaderFromStorage gets the extended shard header, which is associated with the given hash, from storage
+func GetExtendedShardHeaderFromStorage(
+	hash []byte,
+	marshaller marshal.Marshalizer,
+	storageService dataRetriever.StorageService,
+) (*block.ShardHeaderExtended, error) {
+	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.ExtendedShardHeadersUnit, hash, marshaller, storageService)
+	if err != nil {
+		return nil, err
+	}
+
+	hdr := &block.ShardHeaderExtended{}
+	err = marshaller.Unmarshal(hdr, buffHdr)
+	if err != nil {
+		return nil, ErrUnmarshalWithoutSuccess
+	}
+
+	return hdr, nil
+}
+
+// GetExtendedHeaderFromStorageWithNonce method returns an extended block header from storage with a given nonce
+func GetExtendedHeaderFromStorageWithNonce(
+	nonce uint64,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshaller marshal.Marshalizer,
+) (*block.ShardHeaderExtended, []byte, error) {
+	hash, err := GetHeaderHashFromStorageWithNonce(
+		nonce,
+		storageService,
+		uint64Converter,
+		marshaller,
+		dataRetriever.ExtendedShardHeadersNonceHashDataUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	hdr, err := GetExtendedShardHeaderFromStorage(hash, marshaller, storageService)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return hdr, hash, nil
 }
 
 // GetMarshalizedHeaderFromStorage gets the marshalized header, which is associated with the given hash, from storage
@@ -794,9 +927,31 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 	return header, nil
 }
 
+// UnmarshalSovereignChainHeader unmarshalls a sovereign chain header
+func UnmarshalSovereignChainHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.ShardHeaderHandler, error) {
+	sovereignChainHeader := &block.SovereignChainHeader{}
+	err := marshalizer.Unmarshal(sovereignChainHeader, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+	if check.IfNil(sovereignChainHeader.Header) {
+		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
+	}
+	if !bytes.Equal(sovereignChainHeader.GetSoftwareVersion(), SovereignHeaderVersion) {
+		return nil, ErrWrongHeaderVersion
+	}
+
+	return sovereignChainHeader, nil
+}
+
 // UnmarshalShardHeader unmarshalls a shard header
 func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
 	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	hdr, err = UnmarshalSovereignChainHeader(marshalizer, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
@@ -814,6 +969,9 @@ func UnmarshalShardHeaderV2(marshalizer marshal.Marshalizer, hdrBuff []byte) (da
 	}
 	if check.IfNil(hdrV2.Header) {
 		return nil, fmt.Errorf("%w while checking inner header", ErrNilHeaderHandler)
+	}
+	if bytes.Equal(hdrV2.GetSoftwareVersion(), SovereignHeaderVersion) {
+		return nil, ErrWrongHeaderVersion
 	}
 
 	return hdrV2, nil

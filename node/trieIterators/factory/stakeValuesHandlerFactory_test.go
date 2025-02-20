@@ -1,45 +1,38 @@
-package factory
+package factory_test
 
 import (
 	"fmt"
-	"sync"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/node/mock"
-	"github.com/multiversx/mx-chain-go/node/trieIterators"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateTotalStakedValueHandler_Disabled(t *testing.T) {
+func TestNewTotalStakedValueProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	args := trieIterators.ArgTrieIteratorProcessor{
-		ShardID: 0,
-	}
-
-	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
-	require.Nil(t, err)
-	assert.Equal(t, "*disabled.stakeValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
+	totalStakedValueHandlerFactory := trieIteratorsFactory.NewTotalStakedListProcessorFactory()
+	require.False(t, totalStakedValueHandlerFactory.IsInterfaceNil())
 }
 
-func TestCreateTotalStakedValueHandler_TotalStakedValueProcessor(t *testing.T) {
+func TestTotalStakedValueProcessorFactory_CreateTotalStakedValueProcessorHandlerDisabledProcessor(t *testing.T) {
 	t.Parallel()
 
-	args := trieIterators.ArgTrieIteratorProcessor{
-		ShardID: core.MetachainShardId,
-		Accounts: &trieIterators.AccountsWrapper{
-			Mutex:           &sync.Mutex{},
-			AccountsAdapter: &stateMock.AccountsStub{},
-		},
-		PublicKeyConverter: &testscommon.PubkeyConverterMock{},
-		QueryService:       &mock.SCQueryServiceStub{},
-	}
+	args := createMockArgs(0)
 
-	totalStakedValueHandler, err := CreateTotalStakedValueHandler(args)
+	totalStakedValueHandlerFactory, err := trieIteratorsFactory.NewTotalStakedListProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	require.Nil(t, err)
-	assert.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandler))
+	assert.Equal(t, "*disabled.stakeValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandlerFactory))
+}
+
+func TestTotalStakedValueProcessorFactory_CreateTotalStakedValueProcessorHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs(core.MetachainShardId)
+
+	totalStakedValueHandlerFactory, err := trieIteratorsFactory.NewTotalStakedListProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
+	require.Nil(t, err)
+	assert.Equal(t, "*trieIterators.stakedValuesProcessor", fmt.Sprintf("%T", totalStakedValueHandlerFactory))
 }

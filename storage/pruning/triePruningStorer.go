@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -92,7 +93,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 }
 
 // GetFromOldEpochsWithoutAddingToCache searches the old epochs for the given key without adding to the cache
-func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
+func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, epoch uint32) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
 		ps.stateStatsHandler.IncrementSnapshotCache()
@@ -104,6 +105,9 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 
 	numClosedDbs := 0
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
+		if ps.activePersisters[idx].epoch >= epoch {
+			continue
+		}
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {

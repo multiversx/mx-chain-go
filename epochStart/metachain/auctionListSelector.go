@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -36,7 +35,7 @@ type auctionConfig struct {
 }
 
 type auctionListSelector struct {
-	shardCoordinator     sharding.Coordinator
+	shardCoordinator     ExtendedShardCoordinatorHandler
 	stakingDataProvider  epochStart.StakingDataProvider
 	nodesConfigProvider  epochStart.MaxNodesChangeConfigProvider
 	auctionListDisplayer AuctionListDisplayHandler
@@ -45,7 +44,7 @@ type auctionListSelector struct {
 
 // AuctionListSelectorArgs is a struct placeholder for all arguments required to create an auctionListSelector
 type AuctionListSelectorArgs struct {
-	ShardCoordinator             sharding.Coordinator
+	ShardCoordinator             ExtendedShardCoordinatorHandler
 	StakingDataProvider          epochStart.StakingDataProvider
 	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
 	AuctionListDisplayHandler    AuctionListDisplayHandler
@@ -276,7 +275,7 @@ func isInAuction(validator state.ValidatorInfoHandler) bool {
 
 func (als *auctionListSelector) computeNumShuffledNodes(currNodesConfig config.MaxNodesChangeConfig) (uint32, uint32) {
 	numNodesToShufflePerShard := currNodesConfig.NodesToShufflePerShard
-	numTotalToShuffleOut := numNodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
+	numTotalToShuffleOut := numNodesToShufflePerShard * als.shardCoordinator.TotalNumberOfShards()
 	epochStats := als.stakingDataProvider.GetCurrentEpochValidatorStats()
 
 	actuallyNumLeaving := uint32(0)

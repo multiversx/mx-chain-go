@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
@@ -24,6 +20,11 @@ import (
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,14 +36,21 @@ func TestNewBlocksCreator(t *testing.T) {
 	t.Run("nil node handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nil)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nil, &chainSimulator.BlockProcessorMock{})
 		require.Equal(t, chainSimulatorProcess.ErrNilNodeHandler, err)
+		require.Nil(t, creator)
+	})
+	t.Run("nil block processor should error", func(t *testing.T) {
+		t.Parallel()
+
+		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, nil)
+		require.Equal(t, chainSimulatorProcess.ErrNilBlockProcessor, err)
 		require.Nil(t, creator)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{})
+		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, &chainSimulator.BlockProcessorMock{})
 		require.NoError(t, err)
 		require.NotNil(t, creator)
 	})
@@ -51,10 +59,13 @@ func TestNewBlocksCreator(t *testing.T) {
 func TestBlocksCreator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil)
+	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil, &chainSimulator.BlockProcessorMock{})
 	require.True(t, creator.IsInterfaceNil())
 
-	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{})
+	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, nil)
+	require.True(t, creator.IsInterfaceNil())
+
+	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, &chainSimulator.BlockProcessorMock{})
 	require.False(t, creator.IsInterfaceNil())
 }
 
@@ -65,7 +76,7 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 	wasSetUInt64ValueCalled := false
 	nodeHandler := &chainSimulator.NodeHandlerMock{
 		GetCoreComponentsCalled: func() factory.CoreComponentsHolder {
-			return &testsFactory.CoreComponentsHolderStub{
+			return &testsFactory.CoreComponentsHolderMock{
 				RoundHandlerCalled: func() consensus.RoundHandler {
 					return &testscommon.RoundHandlerMock{
 						IncrementIndexCalled: func() {
@@ -86,7 +97,7 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 			}
 		},
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, &chainSimulator.BlockProcessorMock{})
 	require.NoError(t, err)
 
 	creator.IncrementRound()
@@ -119,7 +130,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			}
 		}
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -227,7 +238,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -246,7 +257,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -267,7 +278,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -290,15 +301,15 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	t.Run("CreateBlock failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		blockProcess := &testscommon.BlockProcessorStub{
-			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return nil, nil, expectedErr
-			},
+		blockProcessor := getBlockProcessor()
+		blockProcessor.ProcessBlockCalled = func(blockProcessor process.BlockProcessor, header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+			return nil, nil, expectedErr
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), blockProcessor)
+		require.NoError(t, err)
+
+		err = creator.CreateNewBlock()
+		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.Marshal failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -306,7 +317,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		nodeHandler := getNodeHandler()
 		rh := nodeHandler.GetCoreComponents().RoundHandler()
 		nodeHandler.GetCoreComponentsCalled = func() factory.CoreComponentsHolder {
-			return &testsFactory.CoreComponentsHolderStub{
+			return &testsFactory.CoreComponentsHolderMock{
 				RoundHandlerCalled: func() consensus.RoundHandler {
 					return rh
 				},
@@ -319,7 +330,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -340,7 +351,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -361,7 +372,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -382,7 +393,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -391,84 +402,63 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	t.Run("setHeaderSignatures.SetSignature failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		blockProcess := &testscommon.BlockProcessorStub{
-			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					CloneCalled: func() data.HeaderHandler {
-						return &testscommon.HeaderHandlerStub{}
-					},
-					SetSignatureCalled: func(signature []byte) error {
-						return expectedErr
-					},
-				}, &block.Body{}, nil
-			},
+		blockProcessor := getBlockProcessor()
+		blockProcessor.ProcessBlockCalled = func(blockProcessor process.BlockProcessor, header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+			return &testscommon.HeaderHandlerStub{
+				CloneCalled: func() data.HeaderHandler {
+					return &testscommon.HeaderHandlerStub{}
+				},
+				SetSignatureCalled: func(signature []byte) error {
+					return expectedErr
+				},
+			}, &block.Body{}, nil
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), blockProcessor)
+		require.NoError(t, err)
+
+		err = creator.CreateNewBlock()
+		require.Equal(t, expectedErr, err)
 	})
 	t.Run("createLeaderSignature.SetLeaderSignature failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		blockProcess := &testscommon.BlockProcessorStub{
-			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					CloneCalled: func() data.HeaderHandler {
-						return &testscommon.HeaderHandlerStub{
-							SetLeaderSignatureCalled: func(signature []byte) error {
-								return expectedErr
-							},
-						}
-					},
-				}, &block.Body{}, nil
-			},
+		blockProcessor := getBlockProcessor()
+		blockProcessor.ProcessBlockCalled = func(blockProcessor process.BlockProcessor, header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+			return &testscommon.HeaderHandlerStub{
+				CloneCalled: func() data.HeaderHandler {
+					return &testscommon.HeaderHandlerStub{
+						SetLeaderSignatureCalled: func(signature []byte) error {
+							return expectedErr
+						},
+					}
+				},
+			}, &block.Body{}, nil
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
-	})
-	t.Run("createLeaderSignature.SetLeaderSignature failure should error", func(t *testing.T) {
-		t.Parallel()
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), blockProcessor)
+		require.NoError(t, err)
 
-		blockProcess := &testscommon.BlockProcessorStub{
-			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					CloneCalled: func() data.HeaderHandler {
-						return &testscommon.HeaderHandlerStub{
-							SetLeaderSignatureCalled: func(signature []byte) error {
-								return expectedErr
-							},
-						}
-					},
-				}, &block.Body{}, nil
-			},
-		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		err = creator.CreateNewBlock()
+		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.SetLeaderSignature failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		blockProcess := &testscommon.BlockProcessorStub{
-			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					CloneCalled: func() data.HeaderHandler {
-						return &testscommon.HeaderHandlerStub{}
-					},
-					SetLeaderSignatureCalled: func(signature []byte) error {
-						return expectedErr
-					},
-				}, &block.Body{}, nil
-			},
+		blockProcessor := getBlockProcessor()
+		blockProcessor.ProcessBlockCalled = func(blockProcessor process.BlockProcessor, header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+			return &testscommon.HeaderHandlerStub{
+				CloneCalled: func() data.HeaderHandler {
+					return &testscommon.HeaderHandlerStub{}
+				},
+				SetLeaderSignatureCalled: func(signature []byte) error {
+					return expectedErr
+				},
+			}, &block.Body{}, nil
 		}
-		testCreateNewBlock(t, blockProcess, expectedErr)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), blockProcessor)
+		require.NoError(t, err)
+
+		err = creator.CreateNewBlock()
+		require.Equal(t, expectedErr, err)
 	})
 	t.Run("CommitBlock failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -476,13 +466,6 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		blockProcess := &testscommon.BlockProcessorStub{
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					CloneCalled: func() data.HeaderHandler {
-						return &testscommon.HeaderHandlerStub{}
-					},
-				}, &block.Body{}, nil
 			},
 			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 				return expectedErr
@@ -496,13 +479,6 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		blockProcess := &testscommon.BlockProcessorStub{
 			CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 				return &testscommon.HeaderHandlerStub{}, nil
-			},
-			CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-				return &testscommon.HeaderHandlerStub{
-					CloneCalled: func() data.HeaderHandler {
-						return &testscommon.HeaderHandlerStub{}
-					},
-				}, &block.Body{}, nil
 			},
 			MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 				return nil, nil, expectedErr
@@ -521,7 +497,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -530,7 +506,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), getBlockProcessor())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -547,7 +523,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 			NodesCoord:   nc,
 		}
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, getBlockProcessor())
 	require.NoError(t, err)
 
 	err = creator.CreateNewBlock()
@@ -557,7 +533,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 func getNodeHandler() *chainSimulator.NodeHandlerMock {
 	return &chainSimulator.NodeHandlerMock{
 		GetCoreComponentsCalled: func() factory.CoreComponentsHolder {
-			return &testsFactory.CoreComponentsHolderStub{
+			return &testsFactory.CoreComponentsHolderMock{
 				RoundHandlerCalled: func() consensus.RoundHandler {
 					return &testscommon.RoundHandlerMock{
 						TimeStampCalled: func() time.Time {
@@ -582,14 +558,6 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 				BlockProcess: &testscommon.BlockProcessorStub{
 					CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 						return &testscommon.HeaderHandlerStub{}, nil
-					},
-					CreateBlockCalled: func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-						haveTime() // coverage only
-						return &testscommon.HeaderHandlerStub{
-							CloneCalled: func() data.HeaderHandler {
-								return &testscommon.HeaderHandlerStub{}
-							},
-						}, &block.Body{}, nil
 					},
 					MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 						return make(map[uint32][]byte), make(map[string][][]byte), nil
@@ -626,6 +594,18 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 		},
 		GetBroadcastMessengerCalled: func() consensus.BroadcastMessenger {
 			return &mockConsensus.BroadcastMessengerMock{}
+		},
+	}
+}
+
+func getBlockProcessor() *chainSimulator.BlockProcessorMock {
+	return &chainSimulator.BlockProcessorMock{
+		ProcessBlockCalled: func(blockProcessor process.BlockProcessor, header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+			return &testscommon.HeaderHandlerStub{
+				CloneCalled: func() data.HeaderHandler {
+					return &testscommon.HeaderHandlerStub{}
+				},
+			}, &block.Body{}, nil
 		},
 	}
 }

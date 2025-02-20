@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -18,6 +19,7 @@ type txUnmarshaller struct {
 	addressPubKeyConverter core.PubkeyConverter
 	marshalizer            marshal.Marshalizer
 	dataFieldParser        DataFieldParser
+	apiRewardTxHandler     APIRewardTxHandler
 }
 
 func newTransactionUnmarshaller(
@@ -25,12 +27,14 @@ func newTransactionUnmarshaller(
 	addressPubKeyConverter core.PubkeyConverter,
 	dataFieldParser DataFieldParser,
 	shardCoordinator sharding.Coordinator,
+	apiRewardTxHandler APIRewardTxHandler,
 ) *txUnmarshaller {
 	return &txUnmarshaller{
 		marshalizer:            marshalizer,
 		addressPubKeyConverter: addressPubKeyConverter,
 		dataFieldParser:        dataFieldParser,
 		shardCoordinator:       shardCoordinator,
+		apiRewardTxHandler:     apiRewardTxHandler,
 	}
 }
 
@@ -183,18 +187,7 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transac
 }
 
 func (tu *txUnmarshaller) prepareRewardTx(tx *rewardTxData.RewardTx) *transaction.ApiTransactionResult {
-	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.GetRcvAddr(), log)
-
-	return &transaction.ApiTransactionResult{
-		Tx:          tx,
-		Type:        string(transaction.TxTypeReward),
-		Round:       tx.GetRound(),
-		Epoch:       tx.GetEpoch(),
-		Value:       tx.GetValue().String(),
-		Sender:      "metachain",
-		Receiver:    receiverAddress,
-		SourceShard: core.MetachainShardId,
-	}
+	return tu.apiRewardTxHandler.PrepareRewardTx(tx)
 }
 
 func (tu *txUnmarshaller) prepareUnsignedTx(tx *smartContractResult.SmartContractResult) *transaction.ApiTransactionResult {

@@ -9,11 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
@@ -24,6 +28,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 		executeStoredMessages,
 		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
 	return startRound, err
@@ -37,6 +42,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		executeStoredMessages,
 		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
 	return startRound
@@ -62,6 +68,7 @@ func defaultSubround(
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
 }
 
@@ -76,6 +83,24 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		executeStoredMessages,
 		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&subRounds.SubRoundStartExtraSignersHolderMock{},
+	)
+
+	return srStartRound
+}
+
+func initSubroundStartRoundWithContainerAndSigners(container spos.ConsensusCoreHandler, extraSignersHolder bls.SubRoundStartExtraSignersHolder) bls.SubroundStartRound {
+	consensusState := initConsensusState()
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubround(consensusState, ch, container)
+	srStartRound, _ := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+		extraSignersHolder,
 	)
 
 	return srStartRound
@@ -106,6 +131,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	t.Run("nil subround should error", func(t *testing.T) {
@@ -118,6 +144,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -133,6 +160,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -149,6 +177,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			nil,
 			resetConsensusMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -165,6 +194,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			nil,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -181,6 +211,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			executeStoredMessages,
 			resetConsensusMessages,
 			nil,
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
 		assert.Nil(t, srStartRound)
@@ -298,6 +329,23 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 
 	assert.Nil(t, srStartRound)
 	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
+}
+
+func TestSubroundStartRound_NewSubroundStartRoundNilExtraSignersHolderShouldFail(t *testing.T) {
+	t.Parallel()
+
+	sr, _ := defaultSubround(initConsensusState(), make(chan bool, 1), mock.InitConsensusCore())
+	srStartRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+		nil,
+	)
+	require.Nil(t, srStartRound)
+	require.Equal(t, errorsMx.ErrNilStartRoundExtraSignersHolder, err)
 }
 
 func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
@@ -519,6 +567,31 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	assert.True(t, r)
 }
 
+func TestSubroundStartRound_InitCurrentRoundShouldInitExtraSigners(t *testing.T) {
+	t.Parallel()
+
+	bootstrapperMock := &mock.BootstrapperStub{}
+	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
+		return common.NsSynchronized
+	}
+
+	container := mock.InitConsensusCore()
+	container.SetBootStrapper(bootstrapperMock)
+
+	wasResetCalled := false
+	extraSignersHolder := &subRounds.SubRoundStartExtraSignersHolderMock{
+		ResetCalled: func(pubKeys []string) error {
+			wasResetCalled = true
+			return nil
+		},
+	}
+
+	srStartRound := *initSubroundStartRoundWithContainerAndSigners(container, extraSignersHolder)
+	startedRound := srStartRound.InitCurrentRound()
+	require.True(t, startedRound)
+	require.True(t, wasResetCalled)
+}
+
 func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 	t.Parallel()
 
@@ -553,6 +626,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -562,6 +636,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -607,6 +682,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -616,6 +692,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -660,6 +737,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -669,6 +747,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -724,6 +803,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -733,6 +813,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -792,6 +873,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			chainID,
 			currentPid,
 			appStatusHandler,
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srStartRound, _ := bls.NewSubroundStartRound(
@@ -801,6 +883,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			displayStatistics,
 			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)

@@ -39,6 +39,7 @@ type ArgsNewStateImport struct {
 	HardforkStorer      update.HardforkStorer
 	AddressConverter    core.PubkeyConverter
 	EnableEpochsHandler common.EnableEpochsHandler
+	AccountCreator      state.AccountFactory
 }
 
 type stateImport struct {
@@ -59,6 +60,7 @@ type stateImport struct {
 	trieStorageManagers map[string]common.StorageManager
 	addressConverter    core.PubkeyConverter
 	enableEpochsHandler common.EnableEpochsHandler
+	accountCreator      state.AccountFactory
 }
 
 // NewStateImport creates an importer which reads all the files for a new start
@@ -81,6 +83,9 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.AccountCreator) {
+		return nil, state.ErrNilAccountFactory
+	}
 
 	st := &stateImport{
 		genesisHeaders:               make(map[uint32]data.HeaderHandler),
@@ -98,6 +103,7 @@ func NewStateImport(args ArgsNewStateImport) (*stateImport, error) {
 		hardforkStorer:               args.HardforkStorer,
 		addressConverter:             args.AddressConverter,
 		enableEpochsHandler:          args.EnableEpochsHandler,
+		accountCreator:               args.AccountCreator,
 	}
 
 	return st, nil
@@ -278,20 +284,12 @@ func (si *stateImport) importMiniBlocks(identifier string, keys [][]byte) error 
 	return nil
 }
 
-func newAccountCreator(
+func (si *stateImport) newAccountCreator(
 	accType Type,
-	hasher hashing.Hasher,
-	marshaller marshal.Marshalizer,
-	handler common.EnableEpochsHandler,
 ) (state.AccountFactory, error) {
 	switch accType {
 	case UserAccount:
-		args := factory.ArgsAccountCreator{
-			Hasher:              hasher,
-			Marshaller:          marshaller,
-			EnableEpochsHandler: handler,
-		}
-		return factory.NewAccountCreator(args)
+		return si.accountCreator, nil
 	case ValidatorAccount:
 		return factory.NewPeerAccountCreator(), nil
 	}
@@ -464,7 +462,7 @@ func (si *stateImport) importState(identifier string, keys [][]byte) error {
 		return si.importDataTrie(identifier, shId, keys)
 	}
 
-	accountFactory, err := newAccountCreator(accType, si.hasher, si.marshalizer, si.enableEpochsHandler)
+	accountFactory, err := si.newAccountCreator(accType)
 	if err != nil {
 		return err
 	}

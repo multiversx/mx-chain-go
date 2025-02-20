@@ -203,6 +203,9 @@ func (n *NodesSetupStub) MinMetaHysteresisNodes() uint32 {
 	return 1
 }
 
+func (n *NodesSetupStub) SetStartTime(_ int64) {
+}
+
 // IsInterfaceNil -
 func (n *NodesSetupStub) IsInterfaceNil() bool {
 	return n == nil

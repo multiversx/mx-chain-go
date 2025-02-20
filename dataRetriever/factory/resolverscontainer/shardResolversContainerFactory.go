@@ -99,7 +99,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateHeaderResolvers()
+	err = srcf.generateHeaderResolvers(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 		return nil, err
 	}
 
-	err = srcf.generateValidatorInfoResolver()
+	err = srcf.generateValidatorInfoResolver(common.ValidatorInfoTopic)
 	if err != nil {
 		return nil, err
 	}
@@ -134,11 +134,11 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 
 // ------- Hdr resolver
 
-func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
+func (srcf *shardResolversContainerFactory) generateHeaderResolvers(destCommunicationShardID uint32) error {
 	shardC := srcf.shardCoordinator
 
 	// only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(destCommunicationShardID)
 
 	hdrStorer, err := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {

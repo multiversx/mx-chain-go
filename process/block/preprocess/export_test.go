@@ -99,7 +99,7 @@ func (txs *transactions) ProcessTxsToMe(
 	header data.HeaderHandler,
 	body *block.Body,
 	haveTime func() bool,
-) error {
+) (block.MiniBlockSlice, error) {
 	return txs.processTxsToMe(header, body, haveTime)
 }
 

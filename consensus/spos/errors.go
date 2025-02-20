@@ -243,3 +243,6 @@ var ErrNilFunctionHandler = errors.New("nil function handler")
 
 // ErrWrongHashForHeader signals that the hash of the header is not the expected one
 var ErrWrongHashForHeader = errors.New("wrong hash for header")
+
+// ErrNilEnableEpochHandler signals that a nil enable epoch handler has been provided
+var ErrNilEnableEpochHandler = errors.New("nil enable epoch handler")

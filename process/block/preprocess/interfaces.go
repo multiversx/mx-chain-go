@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
@@ -52,5 +53,23 @@ type BalanceComputationHandler interface {
 	SubBalanceFromAddress(address []byte, value *big.Int) bool
 	IsAddressSet(address []byte) bool
 	AddressHasEnoughBalance(address []byte, value *big.Int) bool
+	IsInterfaceNil() bool
+}
+
+// TxPreProcessorCreator defines a tx pre processor creator
+type TxPreProcessorCreator interface {
+	CreateTxPreProcessor(args ArgsTransactionPreProcessor) (process.PreProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// SmartContractResultPreProcessorCreator defines the interface of a smart contract result pre-processor creator
+type SmartContractResultPreProcessorCreator interface {
+	CreateSmartContractResultPreProcessor(args SmartContractResultPreProcessorCreatorArgs) (process.PreProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// ScheduledTxsExecutionCreator is an interface for creating scheduled txs execution handler
+type ScheduledTxsExecutionCreator interface {
+	CreateScheduledTxsExecutionHandler(args ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
 	IsInterfaceNil() bool
 }

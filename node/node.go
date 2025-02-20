@@ -102,8 +102,10 @@ type Node struct {
 	processComponents     mainFactory.ProcessComponentsHolder
 	stateComponents       mainFactory.StateComponentsHolder
 	statusComponents      mainFactory.StatusComponentsHolder
+	runTypeComponents     mainFactory.RunTypeComponentsHolder
 
 	closableComponents        []mainFactory.Closer
+	mutClosableComponents     syncGo.RWMutex
 	enableSignTxWithHashEpoch uint32
 	isInImportMode            bool
 }
@@ -216,6 +218,10 @@ func (n *Node) GetAllIssuedESDTs(tokenType string, ctx context.Context) ([]strin
 		return nil, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetAllIssuedESDTs(tokenType, ctx)
+}
+
+func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]string, error) {
 	userAccount, _, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, api.AccountQueryOptions{})
 	if err != nil {
 		// don't return 0 values here - not finding the ESDT SC address is an error that should be returned
@@ -470,6 +476,14 @@ func (n *Node) getTokensIDsWithFilter(
 		return nil, api.BlockInfo{}, ErrMetachainOnlyEndpoint
 	}
 
+	return n.baseGetTokensIDsWithFilter(f, options, ctx)
+}
+
+func (n *Node) baseGetTokensIDsWithFilter(
+	f filter,
+	options api.AccountQueryOptions,
+	ctx context.Context,
+) ([]string, api.BlockInfo, error) {
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByPubKey(vm.ESDTSCAddress, options)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
@@ -1351,6 +1365,11 @@ func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 	return n.statusComponents
 }
 
+// GetRunTypeComponents returns the run type components
+func (n *Node) GetRunTypeComponents() mainFactory.RunTypeComponentsHolder {
+	return n.runTypeComponents
+}
+
 func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {
 	result := core.QueryP2PPeerInfo{
 		Pid:           p.Pretty(),
@@ -1381,6 +1400,9 @@ func (n *Node) Close() error {
 	}
 
 	var closeError error = nil
+
+	n.mutClosableComponents.RLock()
+	defer n.mutClosableComponents.RUnlock()
 
 	allComponents := make([]string, 0, len(n.closableComponents))
 	for i := len(n.closableComponents) - 1; i >= 0; i-- {
@@ -1583,6 +1605,13 @@ func (n *Node) extractAddressFromError(err error) string {
 	}
 
 	return ""
+}
+
+// AddClosableComponent adds a closable component to the internal stored components
+func (n *Node) AddClosableComponent(component mainFactory.Closer) {
+	n.mutClosableComponents.Lock()
+	n.closableComponents = append(n.closableComponents, component)
+	n.mutClosableComponents.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

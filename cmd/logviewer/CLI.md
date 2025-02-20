@@ -22,6 +22,9 @@ GLOBAL OPTIONS:
    --use-wss                  Will use wss instead of ws when creating the web socket
    --log-correlation          Boolean option for enabling log correlation elements.
    --log-logger-name          Boolean option for logger name in the logs.
+   --with-tls                 Will use tls connection with the server
+   --cert value               Certificate file for tls connection (default: "certificate.crt")
+   --cert-pk value            Certificate pk file for tls connection (default: "private_key.pem")
    --help, -h                 show help
    --version, -v              print the version
    

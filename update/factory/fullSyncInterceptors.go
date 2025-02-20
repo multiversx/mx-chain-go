@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -29,25 +30,26 @@ const numGoRoutines = 2000
 
 // fullSyncInterceptorsContainerFactory will handle the creation the interceptors container for shards
 type fullSyncInterceptorsContainerFactory struct {
-	mainContainer          process.InterceptorsContainer
-	fullArchiveContainer   process.InterceptorsContainer
-	shardCoordinator       sharding.Coordinator
-	accounts               state.AccountsAdapter
-	store                  dataRetriever.StorageService
-	dataPool               dataRetriever.PoolsHolder
-	mainMessenger          process.TopicHandler
-	fullArchiveMessenger   process.TopicHandler
-	nodesCoordinator       nodesCoordinator.NodesCoordinator
-	blockBlackList         process.TimeCacher
-	argInterceptorFactory  *interceptorFactory.ArgInterceptedDataFactory
-	globalThrottler        process.InterceptorThrottler
-	maxTxNonceDeltaAllowed int
-	addressPubkeyConv      core.PubkeyConverter
-	whiteListHandler       update.WhiteListHandler
-	whiteListerVerifiedTxs update.WhiteListHandler
-	antifloodHandler       process.P2PAntifloodHandler
-	preferredPeersHolder   update.PreferredPeersHolderHandler
-	nodeOperationMode      common.NodeOperation
+	mainContainer           process.InterceptorsContainer
+	fullArchiveContainer    process.InterceptorsContainer
+	shardCoordinator        sharding.Coordinator
+	accounts                state.AccountsAdapter
+	store                   dataRetriever.StorageService
+	dataPool                dataRetriever.PoolsHolder
+	mainMessenger           process.TopicHandler
+	fullArchiveMessenger    process.TopicHandler
+	nodesCoordinator        nodesCoordinator.NodesCoordinator
+	blockBlackList          process.TimeCacher
+	argInterceptorFactory   *interceptorFactory.ArgInterceptedDataFactory
+	globalThrottler         process.InterceptorThrottler
+	maxTxNonceDeltaAllowed  int
+	addressPubkeyConv       core.PubkeyConverter
+	whiteListHandler        update.WhiteListHandler
+	whiteListerVerifiedTxs  update.WhiteListHandler
+	antifloodHandler        process.P2PAntifloodHandler
+	preferredPeersHolder    update.PreferredPeersHolderHandler
+	nodeOperationMode       common.NodeOperation
+	shardCoordinatorFactory sharding.ShardCoordinatorFactory
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -75,6 +77,7 @@ type ArgsNewFullSyncInterceptorsContainerFactory struct {
 	FullArchiveInterceptorsContainer process.InterceptorsContainer
 	AntifloodHandler                 process.P2PAntifloodHandler
 	NodeOperationMode                common.NodeOperation
+	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 }
 
 // NewFullSyncInterceptorsContainerFactory is responsible for creating a new interceptors factory object
@@ -132,6 +135,9 @@ func NewFullSyncInterceptorsContainerFactory(
 	if check.IfNil(args.AntifloodHandler) {
 		return nil, process.ErrNilAntifloodHandler
 	}
+	if check.IfNil(args.ShardCoordinatorFactory) {
+		return nil, errors.ErrNilShardCoordinatorFactory
+	}
 
 	argInterceptorFactory := &interceptorFactory.ArgInterceptedDataFactory{
 		CoreComponents:          args.CoreComponents,
@@ -164,8 +170,9 @@ func NewFullSyncInterceptorsContainerFactory(
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
 		//TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
-		preferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		nodeOperationMode:    args.NodeOperationMode,
+		preferredPeersHolder:    disabled.NewPreferredPeersHolder(),
+		nodeOperationMode:       args.NodeOperationMode,
+		shardCoordinatorFactory: args.ShardCoordinatorFactory,
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -307,7 +314,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExists(ident
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptors() error {
 	numShards := ficf.shardCoordinator.NumberOfShards()
-	tmpSC, err := sharding.NewMultiShardCoordinator(numShards, core.MetachainShardId)
+	tmpSC, err := ficf.shardCoordinatorFactory.CreateShardCoordinator(numShards, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -792,7 +799,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors() error {
 	numShards := ficf.shardCoordinator.NumberOfShards()
 
-	tmpSC, err := sharding.NewMultiShardCoordinator(numShards, core.MetachainShardId)
+	tmpSC, err := ficf.shardCoordinatorFactory.CreateShardCoordinator(numShards, core.MetachainShardId)
 	if err != nil {
 		return err
 	}

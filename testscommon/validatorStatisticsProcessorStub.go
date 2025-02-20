@@ -2,13 +2,14 @@ package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ValidatorStatisticsProcessorStub -
 type ValidatorStatisticsProcessorStub struct {
-	UpdatePeerStateCalled                    func(header data.MetaHeaderHandler) ([]byte, error)
-	RevertPeerStateCalled                    func(header data.MetaHeaderHandler) error
+	UpdatePeerStateCalled                    func(header data.CommonHeaderHandler) ([]byte, error)
+	RevertPeerStateCalled                    func(header data.CommonHeaderHandler) error
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	LastFinalizedRootHashCalled              func() []byte
@@ -64,7 +65,7 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 }
 
 // UpdatePeerState -
-func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.MetaHeaderHandler, _ map[string]data.HeaderHandler) ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.CommonHeaderHandler, _ map[string]data.CommonHeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
 		return vsp.UpdatePeerStateCalled(header)
 	}
@@ -75,14 +76,6 @@ func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.MetaHea
 func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error {
 	if vsp.ProcessRatingsEndOfEpochCalled != nil {
 		return vsp.ProcessRatingsEndOfEpochCalled(validatorInfos, epoch)
-	}
-	return nil
-}
-
-// RevertPeerState -
-func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.MetaHeaderHandler) error {
-	if vsp.RevertPeerStateCalled != nil {
-		return vsp.RevertPeerStateCalled(header)
 	}
 	return nil
 }
@@ -126,6 +119,14 @@ func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch u
 		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
 	}
 	return false, nil
+}
+
+// RevertPeerState -
+func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header process.ValidatorStatsHeader) error {
+	if vsp.RevertPeerStateCalled != nil {
+		return vsp.RevertPeerStateCalled(header)
+	}
+	return nil
 }
 
 // IsInterfaceNil -

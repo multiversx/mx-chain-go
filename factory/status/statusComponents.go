@@ -5,16 +5,15 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	nodeData "github.com/multiversx/mx-chain-core-go/data"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	esFactory "github.com/multiversx/mx-chain-es-indexer-go/process/elasticproc/factory"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	swVersionFactory "github.com/multiversx/mx-chain-go/common/statistics/softwareVersion/factory"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/keysManagement"
@@ -23,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type statusComponents struct {
@@ -49,6 +47,8 @@ type StatusComponentsFactoryArgs struct {
 	StateComponents      factory.StateComponentsHolder
 	CryptoComponents     factory.CryptoComponentsHolder
 	IsInImportMode       bool
+	IsSovereign          bool
+	ESDTPrefix           string
 }
 
 type statusComponentsFactory struct {
@@ -65,6 +65,8 @@ type statusComponentsFactory struct {
 	stateComponents      factory.StateComponentsHolder
 	cryptoComponents     factory.CryptoComponentsHolder
 	isInImportMode       bool
+	isSovereign          bool
+	esdtPrefix           string
 }
 
 var log = logger.GetOrCreate("factory")
@@ -109,6 +111,8 @@ func NewStatusComponentsFactory(args StatusComponentsFactoryArgs) (*statusCompon
 		stateComponents:      args.StateComponents,
 		isInImportMode:       args.IsInImportMode,
 		cryptoComponents:     args.CryptoComponents,
+		isSovereign:          args.IsSovereign,
+		esdtPrefix:           args.ESDTPrefix,
 	}, nil
 }
 
@@ -165,31 +169,14 @@ func (scf *statusComponentsFactory) Create() (*statusComponents, error) {
 	}
 
 	if scf.shardCoordinator.SelfId() == core.MetachainShardId {
-		scf.epochStartNotifier.RegisterHandler(statusComponentsInstance.epochStartEventHandler())
+		saveValidatorsPubKeysEvent := CreateSaveValidatorsPubKeysEventHandler(
+			statusComponentsInstance.nodesCoordinator,
+			statusComponentsInstance.outportHandler)
+
+		scf.epochStartNotifier.RegisterHandler(saveValidatorsPubKeysEvent)
 	}
 
 	return statusComponentsInstance, nil
-}
-
-func (pc *statusComponents) epochStartEventHandler() epochStart.ActionHandler {
-	subscribeHandler := notifier.NewHandlerForEpochStart(func(hdr nodeData.HeaderHandler) {
-		currentEpoch := hdr.GetEpoch()
-		validatorsPubKeys, err := pc.nodesCoordinator.GetAllEligibleValidatorsPublicKeys(currentEpoch)
-		if err != nil {
-			log.Warn("pc.nodesCoordinator.GetAllEligibleValidatorPublicKeys for current epoch failed",
-				"epoch", currentEpoch,
-				"error", err.Error())
-		}
-
-		pc.outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
-			ShardID:                hdr.GetShardID(),
-			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
-			Epoch:                  currentEpoch,
-		})
-
-	}, func(_ nodeData.HeaderHandler) {}, common.IndexerOrder)
-
-	return subscribeHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -235,6 +222,13 @@ func (scf *statusComponentsFactory) createOutportDriver() (outport.OutportHandle
 
 func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.ArgsIndexerFactory {
 	elasticSearchConfig := scf.externalConfig.ElasticSearchConnector
+	mainChainElastic := esFactory.ElasticConfig{
+		Enabled:  scf.externalConfig.MainChainElasticSearchConnector.Enabled,
+		Url:      scf.externalConfig.MainChainElasticSearchConnector.URL,
+		UserName: scf.externalConfig.MainChainElasticSearchConnector.Username,
+		Password: scf.externalConfig.MainChainElasticSearchConnector.Password,
+	}
+
 	return indexerFactory.ArgsIndexerFactory{
 		Enabled:                  elasticSearchConfig.Enabled,
 		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
@@ -250,6 +244,9 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
+		Sovereign:                scf.isSovereign,
+		ESDTPrefix:               scf.esdtPrefix,
+		MainChainElastic:         mainChainElastic,
 	}
 }
 

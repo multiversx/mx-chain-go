@@ -267,3 +267,8 @@ func (b *BlockChainHookStub) IsBuiltinFunctionName(functionName string) bool {
 	}
 	return false
 }
+
+// IsInterfaceNil -
+func (b *BlockChainHookStub) IsInterfaceNil() bool {
+	return b == nil
+}

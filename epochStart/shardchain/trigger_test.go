@@ -40,7 +40,7 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 		Uint64Converter: &mock.Uint64ByteSliceConverterMock{},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()
@@ -362,7 +362,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
+			return &testscommon.HeadersCacherStub{
 				GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, err error) {
 					header, ok := hashesToHeaders[string(hash)]
 					if !ok {
@@ -676,7 +676,7 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 
 		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
 				return testscommon.NewCacherStub()

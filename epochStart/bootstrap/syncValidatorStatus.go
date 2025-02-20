@@ -38,20 +38,21 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool                        dataRetriever.PoolsHolder
-	Marshalizer                     marshal.Marshalizer
-	Hasher                          hashing.Hasher
-	RequestHandler                  process.RequestHandler
-	ChanceComputer                  nodesCoordinator.ChanceComputer
-	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
-	NodeShuffler                    nodesCoordinator.NodesShuffler
-	PubKey                          []byte
-	ShardIdAsObserver               uint32
-	ChanNodeStop                    chan endProcess.ArgEndProcess
-	NodeTypeProvider                NodeTypeProviderHandler
-	IsFullArchive                   bool
-	EnableEpochsHandler             common.EnableEpochsHandler
-	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	DataPool                         dataRetriever.PoolsHolder
+	Marshalizer                      marshal.Marshalizer
+	Hasher                           hashing.Hasher
+	RequestHandler                   process.RequestHandler
+	ChanceComputer                   nodesCoordinator.ChanceComputer
+	GenesisNodesConfig               sharding.GenesisNodesSetupHandler
+	NodeShuffler                     nodesCoordinator.NodesShuffler
+	PubKey                           []byte
+	ShardIdAsObserver                uint32
+	ChanNodeStop                     chan endProcess.ArgEndProcess
+	NodeTypeProvider                 NodeTypeProviderHandler
+	IsFullArchive                    bool
+	EnableEpochsHandler              common.EnableEpochsHandler
+	NodesCoordinatorRegistryFactory  nodesCoordinator.NodesCoordinatorRegistryFactory
+	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -134,18 +135,17 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		GenesisNodesSetupHandler:        s.genesisNodesConfig,
 		NodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
-	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
-	if err != nil {
-		return nil, err
-	}
 
-	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinatorWithRater(baseNodesCoordinator, args.ChanceComputer)
+	nodesCoord, err := args.NodesCoordinatorWithRaterFactory.CreateNodesCoordinatorWithRater(
+		&nodesCoordinator.NodesCoordinatorWithRaterArgs{
+			ArgNodesCoordinator: argsNodesCoordinator,
+			ChanceComputer:      args.ChanceComputer,
+		})
 	if err != nil {
 		return nil, err
 	}
 
 	s.nodeCoordinator = nodesCoord
-
 	return s, nil
 }
 

@@ -15,6 +15,18 @@
     # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "esdts"]
     EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "esdts"]
 
+# MainChainElasticSearchConnector defines settings related to ElasticSearch such as login information or URL
+[MainChainElasticSearchConnector]
+    # We do not recommend to activate this indexer on a validator node since
+    # the node might lose rating (even facing penalties) due to the fact that
+    # the indexer is called synchronously and might block due to external causes.
+    # Strongly suggested to activate this on a regular observer node.
+    # To use our public elastic client, set the URL to https://index.multiversx.com
+    Enabled = false
+    URL = "http://localhost:9201"
+    Username = ""
+    Password = ""
+
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 # HTTP event notifier connector integration will be DEPRECATED in the following iterations
 [EventNotifierConnector]

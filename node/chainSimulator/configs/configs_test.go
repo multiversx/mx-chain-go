@@ -23,6 +23,7 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 		MinNodesPerShard:            1,
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
+		GenerateGenesisFile:         GenerateGenesisFile,
 	})
 	require.Nil(t, err)
 

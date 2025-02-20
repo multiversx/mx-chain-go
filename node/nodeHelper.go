@@ -5,8 +5,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	globalErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -42,6 +44,7 @@ func prepareOpenTopics(
 // CreateNode is the node factory
 func CreateNode(
 	config *config.Config,
+	runTypeComponents factory.RunTypeComponentsHandler,
 	statusCoreComponents factory.StatusCoreComponentsHandler,
 	bootstrapComponents factory.BootstrapComponentsHandler,
 	coreComponents factory.CoreComponentsHandler,
@@ -55,7 +58,13 @@ func CreateNode(
 	consensusComponents factory.ConsensusComponentsHandler,
 	bootstrapRoundIndex uint64,
 	isInImportMode bool,
-) (*Node, error) {
+	nodeFactory NodeFactory,
+	extraOptions ...Option,
+) (NodeHandler, error) {
+	if check.IfNil(nodeFactory) {
+		return nil, globalErrors.ErrNilNode
+	}
+
 	prepareOpenTopics(networkComponents.InputAntiFloodHandler(), processComponents.ShardCoordinator())
 
 	peerDenialEvaluator, err := createAndAttachPeerDenialEvaluators(networkComponents, processComponents)
@@ -70,8 +79,9 @@ func CreateNode(
 		return nil, err
 	}
 
-	var nd *Node
-	nd, err = NewNode(
+	var nd NodeHandler
+	options := []Option{
+		WithRunTypeComponents(runTypeComponents),
 		WithStatusCoreComponents(statusCoreComponents),
 		WithCoreComponents(coreComponents),
 		WithCryptoComponents(cryptoComponents),
@@ -97,7 +107,10 @@ func CreateNode(
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
-	)
+	}
+	options = append(options, extraOptions...)
+
+	nd, err = nodeFactory.CreateNewNode(options...)
 	if err != nil {
 		return nil, errors.New("error creating node: " + err.Error())
 	}

@@ -231,9 +231,14 @@ func (cmv *consensusMessageValidator) CheckConsensusMessageValidityForMessageTyp
 	return cmv.checkConsensusMessageValidityForMessageType(cnsMsg)
 }
 
-// IsBlockHeaderHashSizeValid -
-func (cmv *consensusMessageValidator) IsBlockHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
-	return cmv.isBlockHeaderHashSizeValid(cnsMsg)
+// IsHeaderHashSizeValid -
+func (cmv *consensusMessageValidator) IsHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	return cmv.isHeaderHashSizeValid(cnsMsg)
+}
+
+// IsProcessedHeaderHashSizeValid -
+func (cmv *consensusMessageValidator) IsProcessedHeaderHashSizeValid(cnsMsg *consensus.Message) bool {
+	return cmv.isProcessedHeaderHashSizeValid(cnsMsg)
 }
 
 // AddMessageTypeToPublicKey -

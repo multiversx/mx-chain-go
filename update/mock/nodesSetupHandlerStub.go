@@ -8,20 +8,28 @@ import (
 
 // GenesisNodesSetupHandlerStub -
 type GenesisNodesSetupHandlerStub struct {
-	InitialNodesInfoForShardCalled   func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
-	InitialNodesInfoCalled           func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
-	GetStartTimeCalled               func() int64
-	GetRoundDurationCalled           func() uint64
-	GetChainIdCalled                 func() string
-	GetMinTransactionVersionCalled   func() uint32
-	GetShardConsensusGroupSizeCalled func() uint32
-	GetMetaConsensusGroupSizeCalled  func() uint32
-	MinNumberOfShardNodesCalled      func() uint32
-	MinNumberOfMetaNodesCalled       func() uint32
-	GetHysteresisCalled              func() float32
-	GetAdaptivityCalled              func() bool
-	NumberOfShardsCalled             func() uint32
-	MinNumberOfNodesCalled           func() uint32
+	InitialNodesInfoForShardCalled            func(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfoCalled                    func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	GetStartTimeCalled                        func() int64
+	GetRoundDurationCalled                    func() uint64
+	GetChainIdCalled                          func() string
+	GetMinTransactionVersionCalled            func() uint32
+	GetShardConsensusGroupSizeCalled          func() uint32
+	GetMetaConsensusGroupSizeCalled           func() uint32
+	MinNumberOfShardNodesCalled               func() uint32
+	MinNumberOfMetaNodesCalled                func() uint32
+	GetHysteresisCalled                       func() float32
+	GetAdaptivityCalled                       func() bool
+	NumberOfShardsCalled                      func() uint32
+	MinNumberOfNodesCalled                    func() uint32
+	AllInitialNodesCalled                     func() []nodesCoordinator.GenesisNodeInfoHandler
+	InitialNodesPubKeysCalled                 func() map[uint32][]string
+	GetShardIDForPubKeyCalled                 func(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShardCalled func(shardId uint32) ([]string, error)
+	SetStartTimeCalled                        func(startTime int64)
+	MinNumberOfNodesWithHysteresisCalled      func() uint32
+	MinShardHysteresisNodesCalled             func() uint32
+	MinMetaHysteresisNodesCalled              func() uint32
 }
 
 // InitialNodesInfoForShard -
@@ -148,6 +156,76 @@ func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodes() uint32 {
 	}
 
 	return 1
+}
+
+// AllInitialNodes -
+func (g *GenesisNodesSetupHandlerStub) AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler {
+	if g.AllInitialNodesCalled != nil {
+		return g.AllInitialNodesCalled()
+	}
+
+	return nil
+}
+
+// InitialNodesPubKeys -
+func (g *GenesisNodesSetupHandlerStub) InitialNodesPubKeys() map[uint32][]string {
+	if g.InitialNodesPubKeysCalled != nil {
+		return g.InitialNodesPubKeysCalled()
+	}
+
+	return nil
+}
+
+// GetShardIDForPubKey -
+func (g *GenesisNodesSetupHandlerStub) GetShardIDForPubKey(pubkey []byte) (uint32, error) {
+	if g.GetShardIDForPubKeyCalled != nil {
+		return g.GetShardIDForPubKeyCalled(pubkey)
+	}
+
+	return 0, nil
+}
+
+// InitialEligibleNodesPubKeysForShard -
+func (g *GenesisNodesSetupHandlerStub) InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error) {
+	if g.InitialEligibleNodesPubKeysForShardCalled != nil {
+		return g.InitialEligibleNodesPubKeysForShardCalled(shardId)
+	}
+
+	return nil, nil
+}
+
+// SetStartTime -
+func (g *GenesisNodesSetupHandlerStub) SetStartTime(startTime int64) {
+	if g.SetStartTimeCalled != nil {
+		g.SetStartTimeCalled(startTime)
+	}
+}
+
+// MinNumberOfNodesWithHysteresis -
+func (g *GenesisNodesSetupHandlerStub) MinNumberOfNodesWithHysteresis() uint32 {
+	if g.MinNumberOfNodesWithHysteresisCalled != nil {
+		return g.MinNumberOfNodesWithHysteresisCalled()
+	}
+
+	return 0
+}
+
+// MinShardHysteresisNodes -
+func (g *GenesisNodesSetupHandlerStub) MinShardHysteresisNodes() uint32 {
+	if g.MinShardHysteresisNodesCalled != nil {
+		return g.MinShardHysteresisNodesCalled()
+	}
+
+	return 0
+}
+
+// MinMetaHysteresisNodes -
+func (g *GenesisNodesSetupHandlerStub) MinMetaHysteresisNodes() uint32 {
+	if g.MinMetaHysteresisNodesCalled != nil {
+		return g.MinMetaHysteresisNodesCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil -

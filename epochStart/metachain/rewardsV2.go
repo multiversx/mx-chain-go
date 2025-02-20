@@ -38,9 +38,10 @@ type RewardsCreatorArgsV2 struct {
 
 type rewardsCreatorV2 struct {
 	*baseRewardsCreator
-	stakingDataProvider   epochStart.StakingDataProvider
-	economicsDataProvider epochStart.EpochEconomicsDataProvider
-	rewardsHandler        process.RewardsHandler
+	stakingDataProvider                epochStart.StakingDataProvider
+	economicsDataProvider              epochStart.EpochEconomicsDataProvider
+	rewardsHandler                     process.RewardsHandler
+	fillBaseRewardsPerBlockPerNodeFunc fillBaseRewardsPerBlockPerNodeFunc
 }
 
 // NewRewardsCreatorV2 creates a new rewards creator object
@@ -67,6 +68,7 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 		rewardsHandler:        args.RewardsHandler,
 	}
 
+	rc.fillBaseRewardsPerBlockPerNodeFunc = rc.fillBaseRewardsPerBlockPerNode
 	return rc, nil
 }
 
@@ -289,7 +291,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 		"baseRewards", baseRewards.String(),
 		"topUpRewards", topUpRewards.String())
 
-	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
+	rc.fillBaseRewardsPerBlockPerNodeFunc(baseRewardsPerBlock)
 
 	accumulatedDust := big.NewInt(0)
 	dust := rc.computeBaseRewardsPerNode(nodesRewardInfo, baseRewards)

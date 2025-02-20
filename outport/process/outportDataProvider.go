@@ -16,12 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("outport/process/outportDataProvider")
@@ -67,11 +68,13 @@ type outportDataProvider struct {
 	executionOrderHandler    common.ExecutionOrderGetter
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
+
+	shardRewardsCreator shardRewardsCreator
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
 func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, error) {
-	return &outportDataProvider{
+	odp := &outportDataProvider{
 		shardID:                  arg.ShardCoordinator.SelfId(),
 		numOfShards:              arg.ShardCoordinator.NumberOfShards(),
 		alteredAccountsProvider:  arg.AlteredAccountsProvider,
@@ -83,7 +86,10 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
 		hasher:                   arg.Hasher,
-	}, nil
+	}
+
+	odp.shardRewardsCreator = odp
+	return odp, nil
 }
 
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
@@ -315,10 +321,10 @@ func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.Transactio
 		return odp.createPoolForMeta(rewardsTxs)
 	}
 
-	return odp.createPoolForShard()
+	return odp.createPoolForShard(rewardsTxs)
 }
 
-func (odp *outportDataProvider) createPoolForShard() (*outportcore.TransactionPool, error) {
+func (odp *outportDataProvider) createPoolForShard(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
 	txs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock))
 	if err != nil {
 		return nil, err
@@ -329,7 +335,7 @@ func (odp *outportDataProvider) createPoolForShard() (*outportcore.TransactionPo
 		return nil, err
 	}
 
-	rewards, err := getRewards(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock))
+	rewards, err := odp.shardRewardsCreator.getRewardsForShard(rewardsTxs)
 	if err != nil {
 		return nil, err
 	}
@@ -357,6 +363,10 @@ func (odp *outportDataProvider) createPoolForShard() (*outportcore.TransactionPo
 		Receipts:             receipts,
 		Logs:                 logs,
 	}, nil
+}
+
+func (odp *outportDataProvider) getRewardsForShard(_ map[string]data.TransactionHandler) (map[string]*outportcore.RewardInfo, error) {
+	return getRewards(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock))
 }
 
 func (odp *outportDataProvider) createPoolForMeta(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {

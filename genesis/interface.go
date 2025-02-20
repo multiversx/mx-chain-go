@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 )
 
 // DelegationType defines the constant used when checking if a smart contract is of delegation type
@@ -51,6 +52,7 @@ type InitialAccountHandler interface {
 	Clone() InitialAccountHandler
 	GetAddress() string
 	AddressBytes() []byte
+	SetAddressBytes(address []byte)
 	GetStakingValue() *big.Int
 	GetBalanceValue() *big.Int
 	GetSupply() *big.Int
@@ -62,6 +64,7 @@ type InitialAccountHandler interface {
 type DelegationDataHandler interface {
 	GetAddress() string
 	AddressBytes() []byte
+	SetAddressBytes(address []byte)
 	GetValue() *big.Int
 	IsInterfaceNil() bool
 }

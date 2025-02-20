@@ -7,17 +7,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
-
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 var expectedErr = errors.New("expected error")
@@ -33,6 +41,9 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		MetaChainMinNodes:           1,
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
+		GenerateGenesisFile: func(args configs.ArgsChainSimulatorConfigs, config *config.Configs) (*dtos.InitialWalletKeys, error) {
+			return configs.GenerateGenesisFile(args, config)
+		},
 	})
 	require.Nil(t, err)
 
@@ -50,7 +61,48 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		MinNodesPerShard:            1,
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
+		CreateRunTypeCoreComponents: func() (mainFactory.RunTypeCoreComponentsHolder, error) {
+			return createRunTypeCoreComponents()
+		},
+		CreateIncomingHeaderSubscriber: func(config config.WebSocketConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents mainFactory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+			return &sovereign.IncomingHeaderSubscriberStub{}, nil
+		},
+		CreateRunTypeComponents: func(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
+			return createRunTypeComponents(args)
+		},
+		NodeFactory: node.NewNodeFactory(),
 	}
+}
+
+func createRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHolder, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
+}
+
+func createRunTypeComponents(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(args)
+	if err != nil {
+		return nil, err
+	}
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
@@ -73,7 +125,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
 		assert.Nil(t, err)
 
-		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
+		err = newHeader.SetPrevHash(node.GetChainHandler().GetGenesisHeaderHash())
 		assert.Nil(t, err)
 
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
@@ -83,7 +135,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.NotNil(t, header)
 		require.NotNil(t, block)
 
-		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
+		_, _, err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
 		assert.Nil(t, err)
@@ -132,6 +184,13 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		args.Configs.FlagsConfig.Version = ""
 		node, err := NewTestOnlyProcessingNode(args)
 		require.Error(t, err)
+		require.Nil(t, node)
+	})
+	t.Run("CreateRunTypeComponents failure should error", func(t *testing.T) {
+		args := createMockArgsTestOnlyProcessingNode(t)
+		args.Configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply = "0"
+		node, err := NewTestOnlyProcessingNode(args)
+		require.ErrorIs(t, err, errorsMx.ErrRunTypeComponentsFactoryCreate)
 		require.Nil(t, node)
 	})
 	t.Run("createFacade failure should error", func(t *testing.T) {
@@ -457,6 +516,8 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.Nil(t, node.GetStateComponents())
 	require.Nil(t, node.GetFacadeHandler())
 	require.Nil(t, node.GetStatusCoreComponents())
+	require.Nil(t, node.GetRunTypeComponents())
+	require.Nil(t, node.GetIncomingHeaderSubscriber())
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.Nil(t, err)
@@ -470,4 +531,6 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.NotNil(t, node.GetStateComponents())
 	require.NotNil(t, node.GetFacadeHandler())
 	require.NotNil(t, node.GetStatusCoreComponents())
+	require.NotNil(t, node.GetRunTypeComponents())
+	require.NotNil(t, node.GetIncomingHeaderSubscriber())
 }

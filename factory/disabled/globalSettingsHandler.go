@@ -1,5 +1,7 @@
 package disabled
 
+import vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 type disabledGlobalSettingsHandler struct{}
 
 // NewDisabledGlobalSettingHandler returns a new instance of disabledGlobalSettingsHandler
@@ -23,7 +25,7 @@ func (d *disabledGlobalSettingsHandler) GetTokenType(_ []byte) (uint32, error) {
 }
 
 // SetTokenType does nothing as this is a disabled component
-func (d *disabledGlobalSettingsHandler) SetTokenType(_ []byte, _ uint32) error {
+func (d *disabledGlobalSettingsHandler) SetTokenType(_ []byte, _ uint32, _ vmcommon.UserAccountHandler) error {
 	return nil
 }
 

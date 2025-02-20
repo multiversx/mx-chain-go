@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func internalInitConsensusState() *spos.ConsensusState {
@@ -498,6 +499,27 @@ func TestConsensusState_GenerateBitmapShouldWork(t *testing.T) {
 	assert.Equal(t, bitmapExpected, bitmap)
 }
 
+func TestConsensusState_GenerateBitmapForHashShouldWork(t *testing.T) {
+	t.Parallel()
+
+	cns := internalInitConsensusState()
+
+	_ = cns.SetJobDone(cns.SelfPubKey(), bls.SrSignature, true)
+	bitmapExpected := make([]byte, cns.ConsensusGroupSize()/8+1)
+
+	bitmap := cns.GenerateBitmapForHash(bls.SrSignature, nil)
+	assert.Equal(t, bitmapExpected, bitmap)
+
+	selfIndexInConsensusGroup, _ := cns.SelfConsensusGroupIndex()
+	bitmapExpected[selfIndexInConsensusGroup/8] |= 1 << (uint16(selfIndexInConsensusGroup) % 8)
+
+	processedHeaderHash := []byte("X")
+	cns.AddProcessedHeadersHashes(processedHeaderHash, selfIndexInConsensusGroup)
+
+	bitmap = cns.GenerateBitmapForHash(bls.SrSignature, processedHeaderHash)
+	assert.Equal(t, bitmapExpected, bitmap)
+}
+
 func TestConsensusState_SetAndGetProcessingBlockShouldWork(t *testing.T) {
 	t.Parallel()
 	cns := internalInitConsensusState()
@@ -616,4 +638,52 @@ func TestConsensusState_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 
 	cns.ResetRoundsWithoutReceivedMessages(testPkBytes, testPid)
 	assert.True(t, resetRoundsWithoutReceivedMessagesCalled)
+}
+
+func TestConsensusState_InitAddGetProcessedHeadersHashesShouldWork(t *testing.T) {
+	t.Parallel()
+
+	cns := internalInitConsensusState()
+
+	hash1 := []byte("A")
+
+	index1 := 1
+	cns.AddProcessedHeadersHashes(hash1, index1)
+	index2 := 2
+	cns.AddProcessedHeadersHashes(hash1, index2)
+	index3 := 3
+	cns.AddProcessedHeadersHashes(hash1, index3)
+
+	hash2 := []byte("B")
+
+	index4 := 4
+	cns.AddProcessedHeadersHashes(hash2, index4)
+	index5 := 5
+	cns.AddProcessedHeadersHashes(hash2, index5)
+
+	expectedIndexes := []int{index1, index2, index3}
+	indexes, ok := cns.GetProcessedHeaderHashIndexes(hash1)
+
+	require.True(t, ok)
+	assert.Equal(t, expectedIndexes, indexes)
+
+	expectedIndexes = []int{index4, index5}
+	indexes, ok = cns.GetProcessedHeaderHashIndexes(hash2)
+
+	require.True(t, ok)
+	assert.Equal(t, expectedIndexes, indexes)
+
+	cns.ResetConsensusState()
+
+	var expectedNilIndexes []int
+
+	indexes, ok = cns.GetProcessedHeaderHashIndexes(hash1)
+
+	require.False(t, ok)
+	assert.Equal(t, expectedNilIndexes, indexes)
+
+	indexes, ok = cns.GetProcessedHeaderHashIndexes(hash2)
+
+	require.False(t, ok)
+	assert.Equal(t, expectedNilIndexes, indexes)
 }

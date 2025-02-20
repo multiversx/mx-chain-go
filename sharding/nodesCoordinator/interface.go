@@ -32,6 +32,8 @@ type NodesCoordinator interface {
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NodesCoordinatorToRegistry(epoch uint32) NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 
@@ -66,6 +68,13 @@ type NodesCoordinatorHelper interface {
 	ValidatorsWeights(validators []Validator) ([]uint32, error)
 	ComputeAdditionalLeaving(allValidators []*state.ShardValidatorInfo) (map[uint32][]Validator, error)
 	GetChance(uint32) uint32
+}
+
+// NumberOfShardsComputer provides the number of shards computation capabilities
+type NumberOfShardsComputer interface {
+	ComputeNumberOfShards(config *epochNodesConfig) (uint32, error)
+	ShardIdFromNodesConfig(nodesConfig *epochNodesConfig) uint32
+	IsInterfaceNil() bool
 }
 
 // ChanceComputer provides chance computation capabilities based on a rating
@@ -176,5 +185,11 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinatorWithRaterFactory should create a nodes coordinator with rater
+type NodesCoordinatorWithRaterFactory interface {
+	CreateNodesCoordinatorWithRater(args *NodesCoordinatorWithRaterArgs) (NodesCoordinator, error)
 	IsInterfaceNil() bool
 }

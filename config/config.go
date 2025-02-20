@@ -228,6 +228,10 @@ type Config struct {
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
 	Redundancy          RedundancyConfig
+
+	// TODO: (RaduChis): When we have separate factories to pass configs from node runners,
+	// we need to remove this from here
+	SovereignConfig SovereignConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating

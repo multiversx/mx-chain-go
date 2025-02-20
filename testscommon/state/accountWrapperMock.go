@@ -27,7 +27,7 @@ type AccountWrapMock struct {
 	CodeMetadata      []byte
 	RootHash          []byte
 	Owner             []byte
-	address           []byte
+	Address           []byte
 	Balance           *big.Int
 	guarded           bool
 	trackableDataTrie state.DataTrieTracker
@@ -50,7 +50,7 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 	)
 
 	return &AccountWrapMock{
-		address:           adr,
+		Address:           adr,
 		trackableDataTrie: tdt,
 		Balance:           big.NewInt(0),
 	}
@@ -122,7 +122,7 @@ func (awm *AccountWrapMock) SetOwnerAddress(owner []byte) {
 
 // GetOwnerAddress -
 func (awm *AccountWrapMock) GetOwnerAddress() []byte {
-	return nil
+	return awm.Owner
 }
 
 // IsInterfaceNil -
@@ -187,7 +187,7 @@ func (awm *AccountWrapMock) SetRootHash(rootHash []byte) {
 
 // AddressBytes -
 func (awm *AccountWrapMock) AddressBytes() []byte {
-	return awm.address
+	return awm.Address
 }
 
 // DataTrie -

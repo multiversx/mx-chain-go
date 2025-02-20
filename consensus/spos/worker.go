@@ -80,6 +80,7 @@ type Worker struct {
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 	peerBlacklistHandler      consensus.PeerBlacklistHandler
 	closer                    core.SafeCloser
+	enableEpochHandler        common.EnableEpochsHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -109,6 +110,7 @@ type WorkerArgs struct {
 	AppStatusHandler         core.AppStatusHandler
 	NodeRedundancyHandler    consensus.NodeRedundancyHandler
 	PeerBlacklistHandler     consensus.PeerBlacklistHandler
+	EnableEpochHandler       common.EnableEpochsHandler
 }
 
 // NewWorker creates a new Worker object
@@ -126,6 +128,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		PublicKeySize:        args.PublicKeySize,
 		HeaderHashSize:       args.Hasher.Size(),
 		ChainID:              args.ChainID,
+		EnableEpochHandler:   args.EnableEpochHandler,
 	}
 
 	consensusMessageValidatorObj, err := NewConsensusMessageValidator(argsConsensusMessageValidator)
@@ -157,6 +160,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		nodeRedundancyHandler:    args.NodeRedundancyHandler,
 		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
+		enableEpochHandler:       args.EnableEpochHandler,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -256,6 +260,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.PeerBlacklistHandler) {
 		return ErrNilPeerBlacklistHandler
+	}
+	if check.IfNil(args.EnableEpochHandler) {
+		return ErrNilEnableEpochHandler
 	}
 
 	return nil
@@ -394,7 +401,7 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 	log.Trace("received message from consensus topic",
 		"msg type", wrk.consensusService.GetStringValue(msgType),
 		"from", cnsMsg.PubKey,
-		"header hash", cnsMsg.BlockHeaderHash,
+		"header hash", cnsMsg.HeaderHash,
 		"round", cnsMsg.RoundIndex,
 		"size", len(message.Data()),
 	)
@@ -458,7 +465,7 @@ func (wrk *Worker) doJobOnMessageWithBlockBody(cnsMsg *consensus.Message) {
 }
 
 func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
-	headerHash := cnsMsg.BlockHeaderHash
+	headerHash := cnsMsg.HeaderHash
 	header := wrk.blockProcessor.DecodeBlockHeader(cnsMsg.Header)
 	isHeaderInvalid := headerHash == nil || check.IfNil(header)
 	if isHeaderInvalid {
@@ -479,7 +486,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 
 	log.Debug("received proposed block",
 		"from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)),
-		"header hash", cnsMsg.BlockHeaderHash,
+		"header hash", cnsMsg.HeaderHash,
 		"epoch", header.GetEpoch(),
 		"round", header.GetRound(),
 		"nonce", header.GetNonce(),
@@ -525,7 +532,7 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	wrk.mutDisplayHashConsensusMessage.Lock()
 	defer wrk.mutDisplayHashConsensusMessage.Unlock()
 
-	hash := string(cnsMsg.BlockHeaderHash)
+	hash := string(cnsMsg.HeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
 	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)

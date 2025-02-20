@@ -20,7 +20,7 @@ type TransactionCoordinatorMock struct {
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
-	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error)
 	CreateBlockStartedCalled                             func()
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
@@ -127,9 +127,9 @@ func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error
 }
 
 // ProcessBlockTransaction -
-func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
+func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) (block.MiniBlockSlice, error) {
 	if tcm.ProcessBlockTransactionCalled == nil {
-		return nil
+		return nil, nil
 	}
 
 	return tcm.ProcessBlockTransactionCalled(header, body, haveTime)

@@ -1,0 +1,1 @@
+./txgen-esdt.sh intra

@@ -19,7 +19,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		Transactions:              testscommon.NewShardedDataStub(),
 		UnsignedTransactions:      testscommon.NewShardedDataStub(),
 		RewardTransactions:        testscommon.NewShardedDataStub(),
-		Headers:                   &mock.HeadersCacherStub{},
+		Headers:                   &testscommon.HeadersCacherStub{},
 		MiniBlocks:                testscommon.NewCacherStub(),
 		PeerChangesBlocks:         testscommon.NewCacherStub(),
 		TrieNodes:                 testscommon.NewCacherStub(),

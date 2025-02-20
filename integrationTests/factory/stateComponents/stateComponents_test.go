@@ -6,10 +6,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
@@ -28,11 +29,15 @@ func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
-	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	managedRunTypeCoreComponents, err := nr.CreateManagedRunTypeCoreComponents()
 	require.Nil(t, err)
-	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	require.Nil(t, err)
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents, managedCryptoComponents)
+	require.Nil(t, err)
+	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
@@ -42,6 +47,7 @@ func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
+		managedRunTypeComponents,
 	)
 	require.Nil(t, err)
 	managedDataComponents, err := nr.CreateManagedDataComponents(
@@ -49,9 +55,10 @@ func TestStateComponents_Create_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents,
 		managedBootstrapComponents,
 		managedCryptoComponents,
+		managedRunTypeComponents,
 	)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents, managedRunTypeComponents)
 	require.Nil(t, err)
 	require.NotNil(t, managedStateComponents)
 

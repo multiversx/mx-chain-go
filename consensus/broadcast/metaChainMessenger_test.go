@@ -27,7 +27,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
 	hasher := &hashingMocks.HasherMock{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 	alarmScheduler := &mock.AlarmSchedulerStub{}

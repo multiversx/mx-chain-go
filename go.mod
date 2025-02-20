@@ -15,13 +15,13 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.7
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.1.1
-	github.com/multiversx/mx-chain-core-go v1.2.24
+	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250206111825-25fbb1b4851c
 	github.com/multiversx/mx-chain-crypto-go v1.2.12
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.16
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.17-0.20250217145507-ddd47d85cfcd
 	github.com/multiversx/mx-chain-logger-go v1.0.15
 	github.com/multiversx/mx-chain-scenario-go v1.4.4
 	github.com/multiversx/mx-chain-storage-go v1.0.19
-	github.com/multiversx/mx-chain-vm-common-go v1.5.17-0.20241119115324-517042c2ad4a
+	github.com/multiversx/mx-chain-vm-common-go v1.5.17-0.20241119132002-2fa80c5ec516
 	github.com/multiversx/mx-chain-vm-go v1.5.37
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69
@@ -183,6 +183,8 @@ require (
 	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/grpc v1.60.1 // indirect
 	google.golang.org/protobuf v1.36.3 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

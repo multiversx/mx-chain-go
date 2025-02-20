@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -17,6 +22,8 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
@@ -24,16 +31,16 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Configs      config.Configs
-	APIInterface APIConfigurator
+	Configs                        config.Configs
+	APIInterface                   APIConfigurator
+	CreateRunTypeCoreComponents    func() (factory.RunTypeCoreComponentsHolder, error)
+	CreateIncomingHeaderSubscriber func(config config.WebSocketConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
+	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
+	NodeFactory                    node.NodeFactory
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
@@ -63,6 +70,8 @@ type testOnlyProcessingNode struct {
 	BootstrapComponentsHolder factory.BootstrapComponentsHandler
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
+	RunTypeComponents         factory.RunTypeComponentsHolder
+	IncomingHeaderSubscriber  process.IncomingHeaderSubscriber
 
 	NodesCoordinator      nodesCoordinator.NodesCoordinator
 	ChainHandler          chainData.ChainHandler
@@ -87,6 +96,11 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
+	runTypeCoreComponents, err := args.CreateRunTypeCoreComponents()
+	if err != nil {
+		return nil, err
+	}
+
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
 		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
@@ -104,6 +118,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
+		RunTypeCoreComponents:       runTypeCoreComponents,
 	})
 	if err != nil {
 		return nil, err
@@ -131,6 +146,15 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	argsRunType, err := runType.CreateArgsRunTypeComponents(instance.CoreComponentsHolder, instance.CryptoComponentsHolder, args.Configs)
+	if err != nil {
+		return nil, err
+	}
+	instance.RunTypeComponents, err = args.CreateRunTypeComponents(*argsRunType)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
 		CryptoComponents:     instance.CryptoComponentsHolder,
@@ -142,6 +166,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		PrefsConfig:          *args.Configs.PreferencesConfig,
 		Config:               *args.Configs.GeneralConfig,
 		ShardIDStr:           args.ShardIDStr,
+		RunTypeComponents:    instance.RunTypeComponents,
 	})
 	if err != nil {
 		return nil, err
@@ -164,17 +189,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
-		Config:         *args.Configs.GeneralConfig,
-		CoreComponents: instance.CoreComponentsHolder,
-		StatusCore:     instance.StatusCoreComponents,
-		StoreService:   instance.StoreService,
-		ChainHandler:   instance.ChainHandler,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	instance.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(dataRetrieverFactory.ArgsDataPool{
 		Config:           args.Configs.GeneralConfig,
 		EconomicsData:    instance.CoreComponentsHolder.EconomicsData(),
@@ -182,11 +196,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		Marshalizer:      instance.CoreComponentsHolder.InternalMarshalizer(),
 		PathManager:      instance.CoreComponentsHolder.PathHandler(),
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -201,6 +210,32 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
+		Config:            *args.Configs.GeneralConfig,
+		CoreComponents:    instance.CoreComponentsHolder,
+		StatusCore:        instance.StatusCoreComponents,
+		DataComponents:    instance.DataComponentsHolder,
+		RunTypeComponents: instance.RunTypeComponents,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.IncomingHeaderSubscriber, err = args.CreateIncomingHeaderSubscriber(
+		args.Configs.GeneralConfig.SovereignConfig.NotifierConfig.WebSocketConfig,
+		instance.DataComponentsHolder.Datapool(),
+		args.Configs.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
+		instance.RunTypeComponents,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
 		CoreComponents:           instance.CoreComponentsHolder,
 		CryptoComponents:         instance.CryptoComponentsHolder,
@@ -209,19 +244,14 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		StateComponents:          instance.StateComponentsHolder,
 		StatusComponents:         instance.StatusComponentsHolder,
 		StatusCoreComponents:     instance.StatusCoreComponents,
-		FlagsConfig:              *args.Configs.FlagsConfig,
-		ImportDBConfig:           *args.Configs.ImportDbConfig,
-		PrefsConfig:              *args.Configs.PreferencesConfig,
-		Config:                   *args.Configs.GeneralConfig,
-		EconomicsConfig:          *args.Configs.EconomicsConfig,
-		SystemSCConfig:           *args.Configs.SystemSCConfig,
-		EpochConfig:              *args.Configs.EpochConfig,
-		RoundConfig:              *args.Configs.RoundConfig,
-		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
+		Configs:                  args.Configs,
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
+		RunTypeComponents:        instance.RunTypeComponents,
+		EnableEpochsFactory:      runTypeCoreComponents.EnableEpochsFactoryCreator(),
+		IncomingHeaderSubscriber: instance.IncomingHeaderSubscriber,
 	})
 	if err != nil {
 		return nil, err
@@ -242,7 +272,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs, args.NodeFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +308,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
-	bootstrapStorer, err := node.StoreService.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapStorer, err := node.DataComponentsHolder.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
 		return err
 	}
@@ -308,8 +338,9 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.ChanStopNodeProcess(),
 		node.CoreComponentsHolder.NodeTypeProvider(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
-		node.DataPool.CurrentEpochValidatorInfo(),
+		node.DataComponentsHolder.Datapool().CurrentEpochValidatorInfo(),
 		node.BootstrapComponentsHolder.NodesCoordinatorRegistryFactory(),
+		node.RunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	if err != nil {
 		return err
@@ -329,6 +360,7 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
+		node.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	)
 	if err != nil {
 		return err
@@ -345,7 +377,10 @@ func (node *testOnlyProcessingNode) GetProcessComponents() factory.ProcessCompon
 
 // GetChainHandler will return the chain handler
 func (node *testOnlyProcessingNode) GetChainHandler() chainData.ChainHandler {
-	return node.ChainHandler
+	if check.IfNil(node.DataComponentsHolder) {
+		return nil
+	}
+	return node.DataComponentsHolder.Blockchain()
 }
 
 // GetBroadcastMessenger will return the broadcast messenger
@@ -388,6 +423,16 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
+// GetRunTypeComponents will return the run type components
+func (node *testOnlyProcessingNode) GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	return node.RunTypeComponents
+}
+
+// GetIncomingHeaderSubscriber will return the incoming header subscriber
+func (node *testOnlyProcessingNode) GetIncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
+	return node.IncomingHeaderSubscriber
+}
+
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
 	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
 	node.closeHandler.AddComponent(node.DataComponentsHolder)
@@ -398,6 +443,7 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 	node.closeHandler.AddComponent(node.StatusCoreComponents)
 	node.closeHandler.AddComponent(node.CoreComponentsHolder)
 	node.closeHandler.AddComponent(node.facadeHandler)
+	node.closeHandler.AddComponent(node.IncomingHeaderSubscriber)
 
 	// TODO remove this after http server fix
 	shardID := node.GetShardCoordinator().SelfId()

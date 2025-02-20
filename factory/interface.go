@@ -14,30 +14,64 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	storageRequestFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer/factory"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
+	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/outport"
+	outportFactory "github.com/multiversx/mx-chain-go/outport/process/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	syncerFactory "github.com/multiversx/mx-chain-go/state/syncer/factory"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -554,4 +588,143 @@ type TrieSyncStatisticsProvider interface {
 type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
+}
+
+// RunTypeComponentsHandler defines the run type components handler actions
+type RunTypeComponentsHandler interface {
+	ComponentHandler
+	RunTypeComponentsHolder
+}
+
+// RunTypeComponentsHolder holds the run type components
+type RunTypeComponentsHolder interface {
+	BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator
+	BlockProcessorCreator() processBlock.BlockProcessorCreator
+	BlockTrackerCreator() track.BlockTrackerCreator
+	BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperCreator() storageBootstrap.BootstrapperCreator
+	EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator
+	ForkDetectorCreator() sync.ForkDetectorCreator
+	HeaderValidatorCreator() processBlock.HeaderValidatorCreator
+	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
+	ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator
+	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
+	ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	ConsensusModel() consensus.ConsensusModel
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
+	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	AccountsParser() genesis.AccountsParser
+	AccountsCreator() state.AccountFactory
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
+	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
+	DataCodecHandler() sovereign.DataCodecHandler
+	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
+	InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
+	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
+	NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory
+	EpochStartTriggerFactory() EpochStartTriggerFactoryHandler
+	LatestDataProviderFactory() latestData.LatestDataProviderFactory
+	StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler
+	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
+	ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler
+	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
+	RewardsCreatorFactory() RewardsCreatorFactory
+	SystemSCProcessorFactory() SystemSCProcessorFactory
+	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
+	DataRetrieverContainersSetter() DataRetrieverContainersSetter
+	BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler
+	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
+	ValidatorAccountsSyncerFactoryHandler() syncerFactory.ValidatorAccountsSyncerFactoryHandler
+	ShardRequestersContainerCreatorHandler() storageRequestFactory.ShardRequestersContainerCreatorHandler
+	APIRewardsTxHandler() transactionAPI.APIRewardTxHandler
+	OutportDataProviderFactory() OutportDataProviderFactoryHandler
+	DelegatedListFactoryHandler() trieIteratorsFactory.DelegatedListProcessorFactoryHandler
+	DirectStakedListFactoryHandler() trieIteratorsFactory.DirectStakedListProcessorFactoryHandler
+	TotalStakedValueFactoryHandler() trieIteratorsFactory.TotalStakedValueProcessorFactoryHandler
+	VersionedHeaderFactory() genesis.VersionedHeaderFactory
+	Create() error
+	Close() error
+	CheckSubcomponents() error
+	String() string
+	IsInterfaceNil() bool
+}
+
+// RunTypeCoreComponentsHandler defines the run type core components handler actions
+type RunTypeCoreComponentsHandler interface {
+	ComponentHandler
+	RunTypeCoreComponentsHolder
+}
+
+// RunTypeCoreComponentsHolder holds the run type core components
+type RunTypeCoreComponentsHolder interface {
+	GenesisNodesSetupFactoryCreator() sharding.GenesisNodesSetupFactory
+	RatingsDataFactoryCreator() rating.RatingsDataFactory
+	EnableEpochsFactoryCreator() enablers.EnableEpochsFactory
+	Create() error
+	Close() error
+	CheckSubcomponents() error
+	String() string
+	IsInterfaceNil() bool
+}
+
+// ValidatorInfoCreatorFactory defines a validator info creator factory
+type ValidatorInfoCreatorFactory interface {
+	CreateValidatorInfoCreator(args metachain.ArgsNewValidatorInfoCreator) (process.EpochStartValidatorInfoCreator, error)
+	IsInterfaceNil() bool
+}
+
+// EpochStartTriggerFactoryHandler defines the interface needed to create an epoch start trigger
+type EpochStartTriggerFactoryHandler interface {
+	CreateEpochStartTrigger(args ArgsEpochStartTrigger) (epochStart.TriggerHandler, error)
+	IsInterfaceNil() bool
+}
+
+// EndOfEpochEconomicsFactoryHandler defines the end of epoch economics factory handler
+type EndOfEpochEconomicsFactoryHandler interface {
+	CreateEndOfEpochEconomics(args metachain.ArgsNewEpochEconomics) (process.EndOfEpochEconomics, error)
+	IsInterfaceNil() bool
+}
+
+// RewardsCreatorFactory defines a rewards creator factory
+type RewardsCreatorFactory interface {
+	CreateRewardsCreator(args metachain.RewardsCreatorProxyArgs) (epochStart.RewardsCreator, error)
+	IsInterfaceNil() bool
+}
+
+// SystemSCProcessorFactory defines the sys sc processor factory handler
+type SystemSCProcessorFactory interface {
+	CreateSystemSCProcessor(args metachain.ArgsNewEpochStartSystemSCProcessing) (process.EpochStartSystemSCProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// DataRetrieverContainersSetter should be able to set epoch start trigger to resolvers/requesters container
+type DataRetrieverContainersSetter interface {
+	SetEpochHandlerToMetaBlockContainers(
+		epochStartTrigger epochStart.TriggerHandler,
+		resolversContainer dataRetriever.ResolversContainer,
+		requestersContainer dataRetriever.RequestersContainer,
+	) error
+	IsInterfaceNil() bool
+}
+
+// ExportHandlerFactoryCreator should create an export factory handler
+type ExportHandlerFactoryCreator interface {
+	CreateExportFactoryHandler(args ArgsExporter) (update.ExportFactoryHandler, error)
+	IsInterfaceNil() bool
+}
+
+// OutportDataProviderFactoryHandler defines an outport data provider factory handler
+type OutportDataProviderFactoryHandler interface {
+	CreateOutportDataProvider(arg outportFactory.ArgOutportDataProviderFactory) (outport.DataProviderOutport, error)
+	IsInterfaceNil() bool
 }

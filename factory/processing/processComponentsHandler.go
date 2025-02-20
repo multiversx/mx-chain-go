@@ -42,142 +42,142 @@ func NewManagedProcessComponents(pcf *processComponentsFactory) (*managedProcess
 }
 
 // Create will create the managed components
-func (m *managedProcessComponents) Create() error {
-	pc, err := m.factory.Create()
+func (mpc *managedProcessComponents) Create() error {
+	pc, err := mpc.factory.Create()
 	if err != nil {
 		return err
 	}
 
-	m.mutProcessComponents.Lock()
-	m.processComponents = pc
-	m.mutProcessComponents.Unlock()
+	mpc.mutProcessComponents.Lock()
+	mpc.processComponents = pc
+	mpc.mutProcessComponents.Unlock()
 
 	return nil
 }
 
 // Close will close all underlying subcomponents
-func (m *managedProcessComponents) Close() error {
-	m.mutProcessComponents.Lock()
-	defer m.mutProcessComponents.Unlock()
+func (mpc *managedProcessComponents) Close() error {
+	mpc.mutProcessComponents.Lock()
+	defer mpc.mutProcessComponents.Unlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	err := m.processComponents.Close()
+	err := mpc.processComponents.Close()
 	if err != nil {
 		return err
 	}
-	m.processComponents = nil
+	mpc.processComponents = nil
 
 	return nil
 }
 
 // CheckSubcomponents verifies all subcomponents
-func (m *managedProcessComponents) CheckSubcomponents() error {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) CheckSubcomponents() error {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return errors.ErrNilProcessComponents
 	}
-	if check.IfNil(m.processComponents.nodesCoordinator) {
+	if check.IfNil(mpc.processComponents.nodesCoordinator) {
 		return errors.ErrNilNodesCoordinator
 	}
-	if check.IfNil(m.processComponents.shardCoordinator) {
+	if check.IfNil(mpc.processComponents.shardCoordinator) {
 		return errors.ErrNilShardCoordinator
 	}
-	if check.IfNil(m.processComponents.mainInterceptorsContainer) {
+	if check.IfNil(mpc.processComponents.mainInterceptorsContainer) {
 		return fmt.Errorf("%w on main network", errors.ErrNilInterceptorsContainer)
 	}
-	if check.IfNil(m.processComponents.fullArchiveInterceptorsContainer) {
+	if check.IfNil(mpc.processComponents.fullArchiveInterceptorsContainer) {
 		return fmt.Errorf("%w on full archive network", errors.ErrNilInterceptorsContainer)
 	}
-	if check.IfNil(m.processComponents.resolversContainer) {
+	if check.IfNil(mpc.processComponents.resolversContainer) {
 		return errors.ErrNilResolversContainer
 	}
-	if check.IfNil(m.processComponents.requestersFinder) {
+	if check.IfNil(mpc.processComponents.requestersFinder) {
 		return errors.ErrNilRequestersFinder
 	}
-	if check.IfNil(m.processComponents.roundHandler) {
+	if check.IfNil(mpc.processComponents.roundHandler) {
 		return errors.ErrNilRoundHandler
 	}
-	if check.IfNil(m.processComponents.epochStartTrigger) {
+	if check.IfNil(mpc.processComponents.epochStartTrigger) {
 		return errors.ErrNilEpochStartTrigger
 	}
-	if check.IfNil(m.processComponents.epochStartNotifier) {
+	if check.IfNil(mpc.processComponents.epochStartNotifier) {
 		return errors.ErrNilEpochStartNotifier
 	}
-	if check.IfNil(m.processComponents.forkDetector) {
+	if check.IfNil(mpc.processComponents.forkDetector) {
 		return errors.ErrNilForkDetector
 	}
-	if check.IfNil(m.processComponents.blockProcessor) {
+	if check.IfNil(mpc.processComponents.blockProcessor) {
 		return errors.ErrNilBlockProcessor
 	}
-	if check.IfNil(m.processComponents.blackListHandler) {
+	if check.IfNil(mpc.processComponents.blackListHandler) {
 		return errors.ErrNilBlackListHandler
 	}
-	if check.IfNil(m.processComponents.bootStorer) {
+	if check.IfNil(mpc.processComponents.bootStorer) {
 		return errors.ErrNilBootStorer
 	}
-	if check.IfNil(m.processComponents.headerSigVerifier) {
+	if check.IfNil(mpc.processComponents.headerSigVerifier) {
 		return errors.ErrNilHeaderSigVerifier
 	}
-	if check.IfNil(m.processComponents.headerIntegrityVerifier) {
+	if check.IfNil(mpc.processComponents.headerIntegrityVerifier) {
 		return errors.ErrNilHeaderIntegrityVerifier
 	}
-	if check.IfNil(m.processComponents.validatorsStatistics) {
+	if check.IfNil(mpc.processComponents.validatorsStatistics) {
 		return errors.ErrNilValidatorsStatistics
 	}
-	if check.IfNil(m.processComponents.validatorsProvider) {
+	if check.IfNil(mpc.processComponents.validatorsProvider) {
 		return errors.ErrNilValidatorsProvider
 	}
-	if check.IfNil(m.processComponents.blockTracker) {
+	if check.IfNil(mpc.processComponents.blockTracker) {
 		return errors.ErrNilBlockTracker
 	}
-	if check.IfNil(m.processComponents.pendingMiniBlocksHandler) {
+	if check.IfNil(mpc.processComponents.pendingMiniBlocksHandler) {
 		return errors.ErrNilPendingMiniBlocksHandler
 	}
-	if check.IfNil(m.processComponents.requestHandler) {
+	if check.IfNil(mpc.processComponents.requestHandler) {
 		return errors.ErrNilRequestHandler
 	}
-	if check.IfNil(m.processComponents.txLogsProcessor) {
+	if check.IfNil(mpc.processComponents.txLogsProcessor) {
 		return errors.ErrNilTxLogsProcessor
 	}
-	if check.IfNil(m.processComponents.headerConstructionValidator) {
+	if check.IfNil(mpc.processComponents.headerConstructionValidator) {
 		return errors.ErrNilHeaderConstructionValidator
 	}
-	if check.IfNil(m.processComponents.mainPeerShardMapper) {
+	if check.IfNil(mpc.processComponents.mainPeerShardMapper) {
 		return fmt.Errorf("%w for main", errors.ErrNilPeerShardMapper)
 	}
-	if check.IfNil(m.processComponents.fullArchivePeerShardMapper) {
+	if check.IfNil(mpc.processComponents.fullArchivePeerShardMapper) {
 		return fmt.Errorf("%w for full archive", errors.ErrNilPeerShardMapper)
 	}
-	if check.IfNil(m.processComponents.fallbackHeaderValidator) {
+	if check.IfNil(mpc.processComponents.fallbackHeaderValidator) {
 		return errors.ErrNilFallbackHeaderValidator
 	}
-	if check.IfNil(m.processComponents.nodeRedundancyHandler) {
+	if check.IfNil(mpc.processComponents.nodeRedundancyHandler) {
 		return errors.ErrNilNodeRedundancyHandler
 	}
-	if check.IfNil(m.processComponents.currentEpochProvider) {
+	if check.IfNil(mpc.processComponents.currentEpochProvider) {
 		return errors.ErrNilCurrentEpochProvider
 	}
-	if check.IfNil(m.processComponents.scheduledTxsExecutionHandler) {
+	if check.IfNil(mpc.processComponents.scheduledTxsExecutionHandler) {
 		return errors.ErrNilScheduledTxsExecutionHandler
 	}
-	if check.IfNil(m.processComponents.txsSender) {
+	if check.IfNil(mpc.processComponents.txsSender) {
 		return errors.ErrNilTxsSender
 	}
-	if check.IfNil(m.processComponents.processedMiniBlocksTracker) {
+	if check.IfNil(mpc.processComponents.processedMiniBlocksTracker) {
 		return process.ErrNilProcessedMiniBlocksTracker
 	}
-	if check.IfNil(m.processComponents.esdtDataStorageForApi) {
+	if check.IfNil(mpc.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
 	}
-	if check.IfNil(m.processComponents.sentSignaturesTracker) {
+	if check.IfNil(mpc.processComponents.sentSignaturesTracker) {
 		return errors.ErrNilSentSignatureTracker
 	}
-	if check.IfNil(m.processComponents.epochSystemSCProcessor) {
+	if check.IfNil(mpc.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
 	}
 
@@ -185,39 +185,39 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 }
 
 // NodesCoordinator returns the nodes coordinator
-func (m *managedProcessComponents) NodesCoordinator() nodesCoordinator.NodesCoordinator {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) NodesCoordinator() nodesCoordinator.NodesCoordinator {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.nodesCoordinator
+	return mpc.processComponents.nodesCoordinator
 }
 
 // ShardCoordinator returns the shard coordinator
-func (m *managedProcessComponents) ShardCoordinator() sharding.Coordinator {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ShardCoordinator() sharding.Coordinator {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.shardCoordinator
+	return mpc.processComponents.shardCoordinator
 }
 
 // InterceptorsContainer returns the interceptors container on the main network
-func (m *managedProcessComponents) InterceptorsContainer() process.InterceptorsContainer {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) InterceptorsContainer() process.InterceptorsContainer {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.mainInterceptorsContainer
+	return mpc.processComponents.mainInterceptorsContainer
 }
 
 // FullArchiveInterceptorsContainer returns the interceptors container on the full archive network
@@ -233,231 +233,231 @@ func (m *managedProcessComponents) FullArchiveInterceptorsContainer() process.In
 }
 
 // ResolversContainer returns the resolvers container
-func (m *managedProcessComponents) ResolversContainer() dataRetriever.ResolversContainer {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ResolversContainer() dataRetriever.ResolversContainer {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.resolversContainer
+	return mpc.processComponents.resolversContainer
 }
 
 // RequestersFinder returns the requesters finder
-func (m *managedProcessComponents) RequestersFinder() dataRetriever.RequestersFinder {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) RequestersFinder() dataRetriever.RequestersFinder {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.requestersFinder
+	return mpc.processComponents.requestersFinder
 }
 
 // RoundHandler returns the roundHandler
-func (m *managedProcessComponents) RoundHandler() consensus.RoundHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) RoundHandler() consensus.RoundHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.roundHandler
+	return mpc.processComponents.roundHandler
 }
 
 // EpochStartTrigger returns the epoch start trigger handler
-func (m *managedProcessComponents) EpochStartTrigger() epochStart.TriggerHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) EpochStartTrigger() epochStart.TriggerHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.epochStartTrigger
+	return mpc.processComponents.epochStartTrigger
 }
 
 // EpochStartNotifier returns the epoch start notifier
-func (m *managedProcessComponents) EpochStartNotifier() factory.EpochStartNotifier {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) EpochStartNotifier() factory.EpochStartNotifier {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.epochStartNotifier
+	return mpc.processComponents.epochStartNotifier
 }
 
 // ForkDetector returns the fork detector
-func (m *managedProcessComponents) ForkDetector() process.ForkDetector {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ForkDetector() process.ForkDetector {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.forkDetector
+	return mpc.processComponents.forkDetector
 }
 
 // BlockProcessor returns the block processor
-func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) BlockProcessor() process.BlockProcessor {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.blockProcessor
+	return mpc.processComponents.blockProcessor
 }
 
 // BlackListHandler returns the black list handler
-func (m *managedProcessComponents) BlackListHandler() process.TimeCacher {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) BlackListHandler() process.TimeCacher {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.blackListHandler
+	return mpc.processComponents.blackListHandler
 }
 
 // BootStorer returns the boot storer
-func (m *managedProcessComponents) BootStorer() process.BootStorer {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) BootStorer() process.BootStorer {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.bootStorer
+	return mpc.processComponents.bootStorer
 }
 
 // HeaderSigVerifier returns the header signature verification
-func (m *managedProcessComponents) HeaderSigVerifier() process.InterceptedHeaderSigVerifier {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) HeaderSigVerifier() process.InterceptedHeaderSigVerifier {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.headerSigVerifier
+	return mpc.processComponents.headerSigVerifier
 }
 
 // HeaderIntegrityVerifier returns the header integrity verifier
-func (m *managedProcessComponents) HeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) HeaderIntegrityVerifier() process.HeaderIntegrityVerifier {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.headerIntegrityVerifier
+	return mpc.processComponents.headerIntegrityVerifier
 }
 
 // ValidatorsStatistics returns the validator statistics processor
-func (m *managedProcessComponents) ValidatorsStatistics() process.ValidatorStatisticsProcessor {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ValidatorsStatistics() process.ValidatorStatisticsProcessor {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.validatorsStatistics
+	return mpc.processComponents.validatorsStatistics
 }
 
 // ValidatorsProvider returns the validator provider
-func (m *managedProcessComponents) ValidatorsProvider() process.ValidatorsProvider {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ValidatorsProvider() process.ValidatorsProvider {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.validatorsProvider
+	return mpc.processComponents.validatorsProvider
 }
 
 // BlockTracker returns the block tracker
-func (m *managedProcessComponents) BlockTracker() process.BlockTracker {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) BlockTracker() process.BlockTracker {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.blockTracker
+	return mpc.processComponents.blockTracker
 }
 
 // PendingMiniBlocksHandler returns the pending mini blocks handler
-func (m *managedProcessComponents) PendingMiniBlocksHandler() process.PendingMiniBlocksHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) PendingMiniBlocksHandler() process.PendingMiniBlocksHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.pendingMiniBlocksHandler
+	return mpc.processComponents.pendingMiniBlocksHandler
 }
 
 // RequestHandler returns the request handler
-func (m *managedProcessComponents) RequestHandler() process.RequestHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) RequestHandler() process.RequestHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.requestHandler
+	return mpc.processComponents.requestHandler
 }
 
 // TxLogsProcessor returns the tx logs processor
-func (m *managedProcessComponents) TxLogsProcessor() process.TransactionLogProcessorDatabase {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) TxLogsProcessor() process.TransactionLogProcessorDatabase {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.txLogsProcessor
+	return mpc.processComponents.txLogsProcessor
 }
 
 // HeaderConstructionValidator returns the validator for header construction
-func (m *managedProcessComponents) HeaderConstructionValidator() process.HeaderConstructionValidator {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) HeaderConstructionValidator() process.HeaderConstructionValidator {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.headerConstructionValidator
+	return mpc.processComponents.headerConstructionValidator
 }
 
 // PeerShardMapper returns the peer to shard mapper of the main network
-func (m *managedProcessComponents) PeerShardMapper() process.NetworkShardingCollector {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) PeerShardMapper() process.NetworkShardingCollector {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.mainPeerShardMapper
+	return mpc.processComponents.mainPeerShardMapper
 }
 
 // FullArchivePeerShardMapper returns the peer to shard mapper of the full archive network
@@ -473,171 +473,171 @@ func (m *managedProcessComponents) FullArchivePeerShardMapper() process.NetworkS
 }
 
 // FallbackHeaderValidator returns the fallback header validator
-func (m *managedProcessComponents) FallbackHeaderValidator() process.FallbackHeaderValidator {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) FallbackHeaderValidator() process.FallbackHeaderValidator {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.fallbackHeaderValidator
+	return mpc.processComponents.fallbackHeaderValidator
 }
 
 // APITransactionEvaluator returns the api transaction evaluator
-func (m *managedProcessComponents) APITransactionEvaluator() factory.TransactionEvaluator {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) APITransactionEvaluator() factory.TransactionEvaluator {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.apiTransactionEvaluator
+	return mpc.processComponents.apiTransactionEvaluator
 }
 
 // WhiteListHandler returns the white list handler
-func (m *managedProcessComponents) WhiteListHandler() process.WhiteListHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) WhiteListHandler() process.WhiteListHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.whiteListHandler
+	return mpc.processComponents.whiteListHandler
 }
 
 // WhiteListerVerifiedTxs returns the white lister verified txs
-func (m *managedProcessComponents) WhiteListerVerifiedTxs() process.WhiteListHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) WhiteListerVerifiedTxs() process.WhiteListHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.whiteListerVerifiedTxs
+	return mpc.processComponents.whiteListerVerifiedTxs
 }
 
 // HistoryRepository returns the history repository
-func (m *managedProcessComponents) HistoryRepository() dblookupext.HistoryRepository {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) HistoryRepository() dblookupext.HistoryRepository {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.historyRepository
+	return mpc.processComponents.historyRepository
 }
 
 // ImportStartHandler returns the import status handler
-func (m *managedProcessComponents) ImportStartHandler() update.ImportStartHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ImportStartHandler() update.ImportStartHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.importStartHandler
+	return mpc.processComponents.importStartHandler
 }
 
 // RequestedItemsHandler returns the items handler for the requests
-func (m *managedProcessComponents) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) RequestedItemsHandler() dataRetriever.RequestedItemsHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.requestedItemsHandler
+	return mpc.processComponents.requestedItemsHandler
 }
 
 // NodeRedundancyHandler returns the node redundancy handler
-func (m *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) NodeRedundancyHandler() consensus.NodeRedundancyHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.nodeRedundancyHandler
+	return mpc.processComponents.nodeRedundancyHandler
 }
 
 // AccountsParser returns the genesis accounts parser
-func (m *managedProcessComponents) AccountsParser() genesis.AccountsParser {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) AccountsParser() genesis.AccountsParser {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.accountsParser
+	return mpc.processComponents.accountsParser
 }
 
 // CurrentEpochProvider returns the current epoch provider that can decide if an epoch is active or not on the network
-func (m *managedProcessComponents) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) CurrentEpochProvider() process.CurrentNetworkEpochProviderHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.currentEpochProvider
+	return mpc.processComponents.currentEpochProvider
 }
 
 // ScheduledTxsExecutionHandler returns the scheduled transactions execution handler
-func (m *managedProcessComponents) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ScheduledTxsExecutionHandler() process.ScheduledTxsExecutionHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.scheduledTxsExecutionHandler
+	return mpc.processComponents.scheduledTxsExecutionHandler
 }
 
 // TxsSenderHandler returns the transactions sender handler
-func (m *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) TxsSenderHandler() process.TxsSenderHandler {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.txsSender
+	return mpc.processComponents.txsSender
 }
 
 // HardforkTrigger returns the hardfork trigger
-func (m *managedProcessComponents) HardforkTrigger() factory.HardforkTrigger {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) HardforkTrigger() factory.HardforkTrigger {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.hardforkTrigger
+	return mpc.processComponents.hardforkTrigger
 }
 
 // ProcessedMiniBlocksTracker returns the processed mini blocks tracker
-func (m *managedProcessComponents) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ProcessedMiniBlocksTracker() process.ProcessedMiniBlocksTracker {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.processedMiniBlocksTracker
+	return mpc.processComponents.processedMiniBlocksTracker
 }
 
 // ESDTDataStorageHandlerForAPI returns the esdt data storage handler to be used for API calls
@@ -653,15 +653,15 @@ func (m *managedProcessComponents) ESDTDataStorageHandlerForAPI() vmcommon.ESDTN
 }
 
 // ReceiptsRepository returns the receipts repository
-func (m *managedProcessComponents) ReceiptsRepository() factory.ReceiptsRepository {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
+func (mpc *managedProcessComponents) ReceiptsRepository() factory.ReceiptsRepository {
+	mpc.mutProcessComponents.RLock()
+	defer mpc.mutProcessComponents.RUnlock()
 
-	if m.processComponents == nil {
+	if mpc.processComponents == nil {
 		return nil
 	}
 
-	return m.processComponents.receiptsRepository
+	return mpc.processComponents.receiptsRepository
 }
 
 // SentSignaturesTracker returns the signature tracker
@@ -689,11 +689,11 @@ func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSy
 }
 
 // IsInterfaceNil returns true if the interface is nil
-func (m *managedProcessComponents) IsInterfaceNil() bool {
-	return m == nil
+func (mpc *managedProcessComponents) IsInterfaceNil() bool {
+	return mpc == nil
 }
 
 // String returns the name of the component
-func (m *managedProcessComponents) String() string {
+func (mpc *managedProcessComponents) String() string {
 	return factory.ProcessComponentsName
 }

@@ -96,6 +96,11 @@ func (msc *multiShardCoordinator) NumberOfShards() uint32 {
 	return msc.numberOfShards
 }
 
+// TotalNumberOfShards returns the total number of shards + metachain
+func (msc *multiShardCoordinator) TotalNumberOfShards() uint32 {
+	return msc.NumberOfShards() + 1
+}
+
 // SelfId gets the shard id of the current node
 func (msc *multiShardCoordinator) SelfId() uint32 {
 	return msc.selfId

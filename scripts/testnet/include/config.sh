@@ -9,6 +9,11 @@ generateConfig() {
     TMP_META_OBSERVERCOUNT=0
   fi
 
+  SOVEREIGN_BOOL="false"
+  if [ $SOVEREIGN_DEPLOY -eq 1 ]; then
+    SOVEREIGN_BOOL="true"
+  fi
+
   pushd $TESTNETDIR/filegen
   ./filegen \
     -output-directory $CONFIGGENERATOROUTPUTDIR               \
@@ -21,7 +26,9 @@ generateConfig() {
     -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
-    -round-duration $ROUND_DURATION_IN_MS
+    -round-duration $ROUND_DURATION_IN_MS \
+    -sovereign=$SOVEREIGN_BOOL
+
   popd
 }
 
@@ -37,6 +44,12 @@ copyConfig() {
         cat $NODEDIR/config/testKeys/"${EXTRA_KEY_PEM_FILE}" >> ./node/config/"$MULTI_KEY_PEM_FILE"
       fi
   fi
+
+  if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/private_key.pem ./node/config
+      cp "$MULTIVERSXDIR"/../mx-chain-sovereign-bridge-go/cert/cmd/cert/certificate.crt ./node/config
+  fi
+
   echo "Configuration files copied from the configuration generator to the working directories of the executables."
   popd
 }
@@ -73,6 +86,26 @@ updateSeednodeConfig() {
   popd
 }
 
+prepareElasticsearch() {
+  echo "Starting Elasticsearch Docker container..."
+  pwd
+  ES_CONTAINER="mvx-elastic"
+  if [ -n "$(docker ps -aqf name=$ES_CONTAINER)" ]; then
+    ES_CONTAINER_ID=$(docker start $ES_CONTAINER)
+  else
+    ES_CONTAINER_ID=$(docker run -d --network host --volume=$ELASTICSEARCH_VOLUME:/usr/share/elasticsearch/data -e "discovery.type=single-node" --name=$ES_CONTAINER docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
+    updateElasticsearchIndices
+  fi
+  echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
+}
+
+updateElasticsearchIndices() {
+  echo "Updating Elasticsearch indices..."
+  pushd $(dirname $MULTIVERSXDIR)/mx-chain-tools-go/elasticreindexer/cmd/indices-creator
+  ./indices-creator
+  popd
+}
+
 copyNodeConfig() {
   pushd $TESTNETDIR
   cp $NODEDIR/config/api.toml ./node/config
@@ -81,7 +114,8 @@ copyNodeConfig() {
   cp $NODEDIR/config/economics.toml ./node/config
   cp $NODEDIR/config/ratings.toml ./node/config
   cp $NODEDIR/config/prefs.toml ./node/config
-  cp $NODEDIR/config/external.toml ./node/config
+  cp $NODEDIR/config/external.toml ./node/config/external_validator.toml
+  cp $NODEDIR/config/external.toml ./node/config/external_observer.toml
   cp $NODEDIR/config/p2p.toml ./node/config
   cp $NODEDIR/config/fullArchiveP2P.toml ./node/config
   cp $NODEDIR/config/enableEpochs.toml ./node/config
@@ -94,6 +128,19 @@ copyNodeConfig() {
   cp $NODEDIR/config/gasSchedules/*.* ./node/config/gasSchedules
 
   echo "Configuration files copied from the Node to the working directories of the executables."
+  popd
+}
+
+copySovereignNodeConfig() {
+  pushd $TESTNETDIR
+  cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./node/config
+  cp $SOVEREIGNNODEDIR/config/enableEpochs.toml ./txgen/config/nodeConfig/config
+  cp $SOVEREIGNNODEDIR/config/economics.toml ./node/config
+  cp $SOVEREIGNNODEDIR/config/economics.toml ./txgen/config
+  cp $SOVEREIGNNODEDIR/config/prefs.toml ./node/config
+  cp $SOVEREIGNNODEDIR/config/sovereignConfig.toml ./node/config
+
+  echo "Configuration files copied from the Sovereign Node to the working directories of the executables."
   popd
 }
 
@@ -114,8 +161,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
-		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
+		updateTOMLValue config_validator.toml "ChainID" "\"$DEFAULT_CHAIN_ID"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"$DEFAULT_CHAIN_ID"\"
 	fi
 
 	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
@@ -124,6 +171,13 @@ updateNodeConfig() {
 	  sed -i "s,RoundsPerEpoch.*$,RoundsPerEpoch = $ROUNDS_PER_EPOCH," config_validator.toml
     sed -i "s,MinRoundsBetweenEpochs.*$,MinRoundsBetweenEpochs = $ROUNDS_PER_EPOCH," config_validator.toml
 	fi
+
+	if [ $USE_ELASTICSEARCH -eq 1 ]; then
+	  sed -i '/^\[ElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
+	  sed -i '/^\[MainChainElasticSearchConnector\]/,/^\[/ s/Enabled *= *false/Enabled = true/' external_observer.toml
+	fi
+
+  sed -i '/^\[DbLookupExtensions\]/,/^\[/ s/Enabled *= *false/Enabled = true/' config_observer.toml
 
   cp nodesSetup_edit.json nodesSetup.json
   rm nodesSetup_edit.json
@@ -188,7 +242,7 @@ copyProxyConfig() {
   cp -r $PROXYDIR/config/apiConfig ./proxy/config
 
   cp ./node/config/economics.toml ./proxy/config/
-  cp ./node/config/external.toml ./proxy/config/
+  cp ./node/config/external_validator.toml ./proxy/config/external.toml
   cp ./node/config/walletKey.pem ./proxy/config
 
   echo "Copied configuration for the Proxy."
@@ -209,6 +263,23 @@ updateProxyConfig() {
   rm config_edit.toml
 
   echo "Updated configuration for the Proxy."
+  popd
+}
+
+updateSovereignProxyConfig() {
+  pushd $TESTNETDIR/proxy/config
+  cp config.toml config_edit.toml
+
+  # Truncate config.toml before the [[Observers]] list
+  sed -i -n '/\[\[Observers\]\]/q;p' config_edit.toml
+
+  updateTOMLValue config_edit.toml "ServerPort" $PORT_PROXY
+  generateSovereignProxyObserverList config_edit.toml
+
+  cp config_edit.toml config.toml
+  rm config_edit.toml
+
+  echo "Updated configuration for the Sovereign Proxy."
   popd
 }
 
@@ -243,6 +314,10 @@ updateTxGenConfig() {
   popd
 }
 
+updateSovereignTxGenConfig() {
+  updateTxGenConfig
+  pushd $TESTNETDIR/txgen/config/nodeConfig/config
+}
 
 generateProxyObserverList() {
   OBSERVER_INDEX=0
@@ -272,6 +347,31 @@ generateProxyObserverList() {
 
       (( OBSERVER_INDEX++ ))
     done
+}
+
+generateSovereignProxyObserverList() {
+  OBSERVER_INDEX=0
+  OUTPUTFILE=$!
+  # Start Shard Observers
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    for _ in $(seq $SHARD_OBSERVERCOUNT); do
+      (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
+
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $SHARD" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
+
+      # for sovereign shards, shard observers are also able to respond to Metachain related endpoints - useful so we can reuse the Proxy without changes
+      echo "[[Observers]]" >> config_edit.toml
+      echo "   ShardId = $METASHARD_ID" >> config_edit.toml
+      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
+      echo ""$'\n' >> config_edit.toml
+
+      (( OBSERVER_INDEX++ ))
+    done
+  done
 }
 
 updateTOMLValue() {

@@ -9,6 +9,7 @@ import (
 // HeadersCacherStub -
 type HeadersCacherStub struct {
 	AddCalled                           func(headerHash []byte, header data.HeaderHandler)
+	AddHeaderInShardCalled              func(headerHash []byte, header data.HeaderHandler, shardID uint32)
 	RemoveHeaderByHashCalled            func(headerHash []byte)
 	RemoveHeaderByNonceAndShardIdCalled func(hdrNonce uint64, shardId uint32)
 	GetHeaderByNonceAndShardIdCalled    func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error)
@@ -25,6 +26,13 @@ type HeadersCacherStub struct {
 func (hcs *HeadersCacherStub) AddHeader(headerHash []byte, header data.HeaderHandler) {
 	if hcs.AddCalled != nil {
 		hcs.AddCalled(headerHash, header)
+	}
+}
+
+// AddHeaderInShard -
+func (hcs *HeadersCacherStub) AddHeaderInShard(headerHash []byte, header data.HeaderHandler, shardID uint32) {
+	if hcs.AddHeaderInShardCalled != nil {
+		hcs.AddHeaderInShardCalled(headerHash, header, shardID)
 	}
 }
 

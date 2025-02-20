@@ -1,6 +1,7 @@
 package common_test
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
@@ -374,4 +375,38 @@ func TestSuffixedMetric(t *testing.T) {
 	providedSuffix = common.FullArchiveMetricSuffix
 	expectedMetric = providedMetric + providedSuffix
 	require.Equal(t, expectedMetric, common.SuffixedMetric(providedMetric, providedSuffix))
+}
+
+func TestByteSliceToUint64(t *testing.T) {
+	t.Parallel()
+
+	t.Run("conversion should fail", func(t *testing.T) {
+		t.Parallel()
+
+		bytes, _ := hex.DecodeString("100000000000000000")
+		expectedValue := uint64(0)
+		convertedValue, err := common.ByteSliceToUint64(bytes)
+		require.Equal(t, expectedValue, convertedValue)
+		require.Equal(t, common.ErrCannotConvertBytesToUint64, err)
+	})
+
+	t.Run("empty byte slice should work", func(t *testing.T) {
+		t.Parallel()
+
+		bytes := make([]byte, 0)
+		expectedValue := uint64(0)
+		convertedValue, err := common.ByteSliceToUint64(bytes)
+		require.Nil(t, err)
+		require.Equal(t, expectedValue, convertedValue)
+	})
+
+	t.Run("byte slice should work", func(t *testing.T) {
+		t.Parallel()
+
+		bytes, _ := hex.DecodeString("0a")
+		expectedValue := uint64(10)
+		convertedValue, err := common.ByteSliceToUint64(bytes)
+		require.Nil(t, err)
+		require.Equal(t, expectedValue, convertedValue)
+	})
 }

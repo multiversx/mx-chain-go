@@ -17,6 +17,11 @@ const validatorDelayPerOrder = time.Second
 
 var _ consensus.BroadcastMessenger = (*shardChainMessenger)(nil)
 
+type dataToBroadcast struct {
+	marshalledHeader []byte
+	marshalledBody   []byte
+}
+
 type shardChainMessenger struct {
 	*commonMessenger
 }
@@ -44,6 +49,8 @@ func NewShardChainMessenger(
 		peerSignatureHandler: args.PeerSignatureHandler,
 		keysHandler:          args.KeysHandler,
 	}
+
+	cm.broadcasterFilterHandler = cm
 
 	dbbArgs := &ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
@@ -86,26 +93,7 @@ func checkShardChainNilParameters(
 
 // BroadcastBlock will send on in-shard headers topic and on in-shard miniblocks topic the header and block body
 func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, header data.HeaderHandler) error {
-	if check.IfNil(blockBody) {
-		return spos.ErrNilBody
-	}
-
-	err := blockBody.IntegrityAndValidity()
-	if err != nil {
-		return err
-	}
-
-	if check.IfNil(header) {
-		return spos.ErrNilHeader
-	}
-
-	msgHeader, err := scm.marshalizer.Marshal(header)
-	if err != nil {
-		return err
-	}
-
-	b := blockBody.(*block.Body)
-	msgBlockBody, err := scm.marshalizer.Marshal(b)
+	broadCastData, err := scm.getBroadCastBlockData(blockBody, header)
 	if err != nil {
 		return err
 	}
@@ -113,14 +101,50 @@ func (scm *shardChainMessenger) BroadcastBlock(blockBody data.BodyHandler, heade
 	headerIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	selfIdentifier := scm.shardCoordinator.CommunicationIdentifier(scm.shardCoordinator.SelfId())
 
-	scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, msgHeader)
-	scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, msgBlockBody)
+	scm.messenger.Broadcast(factory.ShardBlocksTopic+headerIdentifier, broadCastData.marshalledHeader)
+	scm.messenger.Broadcast(factory.MiniBlocksTopic+selfIdentifier, broadCastData.marshalledBody)
 
 	return nil
 }
 
+func (scm *shardChainMessenger) getBroadCastBlockData(blockBody data.BodyHandler, header data.HeaderHandler) (*dataToBroadcast, error) {
+	if check.IfNil(blockBody) {
+		return nil, spos.ErrNilBody
+	}
+
+	err := blockBody.IntegrityAndValidity()
+	if err != nil {
+		return nil, err
+	}
+
+	if check.IfNil(header) {
+		return nil, spos.ErrNilHeader
+	}
+
+	msgHeader, err := scm.marshalizer.Marshal(header)
+	if err != nil {
+		return nil, err
+	}
+
+	b := blockBody.(*block.Body)
+	msgBlockBody, err := scm.marshalizer.Marshal(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dataToBroadcast{
+		marshalledHeader: msgHeader,
+		marshalledBody:   msgBlockBody,
+	}, nil
+}
+
 // BroadcastHeader will send on in-shard headers topic the header
 func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler, pkBytes []byte) error {
+	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	return scm.broadcastHeader(header, pkBytes, shardIdentifier)
+}
+
+func (scm *shardChainMessenger) broadcastHeader(header data.HeaderHandler, pkBytes []byte, shardIdentifier string) error {
 	if check.IfNil(header) {
 		return spos.ErrNilHeader
 	}
@@ -130,9 +154,7 @@ func (scm *shardChainMessenger) BroadcastHeader(header data.HeaderHandler, pkByt
 		return err
 	}
 
-	shardIdentifier := scm.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	scm.broadcast(factory.ShardBlocksTopic+shardIdentifier, msgHeader, pkBytes)
-
 	return nil
 }
 

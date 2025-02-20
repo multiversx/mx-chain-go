@@ -177,7 +177,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 			finalMBs = append(finalMBs, miniblock)
 
 			if miniblock.ReceiverShardID == irp.shardCoordinator.SelfId() {
-				irp.intraShardMiniBlock = miniblock.Clone()
+				irp.intraShardMiniBlock = miniblock.DeepClone()
 			}
 		}
 	}
@@ -205,6 +205,10 @@ func (irp *intermediateResultsProcessor) VerifyInterMiniBlocks(body *block.Body)
 			continue
 		}
 		if mb.ReceiverShardID == irp.shardCoordinator.SelfId() {
+			continue
+		}
+		// TODO: (sovereign) remove this line once shardCoordinator will return the correct shard id from task: MX-14132
+		if mb.ReceiverShardID == core.SovereignChainShardId && mb.SenderShardID == core.MainChainShardId {
 			continue
 		}
 

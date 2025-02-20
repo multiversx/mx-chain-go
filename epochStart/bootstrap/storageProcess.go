@@ -1,16 +1,9 @@
 package bootstrap
 
 import (
-	"context"
 	"fmt"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -21,10 +14,19 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	"github.com/multiversx/mx-chain-go/trie/factory"
+	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
@@ -34,6 +36,7 @@ type ArgsStorageEpochStartBootstrap struct {
 	ImportDbConfig             config.ImportDbConfig
 	ChanGracefullyClose        chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData time.Duration
+	EpochStartBootStrap        *epochStartBootstrap
 }
 
 type storageEpochStartBootstrap struct {
@@ -49,17 +52,19 @@ type storageEpochStartBootstrap struct {
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
 // the node with the help of storage requesters through the import-db process
 func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storageEpochStartBootstrap, error) {
-	esb, err := NewEpochStartBootstrap(args.ArgsEpochStartBootstrap)
+	err := checkArguments(args.ArgsEpochStartBootstrap)
 	if err != nil {
 		return nil, err
 	}
-
+	if check.IfNil(args.EpochStartBootStrap) {
+		return nil, errors.ErrNilEpochStartBootstrapper
+	}
 	if args.ChanGracefullyClose == nil {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap:        esb,
+		epochStartBootstrap:        args.EpochStartBootStrap,
 		importDbConfig:             args.ImportDbConfig,
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
@@ -97,7 +102,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	}()
 
 	var err error
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	sesb.shardCoordinator, err = sesb.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -148,7 +153,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.closeTrieComponents()
 	sesb.storageService = disabled.NewChainStorer()
-	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
 		sesb.generalConfig,
 		sesb.coreComponentsHolder,
 		sesb.storageService,
@@ -161,10 +166,12 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	sesb.trieContainer = triesContainer
 	sesb.trieStorageManagers = trieStorageManagers
 
-	err = sesb.createStorageRequestHandler()
+	requestHandler, err := sesb.createStorageRequestHandler()
 	if err != nil {
 		return err
 	}
+
+	sesb.requestHandler = requestHandler
 
 	metablockProcessor, err := NewStorageEpochStartMetaBlockProcessor(
 		sesb.mainMessenger,
@@ -189,7 +196,7 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 		MetaBlockProcessor:      metablockProcessor,
 	}
 
-	sesb.epochStartMetaBlockSyncer, err = NewEpochStartMetaSyncer(argsEpochStartSyncer)
+	sesb.epochStartMetaBlockSyncer, err = sesb.bootStrapShardProcessor.createStorageEpochStartMetaSyncer(argsEpochStartSyncer)
 	if err != nil {
 		return err
 	}
@@ -197,27 +204,28 @@ func (sesb *storageEpochStartBootstrap) prepareComponentsToSync() error {
 	return nil
 }
 
-func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() error {
+func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.RequestHandler, error) {
 	err := sesb.createStorageRequesters()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	finder, err := containers.NewRequestersFinder(sesb.container, sesb.shardCoordinator)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
-	sesb.requestHandler, err = requestHandlers.NewResolverRequestHandler(
-		finder,
-		requestedItemsHandler,
-		sesb.whiteListHandler,
-		maxToRequest,
-		core.MetachainShardId,
-		timeBetweenRequests,
-	)
-	return err
+	args := requestHandlers.RequestHandlerArgs{
+		RequestersFinder:      finder,
+		RequestedItemsHandler: requestedItemsHandler,
+		WhiteListHandler:      sesb.whiteListHandler,
+		MaxTxsToRequest:       maxToRequest,
+		ShardID:               core.MetachainShardId,
+		RequestInterval:       timeBetweenRequests,
+	}
+
+	return sesb.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(args)
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
@@ -226,7 +234,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
-	shardCoordinator, err := sharding.NewMultiShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
+	shardCoordinator, err := sesb.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
 	if err != nil {
 		return err
 	}
@@ -261,7 +269,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 	if sesb.importDbConfig.ImportDBTargetShardID == core.MetachainShardId {
 		requestersContainerFactory, err = storagerequesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
 	} else {
-		requestersContainerFactory, err = storagerequesterscontainer.NewShardRequestersContainerFactory(requestersContainerFactoryArgs)
+		requestersContainerFactory, err = sesb.runTypeComponents.ShardRequestersContainerCreatorHandler().CreateShardRequestersContainerFactory(requestersContainerFactoryArgs)
 	}
 
 	if err != nil {
@@ -295,17 +303,22 @@ func (sesb *storageEpochStartBootstrap) createStoreForStorageResolvers(shardCoor
 
 func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Parameters, error) {
 	var err error
-	sesb.baseData.numberOfShards = uint32(len(sesb.epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()))
+	sesb.baseData.numberOfShards = sesb.bootStrapShardProcessor.computeNumShards(sesb.epochStartMeta)
 	sesb.baseData.lastEpoch = sesb.epochStartMeta.GetEpoch()
 
-	sesb.syncedHeaders, err = sesb.syncHeadersFromStorage(sesb.epochStartMeta, sesb.destinationShardAsObserver)
+	sesb.syncedHeaders, err = sesb.bootStrapShardProcessor.syncHeadersFromStorage(
+		sesb.epochStartMeta,
+		sesb.destinationShardAsObserver,
+		sesb.importDbConfig.ImportDBTargetShardID,
+		sesb.timeToWaitForRequestedData,
+	)
 	if err != nil {
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: got shard header and previous epoch start meta block")
 
 	prevEpochStartMetaHash := sesb.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
@@ -316,14 +329,14 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 		return Parameters{}, err
 	}
 
-	err = sesb.processNodesConfig(pubKeyBytes)
+	sesb.nodesConfig, sesb.baseData.shardId, err = sesb.bootStrapShardProcessor.processNodesConfigFromStorage(pubKeyBytes, sesb.importDbConfig.ImportDBTargetShardID)
 	if err != nil {
 		return Parameters{}, err
 	}
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	sesb.saveSelfShardId()
-	sesb.shardCoordinator, err = sharding.NewMultiShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
+	sesb.shardCoordinator, err = sesb.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	}
@@ -342,7 +355,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
+		err = sesb.bootStrapShardProcessor.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -356,124 +369,6 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	}
 
 	return parameters, nil
-}
-
-func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta data.MetaHeaderHandler, syncingShardID uint32) (map[string]data.HeaderHandler, error) {
-	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-
-	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-		shouldSkipHeaderFetch := epochStartData.GetShardID() != syncingShardID &&
-			sesb.importDbConfig.ImportDBTargetShardID != core.MetachainShardId
-		if shouldSkipHeaderFetch {
-			continue
-		}
-
-		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
-		shardIds = append(shardIds, epochStartData.GetShardID())
-	}
-
-	if meta.GetEpoch() > sesb.startEpoch+1 { // no need to request genesis block
-		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
-		shardIds = append(shardIds, core.MetachainShardId)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), sesb.timeToWaitForRequestedData)
-	err := sesb.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
-	cancel()
-	if err != nil {
-		return nil, err
-	}
-
-	syncedHeaders, err := sesb.headersSyncer.GetHeaders()
-	if err != nil {
-		return nil, err
-	}
-
-	if meta.GetEpoch() == sesb.startEpoch+1 {
-		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
-	}
-
-	return syncedHeaders, nil
-}
-
-func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error {
-	var err error
-	shardId := sesb.destinationShardAsObserver
-	if shardId > sesb.baseData.numberOfShards && shardId != core.MetachainShardId {
-		shardId = sesb.genesisShardCoordinator.SelfId()
-	}
-	argsNewValidatorStatusSyncers := ArgsNewSyncValidatorStatus{
-		DataPool:                        sesb.dataPool,
-		Marshalizer:                     sesb.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler:                  sesb.requestHandler,
-		ChanceComputer:                  sesb.rater,
-		GenesisNodesConfig:              sesb.genesisNodesConfig,
-		NodeShuffler:                    sesb.nodeShuffler,
-		Hasher:                          sesb.coreComponentsHolder.Hasher(),
-		PubKey:                          pubKey,
-		ShardIdAsObserver:               shardId,
-		ChanNodeStop:                    sesb.coreComponentsHolder.ChanStopNodeProcess(),
-		NodeTypeProvider:                sesb.coreComponentsHolder.NodeTypeProvider(),
-		IsFullArchive:                   sesb.prefsConfig.FullArchive,
-		EnableEpochsHandler:             sesb.coreComponentsHolder.EnableEpochsHandler(),
-		NodesCoordinatorRegistryFactory: sesb.nodesCoordinatorRegistryFactory,
-	}
-	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
-	if err != nil {
-		return err
-	}
-
-	clonedHeader := sesb.epochStartMeta.ShallowClone()
-	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
-	if !ok {
-		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
-	}
-	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
-	if err != nil {
-		return err
-	}
-
-	clonedHeader = sesb.prevEpochStartMeta.ShallowClone()
-	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
-	if !ok {
-		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
-	}
-
-	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)
-	if err != nil {
-		return err
-	}
-
-	// no need to save the peers miniblocks here as they were already fetched from the DB
-	sesb.nodesConfig, sesb.baseData.shardId, _, err = sesb.nodesConfigHandler.NodesConfigFromMetaBlock(clonedEpochStartMeta, clonedPrevEpochStartMeta)
-	sesb.baseData.shardId = sesb.applyShardIDAsObserverIfNeeded(sesb.baseData.shardId)
-
-	return err
-}
-
-// applyCurrentShardIDOnMiniblocksCopy will alter the fetched metablocks making the sender shard ID for each miniblock
-// header to  be exactly the shard ID used in the import-db process. This is necessary as to allow the miniblocks to be requested
-// on the available resolver and should be called only from this storage-base bootstrap instance.
-// This method also copies the MiniBlockHeaders slice pointer. Otherwise, the node will end up stating
-// "start of epoch metablock mismatch"
-func (sesb *storageEpochStartBootstrap) applyCurrentShardIDOnMiniblocksCopy(metablock data.HeaderHandler) error {
-	originalMiniblocksHeaders := metablock.GetMiniBlockHeaderHandlers()
-	mbsHeaderHandlersToSet := make([]data.MiniBlockHeaderHandler, 0, len(originalMiniblocksHeaders))
-	var err error
-
-	for i := range originalMiniblocksHeaders {
-		mb := originalMiniblocksHeaders[i].ShallowClone()
-		err = mb.SetSenderShardID(sesb.importDbConfig.ImportDBTargetShardID) // it is safe to modify here as mb is a shallow clone
-		if err != nil {
-			return err
-		}
-
-		mbsHeaderHandlersToSet = append(mbsHeaderHandlersToSet, mb)
-	}
-
-	err = metablock.SetMiniBlockHeaderHandlers(mbsHeaderHandlersToSet)
-	return err
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

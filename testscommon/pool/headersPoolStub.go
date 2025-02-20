@@ -103,3 +103,6 @@ func (hps *HeadersPoolStub) GetNumHeaders(shardId uint32) int {
 
 	return 0
 }
+
+func (hps *HeadersPoolStub) AddHeaderInShard(_ []byte, _ data.HeaderHandler, _ uint32) {
+}

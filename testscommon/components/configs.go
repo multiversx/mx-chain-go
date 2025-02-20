@@ -183,8 +183,12 @@ func GetGeneralConfig() config.Config {
 			PollingIntervalInMinutes: 30,
 		},
 		Versions: config.VersionsConfig{
-			DefaultVersion:   "1",
-			VersionsByEpochs: nil,
+			DefaultVersion: "1",
+			VersionsByEpochs: []config.VersionByEpochs{
+				{
+					Version: "*",
+				},
+			},
 			Cache: config.CacheConfig{
 				Type:     "LRU",
 				Capacity: 1000,
@@ -199,6 +203,24 @@ func GetGeneralConfig() config.Config {
 		},
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
+		},
+		SovereignConfig: config.SovereignConfig{
+			NotifierConfig: config.NotifierConfig{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+			},
+			OutgoingSubscribedEvents: config.OutgoingSubscribedEvents{
+				SubscribedEvents: []config.SubscribedEvent{
+					{
+						Identifier: "bridgeOps",
+						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
+					},
+				},
+			},
 		},
 	}
 }

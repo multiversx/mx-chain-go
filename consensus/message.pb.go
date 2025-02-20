@@ -28,20 +28,24 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Message defines the data needed by spos to communicate between nodes over network in all subrounds
 type Message struct {
-	BlockHeaderHash    []byte `protobuf:"bytes,1,opt,name=BlockHeaderHash,proto3" json:"BlockHeaderHash,omitempty"`
-	SignatureShare     []byte `protobuf:"bytes,2,opt,name=SignatureShare,proto3" json:"SignatureShare,omitempty"`
-	Body               []byte `protobuf:"bytes,3,opt,name=Body,proto3" json:"Body,omitempty"`
-	Header             []byte `protobuf:"bytes,4,opt,name=Header,proto3" json:"Header,omitempty"`
-	PubKey             []byte `protobuf:"bytes,5,opt,name=PubKey,proto3" json:"PubKey,omitempty"`
-	Signature          []byte `protobuf:"bytes,6,opt,name=Signature,proto3" json:"Signature,omitempty"`
-	MsgType            int64  `protobuf:"varint,7,opt,name=MsgType,proto3" json:"MsgType,omitempty"`
-	RoundIndex         int64  `protobuf:"varint,8,opt,name=RoundIndex,proto3" json:"RoundIndex,omitempty"`
-	ChainID            []byte `protobuf:"bytes,9,opt,name=ChainID,proto3" json:"ChainID,omitempty"`
-	PubKeysBitmap      []byte `protobuf:"bytes,10,opt,name=PubKeysBitmap,proto3" json:"PubKeysBitmap,omitempty"`
-	AggregateSignature []byte `protobuf:"bytes,11,opt,name=AggregateSignature,proto3" json:"AggregateSignature,omitempty"`
-	LeaderSignature    []byte `protobuf:"bytes,12,opt,name=LeaderSignature,proto3" json:"LeaderSignature,omitempty"`
-	OriginatorPid      []byte `protobuf:"bytes,13,opt,name=OriginatorPid,proto3" json:"OriginatorPid,omitempty"`
-	InvalidSigners     []byte `protobuf:"bytes,14,opt,name=InvalidSigners,proto3" json:"InvalidSigners,omitempty"`
+	HeaderHash                        []byte `protobuf:"bytes,1,opt,name=HeaderHash,proto3" json:"HeaderHash,omitempty"`
+	SignatureShare                    []byte `protobuf:"bytes,2,opt,name=SignatureShare,proto3" json:"SignatureShare,omitempty"`
+	Body                              []byte `protobuf:"bytes,3,opt,name=Body,proto3" json:"Body,omitempty"`
+	Header                            []byte `protobuf:"bytes,4,opt,name=Header,proto3" json:"Header,omitempty"`
+	PubKey                            []byte `protobuf:"bytes,5,opt,name=PubKey,proto3" json:"PubKey,omitempty"`
+	Signature                         []byte `protobuf:"bytes,6,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	MsgType                           int64  `protobuf:"varint,7,opt,name=MsgType,proto3" json:"MsgType,omitempty"`
+	RoundIndex                        int64  `protobuf:"varint,8,opt,name=RoundIndex,proto3" json:"RoundIndex,omitempty"`
+	ChainID                           []byte `protobuf:"bytes,9,opt,name=ChainID,proto3" json:"ChainID,omitempty"`
+	PubKeysBitmap                     []byte `protobuf:"bytes,10,opt,name=PubKeysBitmap,proto3" json:"PubKeysBitmap,omitempty"`
+	AggregateSignature                []byte `protobuf:"bytes,11,opt,name=AggregateSignature,proto3" json:"AggregateSignature,omitempty"`
+	LeaderSignature                   []byte `protobuf:"bytes,12,opt,name=LeaderSignature,proto3" json:"LeaderSignature,omitempty"`
+	OriginatorPid                     []byte `protobuf:"bytes,13,opt,name=OriginatorPid,proto3" json:"OriginatorPid,omitempty"`
+	InvalidSigners                    []byte `protobuf:"bytes,14,opt,name=InvalidSigners,proto3" json:"InvalidSigners,omitempty"`
+	ProcessedHeaderHash               []byte `protobuf:"bytes,15,opt,name=ProcessedHeaderHash,proto3" json:"ProcessedHeaderHash,omitempty"`
+	SignatureShareOutGoingTxData      []byte `protobuf:"bytes,16,opt,name=SignatureShareOutGoingTxData,proto3" json:"SignatureShareOutGoingTxData,omitempty"`
+	AggregatedSignatureOutGoingTxData []byte `protobuf:"bytes,17,opt,name=AggregatedSignatureOutGoingTxData,proto3" json:"AggregatedSignatureOutGoingTxData,omitempty"`
+	LeaderSignatureOutGoingTxData     []byte `protobuf:"bytes,18,opt,name=LeaderSignatureOutGoingTxData,proto3" json:"LeaderSignatureOutGoingTxData,omitempty"`
 }
 
 func (m *Message) Reset()      { *m = Message{} }
@@ -72,9 +76,9 @@ func (m *Message) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Message proto.InternalMessageInfo
 
-func (m *Message) GetBlockHeaderHash() []byte {
+func (m *Message) GetHeaderHash() []byte {
 	if m != nil {
-		return m.BlockHeaderHash
+		return m.HeaderHash
 	}
 	return nil
 }
@@ -170,6 +174,34 @@ func (m *Message) GetInvalidSigners() []byte {
 	return nil
 }
 
+func (m *Message) GetProcessedHeaderHash() []byte {
+	if m != nil {
+		return m.ProcessedHeaderHash
+	}
+	return nil
+}
+
+func (m *Message) GetSignatureShareOutGoingTxData() []byte {
+	if m != nil {
+		return m.SignatureShareOutGoingTxData
+	}
+	return nil
+}
+
+func (m *Message) GetAggregatedSignatureOutGoingTxData() []byte {
+	if m != nil {
+		return m.AggregatedSignatureOutGoingTxData
+	}
+	return nil
+}
+
+func (m *Message) GetLeaderSignatureOutGoingTxData() []byte {
+	if m != nil {
+		return m.LeaderSignatureOutGoingTxData
+	}
+	return nil
+}
+
 func init() {
 	proto.RegisterType((*Message)(nil), "proto.Message")
 }
@@ -177,32 +209,36 @@ func init() {
 func init() { proto.RegisterFile("message.proto", fileDescriptor_33c57e4bae7b9afd) }
 
 var fileDescriptor_33c57e4bae7b9afd = []byte{
-	// 391 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x92, 0xcf, 0xae, 0x12, 0x31,
-	0x14, 0xc6, 0xa7, 0xf2, 0x4f, 0x2a, 0x60, 0xd2, 0x85, 0x69, 0x8c, 0x69, 0x88, 0x31, 0x86, 0x8d,
-	0xb0, 0xf0, 0x09, 0x1c, 0x5c, 0x40, 0x94, 0x48, 0xc0, 0x95, 0xbb, 0x0e, 0x53, 0x3b, 0x8d, 0xd0,
-	0x92, 0x76, 0xc6, 0xc8, 0xce, 0x47, 0xf0, 0x31, 0x7c, 0x14, 0x97, 0x2c, 0xd9, 0x29, 0x65, 0xe3,
-	0x92, 0x47, 0xb8, 0x99, 0xd3, 0xcb, 0xe5, 0x42, 0xee, 0x6a, 0xfa, 0xfd, 0xbe, 0x73, 0xbe, 0x33,
-	0xd3, 0x33, 0xb8, 0xbd, 0x12, 0xce, 0x71, 0x29, 0xfa, 0x6b, 0x6b, 0x72, 0x43, 0x6a, 0xf0, 0x78,
-	0xfe, 0x46, 0xaa, 0x3c, 0x2b, 0x92, 0xfe, 0xc2, 0xac, 0x06, 0xd2, 0x48, 0x33, 0x00, 0x9c, 0x14,
-	0x5f, 0x41, 0x81, 0x80, 0x53, 0xe8, 0x7a, 0xf9, 0xb7, 0x82, 0x1b, 0x93, 0x90, 0x43, 0x7a, 0xf8,
-	0x69, 0xbc, 0x34, 0x8b, 0x6f, 0x23, 0xc1, 0x53, 0x61, 0x47, 0xdc, 0x65, 0x14, 0x75, 0x51, 0xaf,
-	0x35, 0xbb, 0xc6, 0xe4, 0x35, 0xee, 0xcc, 0x95, 0xd4, 0x3c, 0x2f, 0xac, 0x98, 0x67, 0xdc, 0x0a,
-	0xfa, 0x08, 0x0a, 0xaf, 0x28, 0x21, 0xb8, 0x1a, 0x9b, 0x74, 0x43, 0x2b, 0xe0, 0xc2, 0x99, 0x3c,
-	0xc3, 0xf5, 0x90, 0x44, 0xab, 0x40, 0x6f, 0x55, 0xc9, 0xa7, 0x45, 0xf2, 0x41, 0x6c, 0x68, 0x2d,
-	0xf0, 0xa0, 0xc8, 0x0b, 0xdc, 0xbc, 0x4b, 0xa5, 0x75, 0xb0, 0xce, 0x80, 0x50, 0xdc, 0x98, 0x38,
-	0xf9, 0x79, 0xb3, 0x16, 0xb4, 0xd1, 0x45, 0xbd, 0xca, 0xec, 0x24, 0x09, 0xc3, 0x78, 0x66, 0x0a,
-	0x9d, 0x8e, 0x75, 0x2a, 0x7e, 0xd0, 0xc7, 0x60, 0xde, 0x23, 0x65, 0xe7, 0x30, 0xe3, 0x4a, 0x8f,
-	0xdf, 0xd3, 0x26, 0xa4, 0x9e, 0x24, 0x79, 0x85, 0xdb, 0x61, 0xb6, 0x8b, 0x55, 0xbe, 0xe2, 0x6b,
-	0x8a, 0xc1, 0xbf, 0x84, 0xa4, 0x8f, 0xc9, 0x3b, 0x29, 0xad, 0x90, 0x3c, 0x17, 0xe7, 0x17, 0x7c,
-	0x02, 0xa5, 0x0f, 0x38, 0xe5, 0xed, 0x7e, 0x84, 0x2f, 0x3d, 0x17, 0xb7, 0xc2, 0xed, 0x5e, 0xe1,
-	0x72, 0xfe, 0x27, 0xab, 0xa4, 0xd2, 0x3c, 0x37, 0x76, 0xaa, 0x52, 0xda, 0x0e, 0xf3, 0x2f, 0x60,
-	0xb9, 0x83, 0xb1, 0xfe, 0xce, 0x97, 0x2a, 0x2d, 0x3b, 0x85, 0x75, 0xb4, 0x13, 0x76, 0x70, 0x49,
-	0xe3, 0xe1, 0x76, 0xcf, 0xa2, 0xdd, 0x9e, 0x45, 0xc7, 0x3d, 0x43, 0x3f, 0x3d, 0x43, 0xbf, 0x3d,
-	0x43, 0x7f, 0x3c, 0x43, 0x5b, 0xcf, 0xd0, 0xce, 0x33, 0xf4, 0xcf, 0x33, 0xf4, 0xdf, 0xb3, 0xe8,
-	0xe8, 0x19, 0xfa, 0x75, 0x60, 0xd1, 0xf6, 0xc0, 0xa2, 0xdd, 0x81, 0x45, 0x5f, 0x9a, 0x0b, 0xa3,
-	0x9d, 0xd0, 0xae, 0x70, 0x49, 0x1d, 0xfe, 0x96, 0xb7, 0x37, 0x01, 0x00, 0x00, 0xff, 0xff, 0xfa,
-	0x3a, 0x8a, 0xae, 0x74, 0x02, 0x00, 0x00,
+	// 458 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x93, 0xcf, 0x6e, 0x13, 0x3d,
+	0x14, 0xc5, 0xc7, 0x5f, 0x9b, 0xe4, 0xcb, 0xa5, 0x69, 0xe1, 0x22, 0x21, 0x0b, 0x15, 0xab, 0x20,
+	0x84, 0xb2, 0x21, 0x45, 0xe2, 0x09, 0x48, 0x23, 0xd1, 0x88, 0x56, 0x8d, 0xd2, 0xae, 0xd8, 0x39,
+	0x19, 0xe3, 0x58, 0x22, 0x76, 0x64, 0xcf, 0xa0, 0x66, 0xc7, 0x23, 0xf0, 0x18, 0x3c, 0x0a, 0xcb,
+	0x2c, 0xb3, 0x83, 0x4c, 0x36, 0x2c, 0xfb, 0x08, 0x68, 0xee, 0xd0, 0xfc, 0x19, 0x55, 0x65, 0x15,
+	0xdf, 0xdf, 0x39, 0xf7, 0xdc, 0xd8, 0x57, 0x03, 0x8d, 0xb1, 0x0a, 0x41, 0x6a, 0xd5, 0x9a, 0x78,
+	0x97, 0x38, 0xac, 0xd0, 0xcf, 0xd3, 0xd7, 0xda, 0x24, 0xa3, 0x74, 0xd0, 0x1a, 0xba, 0xf1, 0xb1,
+	0x76, 0xda, 0x1d, 0x13, 0x1e, 0xa4, 0x9f, 0xa8, 0xa2, 0x82, 0x4e, 0x45, 0xd7, 0x8b, 0x9f, 0x15,
+	0xa8, 0x9d, 0x17, 0x39, 0x28, 0x00, 0x4e, 0x95, 0x8c, 0x95, 0x3f, 0x95, 0x61, 0xc4, 0xd9, 0x11,
+	0x6b, 0xee, 0xf5, 0x37, 0x08, 0xbe, 0x82, 0xfd, 0x4b, 0xa3, 0xad, 0x4c, 0x52, 0xaf, 0x2e, 0x47,
+	0xd2, 0x2b, 0xfe, 0x1f, 0x79, 0x4a, 0x14, 0x11, 0x76, 0xdb, 0x2e, 0x9e, 0xf2, 0x1d, 0x52, 0xe9,
+	0x8c, 0x4f, 0xa0, 0x5a, 0x24, 0xf1, 0x5d, 0xa2, 0x7f, 0xab, 0x9c, 0xf7, 0xd2, 0xc1, 0x07, 0x35,
+	0xe5, 0x95, 0x82, 0x17, 0x15, 0x1e, 0x42, 0x7d, 0x95, 0xca, 0xab, 0x24, 0xad, 0x01, 0x72, 0xa8,
+	0x9d, 0x07, 0x7d, 0x35, 0x9d, 0x28, 0x5e, 0x3b, 0x62, 0xcd, 0x9d, 0xfe, 0x6d, 0x99, 0xdf, 0xa1,
+	0xef, 0x52, 0x1b, 0x77, 0x6d, 0xac, 0xae, 0xf9, 0xff, 0x24, 0x6e, 0x90, 0xbc, 0xf3, 0x64, 0x24,
+	0x8d, 0xed, 0x76, 0x78, 0x9d, 0x52, 0x6f, 0x4b, 0x7c, 0x09, 0x8d, 0x62, 0x76, 0x68, 0x9b, 0x64,
+	0x2c, 0x27, 0x1c, 0x48, 0xdf, 0x86, 0xd8, 0x02, 0x7c, 0xa7, 0xb5, 0x57, 0x5a, 0x26, 0x6a, 0xfd,
+	0x07, 0x1f, 0x90, 0xf5, 0x0e, 0x05, 0x9b, 0x70, 0x70, 0x46, 0x37, 0x5d, 0x9b, 0xf7, 0xc8, 0x5c,
+	0xc6, 0xf9, 0xfc, 0x0b, 0x6f, 0xb4, 0xb1, 0x32, 0x71, 0xbe, 0x67, 0x62, 0xde, 0x28, 0xe6, 0x6f,
+	0xc1, 0x7c, 0x07, 0x5d, 0xfb, 0x45, 0x7e, 0x36, 0x71, 0xde, 0xa9, 0x7c, 0xe0, 0xfb, 0xc5, 0x0e,
+	0xb6, 0x29, 0xbe, 0x81, 0xc7, 0x3d, 0xef, 0x86, 0x2a, 0x04, 0x15, 0x6f, 0x2c, 0xf5, 0x80, 0xcc,
+	0x77, 0x49, 0xd8, 0x86, 0xc3, 0xed, 0x3d, 0x5e, 0xa4, 0xc9, 0x7b, 0x67, 0xac, 0xbe, 0xba, 0xee,
+	0xc8, 0x44, 0xf2, 0x87, 0xd4, 0x7a, 0xaf, 0x07, 0xcf, 0xe0, 0xf9, 0xea, 0x0d, 0xe2, 0x95, 0xb3,
+	0x14, 0xf4, 0x88, 0x82, 0xfe, 0x6d, 0xc4, 0x0e, 0x3c, 0x2b, 0x3d, 0x52, 0x29, 0x09, 0x29, 0xe9,
+	0x7e, 0x53, 0xfb, 0x64, 0xb6, 0x10, 0xd1, 0x7c, 0x21, 0xa2, 0x9b, 0x85, 0x60, 0x5f, 0x33, 0xc1,
+	0xbe, 0x67, 0x82, 0xfd, 0xc8, 0x04, 0x9b, 0x65, 0x82, 0xcd, 0x33, 0xc1, 0x7e, 0x65, 0x82, 0xfd,
+	0xce, 0x44, 0x74, 0x93, 0x09, 0xf6, 0x6d, 0x29, 0xa2, 0xd9, 0x52, 0x44, 0xf3, 0xa5, 0x88, 0x3e,
+	0xd6, 0x87, 0xce, 0x06, 0x65, 0x43, 0x1a, 0x06, 0x55, 0xfa, 0x5a, 0xde, 0xfe, 0x09, 0x00, 0x00,
+	0xff, 0xff, 0xfb, 0xd6, 0x17, 0x78, 0x74, 0x03, 0x00, 0x00,
 }
 
 func (this *Message) Equal(that interface{}) bool {
@@ -224,7 +260,7 @@ func (this *Message) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if !bytes.Equal(this.BlockHeaderHash, that1.BlockHeaderHash) {
+	if !bytes.Equal(this.HeaderHash, that1.HeaderHash) {
 		return false
 	}
 	if !bytes.Equal(this.SignatureShare, that1.SignatureShare) {
@@ -266,15 +302,27 @@ func (this *Message) Equal(that interface{}) bool {
 	if !bytes.Equal(this.InvalidSigners, that1.InvalidSigners) {
 		return false
 	}
+	if !bytes.Equal(this.ProcessedHeaderHash, that1.ProcessedHeaderHash) {
+		return false
+	}
+	if !bytes.Equal(this.SignatureShareOutGoingTxData, that1.SignatureShareOutGoingTxData) {
+		return false
+	}
+	if !bytes.Equal(this.AggregatedSignatureOutGoingTxData, that1.AggregatedSignatureOutGoingTxData) {
+		return false
+	}
+	if !bytes.Equal(this.LeaderSignatureOutGoingTxData, that1.LeaderSignatureOutGoingTxData) {
+		return false
+	}
 	return true
 }
 func (this *Message) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := make([]string, 0, 18)
+	s := make([]string, 0, 22)
 	s = append(s, "&consensus.Message{")
-	s = append(s, "BlockHeaderHash: "+fmt.Sprintf("%#v", this.BlockHeaderHash)+",\n")
+	s = append(s, "HeaderHash: "+fmt.Sprintf("%#v", this.HeaderHash)+",\n")
 	s = append(s, "SignatureShare: "+fmt.Sprintf("%#v", this.SignatureShare)+",\n")
 	s = append(s, "Body: "+fmt.Sprintf("%#v", this.Body)+",\n")
 	s = append(s, "Header: "+fmt.Sprintf("%#v", this.Header)+",\n")
@@ -288,6 +336,10 @@ func (this *Message) GoString() string {
 	s = append(s, "LeaderSignature: "+fmt.Sprintf("%#v", this.LeaderSignature)+",\n")
 	s = append(s, "OriginatorPid: "+fmt.Sprintf("%#v", this.OriginatorPid)+",\n")
 	s = append(s, "InvalidSigners: "+fmt.Sprintf("%#v", this.InvalidSigners)+",\n")
+	s = append(s, "ProcessedHeaderHash: "+fmt.Sprintf("%#v", this.ProcessedHeaderHash)+",\n")
+	s = append(s, "SignatureShareOutGoingTxData: "+fmt.Sprintf("%#v", this.SignatureShareOutGoingTxData)+",\n")
+	s = append(s, "AggregatedSignatureOutGoingTxData: "+fmt.Sprintf("%#v", this.AggregatedSignatureOutGoingTxData)+",\n")
+	s = append(s, "LeaderSignatureOutGoingTxData: "+fmt.Sprintf("%#v", this.LeaderSignatureOutGoingTxData)+",\n")
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
@@ -319,6 +371,40 @@ func (m *Message) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
+	if len(m.LeaderSignatureOutGoingTxData) > 0 {
+		i -= len(m.LeaderSignatureOutGoingTxData)
+		copy(dAtA[i:], m.LeaderSignatureOutGoingTxData)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.LeaderSignatureOutGoingTxData)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x92
+	}
+	if len(m.AggregatedSignatureOutGoingTxData) > 0 {
+		i -= len(m.AggregatedSignatureOutGoingTxData)
+		copy(dAtA[i:], m.AggregatedSignatureOutGoingTxData)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.AggregatedSignatureOutGoingTxData)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x8a
+	}
+	if len(m.SignatureShareOutGoingTxData) > 0 {
+		i -= len(m.SignatureShareOutGoingTxData)
+		copy(dAtA[i:], m.SignatureShareOutGoingTxData)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.SignatureShareOutGoingTxData)))
+		i--
+		dAtA[i] = 0x1
+		i--
+		dAtA[i] = 0x82
+	}
+	if len(m.ProcessedHeaderHash) > 0 {
+		i -= len(m.ProcessedHeaderHash)
+		copy(dAtA[i:], m.ProcessedHeaderHash)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.ProcessedHeaderHash)))
+		i--
+		dAtA[i] = 0x7a
+	}
 	if len(m.InvalidSigners) > 0 {
 		i -= len(m.InvalidSigners)
 		copy(dAtA[i:], m.InvalidSigners)
@@ -406,10 +492,10 @@ func (m *Message) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x12
 	}
-	if len(m.BlockHeaderHash) > 0 {
-		i -= len(m.BlockHeaderHash)
-		copy(dAtA[i:], m.BlockHeaderHash)
-		i = encodeVarintMessage(dAtA, i, uint64(len(m.BlockHeaderHash)))
+	if len(m.HeaderHash) > 0 {
+		i -= len(m.HeaderHash)
+		copy(dAtA[i:], m.HeaderHash)
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.HeaderHash)))
 		i--
 		dAtA[i] = 0xa
 	}
@@ -433,7 +519,7 @@ func (m *Message) Size() (n int) {
 	}
 	var l int
 	_ = l
-	l = len(m.BlockHeaderHash)
+	l = len(m.HeaderHash)
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
 	}
@@ -487,6 +573,22 @@ func (m *Message) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
 	}
+	l = len(m.ProcessedHeaderHash)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
+	l = len(m.SignatureShareOutGoingTxData)
+	if l > 0 {
+		n += 2 + l + sovMessage(uint64(l))
+	}
+	l = len(m.AggregatedSignatureOutGoingTxData)
+	if l > 0 {
+		n += 2 + l + sovMessage(uint64(l))
+	}
+	l = len(m.LeaderSignatureOutGoingTxData)
+	if l > 0 {
+		n += 2 + l + sovMessage(uint64(l))
+	}
 	return n
 }
 
@@ -501,7 +603,7 @@ func (this *Message) String() string {
 		return "nil"
 	}
 	s := strings.Join([]string{`&Message{`,
-		`BlockHeaderHash:` + fmt.Sprintf("%v", this.BlockHeaderHash) + `,`,
+		`HeaderHash:` + fmt.Sprintf("%v", this.HeaderHash) + `,`,
 		`SignatureShare:` + fmt.Sprintf("%v", this.SignatureShare) + `,`,
 		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
 		`Header:` + fmt.Sprintf("%v", this.Header) + `,`,
@@ -515,6 +617,10 @@ func (this *Message) String() string {
 		`LeaderSignature:` + fmt.Sprintf("%v", this.LeaderSignature) + `,`,
 		`OriginatorPid:` + fmt.Sprintf("%v", this.OriginatorPid) + `,`,
 		`InvalidSigners:` + fmt.Sprintf("%v", this.InvalidSigners) + `,`,
+		`ProcessedHeaderHash:` + fmt.Sprintf("%v", this.ProcessedHeaderHash) + `,`,
+		`SignatureShareOutGoingTxData:` + fmt.Sprintf("%v", this.SignatureShareOutGoingTxData) + `,`,
+		`AggregatedSignatureOutGoingTxData:` + fmt.Sprintf("%v", this.AggregatedSignatureOutGoingTxData) + `,`,
+		`LeaderSignatureOutGoingTxData:` + fmt.Sprintf("%v", this.LeaderSignatureOutGoingTxData) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -558,7 +664,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field BlockHeaderHash", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field HeaderHash", wireType)
 			}
 			var byteLen int
 			for shift := uint(0); ; shift += 7 {
@@ -585,9 +691,9 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.BlockHeaderHash = append(m.BlockHeaderHash[:0], dAtA[iNdEx:postIndex]...)
-			if m.BlockHeaderHash == nil {
-				m.BlockHeaderHash = []byte{}
+			m.HeaderHash = append(m.HeaderHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.HeaderHash == nil {
+				m.HeaderHash = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -1000,6 +1106,142 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			m.InvalidSigners = append(m.InvalidSigners[:0], dAtA[iNdEx:postIndex]...)
 			if m.InvalidSigners == nil {
 				m.InvalidSigners = []byte{}
+			}
+			iNdEx = postIndex
+		case 15:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ProcessedHeaderHash", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ProcessedHeaderHash = append(m.ProcessedHeaderHash[:0], dAtA[iNdEx:postIndex]...)
+			if m.ProcessedHeaderHash == nil {
+				m.ProcessedHeaderHash = []byte{}
+			}
+			iNdEx = postIndex
+		case 16:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SignatureShareOutGoingTxData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SignatureShareOutGoingTxData = append(m.SignatureShareOutGoingTxData[:0], dAtA[iNdEx:postIndex]...)
+			if m.SignatureShareOutGoingTxData == nil {
+				m.SignatureShareOutGoingTxData = []byte{}
+			}
+			iNdEx = postIndex
+		case 17:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AggregatedSignatureOutGoingTxData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AggregatedSignatureOutGoingTxData = append(m.AggregatedSignatureOutGoingTxData[:0], dAtA[iNdEx:postIndex]...)
+			if m.AggregatedSignatureOutGoingTxData == nil {
+				m.AggregatedSignatureOutGoingTxData = []byte{}
+			}
+			iNdEx = postIndex
+		case 18:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field LeaderSignatureOutGoingTxData", wireType)
+			}
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.LeaderSignatureOutGoingTxData = append(m.LeaderSignatureOutGoingTxData[:0], dAtA[iNdEx:postIndex]...)
+			if m.LeaderSignatureOutGoingTxData == nil {
+				m.LeaderSignatureOutGoingTxData = []byte{}
 			}
 			iNdEx = postIndex
 		default:

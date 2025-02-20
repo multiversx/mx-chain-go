@@ -21,9 +21,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
@@ -37,9 +42,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
@@ -63,6 +65,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		ApiRewardTxHandler:  testAPIRewardsHandler,
 	}
 }
 
@@ -202,6 +205,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("NilAPIRewardsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.ApiRewardTxHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, errorsMx.ErrNilAPIRewardsHandler, err)
 	})
 }
 
@@ -362,6 +374,7 @@ func TestNode_GetSCRs(t *testing.T) {
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
+		ApiRewardTxHandler:  testAPIRewardsHandler,
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -572,6 +585,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		ApiRewardTxHandler:  testAPIRewardsHandler,
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1159,6 +1173,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		ApiRewardTxHandler:       testAPIRewardsHandler,
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

@@ -26,6 +26,8 @@ type InterceptedHeader struct {
 	isForCurrentShard bool
 	validityAttester  process.ValidityAttester
 	epochStartTrigger process.EpochStartTriggerHandler
+
+	mbHeadersChecker mbHeadersChecker
 }
 
 // NewInterceptedHeader creates a new instance of InterceptedHeader struct
@@ -50,6 +52,7 @@ func NewInterceptedHeader(arg *ArgInterceptedBlockHeader) (*InterceptedHeader, e
 		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
+	inHdr.mbHeadersChecker = inHdr
 
 	return inHdr, nil
 }
@@ -138,12 +141,16 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	err = checkMiniBlocksHeaders(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
+	err = inHdr.mbHeadersChecker.checkMiniBlocksHeaders(inHdr.hdr.GetMiniBlockHeaderHandlers(), inHdr.shardCoordinator)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (inHdr *InterceptedHeader) checkMiniBlocksHeaders(mbHeaders []data.MiniBlockHeaderHandler, coordinator sharding.Coordinator) error {
+	return checkMiniBlocksHeaders(mbHeaders, coordinator, core.MetachainShardId)
 }
 
 // Hash gets the hash of this header

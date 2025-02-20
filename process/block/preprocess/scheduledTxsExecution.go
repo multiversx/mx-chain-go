@@ -136,7 +136,7 @@ func (ste *scheduledTxsExecution) AddScheduledMiniBlocks(miniBlocks block.MiniBl
 
 	ste.scheduledMbs = make(block.MiniBlockSlice, len(miniBlocks))
 	for index, miniBlock := range miniBlocks {
-		ste.scheduledMbs[index] = miniBlock.Clone()
+		ste.scheduledMbs[index] = miniBlock.DeepClone()
 	}
 
 	log.Debug("scheduledTxsExecution.AddMiniBlocks", "num of scheduled mbs", len(ste.scheduledMbs))
@@ -385,7 +385,7 @@ func (ste *scheduledTxsExecution) GetScheduledMiniBlocks() block.MiniBlockSlice 
 
 	miniBlocks := make(block.MiniBlockSlice, len(ste.scheduledMbs))
 	for index, scheduledMb := range ste.scheduledMbs {
-		miniBlock := scheduledMb.Clone()
+		miniBlock := scheduledMb.DeepClone()
 		miniBlocks[index] = miniBlock
 	}
 
@@ -421,7 +421,7 @@ func (ste *scheduledTxsExecution) SetScheduledInfo(scheduledInfo *process.Schedu
 
 	ste.scheduledMbs = make(block.MiniBlockSlice, len(scheduledInfo.MiniBlocks))
 	for index, scheduledMiniBlock := range scheduledInfo.MiniBlocks {
-		miniBlock := scheduledMiniBlock.Clone()
+		miniBlock := scheduledMiniBlock.DeepClone()
 		ste.scheduledMbs[index] = miniBlock
 	}
 
