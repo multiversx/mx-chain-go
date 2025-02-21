@@ -23,6 +23,8 @@ type pointName string
 const (
 	pointShardBlockCreateBlock  pointName = "shardBlockCreateBlock"
 	pointShardBlockProcessBlock pointName = "shardBlockProcessBlock"
+	pointMetaBlockCreateBlock   pointName = "metaBlockCreateBlock"
+	pointMetaBlockProcessBlock  pointName = "metaBlockProcessBlock"
 	pointEpochConfirmed         pointName = "epochConfirmed"
 
 	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey                      pointName = "consensusV1SubroundSignatureDoSignatureJobWhenSingleKey"
@@ -36,9 +38,11 @@ const (
 )
 
 var knownPoints = map[pointName]struct{}{
-	pointShardBlockCreateBlock:  {},
-	pointShardBlockProcessBlock: {},
-	pointEpochConfirmed:         {},
+	pointShardBlockCreateBlock:                                                        {},
+	pointShardBlockProcessBlock:                                                       {},
+	pointMetaBlockCreateBlock:                                                         {},
+	pointMetaBlockProcessBlock:                                                        {},
+	pointEpochConfirmed:                                                               {},
 	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey:                      {},
 	pointConsensusV1SubroundSignatureDoSignatureJobWhenMultiKey:                       {},
 	pointConsensusV1SubroundEndRoundCheckSignaturesValidity:                           {},

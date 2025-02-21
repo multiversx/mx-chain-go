@@ -14,7 +14,7 @@
                     ],
                     "triggers": [
                         "point == \"shardBlockCreateBlock\" && shard == 0 && round % 8 == 0",
-                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 8 == 0 && randomNumber % 43 == 0"
+                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 8 == 0 && randomNumber % 4 == 0"
                     ]
                 },
                 {
@@ -36,7 +36,7 @@
                     "type": "panic",
                     "onPoints": ["epochConfirmed"],
                     "triggers": [
-                        "shard == 4294967295 && randomNumber % 5 == 0 && uptime > 60"
+                        "shard == 4294967295 && randomNumber % 7 == 0 && uptime > 120"
                     ]
                 },
                 {

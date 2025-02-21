@@ -2,7 +2,6 @@ package chaos
 
 import (
 	"crypto/rand"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"go/constant"
@@ -23,7 +22,7 @@ type failureCircumstance struct {
 	// Always available:
 	point           string
 	failure         string
-	randomNumber    uint64
+	randomNumber    uint8
 	now             int64
 	uptime          int64
 	nodeDisplayName string
@@ -64,11 +63,10 @@ func newFailureCircumstance() *failureCircumstance {
 	}
 }
 
-func getRandomNumber() uint64 {
-	buffer := make([]byte, 8)
+func getRandomNumber() uint8 {
+	buffer := make([]byte, 1)
 	_, _ = rand.Read(buffer)
-	number := binary.BigEndian.Uint64(buffer)
-	return number
+	return buffer[0]
 }
 
 // For simplicity, we get the current shard, epoch and round from the logger correlation facility.
@@ -157,7 +155,7 @@ func (circumstance *failureCircumstance) createGoPackage() *types.Package {
 
 	// Always available:
 	scope.Insert(createFailureExpressionStringParameter(pack, parameterPoint, circumstance.point))
-	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRandomNumber, circumstance.randomNumber))
+	scope.Insert(createFailureExpressionNumericParameter(pack, parameterRandomNumber, uint64(circumstance.randomNumber)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterNow, uint64(circumstance.now)))
 	scope.Insert(createFailureExpressionNumericParameter(pack, parameterUptime, uint64(circumstance.uptime)))
 	scope.Insert(createFailureExpressionStringParameter(pack, parameterNodeDisplayName, circumstance.nodeDisplayName))
