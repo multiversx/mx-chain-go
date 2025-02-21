@@ -488,12 +488,11 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		ch := make(chan bool, 1)
 
 		baseSr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
-		srBlock, _ := v2.NewSubroundBlock(
+		sr, _ := v2.NewSubroundBlock(
 			baseSr,
 			v2.ProcessingThresholdPercent,
 			&consensusMocks.SposWorkerMock{},
 		)
-		sr := *srBlock
 
 		providedLeaderSignature := []byte("leader signature")
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
