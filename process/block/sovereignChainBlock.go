@@ -1047,8 +1047,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 	body.MiniBlocks = finalMiniBlocks
 
-	/* TODO: Next task
-	// Call here scbp.nodesCoordinator.EpochStartPrepare(...)
+	scbp.nodesCoordinator.EpochStartPrepare(header, body)
 
 	pubKeys, err := scbp.nodesCoordinator.GetConsensusValidatorsPublicKeys(header.GetRandSeed(), header.GetRound(), core.SovereignChainShardId, header.GetEpoch())
 	if err != nil {
@@ -1060,6 +1059,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	// todo: check here if it is correct to send header.GetEpoch -> as this returns the next epoch, not the current one; although we might not even need the epoch
 	err = scbp.createAndSetOutGoingMiniBlock(
 		header,
 		[][]byte{outGoingOperationChangeValidatorSet},
@@ -1069,7 +1069,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	if err != nil {
 		return err
 	}
-	*/
+
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
 }
 

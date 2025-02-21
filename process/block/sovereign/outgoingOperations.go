@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 
@@ -228,9 +230,13 @@ func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.O
 
 // CreateOutGoingChangeValidatorData will create the necessary outgoing data for validator set change
 func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string) ([]byte, error) {
-	// TODO: Next task
-	_ = pubKeys
-	return make([]byte, 0), nil
+	validatorsID := make([][]byte, len(pubKeys))
+
+	for idx, pubKey := range pubKeys {
+		validatorsID[idx] = []byte(pubKey)
+	}
+
+	return proto.Marshal(&sovereign.BridgeOutGoingDataValidatorSetChange{PubKeyIDs: validatorsID})
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

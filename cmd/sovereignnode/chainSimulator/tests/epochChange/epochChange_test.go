@@ -10,9 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovereignData "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -194,15 +196,18 @@ func checkEpochChangeHeader(
 	require.True(t, currentHeader.IsStartOfEpochBlock())
 
 	mbs := currentHeader.GetMiniBlockHeaderHandlers()
-	require.Len(t, mbs, 2)
+	require.Len(t, mbs, 3)
 
 	require.Equal(t, block.RewardsBlock, block.Type(mbs[0].GetTypeInt32()))
 	require.Equal(t, block.PeerBlock, block.Type(mbs[1].GetTypeInt32()))
+	require.Equal(t, block.TxBlock, block.Type(mbs[2].GetTypeInt32()))
 
 	require.Equal(t, mbs[0].GetTxCount(), uint32(7))  // consensus group reward txs = 6 + 1 reward tx protocol sustainability
 	require.Equal(t, mbs[1].GetTxCount(), uint32(18)) // 18 validators in total => 18 peer block updates
+	require.Equal(t, mbs[2].GetTxCount(), uint32(1))  // 1 outgoing operation for change validator set
 
-	require.Equal(t, uint32(25), currentHeader.GetTxCount())
+	require.Equal(t, core.MainChainShardId, mbs[2].GetReceiverShardID())
+	require.Equal(t, uint32(26), currentHeader.GetTxCount())
 
 	unComputedRootHash := nodeHandler.GetCoreComponents().Hasher().Compute("uncomputed root hash")
 	require.NotEqual(t, unComputedRootHash, currentHeader.GetRootHash())
@@ -218,6 +223,7 @@ func checkEpochChangeHeader(
 	require.Equal(t, validatorRootHash, currentHeader.GetValidatorStatsRootHash())
 
 	checkEpochChangeRewardsMB(t, nodeHandler, mbs[0], currentHeader, allOwnersBalance, protocolSustainabilityAddress)
+	checkOutGoingMiniBlockChangeValidatorSet(t, nodeHandler, currentHeader)
 }
 
 func checkEpochChangeRewardsMB(
@@ -253,6 +259,25 @@ func checkEpochChangeRewardsMB(
 	}
 
 	require.Empty(t, owners)
+}
+
+func checkOutGoingMiniBlockChangeValidatorSet(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	currentHeader data.HeaderHandler,
+) {
+	outGoingMBHdrs := common.GetCurrentSovereignHeader(nodeHandler).GetOutGoingMiniBlockHeaderHandlers()
+	require.Len(t, outGoingMBHdrs, 1)
+
+	bridgeData := nodeHandler.GetRunTypeComponents().OutGoingOperationsPoolHandler().Get(outGoingMBHdrs[0].GetOutGoingOperationsHash())
+	require.Equal(t, int32(block.OutGoingMbChangeValidatorSet), bridgeData.Type)
+	require.Equal(t, currentHeader.GetEpoch(), bridgeData.Epoch)
+	require.Len(t, bridgeData.OutGoingOperations, 1)
+
+	outGoingBridgeDataValidators := &sovereignData.BridgeOutGoingDataValidatorSetChange{}
+	err := proto.Unmarshal(bridgeData.OutGoingOperations[0].Data, outGoingBridgeDataValidators)
+	require.Nil(t, err)
+	require.Len(t, outGoingBridgeDataValidators.PubKeyIDs, 6) // 6 validator ids
 }
 
 func getOwnersMap(allOwnersBalance map[string]*big.Int, pkConv core.PubkeyConverter) map[string]struct{} {
