@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
@@ -17,7 +18,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	}
 
 	initialBalance := big.NewInt(1000000000000)
-	nodes, idxProposers, players := createGeneralSetupForTxTest(initialBalance)
+	nodes, leaders, players := createGeneralSetupForTxTest(initialBalance)
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -65,7 +66,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 
 	nrRoundsToTest := int64(7)
 	for i := int64(0); i < nrRoundsToTest; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 
 		time.Sleep(integrationTests.StepDelay)
@@ -80,7 +81,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 	assert.Equal(t, players[2].Nonce, senderAccount.GetNonce())
 	assert.Equal(t, expectedBalance, senderAccount.GetBalance())
 
-	//check balance intra shard tx insufficient gas limit
+	// check balance intra shard tx insufficient gas limit
 	senderAccount = getUserAccount(nodes, players[1].Address)
 	assert.Equal(t, uint64(0), senderAccount.GetNonce())
 	assert.Equal(t, initialBalance, senderAccount.GetBalance())
@@ -116,7 +117,7 @@ func TestTransaction_TransactionMoveBalanceScenarios(t *testing.T) {
 
 	roundToPropagateMultiShard := int64(15)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
-		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
+		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, leaders, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
 		time.Sleep(integrationTests.StepDelay)
 	}

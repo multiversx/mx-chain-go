@@ -10,14 +10,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgument(timeout time.Duration) ArgTrieSyncer {
@@ -32,7 +34,7 @@ func createMockArgument(timeout time.Duration) ArgTrieSyncer {
 
 	return ArgTrieSyncer{
 		RequestHandler:            &testscommon.RequestHandlerStub{},
-		InterceptedNodes:          testscommon.NewCacherMock(),
+		InterceptedNodes:          cache.NewCacherMock(),
 		DB:                        trieStorage,
 		Hasher:                    &hashingMocks.HasherMock{},
 		Marshalizer:               &marshallerMock.MarshalizerMock{},

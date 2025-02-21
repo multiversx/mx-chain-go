@@ -288,3 +288,11 @@ func (boot *baseBootstrap) IsInImportMode() bool {
 func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 	return boot.processWaitTime
 }
+
+// HandleEquivalentProof -
+func (boot *baseBootstrap) HandleEquivalentProof(
+	header data.HeaderHandler,
+	headerHash []byte,
+) error {
+	return boot.handleEquivalentProof(header, headerHash)
+}

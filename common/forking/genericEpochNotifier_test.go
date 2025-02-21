@@ -1,11 +1,13 @@
 package forking
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
@@ -151,4 +153,34 @@ func TestGenericEpochNotifier_CheckEpochInSyncShouldWork(t *testing.T) {
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalls))
 	assert.True(t, end.Sub(start) >= handlerWait)
+}
+
+func TestGenericEpochNotifier_ConcurrentOperations(t *testing.T) {
+	t.Parallel()
+
+	notifier := NewGenericEpochNotifier()
+
+	numOperations := 500
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx {
+			case 0:
+				notifier.RegisterNotifyHandler(&mock.EpochSubscriberHandlerStub{})
+			case 1:
+				_ = notifier.CurrentEpoch()
+			case 2:
+				notifier.CheckEpoch(&block.MetaBlock{Epoch: 5})
+			case 3:
+				notifier.UnRegisterAll()
+			case 4:
+				_ = notifier.IsInterfaceNil()
+			}
+
+			wg.Done()
+		}(i % 5)
+	}
+
+	wg.Wait()
 }

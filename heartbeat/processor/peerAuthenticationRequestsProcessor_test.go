@@ -14,18 +14,20 @@ import (
 	mxAtomic "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/random"
-	"github.com/multiversx/mx-chain-go/heartbeat"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/heartbeat"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 func createMockArgPeerAuthenticationRequestsProcessor() ArgPeerAuthenticationRequestsProcessor {
 	return ArgPeerAuthenticationRequestsProcessor{
 		RequestHandler:          &testscommon.RequestHandlerStub{},
 		NodesCoordinator:        &shardingMocks.NodesCoordinatorStub{},
-		PeerAuthenticationPool:  &testscommon.CacherMock{},
+		PeerAuthenticationPool:  &cache.CacherMock{},
 		ShardId:                 0,
 		Epoch:                   0,
 		MinPeersThreshold:       0.8,
@@ -200,7 +202,7 @@ func TestPeerAuthenticationRequestsProcessor_startRequestingMessages(t *testing.
 			},
 		}
 
-		args.PeerAuthenticationPool = &testscommon.CacherStub{
+		args.PeerAuthenticationPool = &cache.CacherStub{
 			KeysCalled: func() [][]byte {
 				return providedEligibleKeysMap[0]
 			},
@@ -236,7 +238,7 @@ func TestPeerAuthenticationRequestsProcessor_isThresholdReached(t *testing.T) {
 	args := createMockArgPeerAuthenticationRequestsProcessor()
 	args.MinPeersThreshold = 0.6
 	counter := uint32(0)
-	args.PeerAuthenticationPool = &testscommon.CacherStub{
+	args.PeerAuthenticationPool = &cache.CacherStub{
 		KeysCalled: func() [][]byte {
 			var keys = make([][]byte, 0)
 			switch atomic.LoadUint32(&counter) {
@@ -323,7 +325,7 @@ func TestPeerAuthenticationRequestsProcessor_goRoutineIsWorkingAndCloseShouldSto
 		},
 	}
 	keysCalled := &mxAtomic.Flag{}
-	args.PeerAuthenticationPool = &testscommon.CacherStub{
+	args.PeerAuthenticationPool = &cache.CacherStub{
 		KeysCalled: func() [][]byte {
 			keysCalled.SetValue(true)
 			return make([][]byte, 0)

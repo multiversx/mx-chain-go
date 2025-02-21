@@ -7,27 +7,30 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/pkg/errors"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/interceptors")
 
 // ArgMultiDataInterceptor is the argument for the multi-data interceptor
 type ArgMultiDataInterceptor struct {
-	Topic                string
-	Marshalizer          marshal.Marshalizer
-	DataFactory          process.InterceptedDataFactory
-	Processor            process.InterceptorProcessor
-	Throttler            process.InterceptorThrottler
-	AntifloodHandler     process.P2PAntifloodHandler
-	WhiteListRequest     process.WhiteListHandler
-	PreferredPeersHolder process.PreferredPeersHolderHandler
-	CurrentPeerId        core.PeerID
+	Topic                   string
+	Marshalizer             marshal.Marshalizer
+	DataFactory             process.InterceptedDataFactory
+	Processor               process.InterceptorProcessor
+	Throttler               process.InterceptorThrottler
+	AntifloodHandler        process.P2PAntifloodHandler
+	WhiteListRequest        process.WhiteListHandler
+	PreferredPeersHolder    process.PreferredPeersHolderHandler
+	CurrentPeerId           core.PeerID
+	InterceptedDataVerifier process.InterceptedDataVerifier
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
@@ -66,19 +69,23 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if check.IfNil(arg.PreferredPeersHolder) {
 		return nil, process.ErrNilPreferredPeersHolder
 	}
+	if check.IfNil(arg.InterceptedDataVerifier) {
+		return nil, process.ErrNilInterceptedDataVerifier
+	}
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
-			throttler:            arg.Throttler,
-			antifloodHandler:     arg.AntifloodHandler,
-			topic:                arg.Topic,
-			currentPeerId:        arg.CurrentPeerId,
-			processor:            arg.Processor,
-			preferredPeersHolder: arg.PreferredPeersHolder,
-			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
+			throttler:               arg.Throttler,
+			antifloodHandler:        arg.AntifloodHandler,
+			topic:                   arg.Topic,
+			currentPeerId:           arg.CurrentPeerId,
+			processor:               arg.Processor,
+			preferredPeersHolder:    arg.PreferredPeersHolder,
+			debugHandler:            handler.NewDisabledInterceptorDebugHandler(),
+			interceptedDataVerifier: arg.InterceptedDataVerifier,
 		},
 		marshalizer:      arg.Marshalizer,
 		factory:          arg.DataFactory,
@@ -153,6 +160,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		var interceptedData process.InterceptedData
 		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
 		listInterceptedData[index] = interceptedData
+
 		if err != nil {
 			mdi.throttler.EndProcessing()
 			return err
@@ -207,11 +215,11 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 	mdi.receivedDebugInterceptedData(interceptedData)
 
-	err = interceptedData.CheckValidity()
+	err = mdi.interceptedDataVerifier.Verify(interceptedData)
 	if err != nil {
 		mdi.processDebugInterceptedData(interceptedData, err)
 
-		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
+		isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
 		if isWrongVersion {
 			// this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()

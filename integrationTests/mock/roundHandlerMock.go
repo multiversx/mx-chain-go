@@ -19,6 +19,12 @@ func (mock *RoundHandlerMock) BeforeGenesis() bool {
 	return false
 }
 
+// RevertOneRound -
+func (rndm *RoundHandlerMock) RevertOneRound() {
+	rndm.IndexField--
+	rndm.TimeStampField = rndm.TimeStampField.Add(-rndm.TimeDurationField)
+}
+
 // Index -
 func (mock *RoundHandlerMock) Index() int64 {
 	return mock.IndexField

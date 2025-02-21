@@ -8,9 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.HdrValidatorHandler = (*InterceptedMetaHeader)(nil)
@@ -20,14 +22,15 @@ var log = logger.GetOrCreate("process/block/interceptedBlocks")
 
 // InterceptedMetaHeader represents the wrapper over the meta block header struct
 type InterceptedMetaHeader struct {
-	hdr               data.MetaHeaderHandler
-	sigVerifier       process.InterceptedHeaderSigVerifier
-	integrityVerifier process.HeaderIntegrityVerifier
-	hasher            hashing.Hasher
-	shardCoordinator  sharding.Coordinator
-	hash              []byte
-	validityAttester  process.ValidityAttester
-	epochStartTrigger process.EpochStartTriggerHandler
+	hdr                 data.MetaHeaderHandler
+	sigVerifier         process.InterceptedHeaderSigVerifier
+	integrityVerifier   process.HeaderIntegrityVerifier
+	hasher              hashing.Hasher
+	shardCoordinator    sharding.Coordinator
+	hash                []byte
+	validityAttester    process.ValidityAttester
+	epochStartTrigger   process.EpochStartTriggerHandler
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewInterceptedMetaHeader creates a new instance of InterceptedMetaHeader struct
@@ -43,13 +46,14 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	}
 
 	inHdr := &InterceptedMetaHeader{
-		hdr:               hdr,
-		hasher:            arg.Hasher,
-		sigVerifier:       arg.HeaderSigVerifier,
-		integrityVerifier: arg.HeaderIntegrityVerifier,
-		shardCoordinator:  arg.ShardCoordinator,
-		validityAttester:  arg.ValidityAttester,
-		epochStartTrigger: arg.EpochStartTrigger,
+		hdr:                 hdr,
+		hasher:              arg.Hasher,
+		sigVerifier:         arg.HeaderSigVerifier,
+		integrityVerifier:   arg.HeaderIntegrityVerifier,
+		shardCoordinator:    arg.ShardCoordinator,
+		validityAttester:    arg.ValidityAttester,
+		epochStartTrigger:   arg.EpochStartTrigger,
+		enableEpochsHandler: arg.EnableEpochsHandler,
 	}
 	inHdr.processFields(arg.HdrBuff)
 
@@ -84,6 +88,8 @@ func (imh *InterceptedMetaHeader) HeaderHandler() data.HeaderHandler {
 
 // CheckValidity checks if the received meta header is valid (not nil fields, valid sig and so on)
 func (imh *InterceptedMetaHeader) CheckValidity() error {
+	log.Debug("CheckValidity for header with", "epoch", imh.hdr.GetEpoch(), "hash", logger.DisplayByteSlice(imh.hash))
+
 	err := imh.integrity()
 	if err != nil {
 		return err
@@ -110,12 +116,32 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
+	if imh.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, imh.hdr.GetEpoch()) {
+		return imh.verifySignaturesForEquivalentProofs()
+	}
+
 	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}
 
 	err = imh.sigVerifier.VerifySignature(imh.hdr)
+	if err != nil {
+		return err
+	}
+
+	return imh.integrityVerifier.Verify(imh.hdr)
+}
+
+func (imh *InterceptedMetaHeader) verifySignaturesForEquivalentProofs() error {
+	// for equivalent proofs, we check first the previous proof to make sure we add it to the proofs pool if we are validating the
+	// block after the change of epoch, otherwise we never add the previous proof to proofs pool in sync mode.
+	err := imh.sigVerifier.VerifySignature(imh.hdr)
+	if err != nil {
+		return err
+	}
+
+	err = imh.sigVerifier.VerifyRandSeedAndLeaderSignature(imh.hdr)
 	if err != nil {
 		return err
 	}
@@ -137,12 +163,12 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 
 // integrity checks the integrity of the meta header block wrapper
 func (imh *InterceptedMetaHeader) integrity() error {
-	err := checkHeaderHandler(imh.HeaderHandler())
+	err := checkHeaderHandler(imh.HeaderHandler(), imh.enableEpochsHandler)
 	if err != nil {
 		return err
 	}
 
-	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator)
+	err = checkMetaShardInfo(imh.hdr.GetShardInfoHandlers(), imh.shardCoordinator, imh.sigVerifier)
 	if err != nil {
 		return err
 	}

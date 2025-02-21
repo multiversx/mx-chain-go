@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMetrics_CalculateRoundDuration(t *testing.T) {
@@ -32,8 +33,8 @@ func TestMetrics_IncrementMetricCountConsensusAcceptedBlocks(t *testing.T) {
 		t.Parallel()
 
 		nodesCoord := &shardingMocks.NodesCoordinatorMock{
-			GetValidatorsPublicKeysCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]string, error) {
-				return nil, expectedErr
+			GetValidatorsPublicKeysCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) (string, []string, error) {
+				return "", nil, expectedErr
 			},
 		}
 		statusHandler := &statusHandlerMock.AppStatusHandlerStub{
@@ -54,9 +55,10 @@ func TestMetrics_IncrementMetricCountConsensusAcceptedBlocks(t *testing.T) {
 			GetOwnPublicKeyCalled: func() []byte {
 				return []byte(mainKey)
 			},
-			GetValidatorsPublicKeysCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) ([]string, error) {
-				return []string{
-					"some leader",
+			GetValidatorsPublicKeysCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) (string, []string, error) {
+				leader := "some leader"
+				return leader, []string{
+					leader,
 					mainKey,
 					managedKeyInConsensus,
 					"some other key",

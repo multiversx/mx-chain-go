@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -444,7 +445,7 @@ func (se *stateExport) exportValidatorInfo(key string, validatorInfo *state.Shar
 
 func (se *stateExport) exportNodesSetupJson(validators state.ShardValidatorsInfoMapHandler) error {
 	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
-	initialNodes := make([]*sharding.InitialNode, 0)
+	initialNodes := make([]*config.InitialNodeConfig, 0)
 
 	for _, validator := range validators.GetAllValidatorsInfo() {
 		if shouldExportValidator(validator, acceptedListsForExport) {
@@ -459,7 +460,7 @@ func (se *stateExport) exportNodesSetupJson(validators state.ShardValidatorsInfo
 				return nil
 			}
 
-			initialNodes = append(initialNodes, &sharding.InitialNode{
+			initialNodes = append(initialNodes, &config.InitialNodeConfig{
 				PubKey:        pubKey,
 				Address:       rewardAddress,
 				InitialRating: validator.GetRating(),
@@ -471,20 +472,10 @@ func (se *stateExport) exportNodesSetupJson(validators state.ShardValidatorsInfo
 		return strings.Compare(initialNodes[i].PubKey, initialNodes[j].PubKey) < 0
 	})
 
-	genesisNodesSetupHandler := se.genesisNodesSetupHandler
-	nodesSetup := &sharding.NodesSetup{
-		StartTime:                   genesisNodesSetupHandler.GetStartTime(),
-		RoundDuration:               genesisNodesSetupHandler.GetRoundDuration(),
-		ConsensusGroupSize:          genesisNodesSetupHandler.GetShardConsensusGroupSize(),
-		MinNodesPerShard:            genesisNodesSetupHandler.MinNumberOfShardNodes(),
-		MetaChainConsensusGroupSize: genesisNodesSetupHandler.GetMetaConsensusGroupSize(),
-		MetaChainMinNodes:           genesisNodesSetupHandler.MinNumberOfMetaNodes(),
-		Hysteresis:                  genesisNodesSetupHandler.GetHysteresis(),
-		Adaptivity:                  genesisNodesSetupHandler.GetAdaptivity(),
-		InitialNodes:                initialNodes,
-	}
+	exportedNodesConfig := se.genesisNodesSetupHandler.ExportNodesConfig()
+	exportedNodesConfig.InitialNodes = initialNodes
 
-	nodesSetupBytes, err := json.MarshalIndent(nodesSetup, "", "  ")
+	nodesSetupBytes, err := json.MarshalIndent(exportedNodesConfig, "", "  ")
 	if err != nil {
 		return err
 	}

@@ -27,8 +27,13 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -58,14 +63,14 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 			return nil
 		},
 	}
-	bootstrapperMock := &mock.BootstrapperStub{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
+	broadcastMessengerMock := &consensusMocks.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock := &processMocks.ForkDetectorStub{}
 	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		return nil
 	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
+	keyGeneratorMock, _, _ := consensusMocks.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := initRoundHandlerMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
@@ -77,10 +82,10 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 			return nil
 		},
 	}
-	syncTimerMock := &mock.SyncTimerMock{}
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
 	hasher := &hashingMocks.HasherMock{}
 	blsService, _ := bls.NewConsensusService()
-	poolAdder := testscommon.NewCacherMock()
+	poolAdder := cache.NewCacherMock()
 
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                syncTimerMock,
@@ -90,6 +95,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         blsService,
 		BlockChain:               blockchainMock,
@@ -105,8 +111,8 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		ShardCoordinator:         shardCoordinatorMock,
 		PeerSignatureHandler:     peerSigHandler,
 		SyncTimer:                syncTimerMock,
-		HeaderSigVerifier:        &mock.HeaderSigVerifierStub{},
-		HeaderIntegrityVerifier:  &mock.HeaderIntegrityVerifierStub{},
+		HeaderSigVerifier:        &consensusMocks.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:  &testscommon.HeaderVersionHandlerStub{},
 		ChainID:                  chainID,
 		NetworkShardingCollector: &p2pmocks.NetworkShardingCollectorStub{},
 		AntifloodHandler:         createMockP2PAntifloodHandler(),
@@ -116,6 +122,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		AppStatusHandler:         appStatusHandler,
 		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
+		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return workerArgs
@@ -136,11 +143,13 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	workerArgs := createDefaultWorkerArgs(appStatusHandler)
 	sposWorker, _ := spos.NewWorker(workerArgs)
 
+	sposWorker.ConsensusState().SetHeader(&block.HeaderV2{})
+
 	return sposWorker
 }
 
-func initRoundHandlerMock() *mock.RoundHandlerMock {
-	return &mock.RoundHandlerMock{
+func initRoundHandlerMock() *consensusMocks.RoundHandlerMock {
+	return &consensusMocks.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -370,6 +379,17 @@ func TestWorker_NewWorkerNodeRedundancyHandlerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilNodeRedundancyHandler, err)
 }
 
+func TestWorker_NewWorkerPoolEnableEpochsHandlerNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.EnableEpochsHandler = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+}
+
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -466,7 +486,7 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody][0](context.Background(), nil))
 }
 
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
@@ -480,7 +500,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody][0](context.Background(), nil))
 
 	wrk.RemoveAllReceivedMessagesCalls()
 	receivedMessageCalls = wrk.ReceivedMessagesCalls()
@@ -765,7 +785,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		},
 	})
 
-	wrk.SetRoundHandler(&mock.RoundHandlerMock{
+	wrk.SetRoundHandler(&consensusMocks.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration
@@ -793,7 +813,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		nil,
 		nil,
 		hdrStr,
-		[]byte(wrk.ConsensusState().ConsensusGroup()[0]),
+		[]byte(wrk.ConsensusState().Leader()),
 		signature,
 		int(bls.MtBlockHeader),
 		0,
@@ -1258,6 +1278,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	wrk.SetBlockProcessor(
 		&testscommon.BlockProcessorStub{
@@ -1327,6 +1348,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		},
 	}
 	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	wrk.SetBlockProcessor(
 		&testscommon.BlockProcessorStub{
@@ -1671,7 +1693,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.StartWorking()
-	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(ctx context.Context, cnsMsg *consensus.Message) bool {
+	wrk.AppendReceivedMessagesCalls(bls.MtBlockHeader, func(ctx context.Context, cnsMsg *consensus.Message) bool {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		return true
 	})
@@ -1713,7 +1735,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bootstrapperMock := &mock.BootstrapperStub{
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{
 		GetNodeStateCalled: func() common.NodeState {
 			return common.NsNotSynchronized
 		},
@@ -1733,7 +1755,7 @@ func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testi
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bootstrapperMock := &mock.BootstrapperStub{
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{
 		GetNodeStateCalled: func() common.NodeState {
 			return common.NsNotSynchronized
 		},
@@ -1752,14 +1774,14 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bmm := &mock.BroadcastMessengerMock{
+	bmm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			executed = true
 			return nil
 		},
 	}
 	wrk.SetBroadcastMessenger(bmm)
-	bootstrapperMock := &mock.BootstrapperStub{
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			return nil, nil, errors.New("error")
 		}}
@@ -1863,13 +1885,14 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{}
 	headerSigVerifier.VerifyRandSeedCalled = func(header data.HeaderHandler) error {
 		return process.ErrRandSeedDoesNotMatch
 	}
 
 	workerArgs.HeaderSigVerifier = headerSigVerifier
 	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -1911,6 +1934,7 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 
 		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
 		hdr := &block.Header{}
 		hdr.Nonce = 1

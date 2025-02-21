@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -240,6 +241,7 @@ type PoolsHolder interface {
 	PeerAuthentications() storage.Cacher
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
+	Proofs() ProofsPool
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -355,5 +357,15 @@ type NodesCoordinator interface {
 // found in peer authentication messages
 type PeerAuthenticationPayloadValidator interface {
 	ValidateTimestamp(payloadTimestamp int64) error
+	IsInterfaceNil() bool
+}
+
+// ProofsPool defines the behaviour of a proofs pool components
+type ProofsPool interface {
+	AddProof(headerProof data.HeaderProofHandler) bool
+	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
+	CleanupProofsBehindNonce(shardID uint32, nonce uint64) error
+	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

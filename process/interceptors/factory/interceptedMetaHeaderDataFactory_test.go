@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -97,7 +98,7 @@ func createMockArgument(
 		NodesCoordinator:             shardingMocks.NewNodesCoordinatorMock(),
 		FeeHandler:                   createMockFeeHandler(),
 		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
-		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
 		ValidityAttester:             &mock.ValidityAttesterStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},

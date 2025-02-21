@@ -59,6 +59,7 @@ type baseAPIBlockProcessor struct {
 	accountsRepository           state.AccountsRepository
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	proofsPool                   dataRetriever.ProofsPool
 }
 
 var log = logger.GetOrCreate("node/blockAPI")
@@ -600,4 +601,61 @@ func createAlteredBlockHash(hash []byte) []byte {
 	alteredHash = append(alteredHash, []byte(common.GenesisStorageSuffix)...)
 
 	return alteredHash
+}
+
+func (bap *baseAPIBlockProcessor) addProofs(
+	headerHash []byte,
+	header data.HeaderHandler,
+	apiBlock *api.Block,
+	getHeaderHandlerByNonce func(nonce uint64) (data.HeaderHandler, error),
+) error {
+	prevHeaderProof := header.GetPreviousProof()
+	isNil := check.IfNilReflect(prevHeaderProof)
+	if isNil && !bap.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
+		return nil
+	}
+
+	if !isNil {
+		apiBlock.PreviousHeaderProof = proofToAPIProof(prevHeaderProof)
+	}
+
+	headerProof, err := bap.getHeaderProof(headerHash, header, getHeaderHandlerByNonce)
+	if err != nil {
+		return errCannotFindBlockProof
+	}
+
+	apiBlock.Proof = proofToAPIProof(headerProof)
+
+	return nil
+}
+
+func (bap *baseAPIBlockProcessor) getHeaderProof(
+	headerHash []byte,
+	header data.HeaderHandler,
+	getHeaderByNonce func(nonce uint64) (data.HeaderHandler, error),
+) (data.HeaderProofHandler, error) {
+	proofFromPool, err := bap.proofsPool.GetProof(header.GetShardID(), headerHash)
+	if err == nil {
+		return proofFromPool, nil
+	}
+
+	nextHeader, err := getHeaderByNonce(header.GetNonce() + 1)
+	if err != nil {
+		return nil, err
+	}
+
+	return nextHeader.GetPreviousProof(), nil
+}
+
+func proofToAPIProof(proof data.HeaderProofHandler) *api.HeaderProof {
+	return &api.HeaderProof{
+		PubKeysBitmap:       hex.EncodeToString(proof.GetPubKeysBitmap()),
+		AggregatedSignature: hex.EncodeToString(proof.GetAggregatedSignature()),
+		HeaderHash:          hex.EncodeToString(proof.GetHeaderHash()),
+		HeaderEpoch:         proof.GetHeaderEpoch(),
+		HeaderNonce:         proof.GetHeaderNonce(),
+		HeaderShardId:       proof.GetHeaderShardId(),
+		HeaderRound:         proof.GetHeaderRound(),
+		IsStartOfEpoch:      proof.GetIsStartOfEpoch(),
+	}
 }

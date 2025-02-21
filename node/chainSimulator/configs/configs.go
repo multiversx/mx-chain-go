@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -52,6 +53,7 @@ type ArgsChainSimulatorConfigs struct {
 	ConsensusGroupSize          uint32
 	MetaChainMinNodes           uint32
 	MetaChainConsensusGroupSize uint32
+	Hysteresis                  float32
 	InitialEpoch                uint32
 	RoundsPerEpoch              core.OptionalUint64
 	NumNodesWaitingListShard    uint32
@@ -131,6 +133,19 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	if err != nil {
 		return nil, err
 	}
+
+	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.ConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = args.RoundDurationInMillis
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
+	}
+
+	// TODO[Sorin]: remove this once all equivalent messages PRs are merged
+	configs.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch = integrationTests.UnreachableEpoch
+	configs.EpochConfig.EnableEpochs.FixedOrderInConsensusEnableEpoch = integrationTests.UnreachableEpoch
 
 	node.ApplyArchCustomConfigs(configs)
 
@@ -280,14 +295,10 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
-	nodes.ConsensusGroupSize = args.ConsensusGroupSize
-	nodes.MetaChainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	nodes.Hysteresis = 0
 
-	nodes.MinNodesPerShard = args.MinNodesPerShard
-	nodes.MetaChainMinNodes = args.MetaChainMinNodes
-
 	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
+	configs.NodesConfig.InitialNodes = make([]*config.InitialNodeConfig, 0)
 	privateKeys := make([]crypto.PrivateKey, 0)
 	publicKeys := make([]crypto.PublicKey, 0)
 	walletIndex := 0
@@ -305,6 +316,12 @@ func generateValidatorsKeyAndUpdateFiles(
 		nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
 			PubKey:  hex.EncodeToString(pkBytes),
 			Address: stakeWallets[walletIndex].Address.Bech32,
+		})
+
+		configs.NodesConfig.InitialNodes = append(configs.NodesConfig.InitialNodes, &config.InitialNodeConfig{
+			PubKey:        hex.EncodeToString(pkBytes),
+			Address:       stakeWallets[walletIndex].Address.Bech32,
+			InitialRating: 5000001,
 		})
 
 		walletIndex++
@@ -326,6 +343,13 @@ func generateValidatorsKeyAndUpdateFiles(
 				PubKey:  hex.EncodeToString(pkBytes),
 				Address: stakeWallets[walletIndex].Address.Bech32,
 			})
+
+			configs.NodesConfig.InitialNodes = append(configs.NodesConfig.InitialNodes, &config.InitialNodeConfig{
+				PubKey:        hex.EncodeToString(pkBytes),
+				Address:       stakeWallets[walletIndex].Address.Bech32,
+				InitialRating: 5000001,
+			})
+
 			walletIndex++
 		}
 	}
