@@ -200,7 +200,7 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
 
-	if index > len(c.stateChanges) || index < 0 {
+	if index < 0 {
 		return fmt.Errorf("SetIndexToLastStateChange: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateChanges))
 	}
 
@@ -216,7 +216,7 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 
 // RevertToIndex will revert to index
 func (c *collector) RevertToIndex(index int) error {
-	if index > len(c.stateChanges) || index < 0 {
+	if index < 0 {
 		return fmt.Errorf("RevertToIndex: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateChanges))
 	}
 

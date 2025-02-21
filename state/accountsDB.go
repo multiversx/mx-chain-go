@@ -1147,7 +1147,13 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 		"entry type", fmt.Sprintf("%T", entry),
 	)
 
-	_ = adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
+	err := adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
+	if err != nil {
+		log.Trace("failed to set index to last state change",
+			"num journal entries", len(adb.entries),
+			"error", err.Error(),
+		)
+	}
 
 	if len(adb.entries) == 1 {
 		adb.stackDebug = debug.Stack()
