@@ -1,13 +1,14 @@
 package chaos
 
 import (
+	"crypto/rand"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"go/constant"
 	"go/token"
 	"go/types"
 	"math"
-	"math/rand"
 	"strconv"
 	"time"
 
@@ -40,7 +41,7 @@ type failureCircumstance struct {
 }
 
 func newFailureCircumstance() *failureCircumstance {
-	randomNumber := rand.Uint64()
+	randomNumber := getRandomNumber()
 	now := time.Now().Unix()
 	uptime := time.Since(startTime).Seconds()
 
@@ -61,6 +62,13 @@ func newFailureCircumstance() *failureCircumstance {
 		blockNonce:          0,
 		blockIsStartOfEpoch: false,
 	}
+}
+
+func getRandomNumber() uint64 {
+	buffer := make([]byte, 8)
+	_, _ = rand.Read(buffer)
+	number := binary.BigEndian.Uint64(buffer)
+	return number
 }
 
 // For simplicity, we get the current shard, epoch and round from the logger correlation facility.
