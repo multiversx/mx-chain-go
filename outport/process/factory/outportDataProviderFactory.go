@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
@@ -37,6 +38,7 @@ type ArgOutportDataProviderFactory struct {
 	MbsStorer              storage.Storer
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ExecutionOrderGetter   common.ExecutionOrderGetter
+	ProofsPool             dataRetriever.ProofsPool
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -85,5 +87,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		ExecutionOrderHandler:    arg.ExecutionOrderGetter,
 		Hasher:                   arg.Hasher,
 		Marshaller:               arg.Marshaller,
+		ProofsPool:               arg.ProofsPool,
 	})
 }

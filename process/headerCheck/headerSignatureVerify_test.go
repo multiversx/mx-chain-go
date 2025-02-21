@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -64,6 +65,7 @@ func createHeaderSigVerifierArgs() *ArgsHeaderSigVerifier {
 				}, nil
 			},
 		},
+		ProofsPool:     &dataRetrieverMocks.ProofsPoolMock{},
 		StorageService: &genericMocks.ChainStorerMock{},
 	}
 }
