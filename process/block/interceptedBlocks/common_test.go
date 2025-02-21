@@ -2,6 +2,8 @@ package interceptedBlocks
 
 import (
 	"errors"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -9,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,10 +23,11 @@ func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
 		Hasher:                  &hashingMocks.HasherMock{},
 		Marshalizer:             &mock.MarshalizerMock{},
 		HdrBuff:                 []byte("test buffer"),
-		HeaderSigVerifier:       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		ValidityAttester:        &mock.ValidityAttesterStub{},
 		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return arg
@@ -138,6 +143,17 @@ func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilValidityAttester, err)
 }
 
+func TestCheckBlockHeaderArgument_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.EnableEpochsHandler = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
 func TestCheckBlockHeaderArgument_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -222,7 +238,7 @@ func TestCheckHeaderHandler_NilPubKeysBitmapShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPubKeysBitmap, err)
 }
@@ -235,7 +251,7 @@ func TestCheckHeaderHandler_NilPrevHashShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPreviousBlockHash, err)
 }
@@ -248,7 +264,7 @@ func TestCheckHeaderHandler_NilSignatureShouldErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilSignature, err)
 }
@@ -261,7 +277,7 @@ func TestCheckHeaderHandler_NilRootHashErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilRootHash, err)
 }
@@ -274,7 +290,7 @@ func TestCheckHeaderHandler_NilRandSeedErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilRandSeed, err)
 }
@@ -287,7 +303,7 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 		return nil
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
 }
@@ -301,7 +317,7 @@ func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
 		return expectedErr
 	}
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -311,7 +327,7 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 
 	hdr := createDefaultHeaderHandler()
 
-	err := checkHeaderHandler(hdr)
+	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	assert.Nil(t, err)
 }
@@ -323,8 +339,8 @@ func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
 
-	err1 := checkMetaShardInfo(nil, shardCoordinator)
-	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator)
+	err1 := checkMetaShardInfo(nil, shardCoordinator, &consensus.HeaderSigVerifierMock{})
+	err2 := checkMetaShardInfo(make([]data.ShardDataHandler, 0), shardCoordinator, &consensus.HeaderSigVerifierMock{})
 
 	assert.Nil(t, err1)
 	assert.Nil(t, err2)
@@ -342,7 +358,7 @@ func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -366,7 +382,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -390,7 +406,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
 }
@@ -414,7 +430,7 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
 
 	assert.Equal(t, process.ErrReservedFieldInvalid, err)
 }
@@ -437,13 +453,160 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 		TxCount:               0,
 	}
 
-	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
 	assert.Nil(t, err)
 
 	miniBlock.Reserved = []byte("r")
 	sd.ShardMiniBlockHeaders = []block.MiniBlockHeader{miniBlock}
-	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator)
+	err = checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, &consensus.HeaderSigVerifierMock{})
 	assert.Nil(t, err)
+}
+
+func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return invalid shard id error, with multiple shard data", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		wrongShardId := uint32(2)
+		miniBlock1 := block.MiniBlockHeader{
+			Hash:            make([]byte, 0),
+			ReceiverShardID: wrongShardId,
+			SenderShardID:   shardCoordinator.SelfId(),
+			TxCount:         0,
+		}
+
+		miniBlock2 := block.MiniBlockHeader{
+			Hash:            make([]byte, 0),
+			ReceiverShardID: shardCoordinator.SelfId(),
+			SenderShardID:   shardCoordinator.SelfId(),
+			TxCount:         0,
+		}
+
+		sd1 := &block.ShardData{
+			ShardID:    shardCoordinator.SelfId(),
+			HeaderHash: nil,
+			ShardMiniBlockHeaders: []block.MiniBlockHeader{
+				miniBlock2,
+			},
+			TxCount: 0,
+		}
+
+		sd2 := &block.ShardData{
+			ShardID:    shardCoordinator.SelfId(),
+			HeaderHash: nil,
+			ShardMiniBlockHeaders: []block.MiniBlockHeader{
+				miniBlock1,
+			},
+			TxCount: 0,
+		}
+
+		err := checkMetaShardInfo(
+			[]data.ShardDataHandler{sd1, sd2},
+			shardCoordinator,
+			&consensus.HeaderSigVerifierMock{},
+		)
+
+		assert.Equal(t, process.ErrInvalidShardId, err)
+	})
+
+	t.Run("should fail when incomplete proof", func(t *testing.T) {
+		t.Parallel()
+
+		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		miniBlock1 := block.MiniBlockHeader{
+			Hash:            make([]byte, 0),
+			ReceiverShardID: shardCoordinator.SelfId(),
+			SenderShardID:   shardCoordinator.SelfId(),
+			TxCount:         0,
+		}
+
+		miniBlock2 := block.MiniBlockHeader{
+			Hash:            make([]byte, 0),
+			ReceiverShardID: shardCoordinator.SelfId(),
+			SenderShardID:   shardCoordinator.SelfId(),
+			TxCount:         0,
+		}
+
+		sd1 := &block.ShardData{
+			ShardID:    shardCoordinator.SelfId(),
+			HeaderHash: nil,
+			ShardMiniBlockHeaders: []block.MiniBlockHeader{
+				miniBlock2,
+			},
+			TxCount: 0,
+			PreviousShardHeaderProof: &block.HeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte{}, // incomplete proof
+				HeaderHash:          []byte("hash"),
+			},
+		}
+
+		sd2 := &block.ShardData{
+			ShardID:    shardCoordinator.SelfId(),
+			HeaderHash: nil,
+			ShardMiniBlockHeaders: []block.MiniBlockHeader{
+				miniBlock1,
+			},
+			TxCount: 0,
+		}
+
+		err := checkMetaShardInfo(
+			[]data.ShardDataHandler{sd1, sd2},
+			shardCoordinator,
+			&consensus.HeaderSigVerifierMock{},
+		)
+
+		assert.Equal(t, process.ErrInvalidHeaderProof, err)
+	})
+}
+
+func TestCheckMetaShardInfo_FewShardDataErrorShouldReturnError(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	miniBlock := block.MiniBlockHeader{
+		Hash:            make([]byte, 0),
+		ReceiverShardID: shardCoordinator.SelfId(),
+		SenderShardID:   shardCoordinator.SelfId(),
+		TxCount:         0,
+	}
+
+	calledCnt := 0
+	mutCalled := sync.Mutex{}
+	providedRandomError := errors.New("random error")
+	sigVerifier := &consensus.HeaderSigVerifierMock{
+		VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
+			mutCalled.Lock()
+			defer mutCalled.Unlock()
+
+			calledCnt++
+			if calledCnt%5 == 0 {
+				return providedRandomError
+			}
+
+			return nil
+		},
+	}
+
+	numShardData := 1000
+	shardData := make([]data.ShardDataHandler, numShardData)
+	for i := 0; i < numShardData; i++ {
+		shardData[i] = &block.ShardData{
+			ShardID:               shardCoordinator.SelfId(),
+			HeaderHash:            []byte("hash" + strconv.Itoa(i)),
+			ShardMiniBlockHeaders: []block.MiniBlockHeader{miniBlock},
+			PreviousShardHeaderProof: &block.HeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte("sig" + strconv.Itoa(i)),
+				HeaderHash:          []byte("hash" + strconv.Itoa(i)),
+			},
+		}
+	}
+
+	err := checkMetaShardInfo(shardData, shardCoordinator, sigVerifier)
+	assert.Equal(t, providedRandomError, err)
 }
 
 //------- checkMiniBlocksHeaders

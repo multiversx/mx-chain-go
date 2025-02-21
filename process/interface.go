@@ -384,7 +384,9 @@ type ForkDetector interface {
 	RestoreToGenesis()
 	GetNotarizedHeaderHash(nonce uint64) []byte
 	ResetProbableHighestNonce()
+	AddCheckpoint(nonce uint64, round uint64, hash []byte)
 	SetFinalToLastCheckpoint()
+	ReceivedProof(proof data.HeaderProofHandler)
 	IsInterfaceNil() bool
 }
 
@@ -851,6 +853,9 @@ type InterceptedHeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
+	VerifyHeaderProof(headerProof data.HeaderProofHandler) error
+	VerifyHeaderWithProof(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1203,6 +1208,7 @@ type PayableHandler interface {
 
 // FallbackHeaderValidator defines the behaviour of a component able to signal when a fallback header validation could be applied
 type FallbackHeaderValidator interface {
+	ShouldApplyFallbackValidationForHeaderWith(shardID uint32, startOfEpochBlock bool, round uint64, prevHeaderHash []byte) bool
 	ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool
 	IsInterfaceNil() bool
 }
@@ -1398,5 +1404,24 @@ type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
 	ResetCountersForManagedBlockSigner(signerPk []byte)
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataVerifier defines a component able to verify intercepted data validity
+type InterceptedDataVerifier interface {
+	Verify(interceptedData InterceptedData) error
+	IsInterfaceNil() bool
+}
+
+// InterceptedDataVerifierFactory defines a component that is able to create intercepted data verifiers
+type InterceptedDataVerifierFactory interface {
+	Create(topic string) (InterceptedDataVerifier, error)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// ProofsPool defines the behaviour of a proofs pool components
+type ProofsPool interface {
+	HasProof(shardID uint32, headerHash []byte) bool
 	IsInterfaceNil() bool
 }

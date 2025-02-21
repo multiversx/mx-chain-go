@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -132,6 +133,9 @@ func deploy(t *testing.T, network *integrationTests.MiniNetwork, sender []byte, 
 	)
 	require.NoError(t, err)
 
+	// Allow the transaction to reach the mempool.
+	time.Sleep(100 * time.Millisecond)
+
 	scAddress, _ := network.ShardNode.BlockchainHook.NewAddress(sender, 0, factory.WasmVirtualMachine)
 	return scAddress
 }
@@ -148,6 +152,9 @@ func setState(t *testing.T, network *integrationTests.MiniNetwork, scAddress []b
 	)
 
 	require.NoError(t, err)
+
+	// Allow the transaction to reach the mempool.
+	time.Sleep(100 * time.Millisecond)
 }
 
 func getState(t *testing.T, node *integrationTests.TestProcessorNode, scAddress []byte, blockNonce core.OptionalUint64) int {

@@ -3,6 +3,7 @@ package process
 import (
 	"encoding/hex"
 	"fmt"
+
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,12 +17,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("outport/process/outportDataProvider")
@@ -39,6 +42,7 @@ type ArgOutportDataProvider struct {
 	Marshaller               marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ExecutionOrderHandler    common.ExecutionOrderGetter
+	ProofsPool               dataRetriever.ProofsPool
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -67,6 +71,7 @@ type outportDataProvider struct {
 	executionOrderHandler    common.ExecutionOrderGetter
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
+	proofsPool               dataRetriever.ProofsPool
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -83,6 +88,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
 		hasher:                   arg.Hasher,
+		proofsPool:               arg.ProofsPool,
 	}, nil
 }
 
@@ -134,6 +140,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
 	return &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -158,6 +169,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			Header:               arg.Header,
 			HeaderHash:           arg.HeaderHash,
 			IntraShardMiniBlocks: intraMiniBlocks,
+			HeaderProof:          headerProof,
 		},
 	}, nil
 }
@@ -292,7 +304,7 @@ func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
 
 func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]uint64, error) {
 	epoch := odp.computeEpoch(header)
-	pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+	_, pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		odp.shardID,

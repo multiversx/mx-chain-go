@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -37,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
@@ -385,6 +386,10 @@ type ConsensusWorker interface {
 	AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool)
 	// AddReceivedHeaderHandler adds a new handler function for a received header
 	AddReceivedHeaderHandler(handler func(data.HeaderHandler))
+	// RemoveAllReceivedHeaderHandlers removes all the functions handlers
+	RemoveAllReceivedHeaderHandlers()
+	// AddReceivedProofHandler adds a new handler function for a received proof
+	AddReceivedProofHandler(handler func(proofHandler consensus.ProofHandler))
 	// RemoveAllReceivedMessagesCalls removes all the functions handlers
 	RemoveAllReceivedMessagesCalls()
 	// ProcessReceivedMessage method redirects the received message to the channel which should handle it
@@ -397,10 +402,14 @@ type ConsensusWorker interface {
 	ExecuteStoredMessages()
 	// DisplayStatistics method displays statistics of worker at the end of the round
 	DisplayStatistics()
-	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 	ResetConsensusMessages()
+	// ResetConsensusRoundState resets the state of the consensus round
+	ResetConsensusRoundState()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
+	// ReceivedProof will handle a received proof in consensus worker
+	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }

@@ -7,20 +7,22 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
 )
 
-func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
+func createMockShardStorageBootstrapperArgs() ArgsBaseStorageBootstrapper {
 	argsBaseBootstrapper := ArgsBaseStorageBootstrapper{
 		BootStorer:     &mock.BoostrapStorerMock{},
 		ForkDetector:   &mock.ForkDetectorMock{},
@@ -44,6 +46,7 @@ func createMockShardStorageBoostrapperArgs() ArgsBaseStorageBootstrapper {
 		EpochNotifier:                &epochNotifierMock.EpochNotifierStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	return argsBaseBootstrapper
@@ -55,7 +58,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil bootstorer should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.BootStorer = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -64,7 +67,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil fork detector should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.ForkDetector = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -73,7 +76,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil block processor should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.BlockProcessor = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -82,7 +85,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil chain handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.ChainHandler = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -91,7 +94,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil marshaller should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.Marshalizer = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -100,7 +103,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil store should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.Store = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -109,7 +112,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil uint64 converter should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.Uint64Converter = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -118,7 +121,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.ShardCoordinator = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -127,7 +130,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil nodes coordinator should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.NodesCoordinator = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -136,7 +139,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil epoch start trigger should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.EpochStartTrigger = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -145,7 +148,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil block tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.BlockTracker = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -154,7 +157,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil scheduled txs execution should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.ScheduledTxsExecutionHandler = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -163,7 +166,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil miniblocks provider should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.MiniblocksProvider = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -172,7 +175,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil epoch notifier should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.EpochNotifier = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -181,7 +184,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil processed mini blocks tracker should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.ProcessedMiniBlocksTracker = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -190,7 +193,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 	t.Run("nil app status handler - should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockShardStorageBoostrapperArgs()
+		args := createMockShardStorageBootstrapperArgs()
 		args.AppStatusHandler = nil
 
 		err := checkBaseStorageBootstrapperArguments(args)
@@ -201,7 +204,7 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingHeader(t *testing.T) {
 	t.Parallel()
 
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 	baseArgs.Store = &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 			return &storageStubs.StorerStub{
@@ -228,7 +231,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrMissingBody(t
 	headerHash := []byte("header_hash")
 	header := &block.Header{}
 
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return nil, [][]byte{[]byte("missing_hash")}
@@ -258,7 +261,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBl
 	headerHash := []byte("header_hash")
 	header := &block.Header{}
 
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return nil, nil
@@ -292,7 +295,7 @@ func TestBaseStorageBootstrapper_RestoreBlockBodyIntoPoolsShouldWork(t *testing.
 	headerHash := []byte("header_hash")
 	header := &block.Header{}
 
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return nil, nil
@@ -325,7 +328,7 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldErrMissingBody(t *testing.T) 
 
 	header := &block.Header{}
 
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return nil, [][]byte{[]byte("missing_hash")}
@@ -370,7 +373,7 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 	}
 	header := &block.Header{}
 
-	baseArgs := createMockShardStorageBoostrapperArgs()
+	baseArgs := createMockShardStorageBootstrapperArgs()
 	baseArgs.MiniblocksProvider = &mock.MiniBlocksProviderStub{
 		GetMiniBlocksFromStorerCalled: func(hashes [][]byte) ([]*block.MiniblockAndHash, [][]byte) {
 			return mbAndHashes, nil

@@ -30,6 +30,7 @@ const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
 	minEpochsToWait         = uint32(1)
+	leaderSelectionSize     = 1
 )
 
 // TODO: move this to config parameters
@@ -38,6 +39,12 @@ const nodesCoordinatorStoredEpochs = 4
 type validatorWithShardID struct {
 	validator Validator
 	shardID   uint32
+}
+
+// savedConsensusGroup holds the leader and consensus group for a specific selection
+type savedConsensusGroup struct {
+	leader         Validator
+	consensusGroup []Validator
 }
 
 type validatorList []Validator
@@ -346,7 +353,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	round uint64,
 	shardID uint32,
 	epoch uint32,
-) (validatorsGroup []Validator, err error) {
+) (leader Validator, validatorsGroup []Validator, err error) {
 	var selector RandomSelector
 	var eligibleList []Validator
 
@@ -357,7 +364,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"round", round)
 
 	if len(randomness) == 0 {
-		return nil, ErrNilRandomness
+		return nil, nil, ErrNilRandomness
 	}
 
 	ihnc.mutNodesConfig.RLock()
@@ -366,7 +373,7 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		if shardID >= nodesConfig.nbShards && shardID != core.MetachainShardId {
 			log.Warn("shardID is not ok", "shardID", shardID, "nbShards", nodesConfig.nbShards)
 			ihnc.mutNodesConfig.RUnlock()
-			return nil, ErrInvalidShardId
+			return nil, nil, ErrInvalidShardId
 		}
 		selector = nodesConfig.selectors[shardID]
 		eligibleList = nodesConfig.eligibleMap[shardID]
@@ -374,13 +381,13 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	ihnc.mutNodesConfig.RUnlock()
 
 	if !ok {
-		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+		return nil, nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
-	validators := ihnc.searchConsensusForKey(key)
-	if validators != nil {
-		return validators, nil
+	savedCG := ihnc.searchConsensusForKey(key)
+	if savedCG != nil {
+		return savedCG.leader, savedCG.consensusGroup, nil
 	}
 
 	consensusSize := ihnc.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
@@ -394,27 +401,59 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"round", round,
 		"shardID", shardID)
 
-	tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
+	leader, validatorsGroup, err = ihnc.selectLeaderAndConsensusGroup(selector, randomness, eligibleList, consensusSize, epoch)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	size := 0
-	for _, v := range tempList {
-		size += v.Size()
-	}
+	ihnc.cacheConsensusGroup(key, validatorsGroup, leader)
 
-	ihnc.consensusGroupCacher.Put(key, tempList, size)
-
-	return tempList, nil
+	return leader, validatorsGroup, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+func (ihnc *indexHashedNodesCoordinator) cacheConsensusGroup(key []byte, consensusGroup []Validator, leader Validator) {
+	size := leader.Size() * len(consensusGroup)
+	savedCG := &savedConsensusGroup{
+		leader:         leader,
+		consensusGroup: consensusGroup,
+	}
+	ihnc.consensusGroupCacher.Put(key, savedCG, size)
+}
+
+func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
+	selector RandomSelector,
+	randomness []byte,
+	eligibleList []Validator,
+	consensusSize int,
+	epoch uint32,
+) (Validator, []Validator, error) {
+	leaderPositionInSelection := 0
+	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixedOrderInConsensusFlag, epoch) {
+		tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if len(tempList) == 0 {
+			return nil, nil, ErrEmptyValidatorsList
+		}
+
+		return tempList[leaderPositionInSelection], tempList, nil
+	}
+
+	selectedValidators, err := selectValidators(selector, randomness, leaderSelectionSize, eligibleList)
+	if err != nil {
+		return nil, nil, err
+	}
+	return selectedValidators[leaderPositionInSelection], eligibleList, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) *savedConsensusGroup {
 	value, ok := ihnc.consensusGroupCacher.Get(key)
 	if ok {
-		consensusGroup, typeOk := value.([]Validator)
+		savedCG, typeOk := value.(*savedConsensusGroup)
 		if typeOk {
-			return consensusGroup
+			return savedCG
 		}
 	}
 	return nil
@@ -442,10 +481,10 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 	round uint64,
 	shardID uint32,
 	epoch uint32,
-) ([]string, error) {
-	consensusNodes, err := ihnc.ComputeConsensusGroup(randomness, round, shardID, epoch)
+) (string, []string, error) {
+	leader, consensusNodes, err := ihnc.ComputeConsensusGroup(randomness, round, shardID, epoch)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	pubKeys := make([]string, 0)
@@ -454,7 +493,29 @@ func (ihnc *indexHashedNodesCoordinator) GetConsensusValidatorsPublicKeys(
 		pubKeys = append(pubKeys, string(v.PubKey()))
 	}
 
-	return pubKeys, nil
+	return string(leader.PubKey()), pubKeys, nil
+}
+
+// GetAllEligibleValidatorsPublicKeysForShard will return all validators public keys for the provided shard
+func (ihnc *indexHashedNodesCoordinator) GetAllEligibleValidatorsPublicKeysForShard(epoch uint32, shardID uint32) ([]string, error) {
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+	}
+
+	nodesConfig.mutNodesMaps.RLock()
+	defer nodesConfig.mutNodesMaps.RUnlock()
+
+	shardEligible := nodesConfig.eligibleMap[shardID]
+	validatorsPubKeys := make([]string, 0, len(shardEligible))
+	for i := 0; i < len(shardEligible); i++ {
+		validatorsPubKeys = append(validatorsPubKeys, string(shardEligible[i].PubKey()))
+	}
+
+	return validatorsPubKeys, nil
 }
 
 // GetAllEligibleValidatorsPublicKeys will return all validators public keys for all shards
@@ -1262,7 +1323,7 @@ func computeActuallyLeaving(
 func selectValidators(
 	selector RandomSelector,
 	randomness []byte,
-	consensusSize uint32,
+	selectionSize uint32,
 	eligibleList []Validator,
 ) ([]Validator, error) {
 	if check.IfNil(selector) {
@@ -1273,19 +1334,19 @@ func selectValidators(
 	}
 
 	// todo: checks for indexes
-	selectedIndexes, err := selector.Select(randomness, consensusSize)
+	selectedIndexes, err := selector.Select(randomness, selectionSize)
 	if err != nil {
 		return nil, err
 	}
 
-	consensusGroup := make([]Validator, consensusSize)
-	for i := range consensusGroup {
-		consensusGroup[i] = eligibleList[selectedIndexes[i]]
+	selectedValidators := make([]Validator, selectionSize)
+	for i := range selectedValidators {
+		selectedValidators[i] = eligibleList[selectedIndexes[i]]
 	}
 
-	displayValidatorsForRandomness(consensusGroup, randomness)
+	displayValidatorsForRandomness(selectedValidators, randomness)
 
-	return consensusGroup, nil
+	return selectedValidators, nil
 }
 
 // createValidatorInfoFromBody unmarshalls body data to create validator info

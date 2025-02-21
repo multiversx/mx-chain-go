@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -148,7 +147,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	instance.watchdog = &watchdog.DisabledWatchdog{}
-	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
+	instance.alarmScheduler = &testscommon.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
 	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()

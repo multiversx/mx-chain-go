@@ -123,6 +123,11 @@ type baseProcessor struct {
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
 	extraDelayRequestBlockInfo    time.Duration
+
+	proofsPool                     dataRetriever.ProofsPool
+	mutRequestedAttestingNoncesMap sync.RWMutex
+	requestedAttestingNoncesMap    map[string]uint64
+	allProofsReceived              chan bool
 }
 
 type bootStorerDataArgs struct {
@@ -220,7 +225,16 @@ func (bp *baseProcessor) checkBlockValidity(
 		return process.ErrEpochDoesNotMatch
 	}
 
-	return nil
+	return bp.checkPrevProofValidity(currentBlockHeader, headerHandler)
+}
+
+func (bp *baseProcessor) checkPrevProofValidity(prevHeader, headerHandler data.HeaderHandler) error {
+	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return nil
+	}
+
+	prevProof := headerHandler.GetPreviousProof()
+	return common.VerifyProofAgainstHeader(prevProof, prevHeader)
 }
 
 // checkScheduledRootHash checks if the scheduled root hash from the given header is the same with the current user accounts state root hash
@@ -358,7 +372,25 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	if !check.IfNil(additionalData) {
 		scheduledRootHash = additionalData.GetScheduledRootHash()
 	}
-	return []*display.LineData{
+
+	proof := headerHandler.GetPreviousProof()
+
+	var prevAggregatedSig, prevBitmap, prevHash []byte
+	var proofShard, proofEpoch uint32
+	var proofRound, proofNonce uint64
+	var isStartOfEpoch, hasProofInfo bool
+	if !check.IfNilReflect(proof) {
+		hasProofInfo = true
+		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+		prevHash = proof.GetHeaderHash()
+		proofShard = proof.GetHeaderShardId()
+		proofEpoch = proof.GetHeaderEpoch()
+		proofRound = proof.GetHeaderRound()
+		proofNonce = proof.GetHeaderNonce()
+		isStartOfEpoch = proof.GetIsStartOfEpoch()
+	}
+
+	logLines := []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
 			"ChainID",
@@ -424,6 +456,45 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
 	}
+
+	if hasProofInfo {
+		logLines = append(logLines,
+			display.NewLineData(false, []string{
+				"Previous proof",
+				"Header hash",
+				logger.DisplayByteSlice(prevHash)}),
+			display.NewLineData(false, []string{
+				"",
+				"Aggregated signature",
+				logger.DisplayByteSlice(prevAggregatedSig)}),
+			display.NewLineData(false, []string{
+				"",
+				"Pub keys bitmap",
+				logger.DisplayByteSlice(prevBitmap)}),
+			display.NewLineData(false, []string{
+				"",
+				"Epoch",
+				fmt.Sprintf("%d", proofEpoch)}),
+			display.NewLineData(false, []string{
+				"",
+				"Round",
+				fmt.Sprintf("%d", proofRound)}),
+			display.NewLineData(false, []string{
+				"",
+				"Shard",
+				fmt.Sprintf("%d", proofShard)}),
+			display.NewLineData(false, []string{
+				"",
+				"Nonce",
+				fmt.Sprintf("%d", proofNonce)}),
+			display.NewLineData(true, []string{
+				"",
+				"IsStartOfEpoch",
+				fmt.Sprintf("%t", isStartOfEpoch)}),
+		)
+	}
+
+	return logLines
 }
 
 // checkProcessorParameters will check the input parameters values
@@ -520,6 +591,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		common.ScheduledMiniBlocksFlag,
 		common.StakingV2Flag,
 		common.CurrentRandomnessOnSortingFlag,
+		common.EquivalentMessagesFlag,
 	})
 	if err != nil {
 		return err
@@ -596,41 +668,108 @@ func (bp *baseProcessor) verifyFees(header data.HeaderHandler) error {
 	return nil
 }
 
-// TODO: remove bool parameter and give instead the set to sort
-func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) map[uint32][]data.HeaderHandler {
+func (bp *baseProcessor) filterHeadersWithoutProofs() (map[string]*hdrInfo, error) {
+	removedNonces := make(map[uint32]map[uint64]struct{})
+	noncesWithProofs := make(map[uint32]map[uint64]struct{})
+	shardIDs := common.GetShardIDs(bp.shardCoordinator.NumberOfShards())
+	for shard := range shardIDs {
+		removedNonces[shard] = make(map[uint64]struct{})
+		noncesWithProofs[shard] = make(map[uint64]struct{})
+	}
+	filteredHeadersInfo := make(map[string]*hdrInfo)
+
+	for hdrHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) {
+			if bp.hasMissingProof(headerInfo, hdrHash) {
+				removedNonces[headerInfo.hdr.GetShardID()][headerInfo.hdr.GetNonce()] = struct{}{}
+				continue
+			}
+
+			noncesWithProofs[headerInfo.hdr.GetShardID()][headerInfo.hdr.GetNonce()] = struct{}{}
+			filteredHeadersInfo[hdrHash] = bp.hdrsForCurrBlock.hdrHashAndInfo[hdrHash]
+			continue
+		}
+
+		filteredHeadersInfo[hdrHash] = bp.hdrsForCurrBlock.hdrHashAndInfo[hdrHash]
+	}
+
+	for shard, nonces := range removedNonces {
+		for nonce := range nonces {
+			if _, ok := noncesWithProofs[shard][nonce]; !ok {
+				return nil, fmt.Errorf("%w for shard %d and nonce %d", process.ErrMissingHeaderProof, shard, nonce)
+			}
+		}
+	}
+
+	return filteredHeadersInfo, nil
+}
+
+func (bp *baseProcessor) computeHeadersForCurrentBlock(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
 	hdrsForCurrentBlock := make(map[uint32][]data.HeaderHandler)
 
-	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for _, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+	hdrHashAndInfo, err := bp.filterHeadersWithoutProofs()
+	if err != nil {
+		return nil, err
+	}
+
+	for hdrHash, headerInfo := range hdrHashAndInfo {
 		if headerInfo.usedInBlock != usedInBlock {
 			continue
 		}
 
+		if bp.hasMissingProof(headerInfo, hdrHash) {
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(hdrHash)))
+		}
+
 		hdrsForCurrentBlock[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlock[headerInfo.hdr.GetShardID()], headerInfo.hdr)
 	}
+
+	return hdrsForCurrentBlock, nil
+}
+
+func (bp *baseProcessor) computeHeadersForCurrentBlockInfo(usedInBlock bool) (map[uint32][]*nonceAndHashInfo, error) {
+	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
+
+	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
+		if headerInfo.usedInBlock != usedInBlock {
+			continue
+		}
+
+		if bp.hasMissingProof(headerInfo, metaBlockHash) {
+			return nil, fmt.Errorf("%w for header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString([]byte(metaBlockHash)))
+		}
+
+		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
+			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
+	}
+
+	return hdrsForCurrentBlockInfo, nil
+}
+
+// TODO: remove bool parameter and give instead the set to sort
+func (bp *baseProcessor) sortHeadersForCurrentBlockByNonce(usedInBlock bool) (map[uint32][]data.HeaderHandler, error) {
+	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	hdrsForCurrentBlock, err := bp.computeHeadersForCurrentBlock(usedInBlock)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
 
 	// sort headers for each shard
 	for _, hdrsForShard := range hdrsForCurrentBlock {
 		process.SortHeadersByNonce(hdrsForShard)
 	}
 
-	return hdrsForCurrentBlock
+	return hdrsForCurrentBlock, nil
 }
 
-func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) map[uint32][][]byte {
-	hdrsForCurrentBlockInfo := make(map[uint32][]*nonceAndHashInfo)
-
+func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool) (map[uint32][][]byte, error) {
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
-	for metaBlockHash, headerInfo := range bp.hdrsForCurrBlock.hdrHashAndInfo {
-		if headerInfo.usedInBlock != usedInBlock {
-			continue
-		}
-
-		hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()] = append(hdrsForCurrentBlockInfo[headerInfo.hdr.GetShardID()],
-			&nonceAndHashInfo{nonce: headerInfo.hdr.GetNonce(), hash: []byte(metaBlockHash)})
-	}
+	hdrsForCurrentBlockInfo, err := bp.computeHeadersForCurrentBlockInfo(usedInBlock)
 	bp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, hdrsForShard := range hdrsForCurrentBlockInfo {
 		if len(hdrsForShard) > 1 {
@@ -647,7 +786,16 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 		}
 	}
 
-	return hdrsHashesForCurrentBlock
+	return hdrsHashesForCurrentBlock, nil
+}
+
+func (bp *baseProcessor) hasMissingProof(headerInfo *hdrInfo, hdrHash string) bool {
+	isFlagEnabledForHeader := bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, headerInfo.hdr.GetEpoch()) && headerInfo.hdr.GetNonce() >= 1
+	if !isFlagEnabledForHeader {
+		return false
+	}
+
+	return !bp.proofsPool.HasProof(headerInfo.hdr.GetShardID(), []byte(hdrHash))
 }
 
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(
@@ -799,7 +947,6 @@ func isPartiallyExecuted(
 ) bool {
 	processedMiniBlockInfo := processedMiniBlocksDestMeInfo[string(miniBlockHeaderHandler.GetHash())]
 	return processedMiniBlockInfo != nil && !processedMiniBlockInfo.FullyProcessed
-
 }
 
 // check if header has the same miniblocks as presented in body
@@ -957,7 +1104,18 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	bp.removeHeadersBehindNonceFromPools(
 		true,
 		bp.shardCoordinator.SelfId(),
-		highestPrevFinalBlockNonce)
+		highestPrevFinalBlockNonce,
+	)
+
+	if common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
+		if err != nil {
+			log.Warn("failed to cleanup notarized proofs behind nonce",
+				"nonce", noncesToPrevFinal,
+				"shardID", bp.shardCoordinator.SelfId(),
+				"error", err)
+		}
+	}
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
@@ -966,6 +1124,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
+
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -986,6 +1145,16 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		shardID,
 		crossNotarizedHeader.GetNonce(),
 	)
+
+	if common.ShouldBlockHavePrevProof(crossNotarizedHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
+		if err != nil {
+			log.Warn("failed to cleanup notarized proofs behind nonce",
+				"nonce", noncesToPrevFinal,
+				"shardID", shardID,
+				"error", err)
+		}
+	}
 }
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
@@ -2119,7 +2288,7 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
-	validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
+	_, validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
 	if err != nil {
 		return err
 	}
@@ -2136,4 +2305,133 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) addPrevProofIfNeeded(header data.HeaderHandler) error {
+	if !common.ShouldBlockHavePrevProof(header, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return nil
+	}
+
+	prevBlockProof, err := bp.proofsPool.GetProof(bp.shardCoordinator.SelfId(), header.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	header.SetPreviousProof(prevBlockProof)
+
+	log.Debug("added proof on header",
+		"header hash", prevBlockProof.GetHeaderHash(),
+		"epoch", prevBlockProof.GetHeaderEpoch(),
+		"nonce", prevBlockProof.GetHeaderNonce(),
+		"shardID", prevBlockProof.GetHeaderShardId(),
+		"pubKeys bitmap", prevBlockProof.GetPubKeysBitmap(),
+		"round", prevBlockProof.GetHeaderRound(),
+		"nonce", prevBlockProof.GetHeaderNonce(),
+		"isStartOfEpoch", prevBlockProof.GetIsStartOfEpoch(),
+	)
+
+	return nil
+}
+
+func (bp *baseProcessor) getHeaderHash(header data.HeaderHandler) ([]byte, error) {
+	marshalledHeader, errMarshal := bp.marshalizer.Marshal(header)
+	if errMarshal != nil {
+		return nil, errMarshal
+	}
+
+	return bp.hasher.Compute(string(marshalledHeader)), nil
+}
+
+func (bp *baseProcessor) checkProofRequestingNextHeaderIfMissing(
+	headerShard uint32,
+	headerHash []byte,
+	headerNonce uint64,
+) {
+	if bp.proofsPool.HasProof(headerShard, headerHash) {
+		return
+	}
+
+	log.Debug("could not find proof for header, requesting the next one",
+		"current hash", hex.EncodeToString(headerHash),
+		"header shard", headerShard)
+
+	bp.requestNextHeader(headerHash, headerNonce+1, headerShard)
+}
+
+func (bp *baseProcessor) requestNextHeader(currentHeaderHash []byte, nonce uint64, shardID uint32) {
+	bp.mutRequestedAttestingNoncesMap.Lock()
+	bp.requestedAttestingNoncesMap[string(currentHeaderHash)] = nonce
+	bp.mutRequestedAttestingNoncesMap.Unlock()
+
+	if shardID == core.MetachainShardId {
+		go bp.requestHandler.RequestMetaHeaderByNonce(nonce)
+	} else {
+		go bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+	}
+}
+
+func (bp *baseProcessor) waitAllMissingProofs(waitTime time.Duration) error {
+	bp.mutRequestedAttestingNoncesMap.RLock()
+	isWaitingForProofs := len(bp.requestedAttestingNoncesMap) > 0
+	bp.mutRequestedAttestingNoncesMap.RUnlock()
+	if !isWaitingForProofs {
+		return nil
+	}
+
+	select {
+	case <-bp.allProofsReceived:
+		return nil
+	case <-time.After(waitTime):
+		bp.mutRequestedAttestingNoncesMap.RLock()
+		defer bp.mutRequestedAttestingNoncesMap.RUnlock()
+
+		logMessage := ""
+		for hash := range bp.requestedAttestingNoncesMap {
+			logMessage += fmt.Sprintf("\nhash = %s", hex.EncodeToString([]byte(hash)))
+		}
+
+		log.Debug("baseProcessor.waitAllMissingProofs still pending proofs for headers" + logMessage)
+
+		return process.ErrTimeIsOut
+	}
+}
+
+func (bp *baseProcessor) checkReceivedHeaderIfAttestingIsNeeded(headerHandler data.HeaderHandler) {
+	if !common.ShouldBlockHavePrevProof(headerHandler, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		return
+	}
+
+	bp.mutRequestedAttestingNoncesMap.RLock()
+	isWaitingForProofs := len(bp.requestedAttestingNoncesMap) > 0
+	bp.mutRequestedAttestingNoncesMap.RUnlock()
+	if !isWaitingForProofs {
+		return
+	}
+
+	allProofsReceived := bp.checkReceivedHeaderAndUpdateMissingAttesting(headerHandler)
+	if allProofsReceived {
+		bp.allProofsReceived <- true
+	}
+}
+
+func (bp *baseProcessor) checkReceivedHeaderAndUpdateMissingAttesting(headerHandler data.HeaderHandler) bool {
+	bp.mutRequestedAttestingNoncesMap.Lock()
+	defer bp.mutRequestedAttestingNoncesMap.Unlock()
+
+	receivedShard := headerHandler.GetShardID()
+	prevHash := headerHandler.GetPrevHash()
+	_, isHeaderWithoutProof := bp.requestedAttestingNoncesMap[string(prevHash)]
+	if !isHeaderWithoutProof {
+		log.Debug("received header does not have previous hash any of the requested ones")
+		return len(bp.requestedAttestingNoncesMap) == 0
+	}
+
+	if !bp.proofsPool.HasProof(receivedShard, prevHash) {
+		log.Debug("received next header but proof is still missing", "hash", hex.EncodeToString(prevHash))
+		return len(bp.requestedAttestingNoncesMap) == 0
+	}
+
+	delete(bp.requestedAttestingNoncesMap, string(prevHash))
+
+	return len(bp.requestedAttestingNoncesMap) == 0
 }

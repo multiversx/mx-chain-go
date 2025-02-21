@@ -16,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/round"
@@ -28,15 +31,15 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // waitTime defines the time in milliseconds until node waits the requested info from the network
@@ -55,13 +58,16 @@ func createMockPools() *dataRetrieverMock.PoolsHolderStub {
 		return &mock.HeadersCacherStub{}
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := &testscommon.CacherStub{
+		cs := &cache.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				return nil, false
 			},
 			RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
 		}
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 
 	return pools
@@ -219,6 +225,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -268,6 +275,22 @@ func TestNewShardBootstrap_PoolsHolderRetNilOnHeadersShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilHeadersDataPool, err)
+}
+
+func TestNewShardBootstrap_NilProofsPool(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return nil
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilProofsPool, err)
 }
 
 func TestNewShardBootstrap_PoolsHolderRetNilOnTxBlockBodyShouldErr(t *testing.T) {
@@ -442,6 +465,34 @@ func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
 }
 
+func TestNewShardBootstrap_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.EnableEpochsHandler = nil
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.True(t, errors.Is(err, process.ErrNilEnableEpochsHandler))
+}
+
+func TestNewShardBootstrap_PoolsHolderRetNilOnProofsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	pools := createMockPools()
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return nil
+	}
+	args.PoolsHolder = pools
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.Equal(t, process.ErrNilProofsPool, err)
+}
+
 func TestNewShardBootstrap_MissingStorer(t *testing.T) {
 	t.Parallel()
 
@@ -491,13 +542,17 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			wasCalled++
 		}
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+
 	args.PoolsHolder = pools
 	args.IsInImportMode = true
 	bs, err := sync.NewShardBootstrap(args)
@@ -708,7 +763,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -721,6 +776,10 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 
 		return cs
 	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+
 	args.PoolsHolder = pools
 
 	forkDetector := &mock.ForkDetectorMock{}
@@ -803,7 +862,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -815,6 +874,9 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		}
 
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 	args.PoolsHolder = pools
 
@@ -885,7 +947,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -897,6 +959,9 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		}
 
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 	args.PoolsHolder = pools
 
@@ -1103,6 +1168,8 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetrieverMock.ProofsPoolMock{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1178,6 +1245,8 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&dataRetrieverMock.ProofsPoolMock{},
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1874,11 +1943,14 @@ func TestShardBootstrap_RequestMiniBlocksFromHeaderWithNonceIfMissing(t *testing
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 	args.PoolsHolder = pools
 
@@ -2093,7 +2165,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		return sds
 	}
 	pools.MiniBlocksCalled = func() storage.Cacher {
-		cs := testscommon.NewCacherStub()
+		cs := cache.NewCacherStub()
 		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 		}
 		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
@@ -2105,6 +2177,9 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		}
 
 		return cs
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
 	}
 	args.PoolsHolder = pools
 
@@ -2144,9 +2219,10 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		return []byte("roothash"), nil
 	}}
 
-	bs, _ := sync.NewShardBootstrap(args)
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
 
-	err := bs.SyncBlock(context.Background())
+	err = bs.SyncBlock(context.Background())
 	assert.Equal(t, errGetNodeFromDB, err)
 	assert.True(t, syncCalled)
 }
@@ -2156,4 +2232,334 @@ func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
 
 	bootstrapper := &sync.ShardBootstrap{}
 	assert.Nil(t, bootstrapper.Close())
+}
+
+func TestShardBootstrap_HandleEquivalentProof(t *testing.T) {
+	t.Parallel()
+
+	prevHeaderHash1 := []byte("prevHeaderHash")
+	headerHash1 := []byte("headerHash")
+
+	t.Run("flag not activated, should return direclty", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Nonce: 11,
+		}
+
+		args := CreateShardBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Nil(t, err)
+	})
+
+	t.Run("should fail if first block after activation and no proof for it", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := &block.Header{
+			Epoch: 3,
+			Nonce: 10,
+		}
+
+		header := &block.Header{
+			Epoch:    4,
+			Nonce:    11,
+			PrevHash: prevHeaderHash1,
+		}
+
+		args := CreateShardBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				if epoch == 4 {
+					return flag == common.EquivalentMessagesFlag
+				}
+
+				return false
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, prevHeaderHash1) {
+					return prevHeader, nil
+				}
+
+				return nil, sync.ErrHeaderNotFound
+			}
+
+			return sds
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Error(t, err)
+	})
+
+	t.Run("should work, proof already in pool", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := &block.Header{
+			Nonce: 10,
+		}
+
+		header := &block.Header{
+			Nonce:    11,
+			PrevHash: prevHeaderHash1,
+		}
+
+		args := CreateShardBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, prevHeaderHash1) {
+					return prevHeader, nil
+				}
+
+				return nil, sync.ErrHeaderNotFound
+			}
+
+			return sds
+		}
+
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return true
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header, headerHash1)
+		require.Nil(t, err)
+	})
+
+	t.Run("should work, by checking for next header", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("headerHash1")
+		headerHash2 := []byte("headerHash2")
+
+		header1 := &block.Header{
+			Nonce: 10,
+		}
+
+		header2 := &block.Header{
+			Nonce:    11,
+			PrevHash: headerHash1,
+		}
+
+		header3 := &block.Header{
+			Nonce:    12,
+			PrevHash: headerHash2,
+		}
+
+		args := CreateShardBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+
+				return nil, sync.ErrHeaderNotFound
+			}
+			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if hdrNonce == header2.GetNonce()+1 {
+					return []data.HeaderHandler{header3}, [][]byte{headerHash2}, nil
+				}
+
+				return nil, nil, process.ErrMissingHeader
+			}
+
+			return sds
+		}
+
+		hasProofCalled := 0
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					if hasProofCalled == 0 {
+						hasProofCalled++
+						return false
+					}
+
+					return true
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header2, headerHash2)
+		require.Nil(t, err)
+	})
+
+	t.Run("should return err if failing to get proof after second request", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("headerHash1")
+		headerHash2 := []byte("headerHash2")
+
+		header1 := &block.Header{
+			Nonce: 10,
+		}
+
+		header2 := &block.Header{
+			Nonce:    11,
+			PrevHash: headerHash1,
+		}
+
+		header3 := &block.Header{
+			Nonce:    12,
+			PrevHash: headerHash2,
+		}
+
+		args := CreateShardBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+
+				return nil, sync.ErrHeaderNotFound
+			}
+			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if hdrNonce == header2.GetNonce()+1 {
+					return []data.HeaderHandler{header3}, [][]byte{headerHash2}, nil
+				}
+
+				return nil, nil, process.ErrMissingHeader
+			}
+
+			return sds
+		}
+
+		hasProofCalled := 0
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					if hasProofCalled < 2 {
+						hasProofCalled++
+						return false
+					}
+
+					return true
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header2, headerHash2)
+		require.Error(t, err)
+	})
+
+	t.Run("should return err if failing to request next header", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("headerHash1")
+		headerHash2 := []byte("headerHash2")
+
+		header1 := &block.Header{
+			Nonce: 10,
+		}
+
+		header2 := &block.Header{
+			Nonce:    11,
+			PrevHash: headerHash1,
+		}
+
+		args := CreateShardBootstrapMockArguments()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+
+		pools := createMockPools()
+		pools.HeadersCalled = func() dataRetriever.HeadersPool {
+			sds := &mock.HeadersCacherStub{}
+			sds.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, headerHash1) {
+					return header1, nil
+				}
+
+				return nil, sync.ErrHeaderNotFound
+			}
+			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return nil, nil, process.ErrMissingHeader
+			}
+
+			return sds
+		}
+
+		hasProofCalled := 0
+		pools.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					if hasProofCalled < 2 {
+						hasProofCalled++
+						return false
+					}
+
+					return true
+				},
+			}
+		}
+
+		args.PoolsHolder = pools
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.HandleEquivalentProof(header2, headerHash2)
+		require.Error(t, err)
+	})
 }
