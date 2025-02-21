@@ -19,18 +19,20 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
 var expectedErr = errors.New("expected error")
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
-	container *consensusMocks.ConsensusCoreMock, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
+	container *spos.ConsensusCore, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
 	return spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,
@@ -85,7 +87,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 
 func initSubroundBlock(
 	blockChain data.ChainHandler,
-	container *consensusMocks.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 	appStatusHandler core.AppStatusHandler,
 ) v2.SubroundBlock {
 	if blockChain == nil {
@@ -116,8 +118,8 @@ func initSubroundBlock(
 	return srBlock
 }
 
-func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
-	consensusContainers := make([]*consensusMocks.ConsensusCoreMock, 0)
+func createConsensusContainers() []*spos.ConsensusCore {
+	consensusContainers := make([]*spos.ConsensusCore, 0)
 	container := consensusMocks.InitConsensusCore()
 	consensusContainers = append(consensusContainers, container)
 	container = consensusMocks.InitConsensusCoreHeaderV2()
@@ -127,7 +129,7 @@ func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
 
 func initSubroundBlockWithBlockProcessor(
 	bp *testscommon.BlockProcessorStub,
-	container *consensusMocks.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 ) v2.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1133,8 +1135,12 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
-	// nil header
-	sr.ReceivedBlockHeader(nil)
+	sr.SetData(nil)
+
+	t.Run("nil header, consensus data should not be set", func(t *testing.T) {
+		sr.ReceivedBlockHeader(nil)
+		require.Nil(t, sr.GetData())
+	})
 
 	// flag not active
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
@@ -1189,4 +1195,132 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 
 	// should work
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+}
+
+func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if not able to compute consensus group", func(t *testing.T) {
+		t.Parallel()
+
+		expErr := errors.New("expected error")
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+				return nil, nil, expErr
+			},
+		})
+
+		leader, err := sr.GetLeaderForHeader(&block.Header{
+			Epoch: 10,
+		})
+
+		require.Nil(t, leader)
+		require.Equal(t, expErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		expLeader := shardingMocks.NewValidatorMock([]byte("pubKey"), 1, 1)
+
+		container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorStub{
+			ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+				return expLeader, make([]nodesCoordinator.Validator, 0), nil
+			},
+		})
+
+		leader, err := sr.GetLeaderForHeader(&block.Header{
+			Epoch: 10,
+		})
+
+		require.Nil(t, err)
+		require.Equal(t, expLeader.PubKey(), leader)
+	})
+}
+
+func TestSubroundBlock_SaveProofForPreviousHeaderIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not check pool if flag not activated", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.EquivalentMessagesFlag
+			},
+		})
+
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				require.Fail(t, "should have not beed called")
+				return false
+			},
+		})
+
+		sr.SaveProofForPreviousHeaderIfNeeded(&testscommon.HeaderHandlerStub{}, &testscommon.HeaderHandlerStub{})
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		})
+
+		wasCalled := false
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+				wasCalled = true
+				return true
+			},
+		})
+
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 3,
+			},
+			PreviousHeaderProof: &block.HeaderProof{
+				PubKeysBitmap:       []byte("bitmap"),
+				AggregatedSignature: []byte("aggSig"),
+				HeaderHash:          []byte("hash"),
+				HeaderEpoch:         2,
+				HeaderNonce:         2,
+				HeaderShardId:       2,
+				HeaderRound:         2,
+				IsStartOfEpoch:      true,
+			},
+		}
+
+		prevHeader := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce:              2,
+				ShardID:            2,
+				Round:              2,
+				Epoch:              2,
+				EpochStartMetaHash: []byte("epoch start meta hash"),
+			},
+		}
+
+		sr.SaveProofForPreviousHeaderIfNeeded(header, prevHeader)
+
+		require.True(t, wasCalled)
+	})
 }
