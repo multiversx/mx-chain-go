@@ -88,5 +88,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		Hasher:                   arg.Hasher,
 		Marshaller:               arg.Marshaller,
 		ProofsPool:               arg.ProofsPool,
+		EnableEpochsHandler:      arg.EnableEpochsHandler,
 	})
 }
