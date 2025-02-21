@@ -226,6 +226,13 @@ func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.O
 	}, nil
 }
 
+// CreateOutGoingChangeValidatorData will create the necessary outgoing data for validator set change
+func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string) ([]byte, error) {
+	// TODO: Next task
+	_ = pubKeys
+	return make([]byte, 0), nil
+}
+
 // IsInterfaceNil checks if the underlying pointer is nil
 func (op *outgoingOperations) IsInterfaceNil() bool {
 	return op == nil
