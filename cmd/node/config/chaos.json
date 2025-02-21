@@ -2,63 +2,10 @@
     "selectedProfile": "andromeda-a",
     "profiles": [
         {
-            "name": "spica-a",
-            "failures": [
-                {
-                    "name": "a",
-                    "enabled": true,
-                    "type": "returnError",
-                    "onPoints": [
-                        "shardBlockCreateBlock",
-                        "shardBlockProcessBlock"
-                    ],
-                    "triggers": [
-                        "point == \"shardBlockCreateBlock\" && shard == 0 && round % 29 == 0",
-                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 4 == 0"
-                    ]
-                },
-                {
-                    "name": "b",
-                    "enabled": true,
-                    "type": "corruptSignature",
-                    "onPoints": [
-                        "consensusV1SubroundSignatureDoSignatureJobWhenSingleKey",
-                        "consensusV1SubroundSignatureDoSignatureJobWhenMultiKey"
-                    ],
-                    "triggers": [
-                        "epoch == 0 && round % 7 == 0 && nodeIndex < consensusSize / 3 - 1"
-                    ]
-                },
-                {
-                    "name": "c",
-                    "enabled": true,
-                    "type": "returnError",
-                    "onPoints": [
-                        "consensusV1SubroundEndRoundCheckSignaturesValidity"
-                    ],
-                    "triggers": [
-                        "epoch == 1 && round % 13 == 0 && nodeIndex < consensusSize / 3 - 1"
-                    ]
-                },
-                {
-                    "name": "classic soft fork",
-                    "enabled": true,
-                    "type": "sleep",
-                    "onPoints": [
-                        "consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock"
-                    ],
-                    "triggers": ["round % 20 == 0"],
-                    "parameters": {
-                        "duration": 12
-                    }
-                }
-            ]
-        },
-        {
             "name": "andromeda-a",
             "failures": [
                 {
-                    "name": "a",
+                    "name": "a-shard",
                     "enabled": true,
                     "type": "returnError",
                     "onPoints": [
@@ -66,8 +13,21 @@
                         "shardBlockProcessBlock"
                     ],
                     "triggers": [
-                        "point == \"shardBlockCreateBlock\" && shard == 0 && round % 29 == 0",
-                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 29 == 0 && randomNumber % 4 == 0"
+                        "point == \"shardBlockCreateBlock\" && shard == 0 && round % 8 == 0",
+                        "point == \"shardBlockProcessBlock\" && shard == 1 && round % 8 == 0 && randomNumber % 43 == 0"
+                    ]
+                },
+                {
+                    "name": "a-meta",
+                    "enabled": true,
+                    "type": "returnError",
+                    "onPoints": [
+                        "metaBlockCreateBlock",
+                        "metaBlockProcessBlock"
+                    ],
+                    "triggers": [
+                        "point == \"metaBlockCreateBlock\" && round % 8 == 0",
+                        "point == \"metaBlockProcessBlock\" && round % 9 == 0 && randomNumber % 4 == 0"
                     ]
                 },
                 {

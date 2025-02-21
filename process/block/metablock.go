@@ -195,6 +195,8 @@ func (mp *metaProcessor) ProcessBlock(
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
 ) error {
+	// chaos:metaBlockProcessBlock
+
 	if haveTime == nil {
 		return process.ErrNilHaveTimeHandler
 	}
@@ -805,6 +807,8 @@ func (mp *metaProcessor) CreateBlock(
 	initialHdr data.HeaderHandler,
 	haveTime func() bool,
 ) (data.HeaderHandler, data.BodyHandler, error) {
+	// chaos:metaBlockCreateBlock
+
 	if check.IfNil(initialHdr) {
 		return nil, nil, process.ErrNilBlockHeader
 	}

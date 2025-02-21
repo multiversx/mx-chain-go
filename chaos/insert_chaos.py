@@ -57,6 +57,25 @@ def main():
     )
 
     do_replacements(
+        file_path=Path("process/block/metablock.go"),
+        replacements=[
+            (
+                "// chaos:metaBlockCreateBlock",
+                """if chaos.Controller.HandlePoint(chaos.PointInput{Name: \"metaBlockCreateBlock\"}) != nil {
+        return nil, nil, chaos.ErrChaoticBehavior
+	}"""
+            ),
+            (
+                "// chaos:metaBlockProcessBlock",
+                """if chaos.Controller.HandlePoint(chaos.PointInput{Name: \"metaBlockProcessBlock\"}) != nil {
+        return chaos.ErrChaoticBehavior
+	}"""
+            ),
+        ],
+        with_import=True
+    )
+
+    do_replacements(
         file_path=Path("consensus/spos/bls/v1/subroundSignature.go"),
         replacements=[
             (
