@@ -15,7 +15,7 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.1.1
-	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250219094226-05f41be8a964
+	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250224111837-ba3b6d081e08
 	github.com/multiversx/mx-chain-crypto-go v1.2.12
 	github.com/multiversx/mx-chain-es-indexer-go v1.7.15-0.20250131125841-73868f5ca49c
 	github.com/multiversx/mx-chain-logger-go v1.0.15
@@ -33,6 +33,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.14.0
+	google.golang.org/protobuf v1.31.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -183,7 +184,6 @@ require (
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/grpc v1.60.1 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect

@@ -6,7 +6,7 @@ go 1.20
 
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250219094226-05f41be8a964
+	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250224111837-ba3b6d081e08
 	github.com/multiversx/mx-chain-go v1.8.4
 	github.com/multiversx/mx-chain-logger-go v1.0.15
 	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250206093614-af9e9aa908ba
@@ -14,6 +14,7 @@ require (
 	github.com/multiversx/mx-sdk-abi-go v0.3.0
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.14
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
@@ -182,7 +183,6 @@ require (
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/grpc v1.60.1 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect

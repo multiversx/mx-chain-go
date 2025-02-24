@@ -3,13 +3,15 @@ package sovereign
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // OutgoingOperationsFormatter collects relevant outgoing events for bridge from the logs and creates outgoing data
 // that needs to be signed by validators to bridge tokens
 type OutgoingOperationsFormatter interface {
 	CreateOutgoingTxsData(logs []*data.LogData) ([][]byte, error)
-	CreateOutGoingChangeValidatorData(pubKeys []string) ([]byte, error)
+	CreateOutGoingChangeValidatorData(pubKeys []string, epoch uint32) ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -27,4 +29,10 @@ type DataCodecHandler interface {
 type TopicsCheckerHandler interface {
 	CheckValidity(topics [][]byte) error
 	IsInterfaceNil() bool
+}
+
+// SovereignPeerAccount defines the sovereign peer account handler
+type SovereignPeerAccount interface {
+	state.PeerAccountHandler
+	GetMainChainID() []byte
 }

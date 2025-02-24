@@ -246,7 +246,7 @@ func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.O
 }
 
 // CreateOutGoingChangeValidatorData will create the necessary outgoing data for validator set change
-func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string) ([]byte, error) {
+func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string, epoch uint32) ([]byte, error) {
 	validatorsID := make([][]byte, len(pubKeys))
 
 	for idx, pubKey := range pubKeys {
@@ -255,19 +255,22 @@ func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string
 			return nil, err
 		}
 
-		validatorsID[idx] = peerAcc.AddressBytes()
+		validatorsID[idx] = peerAcc.GetMainChainID()
 	}
 
-	return proto.Marshal(&sovereign.BridgeOutGoingDataValidatorSetChange{PubKeyIDs: validatorsID})
+	return proto.Marshal(&sovereign.BridgeOutGoingDataValidatorSetChange{
+		Epoch:     epoch,
+		PubKeyIDs: validatorsID,
+	})
 }
 
-func (op *outgoingOperations) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
+func (op *outgoingOperations) getPeerAccount(key []byte) (SovereignPeerAccount, error) {
 	account, err := op.peerAccountsDB.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAcc, ok := account.(state.PeerAccountHandler)
+	peerAcc, ok := account.(SovereignPeerAccount)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
