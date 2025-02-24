@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/errors"
 	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -31,6 +32,7 @@ func createArgs() ArgsOutgoingOperations {
 		SubscribedEvents: createEvents(),
 		DataCodec:        &sovTests.DataCodecMock{},
 		TopicsChecker:    &sovTests.TopicsCheckerMock{},
+		PeerAccountsDB:   &state.AccountsStub{},
 	}
 }
 
@@ -84,6 +86,7 @@ func createOutgoingOpsFormatter() *outgoingOperations {
 		SubscribedEvents: events,
 		DataCodec:        &sovTests.DataCodecMock{},
 		TopicsChecker:    &sovTests.TopicsCheckerMock{},
+		PeerAccountsDB:   &state.AccountsStub{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 	return opFormatter
@@ -310,6 +313,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		SubscribedEvents: events,
 		DataCodec:        dataCodec,
 		TopicsChecker:    &sovTests.TopicsCheckerMock{},
+		PeerAccountsDB:   &state.AccountsStub{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 

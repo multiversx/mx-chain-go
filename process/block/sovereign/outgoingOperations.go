@@ -7,7 +7,9 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -33,12 +35,14 @@ type ArgsOutgoingOperations struct {
 	SubscribedEvents []SubscribedEvent
 	DataCodec        DataCodecHandler
 	TopicsChecker    TopicsCheckerHandler
+	PeerAccountsDB   state.AccountsAdapter
 }
 
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
 	dataCodec        DataCodecHandler
 	topicsChecker    TopicsCheckerHandler
+	peerAccountsDB   state.AccountsAdapter
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
@@ -51,18 +55,31 @@ func NewOutgoingOperationsFormatter(args ArgsOutgoingOperations) (*outgoingOpera
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.DataCodec) {
-		return nil, errors.ErrNilDataCodec
-	}
-	if check.IfNil(args.TopicsChecker) {
-		return nil, errors.ErrNilTopicsChecker
+	err = checkNilArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return &outgoingOperations{
 		subscribedEvents: args.SubscribedEvents,
 		dataCodec:        args.DataCodec,
 		topicsChecker:    args.TopicsChecker,
+		peerAccountsDB:   args.PeerAccountsDB,
 	}, nil
+}
+
+func checkNilArgs(args ArgsOutgoingOperations) error {
+	if check.IfNil(args.DataCodec) {
+		return errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return errors.ErrNilTopicsChecker
+	}
+	if check.IfNil(args.PeerAccountsDB) {
+		return errors.ErrNilPeerAccounts
+	}
+
+	return nil
 }
 
 func checkEvents(events []SubscribedEvent) error {
@@ -233,10 +250,29 @@ func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string
 	validatorsID := make([][]byte, len(pubKeys))
 
 	for idx, pubKey := range pubKeys {
-		validatorsID[idx] = []byte(pubKey)
+		peerAcc, err := op.getPeerAccount([]byte(pubKey))
+		if err != nil {
+			return nil, err
+		}
+
+		validatorsID[idx] = peerAcc.AddressBytes()
 	}
 
 	return proto.Marshal(&sovereign.BridgeOutGoingDataValidatorSetChange{PubKeyIDs: validatorsID})
+}
+
+func (op *outgoingOperations) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
+	account, err := op.peerAccountsDB.LoadAccount(key)
+	if err != nil {
+		return nil, err
+	}
+
+	peerAcc, ok := account.(state.PeerAccountHandler)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	return peerAcc, nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

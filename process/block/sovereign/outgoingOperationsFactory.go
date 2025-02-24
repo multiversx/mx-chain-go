@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 )
@@ -14,6 +15,7 @@ func CreateOutgoingOperationsFormatter(
 	pubKeyConverter core.PubkeyConverter,
 	dataCodec DataCodecHandler,
 	topicsChecker TopicsCheckerHandler,
+	peerAccountsDB state.AccountsAdapter,
 ) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events, pubKeyConverter)
 	if err != nil {
@@ -24,6 +26,7 @@ func CreateOutgoingOperationsFormatter(
 		SubscribedEvents: subscribedEvents,
 		DataCodec:        dataCodec,
 		TopicsChecker:    topicsChecker,
+		PeerAccountsDB:   peerAccountsDB,
 	}
 
 	return NewOutgoingOperationsFormatter(args)

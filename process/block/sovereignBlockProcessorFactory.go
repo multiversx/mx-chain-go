@@ -5,10 +5,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/factory"
+
 	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	processFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type sovereignBlockProcessorFactory struct {
@@ -37,12 +39,14 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 	if !ok {
 		return nil, mxErrors.ErrWrongTypeAssertion
 	}
-
 	outgoingOpFormatter, err := sovereign.CreateOutgoingOperationsFormatter(
 		argumentsBaseProcessor.Config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
 		argumentsBaseProcessor.CoreComponents.AddressPubKeyConverter(),
 		argumentsBaseProcessor.RunTypeComponents.DataCodecHandler(),
-		argumentsBaseProcessor.RunTypeComponents.TopicsCheckerHandler())
+		argumentsBaseProcessor.RunTypeComponents.TopicsCheckerHandler(),
+		argumentsBaseProcessor.AccountsDB[state.PeerAccountsState],
+	)
+
 	if err != nil {
 		return nil, err
 	}
