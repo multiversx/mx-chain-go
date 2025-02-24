@@ -1019,35 +1019,41 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 }
 
 func createOutGoingTxDataSigners(signingHandler consensus.SigningHandler) (bls.ExtraSignersHolder, error) {
-	extraSignerHandler := signingHandler.ShallowClone()
 	startRoundExtraSignersHolder := holders.NewSubRoundStartExtraSignersHolder()
-	startRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundStartExtraSigner(extraSignerHandler, block.OutGoingMbTx)
-	if err != nil {
-		return nil, err
-	}
-	err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSignerOutGoingTx)
-	if err != nil {
-		return nil, err
-	}
-
 	signRoundExtraSignersHolder := holders.NewSubRoundSignatureExtraSignersHolder()
-	signRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundSignatureExtraSigner(extraSignerHandler, block.OutGoingMbTx)
-	if err != nil {
-		return nil, err
-	}
-	err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSignerOutGoingTx)
-	if err != nil {
-		return nil, err
-	}
-
 	endRoundExtraSignersHolder := holders.NewSubRoundEndExtraSignersHolder()
-	endRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundEndExtraSigner(extraSignerHandler, block.OutGoingMbTx)
-	if err != nil {
-		return nil, err
-	}
-	err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSignerOutGoingTx)
-	if err != nil {
-		return nil, err
+
+	mbTypes := []block.OutGoingMBType{block.OutGoingMbTx, block.OutGoingMbChangeValidatorSet}
+
+	for _, mbType := range mbTypes {
+		extraSignerHandler := signingHandler.ShallowClone()
+
+		startRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundStartExtraSigner(extraSignerHandler, mbType)
+		if err != nil {
+			return nil, err
+		}
+		err = startRoundExtraSignersHolder.RegisterExtraSigningHandler(startRoundExtraSignerOutGoingTx)
+		if err != nil {
+			return nil, err
+		}
+
+		signRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundSignatureExtraSigner(extraSignerHandler, mbType)
+		if err != nil {
+			return nil, err
+		}
+		err = signRoundExtraSignersHolder.RegisterExtraSigningHandler(signRoundExtraSignerOutGoingTx)
+		if err != nil {
+			return nil, err
+		}
+
+		endRoundExtraSignerOutGoingTx, err := extraSigners.NewSovereignSubRoundEndExtraSigner(extraSignerHandler, mbType)
+		if err != nil {
+			return nil, err
+		}
+		err = endRoundExtraSignersHolder.RegisterExtraSigningHandler(endRoundExtraSignerOutGoingTx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return holders.NewExtraSignersHolder(

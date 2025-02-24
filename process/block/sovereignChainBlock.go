@@ -1059,7 +1059,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// todo: check here if it is correct to send header.GetEpoch -> as this returns the next epoch, not the current one; although we might not even need the epoch
 	err = scbp.createAndSetOutGoingMiniBlock(
 		header,
 		[][]byte{outGoingOperationChangeValidatorSet},
