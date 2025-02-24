@@ -1,8 +1,48 @@
 {
-    "selectedProfile": "andromeda-a",
+    "selectedProfile": "a-andromeda",
     "profiles": [
         {
-            "name": "andromeda-a",
+            "name": "a-andromeda",
+            "failures": [
+                {
+                    "name": "delaySendingCreatedBlock",
+                    "enabled": true,
+                    "type": "sleep",
+                    "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
+                    "triggers": ["round % 20 == 0"],
+                    "parameters": {
+                        "duration": 12
+                    }
+                },
+                {
+                    "name": "returnErrorOnCreateBlock",
+                    "enabled": true,
+                    "type": "returnError",
+                    "onPoints": ["shardBlockCreateBlock"],
+                    "triggers": ["shard == 0 && round % 8 == 0"]
+                },
+                {
+                    "name": "returnErrorOnProcessBlock",
+                    "enabled": true,
+                    "type": "returnError",
+                    "onPoints": ["shardBlockProcessBlock"],
+                    "triggers": [
+                        "shard == 1 && round % 8 == 0 && randomNumber % 4 == 0"
+                    ]
+                },
+                {
+                    "name": "corruptSignature",
+                    "enabled": true,
+                    "type": "corruptSignature",
+                    "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
+                    "triggers": [
+                        "shard == 2 && round % 8 == 0 && nodeIndex < consensusSize / 3 - 1"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "sandbox",
             "failures": [
                 {
                     "name": "a-shard",
