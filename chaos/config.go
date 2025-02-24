@@ -151,6 +151,15 @@ func (profile *chaosProfile) getFailureParameterAsFloat64(failureName string, pa
 	return failure.getParameterAsFloat64(parameterName)
 }
 
+func (profile *chaosProfile) getFailureParameterAsBoolean(failureName string, parameterName string) bool {
+	failure, ok := profile.getFailureByName(failureName)
+	if !ok {
+		return false
+	}
+
+	return failure.getParameterAsBoolean(parameterName)
+}
+
 func (profile *chaosProfile) getFailuresOnPoint(point string) []failureDefinition {
 	var failures []failureDefinition
 
@@ -175,6 +184,20 @@ func (failure *failureDefinition) getParameterAsFloat64(parameterName string) fl
 	}
 
 	return floatValue
+}
+
+func (failure *failureDefinition) getParameterAsBoolean(parameterName string) bool {
+	value, ok := failure.Parameters[parameterName]
+	if !ok {
+		return false
+	}
+
+	boolValue, ok := value.(bool)
+	if !ok {
+		return false
+	}
+
+	return boolValue
 }
 
 func (failure *failureDefinition) isOnPoint(pointName string) bool {

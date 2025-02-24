@@ -16,7 +16,7 @@ func (...) CreateBlock(...) (...) {
 During CI pipelines or testing procedures, **failures** can be introduced at these points by running the following Python script, before building the Node:
 
 ```
-python3 ./chaos/insert_chaos.py
+python3 ./chaos/insert_chaos.py --config-file=cmd/node/config/chaos.json
 ```
 
 The logic of the _failures_ themselves is defined in the `chaos` package. See `chaos/controller.go`.

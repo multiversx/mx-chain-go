@@ -551,8 +551,6 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
-	// chaos:consensusV2SubroundEndRoundComputeAggSigOnValidNodes
-
 	threshold := sr.Threshold(bls.SrSignature)
 	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 

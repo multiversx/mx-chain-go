@@ -66,17 +66,17 @@ func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64
 }
 
 // HandlePoint -
-func (controller *chaosController) HandlePoint(input PointInput) error {
+func (controller *chaosController) HandlePoint(input PointInput) PointOutput {
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
 	if !controller.enabled {
-		return nil
+		return PointOutput{}
 	}
 
 	failures := controller.profile.getFailuresOnPoint(input.Name)
 	if len(failures) == 0 {
-		return nil
+		return PointOutput{}
 	}
 
 	for _, failure := range failures {
@@ -101,7 +101,13 @@ func (controller *chaosController) HandlePoint(input PointInput) error {
 			case failTypeSleep:
 				return controller.doFailSleep(failure.Name, input)
 			default:
-				return fmt.Errorf("unknown failure type: %s", failure.Type)
+				log.Error("HandlePoint: unknown failure type",
+					"failure", failure.Name,
+					"point", input.Name,
+					"failType", failure.Type,
+				)
+
+				return PointOutput{}
 			}
 		}
 
@@ -115,7 +121,7 @@ func (controller *chaosController) HandlePoint(input PointInput) error {
 		)
 	}
 
-	return nil
+	return PointOutput{}
 }
 
 func (controller *chaosController) acquireCircumstanceNoLock(failure string, input PointInput) *failureCircumstance {
