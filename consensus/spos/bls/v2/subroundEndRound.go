@@ -98,6 +98,8 @@ func (sr *subroundEndRound) isProofForCurrentConsensus(proof consensus.ProofHand
 
 // receivedProof method is called when a block header final info is received
 func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
+	// chaos:consensusV2SubroundEndRoundOnReceivedProof
+
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
 
@@ -153,7 +155,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 
 	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
-		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
+		log.Debug("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
 		return false
 	}
 
@@ -185,6 +187,8 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
 }
 
 func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
+	// chaos:consensusV2SubroundEndRoundVerifyInvalidSigner
+
 	err := sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
 		return err
@@ -226,6 +230,8 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 }
 
 func (sr *subroundEndRound) commitBlock() error {
+	// chaos:consensusV2SubroundEndRoundCommitBlock
+
 	startTime := time.Now()
 	err := sr.BlockProcessor().CommitBlock(sr.GetHeader(), sr.GetBody())
 	elapsedTime := time.Since(startTime)
@@ -243,6 +249,8 @@ func (sr *subroundEndRound) commitBlock() error {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByNode() bool {
+	// chaos:consensusV2SubroundEndRoundDoEndRoundJobByNode
+
 	if sr.shouldSendProof() {
 		if !sr.waitForSignalSync() {
 			return false
@@ -262,12 +270,17 @@ func (sr *subroundEndRound) prepareBroadcastBlockData() error {
 	}
 
 	getEquivalentProofSender := sr.getEquivalentProofSender()
+
+	// chaos:consensusV2SubroundEndRoundPrepareBroadcastBlockData
+
 	go sr.BroadcastMessenger().PrepareBroadcastBlockDataWithEquivalentProofs(sr.GetHeader(), miniBlocks, transactions, []byte(getEquivalentProofSender))
 
 	return nil
 }
 
 func (sr *subroundEndRound) waitForProof() bool {
+	// chaos:consensusV2SubroundEndRoundWaitForProof
+
 	shardID := sr.ShardCoordinator().SelfId()
 	headerHash := sr.GetData()
 	if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
@@ -290,12 +303,13 @@ func (sr *subroundEndRound) waitForProof() bool {
 }
 
 func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
+	// chaos:consensusV2SubroundEndRoundFinalizeConfirmedBlock
+
 	if !sr.waitForProof() {
 		return false
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
 		return false
 	}
@@ -320,6 +334,8 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 }
 
 func (sr *subroundEndRound) sendProof() {
+	// chaos:consensusV2SubroundEndRoundSendProof
+
 	if !sr.shouldSendProof() {
 		return
 	}
@@ -354,6 +370,8 @@ func (sr *subroundEndRound) sendProof() {
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
+	// chaos:consensusV2SubroundEndRoundShouldSendProof
+
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		log.Debug("shouldSendProof: equivalent message already processed")
 		return false
@@ -363,6 +381,8 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {
+	// chaos:consensusV2SubroundEndRoundAggregateSigsAndHandleInvalidSigners
+
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.AggregateSigs", "error", err.Error())
@@ -405,15 +425,19 @@ func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error 
 
 // verifySignature implements parallel signature verification
 func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) error {
+	// chaos:consensusV2SubroundEndRoundVerifySignature
+
 	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.GetHeader().GetEpoch())
 	if err != nil {
-		log.Trace("VerifySignatureShare returned an error: ", "error", err)
+		log.Debug("VerifySignatureShare returned an error: ", "error", err)
 		errSetJob := sr.SetJobDone(pk, bls.SrSignature, false)
 		if errSetJob != nil {
 			return errSetJob
 		}
 
 		decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
+
+		// chaos:consensusV2SubroundEndRoundVerifySignatureBeforeChangeScore
 
 		sr.PeerHonestyHandler().ChangeScore(
 			pk,
@@ -423,7 +447,7 @@ func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) e
 		return err
 	}
 
-	log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk)
+	log.Debug("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk)
 
 	return nil
 }
@@ -527,6 +551,8 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
+	// chaos:consensusV2SubroundEndRoundComputeAggSigOnValidNodes
+
 	threshold := sr.Threshold(bls.SrSignature)
 	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 
@@ -565,6 +591,8 @@ func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) 
 }
 
 func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []byte) error {
+	// chaos:consensusV2SubroundEndRoundCreateAndBroadcastProof
+
 	headerProof := &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
 		AggregatedSignature: signature,
@@ -714,6 +742,8 @@ func (sr *subroundEndRound) IsBitmapInvalid(bitmap []byte, consensusPubKeys []st
 }
 
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
+	// chaos:consensusV2SubroundEndRoundCheckSignaturesValidity
+
 	consensusGroup := sr.ConsensusGroup()
 	err := sr.IsBitmapInvalid(bitmap, consensusGroup)
 	if err != nil {
@@ -736,6 +766,8 @@ func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 }
 
 func (sr *subroundEndRound) isOutOfTime() bool {
+	// chaos:consensusV2SubroundEndRoundIsOutOfTime
+
 	startTime := sr.GetRoundTimeStamp()
 	maxTime := sr.RoundHandler().TimeDuration() * time.Duration(sr.processingThresholdPercentage) / 100
 	if sr.RoundHandler().RemainingTime(startTime, maxTime) < 0 {
@@ -818,6 +850,8 @@ func (sr *subroundEndRound) waitSignatures(ctx context.Context) {
 
 // maximum time to wait for signatures
 func (sr *subroundEndRound) remainingTime() time.Duration {
+	// chaos:consensusV2SubroundEndRoundRemainingTime
+
 	startTime := sr.RoundHandler().TimeStamp()
 	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)
 	remainingTime := sr.RoundHandler().RemainingTime(startTime, maxTime)
@@ -829,6 +863,8 @@ func (sr *subroundEndRound) remainingTime() time.Duration {
 // If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
+	// chaos:consensusV2SubroundEndRoundOnReceivedSignature
+
 	node := string(cnsDta.PubKey)
 	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
 
@@ -890,6 +926,8 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 }
 
 func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	// chaos:consensusV2SubroundEndRoundCheckReceivedSignatures
+
 	threshold := sr.Threshold(bls.SrSignature)
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
 		threshold = sr.FallbackThreshold(bls.SrSignature)
@@ -920,6 +958,8 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 }
 
 func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
+	// chaos:consensusV2SubroundEndRoundGetNumOfSignaturesCollected
+
 	n := 0
 
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
