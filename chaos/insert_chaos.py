@@ -1,8 +1,20 @@
+import argparse
+import json
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Utility to insert chaotic behavior into chaos points. To be used for testing, within CI pipelines.")
+    parser.add_argument("--config-file", required=True, help="Path of the chaos configuration file")
+
+    args = parser.parse_args()
+    config = load_config(args.config_file)
+    profile_name = config["selectedProfile"]
+    profile = config["profiles"][profile_name]
+
+    alter_code_constants(profile)
+
     # Insert setup points:
 
     do_replacements(
@@ -137,6 +149,43 @@ def main():
     )
 
     ensure_no_marker_skipped()
+
+
+def load_config(config_file: Path) -> dict[str, Any]:
+    config_file = Path(config_file).expanduser().resolve()
+
+    if not config_file.exists():
+        raise FileNotFoundError(f"File not found: {config_file}")
+
+    return json.loads(config_file.read_text())
+
+
+def alter_code_constants(profile: dict[str, Any]):
+    code_constants: dict[str, Any] = profile["codeConstants"]
+
+    constants_replacements_by_file: dict[str, list[tuple[str, str]]] = {
+        "common/constants.go": [],
+    }
+
+    for key, value in code_constants.items():
+        if key == "InvalidMessageBlacklistDuration":
+            constants_replacements_by_file["common/constants.go"].append((
+                "const InvalidMessageBlacklistDuration = time.Second * 3600",
+                f"const InvalidMessageBlacklistDuration = time.Second * {value}"
+            ))
+        elif key == "PublicKeyBlacklistDuration":
+            constants_replacements_by_file["common/constants.go"].append((
+                "const PublicKeyBlacklistDuration = time.Second * 7200",
+                f"const PublicKeyBlacklistDuration = time.Second * {value}"
+            ))
+        elif key == "InvalidSigningBlacklistDuration":
+            constants_replacements_by_file["common/constants.go"].append((
+                "const InvalidSigningBlacklistDuration = time.Second * 7200",
+                f"const InvalidSigningBlacklistDuration = time.Second * {value}"
+            ))
+
+    for file, replacements in constants_replacements_by_file.items():
+        do_replacements(Path(file), replacements)
 
 
 def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_import: bool = False):

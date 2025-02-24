@@ -3,6 +3,11 @@
     "profiles": [
         {
             "name": "a-andromeda",
+            "codeConstants": {
+                "InvalidMessageBlacklistDuration": 10,
+                "PublicKeyBlacklistDuration": 10,
+                "InvalidSigningBlacklistDuration": 10
+            },
             "failures": [
                 {
                     "name": "delaySendingCreatedBlock",

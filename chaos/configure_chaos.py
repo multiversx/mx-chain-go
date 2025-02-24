@@ -26,7 +26,6 @@ def main():
     subparser.add_argument("--failure", required=True, help="The failure to disable")
     subparser.set_defaults(func=disable_failure)
 
-    # Parse arguments
     args = parser.parse_args()
 
     if hasattr(args, "func"):
