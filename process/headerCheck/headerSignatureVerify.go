@@ -3,7 +3,6 @@ package headerCheck
 import (
 	"bytes"
 	"fmt"
-	"math/bits"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -163,13 +162,19 @@ func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.
 		return nil, err
 	}
 
-	err = hsv.verifyConsensusSize(
-		consensusPubKeys,
-		proof.GetPubKeysBitmap(),
+	shouldApplyFallbackValidation := hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
 		proof.GetHeaderShardId(),
 		proof.GetIsStartOfEpoch(),
 		proof.GetHeaderRound(),
-		proof.GetHeaderHash())
+		proof.GetHeaderHash(),
+	)
+
+	err = common.IsConsensusBitmapValid(
+		log,
+		consensusPubKeys,
+		proof.GetPubKeysBitmap(),
+		shouldApplyFallbackValidation,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -212,13 +217,19 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(
 		return nil, err
 	}
 
-	err = hsv.verifyConsensusSize(
-		consensusPubKeys,
-		pubKeysBitmap,
+	shouldApplyFallbackValidation := hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
 		shardID,
 		startOfEpochBlock,
 		round,
-		prevHash)
+		prevHash,
+	)
+
+	err = common.IsConsensusBitmapValid(
+		log,
+		consensusPubKeys,
+		pubKeysBitmap,
+		shouldApplyFallbackValidation,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -416,57 +427,6 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 	}
 
 	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
-}
-
-func (hsv *HeaderSigVerifier) verifyConsensusSize(
-	consensusPubKeys []string,
-	bitmap []byte,
-	shardID uint32,
-	startOfEpochBlock bool,
-	round uint64,
-	prevHash []byte,
-) error {
-	consensusSize := len(consensusPubKeys)
-
-	expectedBitmapSize := consensusSize / 8
-	if consensusSize%8 != 0 {
-		expectedBitmapSize++
-	}
-	if len(bitmap) != expectedBitmapSize {
-		log.Debug("wrong size bitmap",
-			"expected number of bytes", expectedBitmapSize,
-			"actual", len(bitmap))
-		return ErrWrongSizeBitmap
-	}
-
-	numOfOnesInBitmap := 0
-	for index := range bitmap {
-		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
-	}
-
-	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
-	if hsv.fallbackHeaderValidator.ShouldApplyFallbackValidationForHeaderWith(
-		shardID,
-		startOfEpochBlock,
-		round,
-		prevHash,
-	) {
-		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
-		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
-			"minimum number of signatures required", minNumRequiredSignatures,
-			"actual number of signatures in bitmap", numOfOnesInBitmap,
-		)
-	}
-
-	if numOfOnesInBitmap >= minNumRequiredSignatures {
-		return nil
-	}
-
-	log.Debug("not enough signatures",
-		"minimum expected", minNumRequiredSignatures,
-		"actual", numOfOnesInBitmap)
-
-	return ErrNotEnoughSignatures
 }
 
 // VerifyRandSeed will check if rand seed is correct

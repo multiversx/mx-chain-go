@@ -2,10 +2,12 @@ package common
 
 import (
 	"fmt"
+	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 )
@@ -98,4 +100,49 @@ func GetShardIDs(numShards uint32) map[uint32]struct{} {
 	shardIdentifiers[core.MetachainShardId] = struct{}{}
 
 	return shardIdentifiers
+}
+
+// IsConsensusBitmapValid checks if the provided keys and bitmap match the consensus requirements
+func IsConsensusBitmapValid(
+	log logger.Logger,
+	consensusPubKeys []string,
+	bitmap []byte,
+	shouldApplyFallbackValidation bool,
+) error {
+	consensusSize := len(consensusPubKeys)
+
+	expectedBitmapSize := consensusSize / 8
+	if consensusSize%8 != 0 {
+		expectedBitmapSize++
+	}
+	if len(bitmap) != expectedBitmapSize {
+		log.Debug("wrong size bitmap",
+			"expected number of bytes", expectedBitmapSize,
+			"actual", len(bitmap))
+		return ErrWrongSizeBitmap
+	}
+
+	numOfOnesInBitmap := 0
+	for index := range bitmap {
+		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
+	}
+
+	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
+	if shouldApplyFallbackValidation {
+		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
+		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
+			"minimum number of signatures required", minNumRequiredSignatures,
+			"actual number of signatures in bitmap", numOfOnesInBitmap,
+		)
+	}
+
+	if numOfOnesInBitmap >= minNumRequiredSignatures {
+		return nil
+	}
+
+	log.Debug("not enough signatures",
+		"minimum expected", minNumRequiredSignatures,
+		"actual", numOfOnesInBitmap)
+
+	return ErrNotEnoughSignatures
 }

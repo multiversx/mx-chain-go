@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"math/bits"
 	"math/rand"
 	"sync"
 	"time"
@@ -672,50 +671,11 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	return sr.IsSubroundFinished(sr.Current())
 }
 
-// IsBitmapInvalid checks if the bitmap is valid
-// TODO: remove duplicated code and use the header sig verifier instead
-func (sr *subroundEndRound) IsBitmapInvalid(bitmap []byte, consensusPubKeys []string) error {
-	consensusSize := len(consensusPubKeys)
-
-	expectedBitmapSize := consensusSize / 8
-	if consensusSize%8 != 0 {
-		expectedBitmapSize++
-	}
-	if len(bitmap) != expectedBitmapSize {
-		log.Debug("wrong size bitmap",
-			"expected number of bytes", expectedBitmapSize,
-			"actual", len(bitmap))
-		return ErrWrongSizeBitmap
-	}
-
-	numOfOnesInBitmap := 0
-	for index := range bitmap {
-		numOfOnesInBitmap += bits.OnesCount8(bitmap[index])
-	}
-
-	minNumRequiredSignatures := core.GetPBFTThreshold(consensusSize)
-	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader()) {
-		minNumRequiredSignatures = core.GetPBFTFallbackThreshold(consensusSize)
-		log.Warn("HeaderSigVerifier.verifyConsensusSize: fallback validation has been applied",
-			"minimum number of signatures required", minNumRequiredSignatures,
-			"actual number of signatures in bitmap", numOfOnesInBitmap,
-		)
-	}
-
-	if numOfOnesInBitmap >= minNumRequiredSignatures {
-		return nil
-	}
-
-	log.Debug("not enough signatures",
-		"minimum expected", minNumRequiredSignatures,
-		"actual", numOfOnesInBitmap)
-
-	return ErrNotEnoughSignatures
-}
-
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	consensusGroup := sr.ConsensusGroup()
-	err := sr.IsBitmapInvalid(bitmap, consensusGroup)
+
+	shouldApplyFallbackValidation := sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.GetHeader())
+	err := common.IsConsensusBitmapValid(log, consensusGroup, bitmap, shouldApplyFallbackValidation)
 	if err != nil {
 		return err
 	}
