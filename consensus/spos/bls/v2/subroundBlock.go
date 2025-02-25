@@ -587,10 +587,16 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sw := core.NewStopWatch()
+	sw.Start("processReceivedBlock")
+
 	sr.mutBlockProcessing.Lock()
 	defer sr.mutBlockProcessing.Unlock()
 
 	defer func() {
+		sw.Stop("processReceivedBlock")
+		log.Info("time measurements of processReceivedBlock", sw.GetMeasurements()...)
+
 		sr.SetProcessingBlock(false)
 	}()
 
@@ -612,15 +618,11 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
-	sw := core.NewStopWatch()
 	sw.Start("processBlock")
+	ok := sr.processBlock(ctx, round, senderPK)
+	sw.Stop("processBlock")
 
-	defer func() {
-		sw.Stop("processBlock")
-		log.Debug("time measurements of processBlock", sw.GetMeasurements()...)
-	}()
-
-	return sr.processBlock(ctx, round, senderPK)
+	return ok
 }
 
 func (sr *subroundBlock) processBlock(
