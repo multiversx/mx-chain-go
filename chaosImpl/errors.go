@@ -1,4 +1,4 @@
-package chaos
+package chaosImpl
 
 import "errors"
 

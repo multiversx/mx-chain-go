@@ -880,6 +880,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
+	// chaos:preprocess_handleTransaction
+	// chaos:processAndRemoveBadTransaction
 
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)

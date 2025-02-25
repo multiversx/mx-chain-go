@@ -1,28 +1,30 @@
-package chaos
+package chaosImpl
 
 import (
 	"encoding/hex"
 	"fmt"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/chaos"
 )
 
-func (controller *chaosController) doFailPanic(failure string, input PointInput) PointOutput {
+func (controller *chaosController) doFailPanic(failure string, input chaos.PointInput) chaos.PointOutput {
 	log.Info("doFailPanic()", "failure", failure, "point", input.Name)
 
 	panic(fmt.Sprintf("chaos: %s", failure))
 }
 
-func (controller *chaosController) doFailReturnError(failure string, input PointInput) PointOutput {
+func (controller *chaosController) doFailReturnError(failure string, input chaos.PointInput) chaos.PointOutput {
 	log.Info("doFailReturnError()", "failure", failure, "point", input.Name)
-	return PointOutput{Error: ErrChaoticBehavior}
+	return chaos.PointOutput{Error: ErrChaoticBehavior}
 }
 
-func (controller *chaosController) doFailEarlyReturn(failure string, input PointInput) PointOutput {
+func (controller *chaosController) doFailEarlyReturn(failure string, input chaos.PointInput) chaos.PointOutput {
 	log.Info("doFailEarlyReturn()", "failure", failure, "point", input.Name)
-	return PointOutput{Error: ErrEarlyReturn}
+	return chaos.PointOutput{Error: ErrEarlyReturn}
 }
 
-func (controller *chaosController) doFailCorruptVariables(failure string, input PointInput) PointOutput {
+func (controller *chaosController) doFailCorruptVariables(failure string, input chaos.PointInput) chaos.PointOutput {
 	log.Info("doFailCorruptSignature()", "failure", failure, "point", input.Name)
 
 	for index, item := range input.CorruptibleVariables {
@@ -47,14 +49,14 @@ func (controller *chaosController) doFailCorruptVariables(failure string, input 
 		}
 	}
 
-	return PointOutput{}
+	return chaos.PointOutput{}
 }
 
-func (controller *chaosController) doFailSleep(failure string, input PointInput) PointOutput {
+func (controller *chaosController) doFailSleep(failure string, input chaos.PointInput) chaos.PointOutput {
 	log.Info("doFailSleep()", "failure", failure, "point", input.Name)
 
 	duration := controller.profile.getFailureParameterAsFloat64(failure, "duration")
 	time.Sleep(time.Duration(duration) * time.Second)
 
-	return PointOutput{}
+	return chaos.PointOutput{}
 }

@@ -22,7 +22,8 @@ def main():
         replacements=[
             (
                 "// chaos:setup",
-                """errChaosSetup := chaos.Controller.Setup()
+                """chaos.Controller = chaosImpl.NewChaosController()
+    errChaosSetup := chaos.Controller.Setup()
     if errChaosSetup != nil {
         return errChaosSetup
     }
@@ -33,7 +34,8 @@ def main():
                 """chaos.Controller.HandleNodeConfig(cfgs)"""
             )
         ],
-        with_import=True
+        with_chaos_import=True,
+        with_chaos_impl_import=True
     )
 
     do_replacements(
@@ -44,10 +46,31 @@ def main():
                 """chaos.Controller.HandleNode(currentNode)"""
             )
         ],
-        with_import=True
+        with_chaos_import=True
+    )
+
+    # Insert special control points:
+
+    do_replacements(
+        file_path=Path("process/block/preprocess/transactions.go"),
+        replacements=[
+            (
+                "// chaos:preprocess_handleTransaction",
+                """chaos.Controller.HandleTransaction(txHash, tx, sndShardId, dstShardId)"""
+            )
+        ],
+        with_chaos_import=True
     )
 
     # Insert chaos points:
+
+    do_replacements(
+        file_path=Path("process/block/preprocess/transactions.go"),
+        replacements=[
+            replacement("processAndRemoveBadTransaction", in_transaction="tx", out_on_error=["ERROR"]),
+        ],
+        with_chaos_import=True
+    )
 
     do_replacements(
         file_path=Path("process/block/shardblock.go"),
@@ -55,7 +78,7 @@ def main():
             replacement("shardBlockCreateBlock", out_on_error=["nil", "nil", "ERROR"]),
             replacement("shardBlockProcessBlock", out_on_error=["ERROR"])
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     do_replacements(
@@ -64,7 +87,7 @@ def main():
             replacement("metaBlockCreateBlock", out_on_error=["nil", "nil", "ERROR"]),
             replacement("metaBlockProcessBlock", out_on_error=["ERROR"]),
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     do_replacements(
@@ -73,7 +96,7 @@ def main():
             replacement("consensusV1SubroundSignatureDoSignatureJobWhenSingleKey", in_consensus_state="sr", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
             replacement("consensusV1SubroundSignatureDoSignatureJobWhenMultiKey", in_consensus_state="sr", in_node_public_key="pk", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     do_replacements(
@@ -82,7 +105,7 @@ def main():
             replacement("consensusV1SubroundEndRoundCheckSignaturesValidity", in_consensus_state="sr", out_on_error=["spos.ErrInvalidSignature"]),
             replacement("consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock", in_consensus_state="sr", out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     do_replacements(
@@ -90,7 +113,7 @@ def main():
         replacements=[
             replacement("consensusV2SubroundBlockDoBlockJob", in_consensus_state="sr", in_header="header", in_corruptible=["leaderSignature"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     do_replacements(
@@ -99,7 +122,7 @@ def main():
             replacement("consensusV2SubroundSignatureDoSignatureJobWhenSingleKey", in_consensus_state="sr", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
             replacement("consensusV2SubroundSignatureDoSignatureJobWhenMultiKey", in_consensus_state="sr", in_node_public_key="pk", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     do_replacements(
@@ -125,7 +148,7 @@ def main():
             replacement("consensusV2SubroundEndRoundCheckReceivedSignatures", in_consensus_state="sr", out_on_error=["false"], out_on_value=["BOOLEAN"]),
             replacement("consensusV2SubroundEndRoundGetNumOfSignaturesCollected", in_consensus_state="sr", out_on_value=["INT"]),
         ],
-        with_import=True
+        with_chaos_import=True
     )
 
     ensure_no_marker_skipped()
@@ -149,7 +172,7 @@ def get_profile(config: dict[str, Any], profile_name: str) -> dict[str, Any]:
 
 
 def alter_code_constants(profile: dict[str, Any]):
-    code_constants: dict[str, Any] = profile["codeConstants"]
+    code_constants: dict[str, Any] = profile.get("codeConstants", {})
 
     constants_replacements_by_file: dict[str, list[tuple[str, str]]] = {
         "common/constants.go": [],
@@ -176,7 +199,7 @@ def alter_code_constants(profile: dict[str, Any]):
         do_replacements(Path(file), replacements)
 
 
-def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_import: bool = False):
+def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_chaos_import: bool = False, with_chaos_impl_import: bool = False):
     if not file_path.exists():
         print(f"WARNING: File not found: {file_path}")
         return
@@ -192,8 +215,10 @@ def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_i
 
         content = content.replace(original_text, new_text)
 
-    if with_import:
-        content = add_chaos_import(content)
+    if with_chaos_import:
+        content = add_import(content, "import \"github.com/multiversx/mx-chain-go/chaos\"")
+    if with_chaos_impl_import:
+        content = add_import(content, "import \"github.com/multiversx/mx-chain-go/chaosImpl\"")
 
     file_path.write_text(content)
 
@@ -202,6 +227,7 @@ def replacement(point: str,
                 in_consensus_state: str = "",
                 in_node_public_key: str = "",
                 in_header: str = "",
+                in_transaction: str = "",
                 in_corruptible: Optional[list[str]] = None,
                 out_on_error: Optional[list[str]] = None,
                 out_on_value: Optional[list[str]] = None) -> Tuple[str, str]:
@@ -216,6 +242,8 @@ def replacement(point: str,
         input_initializer_body += f", NodePublicKey: {in_node_public_key}"
     if in_header:
         input_initializer_body += f", Header: {in_header}"
+    if in_transaction:
+        input_initializer_body += f", Transaction: {in_transaction}"
     if in_corruptible:
         input_initializer_body += f", CorruptibleVariables: []interface{{}}{{{', '.join(in_corruptible)}}}"
 
@@ -256,9 +284,7 @@ def replacement(point: str,
     return chaos_marker, replacement
 
 
-def add_chaos_import(file_content: str) -> str:
-    statement = "import \"github.com/multiversx/mx-chain-go/chaos\""
-
+def add_import(file_content: str, statement: str) -> str:
     if statement in file_content:
         return file_content
 

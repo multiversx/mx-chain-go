@@ -1,4 +1,4 @@
-package chaos
+package chaosImpl
 
 import (
 	"crypto/rand"
@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-logger-go/proto"
 )
@@ -81,16 +82,27 @@ func (circumstance *failureCircumstance) enrichWithLoggerCorrelation(correlation
 	circumstance.round = uint64(correlation.Round)
 }
 
-func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState spos.ConsensusStateHandler, nodePublicKey string) {
+func (circumstance *failureCircumstance) enrichWithPointInput(input chaos.PointInput) {
+	circumstance.enrichWithConsensusState(input.ConsensusState, input.NodePublicKey)
+	circumstance.enrichWithBlockHeader(input.Header)
+}
+
+func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState chaos.NilInterfaceChecker, nodePublicKey string) {
 	if check.IfNil(consensusState) {
 		return
 	}
 
-	if nodePublicKey == "" {
-		nodePublicKey = consensusState.SelfPubKey()
+	consensusStateTyped, ok := consensusState.(spos.ConsensusStateHandler)
+	if !ok {
+		log.Error("failureCircumstance.enrichWithConsensusState(): consensus state is not of type spos.ConsensusStateHandler")
+		return
 	}
 
-	nodeIndex, err := consensusState.ConsensusGroupIndex(nodePublicKey)
+	if nodePublicKey == "" {
+		nodePublicKey = consensusStateTyped.SelfPubKey()
+	}
+
+	nodeIndex, err := consensusStateTyped.ConsensusGroupIndex(nodePublicKey)
 	if err != nil {
 		log.Warn("failureCircumstance.enrichWithConsensusState(): error getting node index", "error", err)
 	} else {
@@ -98,18 +110,24 @@ func (circumstance *failureCircumstance) enrichWithConsensusState(consensusState
 	}
 
 	circumstance.nodePublicKey = hex.EncodeToString([]byte(nodePublicKey))
-	circumstance.consensusSize = consensusState.ConsensusGroupSize()
-	circumstance.amILeader = consensusState.Leader() == nodePublicKey
-	circumstance.enrichWithBlockHeader(consensusState.GetHeader())
+	circumstance.consensusSize = consensusStateTyped.ConsensusGroupSize()
+	circumstance.amILeader = consensusStateTyped.Leader() == nodePublicKey
+	circumstance.enrichWithBlockHeader(consensusStateTyped.GetHeader())
 }
 
-func (circumstance *failureCircumstance) enrichWithBlockHeader(header data.HeaderHandler) {
+func (circumstance *failureCircumstance) enrichWithBlockHeader(header chaos.NilInterfaceChecker) {
 	if check.IfNil(header) {
 		return
 	}
 
-	circumstance.blockNonce = header.GetNonce()
-	circumstance.blockIsStartOfEpoch = header.IsStartOfEpochBlock()
+	headerTyped, ok := header.(data.HeaderHandler)
+	if !ok {
+		log.Error("failureCircumstance.enrichWithBlockHeader(): header is not of type data.HeaderHandler")
+		return
+	}
+
+	circumstance.blockNonce = headerTyped.GetNonce()
+	circumstance.blockIsStartOfEpoch = headerTyped.IsStartOfEpochBlock()
 }
 
 func (circumstance *failureCircumstance) anyExpression(triggerExpressions []string) bool {

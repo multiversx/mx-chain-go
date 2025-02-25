@@ -1,13 +1,17 @@
-package chaos
+package chaosImpl
 
 import (
 	"fmt"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/chaos"
 	"github.com/multiversx/mx-chain-go/config"
+	nodeConfig "github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var _ chaos.ChaosController = (*chaosController)(nil)
 
 type chaosController struct {
 	mutex      sync.RWMutex
@@ -17,7 +21,8 @@ type chaosController struct {
 	node       NodeHandler
 }
 
-func newChaosController() *chaosController {
+// NewChaosController -
+func NewChaosController() *chaosController {
 	return &chaosController{enabled: false}
 }
 
@@ -37,46 +42,79 @@ func (controller *chaosController) Setup() error {
 }
 
 // HandleNodeConfig -
-func (controller *chaosController) HandleNodeConfig(config *config.Configs) {
+func (controller *chaosController) HandleNodeConfig(config interface{}) {
 	log.Info("HandleNodeConfig")
 
+	configTyped, ok := config.(*nodeConfig.Configs)
+	if !ok {
+		log.Error("HandleNodeConfig: invalid config type")
+		return
+	}
+
 	controller.mutex.Lock()
-	controller.nodeConfig = config
+	controller.nodeConfig = configTyped
 	controller.mutex.Unlock()
 }
 
 // HandleNode -
-func (controller *chaosController) HandleNode(node NodeHandler) {
+func (controller *chaosController) HandleNode(node interface{}) {
 	log.Info("HandleNode")
 
+	nodeTyped, ok := node.(NodeHandler)
+	if !ok {
+		log.Error("HandleNode: invalid node type")
+		return
+	}
+
 	controller.mutex.Lock()
-	controller.node = node
+	controller.node = nodeTyped
 	controller.mutex.Unlock()
 
-	node.GetCoreComponents().EpochNotifier().RegisterNotifyHandler(controller)
+	nodeTyped.GetCoreComponents().EpochNotifier().RegisterNotifyHandler(controller)
+}
+
+// HandleTransaction -
+func (controller *chaosController) HandleTransaction(
+	transactionHash []byte,
+	transaction interface{},
+	senderShard uint32,
+	receiverShard uint32,
+) {
+	transactionTyped, ok := transaction.(data.TransactionHandler)
+	if !ok {
+		log.Error("HandleTransaction: invalid transaction type")
+		return
+	}
+
+	data := string(transactionTyped.GetData())
+
+	log.Info("HandleTransaction",
+		"transactionHash", transactionHash,
+		"data", data,
+	)
 }
 
 // EpochConfirmed -
 func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64) {
 	log.Info("EpochConfirmed", "epoch", epoch, "timestamp", timestamp)
 
-	controller.HandlePoint(PointInput{
+	controller.HandlePoint(chaos.PointInput{
 		Name: "epochConfirmed",
 	})
 }
 
 // HandlePoint -
-func (controller *chaosController) HandlePoint(input PointInput) PointOutput {
+func (controller *chaosController) HandlePoint(input chaos.PointInput) chaos.PointOutput {
 	controller.mutex.RLock()
 	defer controller.mutex.RUnlock()
 
 	if !controller.enabled {
-		return PointOutput{}
+		return chaos.PointOutput{}
 	}
 
 	failures := controller.profile.getFailuresOnPoint(input.Name)
 	if len(failures) == 0 {
-		return PointOutput{}
+		return chaos.PointOutput{}
 	}
 
 	for _, failure := range failures {
@@ -84,10 +122,7 @@ func (controller *chaosController) HandlePoint(input PointInput) PointOutput {
 
 		shouldFail := circumstance.anyExpression(failure.Triggers)
 		if shouldFail {
-			log.Info("HandlePoint FAIL",
-				"failure", failure.Name,
-				"point", input.Name,
-			)
+			log.Info("HandlePoint FAIL", "failure", failure.Name, "point", input.Name)
 
 			switch failType(failure.Type) {
 			case failTypePanic:
@@ -107,32 +142,24 @@ func (controller *chaosController) HandlePoint(input PointInput) PointOutput {
 					"failType", failure.Type,
 				)
 
-				return PointOutput{}
+				return chaos.PointOutput{}
 			}
 		}
 
-		log.Trace("HandlePoint OK",
-			"failure", failure.Name,
-			"point", input.Name,
-			"hasConsensusState", !check.IfNil(input.ConsensusState),
-			"hasNodePublicKey", len(input.NodePublicKey) > 0,
-			"hasHeader", !check.IfNil(input.Header),
-			"hasCorruptibleVariables", len(input.CorruptibleVariables) > 0,
-		)
+		log.Trace("HandlePoint OK", "failure", failure.Name, "point", input.Name)
 	}
 
-	return PointOutput{}
+	return chaos.PointOutput{}
 }
 
-func (controller *chaosController) acquireCircumstanceNoLock(failure string, input PointInput) *failureCircumstance {
+func (controller *chaosController) acquireCircumstanceNoLock(failure string, input chaos.PointInput) *failureCircumstance {
 	circumstance := newFailureCircumstance()
 	circumstance.point = input.Name
 	circumstance.failure = failure
 	circumstance.nodeDisplayName = controller.nodeConfig.PreferencesConfig.Preferences.NodeDisplayName
 
 	circumstance.enrichWithLoggerCorrelation(logger.GetCorrelation())
-	circumstance.enrichWithConsensusState(input.ConsensusState, input.NodePublicKey)
-	circumstance.enrichWithBlockHeader(input.Header)
+	circumstance.enrichWithPointInput(input)
 
 	log.Trace("circumstance",
 		"failure", circumstance.failure,
