@@ -1,6 +1,7 @@
 package block
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -9,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type blockProcessor interface {
