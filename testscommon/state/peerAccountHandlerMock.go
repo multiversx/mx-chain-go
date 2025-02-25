@@ -15,6 +15,7 @@ type PeerAccountHandlerMock struct {
 	DecreaseValidatorSuccessRateValue       uint32
 	IncreaseValidatorIgnoredSignaturesValue uint32
 	PreviousList                            string
+	MainChainID                             []byte
 
 	IncreaseLeaderSuccessRateCalled              func(uint32)
 	DecreaseLeaderSuccessRateCalled              func(uint32)
@@ -315,6 +316,16 @@ func (p *PeerAccountHandlerMock) SetListAndIndex(shardID uint32, list string, in
 // SetPreviousList -
 func (p *PeerAccountHandlerMock) SetPreviousList(list string) {
 	p.PreviousList = list
+}
+
+// GetMainChainID -
+func (p *PeerAccountHandlerMock) GetMainChainID() []byte {
+	return p.MainChainID
+}
+
+// SetMainChainID -
+func (p *PeerAccountHandlerMock) SetMainChainID(id []byte) {
+	p.MainChainID = id
 }
 
 // IsInterfaceNil -

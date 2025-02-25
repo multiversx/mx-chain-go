@@ -264,13 +264,13 @@ func (op *outgoingOperations) CreateOutGoingChangeValidatorData(pubKeys []string
 	})
 }
 
-func (op *outgoingOperations) getPeerAccount(key []byte) (SovereignPeerAccount, error) {
+func (op *outgoingOperations) getPeerAccount(key []byte) (state.PeerAccountHandler, error) {
 	account, err := op.peerAccountsDB.LoadAccount(key)
 	if err != nil {
 		return nil, err
 	}
 
-	peerAcc, ok := account.(SovereignPeerAccount)
+	peerAcc, ok := account.(state.PeerAccountHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
