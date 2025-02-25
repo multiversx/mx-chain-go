@@ -1,6 +1,10 @@
 {
-    "selectedProfile": "a-andromeda",
+    "selectedProfile": "debugging",
     "profiles": [
+        {
+            "name": "debugging",
+            "failures": []
+        },
         {
             "name": "a-andromeda",
             "codeConstants": {
@@ -38,7 +42,7 @@
                 {
                     "name": "corruptSignature",
                     "enabled": true,
-                    "type": "corruptSignature",
+                    "type": "corruptVariables",
                     "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
                     "triggers": [
                         "shard == 2 && round % 8 == 0 && nodeIndex < consensusSize / 3 - 1"
@@ -87,7 +91,7 @@
                 {
                     "name": "c-corrupt",
                     "enabled": true,
-                    "type": "corruptSignature",
+                    "type": "corruptVariables",
                     "onPoints": ["consensusV2SubroundBlockDoBlockJob"],
                     "triggers": ["round % 13 == 0"]
                 },

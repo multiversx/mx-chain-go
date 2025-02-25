@@ -110,7 +110,7 @@ func (profile *chaosProfile) verify() error {
 		}
 
 		for _, point := range failure.OnPoints {
-			if _, ok := knownPoints[pointName(point)]; !ok {
+			if _, ok := knownPoints[point]; !ok {
 				return fmt.Errorf("failure '%s' has unknown activation point: '%s'", name, point)
 			}
 		}

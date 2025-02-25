@@ -6,7 +6,7 @@ const (
 	failTypePanic            failType = "panic"
 	failTypeReturnError      failType = "returnError"
 	failTypeEarlyReturn      failType = "earlyReturn"
-	failTypeCorruptSignature failType = "corruptSignature"
+	failTypeCorruptVariables failType = "corruptVariables"
 	failTypeSleep            failType = "sleep"
 )
 
@@ -14,42 +14,45 @@ var knownFailTypes = map[failType]struct{}{
 	failTypePanic:            {},
 	failTypeReturnError:      {},
 	failTypeEarlyReturn:      {},
-	failTypeCorruptSignature: {},
+	failTypeCorruptVariables: {},
 	failTypeSleep:            {},
 }
 
-type pointName string
+var knownPoints = map[string]struct{}{
+	"shardBlockCreateBlock":  {},
+	"shardBlockProcessBlock": {},
+	"metaBlockCreateBlock":   {},
+	"metaBlockProcessBlock":  {},
+	"epochConfirmed":         {},
 
-const (
-	pointShardBlockCreateBlock  pointName = "shardBlockCreateBlock"
-	pointShardBlockProcessBlock pointName = "shardBlockProcessBlock"
-	pointMetaBlockCreateBlock   pointName = "metaBlockCreateBlock"
-	pointMetaBlockProcessBlock  pointName = "metaBlockProcessBlock"
-	pointEpochConfirmed         pointName = "epochConfirmed"
+	"consensusV1SubroundSignatureDoSignatureJobWhenSingleKey":                      {},
+	"consensusV1SubroundSignatureDoSignatureJobWhenMultiKey":                       {},
+	"consensusV1SubroundEndRoundCheckSignaturesValidity":                           {},
+	"consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock": {},
 
-	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey                      pointName = "consensusV1SubroundSignatureDoSignatureJobWhenSingleKey"
-	pointConsensusV1SubroundSignatureDoSignatureJobWhenMultiKey                       pointName = "consensusV1SubroundSignatureDoSignatureJobWhenMultiKey"
-	pointConsensusV1SubroundEndRoundCheckSignaturesValidity                           pointName = "consensusV1SubroundEndRoundCheckSignaturesValidity"
-	pointConsensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock pointName = "consensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock"
+	"consensusV2SubroundBlockDoBlockJob":                      {},
+	"consensusV2SubroundSignatureDoSignatureJobWhenSingleKey": {},
+	"consensusV2SubroundSignatureDoSignatureJobWhenMultiKey":  {},
 
-	pointConsensusV2SubroundBlockDoBlockJob                      pointName = "consensusV2SubroundBlockDoBlockJob"
-	pointConsensusV2SubroundSignatureDoSignatureJobWhenSingleKey pointName = "consensusV2SubroundSignatureDoSignatureJobWhenSingleKey"
-	pointConsensusV2SubroundSignatureDoSignatureJobWhenMultiKey  pointName = "consensusV2SubroundSignatureDoSignatureJobWhenMultiKey"
-)
-
-var knownPoints = map[pointName]struct{}{
-	pointShardBlockCreateBlock:                                                        {},
-	pointShardBlockProcessBlock:                                                       {},
-	pointMetaBlockCreateBlock:                                                         {},
-	pointMetaBlockProcessBlock:                                                        {},
-	pointEpochConfirmed:                                                               {},
-	pointConsensusV1SubroundSignatureDoSignatureJobWhenSingleKey:                      {},
-	pointConsensusV1SubroundSignatureDoSignatureJobWhenMultiKey:                       {},
-	pointConsensusV1SubroundEndRoundCheckSignaturesValidity:                           {},
-	pointConsensusV1SubroundEndRoundDoEndRoundJobByLeaderBeforeBroadcastingFinalBlock: {},
-	pointConsensusV2SubroundBlockDoBlockJob:                                           {},
-	pointConsensusV2SubroundSignatureDoSignatureJobWhenSingleKey:                      {},
-	pointConsensusV2SubroundSignatureDoSignatureJobWhenMultiKey:                       {},
+	"consensusV2SubroundEndRoundOnReceivedProof":                      {},
+	"consensusV2SubroundEndRoundVerifyInvalidSigner":                  {},
+	"consensusV2SubroundEndRoundCommitBlock":                          {},
+	"consensusV2SubroundEndRoundDoEndRoundJobByNode":                  {},
+	"consensusV2SubroundEndRoundPrepareBroadcastBlockData":            {},
+	"consensusV2SubroundEndRoundWaitForProof":                         {},
+	"consensusV2SubroundEndRoundFinalizeConfirmedBlock":               {},
+	"consensusV2SubroundEndRoundSendProof":                            {},
+	"consensusV2SubroundEndRoundShouldSendProof":                      {},
+	"consensusV2SubroundEndRoundAggregateSigsAndHandleInvalidSigners": {},
+	"consensusV2SubroundEndRoundVerifySignature":                      {},
+	"consensusV2SubroundEndRoundVerifySignatureBeforeChangeScore":     {},
+	"consensusV2SubroundEndRoundCreateAndBroadcastProof":              {},
+	"consensusV2SubroundEndRoundCheckSignaturesValidity":              {},
+	"consensusV2SubroundEndRoundIsOutOfTime":                          {},
+	"consensusV2SubroundEndRoundRemainingTime":                        {},
+	"consensusV2SubroundEndRoundOnReceivedSignature":                  {},
+	"consensusV2SubroundEndRoundCheckReceivedSignatures":              {},
+	"consensusV2SubroundEndRoundGetNumOfSignaturesCollected":          {},
 }
 
 type failureExpressionParameterName string

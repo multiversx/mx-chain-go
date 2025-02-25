@@ -8,12 +8,11 @@ import (
 )
 
 type PointInput struct {
-	Name           string
-	ConsensusState spos.ConsensusStateHandler
-	NodePublicKey  string
-	Header         data.HeaderHandler
-	Signature      []byte
-	Corruptible    []interface{}
+	Name                 string
+	ConsensusState       spos.ConsensusStateHandler
+	NodePublicKey        string
+	Header               data.HeaderHandler
+	CorruptibleVariables []interface{}
 }
 
 type PointOutput struct {

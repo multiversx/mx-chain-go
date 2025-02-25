@@ -70,8 +70,8 @@ def main():
     do_replacements(
         file_path=Path("consensus/spos/bls/v1/subroundSignature.go"),
         replacements=[
-            replacement("consensusV1SubroundSignatureDoSignatureJobWhenSingleKey", in_consensus_state="sr", in_signature="signatureShare", out_on_error=["false"], out_on_value=["BOOLEAN"]),
-            replacement("consensusV1SubroundSignatureDoSignatureJobWhenMultiKey", in_consensus_state="sr", in_node_public_key="pk", in_signature="signatureShare", out_on_error=["false"], out_on_value=["BOOLEAN"]),
+            replacement("consensusV1SubroundSignatureDoSignatureJobWhenSingleKey", in_consensus_state="sr", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
+            replacement("consensusV1SubroundSignatureDoSignatureJobWhenMultiKey", in_consensus_state="sr", in_node_public_key="pk", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
         with_import=True
     )
@@ -88,7 +88,7 @@ def main():
     do_replacements(
         file_path=Path("consensus/spos/bls/v2/subroundBlock.go"),
         replacements=[
-            replacement("consensusV2SubroundBlockDoBlockJob", in_consensus_state="sr", in_header="header", in_signature="leaderSignature", out_on_error=["false"], out_on_value=["BOOLEAN"]),
+            replacement("consensusV2SubroundBlockDoBlockJob", in_consensus_state="sr", in_header="header", in_corruptible=["leaderSignature"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
         with_import=True
     )
@@ -96,8 +96,8 @@ def main():
     do_replacements(
         file_path=Path("consensus/spos/bls/v2/subroundSignature.go"),
         replacements=[
-            replacement("consensusV2SubroundSignatureDoSignatureJobWhenSingleKey", in_consensus_state="sr", in_signature="signatureShare", out_on_error=["false"], out_on_value=["BOOLEAN"]),
-            replacement("consensusV2SubroundSignatureDoSignatureJobWhenMultiKey", in_consensus_state="sr", in_node_public_key="pk", in_signature="signatureShare", out_on_error=["false"], out_on_value=["BOOLEAN"]),
+            replacement("consensusV2SubroundSignatureDoSignatureJobWhenSingleKey", in_consensus_state="sr", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
+            replacement("consensusV2SubroundSignatureDoSignatureJobWhenMultiKey", in_consensus_state="sr", in_node_public_key="pk", in_corruptible=["signatureShare"], out_on_error=["false"], out_on_value=["BOOLEAN"]),
         ],
         with_import=True
     )
@@ -187,7 +187,7 @@ def do_replacements(file_path: Path, replacements: list[Tuple[str, str]], with_i
 
     for original_text, new_text in replacements:
         if original_text not in content:
-            print(f"WARNING: Text not found in {file_path}: {original_text}.")
+            print(f"WARNING: Text not found in {file_path}: {original_text.strip()}.")
             continue
 
         content = content.replace(original_text, new_text)
@@ -202,7 +202,6 @@ def replacement(point: str,
                 in_consensus_state: str = "",
                 in_node_public_key: str = "",
                 in_header: str = "",
-                in_signature: str = "",
                 in_corruptible: Optional[list[str]] = None,
                 out_on_error: Optional[list[str]] = None,
                 out_on_value: Optional[list[str]] = None) -> Tuple[str, str]:
@@ -217,10 +216,8 @@ def replacement(point: str,
         input_initializer_body += f", NodePublicKey: {in_node_public_key}"
     if in_header:
         input_initializer_body += f", Header: {in_header}"
-    if in_signature:
-        input_initializer_body += f", Signature: {in_signature}"
     if in_corruptible:
-        input_initializer_body += f", Corruptible: []interface{{}}{{{', '.join(in_corruptible)}}}"
+        input_initializer_body += f", CorruptibleVariables: []interface{{}}{{{', '.join(in_corruptible)}}}"
 
     input_text = f"chaos.PointInput{{{input_initializer_body}}}"
 

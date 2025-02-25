@@ -61,7 +61,7 @@ func (controller *chaosController) EpochConfirmed(epoch uint32, timestamp uint64
 	log.Info("EpochConfirmed", "epoch", epoch, "timestamp", timestamp)
 
 	controller.HandlePoint(PointInput{
-		Name: string(pointEpochConfirmed),
+		Name: "epochConfirmed",
 	})
 }
 
@@ -96,8 +96,8 @@ func (controller *chaosController) HandlePoint(input PointInput) PointOutput {
 				return controller.doFailReturnError(failure.Name, input)
 			case failTypeEarlyReturn:
 				return controller.doFailEarlyReturn(failure.Name, input)
-			case failTypeCorruptSignature:
-				return controller.doFailCorruptSignature(failure.Name, input)
+			case failTypeCorruptVariables:
+				return controller.doFailCorruptVariables(failure.Name, input)
 			case failTypeSleep:
 				return controller.doFailSleep(failure.Name, input)
 			default:
@@ -117,7 +117,7 @@ func (controller *chaosController) HandlePoint(input PointInput) PointOutput {
 			"hasConsensusState", !check.IfNil(input.ConsensusState),
 			"hasNodePublicKey", len(input.NodePublicKey) > 0,
 			"hasHeader", !check.IfNil(input.Header),
-			"hasSignature", len(input.Signature) > 0,
+			"hasCorruptibleVariables", len(input.CorruptibleVariables) > 0,
 		)
 	}
 
