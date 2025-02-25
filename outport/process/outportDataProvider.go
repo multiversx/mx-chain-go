@@ -43,6 +43,7 @@ type ArgOutportDataProvider struct {
 	Hasher                   hashing.Hasher
 	ExecutionOrderHandler    common.ExecutionOrderGetter
 	ProofsPool               dataRetriever.ProofsPool
+	EnableEpochsHandler      common.EnableEpochsHandler
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -72,6 +73,7 @@ type outportDataProvider struct {
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
 	proofsPool               dataRetriever.ProofsPool
+	enableEpochsHandler      common.EnableEpochsHandler
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -89,6 +91,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		marshaller:               arg.Marshaller,
 		hasher:                   arg.Hasher,
 		proofsPool:               arg.ProofsPool,
+		enableEpochsHandler:      arg.EnableEpochsHandler,
 	}, nil
 }
 
@@ -140,12 +143,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
-	if err != nil {
-		return nil, err
-	}
-
-	return &outportcore.OutportBlockWithHeaderAndBody{
+	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
 			BlockData:       nil, // this will be filled with specific data for each driver
@@ -169,9 +167,19 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			Header:               arg.Header,
 			HeaderHash:           arg.HeaderHash,
 			IntraShardMiniBlocks: intraMiniBlocks,
-			HeaderProof:          headerProof,
 		},
-	}, nil
+	}
+
+	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, arg.Header.GetEpoch()) {
+		headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
+		if err != nil {
+			return nil, err
+		}
+
+		outportBlock.HeaderDataWithBody.HeaderProof = headerProof
+	}
+
+	return outportBlock, nil
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
