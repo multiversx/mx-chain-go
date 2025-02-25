@@ -52,6 +52,7 @@ func NewShardBlockTrack(arguments ArgShardTracker) (*shardBlockTrack, error) {
 		Marshaller:                            arguments.Marshalizer,
 		Hasher:                                arguments.Hasher,
 		HeadersPool:                           arguments.PoolsHolder.Headers(),
+		IsImportDBMode:                        arguments.IsImportDBMode,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)

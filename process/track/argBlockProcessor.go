@@ -29,4 +29,5 @@ type ArgBlockProcessor struct {
 	Marshaller                            marshal.Marshalizer
 	Hasher                                hashing.Hasher
 	HeadersPool                           dataRetriever.HeadersPool
+	IsImportDBMode                        bool
 }

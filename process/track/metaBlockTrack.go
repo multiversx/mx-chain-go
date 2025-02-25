@@ -52,6 +52,7 @@ func NewMetaBlockTrack(arguments ArgMetaTracker) (*metaBlockTrack, error) {
 		Marshaller:                            arguments.Marshalizer,
 		Hasher:                                arguments.Hasher,
 		HeadersPool:                           arguments.PoolsHolder.Headers(),
+		IsImportDBMode:                        arguments.IsImportDBMode,
 	}
 
 	blockProcessorObject, err := NewBlockProcessor(argBlockProcessor)
