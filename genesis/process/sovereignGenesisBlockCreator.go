@@ -452,8 +452,8 @@ func setSovereignStakedData(
 	return stakingTxs, nil
 }
 
-// setGenesisNodeChainID will assign bls key ID as ascending numbers, based on the initial
-// node order in the genesis config file. Each ID is a number in big endian represented by 2 bytes
+// setGenesisNodeChainID assigns ascending numerical IDs to BLS keys, based on their order in the genesis config file.
+// Each ID is stored as a 2-byte big-endian number.
 func setGenesisNodeChainID(id int, peerAccountsDB state.AccountsAdapter, key []byte) error {
 	valAcc, err := getPeerAccount(peerAccountsDB, key)
 	if err != nil {
