@@ -86,7 +86,7 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		"AggregatedSignatureOutGoingTxData", cnsDta.AggregatedSignatureOutGoingTxData,
 	)
 
-	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader)
+	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader, cnsDta.PubKeysBitmap)
 	if err != nil {
 		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.updateBridgeDataWithSignatures", "error", err)
 		return err
@@ -113,7 +113,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return true
 	}
 
-	currBridgeData, err := sr.updateBridgeDataWithSignatures(outGoingMBHeader)
+	currBridgeData, err := sr.updateBridgeDataWithSignatures(outGoingMBHeader, sovHeader.GetPubKeysBitmap())
 	if err != nil {
 		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.updateBridgeDataWithSignatures", "error", err)
 		return false
@@ -144,7 +144,7 @@ func (sr *sovereignSubRoundEnd) sendUnconfirmedOperationsIfFound(ctx context.Con
 }
 
 func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
-	outGoingMBHeader data.OutGoingMiniBlockHeaderHandler,
+	outGoingMBHeader data.OutGoingMiniBlockHeaderHandler, pubKeysBitmap []byte,
 ) (*sovereign.BridgeOutGoingData, error) {
 	hash := outGoingMBHeader.GetOutGoingOperationsHash()
 	currBridgeData := sr.outGoingOperationsPool.Get(hash)
@@ -155,6 +155,7 @@ func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
 
 	currBridgeData.LeaderSignature = outGoingMBHeader.GetLeaderSignatureOutGoingOperations()
 	currBridgeData.AggregatedSignature = outGoingMBHeader.GetAggregatedSignatureOutGoingOperations()
+	currBridgeData.PubKeysBitmap = pubKeysBitmap
 
 	sr.outGoingOperationsPool.Delete(hash)
 	sr.outGoingOperationsPool.Add(currBridgeData)
