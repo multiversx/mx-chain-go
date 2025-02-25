@@ -712,6 +712,7 @@ func (schv *sovereignChainHeaderValidator) CalculateHeaderHash(headerHandler dat
 	return schv.calculateHeaderHashFunc(headerHandler)
 }
 
-func (scbp *sovereignChainBlockProcessor) CreateAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
-	return scbp.createAndSetOutGoingMiniBlock(headerHandler, createdBlockBody)
+// CreateAndSetOutGoingMiniBlockTxs -
+func (scbp *sovereignChainBlockProcessor) CreateAndSetOutGoingMiniBlockTxs(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
+	return scbp.createAndSetOutGoingMiniBlockTxs(headerHandler, createdBlockBody)
 }
