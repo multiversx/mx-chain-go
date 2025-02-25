@@ -538,7 +538,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 		return nil, err
 	}
 	accountHandler.SetRootHash(rootHash)
-	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes())
+	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes(), "rootHash", rootHash)
 
 	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
 		trie, ok := accountHandler.DataTrie().(common.Trie)
