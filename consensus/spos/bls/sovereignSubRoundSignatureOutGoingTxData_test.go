@@ -5,11 +5,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
 	cnsTest "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignSubRoundSignatureOutGoingTxData(t *testing.T) {
@@ -37,8 +38,10 @@ func TestSovereignSubRoundSignatureOutGoingTxData_CreateSignatureShare(t *testin
 			Nonce: 4,
 			Epoch: 3,
 		},
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			OutGoingOperationsHash: outGoingOpHash,
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				OutGoingOperationsHash: outGoingOpHash,
+			},
 		},
 	}
 	selfPubKey := []byte("pubKey")
@@ -67,7 +70,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_CreateSignatureShare(t *testin
 
 	t.Run("no outgoing mini block header", func(t *testing.T) {
 		sovHdrCopy := *sovHdr
-		sovHdrCopy.OutGoingMiniBlockHeader = nil
+		sovHdrCopy.OutGoingMiniBlockHeaders = nil
 
 		sigShare, err := sovSigHandler.CreateSignatureShare(&sovHdrCopy, selfIndex, selfPubKey)
 		require.Empty(t, sigShare)

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -37,7 +38,7 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 		return nil, fmt.Errorf("%w in sovereignSubRoundSignatureOutGoingTxData.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMBHeader) {
 		return make([]byte, 0), nil
 	}

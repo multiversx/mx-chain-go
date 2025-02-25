@@ -1,15 +1,15 @@
 package block
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
-	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type blockProcessor interface {
@@ -39,7 +39,7 @@ type validatorStatsRootHashGetter interface {
 
 type sovereignChainHeader interface {
 	GetExtendedShardHeaderHashes() [][]byte
-	GetOutGoingMiniBlockHeaderHandler() data.OutGoingMiniBlockHeaderHandler
+	GetOutGoingMiniBlockHeaderHandlers() []data.OutGoingMiniBlockHeaderHandler
 	GetEpochStartHandler() data.EpochStartHandler
 	GetLastFinalizedCrossChainHeaderHandler() data.EpochStartChainDataHandler
 }

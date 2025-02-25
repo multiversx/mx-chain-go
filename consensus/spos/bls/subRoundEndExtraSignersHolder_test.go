@@ -5,10 +5,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSubRoundEndExtraSignersHolder_AggregateSignatures(t *testing.T) {
@@ -19,8 +20,10 @@ func TestSubRoundEndExtraSignersHolder_AggregateSignatures(t *testing.T) {
 		Header: &block.Header{
 			Epoch: expectedEpoch,
 		},
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			OutGoingOperationsHash: []byte("hash"),
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				OutGoingOperationsHash: []byte("hash"),
+			},
 		},
 	}
 

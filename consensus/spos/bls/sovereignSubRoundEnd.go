@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -64,7 +66,7 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		return errors.ErrWrongTypeAssertion
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMBHeader) {
 		return nil
 	}
@@ -107,7 +109,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return false
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
 	if check.IfNil(outGoingMBHeader) {
 		sr.sendUnconfirmedOperationsIfFound(ctx)
 		return true
