@@ -612,6 +612,14 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sw := core.NewStopWatch()
+	sw.Start("processBlock")
+
+	defer func() {
+		sw.Stop("processBlock")
+		log.Debug("time measurements of processBlock", sw.GetMeasurements()...)
+	}()
+
 	return sr.processBlock(ctx, round, senderPK)
 }
 
