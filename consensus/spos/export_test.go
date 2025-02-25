@@ -3,6 +3,7 @@ package spos
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -272,3 +273,41 @@ func (cmv *consensusMessageValidator) GetNumOfMessageTypeForPublicKey(pk []byte,
 func (cmv *consensusMessageValidator) ResetConsensusMessages() {
 	cmv.resetConsensusMessages()
 }
+
+// SetStatus -
+func (sp *scheduledProcessorWrapper) SetStatus(status processingStatus) {
+	sp.setStatus(status)
+}
+
+// GetStatus -
+func (sp *scheduledProcessorWrapper) GetStatus() processingStatus {
+	return sp.getStatus()
+}
+
+// SetStartTime -
+func (sp *scheduledProcessorWrapper) SetStartTime(t time.Time) {
+	sp.startTime = t
+}
+
+// GetStartTime -
+func (sp *scheduledProcessorWrapper) GetStartTime() time.Time {
+	return sp.startTime
+}
+
+// GetRoundTimeHandler -
+func (sp *scheduledProcessorWrapper) GetRoundTimeHandler() process.RoundTimeDurationHandler {
+	return sp.roundTimeDurationHandler
+}
+
+var ProcessingNotStarted = processingNotStarted
+var ProcessingError = processingError
+var InProgress = inProgress
+var ProcessingOK = processingOK
+var Stopped = stopped
+
+var ProcessingNotStartedString = processingNotStartedString
+var ProcessingErrorString = processingErrorString
+var InProgressString = inProgressString
+var ProcessingOKString = processingOKString
+var StoppedString = stoppedString
+var UnexpectedString = unexpectedString

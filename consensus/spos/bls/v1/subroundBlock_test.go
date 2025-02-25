@@ -26,7 +26,7 @@ import (
 )
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
-	container *consensusMock.ConsensusCoreMock, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
+	container *spos.ConsensusCore, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
 	return spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,
@@ -81,7 +81,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v1.Subround
 
 func initSubroundBlock(
 	blockChain data.ChainHandler,
-	container *consensusMock.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 	appStatusHandler core.AppStatusHandler,
 ) v1.SubroundBlock {
 	if blockChain == nil {
@@ -112,8 +112,8 @@ func initSubroundBlock(
 	return srBlock
 }
 
-func createConsensusContainers() []*consensusMock.ConsensusCoreMock {
-	consensusContainers := make([]*consensusMock.ConsensusCoreMock, 0)
+func createConsensusContainers() []*spos.ConsensusCore {
+	consensusContainers := make([]*spos.ConsensusCore, 0)
 	container := consensusMock.InitConsensusCore()
 	consensusContainers = append(consensusContainers, container)
 	container = consensusMock.InitConsensusCoreHeaderV2()
@@ -123,7 +123,7 @@ func createConsensusContainers() []*consensusMock.ConsensusCoreMock {
 
 func initSubroundBlockWithBlockProcessor(
 	bp *testscommon.BlockProcessorStub,
-	container *consensusMock.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 ) v1.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {

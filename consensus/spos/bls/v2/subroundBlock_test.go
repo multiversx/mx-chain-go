@@ -32,7 +32,7 @@ import (
 var expectedErr = errors.New("expected error")
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
-	container *consensusMocks.ConsensusCoreMock, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
+	container *spos.ConsensusCore, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
 	return spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,
@@ -87,7 +87,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 
 func initSubroundBlock(
 	blockChain data.ChainHandler,
-	container *consensusMocks.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 	appStatusHandler core.AppStatusHandler,
 ) v2.SubroundBlock {
 	if blockChain == nil {
@@ -118,8 +118,8 @@ func initSubroundBlock(
 	return srBlock
 }
 
-func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
-	consensusContainers := make([]*consensusMocks.ConsensusCoreMock, 0)
+func createConsensusContainers() []*spos.ConsensusCore {
+	consensusContainers := make([]*spos.ConsensusCore, 0)
 	container := consensusMocks.InitConsensusCore()
 	consensusContainers = append(consensusContainers, container)
 	container = consensusMocks.InitConsensusCoreHeaderV2()
@@ -129,7 +129,7 @@ func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
 
 func initSubroundBlockWithBlockProcessor(
 	bp *testscommon.BlockProcessorStub,
-	container *consensusMocks.ConsensusCoreMock,
+	container *spos.ConsensusCore,
 ) v2.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -1204,7 +1204,7 @@ func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
-		container.SetValidatorGroupSelector(&shardingMocks.NodesCoordinatorStub{
+		container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 				return nil, nil, expErr
 			},
@@ -1226,7 +1226,7 @@ func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 
 		expLeader := shardingMocks.NewValidatorMock([]byte("pubKey"), 1, 1)
 
-		container.SetValidatorGroupSelector(&shardingMocks.NodesCoordinatorStub{
+		container.SetNodesCoordinator(&shardingMocks.NodesCoordinatorStub{
 			ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
 				return expLeader, make([]nodesCoordinator.Validator, 0), nil
 			},
