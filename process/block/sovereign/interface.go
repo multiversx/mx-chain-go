@@ -9,6 +9,7 @@ import (
 // that needs to be signed by validators to bridge tokens
 type OutgoingOperationsFormatter interface {
 	CreateOutgoingTxsData(logs []*data.LogData) ([][]byte, error)
+	CreateOutGoingChangeValidatorData(pubKeys []string) ([]byte, error)
 	IsInterfaceNil() bool
 }
 

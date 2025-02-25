@@ -1,22 +1,30 @@
-package bls
+package extraSigners
 
 import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
+var log = logger.GetOrCreate("extra-signers")
+
 type sovereignSubRoundEndOutGoingTxData struct {
 	signingHandler consensus.SigningHandler
+	mbType         block.OutGoingMBType
 }
 
-// NewSovereignSubRoundEndOutGoingTxData creates a new signer for sovereign outgoing tx data in end sub round
-func NewSovereignSubRoundEndOutGoingTxData(
+// NewSovereignSubRoundEndExtraSigner creates a new extra signer for sovereign outgoing mini blocks in end subround
+func NewSovereignSubRoundEndExtraSigner(
 	signingHandler consensus.SigningHandler,
+	mbType block.OutGoingMBType,
 ) (*sovereignSubRoundEndOutGoingTxData, error) {
 	if check.IfNil(signingHandler) {
 		return nil, spos.ErrNilSigningHandler
@@ -24,6 +32,7 @@ func NewSovereignSubRoundEndOutGoingTxData(
 
 	return &sovereignSubRoundEndOutGoingTxData{
 		signingHandler: signingHandler,
+		mbType:         mbType,
 	}, nil
 }
 
@@ -34,7 +43,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) VerifyAggregatedSignatures(bitmap 
 		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
@@ -49,7 +58,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AggregateAndSetSignatures(bitmap [
 		return nil, fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMb) {
 		return nil, nil
 	}
@@ -74,7 +83,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SetAggregatedSignatureInHeader(hea
 		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
@@ -94,7 +103,7 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SignAndSetLeaderSignature(header d
 		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetAggregatedSignatureInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
@@ -123,16 +132,21 @@ func (sr *sovereignSubRoundEndOutGoingTxData) SetConsensusDataInHeader(header da
 		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetConsensusDataInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
 
-	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(cnsMsg.AggregatedSignatureOutGoingTxData)
+	extraSigData, found := cnsMsg.ExtraSignatures[sr.mbType.String()]
+	if !found {
+		return fmt.Errorf("%w for type %s", bls.ErrExtraSigShareDataNotFound, sr.mbType.String())
+	}
+
+	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(extraSigData.AggregatedSignatureOutGoingTxData)
 	if err != nil {
 		return err
 	}
-	err = outGoingMb.SetLeaderSignatureOutGoingOperations(cnsMsg.LeaderSignatureOutGoingTxData)
+	err = outGoingMb.SetLeaderSignatureOutGoingOperations(extraSigData.LeaderSignatureOutGoingTxData)
 	if err != nil {
 		return err
 	}
@@ -147,24 +161,28 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(h
 		return fmt.Errorf("%w in sovereignSubRoundEndOutGoingTxData.SetConsensusDataInHeader", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMb) {
 		return nil
 	}
 
-	cnsMsg.AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
-	cnsMsg.LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()
+	keyStr := sr.mbType.String()
+	initExtraSignatureEntry(cnsMsg, keyStr)
+
+	cnsMsg.ExtraSignatures[keyStr].AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
+	cnsMsg.ExtraSignatures[keyStr].LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()
 
 	log.Debug("sovereignSubRoundEndOutGoingTxData.AddLeaderAndAggregatedSignatures",
-		"AggregatedSignatureOutGoingTxData", cnsMsg.AggregatedSignatureOutGoingTxData,
-		"LeaderSignatureOutGoingTxData", cnsMsg.LeaderSignatureOutGoingTxData)
+		"AggregatedSignatureOutGoingTxData", cnsMsg.ExtraSignatures[keyStr].AggregatedSignatureOutGoingTxData,
+		"LeaderSignatureOutGoingTxData", cnsMsg.ExtraSignatures[keyStr].LeaderSignatureOutGoingTxData,
+		"type", keyStr)
 
 	return nil
 }
 
 // Identifier returns the unique id of the signer
 func (sr *sovereignSubRoundEndOutGoingTxData) Identifier() string {
-	return "sovereignSubRoundEndOutGoingTxData"
+	return sr.mbType.String()
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

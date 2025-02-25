@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -36,16 +37,18 @@ func (hsv *sovereignHeaderSigVerifier) VerifyAggregatedSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyAggregatedSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := multiSigVerifier.VerifyAggregatedSig(
+			pubKeysSigners,
+			outGoingMBHdr.GetOutGoingOperationsHash(),
+			outGoingMBHdr.GetAggregatedSignatureOutGoingOperations(),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(
-		pubKeysSigners,
-		outGoingMb.GetOutGoingOperationsHash(),
-		outGoingMb.GetAggregatedSignatureOutGoingOperations(),
-	)
+	return nil
 }
 
 // VerifyLeaderSignature verifies leader sig for outgoing operations
@@ -58,19 +61,21 @@ func (hsv *sovereignHeaderSigVerifier) VerifyLeaderSignature(
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.VerifyLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		leaderMsgToSign := append(
+			outGoingMBHdr.GetOutGoingOperationsHash(),
+			outGoingMBHdr.GetAggregatedSignatureOutGoingOperations()...)
+
+		err := hsv.singleSigVerifier.Verify(
+			leaderPubKey,
+			leaderMsgToSign,
+			outGoingMBHdr.GetLeaderSignatureOutGoingOperations())
+		if err != nil {
+			return err
+		}
 	}
 
-	leaderMsgToSign := append(
-		outGoingMb.GetOutGoingOperationsHash(),
-		outGoingMb.GetAggregatedSignatureOutGoingOperations()...)
-
-	return hsv.singleSigVerifier.Verify(
-		leaderPubKey,
-		leaderMsgToSign,
-		outGoingMb.GetLeaderSignatureOutGoingOperations())
+	return nil
 }
 
 // RemoveLeaderSignature removes leader sig from outgoing operations
@@ -80,17 +85,19 @@ func (hsv *sovereignHeaderSigVerifier) RemoveLeaderSignature(header data.HeaderH
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveLeaderSignature", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := outGoingMBHdr.SetLeaderSignatureOutGoingOperations(nil)
+		if err != nil {
+			return err
+		}
+
+		err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMBHdr)
+		if err != nil {
+			return err
+		}
 	}
 
-	err := outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	if err != nil {
-		return err
-	}
-
-	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	return nil
 }
 
 // RemoveAllSignatures removes aggregated + leader sig from outgoing operations
@@ -100,22 +107,24 @@ func (hsv *sovereignHeaderSigVerifier) RemoveAllSignatures(header data.HeaderHan
 		return fmt.Errorf("%w in sovereignHeaderSigVerifier.RemoveAllSignatures", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMb := sovHeader.GetOutGoingMiniBlockHeaderHandler()
-	if check.IfNil(outGoingMb) {
-		return nil
+	for _, outGoingMBHdr := range sovHeader.GetOutGoingMiniBlockHeaderHandlers() {
+		err := outGoingMBHdr.SetAggregatedSignatureOutGoingOperations(nil)
+		if err != nil {
+			return err
+		}
+
+		err = outGoingMBHdr.SetLeaderSignatureOutGoingOperations(nil)
+		if err != nil {
+			return err
+		}
+
+		err = sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMBHdr)
+		if err != nil {
+			return err
+		}
 	}
 
-	err := outGoingMb.SetAggregatedSignatureOutGoingOperations(nil)
-	if err != nil {
-		return err
-	}
-
-	err = outGoingMb.SetLeaderSignatureOutGoingOperations(nil)
-	if err != nil {
-		return err
-	}
-
-	return sovHeader.SetOutGoingMiniBlockHeaderHandler(outGoingMb)
+	return nil
 }
 
 // Identifier returns the unique id of the header verifier

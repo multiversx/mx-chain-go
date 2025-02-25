@@ -1,11 +1,12 @@
-package bls
+package holders
 
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSubRoundStartExtraSignersHolder_Reset(t *testing.T) {

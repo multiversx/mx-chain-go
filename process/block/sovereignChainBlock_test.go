@@ -241,7 +241,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	})
 }
 
-func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T) {
+func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlockTxs(t *testing.T) {
 	arguments := createSovChainBaseBlockProcessorArgs()
 
 	expectedLogs := []*data.LogData{
@@ -269,7 +269,9 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		},
 	}
 
+	epoch := uint32(4)
 	poolAddCt := 0
+	pubKeysBitmap := []byte("pubKeysBitmap")
 	outGoingOperationsPool := &sovereign.OutGoingOperationsPoolMock{
 		AddCalled: func(data *sovereignCore.BridgeOutGoingData) {
 			defer func() {
@@ -290,6 +292,8 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 							Data: bridgeOp2,
 						},
 					},
+					PubKeysBitmap: pubKeysBitmap,
+					Epoch:         epoch,
 				}, data)
 			default:
 				require.Fail(t, "should not add in pool any other operation")
@@ -312,7 +316,12 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 	})
 
-	sovChainHdr := &block.SovereignChainHeader{}
+	sovChainHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Epoch:         epoch,
+			PubKeysBitmap: pubKeysBitmap,
+		},
+	}
 	processedMb := &block.MiniBlock{
 		ReceiverShardID: core.SovereignChainShardId,
 		SenderShardID:   core.MainChainShardId,
@@ -321,7 +330,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		MiniBlocks: []*block.MiniBlock{processedMb},
 	}
 
-	err := scbp.CreateAndSetOutGoingMiniBlock(sovChainHdr, blockBody)
+	err := scbp.CreateAndSetOutGoingMiniBlockTxs(sovChainHdr, blockBody)
 	require.Nil(t, err)
 	require.Equal(t, 1, poolAddCt)
 
@@ -339,9 +348,15 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	require.Nil(t, err)
 
 	expectedSovChainHeader := &block.SovereignChainHeader{
-		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
-			Hash:                   expectedOutGoingMbHash,
-			OutGoingOperationsHash: bridgeOpsHash,
+		Header: &block.Header{
+			Epoch:         epoch,
+			PubKeysBitmap: pubKeysBitmap,
+		},
+		OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+			{
+				Hash:                   expectedOutGoingMbHash,
+				OutGoingOperationsHash: bridgeOpsHash,
+			},
 		},
 	}
 	require.Equal(t, expectedSovChainHeader, sovChainHdr)

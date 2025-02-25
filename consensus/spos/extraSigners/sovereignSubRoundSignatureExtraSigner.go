@@ -1,10 +1,12 @@
-package bls
+package extraSigners
 
 import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -12,16 +14,21 @@ import (
 
 type sovereignSubRoundSignatureOutGoingTxData struct {
 	signingHandler consensus.SigningHandler
+	mbType         block.OutGoingMBType
 }
 
-// NewSovereignSubRoundSignatureOutGoingTxData creates a new signer for sovereign outgoing tx data in signature sub round
-func NewSovereignSubRoundSignatureOutGoingTxData(signingHandler consensus.SigningHandler) (*sovereignSubRoundSignatureOutGoingTxData, error) {
+// NewSovereignSubRoundSignatureExtraSigner creates a new signer for sovereign outgoing mini blocks in signature subround
+func NewSovereignSubRoundSignatureExtraSigner(
+	signingHandler consensus.SigningHandler,
+	mbType block.OutGoingMBType,
+) (*sovereignSubRoundSignatureOutGoingTxData, error) {
 	if check.IfNil(signingHandler) {
 		return nil, spos.ErrNilSigningHandler
 	}
 
 	return &sovereignSubRoundSignatureOutGoingTxData{
 		signingHandler: signingHandler,
+		mbType:         mbType,
 	}, nil
 }
 
@@ -36,7 +43,7 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) CreateSignatureShare(
 		return nil, fmt.Errorf("%w in sovereignSubRoundSignatureOutGoingTxData.CreateSignatureShare", errors.ErrWrongTypeAssertion)
 	}
 
-	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler()
+	outGoingMBHeader := sovChainHeader.GetOutGoingMiniBlockHeaderHandler(int32(sr.mbType))
 	if check.IfNil(outGoingMBHeader) {
 		return make([]byte, 0), nil
 	}
@@ -54,10 +61,14 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) AddSigShareToConsensusMessag
 		return errors.ErrNilConsensusMessage
 	}
 
-	if len(sigShare) != 0 {
-		cnsMsg.SignatureShareOutGoingTxData = sigShare
-	}
+	if len(sigShare) == 0 {
+		return nil
 
+	}
+	keyStr := sr.mbType.String()
+	initExtraSignatureEntry(cnsMsg, keyStr)
+
+	cnsMsg.ExtraSignatures[keyStr].SignatureShareOutGoingTxData = sigShare
 	return nil
 }
 
@@ -67,16 +78,16 @@ func (sr *sovereignSubRoundSignatureOutGoingTxData) StoreSignatureShare(index ui
 		return errors.ErrNilConsensusMessage
 	}
 
-	if len(cnsMsg.SignatureShareOutGoingTxData) == 0 {
-		return nil
+	if extraSigData, found := cnsMsg.ExtraSignatures[sr.mbType.String()]; found {
+		return sr.signingHandler.StoreSignatureShare(index, extraSigData.SignatureShareOutGoingTxData)
 	}
 
-	return sr.signingHandler.StoreSignatureShare(index, cnsMsg.SignatureShareOutGoingTxData)
+	return nil
 }
 
 // Identifier returns the unique id of the signer
 func (sr *sovereignSubRoundSignatureOutGoingTxData) Identifier() string {
-	return "sovereignSubRoundSignatureOutGoingTxData"
+	return sr.mbType.String()
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

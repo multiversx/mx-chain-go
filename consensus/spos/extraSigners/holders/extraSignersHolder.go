@@ -1,21 +1,23 @@
-package bls
+package holders
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type extraSignersHolder struct {
-	startRoundHolder SubRoundStartExtraSignersHolder
-	signRoundHolder  SubRoundSignatureExtraSignersHolder
-	endRoundHolder   SubRoundEndExtraSignersHolder
+	startRoundHolder bls.SubRoundStartExtraSignersHolder
+	signRoundHolder  bls.SubRoundSignatureExtraSignersHolder
+	endRoundHolder   bls.SubRoundEndExtraSignersHolder
 }
 
 // NewExtraSignersHolder creates a holder for all extra signer holders
 func NewExtraSignersHolder(
-	startRoundHolder SubRoundStartExtraSignersHolder,
-	signRoundHolder SubRoundSignatureExtraSignersHolder,
-	endRoundHolder SubRoundEndExtraSignersHolder,
+	startRoundHolder bls.SubRoundStartExtraSignersHolder,
+	signRoundHolder bls.SubRoundSignatureExtraSignersHolder,
+	endRoundHolder bls.SubRoundEndExtraSignersHolder,
 ) (*extraSignersHolder, error) {
 	if check.IfNil(startRoundHolder) {
 		return nil, errors.ErrNilStartRoundExtraSignersHolder
@@ -44,17 +46,17 @@ func NewEmptyExtraSignersHolder() *extraSignersHolder {
 }
 
 // GetSubRoundStartExtraSignersHolder returns internal start round extra signers holder
-func (holder *extraSignersHolder) GetSubRoundStartExtraSignersHolder() SubRoundStartExtraSignersHolder {
+func (holder *extraSignersHolder) GetSubRoundStartExtraSignersHolder() bls.SubRoundStartExtraSignersHolder {
 	return holder.startRoundHolder
 }
 
 // GetSubRoundSignatureExtraSignersHolder returns internal sign round extra signers holder
-func (holder *extraSignersHolder) GetSubRoundSignatureExtraSignersHolder() SubRoundSignatureExtraSignersHolder {
+func (holder *extraSignersHolder) GetSubRoundSignatureExtraSignersHolder() bls.SubRoundSignatureExtraSignersHolder {
 	return holder.signRoundHolder
 }
 
 // GetSubRoundEndExtraSignersHolder returns internal end round extra signers holder
-func (holder *extraSignersHolder) GetSubRoundEndExtraSignersHolder() SubRoundEndExtraSignersHolder {
+func (holder *extraSignersHolder) GetSubRoundEndExtraSignersHolder() bls.SubRoundEndExtraSignersHolder {
 	return holder.endRoundHolder
 }
 

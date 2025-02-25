@@ -1,14 +1,15 @@
-package bls
+package holders
 
 import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/subRounds"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSubRoundSignatureExtraSignersHolder_CreateExtraSignatureShares(t *testing.T) {
