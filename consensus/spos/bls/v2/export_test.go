@@ -221,16 +221,6 @@ func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
 	sr.receivedBlockHeader(header)
 }
 
-// GetLeaderForHeader returns the leader based on header info
-func (sr *subroundBlock) GetLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
-	return sr.getLeaderForHeader(headerHandler)
-}
-
-// SaveProofForPreviousHeaderIfNeeded will save proof if needed
-func (sr *subroundBlock) SaveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
-	sr.saveProofForPreviousHeaderIfNeeded(header, prevHeader)
-}
-
 // subroundSignature
 
 // SubroundSignature defines an alias to the subroundSignature structure

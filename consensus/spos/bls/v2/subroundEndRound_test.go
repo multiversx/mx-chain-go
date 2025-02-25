@@ -37,7 +37,7 @@ import (
 )
 
 func initSubroundEndRoundWithContainer(
-	container *spos.ConsensusCore,
+	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
 ) v2.SubroundEndRound {
 	ch := make(chan bool, 1)
@@ -74,7 +74,7 @@ func initSubroundEndRoundWithContainer(
 }
 
 func initSubroundEndRoundWithContainerAndConsensusState(
-	container *spos.ConsensusCore,
+	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
 	consensusState *spos.ConsensusState,
 	signatureThrottler core.Throttler,

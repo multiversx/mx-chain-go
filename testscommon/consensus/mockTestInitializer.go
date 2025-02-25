@@ -10,7 +10,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
@@ -20,6 +19,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	epochstartmock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
@@ -150,22 +150,22 @@ func InitKeys() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
 }
 
 // InitConsensusCoreHeaderV2 -
-func InitConsensusCoreHeaderV2() *spos.ConsensusCore {
+func InitConsensusCoreHeaderV2() *ConsensusCoreMock {
 	consensusCoreMock := InitConsensusCore()
-	consensusCoreMock.SetBlockProcessor(InitBlockProcessorHeaderV2Mock())
+	consensusCoreMock.blockProcessor = InitBlockProcessorHeaderV2Mock()
 
 	return consensusCoreMock
 }
 
 // InitConsensusCore -
-func InitConsensusCore() *spos.ConsensusCore {
+func InitConsensusCore() *ConsensusCoreMock {
 	multiSignerMock := InitMultiSignerMock()
 
 	return InitConsensusCoreWithMultiSigner(multiSignerMock)
 }
 
 // InitConsensusCoreWithMultiSigner -
-func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.ConsensusCore {
+func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
@@ -187,7 +187,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	roundHandlerMock := &RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
-	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
 			defaultSelectionChances := uint32(1)
 			leader := shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances)
@@ -206,6 +206,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	}
 	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	headerPoolSubscriber := &pool.HeadersPoolStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	headerSigVerifier := &HeaderSigVerifierMock{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
@@ -219,33 +220,34 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	equivalentProofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 
-	container, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
-		BlockChain:                    blockChain,
-		BlockProcessor:                blockProcessorMock,
-		Bootstrapper:                  bootstrapperMock,
-		BroadcastMessenger:            broadcastMessengerMock,
-		ChronologyHandler:             chronologyHandlerMock,
-		Hasher:                        hasherMock,
-		Marshalizer:                   marshalizerMock,
-		MultiSignerContainer:          multiSignerContainer,
-		RoundHandler:                  roundHandlerMock,
-		ShardCoordinator:              shardCoordinatorMock,
-		SyncTimer:                     syncTimerMock,
-		NodesCoordinator:              nodesCoordinator,
-		EpochStartRegistrationHandler: epochStartSubscriber,
-		AntifloodHandler:              antifloodHandler,
-		PeerHonestyHandler:            peerHonestyHandler,
-		HeaderSigVerifier:             headerSigVerifier,
-		FallbackHeaderValidator:       fallbackHeaderValidator,
-		NodeRedundancyHandler:         nodeRedundancyHandler,
-		ScheduledProcessor:            scheduledProcessor,
-		MessageSigningHandler:         messageSigningHandler,
-		PeerBlacklistHandler:          peerBlacklistHandler,
-		SigningHandler:                signingHandler,
-		EnableEpochsHandler:           enableEpochsHandler,
-		EquivalentProofsPool:          equivalentProofsPool,
-		EpochNotifier:                 epochNotifier,
-	})
+	container := &ConsensusCoreMock{
+		blockChain:              blockChain,
+		blockProcessor:          blockProcessorMock,
+		headersSubscriber:       headerPoolSubscriber,
+		bootstrapper:            bootstrapperMock,
+		broadcastMessenger:      broadcastMessengerMock,
+		chronologyHandler:       chronologyHandlerMock,
+		hasher:                  hasherMock,
+		marshalizer:             marshalizerMock,
+		multiSignerContainer:    multiSignerContainer,
+		roundHandler:            roundHandlerMock,
+		shardCoordinator:        shardCoordinatorMock,
+		syncTimer:               syncTimerMock,
+		validatorGroupSelector:  validatorGroupSelector,
+		epochStartNotifier:      epochStartSubscriber,
+		antifloodHandler:        antifloodHandler,
+		peerHonestyHandler:      peerHonestyHandler,
+		headerSigVerifier:       headerSigVerifier,
+		fallbackHeaderValidator: fallbackHeaderValidator,
+		nodeRedundancyHandler:   nodeRedundancyHandler,
+		scheduledProcessor:      scheduledProcessor,
+		messageSigningHandler:   messageSigningHandler,
+		peerBlacklistHandler:    peerBlacklistHandler,
+		signingHandler:          signingHandler,
+		enableEpochsHandler:     enableEpochsHandler,
+		equivalentProofsPool:    equivalentProofsPool,
+		epochNotifier:           epochNotifier,
+	}
 
 	return container
 }
