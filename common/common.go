@@ -41,6 +41,14 @@ func IsEpochChangeBlockForFlagActivation(header data.HeaderHandler, enableEpochs
 	return isStartOfEpochBlock && isBlockInActivationEpoch
 }
 
+// IsEpochChangeBlockAfterFlagActivation returns true if the provided header is an epoch start block after the specified flag's activation
+func IsEpochChangeBlockAfterFlagActivation(header data.HeaderHandler, enableEpochsHandler EnableEpochsHandler, flag core.EnableEpochFlag) bool {
+	isStartOfEpochBlock := header.IsStartOfEpochBlock()
+	isFlagActive := enableEpochsHandler.IsFlagEnabledInEpoch(flag, header.GetEpoch())
+
+	return isStartOfEpochBlock && isFlagActive
+}
+
 // IsEpochStartProofForFlagActivation returns true if the provided proof is the proof of the epoch start block on the activation epoch of equivalent messages
 func IsEpochStartProofForFlagActivation(proof consensus.ProofHandler, enableEpochsHandler EnableEpochsHandler) bool {
 	isStartOfEpochProof := proof.GetIsStartOfEpoch()

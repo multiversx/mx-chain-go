@@ -466,8 +466,13 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 
 	fromNonce := latestValidHeader.GetNonce()
 	shardID := latestValidHeader.GetShardID()
-	// remove first header from pool - to force re-triggering the callbacks on receiving the header (edge case for epoch change)
-	bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, shardID)
+	if common.IsEpochChangeBlockAfterFlagActivation(latestValidHeader, bp.enableEpochsHandler, common.EquivalentMessagesFlag) {
+		// remove first header from pool - to force re-triggering the callbacks on receiving the header (edge case for epoch change)
+		bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, shardID)
+	} else {
+		// if first header was not removed, request starting from the next one
+		fromNonce = latestValidHeader.GetNonce() + 1
+	}
 	bp.requestHeaders(shardID, fromNonce)
 }
 
