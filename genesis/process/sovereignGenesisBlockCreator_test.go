@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -384,7 +385,7 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 	initialNode := &mock.GenesisNodeInfoHandlerMock{
 		PubKeyBytesValue: blsKey,
 	}
-	nodesSpliter := &mock.NodesListSplitterStub{
+	nodesSplitter := &mock.NodesListSplitterStub{
 		GetAllNodesCalled: func() []nodesCoordinator.GenesisNodeInfoHandler {
 			return []nodesCoordinator.GenesisNodeInfoHandler{initialNode}
 		},
@@ -443,10 +444,73 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 		},
 	}
 
-	txs, err := setSovereignStakedData(args, processors, nodesSpliter)
+	txs, err := setSovereignStakedData(args, processors, nodesSplitter)
 	require.Nil(t, err)
 	require.Equal(t, []data.TransactionHandler{expectedTx}, txs)
 	require.True(t, wasSetOwnersCalled)
+}
+
+func TestSovereignGenesisBlockCreator_setSovereignStakedDataAndCheckMainChainID(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	args.ValidatorAccounts, _ = createAccountAdapter(
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		stateFactory.NewPeerAccountCreator(),
+		args.TrieStorageManagers[dataRetriever.PeerAccountsUnit.String()],
+		&testscommon.PubkeyConverterMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	)
+
+	args.Accounts = &state.AccountsStub{
+		LoadAccountCalled: func(addr []byte) (vmcommon.AccountHandler, error) {
+			return &state.AccountWrapMock{
+				Balance: big.NewInt(1),
+				Address: []byte("owner"),
+			}, nil
+		},
+	}
+	initialNode1 := &mock.GenesisNodeInfoHandlerMock{
+		PubKeyBytesValue: []byte("blsKey1"),
+	}
+	initialNode2 := &mock.GenesisNodeInfoHandlerMock{
+		PubKeyBytesValue: []byte("blsKey2"),
+	}
+	initialNode3 := &mock.GenesisNodeInfoHandlerMock{
+		PubKeyBytesValue: []byte("blsKey3"),
+	}
+	nodesSplitter := &mock.NodesListSplitterStub{
+		GetAllNodesCalled: func() []nodesCoordinator.GenesisNodeInfoHandler {
+			return []nodesCoordinator.GenesisNodeInfoHandler{initialNode1, initialNode2, initialNode3}
+		},
+	}
+
+	processors := &genesisProcessors{
+		txProcessor: &testscommon.TxProcessorStub{},
+		queryService: &nodeMock.SCQueryServiceStub{
+			ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
+				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, holders.NewBlockInfo(nil, 0, nil), nil
+			},
+		},
+		vmContainer: &processMock.VMContainerMock{},
+	}
+
+	txs, err := setSovereignStakedData(args, processors, nodesSplitter)
+	require.Nil(t, err)
+	require.Len(t, txs, 3)
+
+	acc1, err := getPeerAccount(args.ValidatorAccounts, initialNode1.PubKeyBytesValue)
+	require.Nil(t, err)
+	require.Equal(t, []byte{0x0, 0x0}, acc1.GetMainChainID())
+
+	acc2, err := getPeerAccount(args.ValidatorAccounts, initialNode2.PubKeyBytesValue)
+	require.Nil(t, err)
+	require.Equal(t, []byte{0x0, 0x1}, acc2.GetMainChainID())
+
+	acc3, err := getPeerAccount(args.ValidatorAccounts, initialNode3.PubKeyBytesValue)
+	require.Nil(t, err)
+	require.Equal(t, []byte{0x0, 0x2}, acc3.GetMainChainID())
 }
 
 func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
