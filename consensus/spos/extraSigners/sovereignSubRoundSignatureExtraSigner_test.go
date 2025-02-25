@@ -1,4 +1,4 @@
-package bls
+package extraSigners
 
 import (
 	"testing"
@@ -17,13 +17,13 @@ func TestNewSovereignSubRoundSignatureOutGoingTxData(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil signing handler, should return error", func(t *testing.T) {
-		sovSigHandler, err := NewSovereignSubRoundSignatureOutGoingTxData(nil)
+		sovSigHandler, err := NewSovereignSubRoundSignatureExtraSigner(nil, block.OutGoingMbTx)
 		require.Equal(t, spos.ErrNilSigningHandler, err)
 		require.True(t, check.IfNil(sovSigHandler))
 	})
 
 	t.Run("should work", func(t *testing.T) {
-		sovSigHandler, err := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
+		sovSigHandler, err := NewSovereignSubRoundSignatureExtraSigner(&cnsTest.SigningHandlerStub{}, block.OutGoingMbTx)
 		require.Nil(t, err)
 		require.False(t, sovSigHandler.IsInterfaceNil())
 	})
@@ -60,7 +60,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_CreateSignatureShare(t *testin
 			return expectedSigShare, nil
 		},
 	}
-	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(signingHandler)
+	sovSigHandler, _ := NewSovereignSubRoundSignatureExtraSigner(signingHandler, block.OutGoingMbTx)
 
 	t.Run("invalid header type, should return error", func(t *testing.T) {
 		sigShare, err := sovSigHandler.CreateSignatureShare(sovHdr.Header, selfIndex, selfPubKey)
@@ -92,7 +92,7 @@ func TestSovereignSubRoundSignatureOutGoingTxData_AddSigShareToConsensusMessage(
 		SignatureShare: []byte("sigShare"),
 	}
 
-	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
+	sovSigHandler, _ := NewSovereignSubRoundSignatureExtraSigner(&cnsTest.SigningHandlerStub{}, block.OutGoingMbTx)
 
 	err := sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), nil)
 	require.Equal(t, errors.ErrNilConsensusMessage, err)
@@ -100,8 +100,12 @@ func TestSovereignSubRoundSignatureOutGoingTxData_AddSigShareToConsensusMessage(
 	err = sovSigHandler.AddSigShareToConsensusMessage([]byte("sigShareOutGoingTxData"), cnsMsg)
 	require.Nil(t, err)
 	require.Equal(t, &consensus.Message{
-		SignatureShare:               []byte("sigShare"),
-		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+		SignatureShare: []byte("sigShare"),
+		ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+			block.OutGoingMbTx.String(): {
+				SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+			},
+		},
 	}, cnsMsg)
 }
 
@@ -109,8 +113,12 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 	t.Parallel()
 
 	cnsMsg := &consensus.Message{
-		SignatureShare:               []byte("sigShare"),
-		SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+		SignatureShare: []byte("sigShare"),
+		ExtraSignatures: map[string]*consensus.ExtraSignatureData{
+			block.OutGoingMbTx.String(): {
+				SignatureShareOutGoingTxData: []byte("sigShareOutGoingTxData"),
+			},
+		},
 	}
 
 	expectedIdx := uint16(4)
@@ -118,14 +126,14 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 	signHandler := &cnsTest.SigningHandlerStub{
 		StoreSignatureShareCalled: func(index uint16, sig []byte) error {
 			require.Equal(t, expectedIdx, index)
-			require.Equal(t, cnsMsg.SignatureShareOutGoingTxData, sig)
+			require.Equal(t, cnsMsg.ExtraSignatures[block.OutGoingMbTx.String()].SignatureShareOutGoingTxData, sig)
 
 			wasSigStored = true
 			return nil
 		},
 	}
 
-	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(signHandler)
+	sovSigHandler, _ := NewSovereignSubRoundSignatureExtraSigner(signHandler, block.OutGoingMbTx)
 
 	err := sovSigHandler.StoreSignatureShare(expectedIdx, nil)
 	require.Equal(t, errors.ErrNilConsensusMessage, err)
@@ -138,6 +146,6 @@ func TestSovereignSubRoundSignatureOutGoingTxData_StoreSignatureShare(t *testing
 func TestSovereignSubRoundSignatureOutGoingTxData_Identifier(t *testing.T) {
 	t.Parallel()
 
-	sovSigHandler, _ := NewSovereignSubRoundSignatureOutGoingTxData(&cnsTest.SigningHandlerStub{})
-	require.Equal(t, "sovereignSubRoundSignatureOutGoingTxData", sovSigHandler.Identifier())
+	sovSigHandler, _ := NewSovereignSubRoundSignatureExtraSigner(&cnsTest.SigningHandlerStub{}, block.OutGoingMbTx)
+	require.Equal(t, block.OutGoingMbTx.String(), sovSigHandler.Identifier())
 }
