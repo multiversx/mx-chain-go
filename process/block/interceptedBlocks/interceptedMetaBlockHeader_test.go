@@ -140,7 +140,7 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	buff, _ := testMarshalizer.Marshal(hdr)
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	shardCoordinator.SetSelfId(core.MetachainShardId)
+	_ = shardCoordinator.SetSelfId(core.MetachainShardId)
 
 	arg := createMetaArgumentWithShardCoordinator(shardCoordinator)
 	arg.HdrBuff = buff
