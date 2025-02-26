@@ -231,7 +231,7 @@ func (c *collector) RevertToIndex(index int) error {
 	log.Trace("num state changes before revert", "num", len(c.stateChanges))
 	for i := len(c.stateChanges) - 1; i >= 0; i-- {
 		if c.stateChanges[i].GetIndex() == int32(index) {
-			c.stateChanges = c.stateChanges[:i]
+			c.stateChanges = c.stateChanges[:i+1]
 			log.Trace("reverted to index", "index", index, "num state changes after revert", len(c.stateChanges))
 			break
 		}
