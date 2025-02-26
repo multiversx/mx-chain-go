@@ -299,15 +299,35 @@ func (sp *scheduledProcessorWrapper) GetRoundTimeHandler() process.RoundTimeDura
 	return sp.roundTimeDurationHandler
 }
 
+// ProcessingNotStarted -
 var ProcessingNotStarted = processingNotStarted
+
+// ProcessingError -
 var ProcessingError = processingError
+
+// InProgress -
 var InProgress = inProgress
+
+// ProcessingOK -
 var ProcessingOK = processingOK
+
+// Stopped -
 var Stopped = stopped
 
+// ProcessingNotStartedString -
 var ProcessingNotStartedString = processingNotStartedString
+
+// ProcessingErrorString -
 var ProcessingErrorString = processingErrorString
+
+// InProgressString -
 var InProgressString = inProgressString
+
+// ProcessingOKString -
 var ProcessingOKString = processingOKString
+
+// StoppedString -
 var StoppedString = stoppedString
+
+// UnexpectedString -
 var UnexpectedString = unexpectedString
