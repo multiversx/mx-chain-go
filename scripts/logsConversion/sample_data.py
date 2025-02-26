@@ -1,4 +1,4 @@
-log1 = '''
+common_entries_log = '''
 DEBUG[2025-02-07 09:24:58.387] [..ess/interceptors] [1/0/965/(END_ROUND)] Intercepted data is invalid              hash = e150ea737d545f6ef883f5d78e789dee40f6acb202834076c770b0cf17095755 err = already existing equivalent proof 
 DEBUG[2025-02-07 09:25:02.002] [..ensus/chronology] [1/0/965/(END_ROUND)] 2025-02-07 09:25:02.000135187  ################################### ROUND 966 BEGINS (1738920302) ################################### 
 DEBUG[2025-02-07 09:25:02.002] [..ensus/chronology] [1/0/966/(END_ROUND)] 2025-02-07 09:25:02.000280785  ................................... SUBROUND (START_ROUND) BEGINS ................................... 
@@ -16,7 +16,12 @@ DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] subroundBl
 DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved 
 DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] step 1: block header has been received   nonce = 906 hash = 021b8f4ea41d376672bd49469808c001d68aa0ec575e4e48d02a70d60a14cbb7 
 '''
-log2 = '''DEBUG[2025-02-07 09:14:08.002] [..ensus/chronology] [1/0/0/(START_ROUND)]       2025-02-07 09:14:08.000567792  ################################### ROUND 857 BEGINS (1738919648) ################################### 
+
+several_words_in_key_log = '''DEBUG[2025-02-21 16:09:17.199] [process/sync]       [0/9/1008/(END_ROUND)] forkDetector.appendHeaderInfo            round = 1008 nonce = 1006 hash = 88b984b5cc8757fc02281e4024314ebcc5edf28552debfa4f4382d4a490b8570 state = 2 probable highest nonce = 1006 last checkpoint nonce = 1006 final checkpoint nonce = 1006 has proof = true 
+DEBUG[2025-02-07 09:14:20.145] [..ever/proofscache] [1/0/859/(START_ROUND)] added proof to pool                      header hash = efaf3cf089a64298423e968f43d856b0caac244a5df8cea82d39506402362c05 epoch = 4 nonce = 849 shardID = 4294967295 pubKeys bitmap = bd01 round = 857 nonce = 849 isStartOfEpoch = false 
+DEBUG[2025-02-07 09:14:13.702] [..block/preprocess] [1/0/857/(BLOCK)] scheduledTxsExecution.RollBackToBlock    header hash = 5774fe20bee691ac4cded77bcde0b4d2c07584ec33b08933f65786ec920add67 scheduled root hash = 33b86cbcf34f512c97faed4dc46d9955562dde22df91928808a977e3b37ebaa7 num of scheduled mbs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 '''
+
+empty_value_log = '''DEBUG[2025-02-07 09:14:08.002] [..ensus/chronology] [1/0/0/(START_ROUND)]       2025-02-07 09:14:08.000567792  ################################### ROUND 857 BEGINS (1738919648) ################################### 
 DEBUG[2025-02-07 09:14:08.002] [..ensus/chronology] [1/0/857/(START_ROUND)]     2025-02-07 09:14:08.000665920  ................................... SUBROUND (START_ROUND) BEGINS ................................... 
 DEBUG[2025-02-07 09:14:08.002] [process/sync]       [1/0/0/(START_ROUND)]       computeNodeState                         probableHighestNonce = 800 currentBlockNonce = 800 boot.hasLastBlock = true 
 DEBUG[2025-02-07 09:14:08.002] [process/sync]       [1/0/857/(START_ROUND)] computeNodeState                         isNodeStateCalculated = true isNodeSynchronized = true 
@@ -35,7 +40,35 @@ DEBUG[2025-02-07 09:14:13.702] [..block/preprocess] [1/0/857/(BLOCK)] scheduledT
 DEBUG[2025-02-07 09:14:13.702] [..block/preprocess] [1/0/857/(BLOCK)] scheduledTxsExecution.SetScheduledInfo   scheduled root hash = 33b86cbcf34f512c97faed4dc46d9955562dde22df91928808a977e3b37ebaa7 num of scheduled mbs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
 DEBUG[2025-02-07 09:14:13.702] [consensus/spos]     [1/0/857/(BLOCK)] current block is reverted'''
 
-log3 = '''
+transactions_processed_table_log = '''DEBUG[2025-02-07 09:14:20.175] [process/block]      [1/0/859/(START_ROUND)] header hash: c509d85b6a913143f3de41312b862725b60ff5e586f937311b0bb0700801b0f3
++-----------------+---------------------------+--------------------------------------------------------------------------------------------------+
+| Part            | Parameter                 | Value                                                                                            |
++-----------------+---------------------------+--------------------------------------------------------------------------------------------------+
+| Header          | Block type                | TxBlock                                                                                          |
+|                 | Shard                     | 1                                                                                                |
+|                 | ChainID                   | 31                                                                                               |
+|                 | Epoch                     | 3                                                                                                |
+|                 | Round                     | 801                                                                                              |
+|                 | TimeStamp                 | 1738919312                                                                                       |
+|                 | Nonce                     | 801                                                                                              |
+|                 | Prev hash                 | 5774fe20bee691ac4cded77bcde0b4d2c07584ec33b08933f65786ec920add67                                 |
+|                 | Prev rand seed            | 551a43e22bca055fd3145009fe3814fe97eedb2be9300ca031499e6e25ecb3bf78e38a117d5c24c799c8b2072916b201 |
+|                 | Rand seed                 | 652cce4b411b3d825f1ded2ee2cb12dab0f544b90492d1421a57308786fb432f05eaa712c75cc1c97170b309995c2783 |
+|                 | Pub keys bitmap           | 7f                                                                                               |
+|                 | Signature                 | 0aaf3e15a1ba25ffb05644c3f08235836c907fed49d422ae874c98941dd27dc910941969fa665d9d4a6a6a86d2a8338e |
+|                 | Leader's Signature        | c65028ec73380c4985027c283776dacbde1263a6d36bf6af983410d9a0ce68d52cf461bb28458735b1541be59e286114 |
+|                 | Scheduled root hash       | 33b86cbcf34f512c97faed4dc46d9955562dde22df91928808a977e3b37ebaa7                                 |
+|                 | Root hash                 | 33b86cbcf34f512c97faed4dc46d9955562dde22df91928808a977e3b37ebaa7                                 |
+|                 | Validator stats root hash |                                                                                                  |
+|                 | Receipts hash             | 0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8                                 |
+|                 | Epoch start meta hash     |                                                                                                  |
++-----------------+---------------------------+--------------------------------------------------------------------------------------------------+
+| MetaBlockHashes | MetaBlockHash_1           | 5c3f02198f19fa10ab16dcb9953f6db7533561a899baf95fc61361d112633ea1                                 |
++-----------------+---------------------------+--------------------------------------------------------------------------------------------------+
+ total txs processed = 0 block txs processed = 0 num shards = 3 shard = 1 '''
+
+
+complete_round_log = '''
 DEBUG[2025-02-07 09:14:20.003] [..ensus/chronology] [1/0/858/(BLOCK)] 2025-02-07 09:14:20.001026524  ################################### ROUND 859 BEGINS (1738919660) ################################### 
 DEBUG[2025-02-07 09:14:20.003] [..ensus/chronology] [1/0/859/(BLOCK)] 2025-02-07 09:14:20.001080633  ................................... SUBROUND (START_ROUND) BEGINS ................................... 
 DEBUG[2025-02-07 09:14:20.004] [process/sync]       [1/0/859/(START_ROUND)] computeNodeState                         probableHighestNonce = 827 currentBlockNonce = 800 boot.hasLastBlock = false 

@@ -16,8 +16,6 @@ from datetime import datetime
 from typing import Any
 import re
 import json
-# from sample_data import log1
-from sample_data import log2
 
 OUTPUT_FOLDER = 'output'
 LOGS_DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
@@ -57,36 +55,67 @@ class LogEntry:
         return json.dumps({attr: getattr(self, attr) for attr in vars(self)})
 
     def __str__(self):
-        parameters = "".join(f"{k} = {v}" for k, v in self.a.items())
+        parameters = " ".join(f"{k} = {v}" for k, v in self.a.items())
         return f'{'DEBUG' if self.l == 1 else 'INFO'}[{datetime.fromtimestamp(self.t).strftime(LOGS_DATE_FORMAT)[:-3]}] [{self.n}] [{self.s}/{self.e}/{self.r}/({self.sr})] {normalize_spacing(self.m)} {parameters}'
 
 
 class LogsToJsonConverter:
-    def __init__(self, node_name: str, input_path: str = '', output_path: str = OUTPUT_FOLDER, log_content: list[LogEntry] = []):
+    def __init__(self, node_name: str, input_path: str = '', output_path: str = OUTPUT_FOLDER, log_content: list[LogEntry] = None):
         self.node_name = node_name
         self.input_path = input_path
         self.output_path = output_path
-        self.log_content = log_content
+        self.log_content = log_content if log_content else []
+
+    def is_block_table(self, line: str):
+        table_strings = ['+-', '| ']
+        return line[:2] in table_strings
 
     def add_parameters(self, target_dict: dict[str, Any], param_str: str):
         if not param_str:
             return
-        matches = re.findall(r"([\w\s\[\].]+?)\s*=\s*([\w.]+)", param_str)
+        matches = re.findall(r"([\w\s\[\].]+?)\s*=\s*([\w().,-]+)", param_str)
+        # matches = re.findall(r"([\w\s\[\].]+?)\s*=\s*([^=]*?)(?=\s+\w+\s*=|\s*$)", param_str)
+        remaining_text = param_str
         for k, v in matches:
-            target_dict[k] = v
+            target_dict[k.strip()] = v.strip()
+            remaining_text = re.sub(re.escape(f"{k.strip()} = {v.strip()}"), "", remaining_text, count=1).strip()
 
-    def parse(self, log_lines: str):
+        if remaining_text:
+            if '=' in remaining_text:
+                splitted = remaining_text.split('=', 1)
+                target_dict[splitted[0].strip()] = splitted[1].strip()
+                if remaining_text.count('=') != 1:
+                    print('MORE THAN ONE = : ', param_str)
+                    print(remaining_text)
+                    print(splitted)
+                    print()
+
+            else:
+                if target_dict:
+                    k = list(target_dict.keys())[-1]
+                    target_dict[k] += ' ' + remaining_text.strip()
+                else:
+                    pattern = r"([\w\s]+): ([^,]+)"
+                    # Parse into a dictionary
+                    target_dict = {match[0].strip(): match[1].strip() for match in re.findall(pattern, param_str)}
+                    print('EMPTY PARAM DICT. COULDNT ADD PARAMS', param_str)
+
+    def add_parameters_version2(self, target_dict: dict[str, Any], param_str: str):
+        if not param_str:
+            return
+
+    def parse(self, log_lines: list[str]):
         print(f'Parsing content of log file {self.input_path} for {self.node_name}')
         pattern = re.compile(
-            r'^(DEBUG|INFO)'               # Log level (DEBUG/INFO)
-            r'\[(.*?)\]'                   # Timestamp inside []
-            r'\s*\[(.*?)\]'                # Next [] content
-            r'\s*\[(\d+)/(\d+)/(\d+)/\((.*?)\)\]'  # Extract values inside third []
-            r'\s*(.*)'                      # The rest of the message
+            r'^(DEBUG|INFO )'                      # Log level (DEBUG/INFO)
+            r'\[(.*?)\]'                            # Timestamp inside []
+            r'\s*\[(.*?)\]'                         # Next [] content
+            r'\s*\[\s*(?:(\d+)|)\s*/\s*(\d+)\s*/\s*(\d+)\s*(?:/\(\s*(.*?)\s*\))?\s*\]'  # Handle missing first and last params
+            r'\s*(.*)'                       # The rest of the message
         )
 
-        for line in re.split('\n', log_lines):
-
+        # for line in re.split('\n', log_lines):
+        for line in log_lines:
             param_dict = {}
             match = pattern.match(line)
             if match:
@@ -99,15 +128,16 @@ class LogsToJsonConverter:
                     if '  ' not in raw_message:
                         parts = raw_message.split(' = ', 1)
                         message, first_label = parts[0].rsplit(" ", 1)
-                        self.add_parameters(param_dict, first_label + ' = ' + parts[1])
-                        print(param_dict)
+                        self.add_parameters(param_dict, first_label.strip() + ' = ' + parts[1].strip())
+
                     else:
                         splitted_message = re.split('  ', raw_message, 1)
                         message = splitted_message[0]
                         self.add_parameters(param_dict, splitted_message[1].strip() if len(splitted_message) > 1 else '')
                 else:
                     message = raw_message.strip()
-                print(f'***|{message}|***')
+                # print(f'***|{message}|***')
+
                 self.log_content.append(LogEntry(
                     v=self.node_name,
                     t=datetime.strptime(date, LOGS_DATE_FORMAT).timestamp(),
@@ -120,12 +150,11 @@ class LogsToJsonConverter:
                     m=message.strip(),
                     a=dict_copy(param_dict)
                 ))
-            elif line:
-                print(line)
-                self.add_parameters(self.log_content[-1].a, line.strip())
-
-        # for entry in self.log_content:
-        #    print(entry.to_dict())
+            elif line and not self.is_block_table(line):
+                # parameters on subsequent entry/entries
+                print('', line)
+                if self.log_content:
+                    self.add_parameters(self.log_content[-1].a, line.strip())
 
     @staticmethod
     def from_logs(path: str, node_name: str, output_path: str = OUTPUT_FOLDER):
@@ -134,12 +163,28 @@ class LogsToJsonConverter:
         result.parse(log_content)
 
 
-if __name__ == "__main__":
+def main():
     converter = LogsToJsonConverter('ovh-p03-validator-7')
-    converter.parse(log2)
+    log_file = '/home/mihaela/Downloads/perf-deg-andromeda/OVH-P04--Shard-0--4cd5fb6017a3--172.30.40.76--ovh-p04-validator-26/logs/logs/mx-chain-go-2025-02-21-14-28-33.log'
+    with open(log_file, "r") as file:
+        log = file.readlines()
+        converter.parse(log)
+    '''
+    logs = [log3]
+    for log in logs:
+        converter.parse(log)
+    '''
+    with open('scripts/logsConversion/output.json', 'w') as f:
+        for entry in converter.log_content:
+            f.write(entry.to_dict())
+            f.write('\n')
 
-'''
-{{"t":1733818514272014721,"l":1,"n":"consensus/chronology","s":"1","e":0,"r":0,"sr":"","m":"2024-12-10 10:15:14.293489691  ################################## ROUND 872852 BEGINS (1733818512) ##################################"}
+
+if __name__ == "__main__":
+    main()
+
+    '''
+{"t":1733818514272014721,"l":1,"n":"consensus/chronology","s":"1","e":0,"r":0,"sr":"","m":"2024-12-10 10:15:14.293489691  ################################## ROUND 872852 BEGINS (1733818512) ##################################"}
 {"t":1733818514272094361,"l":1,"n":"consensus/chronology","s":"1","e":0,"r":872852,"sr":"","m":"2024-12-10 10:15:14.293578283  ................................... SUBROUND (START_ROUND) BEGINS ..................................."}
 {"t":1733818514272738491,"l":1,"n":"node","s":"1","e":0,"r":872852,"sr":"(START_ROUND)","m":"creating node structure"}
 {"t":1733818514272797396,"l":1,"n":"heartbeat/sender","s":"1","e":0,"r":872852,"sr":"(START_ROUND)","m":"starting peer shard sender's goroutine"}
