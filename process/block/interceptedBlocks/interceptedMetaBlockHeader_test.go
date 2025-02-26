@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -14,13 +15,19 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 )
 
 func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	return createMetaArgumentWithShardCoordinator(shardCoordinator)
+}
+
+func createMetaArgumentWithShardCoordinator(shardCoordinator sharding.Coordinator) *interceptedBlocks.ArgInterceptedBlockHeader {
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		ShardCoordinator:        shardCoordinator,
 		Hasher:                  testHasher,
 		Marshalizer:             testMarshalizer,
 		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
@@ -132,7 +139,10 @@ func TestInterceptedMetaHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	}
 	buff, _ := testMarshalizer.Marshal(hdr)
 
-	arg := createDefaultMetaArgument()
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
+
+	arg := createMetaArgumentWithShardCoordinator(shardCoordinator)
 	arg.HdrBuff = buff
 	inHdr, _ := interceptedBlocks.NewInterceptedMetaHeader(arg)
 

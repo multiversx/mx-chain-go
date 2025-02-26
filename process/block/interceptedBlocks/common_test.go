@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
@@ -346,10 +347,33 @@ func TestCheckMetaShardInfo_WithNilOrEmptyShouldReturnNil(t *testing.T) {
 	assert.Nil(t, err2)
 }
 
+func TestCheckMetaShardInfo_ShouldNotCheckShardInfoForShards(t *testing.T) {
+	t.Parallel()
+
+	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(1)
+
+	sd := block.ShardData{}
+
+	wasCalled := false
+	verifier := &consensus.HeaderSigVerifierMock{
+		VerifyHeaderProofCalled: func(proofHandler data.HeaderProofHandler) error {
+			wasCalled = true
+			return nil
+		},
+	}
+
+	err := checkMetaShardInfo([]data.ShardDataHandler{&sd}, shardCoordinator, verifier)
+
+	assert.Nil(t, err)
+	assert.False(t, wasCalled)
+}
+
 func TestCheckMetaShardInfo_WrongShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
 	wrongShardId := uint32(2)
 	sd := block.ShardData{
 		ShardID:               wrongShardId,
@@ -367,6 +391,7 @@ func TestCheckMetaShardInfo_WrongMiniblockSenderShardIdShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
 	wrongShardId := uint32(2)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
@@ -391,6 +416,7 @@ func TestCheckMetaShardInfo_WrongMiniblockReceiverShardIdShouldErr(t *testing.T)
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
 	wrongShardId := uint32(2)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
@@ -415,6 +441,8 @@ func TestCheckMetaShardInfo_ReservedPopulatedShouldErr(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
+
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
 		ReceiverShardID: shardCoordinator.SelfId(),
@@ -439,6 +467,7 @@ func TestCheckMetaShardInfo_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
 		ReceiverShardID: shardCoordinator.SelfId(),
@@ -469,6 +498,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		shardCoordinator.SetSelfId(core.MetachainShardId)
 		wrongShardId := uint32(2)
 		miniBlock1 := block.MiniBlockHeader{
 			Hash:            make([]byte, 0),
@@ -515,6 +545,7 @@ func TestCheckMetaShardInfo_WithMultipleShardData(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewOneShardCoordinatorMock()
+		shardCoordinator.SetSelfId(core.MetachainShardId)
 		miniBlock1 := block.MiniBlockHeader{
 			Hash:            make([]byte, 0),
 			ReceiverShardID: shardCoordinator.SelfId(),
@@ -566,6 +597,7 @@ func TestCheckMetaShardInfo_FewShardDataErrorShouldReturnError(t *testing.T) {
 	t.Parallel()
 
 	shardCoordinator := mock.NewOneShardCoordinatorMock()
+	shardCoordinator.SetSelfId(core.MetachainShardId)
 	miniBlock := block.MiniBlockHeader{
 		Hash:            make([]byte, 0),
 		ReceiverShardID: shardCoordinator.SelfId(),
