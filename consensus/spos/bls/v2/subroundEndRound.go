@@ -457,7 +457,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 
 		wg.Add(1)
 
-		go func(i int, pk string, wg *sync.WaitGroup, sigShare []byte) {
+		go func(i int, pk string, sigShare []byte) {
 			defer func() {
 				sr.signatureThrottler.EndProcessing()
 				wg.Done()
@@ -468,7 +468,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 				invalidPubKeys = append(invalidPubKeys, pk)
 				mutex.Unlock()
 			}
-		}(i, pk, wg, sigShare)
+		}(i, pk, sigShare)
 	}
 	wg.Wait()
 
@@ -590,10 +590,6 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 }
 
 func (sr *subroundEndRound) getEquivalentProofSender() string {
-	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		return sr.SelfPubKey() // single key mode
-	}
-
 	return sr.getRandomManagedKeyProofSender()
 }
 
@@ -609,7 +605,7 @@ func (sr *subroundEndRound) getRandomManagedKeyProofSender() string {
 	}
 
 	if len(consensusKeysManagedByCurrentNode) == 0 {
-		return sr.SelfPubKey() // fallback return self pub key, should never happen
+		return sr.SelfPubKey() // fallback return self pub key
 	}
 
 	randIdx := rand.Intn(len(consensusKeysManagedByCurrentNode))

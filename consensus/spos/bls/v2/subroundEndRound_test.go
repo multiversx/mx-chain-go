@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,12 +29,14 @@ import (
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -1808,7 +1812,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 	})
 }
 
-func TestSubroundSignature_ReceivedSignature(t *testing.T) {
+func TestSubroundEndRound_ReceivedSignature(t *testing.T) {
 	t.Parallel()
 
 	sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
@@ -1867,7 +1871,7 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
+func TestSubroundEndRound_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	t.Parallel()
 
 	errStore := errors.New("signature share store failed")
@@ -1940,4 +1944,132 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 	assert.True(t, storeSigShareCalled)
+}
+
+func TestSubroundEndRound_WaitForProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return true if there is proof", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		ok := sr.WaitForProof()
+		require.True(t, ok)
+	})
+
+	t.Run("should return true after waiting and finding proof", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+
+		numCalls := 0
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				if numCalls < 2 {
+					numCalls++
+					return false
+				}
+
+				return true
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		ok := sr.WaitForProof()
+		require.True(t, ok)
+
+		require.Equal(t, 2, numCalls)
+	})
+
+	t.Run("should return false on timeout", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		ok := sr.WaitForProof()
+		require.False(t, ok)
+	})
+}
+
+func TestSubroundEndRound_GetEquivalentProofSender(t *testing.T) {
+	t.Parallel()
+
+	t.Run("for single key, return self pubkey", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		selfKey := sr.SelfPubKey()
+
+		sender := sr.GetEquivalentProofSender()
+		require.Equal(t, selfKey, sender)
+	})
+
+	t.Run("for multi key, return random key", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+
+		suite := mcl.NewSuiteBLS12()
+		kg := signing.NewKeyGenerator(suite)
+
+		mapKeys := generateKeyPairs(kg)
+
+		pubKeys := make([]string, 0)
+		for pubKey := range mapKeys {
+			pubKeys = append(pubKeys, pubKey)
+		}
+
+		nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+			ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+				defaultSelectionChances := uint32(1)
+				leader := shardingMocks.NewValidatorMock([]byte(pubKeys[0]), 1, defaultSelectionChances)
+				return leader, []nodesCoordinator.Validator{
+					leader,
+					shardingMocks.NewValidatorMock([]byte(pubKeys[1]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[2]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[3]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[4]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[5]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[6]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[7]), 1, defaultSelectionChances),
+					shardingMocks.NewValidatorMock([]byte(pubKeys[8]), 1, defaultSelectionChances),
+				}, nil
+			},
+		}
+		container.SetNodesCoordinator(nodesCoordinator)
+
+		keysHandlerMock := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				_, ok := mapKeys[string(pkBytes)]
+				return ok
+			},
+		}
+
+		consensusState := initializers.InitConsensusStateWithArgs(keysHandlerMock, mapKeys)
+		sr := initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
+
+		selfKey := sr.SelfPubKey()
+
+		sender := sr.GetEquivalentProofSender()
+		assert.NotEqual(t, selfKey, sender)
+	})
 }
