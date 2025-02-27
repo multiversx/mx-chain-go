@@ -71,6 +71,12 @@ func createDefaultGasTracker(
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return moveBalanceGas(tx.GetData())
 		},
+		MaxGasLimitPerTxCalled: func() uint64 {
+			return 1000000
+		},
+		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+			return 1000000
+		},
 	}
 
 	gasHandler := &testscommon.GasHandlerStub{

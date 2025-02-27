@@ -124,7 +124,10 @@ func (ehm *EconomicsHandlerMock) GasPerDataByte() uint64 {
 
 // DeveloperPercentage -
 func (ehm *EconomicsHandlerMock) DeveloperPercentage() float64 {
-	return ehm.DeveloperPercentageCalled()
+	if ehm.DeveloperPercentageCalled != nil {
+		return ehm.DeveloperPercentageCalled()
+	}
+	return 0.0
 }
 
 // GenesisTotalSupply -
