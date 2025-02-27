@@ -31,7 +31,7 @@ func TestDepositEventProc_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler := &depositEventProc{
+		handler := &eventProcDepositTokens{
 			marshaller:    args.Marshaller,
 			hasher:        args.Hasher,
 			dataCodec:     args.DataCodec,
@@ -60,7 +60,7 @@ func TestDepositEventProc_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler := &depositEventProc{
+		handler := &eventProcDepositTokens{
 			marshaller:    args.Marshaller,
 			hasher:        args.Hasher,
 			dataCodec:     args.DataCodec,
@@ -95,7 +95,7 @@ func TestDepositEventProc_createEventData(t *testing.T) {
 			},
 		}
 
-		handler := &depositEventProc{
+		handler := &eventProcDepositTokens{
 			marshaller:    args.Marshaller,
 			hasher:        args.Hasher,
 			dataCodec:     args.DataCodec,
@@ -146,7 +146,7 @@ func TestDepositEventProc_createSCRData(t *testing.T) {
 		},
 	}
 
-	handler := &depositEventProc{
+	handler := &eventProcDepositTokens{
 		marshaller:    args.Marshaller,
 		hasher:        args.Hasher,
 		dataCodec:     args.DataCodec,

@@ -16,6 +16,7 @@ const (
 const (
 	eventIDExecutedOutGoingBridgeOp = "execute"
 	eventIDDepositIncomingTransfer  = "deposit"
+	eventIDChangeValidatorSet       = "changeValidatorSet"
 
 	topicIDConfirmedOutGoingOperation = "executedBridgeOp"
 	topicIDDepositIncomingTransfer    = "deposit"

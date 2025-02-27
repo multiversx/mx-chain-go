@@ -21,7 +21,7 @@ type eventData struct {
 	gasLimit             uint64
 }
 
-type depositEventProc struct {
+type eventProcDepositTokens struct {
 	marshaller    marshal.Marshalizer
 	hasher        hashing.Hasher
 	dataCodec     SovereignDataCodec
@@ -29,7 +29,7 @@ type depositEventProc struct {
 }
 
 // ProcessEvent will process incoming token deposit events and return an incoming scr info
-func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*EventResult, error) {
+func (dep *eventProcDepositTokens) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	topics := event.GetTopics()
 	err := dep.topicsChecker.CheckValidity(topics)
 	if err != nil {
@@ -70,7 +70,7 @@ func (dep *depositEventProc) ProcessEvent(event data.EventHandler) (*EventResult
 	}, nil
 }
 
-func (dep *depositEventProc) createEventData(data []byte) (*eventData, error) {
+func (dep *eventProcDepositTokens) createEventData(data []byte) (*eventData, error) {
 	evData, err := dep.dataCodec.DeserializeEventData(data)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func extractArguments(arguments [][]byte) []byte {
 	return args
 }
 
-func (dep *depositEventProc) createSCRData(topics [][]byte) ([]byte, error) {
+func (dep *eventProcDepositTokens) createSCRData(topics [][]byte) ([]byte, error) {
 	numTokensToTransfer := len(topics[tokensIndex:]) / numTransferTopics
 	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
 
@@ -136,7 +136,7 @@ func (dep *depositEventProc) createSCRData(topics [][]byte) ([]byte, error) {
 	return ret, nil
 }
 
-func (dep *depositEventProc) getTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
+func (dep *eventProcDepositTokens) getTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
 	esdtTokenData, err := dep.dataCodec.DeserializeTokenData(tokenData)
 	if err != nil {
 		return nil, err
@@ -169,6 +169,6 @@ func (dep *depositEventProc) getTokenDataBytes(tokenNonce []byte, tokenData []by
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (dep *depositEventProc) IsInterfaceNil() bool {
+func (dep *eventProcDepositTokens) IsInterfaceNil() bool {
 	return dep == nil
 }

@@ -6,11 +6,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
-type confirmExecutedOperationProcessor struct {
+type eventProcConfirmExecutedOperation struct {
 }
 
 // ProcessEvent will process events related to confirmed outgoing bridge operations to main chain
-func (cop *confirmExecutedOperationProcessor) ProcessEvent(event data.EventHandler) (*EventResult, error) {
+func (ep *eventProcConfirmExecutedOperation) ProcessEvent(event data.EventHandler) (*EventResult, error) {
 	confirmedOp, err := getConfirmedBridgeOperation(event.GetTopics())
 	if err != nil {
 		return nil, err
@@ -36,6 +36,6 @@ func getConfirmedBridgeOperation(topics [][]byte) (*ConfirmedBridgeOp, error) {
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (cop *confirmExecutedOperationProcessor) IsInterfaceNil() bool {
-	return cop == nil
+func (ep *eventProcConfirmExecutedOperation) IsInterfaceNil() bool {
+	return ep == nil
 }

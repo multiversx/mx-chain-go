@@ -63,15 +63,17 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, errors.ErrNilTopicsChecker
 	}
 
-	depositProc := &depositEventProc{
+	depositProc := &eventProcDepositTokens{
 		marshaller:    args.Marshaller,
 		hasher:        args.Hasher,
 		dataCodec:     args.DataCodec,
 		topicsChecker: args.TopicsChecker,
 	}
 
-	executedOpProc := &executedBridgeOpEventProc{
-		depositEventProc: depositProc,
+	confirmExecutedOperationProc := &eventProcConfirmExecutedOperation{}
+	executedOpProc := &eventProcExecutedDepositOperation{
+		depositEventProc:                  depositProc,
+		eventProcConfirmExecutedOperation: confirmExecutedOperationProc,
 	}
 
 	eventsProc := &incomingEventsProcessor{
@@ -82,6 +84,10 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, nil
 	}
 	err = eventsProc.registerProcessor(eventIDExecutedOutGoingBridgeOp, executedOpProc)
+	if err != nil {
+		return nil, nil
+	}
+	err = eventsProc.registerProcessor(eventIDChangeValidatorSet, executedOpProc)
 	if err != nil {
 		return nil, nil
 	}
