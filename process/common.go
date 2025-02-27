@@ -784,18 +784,19 @@ func GetHeader(
 	headersStorer storage.Storer,
 	marshaller marshal.Marshalizer,
 	shardID uint32,
-) (data.HeaderHandler, error) {
+) (data.HeaderHandler, bool, error) {
 	header, err := headersPool.GetHeaderByHash(headerHash)
 	if err == nil {
-		return header, nil
+		return header, true, nil
 	}
 
 	headerBytes, err := headersStorer.SearchFirst(headerHash)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return UnmarshalHeader(shardID, marshaller, headerBytes)
+	header, err = UnmarshalHeader(shardID, marshaller, headerBytes)
+	return header, false, err
 }
 
 // UnmarshalHeader unmarshalls a block header

@@ -345,10 +345,12 @@ func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderPro
 	}
 
 	var header data.HeaderHandler
+	var fromPool bool
 
 	for {
-		header, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
+		header, fromPool, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
 		if err == nil {
+			log.Debug("HeaderSigVerifier.getHeaderForProofAtTransition: getting header", "fromPool", fromPool)
 			break
 		}
 
