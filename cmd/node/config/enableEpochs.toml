@@ -340,10 +340,10 @@
     RelayedTransactionsV3FixESDTTransferEnableEpoch = 1 # TODO: keep this equal to RelayedTransactionsV3EnableEpoch for mainnet
 
     # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-    EquivalentMessagesEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
+    EquivalentMessagesEnableEpoch = 9999999 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
 
     # FixedOrderInConsensusEnableEpoch represents the epoch when the fixed order in consensus is enabled
-    FixedOrderInConsensusEnableEpoch = 8 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
+    FixedOrderInConsensusEnableEpoch = 9999999 # the chain simulator tests for staking v4 fail if this is set earlier, as they test the transition in epochs 4-7
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
