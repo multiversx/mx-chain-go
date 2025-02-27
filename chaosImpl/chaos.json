@@ -3,7 +3,24 @@
     "profiles": [
         {
             "name": "debugging",
-            "failures": []
+            "codeConstants": {
+                "InvalidMessageBlacklistDuration": 10,
+                "PublicKeyBlacklistDuration": 10,
+                "InvalidSigningBlacklistDuration": 10
+            },
+            "failures": [
+                {
+                    "name": "a",
+                    "enabled": true,
+                    "type": "corruptVariables",
+                    "onPoints": [
+                        "consensusV1SubroundSignatureDoSignatureJobWhenSingleKey"
+                    ],
+                    "triggers": [
+                        "round == 13 && nodeDisplayName == \"validator-5\""
+                    ]
+                }
+            ]
         },
         {
             "name": "a-andromeda",

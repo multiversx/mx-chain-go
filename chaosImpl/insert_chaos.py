@@ -1,19 +1,27 @@
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Any, Optional, Tuple
 
 
 def main():
     parser = argparse.ArgumentParser(description="Utility to insert chaotic behavior into chaos points. To be used for testing, within CI pipelines.")
-    parser.add_argument("--config-file", required=True, help="Path of the chaos configuration file")
+    _args = parser.parse_args()
 
-    args = parser.parse_args()
-    config = load_config(args.config_file)
+    parent_folder = Path(__file__).parent
+    config_file = parent_folder / "chaos.json"
+    config = load_config(config_file)
     profile_name = config["selectedProfile"]
     profile = get_profile(config, profile_name)
 
+    # Alter source code:
+
     alter_code_constants(profile)
+
+    # Copy chaos config:
+
+    shutil.copyfile(config_file, Path("cmd/node/config"))
 
     # Insert setup points:
 
