@@ -106,28 +106,6 @@ func TestBaseRewardsCreator_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestBaseRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	args.ProtocolSustainabilityAddress = ""
-
-	rwd, err := NewBaseRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
-}
-
-func TestBaseRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	args.ProtocolSustainabilityAddress = "xyz" // not a hex string
-
-	rwd, err := NewBaseRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.NotNil(t, err)
-}
-
 func TestBaseRewardsCreator_NilDataPoolHolder(t *testing.T) {
 	t.Parallel()
 
@@ -176,6 +154,18 @@ func TestBaseRewardsCreator_NilEnableEpochsHandler(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilEnableEpochsHandler, err)
 }
 
+func TestBaseRewardsCreator_NilRewardsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := getBaseRewardsArguments()
+	args.RewardsHandler = nil
+
+	rwd, err := NewBaseRewardsCreator(args)
+
+	assert.True(t, check.IfNil(rwd))
+	assert.Equal(t, epochStart.ErrNilRewardsHandler, err)
+}
+
 func TestBaseRewardsCreator_InvalidEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
@@ -208,19 +198,6 @@ func TestBaseRewardsCreator_clean(t *testing.T) {
 	tx, err := rwd.currTxs.GetTx(txHash)
 	require.Nil(t, tx)
 	require.NotNil(t, err)
-}
-
-func TestBaseRewardsCreator_ProtocolSustainabilityAddressInMetachainShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
-	// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
-	args.ProtocolSustainabilityAddress = hex.EncodeToString([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
-
-	rwd, err := NewBaseRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrProtocolSustainabilityAddressInMetachain, err)
 }
 
 func TestBaseRewardsCreator_OkValsShouldWork(t *testing.T) {
@@ -266,7 +243,7 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(-100)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -912,20 +889,92 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *testing.T) {
 	t.Parallel()
 
-	args := getBaseRewardsArguments()
-	rwd, err := NewBaseRewardsCreator(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
+	t.Run("empty protocol sust address should error", func(t *testing.T) {
+		t.Parallel()
 
-	metaBlk := &block.MetaBlock{
-		EpochStart:     getDefaultEpochStart(),
-		DevFeesInEpoch: big.NewInt(0),
-	}
+		args := getBaseRewardsArguments()
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+				return ""
+			},
+		}
+		rwd, err := NewBaseRewardsCreator(args)
+		require.Nil(t, err)
+		require.NotNil(t, rwd)
 
-	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
-	require.Nil(t, err)
-	require.NotNil(t, rwTx)
-	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
+		metaBlk := &block.MetaBlock{
+			EpochStart:     getDefaultEpochStart(),
+			DevFeesInEpoch: big.NewInt(0),
+		}
+
+		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
+		require.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
+		require.Nil(t, rwTx)
+	})
+	t.Run("invalid protocol sust address should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getBaseRewardsArguments()
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+				return "xyz" // not a hex string
+			},
+		}
+		rwd, err := NewBaseRewardsCreator(args)
+		require.Nil(t, err)
+		require.NotNil(t, rwd)
+
+		metaBlk := &block.MetaBlock{
+			EpochStart:     getDefaultEpochStart(),
+			DevFeesInEpoch: big.NewInt(0),
+		}
+
+		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
+		require.Error(t, err)
+		require.Nil(t, rwTx)
+	})
+	t.Run("meta protocol sust address should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := getBaseRewardsArguments()
+		args.RewardsHandler = &mock.RewardsHandlerStub{
+			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+				// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
+				return hex.EncodeToString([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
+			},
+		}
+		args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
+		rwd, err := NewBaseRewardsCreator(args)
+		require.Nil(t, err)
+		require.NotNil(t, rwd)
+
+		metaBlk := &block.MetaBlock{
+			EpochStart:     getDefaultEpochStart(),
+			DevFeesInEpoch: big.NewInt(0),
+		}
+
+		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
+		require.Equal(t, epochStart.ErrProtocolSustainabilityAddressInMetachain, err)
+		require.Nil(t, rwTx)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getBaseRewardsArguments()
+		rwd, err := NewBaseRewardsCreator(args)
+		require.Nil(t, err)
+		require.NotNil(t, rwd)
+
+		metaBlk := &block.MetaBlock{
+			EpochStart:     getDefaultEpochStart(),
+			DevFeesInEpoch: big.NewInt(0),
+		}
+
+		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
+		require.Nil(t, err)
+		require.NotNil(t, rwTx)
+		require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
+	})
 }
 
 func TestBaseRewardsCreator_createRewardFromRwdInfo(t *testing.T) {
@@ -1190,15 +1239,28 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		return 0
 	}
 
+	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
+
+	rewardsHandler := &mock.RewardsHandlerStub{
+		RewardsTopUpGradientPointInEpochCalled: func(epoch uint32) *big.Int {
+			return rewardsTopUpGradientPoint
+		},
+		RewardsTopUpFactorInEpochCalled: func(epoch uint32) float64 {
+			return 0.25
+		},
+		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+			return "11" // string hex => 17 decimal
+		},
+	}
+
 	return BaseRewardsCreatorArgs{
-		ShardCoordinator:              shardCoordinator,
-		PubkeyConverter:               testscommon.NewPubkeyConverterMock(32),
-		RewardsStorage:                mock.NewStorerMock(),
-		MiniBlockStorage:              mock.NewStorerMock(),
-		Hasher:                        &hashingMocks.HasherMock{},
-		Marshalizer:                   &mock.MarshalizerMock{},
-		DataPool:                      dataRetrieverMock.NewPoolsHolderMock(),
-		ProtocolSustainabilityAddress: "11", // string hex => 17 decimal
+		ShardCoordinator: shardCoordinator,
+		PubkeyConverter:  testscommon.NewPubkeyConverterMock(32),
+		RewardsStorage:   mock.NewStorerMock(),
+		MiniBlockStorage: mock.NewStorerMock(),
+		Hasher:           &hashingMocks.HasherMock{},
+		Marshalizer:      &mock.MarshalizerMock{},
+		DataPool:         dataRetrieverMock.NewPoolsHolderMock(),
 		NodesConfigProvider: &shardingMocks.NodesCoordinatorStub{
 			ConsensusGroupSizeCalled: func(shardID uint32) int {
 				if shardID == core.MetachainShardId {
@@ -1210,6 +1272,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		UserAccountsDB:        userAccountsDB,
 		EnableEpochsHandler:   enableEpochsHandler,
 		ExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		RewardsHandler:        rewardsHandler,
 	}
 }
 

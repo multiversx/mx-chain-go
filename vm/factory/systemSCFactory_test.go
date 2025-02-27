@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -25,7 +26,7 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasSchedule := testscommon.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
 		SystemEI:            &mock.SystemEIStub{},
-		Economics:           &mock.EconomicsHandlerStub{},
+		Economics:           &economicsmocks.EconomicsHandlerMock{},
 		SigVerifier:         &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},

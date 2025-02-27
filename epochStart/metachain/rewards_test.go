@@ -93,28 +93,6 @@ func TestNewRewardsCreator_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestNewRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.ProtocolSustainabilityAddress = ""
-
-	rwd, err := NewRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
-}
-
-func TestNewRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.ProtocolSustainabilityAddress = "xyz" // not a hex string
-
-	rwd, err := NewRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.NotNil(t, err)
-}
-
 func TestNewRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -253,7 +231,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(1000000)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -284,7 +262,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(10)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -317,7 +295,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(-100)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),

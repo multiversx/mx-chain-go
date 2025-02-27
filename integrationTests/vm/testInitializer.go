@@ -249,7 +249,7 @@ func (vmTestContext *VMTestContext) GetIntValueFromSCWithTransientVM(funcName st
 // GetVMOutputWithTransientVM -
 func (vmTestContext *VMTestContext) GetVMOutputWithTransientVM(funcName string, args ...[]byte) *vmcommon.VMOutput {
 	scAddressBytes := vmTestContext.Contract.Address
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -1711,7 +1711,7 @@ func GetVmOutput(
 		_ = vmContainer.Close()
 	}()
 
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},

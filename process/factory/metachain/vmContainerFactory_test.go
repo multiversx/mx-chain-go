@@ -29,7 +29,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 	return ArgsNewVMContainerFactory{
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
-		Economics:           &economicsmocks.EconomicsHandlerStub{},
+		Economics:           &economicsmocks.EconomicsHandlerMock{},
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},

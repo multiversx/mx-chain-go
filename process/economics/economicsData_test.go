@@ -576,7 +576,7 @@ func TestEconomicsData_LeaderPercentage(t *testing.T) {
 	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].LeaderPercentage = leaderPercentage
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	value := economicsData.LeaderPercentage()
+	value := economicsData.LeaderPercentageInEpoch(0)
 	assert.Equal(t, leaderPercentage, value)
 }
 
@@ -1582,7 +1582,7 @@ func TestEconomicsData_ProtocolSustainabilityPercentage(t *testing.T) {
 	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityPercentage = protocolSustainabilityPercentage
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	value := economicsData.ProtocolSustainabilityPercentage()
+	value := economicsData.ProtocolSustainabilityPercentageInEpoch(0)
 	assert.Equal(t, protocolSustainabilityPercentage, value)
 }
 

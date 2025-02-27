@@ -64,7 +64,7 @@ func createDefaultGasTracker(
 	shardCoordinator := &testscommon.ShardsCoordinatorMock{
 		CurrentShard: selfShardID,
 	}
-	economicsFee := &economicsmocks.EconomicsHandlerStub{
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return 1500000000
 		},

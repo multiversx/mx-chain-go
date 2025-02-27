@@ -837,7 +837,7 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 					return 0
 				},
 			},
-			economicsFee: &economicsmocks.EconomicsHandlerStub{},
+			economicsFee: &economicsmocks.EconomicsHandlerMock{},
 			gasHandler: &testscommon.GasHandlerStub{
 				RemoveGasProvidedCalled: func(hashes [][]byte) {
 				},
