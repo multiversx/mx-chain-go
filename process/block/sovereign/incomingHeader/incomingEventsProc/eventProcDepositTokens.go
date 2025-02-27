@@ -1,4 +1,4 @@
-package incomingHeader
+package incomingEventsProc
 
 import (
 	"encoding/hex"
@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
 )
 
 type eventData struct {
@@ -21,15 +23,31 @@ type eventData struct {
 	gasLimit             uint64
 }
 
+type EventProcDepositTokensArgs struct {
+	Marshaller    marshal.Marshalizer
+	Hasher        hashing.Hasher
+	DataCodec     sovBlock.DataCodecHandler
+	TopicsChecker sovBlock.TopicsCheckerHandler
+}
+
 type eventProcDepositTokens struct {
 	marshaller    marshal.Marshalizer
 	hasher        hashing.Hasher
-	dataCodec     SovereignDataCodec
-	topicsChecker TopicsChecker
+	dataCodec     sovBlock.DataCodecHandler
+	topicsChecker sovBlock.TopicsCheckerHandler
+}
+
+func NewEventProcDepositTokens(args EventProcDepositTokensArgs) (*eventProcDepositTokens, error) {
+	return &eventProcDepositTokens{
+		marshaller:    args.Marshaller,
+		hasher:        args.Hasher,
+		dataCodec:     args.DataCodec,
+		topicsChecker: args.TopicsChecker,
+	}, nil
 }
 
 // ProcessEvent will process incoming token deposit events and return an incoming scr info
-func (dep *eventProcDepositTokens) ProcessEvent(event data.EventHandler) (*EventResult, error) {
+func (dep *eventProcDepositTokens) ProcessEvent(event data.EventHandler) (*dto.EventResult, error) {
 	topics := event.GetTopics()
 	err := dep.topicsChecker.CheckValidity(topics)
 	if err != nil {
@@ -62,8 +80,8 @@ func (dep *eventProcDepositTokens) ProcessEvent(event data.EventHandler) (*Event
 		return nil, err
 	}
 
-	return &EventResult{
-		SCR: &SCRInfo{
+	return &dto.EventResult{
+		SCR: &dto.SCRInfo{
 			SCR:  scr,
 			Hash: hash,
 		},
@@ -113,13 +131,13 @@ func extractArguments(arguments [][]byte) []byte {
 }
 
 func (dep *eventProcDepositTokens) createSCRData(topics [][]byte) ([]byte, error) {
-	numTokensToTransfer := len(topics[tokensIndex:]) / numTransferTopics
+	numTokensToTransfer := len(topics[dto.TokensIndex:]) / dto.NumTransferTopics
 	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
 
 	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
-	for idx := tokensIndex; idx < len(topics); idx += numTransferTopics {
+	for idx := dto.TokensIndex; idx < len(topics); idx += dto.NumTransferTopics {
 		tokenData, err := dep.getTokenDataBytes(topics[idx+1], topics[idx+2])
 		if err != nil {
 			return nil, err

@@ -1,25 +1,22 @@
-package incomingHeader
+package dto
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 )
 
 const (
-	minTopicsInTransferEvent  = 5
-	numTransferTopics         = 3
-	numExecutedBridgeOpTopics = 3
-	tokensIndex               = 2
-	hashOfHashesIndex         = 1
-	hashOfOperationIndex      = 2
+	MinTopicsInTransferEvent = 5
+	NumTransferTopics        = 3
+	TokensIndex              = 2
 )
 
 const (
-	eventIDExecutedOutGoingBridgeOp = "execute"
-	eventIDDepositIncomingTransfer  = "deposit"
-	eventIDChangeValidatorSet       = "changeValidatorSet"
+	EventIDExecutedOutGoingBridgeOp = "execute"
+	EventIDDepositIncomingTransfer  = "deposit"
+	EventIDChangeValidatorSet       = "changeValidatorSet"
 
-	topicIDConfirmedOutGoingOperation = "executedBridgeOp"
-	topicIDDepositIncomingTransfer    = "deposit"
+	TopicIDConfirmedOutGoingOperation = "executedBridgeOp"
+	TopicIDDepositIncomingTransfer    = "deposit"
 )
 
 // SCRInfo holds an incoming scr that is created based on an incoming cross chain event and its hash
@@ -38,4 +35,10 @@ type ConfirmedBridgeOp struct {
 type EventResult struct {
 	SCR               *SCRInfo
 	ConfirmedBridgeOp *ConfirmedBridgeOp
+}
+
+// EventsResult holds the results of processing incoming cross chain events
+type EventsResult struct {
+	Scrs               []*SCRInfo
+	ConfirmedBridgeOps []*ConfirmedBridgeOp
 }

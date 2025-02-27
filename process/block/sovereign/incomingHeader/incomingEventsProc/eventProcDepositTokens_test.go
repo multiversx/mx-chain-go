@@ -1,4 +1,4 @@
-package incomingHeader
+package incomingEventsProc
 
 import (
 	"encoding/hex"
@@ -9,9 +9,25 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
+
+func createArgs() EventProcDepositTokensArgs {
+	return EventProcDepositTokensArgs{
+		Marshaller: &marshallerMock.MarshalizerMock{},
+		Hasher:     &hashingMocks.HasherMock{},
+		DataCodec: &sovTests.DataCodecMock{
+			DeserializeTokenDataCalled: func(_ []byte) (*sovereign.EsdtTokenData, error) {
+				return &sovereign.EsdtTokenData{
+					Amount: big.NewInt(0),
+				}, nil
+			},
+		},
+		TopicsChecker: &sovTests.TopicsCheckerMock{},
+	}
+}
 
 func TestDepositEventProc_createEventData(t *testing.T) {
 	t.Parallel()

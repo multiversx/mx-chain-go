@@ -1,4 +1,4 @@
-package incomingHeader
+package incomingEventsProc
 
 import (
 	"fmt"
@@ -6,19 +6,22 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-)
 
-type eventsResult struct {
-	scrs               []*SCRInfo
-	confirmedBridgeOps []*ConfirmedBridgeOp
-}
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
+)
 
 type incomingEventsProcessor struct {
 	mut      sync.RWMutex
 	handlers map[string]IncomingEventHandler
 }
 
-func (iep *incomingEventsProcessor) registerProcessor(event string, proc IncomingEventHandler) error {
+func NewIncomingEventsProcessor() *incomingEventsProcessor {
+	return &incomingEventsProcessor{
+		handlers: make(map[string]IncomingEventHandler),
+	}
+}
+
+func (iep *incomingEventsProcessor) RegisterProcessor(event string, proc IncomingEventHandler) error {
 	if check.IfNil(proc) {
 		return errNilIncomingEventHandler
 	}
@@ -29,16 +32,16 @@ func (iep *incomingEventsProcessor) registerProcessor(event string, proc Incomin
 	return nil
 }
 
-func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
-	scrs := make([]*SCRInfo, 0, len(events))
-	confirmedBridgeOps := make([]*ConfirmedBridgeOp, 0, len(events))
+func (iep *incomingEventsProcessor) ProcessIncomingEvents(events []data.EventHandler) (*dto.EventsResult, error) {
+	scrs := make([]*dto.SCRInfo, 0, len(events))
+	confirmedBridgeOps := make([]*dto.ConfirmedBridgeOp, 0, len(events))
 
 	for idx, event := range events {
 		iep.mut.RLock()
 		handler, found := iep.handlers[string(event.GetIdentifier())]
 		iep.mut.RUnlock()
 		if !found {
-			return nil, errInvalidIncomingEventIdentifier
+			return nil, dto.ErrInvalidIncomingEventIdentifier
 		}
 
 		res, err := handler.ProcessEvent(event)
@@ -54,8 +57,8 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		}
 	}
 
-	return &eventsResult{
-		scrs:               scrs,
-		confirmedBridgeOps: confirmedBridgeOps,
+	return &dto.EventsResult{
+		Scrs:               scrs,
+		ConfirmedBridgeOps: confirmedBridgeOps,
 	}, nil
 }
