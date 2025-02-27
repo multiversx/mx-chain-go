@@ -41,12 +41,6 @@ Failures are configured in `cmd/node/config/chaos.json`. Let's take the example 
 
 ## Failures
 
-### `creatingBlockError`
-
-### `processingBlockError`
-
-### `consensusCorruptSignature`
-
 ### `consensusV1ReturnErrorInCheckSignaturesValidity`
 
 In subround `END ROUND`, in `checkSignaturesValidity`, return an early error. Note that this failure is available both for leaders and for validators. Adjust the failure triggers accordingly. For example:
@@ -76,8 +70,35 @@ This failure is internally known as _testnet soft forks_. In subround `END ROUND
 }
 ```
 
-### `consensusV2CorruptLeaderSignature`
 
-### `consensusV2DelayLeaderSignature`
+## Alter chaos configuration using transactions
 
-### `consensusV2SkipSendingBlock`
+```
+export WALLET_0="~/multiversx-sdk/testwallets/latest/users/bob.pem"
+export WALLET_1="~/multiversx-sdk/testwallets/latest/users/alice.pem"
+export WALLET_2="~/multiversx-sdk/testwallets/latest/users/carol.pem"
+export WALLET_METACHAIN="~/multiversx-sdk/testwallets/latest/users/judy.pem"
+
+export ADDRESS_0="erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"
+export ADDRESS_1="erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
+export ADDRESS_2="erd1k2s324ww2g0yj38qn2ch2jwctdy8mnfxep94q9arncc6xecg3xaq6mjse8"
+export ADDRESS_METACHAIN="erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"
+
+export PROXY="http://localhost:7950"
+```
+
+Select a chaos profile (per shard):
+
+```
+cat << EOF > transaction-data.json
+{
+    "action": "selectProfile",
+    "profile": "default"
+}
+EOF
+
+mxpy tx new --data-file=transaction-data.json --pem=$WALLET_0 --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_0 --proxy=$PROXY --send
+mxpy tx new --data-file=transaction-data.json --pem=$WALLET_1 --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_1 --proxy=$PROXY --send
+mxpy tx new --data-file=transaction-data.json --pem=$WALLET_2 --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_2 --proxy=$PROXY --send
+mxpy tx new --data-file=transaction-data.json --pem=$WALLET_METACHAIN --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_METACHAIN --proxy=$PROXY --send
+```

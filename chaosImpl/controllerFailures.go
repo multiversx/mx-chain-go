@@ -55,7 +55,7 @@ func (controller *chaosController) doFailCorruptVariables(failure string, input 
 func (controller *chaosController) doFailSleep(failure string, input chaos.PointInput) chaos.PointOutput {
 	log.Info("doFailSleep()", "failure", failure, "point", input.Name)
 
-	duration := controller.profile.getFailureParameterAsFloat64(failure, "duration")
+	duration := controller.config.selectedProfile.getFailureParameterAsFloat64(failure, "duration")
 	time.Sleep(time.Duration(duration) * time.Second)
 
 	return chaos.PointOutput{}

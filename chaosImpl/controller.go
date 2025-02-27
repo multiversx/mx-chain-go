@@ -1,6 +1,7 @@
 package chaosImpl
 
 import (
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -16,9 +17,11 @@ var _ chaos.ChaosController = (*chaosController)(nil)
 type chaosController struct {
 	mutex      sync.RWMutex
 	enabled    bool
+	config     *chaosConfig
 	profile    chaosProfile
 	nodeConfig *config.Configs
 	node       NodeHandler
+	selfShard  uint32
 }
 
 // NewChaosController -
@@ -34,7 +37,7 @@ func (controller *chaosController) Setup() error {
 	}
 
 	controller.mutex.Lock()
-	controller.profile = config.selectedProfile
+	controller.config = config
 	controller.enabled = true
 	controller.mutex.Unlock()
 
@@ -71,6 +74,7 @@ func (controller *chaosController) HandleNode(node interface{}) {
 	controller.mutex.Unlock()
 
 	nodeTyped.GetCoreComponents().EpochNotifier().RegisterNotifyHandler(controller)
+	controller.selfShard = nodeTyped.GetProcessComponents().ShardCoordinator().SelfId()
 }
 
 // HandleTransaction -
@@ -80,18 +84,97 @@ func (controller *chaosController) HandleTransaction(
 	senderShard uint32,
 	receiverShard uint32,
 ) {
+	if receiverShard != controller.selfShard {
+		return
+	}
+
 	transactionTyped, ok := transaction.(data.TransactionHandler)
 	if !ok {
 		log.Error("HandleTransaction: invalid transaction type")
 		return
 	}
 
-	data := string(transactionTyped.GetData())
+	// A simple check to recognize management transactions
+	if transactionTyped.GetGasPrice() != managementTransactionsGasPrice {
+		return
+	}
 
-	log.Info("HandleTransaction",
-		"transactionHash", transactionHash,
-		"data", data,
-	)
+	log.Info("HandleTransaction: management transaction", "hash", transactionHash)
+
+	data := transactionTyped.GetData()
+
+	var config managementCommand
+
+	err := json.Unmarshal(data, &config)
+	if err != nil {
+		log.Error("HandleTransaction: could not unmarshal management command", "error", err, "data", string(data))
+	}
+
+	err = controller.handleManagementCommand(config)
+	if err != nil {
+		log.Error("HandleTransaction: could not handle management command", "error", err)
+	}
+}
+
+func (controller *chaosController) handleManagementCommand(command managementCommand) error {
+	controller.mutex.Lock()
+	defer controller.mutex.Unlock()
+
+	action := managementCommandAction(command.Action)
+
+	switch action {
+	case managementToggleChaos:
+		controller.enabled = command.ToggleValue
+	case managementSelectProfile:
+		err := controller.config.selectProfile(command.ProfileName)
+		if err != nil {
+			return err
+		}
+	case managementToggleFailure:
+		err := controller.config.toggleFailure(command.ProfileName, command.FailureName, command.ToggleValue)
+		if err != nil {
+			return err
+		}
+	case managementAddFailure:
+		err := controller.config.addFailure(command.ProfileName, command.Failure)
+		if err != nil {
+			return err
+		}
+	case managementfailNow:
+		controller.maybeFailNow(command.Failure)
+	default:
+		return fmt.Errorf("unknown management command action: %s", action)
+	}
+
+	return nil
+}
+
+func (controller *chaosController) maybeFailNow(failure *failureDefinition) {
+	input := chaos.PointInput{
+		Name: "failNow",
+	}
+
+	circumstance := controller.acquireCircumstanceNoLock(failure.Name, input)
+
+	shouldFail := circumstance.anyExpression(failure.Triggers)
+	if shouldFail {
+		log.Info("maybeFailNow FAIL", "failure", failure.Name, "point", input.Name)
+
+		switch failType(failure.Type) {
+		case failTypePanic:
+			_ = controller.doFailPanic(failure.Name, input)
+		case failTypeSleep:
+			_ = controller.doFailSleep(failure.Name, input)
+		default:
+			log.Error("maybeFailNow: unknown (or not applicable) failure type",
+				"failure", failure.Name,
+				"point", input.Name,
+				"failType", failure.Type,
+			)
+		}
+	}
+
+	log.Trace("maybeFailNow OK", "failure", failure.Name, "point", input.Name)
 }
 
 // EpochConfirmed -

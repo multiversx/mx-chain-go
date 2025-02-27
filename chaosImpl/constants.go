@@ -76,5 +76,6 @@ const (
 )
 
 const (
-	defaultConfigFilePath = "./config/chaos.json"
+	defaultConfigFilePath          = "./config/chaos.json"
+	managementTransactionsGasPrice = 1_234_567_890
 )

@@ -10,7 +10,7 @@ func TestChaosConfig_verify(t *testing.T) {
 	t.Run("with valid configuration", func(t *testing.T) {
 		config := &chaosConfig{
 			SelectedProfileName: "dummy",
-			Profiles: []chaosProfile{
+			Profiles: []*chaosProfile{
 				{
 					Name: "dummy",
 				},
@@ -43,7 +43,7 @@ func TestChaosConfig_verify(t *testing.T) {
 func TestChaosProfile_verify(t *testing.T) {
 	t.Run("with valid configuration", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name:     "foo",
 					Type:     "panic",
@@ -59,7 +59,7 @@ func TestChaosProfile_verify(t *testing.T) {
 
 	t.Run("with failure without fail type", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name: "foo",
 				},
@@ -72,7 +72,7 @@ func TestChaosProfile_verify(t *testing.T) {
 
 	t.Run("with failure with unknown fail type", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name: "foo",
 					Type: "bar",
@@ -86,7 +86,7 @@ func TestChaosProfile_verify(t *testing.T) {
 
 	t.Run("with failure without points", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name: "foo",
 					Type: "panic",
@@ -100,7 +100,7 @@ func TestChaosProfile_verify(t *testing.T) {
 
 	t.Run("with failure with unknown points", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name:     "foo",
 					Type:     "panic",
@@ -115,7 +115,7 @@ func TestChaosProfile_verify(t *testing.T) {
 
 	t.Run("with failure without triggers", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name:     "foo",
 					Type:     "panic",
@@ -130,7 +130,7 @@ func TestChaosProfile_verify(t *testing.T) {
 
 	t.Run("with failure with fail type that require parameters", func(t *testing.T) {
 		config := &chaosProfile{
-			Failures: []failureDefinition{
+			Failures: []*failureDefinition{
 				{
 					Name:     "foo",
 					Type:     "sleep",
