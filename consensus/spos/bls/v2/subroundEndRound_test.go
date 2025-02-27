@@ -2066,6 +2066,7 @@ func TestSubroundEndRound_GetEquivalentProofSender(t *testing.T) {
 
 		consensusState := initializers.InitConsensusStateWithArgs(keysHandlerMock, mapKeys)
 		sr := initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
+		sr.SetSelfPubKey("not in consensus")
 
 		selfKey := sr.SelfPubKey()
 

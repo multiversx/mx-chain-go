@@ -590,6 +590,10 @@ func (sr *subroundEndRound) createAndBroadcastProof(signature []byte, bitmap []b
 }
 
 func (sr *subroundEndRound) getEquivalentProofSender() string {
+	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
+		return sr.SelfPubKey() // single key mode
+	}
+
 	return sr.getRandomManagedKeyProofSender()
 }
 
@@ -605,7 +609,7 @@ func (sr *subroundEndRound) getRandomManagedKeyProofSender() string {
 	}
 
 	if len(consensusKeysManagedByCurrentNode) == 0 {
-		return sr.SelfPubKey() // fallback return self pub key
+		return sr.SelfPubKey() // fallback return self pub key, should never happen
 	}
 
 	randIdx := rand.Intn(len(consensusKeysManagedByCurrentNode))
