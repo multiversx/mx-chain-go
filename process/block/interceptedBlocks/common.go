@@ -126,6 +126,10 @@ func checkMetaShardInfo(
 	coordinator sharding.Coordinator,
 	headerSigVerifier process.InterceptedHeaderSigVerifier,
 ) error {
+	if coordinator.SelfId() != core.MetachainShardId {
+		return nil
+	}
+
 	wgProofsVerification := sync.WaitGroup{}
 
 	errChan := make(chan error, len(shardInfo))
