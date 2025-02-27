@@ -11,11 +11,12 @@ n - loggerName
 ...
 '''
 
+import json
+import re
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from typing import Any
-import re
-import json
 
 OUTPUT_FOLDER = 'output'
 LOGS_DATE_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
@@ -59,6 +60,15 @@ class LogEntry:
         return f'{'DEBUG' if self.l == 1 else 'INFO'}[{datetime.fromtimestamp(self.t).strftime(LOGS_DATE_FORMAT)[:-3]}] [{self.n}] [{self.s}/{self.e}/{self.r}/({self.sr})] {normalize_spacing(self.m)} {parameters}'
 
 
+class LoggingLevel (Enum):
+    DEBUG = 1
+    INFO = 2
+
+    @staticmethod
+    def find(logging_level_name: str):
+        return next(item for item in LoggingLevel if item.name == logging_level_name)
+
+
 class LogsToJsonConverter:
     def __init__(self, node_name: str, input_path: str = '', output_path: str = OUTPUT_FOLDER, log_content: list[LogEntry] = None):
         self.node_name = node_name
@@ -100,31 +110,45 @@ class LogsToJsonConverter:
                     target_dict = {match[0].strip(): match[1].strip() for match in re.findall(pattern, param_str)}
                     print('EMPTY PARAM DICT. COULDNT ADD PARAMS', param_str)
 
-    def add_parameters_version2(self, target_dict: dict[str, Any], param_str: str):
+    def add_parameters_for_coma_separatated_entries(self, target_dict: dict[str, Any], param_str: str):
         if not param_str:
             return
+        pattern = re.compile(r'(\w+(?:\s+\w+)?): ([^,]+)')
+        for key in dict(pattern.findall(param_str)):
+            target_dict[key] = dict(pattern.findall(param_str))[key]
 
     def parse(self, log_lines: list[str]):
         print(f'Parsing content of log file {self.input_path} for {self.node_name}')
         pattern = re.compile(
-            r'^(DEBUG|INFO )'                      # Log level (DEBUG/INFO)
-            r'\[(.*?)\]'                            # Timestamp inside []
-            r'\s*\[(.*?)\]'                         # Next [] content
-            r'\s*\[\s*(?:(\d+)|)\s*/\s*(\d+)\s*/\s*(\d+)\s*(?:/\(\s*(.*?)\s*\))?\s*\]'  # Handle missing first and last params
-            r'\s*(.*)'                       # The rest of the message
+            r'^(?P<log_level>DEBUG|INFO)\s*\['         # Log level
+            r'(?P<timestamp>[^\]]+)\]\s*'              # Timestamp
+            r'\[(?P<module>[^\]]+)\]\s*'               # Logger name
+            r'\[(?P<context>[^\]]*)\]\s*'              # context inside the third bracket
+            r'(?P<message>.*)$'                        # The rest of the log message
         )
 
-        # for line in re.split('\n', log_lines):
+        context_pattern = re.compile(r'(?P<shard>\d+)/(?P<epoch>\d+)/(?P<round>\d+)/\((?P<subround>[^)]+)\)')
+
         for line in log_lines:
             param_dict = {}
             match = pattern.match(line)
+
+            # normal log line, completely formed, that starts with log level etc
             if match:
-                logger_level = match.group(1).strip()
-                date = match.group(2).strip()
-                logger_name = match.group(3).strip()
-                shard, epoch, round, sub_round = match.group(4).strip(), match.group(5).strip(), match.group(6).strip(), match.group(7).strip()
-                raw_message = match.group(8)
-                if '=' in raw_message:
+                logger_level = match.group('log_level').strip()
+                date = match.group('timestamp').strip()
+                logger_name = match.group('module').strip()
+                context = match.group('context').strip()
+                raw_message = match.group('message')  # The rest of the log message
+
+                context_match = context_pattern.match(context)
+                if context_match:
+                    shard, epoch, round, sub_round = context_match.group('shard').strip(), context_match.group('epoch').strip(), context_match.group('round').strip(), context_match.group('subround').strip()
+                else:
+                    shard, epoch, round, sub_round = '', 0, 0, ''
+
+                # handle parameters
+                if raw_message and '=' in raw_message:
                     if '  ' not in raw_message:
                         parts = raw_message.split(' = ', 1)
                         message, first_label = parts[0].rsplit(" ", 1)
@@ -135,13 +159,13 @@ class LogsToJsonConverter:
                         message = splitted_message[0]
                         self.add_parameters(param_dict, splitted_message[1].strip() if len(splitted_message) > 1 else '')
                 else:
-                    message = raw_message.strip()
+                    message = raw_message.strip() if raw_message else ''
                 # print(f'***|{message}|***')
 
                 self.log_content.append(LogEntry(
                     v=self.node_name,
                     t=datetime.strptime(date, LOGS_DATE_FORMAT).timestamp(),
-                    l=1 if logger_level == 'DEBUG' else 2 if logger_level == 'INFO' else 0,
+                    l=LoggingLevel.find(logger_level).value,
                     n=logger_name,
                     s=shard,
                     e=epoch,
@@ -150,10 +174,17 @@ class LogsToJsonConverter:
                     m=message.strip(),
                     a=dict_copy(param_dict)
                 ))
+
+            # parameters line on subsequent entry/entries (<key> = <value> <key> = <value>)
             elif line and not self.is_block_table(line):
-                # parameters on subsequent entry/entries
-                print('', line)
-                if self.log_content:
+                # comma separated parameters line on subsequent row (<key>: <value>, <key>: <value>)
+                if ',' in line and ':' in line:
+                    if self.log_content:
+                        self.add_parameters_for_coma_separatated_entries(self.log_content[-1].a, line.strip())
+                elif '=' not in line:
+                    print('***', line)
+                # regular parameters line on subsequent entry/entries (<key> = <value> <key> = <value>)
+                elif self.log_content:
                     self.add_parameters(self.log_content[-1].a, line.strip())
 
     @staticmethod

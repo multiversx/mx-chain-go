@@ -1,8 +1,11 @@
 import re
 
 import pytest
-from scripts.logsConversion.sample_data import common_entries_log, empty_value_log, several_words_in_key_log, transactions_processed_table_log
+
 from scripts.logsConversion.logsToJsonConverter import LogsToJsonConverter
+from scripts.logsConversion.sample_data import (
+    comma_separated_log, common_entries_log, empty_value_log,
+    several_words_in_key_log, transactions_processed_table_log)
 
 
 def normalize_spacing(log_entry):
@@ -11,7 +14,8 @@ def normalize_spacing(log_entry):
 
 
 class TestLogsParsing:
-    def test_general(self):
+
+    def test_regular_entries(self):
         unexpected = []
 
         for log in [common_entries_log, empty_value_log]:
@@ -40,15 +44,22 @@ class TestLogsParsing:
         for line in converter.log_content:
             assert (line.to_dict() in expected_result)
 
-    def test_multiple_lines_entry(self):
+    def test_transactions_processed(self):
         # ignore the table, take the transaction processed entry as parameters
         converter = LogsToJsonConverter('node1')
         converter.parse(transactions_processed_table_log.split('\n'))
         for entry in converter.log_content:
             assert entry.to_dict() == '{"v": "node1", "t": 1738912460.175, "l": 1, "n": "process/block", "s": "1", "e": "0", "r": "859", "sr": "START_ROUND", "m": "header hash: c509d85b6a913143f3de41312b862725b60ff5e586f937311b0bb0700801b0f3", "a": {"total txs processed": "0", "block txs processed": "0", "num shards": "3", "shard": "1"}}'
 
-    def test_colon_separated_key_values_entry(self):
-        pass
+    def test_comma_separated_parameters(self):
+
+        conv = LogsToJsonConverter('node1')
+        conv.parse(comma_separated_log.split('\n'))
+
+        for entry in conv.log_content:
+            print('aaa')
+            print(entry.to_dict())
+            assert entry.to_dict() == '{"v": "node1", "t": 1740142140.451, "l": 1, "n": "debug/handler", "s": "0", "e": "2", "r": "205", "sr": "END_ROUND", "m": "Requests pending and resolver fails:", "a": {"type": "resolve", "topic": "metachainBlocks_REQUEST", "hash": "00000000000000cb", "numReqIntra": "0", "numReqCross": "0", "numReceived": "3", "numProcessed": "0", "last err": "cannot find header in cache", "query time": "2025-02-21 14:48:44.000"}}'
 
     def test_transactions_in_pool_entries(self):
         pass
