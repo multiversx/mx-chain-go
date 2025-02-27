@@ -70,35 +70,96 @@ This failure is internally known as _testnet soft forks_. In subround `END ROUND
 }
 ```
 
+## Chaos management using transactions
 
-## Alter chaos configuration using transactions
+Prepare the environment:
 
-```
+```bash
+# Can be any wallet(s). Useful to have one for each destination shard, to avoid conflicting nonces when sending concurrent transactions.
 export WALLET_0="~/multiversx-sdk/testwallets/latest/users/bob.pem"
 export WALLET_1="~/multiversx-sdk/testwallets/latest/users/alice.pem"
 export WALLET_2="~/multiversx-sdk/testwallets/latest/users/carol.pem"
 export WALLET_METACHAIN="~/multiversx-sdk/testwallets/latest/users/judy.pem"
 
+# Can be any addresses, one for each shard.
 export ADDRESS_0="erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"
 export ADDRESS_1="erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"
 export ADDRESS_2="erd1k2s324ww2g0yj38qn2ch2jwctdy8mnfxep94q9arncc6xecg3xaq6mjse8"
 export ADDRESS_METACHAIN="erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"
 
 export PROXY="http://localhost:7950"
+
+# Magic number for gas price
+export GAS_PRICE=1234567890
+
+# Utility function to send a chaos management transaction
+sendTransaction() {
+    WALLET_VAR_NAME="WALLET_$1"
+    ADDRESS_VAR_NAME="ADDRESS_$1"
+    mxpy tx new --pem="${!WALLET_VAR_NAME}" --receiver="${!ADDRESS_VAR_NAME}" --data-file=chaos-transaction-data.json --gas-limit=5000000 --gas-price=$GAS_PRICE --recall-nonce --proxy=$PROXY --send
+}
+```
+
+Toggle (enable or disable) chaos (per shard):
+
+```bash
+cat << EOF > chaos-transaction-data.json
+{
+    "action": "toggleChaos",
+    "toggleValue": true
+}
+EOF
+
+sendTransaction 0
+sendTransaction 1
+sendTransaction 2
+sendTransaction METACHAIN
 ```
 
 Select a chaos profile (per shard):
 
-```
-cat << EOF > transaction-data.json
+```bash
+cat << EOF > chaos-transaction-data.json
 {
     "action": "selectProfile",
-    "profile": "default"
+    "profileName": "default"
 }
 EOF
 
-mxpy tx new --data-file=transaction-data.json --pem=$WALLET_0 --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_0 --proxy=$PROXY --send
-mxpy tx new --data-file=transaction-data.json --pem=$WALLET_1 --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_1 --proxy=$PROXY --send
-mxpy tx new --data-file=transaction-data.json --pem=$WALLET_2 --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_2 --proxy=$PROXY --send
-mxpy tx new --data-file=transaction-data.json --pem=$WALLET_METACHAIN --gas-limit 5000000 --recall-nonce --receiver=$ADDRESS_METACHAIN --proxy=$PROXY --send
+sendTransaction ...
+```
+
+Toggle a previously-defined failure (per shard):
+
+```bash
+cat << EOF > chaos-transaction-data.json
+{
+    "action": "toggleFailure",
+    "profileName": "default"
+    "failureName": "returnErrorOnCreateBlock",
+    "toggleValue": false
+}
+EOF
+
+sendTransaction ...
+```
+
+Add (define) a failure:
+
+```bash
+cat << EOF > chaos-transaction-data.json
+{
+    "action": "addFailure",
+    "profileName": "default"
+    "failure": {
+        "name": "returnErrorOnCreateBlock",
+        "enabled": true,
+        "type": "returnError",
+        "onPoints": ["shardBlockCreateBlock"],
+        "triggers": ["shard == 0 && round % 8 == 0"]
+    }
+}
+EOF
+
+sendTransaction ...
 ```

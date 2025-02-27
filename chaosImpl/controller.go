@@ -124,57 +124,35 @@ func (controller *chaosController) handleManagementCommand(command managementCom
 
 	switch action {
 	case managementToggleChaos:
+		log.Info("handleManagementCommand: toggleChaos", "toggle", command.ToggleValue)
+
 		controller.enabled = command.ToggleValue
 	case managementSelectProfile:
+		log.Info("handleManagementCommand: selectProfile", "profile", command.ProfileName)
+
 		err := controller.config.selectProfile(command.ProfileName)
 		if err != nil {
 			return err
 		}
 	case managementToggleFailure:
+		log.Info("handleManagementCommand: toggleFailure", "profile", command.ProfileName, "failure", command.FailureName, "toggle", command.ToggleValue)
+
 		err := controller.config.toggleFailure(command.ProfileName, command.FailureName, command.ToggleValue)
 		if err != nil {
 			return err
 		}
 	case managementAddFailure:
+		log.Info("handleManagementCommand: addFailure", "profile", command.ProfileName, "failure", command.Failure.Name)
+
 		err := controller.config.addFailure(command.ProfileName, command.Failure)
 		if err != nil {
 			return err
 		}
-	case managementfailNow:
-		controller.maybeFailNow(command.Failure)
 	default:
 		return fmt.Errorf("unknown management command action: %s", action)
 	}
 
 	return nil
-}
-
-func (controller *chaosController) maybeFailNow(failure *failureDefinition) {
-	input := chaos.PointInput{
-		Name: "failNow",
-	}
-
-	circumstance := controller.acquireCircumstanceNoLock(failure.Name, input)
-
-	shouldFail := circumstance.anyExpression(failure.Triggers)
-	if shouldFail {
-		log.Info("maybeFailNow FAIL", "failure", failure.Name, "point", input.Name)
-
-		switch failType(failure.Type) {
-		case failTypePanic:
-			_ = controller.doFailPanic(failure.Name, input)
-		case failTypeSleep:
-			_ = controller.doFailSleep(failure.Name, input)
-		default:
-			log.Error("maybeFailNow: unknown (or not applicable) failure type",
-				"failure", failure.Name,
-				"point", input.Name,
-				"failType", failure.Type,
-			)
-		}
-	}
-
-	log.Trace("maybeFailNow OK", "failure", failure.Name, "point", input.Name)
 }
 
 // EpochConfirmed -

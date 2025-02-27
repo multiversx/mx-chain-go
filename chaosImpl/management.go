@@ -15,5 +15,4 @@ const (
 	managementSelectProfile managementCommandAction = "selectProfile"
 	managementToggleFailure managementCommandAction = "toggleFailure"
 	managementAddFailure    managementCommandAction = "addFailure"
-	managementfailNow       managementCommandAction = "failNow"
 )
