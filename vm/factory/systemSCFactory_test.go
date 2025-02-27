@@ -3,6 +3,7 @@ package factory
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -25,8 +26,12 @@ func createMockNewSystemScFactoryArgs() ArgsNewSystemSCFactory {
 	gasMap = defaults.FillGasMapInternal(gasMap, 1)
 	gasSchedule := testscommon.NewGasScheduleNotifierMock(gasMap)
 	return ArgsNewSystemSCFactory{
-		SystemEI:            &mock.SystemEIStub{},
-		Economics:           &economicsmocks.EconomicsHandlerMock{},
+		SystemEI: &mock.SystemEIStub{},
+		Economics: &economicsmocks.EconomicsHandlerMock{
+			GenesisTotalSupplyCalled: func() *big.Int {
+				return big.NewInt(100000000)
+			},
+		},
 		SigVerifier:         &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		NodesConfigProvider: &mock.NodesConfigProviderStub{},
