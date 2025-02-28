@@ -16,6 +16,11 @@ DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] subroundBl
 DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved
 DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] step 1: block header has been received   nonce = 906 hash = 021b8f4ea41d376672bd49469808c001d68aa0ec575e4e48d02a70d60a14cbb7
 '''
+contract_deployed_log = '''
+DEBUG[2025-02-21 14:28:40.086] [..ss/smartcontract] [0/0/0/]       SmartContract deployed                   owner = erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u SC address(es) = erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
+DEBUG[2025-02-21 14:43:17.076] [..ss/smartcontract] [0/1/148/(BLOCK)] SmartContract deployed                   owner = erd13utlnu8haswaxcyy0qcz4h36ac00ljwcswh99296ttky26c9squq5kvhnw SC address(es) = erd1qqqqqqqqqqqqqpgq757dnjww7m08velt2udhwkgyzh5dv5z6squqpxgcgs
+'''
+
 comma_separated_log = '''
 DEBUG[2025-02-21 14:49:00.451] [debug/handler]      [0/2/205/(END_ROUND)] Requests pending and resolver fails:
 type: resolve, topic: metachainBlocks_REQUEST, hash: 00000000000000cb, numReqIntra: 0, numReqCross: 0, numReceived: 3, numProcessed: 0, last err: cannot find header in cache, last query time: 2025-02-21 14:48:44.000  '''
@@ -70,6 +75,24 @@ transactions_processed_table_log = '''DEBUG[2025-02-07 09:14:20.175] [process/bl
 +-----------------+---------------------------+--------------------------------------------------------------------------------------------------+
  total txs processed = 0 block txs processed = 0 num shards = 3 shard = 1 '''
 
+total_transactions_in_pool_logs = '''
+DEBUG[2025-02-21 18:53:29.211] [process/block]      [0/26/2650/(BLOCK)] total txs in pool                        counts = Total:217 (51.37 KB); [0]=68 (15.94 KB); [1_0]=92 (21.83 KB); [2_0]=57 (13.60 KB);
+DEBUG[2025-02-21 18:53:29.211] [process/block]      [0/26/2650/(BLOCK)] total txs in rewards pool                counts = Total:0 (0 B); [4294967295_0]=0 (0 B);
+DEBUG[2025-02-21 18:53:29.211] [process/block]      [0/26/2650/(BLOCK)] total txs in unsigned pool               counts = Total:425 (137.92 KB); [0_1]=57 (9.13 KB); [0_2]=368 (128.79 KB); [1_0]=0 (0 B); [2_0]=0 (0 B);  '''
+statistics_entries_log = '''
+DEBUG[2025-02-21 18:51:06.706] [common/statistics]  [0/25/2626/(END_ROUND)] node statistics                          uptime = 4h22m33s timestamp = 1740163866 num go = 847 heap alloc = 1.52 GB heap idle = 589.41 MB heap inuse = 1.59 GB heap sys = 2.17 GB heap num objs = 13699793 sys mem = 2.26 GB num GC = 242 os level stats = {VmPeak: 22.06 GB, VmSize: 22.06 GB, VmLck: 0 B, VmPin: 0 B, VmHWM: 2.23 GB, VmRSS: 1.89 GB, RssAnon: 1.83 GB, RssFile: 59.21 MB, RssShmem: 4.00 KB, VmData: 2.49 GB, VmStk: 132.00 KB, VmExe: 27.89 MB, VmLib: 10.29 MB, VmPTE: 4.96 MB, VmSwap: 0 B} FDs = 284 num opened files = 283 num conns = 32 cpuPercent = 13.32 cpuLoadAveragePercent = {avg1min: 0.17, avg5min: 0.26, avg15min: 0.20} ioStatsString = {readCount: 7192811, writeCount: 6761406, readBytes: 4.64 MB, writeBytes: 2.51 GB} host network data size in epoch = {total received: 55.76 MB, total sent: 54.63 MB}
+DEBUG[2025-02-21 18:51:36.711] [common/statistics]  [0/26/2631/(END_ROUND)] node statistics                          uptime = 4h23m3s timestamp = 1740163896 num go = 842 heap alloc = 1.20 GB heap idle = 738.32 MB heap inuse = 1.45 GB heap sys = 2.17 GB heap num objs = 10008737 sys mem = 2.26 GB num GC = 243 os level stats = {VmPeak: 22.06 GB, VmSize: 22.06 GB, VmLck: 0 B, VmPin: 0 B, VmHWM: 2.23 GB, VmRSS: 1.94 GB, RssAnon: 1.88 GB, RssFile: 59.21 MB, RssShmem: 4.00 KB, VmData: 2.49 GB, VmStk: 132.00 KB, VmExe: 27.89 MB, VmLib: 10.29 MB, VmPTE: 4.96 MB, VmSwap: 0 B} FDs = 282 num opened files = 281 num conns = 31 cpuPercent = 13.34 cpuLoadAveragePercent = {avg1min: 0.16, avg5min: 0.25, avg15min: 0.19} ioStatsString = {readCount: 7206533, writeCount: 6777547, readBytes: 4.75 MB, writeBytes: 2.52 GB} host network data size in epoch = {total received: 2.09 MB, total sent: 1.97 MB}
+'''
+special_chars_in_parameters_log = '''
+DEBUG[2025-02-21 14:58:59.305] [storage/leveldb]    [0/3/305/(END_ROUND)] processLoop - closing the leveldb process loop path = /home/ubuntu/go/src/github.com/multiversx/mx-chain-go/cmd/node/db/1/Epoch_0/Shard_0/BootstrapData
+DEBUG[2025-02-21 14:28:33.737] [node]               [/0/0/]        read enable epoch for max nodes change   epoch = [{0 48 4} {1 64 2} {3 56 2}]
+DEBUG[2025-02-21 14:28:33.737] [node]               [/0/0/]        read enable epoch for gas schedule directories paths epoch = [{0 gasScheduleV8.toml}]
+DEBUG[2025-02-21 14:28:33.738] [common/enablers]    [/0/0/]        loaded round config                      name = DisableAsyncCallV1 round = 100 options = []
+DEBUG[2025-02-21 14:38:47.460] [trieStatistics]     [0/1/103/(END_ROUND)] migration stats for mainTrie             stats = [num leaves with not specified version = 771]
+DEBUG[2025-02-21 14:38:47.460] [trieStatistics]     [0/1/103/(END_ROUND)] migration stats for dataTrie             stats = [num leaves with not specified version = 55]
+DEBUG[2025-02-21 14:48:53.177] [storage/pruning]    [0/2/204/(END_ROUND)] PruningStorer.processPersistersToClose   epochs to close = [] before process = [2 1 0] after process = [2 1 0]
+DEBUG[2025-02-21 18:51:49.438] [trieStatistics]     [0/26/2633/(END_ROUND)] migration stats for dataTrie             stats = [num leaves with auto balanced version = 18306 num leaves with not specified version = 55]
+DEBUG[2025-02-21 18:51:49.438] [trieStatistics]     [0/26/2633/(END_ROUND)] migration stats for mainTrie             stats = [num leaves with not specified version = 191807] '''
 
 complete_round_log = '''
 DEBUG[2025-02-07 09:14:20.003] [..ensus/chronology] [1/0/858/(BLOCK)] 2025-02-07 09:14:20.001026524  ################################### ROUND 859 BEGINS (1738919660) ###################################

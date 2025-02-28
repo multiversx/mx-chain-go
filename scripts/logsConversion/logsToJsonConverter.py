@@ -78,12 +78,17 @@ class LogsToJsonConverter:
             return
 
         # transaction in pool entries
-        # if param_str.strip()[:15] == 'counts = Total:':
         if param_str.strip().startswith('counts = Total:'):
-            target_dict['counts'] = param_str.strip()[8:]
+            target_dict['counts'] = param_str.strip().replace('counts = ', '')
             return
 
-        matches = re.findall(r"([\w\s\[\].]+?)\s*=\s*([\w().,-]+)", param_str)
+        # migration stats entries
+        if param_str.strip().startswith('stats = ['):
+            param_str = param_str.strip().replace('stats = [', '').replace(']', '')
+
+        pattern = r"([\w\s]+)\s*=\s*(\[.*?\])" if param_str.strip().startswith('epochs to close') else r"([\w\s\[\].]+?)\s*=\s*([\w().,-]+)"
+
+        matches = re.findall(pattern, param_str)
         remaining_text = param_str
 
         for k, v in matches:
@@ -109,13 +114,33 @@ class LogsToJsonConverter:
                 else:
                     print('EMPTY PARAM DICT. COULDNT ADD PARAMS', param_str)
 
+    # add parameters for node statistics entries
+    def add_parameters_for_node_statistics(self, target_dict: dict[str, Any], param_str: str):
+        if not param_str:
+            return
+        pattern = r"([\w\s]+?)\s*=\s*(\{(?:[^{}]+|(?:\{[^{}]*\}))*\}|\S+)"
+
+        matches = re.findall(pattern, param_str)
+        # fix matching
+        stats = recursive_post_process_keys_for_statistics('', list(matches), {})
+        for key in stats.keys():
+            target_dict[key.strip()] = stats[key].strip()
+
     # add parameters for coma separated entries in subsequent rows
+
     def add_parameters_for_coma_separatated_entries(self, target_dict: dict[str, Any], param_str: str):
         if not param_str:
             return
         pattern = re.compile(r'(\w+(?:\s+\w+)?): ([^,]+)')
         for key in dict(pattern.findall(param_str)):
             target_dict[key] = dict(pattern.findall(param_str))[key]
+
+    def add_parameters_for_paranthesis_in_message(self, target_dict: dict[str, Any], param_str: str):
+        pattern = r"(?P<key>[\w\s]+)\s*=\s*(?P<value>\[.*?\])"
+
+        matches = re.findall(pattern, param_str)
+        for key, value in matches:
+            target_dict[key.strip()] = value.strip()
 
     def parse(self, log_lines: list[str]):
         print(f'Parsing content of log file {self.input_path} for {self.node_name}')
@@ -159,7 +184,11 @@ class LogsToJsonConverter:
                     else:
                         splitted_message = re.split('  ', raw_message, 1)
                         message = splitted_message[0]
-                        self.add_parameters(param_dict, splitted_message[1].strip() if len(splitted_message) > 1 else '')
+                        parameters_str = splitted_message[1].strip()
+                        if 'node statistics' in message:
+                            self.add_parameters_for_node_statistics(param_dict, parameters_str if len(parameters_str) > 1 else '')
+                        else:
+                            self.add_parameters(param_dict, parameters_str if len(parameters_str) > 1 else '')
 
                 # no parameters
                 else:
@@ -199,6 +228,20 @@ class LogsToJsonConverter:
         result = LogsToJsonConverter(node_name, path, output_path)
         log_content = load_json(path)
         result.parse(log_content)
+
+
+def recursive_post_process_keys_for_statistics(txt: str, matches: list[tuple[str, str]], stats_dict: dict[str, str]) -> dict[str, str]:
+    if not matches:
+        return stats_dict
+
+    key, value = matches.pop()
+    key = key.strip()
+    value = value.strip() + (' ' + txt.strip() if txt else '')
+
+    txt = key[:3] if key.startswith('GB ') or key.startswith('MB ') or key.startswith('KB ') else ''
+    stats_dict[key.replace('GB ', '').replace('MB ', '').replace('KB ', '')] = value
+    recursive_post_process_keys_for_statistics(txt, matches, stats_dict)
+    return {k: stats_dict[k] for k in reversed(list(stats_dict.keys()))}
 
 
 def main():
