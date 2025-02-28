@@ -206,6 +206,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch, uint64(enableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricMaskVMInternalDependenciesErrorsEnableEpoch, uint64(enableEpochs.MaskVMInternalDependenciesErrorsEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricFixBackTransferOPCODEEnableEpoch, uint64(enableEpochs.FixBackTransferOPCODEEnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(enableEpochs.ValidationOnGobDecodeEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)

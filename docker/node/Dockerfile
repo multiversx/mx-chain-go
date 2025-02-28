@@ -1,4 +1,4 @@
-FROM golang:1.20.7 AS builder
+FROM golang:1.23.6 AS builder
 
 RUN apt-get update && apt-get upgrade -y
 WORKDIR /go/mx-chain-go
