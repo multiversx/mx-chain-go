@@ -485,7 +485,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	container := consensus.InitConsensusCore()
-	container.SetValidatorGroupSelector(nil)
+	container.SetNodesCoordinator(nil)
 
 	sr, err := spos.NewSubround(
 		-1,
