@@ -4232,6 +4232,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPerDataByte:         "1500",

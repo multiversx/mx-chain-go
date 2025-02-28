@@ -263,6 +263,47 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	assert.True(t, isEpochStart)
 }
 
+func TestTrigger_LastCommitedMetaEpochStartBlock(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartTriggerArguments()
+	et, _ := NewEpochStartTrigger(args)
+
+	epoch := uint32(37)
+
+	epochStartNonce := uint64(100)
+	epochStartRound := uint64(101)
+	ecpohStartTimeStamp := uint64(102)
+
+	epochStartMetaHdr := &block.MetaBlock{
+		Epoch:     epoch,
+		Nonce:     epochStartNonce,
+		Round:     epochStartRound,
+		TimeStamp: ecpohStartTimeStamp,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
+		},
+	}
+
+	nonce := uint64(200)
+	round := uint64(201)
+	timeStamp := uint64(202)
+
+	metaHdr := &block.MetaBlock{
+		Epoch:     epoch,
+		Nonce:     nonce,
+		Round:     round,
+		TimeStamp: timeStamp,
+	}
+
+	et.SetProcessed(epochStartMetaHdr, nil)
+	et.SetProcessed(metaHdr, nil)
+
+	lastCommitedEpochStartBlock, err := et.LastCommitedEpochStartHdr()
+	require.Nil(t, err)
+	require.Equal(t, epochStartMetaHdr, lastCommitedEpochStartBlock)
+}
+
 func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
 	t.Parallel()
 

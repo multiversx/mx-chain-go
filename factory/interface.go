@@ -311,6 +311,7 @@ type ProcessComponentsHolder interface {
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
+	BlockchainHook() process.BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
 }
 
