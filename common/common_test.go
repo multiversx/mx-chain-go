@@ -227,18 +227,7 @@ func TestIsConsensusBitmapValid(t *testing.T) {
 
 	log := &testscommon.LoggerStub{}
 
-	pubKeys := []string{
-		"a",
-		"b",
-		"c",
-		"d",
-		"e",
-		"f",
-		"g",
-		"h",
-		"i",
-		"j",
-	}
+	pubKeys := []string{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"}
 
 	t.Run("wrong size bitmap", func(t *testing.T) {
 		t.Parallel()
