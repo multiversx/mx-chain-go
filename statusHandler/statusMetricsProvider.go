@@ -384,6 +384,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch] = sm.uint64Metrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch]
 	enableEpochsMetrics[common.MetricFixBackTransferOPCODEEnableEpoch] = sm.uint64Metrics[common.MetricFixBackTransferOPCODEEnableEpoch]
+	enableEpochsMetrics[common.MetricValidationOnGobDecodeEnableEpoch] = sm.uint64Metrics[common.MetricValidationOnGobDecodeEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 

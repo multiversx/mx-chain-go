@@ -905,6 +905,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
 	FixBackTransferOPCODEEnableEpoch = 106
 
+	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 107
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1031,6 +1034,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
 			MaskVMInternalDependenciesErrorsEnableEpoch:              105,
 			FixBackTransferOPCODEEnableEpoch:                         106,
+			ValidationOnGobDecodeEnableEpoch:                         107,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

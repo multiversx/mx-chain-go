@@ -215,6 +215,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			RelayedTransactionsV3FixESDTTransferEnableEpoch:          108,
 			MaskVMInternalDependenciesErrorsEnableEpoch:              109,
 			FixBackTransferOPCODEEnableEpoch:                         110,
+			ValidationOnGobDecodeEnableEpoch:                         111,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -340,6 +341,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch":           uint32(108),
 		"erd_mask_vm_internal_dependencies_errors_enable_epoch":                uint32(109),
 		"erd_fix_back_transfer_opcode_enable_epoch":                            uint32(110),
+		"erd_validation_on_gobdecode_enable_epoch":                             uint32(111),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
