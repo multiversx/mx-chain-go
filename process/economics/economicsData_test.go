@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -95,6 +97,8 @@ func feeSettingsReal() config.FeeSettings {
 
 func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsDummy(gasModifier)
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
@@ -104,12 +108,16 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:  pkConv,
+		ShardCoordinator: shardC,
 	}
 	return args
 }
 
 func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
 	args := economics.ArgsNewEconomicsData{
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
@@ -119,6 +127,8 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:  pkConv,
+		ShardCoordinator: shardC,
 	}
 	return args
 }
@@ -560,6 +570,59 @@ func TestNewEconomicsData_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
+func TestNewEconomicsData_NilPubkeyConverter(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.PubkeyConverter = nil
+
+	_, err := economics.NewEconomicsData(args)
+	require.Equal(t, process.ErrNilPubkeyConverter, err)
+}
+
+func TestNewEconomicsData_NilShardCoordinator(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.ShardCoordinator = nil
+
+	_, err := economics.NewEconomicsData(args)
+	require.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestEconomicsData_InvalidProtocolSustainabilityAddressShouldError(t *testing.T) {
+
+	t.Run("empty address", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArgsForEconomicsData(1)
+		args.Economics.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress = ""
+
+		_, err := economics.NewEconomicsData(args)
+		require.Equal(t, process.ErrNilProtocolSustainabilityAddress, err)
+	})
+	t.Run("invalid address", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArgsForEconomicsData(1)
+		args.Economics.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress = "xyz" // not a hex string
+
+		_, err := economics.NewEconomicsData(args)
+		require.Error(t, err)
+	})
+	t.Run("meta address", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArgsForEconomicsData(1)
+		// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
+		metaAddress, _ := args.PubkeyConverter.Encode([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
+		args.Economics.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress = metaAddress
+
+		_, err := economics.NewEconomicsData(args)
+		require.Equal(t, process.ErrProtocolSustainabilityAddressInMetachain, err)
+	})
+}
+
 func TestNewEconomicsData_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -686,20 +749,22 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 		},
 	}
 
+	expectedRS := getExpectedSettings(rs, args.PubkeyConverter)
+
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	rewardsActiveConfig := economicsData.GetRewardsActiveConfig(1)
 	require.NotNil(t, rewardsActiveConfig)
-	require.Equal(t, rs[0], *rewardsActiveConfig)
+	require.Equal(t, expectedRS[0], *rewardsActiveConfig)
 
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(2)
 	require.NotNil(t, rewardsActiveConfig)
-	require.Equal(t, rs[0], *rewardsActiveConfig)
+	require.Equal(t, expectedRS[0], *rewardsActiveConfig)
 
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(3)
 	require.NotNil(t, rewardsActiveConfig)
-	require.Equal(t, rs[1], *rewardsActiveConfig)
+	require.Equal(t, expectedRS[1], *rewardsActiveConfig)
 }
 
 func TestEconomicsData_ConfirmedGasLimitSettingsChangeOrderedConfigs(t *testing.T) {
@@ -769,21 +834,21 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 			EpochEnable:                      0,
 		},
 	}
-
+	expectedRS := getExpectedSettings(rs, args.PubkeyConverter)
 	args.Economics.RewardsSettings = config.RewardsSettings{RewardsConfigByEpoch: rs}
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	rewardsActiveConfig := economicsData.GetRewardsActiveConfig(1)
 	require.NotNil(t, rewardsActiveConfig)
-	require.Equal(t, rs[1], *rewardsActiveConfig)
+	require.Equal(t, expectedRS[1], *rewardsActiveConfig)
 
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(2)
 	require.NotNil(t, rewardsActiveConfig)
-	require.Equal(t, rs[1], *rewardsActiveConfig)
+	require.Equal(t, expectedRS[1], *rewardsActiveConfig)
 
 	rewardsActiveConfig = economicsData.GetRewardsActiveConfig(3)
 	require.NotNil(t, rewardsActiveConfig)
-	require.Equal(t, rs[0], *rewardsActiveConfig)
+	require.Equal(t, expectedRS[0], *rewardsActiveConfig)
 }
 
 func TestEconomicsData_ConfirmedGasLimitSettingsChangeUnOrderedConfigs(t *testing.T) {
@@ -1590,12 +1655,13 @@ func TestEconomicsData_ProtocolSustainabilityAddress(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForEconomicsData(1)
-	protocolSustainabilityAddress := "erd12345"
+	protocolSustainabilityAddress := "erd14uqxan5rgucsf6537ll4vpwyc96z7us5586xhc5euv8w96rsw95sfl6a49"
+	expectedAddress, _ := args.PubkeyConverter.Decode(protocolSustainabilityAddress)
 	args.Economics.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress = protocolSustainabilityAddress
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	value := economicsData.ProtocolSustainabilityAddress()
-	assert.Equal(t, protocolSustainabilityAddress, value)
+	assert.Equal(t, string(expectedAddress), value)
 }
 
 func TestEconomicsData_RewardsTopUpGradientPoint(t *testing.T) {
@@ -1620,4 +1686,23 @@ func TestEconomicsData_RewardsTopUpFactor(t *testing.T) {
 
 	value := economicsData.RewardsTopUpFactor()
 	assert.Equal(t, topUpFactor, value)
+}
+
+func getExpectedSettings(rs []config.EpochRewardSettings, pkConv core.PubkeyConverter) []config.EpochRewardSettings {
+	expectedRS := make([]config.EpochRewardSettings, 0, len(rs))
+	for _, rewardSettingsPerEpoch := range rs {
+		decodedAddr, _ := pkConv.Decode(rewardSettingsPerEpoch.ProtocolSustainabilityAddress)
+
+		expectedRS = append(expectedRS, config.EpochRewardSettings{
+			LeaderPercentage:                 rewardSettingsPerEpoch.LeaderPercentage,
+			DeveloperPercentage:              rewardSettingsPerEpoch.DeveloperPercentage,
+			ProtocolSustainabilityPercentage: rewardSettingsPerEpoch.ProtocolSustainabilityPercentage,
+			ProtocolSustainabilityAddress:    string(decodedAddr),
+			TopUpGradientPoint:               rewardSettingsPerEpoch.TopUpGradientPoint,
+			TopUpFactor:                      rewardSettingsPerEpoch.TopUpFactor,
+			EpochEnable:                      rewardSettingsPerEpoch.EpochEnable,
+		})
+	}
+
+	return expectedRS
 }

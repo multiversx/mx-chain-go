@@ -327,6 +327,7 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		TxVersionChecker: versioning.NewTxVersionChecker(minTransactionVersion),
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -369,7 +370,8 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 		},
 		EpochNotifier:       realEpochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
+		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)

@@ -185,7 +185,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
@@ -334,7 +334,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
@@ -402,7 +402,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
@@ -649,7 +649,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 
@@ -680,7 +680,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, expectedRewardTx)

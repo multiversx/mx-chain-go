@@ -348,29 +348,11 @@ func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 ) (*rewardTx.RewardTx, uint32, error) {
 
 	protocolSustainabilityAddressForEpoch := brc.rewardsHandler.ProtocolSustainabilityAddressInEpoch(metaBlock.GetEpoch())
-	if len(protocolSustainabilityAddressForEpoch) == 0 {
-		return nil, 0, epochStart.ErrNilProtocolSustainabilityAddress
-	}
-
-	address, err := brc.pubkeyConverter.Decode(protocolSustainabilityAddressForEpoch)
-	if err != nil {
-		log.Warn("invalid protocol sustainability reward address",
-			"err", err,
-			"provided address", protocolSustainabilityAddressForEpoch,
-			"epoch", metaBlock.GetEpoch(),
-		)
-		return nil, 0, err
-	}
-
-	protocolSustainabilityShardID := brc.shardCoordinator.ComputeId(address)
-	if protocolSustainabilityShardID == core.MetachainShardId {
-		return nil, 0, epochStart.ErrProtocolSustainabilityAddressInMetachain
-	}
-
+	protocolSustainabilityShardID := brc.shardCoordinator.ComputeId([]byte(protocolSustainabilityAddressForEpoch))
 	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
 		Value:   big.NewInt(0).Set(computedEconomics.RewardsForProtocolSustainability),
-		RcvAddr: address,
+		RcvAddr: []byte(protocolSustainabilityAddressForEpoch),
 		Epoch:   metaBlock.GetEpoch(),
 	}
 

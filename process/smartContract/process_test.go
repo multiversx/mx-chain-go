@@ -4247,6 +4247,8 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		PubkeyConverter:  &testscommon.PubkeyConverterStub{},
+		ShardCoordinator: &testscommon.ShardsCoordinatorMock{},
 	}
 }
 

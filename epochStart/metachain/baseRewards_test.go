@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -18,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -889,92 +887,20 @@ func TestBaseRewardsCreator_isSystemDelegationSCTrue(t *testing.T) {
 func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("empty protocol sust address should error", func(t *testing.T) {
-		t.Parallel()
+	args := getBaseRewardsArguments()
+	rwd, err := NewBaseRewardsCreator(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
 
-		args := getBaseRewardsArguments()
-		args.RewardsHandler = &mock.RewardsHandlerStub{
-			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
-				return ""
-			},
-		}
-		rwd, err := NewBaseRewardsCreator(args)
-		require.Nil(t, err)
-		require.NotNil(t, rwd)
+	metaBlk := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+	}
 
-		metaBlk := &block.MetaBlock{
-			EpochStart:     getDefaultEpochStart(),
-			DevFeesInEpoch: big.NewInt(0),
-		}
-
-		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
-		require.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
-		require.Nil(t, rwTx)
-	})
-	t.Run("invalid protocol sust address should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := getBaseRewardsArguments()
-		args.RewardsHandler = &mock.RewardsHandlerStub{
-			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
-				return "xyz" // not a hex string
-			},
-		}
-		rwd, err := NewBaseRewardsCreator(args)
-		require.Nil(t, err)
-		require.NotNil(t, rwd)
-
-		metaBlk := &block.MetaBlock{
-			EpochStart:     getDefaultEpochStart(),
-			DevFeesInEpoch: big.NewInt(0),
-		}
-
-		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
-		require.Error(t, err)
-		require.Nil(t, rwTx)
-	})
-	t.Run("meta protocol sust address should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := getBaseRewardsArguments()
-		args.RewardsHandler = &mock.RewardsHandlerStub{
-			ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
-				// wrong configuration of staking system SC address (in metachain) as protocol sustainability address
-				return hex.EncodeToString([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255})
-			},
-		}
-		args.ShardCoordinator, _ = sharding.NewMultiShardCoordinator(2, 0)
-		rwd, err := NewBaseRewardsCreator(args)
-		require.Nil(t, err)
-		require.NotNil(t, rwd)
-
-		metaBlk := &block.MetaBlock{
-			EpochStart:     getDefaultEpochStart(),
-			DevFeesInEpoch: big.NewInt(0),
-		}
-
-		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
-		require.Equal(t, epochStart.ErrProtocolSustainabilityAddressInMetachain, err)
-		require.Nil(t, rwTx)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		args := getBaseRewardsArguments()
-		rwd, err := NewBaseRewardsCreator(args)
-		require.Nil(t, err)
-		require.NotNil(t, rwd)
-
-		metaBlk := &block.MetaBlock{
-			EpochStart:     getDefaultEpochStart(),
-			DevFeesInEpoch: big.NewInt(0),
-		}
-
-		rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
-		require.Nil(t, err)
-		require.NotNil(t, rwTx)
-		require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
-	})
+	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
+	require.Nil(t, err)
+	require.NotNil(t, rwTx)
+	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
 }
 
 func TestBaseRewardsCreator_createRewardFromRwdInfo(t *testing.T) {
@@ -1249,7 +1175,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 			return 0.25
 		},
 		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
-			return "11" // string hex => 17 decimal
+			return "11"
 		},
 	}
 
