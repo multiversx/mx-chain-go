@@ -36,7 +36,7 @@ const DummyScAddress = "00000000000000000500fabd9501b7e5353de57a4e319857c2fb9908
 func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 	return ArgsNewSCQueryService{
 		VmContainer:  &mock.VMContainerMock{},
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{},
 		BlockChainHook: &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
@@ -346,7 +346,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return mockVM, nil
 			},
 		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
@@ -392,7 +392,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return mockVM, nil
 			},
 		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
@@ -499,7 +499,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return mockVM, nil
 			},
 		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
@@ -701,7 +701,7 @@ func TestExecuteQuery_ReturnsCorrectly(t *testing.T) {
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -742,7 +742,7 @@ func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 				return mockVM, nil
 			},
 		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
@@ -779,7 +779,7 @@ func TestExecuteQuery_GasProvidedShouldBeApplied(t *testing.T) {
 				return mockVM, nil
 			},
 		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},
@@ -818,7 +818,7 @@ func TestExecuteQuery_WhenNotOkCodeShouldNotErr(t *testing.T) {
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -866,7 +866,7 @@ func TestExecuteQuery_ShouldCallRunScSequentially(t *testing.T) {
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -914,7 +914,7 @@ func TestSCQueryService_ExecuteQueryShouldNotIncludeCallerAddressAndValue(t *tes
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -956,7 +956,7 @@ func TestSCQueryService_ExecuteQueryShouldIncludeCallerAddressAndValue(t *testin
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -1090,7 +1090,7 @@ func TestSCQueryService_ComputeTxCostScCall(t *testing.T) {
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -1127,7 +1127,7 @@ func TestSCQueryService_ComputeScCallGasLimitRetCodeNotOK(t *testing.T) {
 			return mockVM, nil
 		},
 	}
-	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return uint64(math.MaxUint64)
 		},
@@ -1153,7 +1153,7 @@ func TestNewSCQueryService_CloseShouldWork(t *testing.T) {
 				return nil
 			},
 		},
-		EconomicsFee:             &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:             &economicsmocks.EconomicsHandlerMock{},
 		BlockChainHook:           &testscommon.BlockChainHookStub{},
 		MainBlockChain:           &testscommon.ChainHandlerStub{},
 		APIBlockChain:            &testscommon.ChainHandlerStub{},

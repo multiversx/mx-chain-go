@@ -26,7 +26,7 @@ import (
 func createArgs() ArgsApiTransactionEvaluator {
 	return ArgsApiTransactionEvaluator{
 		TxTypeHandler:       &testscommon.TxTypeHandlerMock{},
-		FeeHandler:          &economicsmocks.EconomicsHandlerStub{},
+		FeeHandler:          &economicsmocks.EconomicsHandlerMock{},
 		TxSimulator:         &mock.TransactionSimulatorStub{},
 		Accounts:            &stateMock.AccountsStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
@@ -118,7 +118,7 @@ func TestComputeTransactionGasLimit_MoveBalance(t *testing.T) {
 			return process.MoveBalance, process.MoveBalance, false
 		},
 	}
-	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
+	args.FeeHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
@@ -157,7 +157,7 @@ func TestComputeTransactionGasLimit_MoveBalanceInvalidNonceShouldStillComputeCos
 			return process.MoveBalance, process.MoveBalance, false
 		},
 	}
-	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
+	args.FeeHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
@@ -191,7 +191,7 @@ func TestComputeTransactionGasLimit_BuiltInFunction(t *testing.T) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
-	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
+	args.FeeHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
@@ -227,7 +227,7 @@ func TestComputeTransactionGasLimit_BuiltInFunctionShouldErr(t *testing.T) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
-	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
+	args.FeeHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
@@ -257,7 +257,7 @@ func TestComputeTransactionGasLimit_NilVMOutput(t *testing.T) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
-	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
+	args.FeeHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},
@@ -288,7 +288,7 @@ func TestComputeTransactionGasLimit_RetCodeNotOk(t *testing.T) {
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
-	args.FeeHandler = &economicsmocks.EconomicsHandlerStub{
+	args.FeeHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			return math.MaxUint64
 		},

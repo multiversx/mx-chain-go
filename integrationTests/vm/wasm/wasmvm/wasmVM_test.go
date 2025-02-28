@@ -616,7 +616,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		EnableEpochsHandler: enableEpochsHandler,
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(10)
 		},
@@ -638,7 +638,7 @@ func TestExecuteTransactionAndTimeToProcessChange(t *testing.T) {
 		ScProcessor:         &testscommon.SCProcessorMock{},
 		TxFeeHandler:        &testscommon.UnsignedTxHandlerStub{},
 		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:        &economicsmocks.EconomicsHandlerMock{},
 		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:          smartContract.NewArgumentParser(),

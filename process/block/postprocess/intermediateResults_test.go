@@ -43,7 +43,7 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		Store:                   &storage.ChainStorerStub{},
 		BlockType:               block.SmartContractResultBlock,
 		CurrTxs:                 &mock.TxForCurrentBlockStub{},
-		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerMock{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
@@ -286,8 +286,8 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsShardIdMismatch
 	}
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardC
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -347,8 +347,8 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddrGood(t *tes
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -424,8 +424,8 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNothingInCache(t *
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -444,8 +444,8 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksNotCrossShard(t *t
 	nrShards := 5
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -476,8 +476,8 @@ func TestIntermediateResultsProcessor_CreateAllInterMiniBlocksCrossShard(t *test
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardCoordinator
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -616,8 +616,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyMiniBlockMissmatc
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardCoordinator
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 	}
@@ -660,8 +660,8 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(uint32(nrShards))
 	args := createMockArgsNewIntermediateResultsProcessor()
 	args.Coordinator = shardCoordinator
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		MaxGasLimitPerMiniBlockCalled: func() uint64 {
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
+		MaxGasLimitPerMiniBlockCalled: func(shardID uint32) uint64 {
 			return maxGasLimitPerBlock
 		},
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
@@ -910,7 +910,7 @@ func TestIntermediateResultsProcessor_SplitMiniBlocksIfNeededShouldWork(t *testi
 	args.Coordinator = shardCoordinator
 	args.Hasher = hasher
 	args.Marshalizer = marshalizer
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerMiniBlockForSafeCrossShardCalled: func() uint64 {
 			return gasLimit
 		},

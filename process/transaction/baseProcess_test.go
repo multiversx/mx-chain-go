@@ -30,7 +30,7 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 		accounts:         &stateMock.AccountsStub{},
 		shardCoordinator: mock.NewOneShardCoordinatorMock(),
 		pubkeyConv:       testscommon.NewPubkeyConverterMock(32),
-		economicsFee: &economicsmocks.EconomicsHandlerStub{
+		economicsFee: &economicsmocks.EconomicsHandlerMock{
 			CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 				return nil
 			},
@@ -199,7 +199,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 		accounts:         &stateMock.AccountsStub{},
 		shardCoordinator: mock.NewOneShardCoordinatorMock(),
 		pubkeyConv:       testscommon.NewPubkeyConverterMock(32),
-		economicsFee: &economicsmocks.EconomicsHandlerStub{
+		economicsFee: &economicsmocks.EconomicsHandlerMock{
 			CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 				return nil
 			},

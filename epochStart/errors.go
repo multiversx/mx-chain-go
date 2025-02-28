@@ -62,9 +62,6 @@ var ErrNilHeaderValidator = errors.New("nil header validator")
 // ErrNilDataPoolsHolder signals that nil data pools holder has been provided
 var ErrNilDataPoolsHolder = errors.New("nil data pools holder")
 
-// ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
-var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
-
 // ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
@@ -202,9 +199,6 @@ var ErrNotEnoughNumOfPeersToConsiderBlockValid = errors.New("not enough num of p
 
 // ErrNilArgumentsParser signals that nil arguments parser was provided
 var ErrNilArgumentsParser = errors.New("nil arguments parsers")
-
-// ErrProtocolSustainabilityAddressInMetachain signals that protocol sustainability address is in metachain which is not allowed
-var ErrProtocolSustainabilityAddressInMetachain = errors.New("protocol sustainability address in metachain")
 
 // ErrNilGenesisTotalSupply signals that nil genesis total supply has been provided
 var ErrNilGenesisTotalSupply = errors.New("nil genesis total supply")

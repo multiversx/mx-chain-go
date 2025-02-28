@@ -139,7 +139,7 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 }
 
 func getGoodArgs() ArgsDataPool {
-	testEconomics := &economicsmocks.EconomicsHandlerStub{
+	testEconomics := &economicsmocks.EconomicsHandlerMock{
 		MinGasPriceCalled: func() uint64 {
 			return 200000000000
 		},

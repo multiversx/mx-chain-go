@@ -49,7 +49,7 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		AlarmSch:                 &testscommon.AlarmSchedulerStub{},
 		NtpSyncTimer:             &testscommon.SyncTimerStub{},
 		RoundHandlerField:        &testscommon.RoundHandlerMock{},
-		EconomicsHandler:         &economicsmocks.EconomicsHandlerStub{},
+		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
 		RatingsConfig:            &testscommon.RatingsInfoMock{},
 		RatingHandler:            &testscommon.RaterMock{},
 		NodesConfig:              &genesisMocks.NodesSetupStub{},

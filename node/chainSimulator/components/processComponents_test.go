@@ -146,7 +146,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ValPubKeyConv:       valPubKeyConv,
 			NodesConfig:         nodesSetup,
 			EpochChangeNotifier: &epochNotifier.EpochNotifierStub{},
-			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{
+			EconomicsHandler: &economicsmocks.EconomicsHandlerMock{
 				ProtocolSustainabilityAddressCalled: func() string {
 					return testingProtocolSustainabilityAddress
 				},

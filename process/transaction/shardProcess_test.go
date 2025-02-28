@@ -47,8 +47,8 @@ func generateRandomByteSlice(size int) []byte {
 	return buff
 }
 
-func feeHandlerMock() *economicsmocks.EconomicsHandlerStub {
-	return &economicsmocks.EconomicsHandlerStub{
+func feeHandlerMock() *economicsmocks.EconomicsHandlerMock {
+	return &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -729,7 +729,7 @@ func TestTxProcessor_ProcessWithTxFeeHandlerCheckErrorShouldErr(t *testing.T) {
 	args.Accounts = adb
 
 	expectedError := errors.New("validatity check failed")
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return expectedError
 		}}
@@ -780,7 +780,7 @@ func TestTxProcessor_ProcessWithTxFeeHandlerInsufficientFeeShouldErr(t *testing.
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(0).Add(acntSrc.GetBalance(), big.NewInt(1))
 		}}
@@ -810,7 +810,7 @@ func TestTxProcessor_ProcessWithInsufficientFundsShouldCreateReceiptErr(t *testi
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrInsufficientFunds
 		}}
@@ -841,7 +841,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchCreateReceiptErr(t *testing.T) {
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}}
@@ -870,7 +870,7 @@ func TestTxProcessor_ProcessWithUsernameMismatchAndSCProcessErrorShouldError(t *
 
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return process.ErrUserNameDoesNotMatchInCrossShardTx
 		}}
@@ -1054,7 +1054,7 @@ func TestTxProcessor_MoveBalanceWithFeesShouldWork(t *testing.T) {
 	}
 
 	txCost := big.NewInt(16)
-	feeHandler := &economicsmocks.EconomicsHandlerStub{
+	feeHandler := &economicsmocks.EconomicsHandlerMock{
 		CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 			return nil
 		},
@@ -1335,7 +1335,7 @@ func TestTxProcessor_ProcessTxFeeIntraShard(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	totalGiven := big.NewInt(100)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1370,7 +1370,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardMoveBalance(t *testing.T) {
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	totalGiven := big.NewInt(100)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1429,7 +1429,7 @@ func TestTxProcessor_ProcessTxFeeCrossShardSCCall(t *testing.T) {
 
 	moveBalanceFee := big.NewInt(50)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1468,7 +1468,7 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 	processingFee := big.NewInt(5)
 	negMoveBalanceFee := big.NewInt(0).Neg(moveBalanceFee)
 	args := createArgsForTxProcessor()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1505,7 +1505,7 @@ func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
 	gasPerByte := uint64(1)
 	args := createArgsForTxProcessor()
 	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag)
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return moveBalanceFee
 		},
@@ -1568,7 +1568,7 @@ func TestTxProcessor_ProcessTransactionShouldReturnErrForInvalidMetaTx(t *testin
 	args.Accounts = adb
 	args.ScProcessor = scProcessorMock
 	args.ShardCoordinator = shardC
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
@@ -1616,7 +1616,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	args := createArgsForTxProcessor()
 	args.Accounts = adb
 	args.ShardCoordinator = shardC
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(1)
 		},
@@ -2801,7 +2801,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy := *tx
 		txCopy.Nonce = acntSrc.GetNonce()
 		argsCopy := args
-		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+		argsCopy.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return txCopy.GasLimit + 1
 			},
@@ -2820,7 +2820,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 
 	args := createArgsForTxProcessor()
 	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(150)
 		},

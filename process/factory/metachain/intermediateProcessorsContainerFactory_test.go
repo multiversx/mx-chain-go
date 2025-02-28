@@ -29,7 +29,7 @@ func createMockArgsNewIntermediateProcessorsFactory() metachain.ArgsNewIntermedi
 		PubkeyConverter:         createMockPubkeyConverter(),
 		Store:                   &storageStubs.ChainStorerStub{},
 		PoolsHolder:             dataRetrieverMock.NewPoolsHolderMock(),
-		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerMock{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}

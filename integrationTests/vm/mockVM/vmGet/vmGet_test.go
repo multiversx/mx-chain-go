@@ -42,7 +42,7 @@ func TestVmGetShouldReturnValue(t *testing.T) {
 		}}
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer: vmContainer,
-		EconomicsFee: &economicsmocks.EconomicsHandlerStub{
+		EconomicsFee: &economicsmocks.EconomicsHandlerMock{
 			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 				return uint64(math.MaxUint64)
 			},

@@ -173,6 +173,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
 		EnableEpochsHandler: instance.enableEpochsHandler,
+		PubkeyConverter:     instance.addressPubKeyConverter,
+		ShardCoordinator:    testscommon.NewMultiShardsCoordinatorMock(instance.genesisNodesSetup.NumberOfShards()),
 	}
 
 	instance.economicsData, err = economics.NewEconomicsData(argsEconomicsHandler)

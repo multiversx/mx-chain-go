@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getLeaderPercentage(node *integrationTests.TestProcessorNode) float64 {
-	return node.EconomicsData.LeaderPercentage()
+func getLeaderPercentage(node *integrationTests.TestProcessorNode, epoch uint32) float64 {
+	return node.EconomicsData.LeaderPercentageInEpoch(epoch)
 }
 
 func TestExecuteBlocksWithTransactionsAndCheckRewards(t *testing.T) {
@@ -325,7 +325,7 @@ func verifyRewardsForShards(
 	gasLimit uint64,
 ) {
 	rewardValue := big.NewInt(0)
-	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0])
+	feePerTxForLeader := float64(gasPrice) * float64(gasLimit) * getLeaderPercentage(nodesMap[0][0], 0)
 
 	for address, nbRewards := range mapRewardsForAddress {
 		shard := nodesMap[0][0].ShardCoordinator.ComputeId([]byte(address))

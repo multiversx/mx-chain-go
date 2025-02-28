@@ -93,28 +93,6 @@ func TestNewRewardsCreator_NilMarshalizer(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilMarshalizer, err)
 }
 
-func TestNewRewardsCreator_EmptyProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.ProtocolSustainabilityAddress = ""
-
-	rwd, err := NewRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.Equal(t, epochStart.ErrNilProtocolSustainabilityAddress, err)
-}
-
-func TestNewRewardsCreator_InvalidProtocolSustainabilityAddress(t *testing.T) {
-	t.Parallel()
-
-	args := getRewardsArguments()
-	args.ProtocolSustainabilityAddress = "xyz" // not a hex string
-
-	rwd, err := NewRewardsCreator(args)
-	assert.True(t, check.IfNil(rwd))
-	assert.NotNil(t, err)
-}
-
 func TestNewRewardsCreator_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -207,7 +185,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	mb.EpochStart.Economics.RewardsForProtocolSustainability.Set(protocolSustainabilityRewardTx.Value)
@@ -253,7 +231,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(1000000)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -284,7 +262,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(10)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -317,7 +295,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 	require.NotNil(t, rwd)
 
 	initialProtRewardValue := big.NewInt(-100)
-	protRwAddr, _ := args.PubkeyConverter.Decode(args.ProtocolSustainabilityAddress)
+	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
 		Value:   big.NewInt(0).Set(initialProtRewardValue),
@@ -356,7 +334,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
@@ -424,7 +402,7 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 	protocolSustainabilityRewardTx := rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	commRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, protocolSustainabilityRewardTx)
@@ -671,7 +649,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 
@@ -702,7 +680,7 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	expectedRewardTx := &rewardTx.RewardTx{
 		Round:   0,
 		Value:   big.NewInt(50),
-		RcvAddr: []byte{17},
+		RcvAddr: []byte("11"),
 		Epoch:   0,
 	}
 	expectedRwdTxHash, _ := core.CalculateHash(&marshal.JsonMarshalizer{}, &hashingMocks.HasherMock{}, expectedRewardTx)

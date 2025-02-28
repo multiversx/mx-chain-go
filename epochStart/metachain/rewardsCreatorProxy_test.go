@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
@@ -369,22 +368,10 @@ func createDefaultBlockBody() *block.Body {
 }
 
 func createDefaultRewardsCreatorProxyArgs() RewardsCreatorProxyArgs {
-	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
-
-	rewardsHandler := &economicsmocks.EconomicsHandlerStub{
-		RewardsTopUpGradientPointCalled: func() *big.Int {
-			return rewardsTopUpGradientPoint
-		},
-		RewardsTopUpFactorCalled: func() float64 {
-			return 0.25
-		},
-	}
-
 	return RewardsCreatorProxyArgs{
 		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
 		StakingDataProvider:    &stakingcommon.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
-		RewardsHandler:         rewardsHandler,
 	}
 }
 

@@ -26,7 +26,6 @@ type RewardsCreatorProxyArgs struct {
 	BaseRewardsCreatorArgs
 	StakingDataProvider   epochStart.StakingDataProvider
 	EconomicsDataProvider epochStart.EpochEconomicsDataProvider
-	RewardsHandler        process.RewardsHandler
 }
 
 type rewardsCreatorProxy struct {

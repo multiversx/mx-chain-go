@@ -162,7 +162,7 @@ func (ccm *CoreComponentsMock) EconomicsData() process.EconomicsDataHandler {
 		return ccm.EconomicsDataField
 	}
 
-	return &economicsmocks.EconomicsHandlerStub{}
+	return &economicsmocks.EconomicsHandlerMock{}
 }
 
 // ProcessStatusHandler -
