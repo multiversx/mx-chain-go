@@ -12,6 +12,11 @@ import (
 type FeeHandler struct {
 }
 
+// ComputeGasUnitsFromRefundValue return 0
+func (fh *FeeHandler) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+	return 0
+}
+
 // GasPriceModifier returns 1.0
 func (fh *FeeHandler) GasPriceModifier() float64 {
 	return 1.0

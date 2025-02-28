@@ -1,6 +1,7 @@
 package transactionAPI
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 
@@ -257,13 +258,14 @@ func TestNFTTransferWithScCall(t *testing.T) {
 func TestComputeAndAttachGasUsedAndFeeTransactionWithMultipleScrWithRefund(t *testing.T) {
 	t.Parallel()
 
-	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.GasPriceModifierFlag ||
 				flag == common.PenalizedTooMuchGasFlag ||
 				flag == common.FixRelayedBaseCostFlag
 		},
-	}))
+	}
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(eeh))
 	computer := fee.NewTestFeeComputer(feeComp)
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
@@ -271,7 +273,7 @@ func TestComputeAndAttachGasUsedAndFeeTransactionWithMultipleScrWithRefund(t *te
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		eeh,
 	)
 
 	txWithSRefundSCR := &transaction.ApiTransactionResult{}
@@ -393,4 +395,57 @@ func TestComputeAndAttachGasUsedAndFeeRelayedV1CreateNewDelegationContractWithRe
 	require.Equal(t, uint64(56328500), txWithSRefundSCR.GasUsed)
 	require.Equal(t, "1878500000000000", txWithSRefundSCR.Fee)
 	require.Equal(t, "2177505000000000", txWithSRefundSCR.InitiallyPaidFee)
+}
+
+func TestComputeAndAttachGasUsedAndFeeRelayedV3WithMultipleRefunds(t *testing.T) {
+	t.Parallel()
+
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.GasPriceModifierFlag ||
+				flag == common.PenalizedTooMuchGasFlag ||
+				flag == common.FixRelayedBaseCostFlag ||
+				flag == common.RelayedTransactionsV3Flag
+		},
+	}
+	feeComp, _ := fee.NewFeeComputer(createEconomicsData(eeh))
+	computer := fee.NewTestFeeComputer(feeComp)
+
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		eeh,
+	)
+
+	txWithRefunds := &transaction.ApiTransactionResult{}
+	err := core.LoadJsonFile(txWithRefunds, "testData/relayedV3WithMultipleRefunds.json")
+	require.NoError(t, err)
+
+	txWithRefunds.Fee = ""
+	txWithRefunds.GasUsed = 0
+
+	snd, _ := pubKeyConverter.Decode(txWithRefunds.Sender)
+	rcv, _ := pubKeyConverter.Decode(txWithRefunds.Receiver)
+	rel, _ := pubKeyConverter.Decode(txWithRefunds.RelayerAddress)
+	val, _ := big.NewInt(0).SetString(txWithRefunds.Value, 10)
+	sig, _ := hex.DecodeString(txWithRefunds.Signature)
+	relayerSig, _ := hex.DecodeString(txWithRefunds.RelayerSignature)
+	txWithRefunds.Tx = &transaction.Transaction{
+		Nonce:            txWithRefunds.Nonce,
+		Value:            val,
+		RcvAddr:          rcv,
+		SndAddr:          snd,
+		RelayerAddr:      rel,
+		GasPrice:         txWithRefunds.GasPrice,
+		GasLimit:         txWithRefunds.GasLimit,
+		Data:             txWithRefunds.Data,
+		Signature:        sig,
+		RelayerSignature: relayerSig,
+	}
+
+	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(txWithRefunds)
+	require.Equal(t, uint64(4220447), txWithRefunds.GasUsed)
+	require.Equal(t, "289704470000000", txWithRefunds.Fee)
 }

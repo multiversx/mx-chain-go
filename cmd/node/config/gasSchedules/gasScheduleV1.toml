@@ -114,8 +114,14 @@
     SetAsyncContextCallback = 100000
     GetCallbackClosure   = 10000
     GetCodeMetadata      = 10000
+    GetCodeHash          = 10000
     IsBuiltinFunction    = 10000
     IsReservedFunctionName = 10000
+    GetRoundTime    = 1000
+    EpochStartBlockTimeStamp = 1000
+    EpochStartBlockNonce = 1000
+    EpochStartBlockRound = 1000
+
 
 [EthAPICost]
     UseGas              = 100
@@ -240,6 +246,10 @@
     MBufferSetRandom             = 6000
     MBufferToBigFloat            = 2000
     MBufferFromBigFloat          = 2000
+    MBufferToSmallIntUnsigned    = 10000
+    MBufferToSmallIntSigned      = 10000
+    MBufferFromSmallIntUnsigned  = 10000
+    MBufferFromSmallIntSigned    = 10000
 
 [BigFloatAPICost]
     BigFloatNewFromParts = 3000

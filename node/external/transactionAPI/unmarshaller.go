@@ -101,7 +101,11 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 	}
 
 	apiTx.ReceiversShardIDs = res.ReceiversShardID
-	apiTx.IsRelayed = res.IsRelayed
+
+	hasValidRelayer := len(apiTx.RelayerAddress) == len(apiTx.Sender) && len(apiTx.RelayerAddress) > 0
+	hasValidRelayerSignature := len(apiTx.RelayerSignature) == len(apiTx.Signature) && len(apiTx.RelayerSignature) > 0
+	isRelayedV3 := hasValidRelayer && hasValidRelayerSignature
+	apiTx.IsRelayed = res.IsRelayed || isRelayedV3
 
 	return apiTx, nil
 }
@@ -132,6 +136,12 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
 	}
+	if len(tx.RelayerAddr) > 0 {
+		apiTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(tx.RelayerAddr, log)
+	}
+	if len(tx.RelayerSignature) > 0 {
+		apiTx.RelayerSignature = hex.EncodeToString(tx.RelayerSignature)
+	}
 
 	return apiTx
 }
@@ -161,6 +171,12 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transac
 	if len(tx.GuardianAddr) > 0 {
 		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+	if len(tx.RelayerAddr) > 0 {
+		apiTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(tx.RelayerAddr, log)
+	}
+	if len(tx.RelayerSignature) > 0 {
+		apiTx.RelayerSignature = hex.EncodeToString(tx.RelayerSignature)
 	}
 
 	return apiTx

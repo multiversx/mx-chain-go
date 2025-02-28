@@ -50,6 +50,11 @@ type EconomicsHandlerMock struct {
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 }
 
+// ComputeGasUnitsFromRefundValue -
+func (ehm *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+	return 0
+}
+
 // LeaderPercentage -
 func (ehm *EconomicsHandlerMock) LeaderPercentage() float64 {
 	return ehm.LeaderPercentageCalled()

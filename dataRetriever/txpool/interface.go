@@ -1,6 +1,9 @@
 package txpool
 
 import (
+	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
@@ -16,4 +19,9 @@ type txCache interface {
 	NumBytes() int
 	Diagnose(deep bool)
 	GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction
+}
+
+type txGasHandler interface {
+	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
+	IsInterfaceNil() bool
 }
