@@ -34,6 +34,7 @@ type blockProcessor struct {
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
 	headersPool         dataRetriever.HeadersPool
+	isImportDBMode      bool
 
 	blockFinality uint64
 }
@@ -62,6 +63,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		headersPool:                           arguments.HeadersPool,
 		marshaller:                            arguments.Marshaller,
 		hasher:                                arguments.Hasher,
+		isImportDBMode:                        arguments.IsImportDBMode,
 	}
 
 	bp.blockFinality = process.BlockFinality
@@ -453,7 +455,8 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 	}
 
 	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
-		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
+		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance &&
+		!bp.isImportDBMode // TODO: consider updating this condition to work for import db as well
 	if !shouldRequestHeaders {
 		return
 	}
