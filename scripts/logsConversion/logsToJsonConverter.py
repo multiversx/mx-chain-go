@@ -82,11 +82,15 @@ class LogsToJsonConverter:
             target_dict['counts'] = param_str.strip().replace('counts = ', '')
             return
 
+        # smart contract deployed
+        # param_str = param_str.replace('SC address(es)', 'SC addresses')
+
         # migration stats entries
         if param_str.strip().startswith('stats = ['):
             param_str = param_str.strip().replace('stats = [', '').replace(']', '')
 
-        pattern = r"([\w\s]+)\s*=\s*(\[.*?\])" if param_str.strip().startswith('epochs to close') else r"([\w\s\[\].]+?)\s*=\s*([\w().,-]+)"
+        pattern = r"([\w\s]+)\s*=\s*(\[.*?\])" if param_str.strip().startswith('epochs to close') else r"([\w\s\[\]().,-]+?)\s*=\s*([\w().,-]+)"
+        # r"([\w\s\[\].]+?)\s*=\s*([\w().,-]+)"
 
         matches = re.findall(pattern, param_str)
         remaining_text = param_str

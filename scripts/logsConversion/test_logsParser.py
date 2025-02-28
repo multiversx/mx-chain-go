@@ -4,8 +4,8 @@ import pytest
 
 from scripts.logsConversion.logsToJsonConverter import LogsToJsonConverter
 from scripts.logsConversion.sample_data import (
-    comma_separated_log, common_entries_log, empty_value_log,
-    several_words_in_key_log, special_chars_in_parameters_log,
+    comma_separated_log, common_entries_log, contract_deployed_log,
+    empty_value_log, several_words_in_key_log, special_chars_in_parameters_log,
     statistics_entries_log, total_transactions_in_pool_logs,
     transactions_processed_table_log)
 
@@ -90,6 +90,17 @@ class TestLogsParsing:
         for entry in conv.log_content:
             assert entry.to_dict() in expected_result
 
+    def test_contract_deployed_log(self):
+        expected_entries = [
+            '{"v": "node1", "t": 1740140920.086, "l": 1, "n": "..ss/smartcontract", "s": "", "e": 0, "r": 0, "sr": "", "m": "SmartContract deployed", "a": {"owner": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u", "SC address(es)": "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"}}',
+            '{"v": "node1", "t": 1740141797.076, "l": 1, "n": "..ss/smartcontract", "s": "0", "e": "1", "r": "148", "sr": "BLOCK", "m": "SmartContract deployed", "a": {"owner": "erd13utlnu8haswaxcyy0qcz4h36ac00ljwcswh99296ttky26c9squq5kvhnw", "SC address(es)": "erd1qqqqqqqqqqqqqpgq757dnjww7m08velt2udhwkgyzh5dv5z6squqpxgcgs"}}']
+        conv = LogsToJsonConverter('node1')
+        conv.parse(contract_deployed_log.split('\n'))
+        assert len(conv.log_content) == 2
+
+        for entry in conv.log_content:
+            assert entry.to_dict() in expected_entries
+
     def test_speial_characters_in_parameters(self):
         expected_result = [
             '{"v": "node1", "t": 1740142739.305, "l": 1, "n": "storage/leveldb", "s": "0", "e": "3", "r": "305", "sr": "END_ROUND", "m": "processLoop - closing the leveldb process loop", "a": {"path": "/home/ubuntu/go/src/github.com/multiversx/mx-chain-go/cmd/node/db/1/Epoch_0/Shard_0/BootstrapData"}}',
@@ -108,5 +119,4 @@ class TestLogsParsing:
         assert len(conv.log_content) == 9
 
         for entry in conv.log_content:
-            print(entry.to_dict())
             assert entry.to_dict() in expected_result

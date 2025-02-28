@@ -16,15 +16,14 @@ DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] subroundBl
 DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved
 DEBUG[2025-02-07 09:25:02.037] [..nsus/spos/bls/v2] [1/0/966/(BLOCK)] step 1: block header has been received   nonce = 906 hash = 021b8f4ea41d376672bd49469808c001d68aa0ec575e4e48d02a70d60a14cbb7
 '''
-contract_deployed_log = '''
-DEBUG[2025-02-21 14:28:40.086] [..ss/smartcontract] [0/0/0/]       SmartContract deployed                   owner = erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u SC address(es) = erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
-DEBUG[2025-02-21 14:43:17.076] [..ss/smartcontract] [0/1/148/(BLOCK)] SmartContract deployed                   owner = erd13utlnu8haswaxcyy0qcz4h36ac00ljwcswh99296ttky26c9squq5kvhnw SC address(es) = erd1qqqqqqqqqqqqqpgq757dnjww7m08velt2udhwkgyzh5dv5z6squqpxgcgs
-'''
-
 comma_separated_log = '''
 DEBUG[2025-02-21 14:49:00.451] [debug/handler]      [0/2/205/(END_ROUND)] Requests pending and resolver fails:
 type: resolve, topic: metachainBlocks_REQUEST, hash: 00000000000000cb, numReqIntra: 0, numReqCross: 0, numReceived: 3, numProcessed: 0, last err: cannot find header in cache, last query time: 2025-02-21 14:48:44.000  '''
 
+contract_deployed_log = '''
+DEBUG[2025-02-21 14:28:40.086] [..ss/smartcontract] [0/0/0/]       SmartContract deployed                   owner = erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u SC address(es) = erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u
+DEBUG[2025-02-21 14:43:17.076] [..ss/smartcontract] [0/1/148/(BLOCK)] SmartContract deployed                   owner = erd13utlnu8haswaxcyy0qcz4h36ac00ljwcswh99296ttky26c9squq5kvhnw SC address(es) = erd1qqqqqqqqqqqqqpgq757dnjww7m08velt2udhwkgyzh5dv5z6squqpxgcgs
+'''
 several_words_in_key_log = '''DEBUG[2025-02-21 16:09:17.199] [process/sync]       [0/9/1008/(END_ROUND)] forkDetector.appendHeaderInfo            round = 1008 nonce = 1006 hash = 88b984b5cc8757fc02281e4024314ebcc5edf28552debfa4f4382d4a490b8570 state = 2 probable highest nonce = 1006 last checkpoint nonce = 1006 final checkpoint nonce = 1006 has proof = true
 DEBUG[2025-02-07 09:14:20.145] [..ever/proofscache] [1/0/859/(START_ROUND)] added proof to pool                      header hash = efaf3cf089a64298423e968f43d856b0caac244a5df8cea82d39506402362c05 epoch = 4 nonce = 849 shardID = 4294967295 pubKeys bitmap = bd01 round = 857 nonce = 849 isStartOfEpoch = false
 DEBUG[2025-02-07 09:14:13.702] [..block/preprocess] [1/0/857/(BLOCK)] scheduledTxsExecution.RollBackToBlock    header hash = 5774fe20bee691ac4cded77bcde0b4d2c07584ec33b08933f65786ec920add67 scheduled root hash = 33b86cbcf34f512c97faed4dc46d9955562dde22df91928808a977e3b37ebaa7 num of scheduled mbs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 '''
