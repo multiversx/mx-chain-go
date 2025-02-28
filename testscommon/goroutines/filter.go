@@ -13,7 +13,6 @@ var ignorable = []string{
 	"github.com/libp2p/go-libp2p-nat.(*NAT)",
 	"net._C2func_getaddrinfo",
 	"net.cgoLookupIP", //  for net.cgoLookupIP and net.cgoLookupIPCNAME
-	"github.com/libp2p/go-libp2p/p2p/host/peerstore/pstoremem.(*memoryAddrBook)", // TODO remove it after pubsub update, fixed here https://github.com/libp2p/go-libp2p-pubsub/pull/568
 }
 
 // AllPassFilter returns true for all provided strings
