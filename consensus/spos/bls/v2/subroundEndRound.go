@@ -457,7 +457,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 
 		wg.Add(1)
 
-		go func(i int, pk string, wg *sync.WaitGroup, sigShare []byte) {
+		go func(i int, pk string, sigShare []byte) {
 			defer func() {
 				sr.signatureThrottler.EndProcessing()
 				wg.Done()
@@ -468,7 +468,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 				invalidPubKeys = append(invalidPubKeys, pk)
 				mutex.Unlock()
 			}
-		}(i, pk, wg, sigShare)
+		}(i, pk, sigShare)
 	}
 	wg.Wait()
 

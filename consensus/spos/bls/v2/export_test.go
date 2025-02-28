@@ -350,3 +350,13 @@ func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) b
 func (sr *subroundEndRound) ReceivedSignature(cnsDta *consensus.Message) bool {
 	return sr.receivedSignature(context.Background(), cnsDta)
 }
+
+// WaitForProof -
+func (sr *subroundEndRound) WaitForProof() bool {
+	return sr.waitForProof()
+}
+
+// GetEquivalentProofSender -
+func (sr *subroundEndRound) GetEquivalentProofSender() string {
+	return sr.getEquivalentProofSender()
+}
