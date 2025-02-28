@@ -57,14 +57,21 @@ gitPullAllChanges()
     cd ..
 
     echo -e "Pulling changes for mx-chain-sovereign-bridge-go..."
+    pushd .
     cd mx-chain-sovereign-bridge-go
     git pull
-    cd ..
+    cd cert/cmd/cert
+    go build
+    ./cert
+    popd
 
     echo -e "Pulling changes for mx-chain-tools-go..."
+    pushd .
     cd mx-chain-tools-go
     git pull
-    cd ..
+    cd elasticreindexer/cmd/indices-creator/
+    go build
+    popd
 
     popd
 }
