@@ -16,37 +16,33 @@ func TestNewTxCache(t *testing.T) {
 		t.Parallel()
 
 		cfg := ConfigSourceMe{
-			Name:                          "test",
-			NumChunks:                     1,
-			NumBytesThreshold:             1000,
-			NumBytesPerSenderThreshold:    100,
-			CountThreshold:                10,
-			CountPerSenderThreshold:       100,
-			NumSendersToPreemptivelyEvict: 1,
+			Name:                        "test",
+			NumChunks:                   1,
+			NumBytesThreshold:           1000,
+			NumBytesPerSenderThreshold:  100,
+			CountThreshold:              10,
+			CountPerSenderThreshold:     100,
+			NumItemsToPreemptivelyEvict: 1,
 		}
 
 		cache, err := NewTxCache(cfg, nil)
 		assert.Nil(t, cache)
-		assert.Equal(t, common.ErrNilTxGasHandler, err)
+		assert.ErrorContains(t, err, "nil mempool host")
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		cfg := ConfigSourceMe{
-			Name:                          "test",
-			NumChunks:                     1,
-			NumBytesThreshold:             1000,
-			NumBytesPerSenderThreshold:    100,
-			CountThreshold:                10,
-			CountPerSenderThreshold:       100,
-			NumSendersToPreemptivelyEvict: 1,
+			Name:                        "test",
+			NumChunks:                   1,
+			NumBytesThreshold:           1000,
+			NumBytesPerSenderThreshold:  100,
+			CountThreshold:              10,
+			CountPerSenderThreshold:     100,
+			NumItemsToPreemptivelyEvict: 1,
 		}
 
-		cache, err := NewTxCache(cfg, &txcachemocks.TxGasHandlerMock{
-			GasProcessingDivisor: 1,
-			MinimumGasPrice:      1,
-			MinimumGasMove:       1,
-		})
+		cache, err := NewTxCache(cfg, txcachemocks.NewMempoolHostMock())
 		assert.NotNil(t, cache)
 		assert.Nil(t, err)
 	})

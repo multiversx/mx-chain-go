@@ -439,10 +439,25 @@ func GetProcessArgs(
 	)
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	if err != nil {
+		panic(err)
+	}
 
 	return processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
@@ -721,9 +736,21 @@ func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.Net
 // GetDataComponents -
 func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
 	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = dataComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
 	return dataComponents
 }
 

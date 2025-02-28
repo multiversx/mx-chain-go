@@ -2,13 +2,20 @@ package txcache
 
 import (
 	"github.com/multiversx/mx-chain-storage-go/txcache"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 // WrappedTransaction contains a transaction, its hash and extra information
 type WrappedTransaction = txcache.WrappedTransaction
 
-// TxGasHandler handles a transaction gas and gas cost
-type TxGasHandler = txcache.TxGasHandler
+// AccountState represents the state of an account (as seen by the mempool)
+type AccountState = types.AccountState
+
+// MempoolHost provides blockchain information for mempool operations
+type MempoolHost = txcache.MempoolHost
+
+// SelectionSession provides blockchain information for transaction selection
+type SelectionSession = txcache.SelectionSession
 
 // ForEachTransaction is an iterator callback
 type ForEachTransaction = txcache.ForEachTransaction
@@ -29,8 +36,8 @@ type DisabledCache = txcache.DisabledCache
 type CrossTxCache = txcache.CrossTxCache
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, error) {
-	return txcache.NewTxCache(config, txGasHandler)
+func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
+	return txcache.NewTxCache(config, host)
 }
 
 // NewDisabledCache creates a new disabled cache

@@ -22,6 +22,7 @@ type UserAccountStub struct {
 	Address          []byte
 	CodeMetadata     []byte
 	CodeHash         []byte
+	Nonce            uint64
 
 	AddToBalanceCalled       func(value *big.Int) error
 	DataTrieTrackerCalled    func() state.DataTrieTracker
@@ -106,7 +107,7 @@ func (u *UserAccountStub) IncreaseNonce(_ uint64) {
 
 // GetNonce -
 func (u *UserAccountStub) GetNonce() uint64 {
-	return 0
+	return u.Nonce
 }
 
 // SetCode -

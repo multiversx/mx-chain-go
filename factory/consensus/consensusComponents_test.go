@@ -8,7 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -141,6 +141,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
+			BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{
