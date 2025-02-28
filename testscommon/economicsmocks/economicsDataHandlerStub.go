@@ -47,6 +47,16 @@ type EconomicsHandlerStub struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	ComputeMoveBalanceFeeInEpochCalled                  func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
+	ComputeGasUnitsFromRefundValueCalled                func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
+}
+
+// ComputeGasUnitsFromRefundValue -
+func (e *EconomicsHandlerStub) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64 {
+	if e.ComputeGasUnitsFromRefundValueCalled != nil {
+		return e.ComputeGasUnitsFromRefundValueCalled(tx, refundValue, epoch)
+	}
+
+	return 0
 }
 
 // ComputeFeeForProcessing -

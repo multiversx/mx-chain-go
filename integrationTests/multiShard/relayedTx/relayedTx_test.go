@@ -33,20 +33,24 @@ type createAndSendRelayedAndUserTxFuncType = func(
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTx, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTx, false))
 	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV2, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTx, false))
 	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV2, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
 	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTx, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
@@ -137,6 +141,8 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 
 		receiverAddress1 := []byte("12345678901234567890123456789012")
 		receiverAddress2 := []byte("12345678901234567890123456789011")
+
+		integrationTests.MintAllPlayers(nodes, players, big.NewInt(1))
 
 		ownerNode := nodes[0]
 		initialSupply := "00" + hex.EncodeToString(big.NewInt(100000000000).Bytes())
