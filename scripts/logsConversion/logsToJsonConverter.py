@@ -1,4 +1,6 @@
+import argparse
 import json
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -47,6 +49,9 @@ class LogEntry:
         parameters = " ".join(f"{k} = {v}" for k, v in self.a.items())
         return f'{LoggingLevel.find_by_value(self.l).name}[{datetime.fromtimestamp(self.t).strftime(LOGS_DATE_FORMAT)[:-3]}] [{self.n}] [{self.s}/{self.e}/{self.r}/({self.sr})] {normalize_spacing(self.m)} {parameters}'
 
+    def copy(self) -> 'LogEntry':
+        return LogEntry(**vars(self))
+
 
 class LoggingLevel (Enum):
     DEBUG = 1
@@ -68,9 +73,13 @@ class LogsToJsonConverter:
         self.output_path = output_path
         self.log_content = log_content if log_content else []
 
-    def is_block_table(self, line: str):
+    def is_block_table(self, line: str) -> bool:
         table_strings = ['+-', '| ']
         return line[:2] in table_strings
+
+    def is_trie_statistics(self, line: str) -> bool:
+        trie_statistics_entries_types = ['top 10 tries by size', 'top 10 tries by depth', '= address', 'address']
+        return self.log_content and self.log_content[-1].m.startswith('tries statistics') and line.strip().startswith(tuple(trie_statistics_entries_types))
 
     # main add parameters function - also checks for particular cases
     def add_parameters(self, target_dict: dict[str, Any], param_str: str):
@@ -135,7 +144,8 @@ class LogsToJsonConverter:
     def add_parameters_for_coma_separatated_entries(self, target_dict: dict[str, Any], param_str: str):
         if not param_str:
             return
-        pattern = re.compile(r'(\w+(?:\s+\w+)?): ([^,]+)')
+        pattern = re.compile(r'(\w+(?:\s+\w+)?): ([^,]+)' if ':' in param_str else r'([\w\s]+)=([\w.\d-]+)')
+
         for key in dict(pattern.findall(param_str)):
             target_dict[key] = dict(pattern.findall(param_str))[key]
 
@@ -212,20 +222,34 @@ class LogsToJsonConverter:
                 ))
 
             # parameters line on subsequent entry/entries - add to the last fully formed entry
-            elif line and not self.is_block_table(line):
+            elif line and not self.is_block_table(line) and not self.is_trie_statistics(line):
 
                 # comma separated parameters line on subsequent row (<key>: <value>, <key>: <value>)
                 if ',' in line and ':' in line:
                     if self.log_content:
                         self.add_parameters_for_coma_separatated_entries(self.log_content[-1].a, line.strip())
 
-                # potentialy irrelevant line. display to check if it should be handled
-                elif '=' not in line:
-                    print('***', line)
+                # several comma separated parameters lines on subsequent rows (<key>=<value>, <key>=<value>)
+                if ',' in line and '=' in line:
+                    if self.log_content:
+                        param_dict = {}
+                        self.add_parameters_for_coma_separatated_entries(param_dict, line.strip())
+
+                        # if it is not the first parameters row, add a new entry with the same parameters
+                        if self.log_content[-1].a:
+                            self.log_content.append(self.log_content[-1].copy())
+                        self.log_content[-1].a = param_dict
 
                 # regular parameters line on subsequent entry/entries (<key> = <value> <key> = <value>)
-                elif self.log_content:
+                elif self.log_content and '=' in line:
                     self.add_parameters(self.log_content[-1].a, line.strip())
+
+                else:
+                    pass
+                    # TODO if logging is enabled add this to the log file
+                    # potentialy irrelevant line. display to check if it should be handled
+                    # elif '=' not in line:
+                    #    print('***', line)
 
     @staticmethod
     def from_logs(path: str, node_name: str, output_path: str = OUTPUT_FOLDER):
@@ -249,20 +273,51 @@ def recursive_post_process_keys_for_statistics(txt: str, matches: list[tuple[str
 
 
 def main():
-    converter = LogsToJsonConverter('ovh-p03-validator-7')
-    log_file = '/home/mihaela/Downloads/perf-deg-andromeda/OVH-P04--Shard-0--4cd5fb6017a3--172.30.40.76--ovh-p04-validator-26/logs/logs/mx-chain-go-2025-02-21-14-28-33.log'
-    with open(log_file, "r") as file:
+    parser = argparse.ArgumentParser(
+        description='''
+        Runs node log conversion. Example script:
+
+            python logsToJsonConverter --node_name=ovh-p03-validator-7 --path=logsPath/mx-chain-go-2024-12-10-10-14-21.log
+        ''',
+        epilog='\n',
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+
+    parser.add_argument(
+        '--node_name',
+        required=True,
+        type=str,
+        help='Name of the node.'
+    )
+    parser.add_argument(
+        '--path',
+        required=True,
+        type=validate_file_path,
+        help='Path to the node logs file.'
+    )
+
+    args = parser.parse_args()
+
+    converter = LogsToJsonConverter(args.node_name)
+    # log_file = '/home/mihaela/Downloads/perf-deg-andromeda/OVH-P04--Shard-0--4cd5fb6017a3--172.30.40.76--ovh-p04-validator-26/logs/logs/mx-chain-go-2025-02-21-14-28-33.log'
+    with open(args.path, "r") as file:
         log = file.readlines()
         converter.parse(log)
-    '''
-    logs = [log3]
-    for log in logs:
-        converter.parse(log)
-    '''
-    with open('scripts/logsConversion/output.json', 'w') as f:
+
+    output_file_name = OUTPUT_FOLDER + '/' + f'{args.node_name}_{args.path.split('/')[-1].replace('.log', '.jsonl')}'
+    directory = os.path.dirname(output_file_name)
+    os.makedirs(directory, exist_ok=True)
+    print(output_file_name)
+    with open(output_file_name, 'w') as f:
         for entry in converter.log_content:
             f.write(entry.to_dict())
             f.write('\n')
+
+
+def validate_file_path(path: str):
+    if not os.path.isfile(path):
+        raise argparse.ArgumentTypeError(f"File '{path}' does not exist.")
+    return path
 
 
 if __name__ == "__main__":
