@@ -2,6 +2,8 @@ package incomingHeader
 
 import (
 	"fmt"
+
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
 )
 
 type topicsChecker struct{}
@@ -14,13 +16,13 @@ func NewTopicsChecker() *topicsChecker {
 // CheckValidity will receive the topics and validate them
 func (tc *topicsChecker) CheckValidity(topics [][]byte) error {
 	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
-	if len(topics) < minTopicsInTransferEvent || len(topics[2:])%numTransferTopics != 0 {
+	if len(topics) < dto.MinTopicsInTransferEvent || len(topics[2:])%dto.NumTransferTopics != 0 {
 		log.Error("incomingHeaderHandler.createIncomingSCRs",
-			"error", errInvalidNumTopicsIncomingEvent,
+			"error", dto.ErrInvalidNumTopicsIncomingEvent,
 			"num topics", len(topics),
 			"topics", topics)
 
-		return fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, "eventIDDepositIncomingTransfer", len(topics))
+		return fmt.Errorf("%w for %s; num topics = %d", dto.ErrInvalidNumTopicsIncomingEvent, "eventIDDepositIncomingTransfer", len(topics))
 	}
 
 	return nil

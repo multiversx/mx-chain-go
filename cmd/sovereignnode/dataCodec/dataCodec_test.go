@@ -5,16 +5,16 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-sdk-abi-go/abi"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/errors"
+	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
 )
 
-func createDataCodec() incomingHeader.SovereignDataCodec {
+func createDataCodec() sovBlock.DataCodecHandler {
 	serializer, _ := abi.NewSerializer(abi.ArgsNewSerializer{
 		PartsSeparator: "@",
 	})

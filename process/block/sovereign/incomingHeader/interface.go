@@ -2,10 +2,11 @@ package incomingHeader
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/incomingEventsProc"
 )
 
 // HeadersPool should be able to add new headers in pool
@@ -20,22 +21,6 @@ type TransactionPool interface {
 	IsInterfaceNil() bool
 }
 
-// TopicsChecker should be able to check the topics validity
-type TopicsChecker interface {
-	CheckValidity(topics [][]byte) error
-	IsInterfaceNil() bool
-}
-
-// SovereignDataCodec is the interface for serializing/deserializing data
-type SovereignDataCodec interface {
-	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
-	DeserializeEventData(data []byte) (*sovereign.EventData, error)
-	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
-	DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error)
-	SerializeOperation(operation sovereign.Operation) ([]byte, error)
-	IsInterfaceNil() bool
-}
-
 // RunTypeComponentsHolder defines run type components needed to create an incoming header processor
 type RunTypeComponentsHolder interface {
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
@@ -44,8 +29,7 @@ type RunTypeComponentsHolder interface {
 	IsInterfaceNil() bool
 }
 
-// IncomingEventHandler defines the behaviour of an incoming cross chain event processor handler
-type IncomingEventHandler interface {
-	ProcessEvent(event data.EventHandler) (*EventResult, error)
-	IsInterfaceNil() bool
+type IncomingEventsProcessor interface {
+	RegisterProcessor(event string, proc incomingEventsProc.IncomingEventHandler) error
+	ProcessIncomingEvents(events []data.EventHandler) (*dto.EventsResult, error)
 }

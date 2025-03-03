@@ -13,6 +13,9 @@ import (
 
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
+	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/incomingEventsProc"
 )
 
 var log = logger.GetOrCreate("headerSubscriber")
@@ -25,12 +28,12 @@ type ArgsIncomingHeaderProcessor struct {
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	MainChainNotarizationStartRound uint64
-	DataCodec                       SovereignDataCodec
-	TopicsChecker                   TopicsChecker
+	DataCodec                       sovBlock.DataCodecHandler
+	TopicsChecker                   sovBlock.TopicsCheckerHandler
 }
 
 type incomingHeaderProcessor struct {
-	eventsProc         *incomingEventsProcessor
+	eventsProc         IncomingEventsProcessor
 	extendedHeaderProc *extendedHeaderProcessor
 
 	outGoingPool                    sovereignBlock.OutGoingOperationsPool
@@ -63,25 +66,35 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 		return nil, errors.ErrNilTopicsChecker
 	}
 
-	depositProc := &depositEventProc{
-		marshaller:    args.Marshaller,
-		hasher:        args.Hasher,
-		dataCodec:     args.DataCodec,
-		topicsChecker: args.TopicsChecker,
-	}
-
-	executedOpProc := &executedBridgeOpEventProc{
-		depositEventProc: depositProc,
-	}
-
-	eventsProc := &incomingEventsProcessor{
-		handlers: make(map[string]IncomingEventHandler),
-	}
-	err := eventsProc.registerProcessor(eventIDDepositIncomingTransfer, depositProc)
+	depositProc, err := incomingEventsProc.NewEventProcDepositTokens(incomingEventsProc.EventProcDepositTokensArgs{
+		Marshaller:    args.Marshaller,
+		Hasher:        args.Hasher,
+		DataCodec:     args.DataCodec,
+		TopicsChecker: args.TopicsChecker,
+	})
 	if err != nil {
 		return nil, nil
 	}
-	err = eventsProc.registerProcessor(eventIDExecutedOutGoingBridgeOp, executedOpProc)
+
+	confirmExecutedOperationProc := incomingEventsProc.NewEventProcConfirmExecutedOperation()
+	executedOpProc, err := incomingEventsProc.NewEventProcExecutedDepositOperation(
+		depositProc,
+		confirmExecutedOperationProc,
+	)
+	if err != nil {
+		return nil, nil
+	}
+
+	eventsProc := incomingEventsProc.NewIncomingEventsProcessor()
+	err = eventsProc.RegisterProcessor(dto.EventIDDepositIncomingTransfer, depositProc)
+	if err != nil {
+		return nil, nil
+	}
+	err = eventsProc.RegisterProcessor(dto.EventIDExecutedOutGoingBridgeOp, executedOpProc)
+	if err != nil {
+		return nil, nil
+	}
+	err = eventsProc.RegisterProcessor(dto.EventIDChangeValidatorSet, confirmExecutedOperationProc)
 	if err != nil {
 		return nil, nil
 	}
@@ -131,26 +144,26 @@ func (ihp *incomingHeaderProcessor) AddHeader(headerHash []byte, header sovereig
 		return nil
 	}
 
-	res, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
+	res, err := ihp.eventsProc.ProcessIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return err
 	}
 
-	extendedHeader, err := createExtendedHeader(header, res.scrs)
+	extendedHeader, err := createExtendedHeader(header, res.Scrs)
 	if err != nil {
 		return err
 	}
 
-	err = ihp.extendedHeaderProc.addExtendedHeaderAndSCRsToPool(extendedHeader, res.scrs)
+	err = ihp.extendedHeaderProc.addExtendedHeaderAndSCRsToPool(extendedHeader, res.Scrs)
 	if err != nil {
 		return err
 	}
 
-	ihp.addConfirmedBridgeOpsToPool(res.confirmedBridgeOps)
+	ihp.addConfirmedBridgeOpsToPool(res.ConfirmedBridgeOps)
 	return nil
 }
 
-func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*ConfirmedBridgeOp) {
+func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*dto.ConfirmedBridgeOp) {
 	for _, op := range ops {
 		// This is not a critical error. This might just happen when a leader tries to re-send unconfirmed confirmation
 		// that have been already executed, but the confirmation from notifier comes too late, and we receive a double
@@ -168,18 +181,18 @@ func (ihp *incomingHeaderProcessor) addConfirmedBridgeOpsToPool(ops []*Confirmed
 
 // CreateExtendedHeader will create an extended shard header with incoming scrs and mbs from the events of the received header
 func (ihp *incomingHeaderProcessor) CreateExtendedHeader(header sovereign.IncomingHeaderHandler) (data.ShardHeaderExtendedHandler, error) {
-	res, err := ihp.eventsProc.processIncomingEvents(header.GetIncomingEventHandlers())
+	res, err := ihp.eventsProc.ProcessIncomingEvents(header.GetIncomingEventHandlers())
 	if err != nil {
 		return nil, err
 	}
 
-	return createExtendedHeader(header, res.scrs)
+	return createExtendedHeader(header, res.Scrs)
 }
 
 // RegisterEventHandler will register an extra incoming event processor. For the registered processor, a subscription
 // should be added to NotifierConfig.SubscribedEvents from sovereignConfig.toml
-func (ihp *incomingHeaderProcessor) RegisterEventHandler(event string, proc IncomingEventHandler) error {
-	return ihp.eventsProc.registerProcessor(event, proc)
+func (ihp *incomingHeaderProcessor) RegisterEventHandler(event string, proc incomingEventsProc.IncomingEventHandler) error {
+	return ihp.eventsProc.RegisterProcessor(event, proc)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

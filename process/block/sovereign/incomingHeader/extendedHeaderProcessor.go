@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
 )
 
 type extendedHeaderProcessor struct {
@@ -19,7 +20,7 @@ type extendedHeaderProcessor struct {
 	hasher      hashing.Hasher
 }
 
-func createExtendedHeader(incomingHeader sovereign.IncomingHeaderHandler, scrs []*SCRInfo) (*block.ShardHeaderExtended, error) {
+func createExtendedHeader(incomingHeader sovereign.IncomingHeaderHandler, scrs []*dto.SCRInfo) (*block.ShardHeaderExtended, error) {
 	headerV2, castOk := incomingHeader.GetHeaderHandler().(*block.HeaderV2)
 	if !castOk {
 		return nil, errInvalidHeaderType
@@ -51,7 +52,7 @@ func getEvents(events []data.EventHandler) ([]*transaction.Event, error) {
 	return ret, nil
 }
 
-func createIncomingMb(scrs []*SCRInfo) []*block.MiniBlock {
+func createIncomingMb(scrs []*dto.SCRInfo) []*block.MiniBlock {
 	if len(scrs) == 0 {
 		return make([]*block.MiniBlock, 0)
 	}
@@ -83,10 +84,10 @@ func (ehp *extendedHeaderProcessor) addPreGenesisExtendedHeaderToPool(incomingHe
 		IncomingEvents:     []*transaction.Event{},
 	}
 
-	return ehp.addExtendedHeaderAndSCRsToPool(extendedHeader, make([]*SCRInfo, 0))
+	return ehp.addExtendedHeaderAndSCRsToPool(extendedHeader, make([]*dto.SCRInfo, 0))
 }
 
-func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeader data.ShardHeaderExtendedHandler, scrs []*SCRInfo) error {
+func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeader data.ShardHeaderExtendedHandler, scrs []*dto.SCRInfo) error {
 	extendedHeaderHash, err := core.CalculateHash(ehp.marshaller, ehp.hasher, extendedHeader)
 	if err != nil {
 		return err
@@ -97,7 +98,7 @@ func (ehp *extendedHeaderProcessor) addExtendedHeaderAndSCRsToPool(extendedHeade
 	return nil
 }
 
-func (ehp *extendedHeaderProcessor) addSCRsToPool(scrs []*SCRInfo) {
+func (ehp *extendedHeaderProcessor) addSCRsToPool(scrs []*dto.SCRInfo) {
 	cacheID := process.ShardCacherIdentifier(core.MainChainShardId, core.SovereignChainShardId)
 
 	for _, scrData := range scrs {
