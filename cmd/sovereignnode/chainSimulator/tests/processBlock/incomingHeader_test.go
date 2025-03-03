@@ -25,7 +25,8 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	proc "github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader"
+	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -428,6 +429,75 @@ func TestSovereignChainSimulator_AddIncomingHeaderCase3(t *testing.T) {
 
 }
 
+func TestSovereignChainSimulator_ConfirmBridgeOpChangeValidatorSet(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   true,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    uint64(6000),
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         6,
+			NumNodesWaitingListShard: 2,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.GeneralConfig.SovereignConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 1
+				cfg.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound = 0
+			},
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
+
+	incomingHdrNonce := uint64(1)
+	prevHeader := createHeaderV2(incomingHdrNonce, generateRandomHash(), generateRandomHash())
+	incomingHeader, headerHash := createIncomingHeader(nodeHandler, &incomingHdrNonce, prevHeader, nil)
+	err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
+	require.Nil(t, err)
+
+	for epoch := int32(1); epoch < 5; epoch++ {
+		err = cs.GenerateBlocksUntilEpochIsReached(epoch)
+		time.Sleep(time.Second)
+
+		err = cs.GenerateBlocks(5)
+		require.Nil(t, err)
+
+		unconfirmedOps := nodeHandler.GetRunTypeComponents().OutGoingOperationsPoolHandler().GetUnconfirmedOperations()
+		require.Len(t, unconfirmedOps, 1)
+		require.Equal(t, int32(block.OutGoingMbChangeValidatorSet), unconfirmedOps[0].Type)
+		require.Equal(t, uint32(epoch), unconfirmedOps[0].Epoch)
+
+		hashOfHashes := unconfirmedOps[0].Hash
+		hashOfOperation := unconfirmedOps[0].OutGoingOperations[0].Hash
+
+		confirmBridgeOpEvent := &transaction.Event{
+			Identifier: []byte(dto.EventIDChangeValidatorSet),
+			Topics:     [][]byte{[]byte(dto.TopicIDConfirmedOutGoingOperation), hashOfHashes, hashOfOperation},
+		}
+
+		incomingHeader, headerHash = createIncomingHeader(nodeHandler, &incomingHdrNonce, prevHeader, []*transaction.Event{confirmBridgeOpEvent})
+		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
+		require.Nil(t, err)
+
+		prevHeader = incomingHeader.Header
+	}
+}
+
 func getExtendedHeader(t *testing.T, nodeHandler process.NodeHandler, incomingHdr *sovereign.IncomingHeader) data.HeaderHandler {
 	extendedHeader, err := nodeHandler.GetIncomingHeaderSubscriber().CreateExtendedHeader(incomingHdr)
 	require.Nil(t, err)
@@ -494,7 +564,7 @@ func generateRandomHash() []byte {
 	return randomBytes
 }
 
-func createTransactionsEvent(dataCodecHandler incomingHeader.SovereignDataCodec, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
+func createTransactionsEvent(dataCodecHandler sovBlock.DataCodecHandler, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
 	tokenData, _ := dataCodecHandler.SerializeTokenData(createTokenData(amountToTransfer))
 	eventData, _ := dataCodecHandler.SerializeEventData(createEventData())
 
