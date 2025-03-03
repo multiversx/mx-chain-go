@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -52,15 +51,12 @@ var (
 	oneEGLD = big.NewInt(1000000000000000000)
 )
 
-func TestMainRunRUN(t *testing.T) {
-	t.Run("successful intra shard guarded move balance", testRelayedV3MoveBalance(0, 0, false, true))
-}
-
 func TestRelayedV3WithChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	t.Run("successful intra shard guarded move balance", testRelayedV3MoveBalance(0, 0, false, true))
 	t.Run("sender == relayer move balance should consume fee", testRelayedV3RelayedBySenderMoveBalance())
 	t.Run("receiver == relayer move balance should consume fee", testRelayedV3RelayedByReceiverMoveBalance())
 	t.Run("successful intra shard move balance", testRelayedV3MoveBalance(0, 0, false, false))
@@ -102,16 +98,6 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	})
 }
 
-func removeANSIColorsForLoggerIfNeeded() error {
-
-	err := logger.RemoveLogObserver(os.Stdout)
-	if err != nil {
-		return err
-	}
-
-	return logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
-}
-
 func testRelayedV3MoveBalance(
 	relayerShard uint32,
 	destinationShard uint32,
@@ -119,9 +105,6 @@ func testRelayedV3MoveBalance(
 	guardedTx bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		_ = removeANSIColorsForLoggerIfNeeded()
-		_ = logger.SetLogLevel("*:DEBUG")
-
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch

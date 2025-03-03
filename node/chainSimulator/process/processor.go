@@ -84,9 +84,6 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 	blsKey := leader
 
-	notNil := !check.IfNil(currentHeader)
-	enableEpochHandler := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler()
-
 	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
 	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
 	if err != nil {
@@ -111,6 +108,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
+	notNil := !check.IfNil(currentHeader)
+	enableEpochHandler := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
 	if notNil && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
 		sig, errS := creator.generateSignature(prevHash, blsKey.PubKey(), currentHeader)
