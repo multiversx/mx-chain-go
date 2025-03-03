@@ -69,7 +69,7 @@ func initWorker() spos.WorkerHandler {
 	return sposWorker
 }
 
-func initFactoryWithContainer(container *consensusMock.ConsensusCoreMock) v1.Factory {
+func initFactoryWithContainer(container *spos.ConsensusCore) v1.Factory {
 	worker := initWorker()
 	consensusState := initializers.InitConsensusState()
 
@@ -395,7 +395,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	consensusState := initializers.InitConsensusState()
 	container := consensusMock.InitConsensusCore()
 	worker := initWorker()
-	container.SetValidatorGroupSelector(nil)
+	container.SetNodesCoordinator(nil)
 
 	fct, err := v1.NewSubroundsFactory(
 		container,

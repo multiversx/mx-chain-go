@@ -26,7 +26,7 @@ import (
 
 const setThresholdJobsDone = "threshold"
 
-func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreMock) v2.SubroundSignature {
+func initSubroundSignatureWithContainer(container *spos.ConsensusCore) v2.SubroundSignature {
 	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 
