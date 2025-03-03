@@ -335,14 +335,12 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 
 	prevProof := header.GetPreviousProof()
 	if common.IsEpochStartProofForFlagActivation(prevProof, hsv.enableEpochsHandler) {
-		err = hsv.verifyHeaderProofAtTransition(prevProof) // here
-		if err == nil {
-			_ = hsv.proofsPool.AddProof(prevProof)
-		}
+		err = hsv.verifyHeaderProofAtTransition(prevProof)
 		if err != nil {
 			return err
 		}
 
+		_ = hsv.proofsPool.AddProof(prevProof)
 		return nil
 	}
 
