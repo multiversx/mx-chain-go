@@ -221,6 +221,16 @@ func (sr *subroundBlock) ReceivedBlockHeader(header data.HeaderHandler) {
 	sr.receivedBlockHeader(header)
 }
 
+// GetLeaderForHeader returns the leader based on header info
+func (sr *subroundBlock) GetLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
+	return sr.getLeaderForHeader(headerHandler)
+}
+
+// SaveProofForPreviousHeaderIfNeeded will save proof if needed
+func (sr *subroundBlock) SaveProofForPreviousHeaderIfNeeded(header data.HeaderHandler, prevHeader data.HeaderHandler) {
+	sr.saveProofForPreviousHeaderIfNeeded(header, prevHeader)
+}
+
 // subroundSignature
 
 // SubroundSignature defines an alias to the subroundSignature structure
@@ -339,4 +349,14 @@ func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) b
 // ReceivedSignature method is called when a signature is received through the signature channel
 func (sr *subroundEndRound) ReceivedSignature(cnsDta *consensus.Message) bool {
 	return sr.receivedSignature(context.Background(), cnsDta)
+}
+
+// WaitForProof -
+func (sr *subroundEndRound) WaitForProof() bool {
+	return sr.waitForProof()
+}
+
+// GetEquivalentProofSender -
+func (sr *subroundEndRound) GetEquivalentProofSender() string {
+	return sr.getEquivalentProofSender()
 }
