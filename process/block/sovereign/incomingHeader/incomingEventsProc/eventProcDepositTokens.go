@@ -46,7 +46,15 @@ func NewEventProcDepositTokens(args EventProcDepositTokensArgs) (*eventProcDepos
 	}, nil
 }
 
-// ProcessEvent will process incoming token deposit events and return an incoming scr info
+// ProcessEvent handles incoming token deposit events and returns the corresponding incoming SCR info.
+// Each deposit event is identified by dto.EventIDDepositIncomingTransfer.
+//
+// Expected event data:
+// - Data []byte – Serialized event details (nonce, gas, function call with arguments).
+// - Topics [][]byte – A variable-length list of incoming token deposit topics, where:
+//   - topic[0] = dto.TopicIDDepositIncomingTransfer.
+//   - topic[1] = Receiver address.
+//   - topic[2:N] = List of token data.
 func (dep *eventProcDepositTokens) ProcessEvent(event data.EventHandler) (*dto.EventResult, error) {
 	topics := event.GetTopics()
 	err := dep.topicsChecker.CheckValidity(topics)

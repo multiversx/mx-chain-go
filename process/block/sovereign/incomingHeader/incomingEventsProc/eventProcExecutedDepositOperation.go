@@ -24,7 +24,22 @@ func NewEventProcExecutedDepositOperation(
 	}, nil
 }
 
-// ProcessEvent will process events related to confirmed outgoing bridge operations to main chain
+// ProcessEvent handles events related to executed outgoing deposit token bridge operations to the main chain.
+// Each event is identified by dto.EventIDExecutedOutGoingBridgeOp.
+//
+// An outgoing deposit operation can have two possible outcomes:
+//   - successful – The operation is confirmed.
+//   - failed – The tokens are returned to the original caller.
+//     ⚠ Note: The current method of returning tokens for failed cases will be revised in future versions.
+//
+// Expected event topics ([][]byte):
+// - topic[0] = dto.TopicIDDepositIncomingTransfer → Indicates a failed operation.
+//   - The event is treated as an **incoming deposit event**, and the tokens are returned.
+//   - The remaining topic fields follow the format defined in `eventProcDepositTokens.go`.
+//
+// - topic[1] = dto.TopicIDConfirmedOutGoingOperation → Indicates a successful operation.
+//   - The operation is confirmed.
+//   - The remaining topic fields follow the format defined in `eventProcConfirmExecutedOperation.go`.
 func (ep *eventProcExecutedDepositOperation) ProcessEvent(event data.EventHandler) (*dto.EventResult, error) {
 	topics := event.GetTopics()
 	if len(topics) == 0 {

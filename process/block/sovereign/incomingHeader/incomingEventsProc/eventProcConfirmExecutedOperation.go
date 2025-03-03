@@ -21,7 +21,14 @@ func NewEventProcConfirmExecutedOperation() *eventProcConfirmExecutedOperation {
 	return &eventProcConfirmExecutedOperation{}
 }
 
-// ProcessEvent will process events related to confirmed outgoing bridge operations to main chain
+// ProcessEvent handles incoming events related to confirmed outgoing bridge operations to the main chain.
+// Each confirmed event is identified by a unique identifier (e.g., confirming that a deposit or
+// changeValidatorSet operation has been executed).
+//
+// The event's topics ([][]byte) are expected to be:
+// 1. topic[0] = executedBridgeOp – Indicates the execution of a bridge operation.
+// 2. topic[1] = hashOfHashes – A hash representing all outgoing operations.
+// 3. topic[2] = hashOfOperation – The hash of a specific operation included in `HashOfHashes`.
 func (ep *eventProcConfirmExecutedOperation) ProcessEvent(event data.EventHandler) (*dto.EventResult, error) {
 	confirmedOp, err := getConfirmedBridgeOperation(event.GetTopics())
 	if err != nil {

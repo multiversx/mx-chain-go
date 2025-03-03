@@ -15,12 +15,14 @@ type incomingEventsProcessor struct {
 	handlers map[string]IncomingEventHandler
 }
 
+// NewIncomingEventsProcessor creates a new incoming events processor holder
 func NewIncomingEventsProcessor() *incomingEventsProcessor {
 	return &incomingEventsProcessor{
 		handlers: make(map[string]IncomingEventHandler),
 	}
 }
 
+// RegisterProcessor registers a new incoming event handler for a specified event
 func (iep *incomingEventsProcessor) RegisterProcessor(event string, proc IncomingEventHandler) error {
 	if check.IfNil(proc) {
 		return errNilIncomingEventHandler
@@ -32,6 +34,7 @@ func (iep *incomingEventsProcessor) RegisterProcessor(event string, proc Incomin
 	return nil
 }
 
+// ProcessIncomingEvents will process all incoming events and create a result of incoming scrs or confirmed bridge operations
 func (iep *incomingEventsProcessor) ProcessIncomingEvents(events []data.EventHandler) (*dto.EventsResult, error) {
 	scrs := make([]*dto.SCRInfo, 0, len(events))
 	confirmedBridgeOps := make([]*dto.ConfirmedBridgeOp, 0, len(events))
