@@ -1047,15 +1047,14 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 	body.MiniBlocks = finalMiniBlocks
 
-	/* TODO: Next task
-	// Call here scbp.nodesCoordinator.EpochStartPrepare(...)
+	scbp.nodesCoordinator.EpochStartPrepare(header, body)
 
 	pubKeys, err := scbp.nodesCoordinator.GetConsensusValidatorsPublicKeys(header.GetRandSeed(), header.GetRound(), core.SovereignChainShardId, header.GetEpoch())
 	if err != nil {
 		return err
 	}
 
-	outGoingOperationChangeValidatorSet, err := scbp.outgoingOperationsFormatter.CreateOutGoingChangeValidatorData(pubKeys)
+	outGoingOperationChangeValidatorSet, err := scbp.outgoingOperationsFormatter.CreateOutGoingChangeValidatorData(pubKeys, header.GetEpoch())
 	if err != nil {
 		return err
 	}
@@ -1069,7 +1068,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	if err != nil {
 		return err
 	}
-	*/
+
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
 }
 

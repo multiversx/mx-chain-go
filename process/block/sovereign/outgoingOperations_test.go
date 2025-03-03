@@ -5,14 +5,17 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/errors"
-	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/multiversx/mx-chain-go/errors"
+	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 func createEvents() []SubscribedEvent {
@@ -31,6 +34,7 @@ func createArgs() ArgsOutgoingOperations {
 		SubscribedEvents: createEvents(),
 		DataCodec:        &sovTests.DataCodecMock{},
 		TopicsChecker:    &sovTests.TopicsCheckerMock{},
+		PeerAccountsDB:   &state.AccountsStub{},
 	}
 }
 
@@ -84,6 +88,7 @@ func createOutgoingOpsFormatter() *outgoingOperations {
 		SubscribedEvents: events,
 		DataCodec:        &sovTests.DataCodecMock{},
 		TopicsChecker:    &sovTests.TopicsCheckerMock{},
+		PeerAccountsDB:   &state.AccountsStub{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 	return opFormatter
@@ -310,6 +315,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		SubscribedEvents: events,
 		DataCodec:        dataCodec,
 		TopicsChecker:    &sovTests.TopicsCheckerMock{},
+		PeerAccountsDB:   &state.AccountsStub{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 
@@ -339,4 +345,41 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	outgoingTxData, err := opFormatter.CreateOutgoingTxsData(logs)
 	require.Nil(t, err)
 	require.Equal(t, [][]byte{operationBytes}, outgoingTxData)
+}
+
+func TestOutgoingOperations_CreateOutGoingChangeValidatorData(t *testing.T) {
+	t.Parallel()
+
+	args := createArgs()
+	pubKeys := []string{"pk1", "pk2"}
+	acc1 := &state.PeerAccountHandlerMock{
+		MainChainID: []byte("id1"),
+	}
+	acc2 := &state.PeerAccountHandlerMock{
+		MainChainID: []byte("id2"),
+	}
+	args.PeerAccountsDB = &state.AccountsStub{
+		LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+			switch string(container) {
+			case pubKeys[0]:
+				return acc1, nil
+			case pubKeys[1]:
+				return acc2, nil
+			}
+
+			require.Fail(t, "should not load any other account")
+			return nil, nil
+		},
+	}
+
+	formatter, _ := NewOutgoingOperationsFormatter(args)
+
+	res, err := formatter.CreateOutGoingChangeValidatorData(pubKeys, 4)
+	require.Nil(t, err)
+
+	resBridgeData := sovereign.BridgeOutGoingDataValidatorSetChange{}
+	err = proto.Unmarshal(res, &resBridgeData)
+	require.Nil(t, err)
+	require.Equal(t, uint32(4), resBridgeData.GetEpoch())
+	require.Equal(t, [][]byte{[]byte("id1"), []byte("id2")}, resBridgeData.GetPubKeyIDs())
 }

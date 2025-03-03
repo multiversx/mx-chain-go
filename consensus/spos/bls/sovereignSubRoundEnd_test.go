@@ -284,6 +284,140 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		require.Equal(t, 1, getCallCt)
 	})
 
+	t.Run("outgoing operations in multiple outgoing mbs found", func(t *testing.T) {
+		t.Parallel()
+
+		outGoingDataHash1 := []byte("hash1")
+		outGoingOpHash1 := []byte("hashOp1")
+		outGoingOpData1 := []byte("bridgeOp1")
+		aggregatedSig1 := []byte("aggregatedSig1")
+		leaderSig1 := []byte("leaderSig1")
+
+		outGoingDataHash2 := []byte("hash2")
+		outGoingOpHash2 := []byte("hashOp2")
+		outGoingOpData2 := []byte("bridgeOp2")
+		aggregatedSig2 := []byte("aggregatedSig2")
+		leaderSig2 := []byte("leaderSig2")
+
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		currentBridgeOutGoingData1 := &sovCore.BridgeOutGoingData{
+			Type: int32(block.OutGoingMbTx),
+			Hash: outGoingDataHash1,
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: outGoingOpHash1,
+					Data: outGoingOpData1,
+				},
+			},
+			AggregatedSignature: aggregatedSig1,
+			LeaderSignature:     leaderSig1,
+			PubKeysBitmap:       []byte{0x1, 0x0},
+			Epoch:               4,
+		}
+
+		currentBridgeOutGoingData2 := &sovCore.BridgeOutGoingData{
+			Type: int32(block.OutGoingMbChangeValidatorSet),
+			Hash: outGoingDataHash2,
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: outGoingOpHash2,
+					Data: outGoingOpData2,
+				},
+			},
+			AggregatedSignature: aggregatedSig2,
+			LeaderSignature:     leaderSig2,
+			PubKeysBitmap:       []byte{0x1, 0x0},
+			Epoch:               4,
+		}
+
+		pool := &sovereign.OutGoingOperationsPoolMock{
+			GetCalled: func(hash []byte) *sovCore.BridgeOutGoingData {
+				switch string(hash) {
+				case string(outGoingDataHash1):
+					return &sovCore.BridgeOutGoingData{
+						Type: int32(block.OutGoingMbTx),
+						Hash: outGoingDataHash1,
+						OutGoingOperations: []*sovCore.OutGoingOperation{
+							{
+								Hash: outGoingOpHash1,
+								Data: outGoingOpData1,
+							},
+						},
+						AggregatedSignature: nil, // no signature
+						LeaderSignature:     nil, // no signature
+						Epoch:               4,
+					}
+				case string(outGoingDataHash2):
+					return &sovCore.BridgeOutGoingData{
+						Type: int32(block.OutGoingMbChangeValidatorSet),
+						Hash: outGoingDataHash2,
+						OutGoingOperations: []*sovCore.OutGoingOperation{
+							{
+								Hash: outGoingOpHash2,
+								Data: outGoingOpData2,
+							},
+						},
+						AggregatedSignature: nil, // no signature
+						LeaderSignature:     nil, // no signature
+						Epoch:               4,
+					}
+				}
+
+				require.Fail(t, "should not request any other bridge data from pool")
+				return nil
+			},
+		}
+
+		wasDataSent := false
+		currCtx := context.Background()
+		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				defer func() {
+					wg.Done()
+				}()
+
+				require.Equal(t, currCtx, ctx)
+				require.Equal(t, &sovCore.BridgeOperations{
+					Data: []*sovCore.BridgeOutGoingData{
+						currentBridgeOutGoingData1,
+						currentBridgeOutGoingData2,
+					},
+				}, data)
+
+				wasDataSent = true
+				return &sovCore.BridgeOperationsResponse{}, nil
+			},
+		}
+
+		sovHdr := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce: 4,
+				Epoch: 4,
+			},
+			OutGoingMiniBlockHeaders: []*block.OutGoingMiniBlockHeader{
+				{
+					Type:                                  block.OutGoingMbTx,
+					OutGoingOperationsHash:                outGoingDataHash1,
+					AggregatedSignatureOutGoingOperations: aggregatedSig1,
+					LeaderSignatureOutGoingOperations:     leaderSig1,
+				},
+				{
+					Type:                                  block.OutGoingMbChangeValidatorSet,
+					OutGoingOperationsHash:                outGoingDataHash2,
+					AggregatedSignatureOutGoingOperations: aggregatedSig2,
+					LeaderSignatureOutGoingOperations:     leaderSig2,
+				},
+			},
+		}
+		sovEndRound := createSovSubRoundEndWithSelfLeader(pool, bridgeHandler, sovHdr)
+		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		wg.Wait()
+		require.True(t, success)
+		require.True(t, wasDataSent)
+	})
+
 	t.Run("outgoing operations found with unconfirmed operations", func(t *testing.T) {
 		t.Parallel()
 

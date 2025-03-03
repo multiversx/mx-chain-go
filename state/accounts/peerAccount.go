@@ -168,6 +168,11 @@ func (pa *peerAccount) SetPreviousList(list string) {
 	pa.PreviousList = list
 }
 
+// SetMainChainID sets the main chain id
+func (pa *peerAccount) SetMainChainID(id []byte) {
+	pa.MainChainID = id
+}
+
 // IsInterfaceNil return if there is no value under the interface
 func (pa *peerAccount) IsInterfaceNil() bool {
 	return pa == nil

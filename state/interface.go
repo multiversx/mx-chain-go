@@ -62,6 +62,8 @@ type PeerAccountHandler interface {
 	SetConsecutiveProposerMisses(consecutiveMisses uint32)
 	ResetAtNewEpoch()
 	SetPreviousList(list string)
+	GetMainChainID() []byte
+	SetMainChainID(id []byte)
 	vmcommon.AccountHandler
 }
 

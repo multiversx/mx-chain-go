@@ -125,23 +125,27 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return false
 	}
 
-	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler(int32(block.OutGoingMbTx))
-	if check.IfNil(outGoingMBHeader) {
+	outGoingMBHeaders := sovHeader.GetOutGoingMiniBlockHeaderHandlers()
+	if len(outGoingMBHeaders) == 0 {
 		sr.sendUnconfirmedOperationsIfFound(ctx)
 		return true
 	}
 
-	currBridgeData, err := sr.updateBridgeDataWithSignatures(outGoingMBHeader, sovHeader.GetPubKeysBitmap())
-	if err != nil {
-		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.updateBridgeDataWithSignatures", "error", err)
-		return false
+	currentOperations := make([]*sovereign.BridgeOutGoingData, len(outGoingMBHeaders))
+	for idx, outGoingMBHdr := range outGoingMBHeaders {
+		currBridgeData, err := sr.updateBridgeDataWithSignatures(outGoingMBHdr, sovHeader.GetPubKeysBitmap())
+		if err != nil {
+			log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob.updateBridgeDataWithSignatures", "error", err)
+			return false
+		}
+		currentOperations[idx] = currBridgeData
 	}
 
 	if !sr.isSelfLeader() {
 		return true
 	}
 
-	outGoingOperations := sr.getAllOutGoingOperations(currBridgeData)
+	outGoingOperations := sr.getAllOutGoingOperations(currentOperations)
 	go sr.sendOutGoingOperations(ctx, outGoingOperations)
 
 	return true
@@ -184,7 +188,7 @@ func (sr *sovereignSubRoundEnd) isSelfLeader() bool {
 	return sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
 }
 
-func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sovereign.BridgeOutGoingData) []*sovereign.BridgeOutGoingData {
+func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations []*sovereign.BridgeOutGoingData) []*sovereign.BridgeOutGoingData {
 	outGoingOperations := make([]*sovereign.BridgeOutGoingData, 0)
 	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
 	if len(unconfirmedOperations) != 0 {
@@ -192,8 +196,8 @@ func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sove
 		outGoingOperations = append(unconfirmedOperations, outGoingOperations...)
 	}
 
-	log.Debug("current outgoing operations", "hash", currentOperations.Hash)
-	return append(outGoingOperations, currentOperations)
+	log.Debug("current outgoing operations", "num", len(currentOperations))
+	return append(outGoingOperations, currentOperations...)
 }
 
 func (sr *sovereignSubRoundEnd) sendOutGoingOperations(ctx context.Context, data []*sovereign.BridgeOutGoingData) {

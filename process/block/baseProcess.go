@@ -2351,17 +2351,6 @@ func (bp *baseProcessor) commitEpochStart(
 	validatorInfoCreator process.EpochStartValidatorInfoCreator,
 ) {
 	if header.IsStartOfEpochBlock() {
-		// TODO: Analysis for next task on this feat.
-		// trigger.SetProcessed calls EpochStartPrepare for all subscribed comps(including nodes coordinator)
-		// We will also call nodesCoord.EpochStart  in sovereignChainBlockProcessor.applyBodyToHeaderForEpochChange,
-		// after we call scbp.createEpochStartData, similar to this:
-		//
-		// scbp.nodesCoordinator.EpochStartPrepare(header, body)
-		// pubKeys, err := scbp.nodesCoordinator.GetConsensusValidatorsPublicKeys([]byte("rand"), 0, 0, header.GetEpoch())
-		// if err != nil {
-		// 	return err
-		// }
-		// createOutGoingMb(pubKeys)
 		bp.epochStartTrigger.SetProcessed(header, body)
 		go epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go validatorInfoCreator.SaveBlockDataToStorage(header, body)
