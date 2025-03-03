@@ -293,26 +293,7 @@ func (sp *shardProcessor) ProcessBlock(
 		return process.ErrAccountStateDirty
 	}
 
-	sp.mutRequestedAttestingNoncesMap.Lock()
-	sp.requestedAttestingNoncesMap = make(map[string]uint64)
-	sp.mutRequestedAttestingNoncesMap.Unlock()
-	_ = core.EmptyChannel(sp.allProofsReceived)
-
-	// check proofs for cross notarized metablocks
-	for _, metaBlockHash := range header.GetMetaBlockHashes() {
-		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
-		if !ok {
-			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
-		}
-
-		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
-			continue
-		}
-
-		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
-	}
-
-	err = sp.waitAllMissingProofs(haveTime())
+	err = sp.checkProofsForCrossNotarizedMetaBlocks(header, haveTime())
 	if err != nil {
 		return err
 	}
@@ -386,6 +367,28 @@ func (sp *shardProcessor) ProcessBlock(
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) checkProofsForCrossNotarizedMetaBlocks(header data.ShardHeaderHandler, waitTime time.Duration) error {
+	sp.mutRequestedAttestingNoncesMap.Lock()
+	sp.requestedAttestingNoncesMap = make(map[string]uint64)
+	sp.mutRequestedAttestingNoncesMap.Unlock()
+	_ = core.EmptyChannel(sp.allProofsReceived)
+
+	for _, metaBlockHash := range header.GetMetaBlockHashes() {
+		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
+		if !ok {
+			return fmt.Errorf("%w for header hash %s", process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
+		}
+
+		if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, hInfo.hdr.GetEpoch()) {
+			continue
+		}
+
+		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
+	}
+
+	return sp.waitAllMissingProofs(waitTime)
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {

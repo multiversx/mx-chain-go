@@ -363,7 +363,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded(header data.HeaderHa
 
 	hasProof := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), header.GetPrevHash())
 	if hasProof {
-		log.Debug("saveProofForPreviousHeaderIfNeeded: no need to set proof since it is already saved")
+		log.Debug("saveProofForPreviousHeaderIfNeeded: proof already saved", "headerHash", hex.EncodeToString(header.GetPrevHash()))
 		return
 	}
 
@@ -587,10 +587,16 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sw := core.NewStopWatch()
+	sw.Start("processReceivedBlock")
+
 	sr.mutBlockProcessing.Lock()
 	defer sr.mutBlockProcessing.Unlock()
 
 	defer func() {
+		sw.Stop("processReceivedBlock")
+		log.Info("time measurements of processReceivedBlock", sw.GetMeasurements()...)
+
 		sr.SetProcessingBlock(false)
 	}()
 
@@ -612,7 +618,11 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
-	return sr.processBlock(ctx, round, senderPK)
+	sw.Start("processBlock")
+	ok := sr.processBlock(ctx, round, senderPK)
+	sw.Stop("processBlock")
+
+	return ok
 }
 
 func (sr *subroundBlock) processBlock(

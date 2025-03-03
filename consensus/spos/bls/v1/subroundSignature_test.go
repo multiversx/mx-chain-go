@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreMock) v1.SubroundSignature {
+func initSubroundSignatureWithContainer(container *spos.ConsensusCore) v1.SubroundSignature {
 	consensusState := initializers.InitConsensusState()
 	ch := make(chan bool, 1)
 

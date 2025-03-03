@@ -578,6 +578,7 @@ func (ps *PruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.K
 func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok {
+		ps.stateStatsHandler.IncrementCache()
 		return v.([]byte), nil
 	}
 
@@ -589,6 +590,7 @@ func (ps *PruningStorer) SearchFirst(key []byte) ([]byte, error) {
 	for _, pd := range ps.activePersisters {
 		res, err = pd.getPersister().Get(key)
 		if err == nil {
+			ps.stateStatsHandler.IncrementPersister(pd.epoch)
 			return res, nil
 		}
 	}
