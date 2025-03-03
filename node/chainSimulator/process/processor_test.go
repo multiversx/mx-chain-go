@@ -2,7 +2,6 @@ package process_test
 
 import (
 	"errors"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"testing"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainSimulator"
 	testsConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
