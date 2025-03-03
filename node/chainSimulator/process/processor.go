@@ -148,7 +148,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 			selectionEpoch = selectionEpoch - 1
 		}
 
-		leader, validators, err = creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), shardID, selectionEpoch)
+		_, validators, err = creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), shardID, selectionEpoch)
 		if err != nil {
 			return err
 		}
