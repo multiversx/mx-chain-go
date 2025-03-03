@@ -3,23 +3,30 @@ package incomingEventsProc
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
 )
 
 type eventProcExecutedDepositOperation struct {
-	depositEventProc                  IncomingEventHandler
+	eventProcDepositTokens            IncomingEventHandler
 	eventProcConfirmExecutedOperation IncomingEventHandler
 }
 
 func NewEventProcExecutedDepositOperation(
-	depositEventProc IncomingEventHandler,
+	eventProcDepositTokens IncomingEventHandler,
 	eventProcConfirmExecutedOperation IncomingEventHandler,
 ) (*eventProcExecutedDepositOperation, error) {
+	if check.IfNil(eventProcDepositTokens) {
+		return nil, errNilEventProcDepositTokens
+	}
+	if check.IfNil(eventProcConfirmExecutedOperation) {
+		return nil, errNilEventProcConfirmExecutedOp
+	}
 
 	return &eventProcExecutedDepositOperation{
-		depositEventProc:                  depositEventProc,
+		eventProcDepositTokens:            eventProcDepositTokens,
 		eventProcConfirmExecutedOperation: eventProcConfirmExecutedOperation,
 	}, nil
 }
@@ -37,7 +44,7 @@ func NewEventProcExecutedDepositOperation(
 //   - The event is treated as an **incoming deposit event**, and the tokens are returned.
 //   - The remaining topic fields follow the format defined in `eventProcDepositTokens.go`.
 //
-// - topic[1] = dto.TopicIDConfirmedOutGoingOperation → Indicates a successful operation.
+// - topic[0] = dto.TopicIDConfirmedOutGoingOperation → Indicates a successful operation.
 //   - The operation is confirmed.
 //   - The remaining topic fields follow the format defined in `eventProcConfirmExecutedOperation.go`.
 func (ep *eventProcExecutedDepositOperation) ProcessEvent(event data.EventHandler) (*dto.EventResult, error) {
@@ -48,7 +55,7 @@ func (ep *eventProcExecutedDepositOperation) ProcessEvent(event data.EventHandle
 
 	switch string(topics[0]) {
 	case dto.TopicIDDepositIncomingTransfer:
-		return ep.depositEventProc.ProcessEvent(event)
+		return ep.eventProcDepositTokens.ProcessEvent(event)
 	case dto.TopicIDConfirmedOutGoingOperation:
 		return ep.eventProcConfirmExecutedOperation.ProcessEvent(event)
 	default:

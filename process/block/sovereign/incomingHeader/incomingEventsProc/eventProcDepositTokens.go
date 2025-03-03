@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -13,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	sovBlock "github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign/incomingHeader/dto"
 )
@@ -38,6 +40,19 @@ type eventProcDepositTokens struct {
 }
 
 func NewEventProcDepositTokens(args EventProcDepositTokensArgs) (*eventProcDepositTokens, error) {
+	if check.IfNil(args.Marshaller) {
+		return nil, core.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return nil, core.ErrNilHasher
+	}
+	if check.IfNil(args.DataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return nil, errors.ErrNilTopicsChecker
+	}
+
 	return &eventProcDepositTokens{
 		marshaller:    args.Marshaller,
 		hasher:        args.Hasher,

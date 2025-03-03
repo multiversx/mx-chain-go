@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/stretchr/testify/require"
 
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -29,6 +30,53 @@ func createArgs() EventProcDepositTokensArgs {
 	}
 }
 
+func TestNewEventProcDepositTokens(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil marshaller, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.Marshaller = nil
+
+		handler, err := NewEventProcDepositTokens(args)
+		require.Equal(t, core.ErrNilMarshalizer, err)
+		require.Nil(t, handler)
+	})
+
+	t.Run("nil hasher, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.Hasher = nil
+
+		handler, err := NewEventProcDepositTokens(args)
+		require.Equal(t, core.ErrNilHasher, err)
+		require.Nil(t, handler)
+	})
+
+	t.Run("nil data codec, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.DataCodec = nil
+
+		handler, err := NewEventProcDepositTokens(args)
+		require.Equal(t, errorsMx.ErrNilDataCodec, err)
+		require.Nil(t, handler)
+	})
+
+	t.Run("nil topics checker, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.TopicsChecker = nil
+
+		handler, err := NewEventProcDepositTokens(args)
+		require.Equal(t, errorsMx.ErrNilTopicsChecker, err)
+		require.Nil(t, handler)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		args := createArgs()
+		handler, err := NewEventProcDepositTokens(args)
+		require.NotNil(t, handler)
+		require.Nil(t, err)
+	})
+}
+
 func TestDepositEventProc_createEventData(t *testing.T) {
 	t.Parallel()
 
@@ -47,13 +95,8 @@ func TestDepositEventProc_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler := &eventProcDepositTokens{
-			marshaller:    args.Marshaller,
-			hasher:        args.Hasher,
-			dataCodec:     args.DataCodec,
-			topicsChecker: args.TopicsChecker,
-		}
 
+		handler, _ := NewEventProcDepositTokens(args)
 		ret, err := handler.createEventData(inputEventData)
 		require.Nil(t, err)
 		require.Equal(t, &eventData{
@@ -76,13 +119,8 @@ func TestDepositEventProc_createEventData(t *testing.T) {
 				}, nil
 			},
 		}
-		handler := &eventProcDepositTokens{
-			marshaller:    args.Marshaller,
-			hasher:        args.Hasher,
-			dataCodec:     args.DataCodec,
-			topicsChecker: args.TopicsChecker,
-		}
 
+		handler, _ := NewEventProcDepositTokens(args)
 		ret, err := handler.createEventData([]byte(""))
 		require.Nil(t, err)
 
@@ -111,13 +149,7 @@ func TestDepositEventProc_createEventData(t *testing.T) {
 			},
 		}
 
-		handler := &eventProcDepositTokens{
-			marshaller:    args.Marshaller,
-			hasher:        args.Hasher,
-			dataCodec:     args.DataCodec,
-			topicsChecker: args.TopicsChecker,
-		}
-
+		handler, _ := NewEventProcDepositTokens(args)
 		ret, err := handler.createEventData([]byte(""))
 		require.Nil(t, err)
 
@@ -162,13 +194,7 @@ func TestDepositEventProc_createSCRData(t *testing.T) {
 		},
 	}
 
-	handler := &eventProcDepositTokens{
-		marshaller:    args.Marshaller,
-		hasher:        args.Hasher,
-		dataCodec:     args.DataCodec,
-		topicsChecker: args.TopicsChecker,
-	}
-
+	handler, _ := NewEventProcDepositTokens(args)
 	ret, err := handler.createSCRData(topics)
 	require.Nil(t, err)
 
