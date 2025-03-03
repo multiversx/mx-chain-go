@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"math/big"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -50,6 +51,10 @@ const (
 var (
 	oneEGLD = big.NewInt(1000000000000000000)
 )
+
+func TestMainRunRUN(t *testing.T) {
+	t.Run("successful intra shard guarded move balance", testRelayedV3MoveBalance(0, 0, false, true))
+}
 
 func TestRelayedV3WithChainSimulator(t *testing.T) {
 	if testing.Short() {
@@ -97,6 +102,16 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	})
 }
 
+func removeANSIColorsForLoggerIfNeeded() error {
+
+	err := logger.RemoveLogObserver(os.Stdout)
+	if err != nil {
+		return err
+	}
+
+	return logger.AddLogObserver(os.Stdout, &logger.PlainFormatter{})
+}
+
 func testRelayedV3MoveBalance(
 	relayerShard uint32,
 	destinationShard uint32,
@@ -104,6 +119,8 @@ func testRelayedV3MoveBalance(
 	guardedTx bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
+		_ = removeANSIColorsForLoggerIfNeeded()
+		_ = logger.SetLogLevel("*:DEBUG")
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {

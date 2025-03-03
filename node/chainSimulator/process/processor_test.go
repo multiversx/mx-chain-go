@@ -2,6 +2,7 @@ package process_test
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"testing"
 	"time"
 
@@ -575,6 +576,9 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 						},
 					}
 				},
+				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
 			}
 		},
 		GetProcessComponentsCalled: func() factory.ProcessComponentsHolder {
@@ -627,4 +631,13 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 			return &testsConsensus.BroadcastMessengerMock{}
 		},
 	}
+}
+
+func TestGeneratePubKeyBitmap(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, []byte{1}, chainSimulatorProcess.GeneratePubKeyBitmap(1))
+	require.Equal(t, []byte{3}, chainSimulatorProcess.GeneratePubKeyBitmap(2))
+	require.Equal(t, []byte{7}, chainSimulatorProcess.GeneratePubKeyBitmap(3))
+	require.Equal(t, []byte{255, 255, 15}, chainSimulatorProcess.GeneratePubKeyBitmap(20))
 }
