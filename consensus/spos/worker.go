@@ -284,6 +284,11 @@ func (wrk *Worker) receivedSyncState(isNodeSynchronized bool) {
 
 // ReceivedHeader process the received header, calling each received header handler registered in worker instance
 func (wrk *Worker) ReceivedHeader(headerHandler data.HeaderHandler, _ []byte) {
+	if check.IfNil(headerHandler) {
+		log.Trace("ReceivedHeader: nil header handler")
+		return
+	}
+
 	isHeaderForOtherShard := headerHandler.GetShardID() != wrk.shardCoordinator.SelfId()
 	isHeaderForOtherRound := int64(headerHandler.GetRound()) != wrk.roundHandler.Index()
 	headerCanNotBeProcessed := isHeaderForOtherShard || isHeaderForOtherRound

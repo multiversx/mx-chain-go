@@ -351,6 +351,20 @@ func TestConsensusCore_WithNilEnableEpochsHandlerShouldFail(t *testing.T) {
 	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
 }
 
+func TestConsensusCore_WithNilEpochStartRegistrationHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.EpochStartRegistrationHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilEpochStartNotifier, err)
+}
+
 func TestConsensusCore_CreateConsensusCoreShouldWork(t *testing.T) {
 	t.Parallel()
 

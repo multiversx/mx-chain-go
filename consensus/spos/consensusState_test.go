@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"testing"
+	"time"
 
+	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -71,6 +74,7 @@ func TestConsensusState_ResetConsensusStateShouldWork(t *testing.T) {
 
 	cns := internalInitConsensusState()
 	cns.SetRoundCanceled(true)
+	require.True(t, cns.GetRoundCanceled())
 	cns.SetExtendedCalled(true)
 	cns.SetWaitingAllSignaturesTimeOut(true)
 	cns.ResetConsensusState()
@@ -604,4 +608,60 @@ func TestConsensusState_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 
 	cns.ResetRoundsWithoutReceivedMessages(testPkBytes, testPid)
 	assert.True(t, resetRoundsWithoutReceivedMessagesCalled)
+}
+
+func TestConsensusState_GettersSetters(t *testing.T) {
+	t.Parallel()
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+
+	providedIndex := int64(123)
+	cns.SetRoundIndex(providedIndex)
+	require.Equal(t, providedIndex, cns.GetRoundIndex())
+
+	providedTimestamp := time.Now()
+	cns.SetRoundTimeStamp(providedTimestamp)
+	require.Equal(t, providedTimestamp, cns.GetRoundTimeStamp())
+
+	cns.SetExtendedCalled(true)
+	require.True(t, cns.GetExtendedCalled())
+
+	providedBody := &block.Body{}
+	cns.SetBody(providedBody)
+	require.Equal(t, providedBody, cns.GetBody())
+
+	providedHeader := &block.Header{}
+	cns.SetHeader(providedHeader)
+	require.Equal(t, providedHeader, cns.GetHeader())
+
+	cns.SetWaitingAllSignaturesTimeOut(true)
+	require.True(t, cns.GetWaitingAllSignaturesTimeOut())
+
+	providedData := []byte("hash")
+	cns.SetData(providedData)
+	require.Equal(t, string(providedData), string(cns.GetData()))
+
+	cns.AddReceivedHeader(providedHeader)
+	receivedHeaders := cns.GetReceivedHeaders()
+	require.Equal(t, 1, len(receivedHeaders))
+	require.Equal(t, providedHeader, receivedHeaders[0])
+
+	providedMsg := &p2pMessage.Message{}
+	providedKey := "key"
+	cns.AddMessageWithSignature(providedKey, providedMsg)
+	msg, ok := cns.GetMessageWithSignature(providedKey)
+	require.True(t, ok)
+	require.Equal(t, providedMsg, msg)
+}
+
+func TestConsensusState_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var cns *spos.ConsensusState
+	require.True(t, cns.IsInterfaceNil())
+
+	keysHandler := &testscommon.KeysHandlerStub{}
+	cns = internalInitConsensusStateWithKeysHandler(keysHandler)
+	require.False(t, cns.IsInterfaceNil())
 }
