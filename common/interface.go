@@ -223,17 +223,19 @@ type StateStatisticsHandler interface {
 	Reset()
 	ResetSnapshot()
 
-	IncrementCache()
+	IncrCache()
 	Cache() uint64
-	IncrementSnapshotCache()
+	IncrSnapshotCache()
 	SnapshotCache() uint64
 
-	IncrementPersister(epoch uint32)
+	IncrPersister(epoch uint32)
 	Persister(epoch uint32) uint64
-	IncrementSnapshotPersister(epoch uint32)
+	IncrWritePersister(epoch uint32)
+	WritePersister(epoch uint32) uint64
+	IncrSnapshotPersister(epoch uint32)
 	SnapshotPersister(epoch uint32) uint64
 
-	IncrementTrie()
+	IncrTrie()
 	Trie() uint64
 
 	ProcessingStats() []string

@@ -585,7 +585,7 @@ func TestHeaderSigVerifier_VerifySignatureWrongSizeBitmapShouldErr(t *testing.T)
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
-	require.Equal(t, ErrWrongSizeBitmap, err)
+	require.Equal(t, common.ErrWrongSizeBitmap, err)
 }
 
 func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
@@ -609,7 +609,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErr(t *testing.T) {
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
-	require.Equal(t, ErrNotEnoughSignatures, err)
+	require.Equal(t, common.ErrNotEnoughSignatures, err)
 }
 
 func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
@@ -678,7 +678,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 	}
 
 	err := hdrSigVerifier.VerifySignature(header)
-	require.Equal(t, ErrNotEnoughSignatures, err)
+	require.Equal(t, common.ErrNotEnoughSignatures, err)
 	require.False(t, wasCalled)
 }
 

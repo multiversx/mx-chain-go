@@ -27,11 +27,11 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Trie())
 
-		ss.IncrementTrie()
-		ss.IncrementTrie()
+		ss.IncrTrie()
+		ss.IncrTrie()
 		assert.Equal(t, uint64(2), ss.Trie())
 
-		ss.IncrementTrie()
+		ss.IncrTrie()
 		assert.Equal(t, uint64(3), ss.Trie())
 
 		ss.Reset()
@@ -47,15 +47,21 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Persister(epoch))
 
-		ss.IncrementPersister(epoch)
-		ss.IncrementPersister(epoch)
+		ss.IncrPersister(epoch)
+		ss.IncrPersister(epoch)
 		assert.Equal(t, uint64(2), ss.Persister(epoch))
 
-		ss.IncrementPersister(epoch)
+		ss.IncrPersister(epoch)
 		assert.Equal(t, uint64(3), ss.Persister(epoch))
+
+		ss.IncrWritePersister(epoch)
+		ss.IncrWritePersister(epoch)
+		ss.IncrWritePersister(epoch)
+		assert.Equal(t, uint64(3), ss.WritePersister(epoch))
 
 		ss.Reset()
 		assert.Equal(t, uint64(0), ss.Persister(epoch))
+		assert.Equal(t, uint64(0), ss.WritePersister(epoch))
 	})
 
 	t.Run("cache operations", func(t *testing.T) {
@@ -65,11 +71,11 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Cache())
 
-		ss.IncrementCache()
-		ss.IncrementCache()
+		ss.IncrCache()
+		ss.IncrCache()
 		assert.Equal(t, uint64(2), ss.Cache())
 
-		ss.IncrementCache()
+		ss.IncrCache()
 		assert.Equal(t, uint64(3), ss.Cache())
 
 		ss.Reset()
@@ -89,11 +95,11 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.SnapshotPersister(epoch))
 
-		ss.IncrementSnapshotPersister(epoch)
-		ss.IncrementSnapshotPersister(epoch)
+		ss.IncrSnapshotPersister(epoch)
+		ss.IncrSnapshotPersister(epoch)
 		assert.Equal(t, uint64(2), ss.SnapshotPersister(epoch))
 
-		ss.IncrementSnapshotPersister(epoch)
+		ss.IncrSnapshotPersister(epoch)
 		assert.Equal(t, uint64(3), ss.SnapshotPersister(epoch))
 
 		ss.ResetSnapshot()
@@ -107,11 +113,11 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Cache())
 
-		ss.IncrementSnapshotCache()
-		ss.IncrementSnapshotCache()
+		ss.IncrSnapshotCache()
+		ss.IncrSnapshotCache()
 		assert.Equal(t, uint64(2), ss.SnapshotCache())
 
-		ss.IncrementSnapshotCache()
+		ss.IncrSnapshotCache()
 		assert.Equal(t, uint64(3), ss.SnapshotCache())
 
 		ss.ResetSnapshot()
@@ -140,15 +146,15 @@ func TestStateStatistics_ConcurrenyOperations(t *testing.T) {
 
 	for i := 0; i < numIterations; i++ {
 		go func(idx int) {
-			switch idx % 11 {
+			switch idx % 13 {
 			case 0:
 				ss.Reset()
 			case 1:
-				ss.IncrementCache()
+				ss.IncrCache()
 			case 2:
-				ss.IncrementPersister(epoch)
+				ss.IncrPersister(epoch)
 			case 3:
-				ss.IncrementTrie()
+				ss.IncrTrie()
 			case 7:
 				_ = ss.Cache()
 			case 8:
@@ -157,6 +163,10 @@ func TestStateStatistics_ConcurrenyOperations(t *testing.T) {
 				_ = ss.Trie()
 			case 10:
 				_ = ss.ProcessingStats()
+			case 11:
+				ss.IncrWritePersister(epoch)
+			case 12:
+				_ = ss.WritePersister(epoch)
 			}
 
 			wg.Done()

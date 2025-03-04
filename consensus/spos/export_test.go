@@ -3,6 +3,7 @@ package spos
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -272,3 +273,61 @@ func (cmv *consensusMessageValidator) GetNumOfMessageTypeForPublicKey(pk []byte,
 func (cmv *consensusMessageValidator) ResetConsensusMessages() {
 	cmv.resetConsensusMessages()
 }
+
+// SetStatus -
+func (sp *scheduledProcessorWrapper) SetStatus(status processingStatus) {
+	sp.setStatus(status)
+}
+
+// GetStatus -
+func (sp *scheduledProcessorWrapper) GetStatus() processingStatus {
+	return sp.getStatus()
+}
+
+// SetStartTime -
+func (sp *scheduledProcessorWrapper) SetStartTime(t time.Time) {
+	sp.startTime = t
+}
+
+// GetStartTime -
+func (sp *scheduledProcessorWrapper) GetStartTime() time.Time {
+	return sp.startTime
+}
+
+// GetRoundTimeHandler -
+func (sp *scheduledProcessorWrapper) GetRoundTimeHandler() process.RoundTimeDurationHandler {
+	return sp.roundTimeDurationHandler
+}
+
+// ProcessingNotStarted -
+var ProcessingNotStarted = processingNotStarted
+
+// ProcessingError -
+var ProcessingError = processingError
+
+// InProgress -
+var InProgress = inProgress
+
+// ProcessingOK -
+var ProcessingOK = processingOK
+
+// Stopped -
+var Stopped = stopped
+
+// ProcessingNotStartedString -
+var ProcessingNotStartedString = processingNotStartedString
+
+// ProcessingErrorString -
+var ProcessingErrorString = processingErrorString
+
+// InProgressString -
+var InProgressString = inProgressString
+
+// ProcessingOKString -
+var ProcessingOKString = processingOKString
+
+// StoppedString -
+var StoppedString = stoppedString
+
+// UnexpectedString -
+var UnexpectedString = unexpectedString
