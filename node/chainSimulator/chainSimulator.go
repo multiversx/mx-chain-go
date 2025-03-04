@@ -86,7 +86,7 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	return NewBaseChainSimulator(ArgsBaseChainSimulator{
 		ArgsChainSimulator:          args,
 		ConsensusGroupSize:          configs.ChainSimulatorConsensusGroupSize,
-		MetaChainConsensusGroupSize: configs.ChainSimulatorConsensusGroupSize,
+		MetaChainConsensusGroupSize: args.MetaChainMinNodes,
 	})
 }
 
