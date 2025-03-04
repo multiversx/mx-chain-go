@@ -624,6 +624,9 @@ func (bap *baseAPIBlockProcessor) addProofs(
 		return errCannotFindBlockProof
 	}
 
+	apiBlock.PubKeyBitmap = hex.EncodeToString(headerProof.GetPubKeysBitmap())
+	apiBlock.Signature = hex.EncodeToString(headerProof.GetAggregatedSignature())
+
 	apiBlock.Proof = proofToAPIProof(headerProof)
 
 	return nil
