@@ -859,9 +859,10 @@ func TestApiTransactionProcessor_GetTransactionsPool(t *testing.T) {
 
 func createTx(hash []byte, sender string, nonce uint64) *txcache.WrappedTransaction {
 	tx := &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
-		Value:   big.NewInt(100000 + int64(nonce)),
+		SndAddr:  []byte(sender),
+		Nonce:    nonce,
+		Value:    big.NewInt(100000 + int64(nonce)),
+		GasLimit: 50000,
 	}
 
 	return &txcache.WrappedTransaction{
