@@ -684,7 +684,22 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		t.Parallel()
 
 		hdr := &block.Header{Nonce: 37}
-		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+		container := consensusMocks.InitConsensusCore()
+		wasCommitBlockCalled := false
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				wasCommitBlockCalled = true
+				return nil
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true // skip signatures waiting
+			},
+		}
+		container.SetBlockProcessor(bp)
+		container.SetEquivalentProofsPool(proofsPool)
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(hdr)
 		sr.AddReceivedHeader(hdr)
 
@@ -697,83 +712,20 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 			HeaderHash: headerHash,
 		}
 		sr.ReceivedProof(proof)
-	})
-	t.Run("should work with equivalent messages flag on", func(t *testing.T) {
-		t.Parallel()
-
-		providedPrevSig := []byte("prev sig")
-		providedPrevBitmap := []byte{1, 1, 1, 1}
-		hdr := &block.HeaderV2{
-			Header:                   createDefaultHeader(),
-			ScheduledRootHash:        []byte("sch root hash"),
-			ScheduledAccumulatedFees: big.NewInt(0),
-			ScheduledDeveloperFees:   big.NewInt(0),
-			PreviousHeaderProof:      nil,
-		}
-		container := consensusMocks.InitConsensusCore()
-		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.EquivalentMessagesFlag
-			},
-		}
-		container.SetEnableEpochsHandler(enableEpochsHandler)
-		container.SetBlockchain(&testscommon.ChainHandlerStub{
-			GetGenesisHeaderCalled: func() data.HeaderHandler {
-				return &block.HeaderV2{}
-			},
-		})
-
-		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
-			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
-				assert.Equal(t, hdr.GetPrevHash(), headerHash)
-				return &block.HeaderProof{
-					HeaderHash:          headerHash,
-					AggregatedSignature: providedPrevSig,
-					PubKeysBitmap:       providedPrevBitmap,
-				}, nil
-			},
-		})
-
-		ch := make(chan bool, 1)
-		consensusState := initializers.InitConsensusState()
-		sr, _ := spos.NewSubround(
-			bls.SrSignature,
-			bls.SrEndRound,
-			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
-			"(END_ROUND)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		srEndRound, _ := v2.NewSubroundEndRound(
-			sr,
-			v2.ProcessingThresholdPercent,
-			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{},
-			&consensusMocks.SposWorkerMock{},
-			&dataRetrieverMocks.ThrottlerStub{},
-		)
-
-		srEndRound.SetHeader(hdr)
-		srEndRound.AddReceivedHeader(hdr)
-
-		srEndRound.SetStatus(2, spos.SsFinished)
-		srEndRound.SetStatus(3, spos.SsNotFinished)
-
-		proof := &block.HeaderProof{}
-		srEndRound.ReceivedProof(proof)
+		require.True(t, wasCommitBlockCalled)
 	})
 	t.Run("should early return when job is already done", func(t *testing.T) {
 		t.Parallel()
 
-		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), true)
 
 		sr.ReceivedProof(&block.HeaderProof{})
@@ -781,7 +733,15 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 	t.Run("should early return when header is nil", func(t *testing.T) {
 		t.Parallel()
 
-		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(nil)
 
 		proof := &block.HeaderProof{}
@@ -792,7 +752,15 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		t.Parallel()
 
 		hdr := &block.Header{Nonce: 37}
-		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(hdr)
 		sr.AddReceivedHeader(hdr)
 
@@ -812,8 +780,15 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 				return errors.New("error")
 			},
 		}
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
 
 		container.SetHeaderSigVerifier(headerSigVerifier)
+		container.SetBlockProcessor(bp)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		proof := &block.HeaderProof{}
@@ -823,6 +798,13 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetData(nil)
 
@@ -833,6 +815,13 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
@@ -841,6 +830,13 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetSelfPubKey("A")
 
@@ -851,6 +847,13 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetData([]byte("Y"))
 
@@ -873,6 +876,14 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 				return true
 			},
 		})
+
+		bp := &testscommon.BlockProcessorStub{
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBlockProcessor(bp)
 
 		ch := make(chan bool, 1)
 		consensusState := initializers.InitConsensusState()

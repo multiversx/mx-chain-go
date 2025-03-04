@@ -410,5 +410,5 @@ func TestChronology_StartRoundsShouldWork(t *testing.T) {
 	defer chr.Close()
 
 	assert.Equal(t, srm.Next(), chr.SubroundId())
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 10)
 }
