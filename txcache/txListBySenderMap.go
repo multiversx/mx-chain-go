@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
-	"github.com/multiversx/mx-chain-storage-go/txcache/maps"
+	"github.com/multiversx/mx-chain-go/txcache/maps"
 )
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
