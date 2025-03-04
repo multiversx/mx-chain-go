@@ -1701,6 +1701,11 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 	hasher := &hashingMocks.HasherMock{}
 	tr, adb := getDefaultTrieAndAccountsDb()
 
+	dummyAcc, err := adb.LoadAccount(bytes.Repeat([]byte{1}, 32))
+	assert.Nil(t, err)
+	err = adb.SaveAccount(dummyAcc)
+	assert.Nil(t, err)
+
 	addr := make([]byte, 32)
 	acc, _ := adb.LoadAccount(addr)
 	userAcc := acc.(state.UserAccountHandler)
@@ -1709,7 +1714,7 @@ func TestAccountsDB_saveCode_OldCodeIsNilAndNewCodeIsNotNilAndRevert(t *testing.
 	userAcc.SetCode(code)
 	expectedCodeHash := hasher.Compute(string(code))
 
-	err := adb.SaveAccount(userAcc)
+	err = adb.SaveAccount(userAcc)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCodeHash, userAcc.GetCodeHash())
 
