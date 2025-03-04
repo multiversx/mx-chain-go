@@ -579,6 +579,15 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalance(tx data.TransactionWithFe
 	return ed.ComputeGasLimitBasedOnBalanceInEpoch(tx, balance, currentEpoch)
 }
 
+// ComputeGasUnitsFromRefundValue will compute the gas unit based on the refund value
+func (ed *economicsData) ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64 {
+	gasPrice := ed.GasPriceForProcessingInEpoch(tx, epoch)
+	refund := big.NewInt(0).Set(refundValue)
+	gasUnits := refund.Div(refund, big.NewInt(int64(gasPrice)))
+
+	return gasUnits.Uint64()
+}
+
 // ComputeGasLimitBasedOnBalanceInEpoch will compute gas limit for the given transaction based on the balance in a specific epoch
 func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.TransactionWithFeeHandler, balance *big.Int, epoch uint32) (uint64, error) {
 	balanceWithoutTransferValue := big.NewInt(0).Sub(balance, tx.GetValue())

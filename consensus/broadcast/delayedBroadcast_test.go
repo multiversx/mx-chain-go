@@ -13,14 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 type validatorDelayArgs struct {
@@ -38,21 +41,24 @@ func createValidatorDelayArgs(index int) *validatorDelayArgs {
 	iStr := strconv.Itoa(index)
 	return &validatorDelayArgs{
 		headerHash: []byte("header hash" + iStr),
-		header: &block.Header{
-			PrevRandSeed: []byte("prev rand seed" + iStr),
-			Round:        uint64(0),
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{
-					Hash:            []byte("miniBlockHash0" + iStr),
-					SenderShardID:   0,
-					ReceiverShardID: 0,
-				},
-				{
-					Hash:            []byte("miniBlockHash1" + iStr),
-					SenderShardID:   0,
-					ReceiverShardID: 1,
+		header: &block.HeaderV2{
+			Header: &block.Header{
+				PrevRandSeed: []byte("prev rand seed" + iStr),
+				Round:        uint64(0),
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            []byte("miniBlockHash0" + iStr),
+						SenderShardID:   0,
+						ReceiverShardID: 0,
+					},
+					{
+						Hash:            []byte("miniBlockHash1" + iStr),
+						SenderShardID:   0,
+						ReceiverShardID: 1,
+					},
 				},
 			},
+			PreviousHeaderProof: &block.HeaderProof{},
 		},
 		miniBlocks:       map[uint32][]byte{0: []byte("miniblock data sh0" + iStr), 1: []byte("miniblock data sh1" + iStr)},
 		miniBlockHashes:  map[string]map[string]struct{}{"txBlockBodies_0": {"miniBlockHash0" + iStr: struct{}{}}, "txBlockBodies_0_1": {"miniBlockHash1" + iStr: struct{}{}}},
@@ -97,7 +103,7 @@ func createMetaBlock() *block.MetaBlock {
 }
 
 func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaster {
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptorsContainer := createInterceptorContainer()
 	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
 		ShardCoordinator:      &mock.ShardCoordinatorMock{},
@@ -177,12 +183,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedNoDelayedDataRegistered(t *testin
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	metaBlock := createMetaBlock()
@@ -210,12 +219,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForRegisteredDelayedDataShouldBro
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
@@ -256,12 +268,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNotRegisteredDelayedDataShould
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
@@ -301,12 +316,15 @@ func TestDelayedBlockBroadcaster_HeaderReceivedForNextRegisteredDelayedDataShoul
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	headerHash, _, miniblocksData, transactionsData := createDelayData("1")
@@ -424,12 +442,15 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorShouldSetAlarmAndBroadcast
 		headerBroadcastCalled.Increment()
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -484,6 +505,9 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 		headerBroadcastCalled.Increment()
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -492,7 +516,7 @@ func TestDelayedBlockBroadcaster_SetValidatorDataFinalizedMetaHeaderShouldSetAla
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -552,6 +576,9 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 		headerBroadcastCalled.Increment()
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -560,7 +587,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarm(t *testing.T
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -621,6 +648,9 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 		headerBroadcastCalled.Increment()
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -629,7 +659,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderShouldCancelAlarmForHeaderBroa
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -689,6 +719,9 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 		headerBroadcastCalled.Increment()
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	delayBroadcasterArgs.ShardCoordinator = mock.ShardCoordinatorMock{
@@ -697,7 +730,7 @@ func TestDelayedBlockBroadcaster_InterceptedHeaderInvalidOrDifferentShouldIgnore
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -802,12 +835,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -859,12 +895,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -919,12 +958,15 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -979,12 +1021,15 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldBroadcastTheDataForRegistered
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1032,12 +1077,15 @@ func TestDelayedBlockBroadcaster_AlarmExpiredShouldDoNothingForNotRegisteredData
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1180,12 +1228,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1243,12 +1294,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1307,12 +1361,15 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)
@@ -1371,12 +1428,15 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	broadcastHeader := func(header data.HeaderHandler, pk []byte) error {
 		return nil
 	}
+	broadcastConsensusMessage := func(message *consensus.Message) error {
+		return nil
+	}
 
 	delayBroadcasterArgs := createDefaultDelayedBroadcasterArgs()
 	dbb, err := broadcast.NewDelayedBlockBroadcaster(delayBroadcasterArgs)
 	require.Nil(t, err)
 
-	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader)
+	err = dbb.SetBroadcastHandlers(broadcastMiniBlocks, broadcastTransactions, broadcastHeader, broadcastConsensusMessage)
 	require.Nil(t, err)
 
 	vArgs := createValidatorDelayArgs(0)

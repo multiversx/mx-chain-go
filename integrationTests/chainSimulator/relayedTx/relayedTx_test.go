@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -40,6 +42,9 @@ const (
 	roundsPerEpoch                          = 30
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
+	extraGasESDTTransfer                    = 250000
+	extraGasMultiESDTTransferPerToken       = 1100000
+	egldTicker                              = "EGLD-000000"
 )
 
 var (
@@ -47,6 +52,12 @@ var (
 )
 
 func TestRelayedV3WithChainSimulator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	t.Run("sender == relayer move balance should consume fee", testRelayedV3RelayedBySenderMoveBalance())
+	t.Run("receiver == relayer move balance should consume fee", testRelayedV3RelayedByReceiverMoveBalance())
 	t.Run("successful intra shard move balance", testRelayedV3MoveBalance(0, 0, false, false))
 	t.Run("successful intra shard guarded move balance", testRelayedV3MoveBalance(0, 0, false, true))
 	t.Run("successful intra shard move balance with extra gas", testRelayedV3MoveBalance(0, 0, true, false))
@@ -58,16 +69,32 @@ func TestRelayedV3WithChainSimulator(t *testing.T) {
 	t.Run("intra shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 0))
 	t.Run("cross shard move balance, invalid gas", testRelayedV3MoveInvalidGasLimit(0, 1))
 
-	t.Run("successful intra shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 0, true))
-	t.Run("successful intra shard sc call with refunds, new sender", testRelayedV3ScCall(0, 0, false))
-	t.Run("successful cross shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 1, true))
-	t.Run("successful cross shard sc call with refunds, new sender", testRelayedV3ScCall(0, 1, false))
+	t.Run("successful intra shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 0, true, false))
+	t.Run("successful intra shard sc call with refunds, existing sender, relayed by sender", testRelayedV3ScCall(0, 0, true, true))
+	t.Run("successful intra shard sc call with refunds, new sender", testRelayedV3ScCall(0, 0, false, false))
+	t.Run("successful cross shard sc call with refunds, existing sender", testRelayedV3ScCall(0, 1, true, false))
+	t.Run("successful cross shard sc call with refunds, existing sender, relayed by sender", testRelayedV3ScCall(0, 1, true, true))
+	t.Run("successful cross shard sc call with refunds, new sender", testRelayedV3ScCall(0, 1, false, false))
 	t.Run("intra shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 0))
 	t.Run("cross shard sc call, invalid gas", testRelayedV3ScCallInvalidGasLimit(0, 1))
 	t.Run("intra shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 0))
 	t.Run("cross shard sc call, invalid method", testRelayedV3ScCallInvalidMethod(0, 1))
 
 	t.Run("create new delegation contract", testRelayedV3MetaInteraction())
+
+	t.Run("esdt transfer", func(t *testing.T) {
+		t.Run("receiver == relayer, sender is a new account", testRelayedV3ESDTTransfer(true, false))
+		t.Run("receiver == relayer, sender is token issuer", testRelayedV3ESDTTransfer(true, true))
+		t.Run("receiver != relayer, sender is a new account", testRelayedV3ESDTTransfer(false, false))
+		t.Run("receiver != relayer, sender is token issuer", testRelayedV3ESDTTransfer(false, true))
+	})
+
+	t.Run("multi esdt transfer", func(t *testing.T) {
+		t.Run("receiver == relayer, sender is a new account", testRelayedV3MultiESDTTransferWithEGLD(true, false))
+		t.Run("receiver == relayer, sender is token issuer", testRelayedV3MultiESDTTransferWithEGLD(true, true))
+		t.Run("receiver != relayer, sender is a new account", testRelayedV3MultiESDTTransferWithEGLD(false, false))
+		t.Run("receiver != relayer, sender is token issuer", testRelayedV3MultiESDTTransferWithEGLD(false, true))
+	})
 }
 
 func testRelayedV3MoveBalance(
@@ -77,14 +104,12 @@ func testRelayedV3MoveBalance(
 	guardedTx bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -151,7 +176,8 @@ func testRelayedV3MoveBalance(
 		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
-		if relayerShard == destinationShard {
+		isIntraShard := relayerShard == destinationShard
+		if isIntraShard {
 			require.NoError(t, cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx))
 		}
 
@@ -180,6 +206,10 @@ func testRelayedV3MoveBalance(
 
 		// check intra shard logs, should be none
 		require.Nil(t, result.Logs)
+
+		if extraGas && isIntraShard {
+			require.NotNil(t, result.Receipt)
+		}
 	}
 }
 
@@ -188,14 +218,12 @@ func testRelayedV3MoveBalanceLowerNonce(
 	receiverShard uint32,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -233,14 +261,12 @@ func testRelayedV3MoveInvalidGasLimit(
 	receiverShard uint32,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -273,16 +299,15 @@ func testRelayedV3ScCall(
 	relayerShard uint32,
 	ownerShard uint32,
 	existingSenderWithBalance bool,
+	relayedBySender bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -291,8 +316,13 @@ func testRelayedV3ScCall(
 		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
 		relayer, err := cs.GenerateAndMintWalletAddress(relayerShard, initialBalance)
 		require.NoError(t, err)
+		relayerInitialBalance := initialBalance
 
 		sender, senderInitialBalance := prepareSender(t, cs, existingSenderWithBalance, relayerShard, initialBalance)
+		if relayedBySender {
+			relayer = sender
+			relayerInitialBalance = senderInitialBalance
+		}
 
 		owner, err := cs.GenerateAndMintWalletAddress(ownerShard, initialBalance)
 		require.NoError(t, err)
@@ -330,12 +360,14 @@ func testRelayedV3ScCall(
 
 		// check relayer balance
 		relayerBalanceAfter := getBalance(t, cs, relayer)
-		relayerFee := big.NewInt(0).Sub(initialBalance, relayerBalanceAfter)
+		relayerFee := big.NewInt(0).Sub(relayerInitialBalance, relayerBalanceAfter)
 		require.Equal(t, fee.String(), relayerFee.String())
 
-		// check sender balance
-		senderBalanceAfter := getBalance(t, cs, sender)
-		require.Equal(t, senderInitialBalance.String(), senderBalanceAfter.String())
+		// check sender balance, only if the tx was not relayed by sender
+		if !relayedBySender {
+			senderBalanceAfter := getBalance(t, cs, sender)
+			require.Equal(t, senderInitialBalance.String(), senderBalanceAfter.String())
+		}
 
 		// check owner balance
 		_, feeDeploy, _ := computeTxGasAndFeeBasedOnRefund(resultDeploy, refundDeploy, false, false)
@@ -349,6 +381,390 @@ func testRelayedV3ScCall(
 			checkSCRSucceeded(t, cs, scr)
 		}
 	}
+}
+
+func testRelayedV3RelayedBySenderMoveBalance() func(t *testing.T) {
+	return func(t *testing.T) {
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+
+		sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		senderNonce := uint64(0)
+		senderBalanceBefore := getBalance(t, cs, sender)
+
+		gasLimit := minGasLimit * 2
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, sender.Bytes, sender.Bytes, big.NewInt(0), "", uint64(gasLimit))
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		// check fee fields
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, big.NewInt(0), true, false)
+		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
+		require.Equal(t, fee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
+
+		// check sender balance
+		expectedFee := core.SafeMul(uint64(gasLimit), uint64(minGasPrice))
+		senderBalanceAfter := getBalance(t, cs, sender)
+		senderBalanceDiff := big.NewInt(0).Sub(senderBalanceBefore, senderBalanceAfter)
+		require.Equal(t, expectedFee.String(), senderBalanceDiff.String())
+
+		// check scrs, should be none
+		require.Zero(t, len(result.SmartContractResults))
+
+		// check intra shard logs, should be none
+		require.Nil(t, result.Logs)
+	}
+}
+
+func testRelayedV3RelayedByReceiverMoveBalance() func(t *testing.T) {
+	return func(t *testing.T) {
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+
+		sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		receiver, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		senderNonce := uint64(0)
+		receiverBalanceBefore := getBalance(t, cs, receiver)
+
+		gasLimit := minGasLimit * 2
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, receiver.Bytes, receiver.Bytes, big.NewInt(0), "", uint64(gasLimit))
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		// check fee fields
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, big.NewInt(0), true, false)
+		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
+		require.Equal(t, fee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
+
+		// check sender balance
+		senderBalanceAfter := getBalance(t, cs, sender)
+		require.Equal(t, senderBalanceAfter.String(), initialBalance.String())
+
+		// check receiver balance
+		expectedFee := core.SafeMul(uint64(gasLimit), uint64(minGasPrice))
+		receiverBalanceAfter := getBalance(t, cs, receiver)
+		receiverBalanceDiff := big.NewInt(0).Sub(receiverBalanceBefore, receiverBalanceAfter)
+		require.Equal(t, receiverBalanceDiff.String(), expectedFee.String())
+
+		// check scrs, should be none
+		require.Zero(t, len(result.SmartContractResults))
+
+		// check intra shard logs, should be none
+		require.Nil(t, result.Logs)
+	}
+}
+
+func testRelayedV3ESDTTransfer(
+	relayedByReceiver bool,
+	senderIsIssuer bool,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000))
+
+		owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		sender := owner
+		// if sender is not owner, make the sender a new address with no balance
+		if !senderIsIssuer {
+			sender, _ = prepareSender(t, cs, false, 0, big.NewInt(0))
+		}
+
+		receiver, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		relayer := receiver
+		// if relayed tx won't be relayed by the receiver, generate the relayer
+		if !relayedByReceiver {
+			relayer, err = cs.GenerateAndMintWalletAddress(0, initialBalance)
+			require.NoError(t, err)
+		}
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		// issue new token
+		initialSupply, _ := big.NewInt(0).SetString("1000000000", 10)
+		ticker := issueToken(t, cs, owner, "TESTTOKEN", "TST", initialSupply)
+
+		transferValue := big.NewInt(1000)
+		txDataTransfer := "ESDTTransfer@" + hex.EncodeToString([]byte(ticker)) + "@" + hex.EncodeToString(transferValue.Bytes())
+
+		// if sender is not owner, send some new tokens to the sender
+		if !senderIsIssuer {
+			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasESDTTransfer
+			ownerNonce := getNonce(t, cs, owner)
+
+			esdtTransferTx := generateTransaction(owner.Bytes, ownerNonce, sender.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
+
+			_, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(esdtTransferTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+			require.NoError(t, err)
+
+			esdtBalanceSender := getESDTBalance(t, cs, sender, 0, ticker)
+			require.Equal(t, transferValue.String(), esdtBalanceSender.String())
+		}
+
+		senderBalanceBefore := getBalance(t, cs, sender)
+
+		// send relayed tx
+		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasESDTTransfer
+		senderNonce := getNonce(t, cs, sender)
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, receiver.Bytes, relayer.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		// check sender balance
+		senderBalanceAfter := getBalance(t, cs, sender)
+		require.Equal(t, senderBalanceAfter.String(), senderBalanceBefore.String())
+
+		refundValue := getRefundValue(result.SmartContractResults)
+		require.NotZero(t, refundValue.Uint64())
+
+		// check fee fields
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false, false)
+		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
+		require.Equal(t, fee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
+
+		// check relayer balance
+		relayerBalanceAfter := getBalance(t, cs, relayer)
+		relayerBalanceDiff := big.NewInt(0).Sub(initialBalance, relayerBalanceAfter)
+		require.Equal(t, fee.String(), relayerBalanceDiff.String())
+
+		// check receiver esdt balance
+		expectedESDTBalanceSender := big.NewInt(0)
+		if senderIsIssuer {
+			expectedESDTBalanceSender = big.NewInt(0).Sub(initialSupply, transferValue)
+		}
+		esdtBalanceSender := getESDTBalance(t, cs, sender, 0, ticker)
+		require.Equal(t, expectedESDTBalanceSender.String(), esdtBalanceSender.String())
+
+		esdtBalanceReceiver := getESDTBalance(t, cs, receiver, 0, ticker)
+		require.Equal(t, transferValue.String(), esdtBalanceReceiver.String())
+
+		// check receiver egld balance unchanged if tx is relayed by third party
+		if !relayedByReceiver {
+			receiverBalanceAfter := getBalance(t, cs, receiver)
+			require.Equal(t, initialBalance.String(), receiverBalanceAfter.String())
+		}
+	}
+}
+
+func testRelayedV3MultiESDTTransferWithEGLD(
+	relayedByReceiver bool,
+	senderIsIssuer bool,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+
+		providedActivationEpoch := uint32(1)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10000))
+
+		owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		sender := owner
+		// if sender is not owner, make the sender a new address with no balance
+		if !senderIsIssuer {
+			sender, _ = prepareSender(t, cs, false, 0, big.NewInt(0))
+		}
+
+		receiver, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		relayer := receiver
+		// if relayed tx won't be relayed by the receiver, generate the relayer
+		if !relayedByReceiver {
+			relayer, err = cs.GenerateAndMintWalletAddress(0, initialBalance)
+			require.NoError(t, err)
+		}
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		// issue new token
+		initialSupply, _ := big.NewInt(0).SetString("1000000000", 10)
+		ticker := issueToken(t, cs, owner, "TESTTOKEN", "TST", initialSupply)
+
+		transferValue := big.NewInt(1000)
+		egldTransferValue := oneEGLD
+
+		// if sender is not owner, send some new tokens to the sender
+		if !senderIsIssuer {
+			txDataTransfer := "MultiESDTNFTTransfer@" +
+				hex.EncodeToString(sender.Bytes) + "@02@" +
+				hex.EncodeToString([]byte(ticker)) + "@00@" + hex.EncodeToString(transferValue.Bytes()) + "@" +
+				hex.EncodeToString([]byte(egldTicker)) + "@00@" + hex.EncodeToString(egldTransferValue.Bytes())
+			gasLimit := minGasLimit + len(txDataTransfer)*1500 + extraGasMultiESDTTransferPerToken*2
+			ownerNonce := getNonce(t, cs, owner)
+
+			esdtTransferTx := generateTransaction(owner.Bytes, ownerNonce, owner.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
+
+			_, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(esdtTransferTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+			require.NoError(t, err)
+
+			esdtBalanceSender := getESDTBalance(t, cs, sender, 0, ticker)
+			require.Equal(t, transferValue.String(), esdtBalanceSender.String())
+
+			balanceSender := getBalance(t, cs, sender)
+			require.Equal(t, egldTransferValue.String(), balanceSender.String())
+		}
+
+		senderBalanceBefore := getBalance(t, cs, sender)
+
+		// send relayed tx
+		txDataTransfer := "MultiESDTNFTTransfer@" +
+			hex.EncodeToString(receiver.Bytes) + "@02@" +
+			hex.EncodeToString([]byte(ticker)) + "@00@" + hex.EncodeToString(transferValue.Bytes()) + "@" +
+			hex.EncodeToString([]byte(egldTicker)) + "@00@" + hex.EncodeToString(egldTransferValue.Bytes())
+		gasLimit := minGasLimit*2 + len(txDataTransfer)*1500 + extraGasMultiESDTTransferPerToken*2
+		senderNonce := getNonce(t, cs, sender)
+		relayedTx := generateRelayedV3Transaction(sender.Bytes, senderNonce, sender.Bytes, relayer.Bytes, big.NewInt(0), txDataTransfer, uint64(gasLimit))
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		// check sender balance
+		senderBalanceAfter := getBalance(t, cs, sender)
+		expectedSenderBalanceDiff := egldTransferValue
+		senderBalanceDiff := big.NewInt(0).Sub(senderBalanceBefore, senderBalanceAfter)
+		require.Equal(t, expectedSenderBalanceDiff.String(), senderBalanceDiff.String())
+
+		refundValue := getRefundValue(result.SmartContractResults)
+		require.NotZero(t, refundValue.Uint64())
+
+		// check fee fields
+		initiallyPaidFee, fee, gasUsed := computeTxGasAndFeeBasedOnRefund(result, refundValue, false, false)
+		require.Equal(t, initiallyPaidFee.String(), result.InitiallyPaidFee)
+		require.Equal(t, fee.String(), result.Fee)
+		require.Equal(t, gasUsed, result.GasUsed)
+
+		// check relayer balance
+		relayerBalanceAfter := getBalance(t, cs, relayer)
+		relayerBalanceDiff := big.NewInt(0).Sub(initialBalance, relayerBalanceAfter)
+		if relayedByReceiver {
+			relayerBalanceDiff.Add(relayerBalanceDiff, egldTransferValue)
+		}
+		require.Equal(t, fee.String(), relayerBalanceDiff.String())
+
+		// check receiver esdt balance
+		expectedESDTBalanceSender := big.NewInt(0)
+		if senderIsIssuer {
+			expectedESDTBalanceSender = big.NewInt(0).Sub(initialSupply, transferValue)
+		}
+		esdtBalanceSender := getESDTBalance(t, cs, sender, 0, ticker)
+		require.Equal(t, expectedESDTBalanceSender.String(), esdtBalanceSender.String())
+
+		esdtBalanceReceiver := getESDTBalance(t, cs, receiver, 0, ticker)
+		require.Equal(t, transferValue.String(), esdtBalanceReceiver.String())
+
+		// check receiver egld balance
+		if !relayedByReceiver {
+			receiverBalanceAfter := getBalance(t, cs, receiver)
+			expectedReceiverBalanceAfter := big.NewInt(0).Add(initialBalance, egldTransferValue)
+			require.Equal(t, expectedReceiverBalanceAfter.String(), receiverBalanceAfter.String())
+		}
+	}
+}
+
+func issueToken(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	owner dtos.WalletAddress,
+	tokenName string,
+	tokenTicker string,
+	initSupply *big.Int,
+) string {
+	issueTxData := "issue@" +
+		hex.EncodeToString([]byte(tokenName)) + "@" +
+		hex.EncodeToString([]byte(tokenTicker)) + "@" +
+		hex.EncodeToString(initSupply.Bytes()) + "@" +
+		"02"
+
+	ownerNonce := getNonce(t, cs, owner)
+	fiveEGLD := big.NewInt(0).Mul(oneEGLD, big.NewInt(5))
+	issueTx := generateTransaction(owner.Bytes, ownerNonce, vm.ESDTSCAddress, fiveEGLD, issueTxData, 60000000)
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(issueTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// generate few more blocks for refund to happen
+	_ = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
+
+	require.NotNil(t, result.Logs)
+	require.NotZero(t, len(result.Logs.Events))
+	for _, log := range result.Logs.Events {
+		if log.Identifier != "issue" {
+			continue
+		}
+
+		ticker := log.Topics[0]
+		balance := getESDTBalance(t, cs, owner, 0, string(ticker))
+		require.Equal(t, initSupply.String(), balance.String())
+
+		return string(ticker)
+	}
+
+	return ""
 }
 
 func prepareSender(
@@ -396,14 +812,12 @@ func testRelayedV3ScCallInvalidGasLimit(
 	ownerShard uint32,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -471,14 +885,12 @@ func testRelayedV3ScCallInvalidMethod(
 	ownerShard uint32,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -539,14 +951,12 @@ func testRelayedV3ScCallInvalidMethod(
 
 func testRelayedV3MetaInteraction() func(t *testing.T) {
 	return func(t *testing.T) {
-		if testing.Short() {
-			t.Skip("this is not a short test")
-		}
 
 		providedActivationEpoch := uint32(1)
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -824,6 +1234,37 @@ func TestRelayedTransactionFeeField(t *testing.T) {
 	})
 }
 
+func TestRegularMoveBalanceWithRefundReceipt(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	// generate one block so the minting has effect
+	err = cs.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	senderNonce := uint64(0)
+
+	extraGas := uint64(minGasLimit)
+	gasLimit := minGasLimit + extraGas
+	tx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, oneEGLD, "", gasLimit)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	require.NotNil(t, result.Receipt)
+	expectedGasRefunded := core.SafeMul(extraGas, minGasPrice/deductionFactor)
+	require.Equal(t, expectedGasRefunded.String(), result.Receipt.Value.String())
+}
+
 func startChainSimulator(
 	t *testing.T,
 	alterConfigsFunction func(cfg *config.Configs),
@@ -892,6 +1333,30 @@ func getBalance(
 	require.True(t, ok)
 
 	return balance
+}
+
+func getESDTBalance(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	address dtos.WalletAddress,
+	addressShard uint32,
+	ticker string,
+) *big.Int {
+	tokenInfo, _, err := cs.GetNodeHandler(addressShard).GetFacadeHandler().GetESDTData(address.Bech32, ticker, 0, apiData.AccountQueryOptions{})
+	require.NoError(t, err)
+
+	return tokenInfo.Value
+}
+
+func getNonce(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	address dtos.WalletAddress,
+) uint64 {
+	account, err := cs.GetAccount(address)
+	require.NoError(t, err)
+
+	return account.Nonce
 }
 
 func deployAdder(
@@ -966,7 +1431,7 @@ func computeTxGasAndFeeBasedOnRefund(
 		gasForFullPrice += extraGasLimitForGuarded
 	}
 
-	if result.ProcessingTypeOnSource == process.RelayedTxV3.String() {
+	if common.IsRelayedTxV3(initialTx) {
 		gasForFullPrice += uint64(minGasLimit) // relayer fee
 	}
 	gasForDeductedPrice := initialTx.GetGasLimit() - gasForFullPrice

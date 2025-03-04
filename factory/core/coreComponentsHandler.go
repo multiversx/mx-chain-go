@@ -149,6 +149,9 @@ func (mcc *managedCoreComponents) CheckSubcomponents() error {
 	if check.IfNil(mcc.enableEpochsHandler) {
 		return errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(mcc.chainParametersHandler) {
+		return errors.ErrNilChainParametersHandler
+	}
 	if len(mcc.chainID) == 0 {
 		return errors.ErrInvalidChainID
 	}
@@ -485,6 +488,18 @@ func (mcc *managedCoreComponents) RoundNotifier() process.RoundNotifier {
 	return mcc.coreComponents.roundNotifier
 }
 
+// ChainParametersSubscriber returns the chain parameters subscriber
+func (mcc *managedCoreComponents) ChainParametersSubscriber() process.ChainParametersSubscriber {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chainParametersSubscriber
+}
+
 // EnableRoundsHandler returns the rounds activation handler
 func (mcc *managedCoreComponents) EnableRoundsHandler() process.EnableRoundsHandler {
 	mcc.mutCoreComponents.RLock()
@@ -579,6 +594,18 @@ func (mcc *managedCoreComponents) EnableEpochsHandler() common.EnableEpochsHandl
 	}
 
 	return mcc.coreComponents.enableEpochsHandler
+}
+
+// ChainParametersHandler returns the chain parameters handler
+func (mcc *managedCoreComponents) ChainParametersHandler() process.ChainParametersHandler {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.chainParametersHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

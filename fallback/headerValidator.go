@@ -5,10 +5,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("fallback")
@@ -45,26 +46,32 @@ func NewFallbackHeaderValidator(
 	return hv, nil
 }
 
-// ShouldApplyFallbackValidation returns if for the given header could be applied fallback validation or not
-func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool {
-	if check.IfNil(headerHandler) {
+// ShouldApplyFallbackValidationForHeaderWith returns if for the given header data fallback validation could be applied or not
+func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidationForHeaderWith(shardID uint32, startOfEpochBlock bool, round uint64, prevHeaderHash []byte) bool {
+	if shardID != core.MetachainShardId {
 		return false
 	}
-	if headerHandler.GetShardID() != core.MetachainShardId {
-		return false
-	}
-	if !headerHandler.IsStartOfEpochBlock() {
+	if !startOfEpochBlock {
 		return false
 	}
 
-	previousHeader, err := process.GetMetaHeader(headerHandler.GetPrevHash(), fhv.headersPool, fhv.marshalizer, fhv.storageService)
+	previousHeader, err := process.GetMetaHeader(prevHeaderHash, fhv.headersPool, fhv.marshalizer, fhv.storageService)
 	if err != nil {
 		log.Debug("ShouldApplyFallbackValidation", "GetMetaHeader", err.Error())
 		return false
 	}
 
-	isRoundTooOld := int64(headerHandler.GetRound())-int64(previousHeader.GetRound()) >= common.MaxRoundsWithoutCommittedStartInEpochBlock
+	isRoundTooOld := int64(round)-int64(previousHeader.GetRound()) >= common.MaxRoundsWithoutCommittedStartInEpochBlock
 	return isRoundTooOld
+}
+
+// ShouldApplyFallbackValidation returns if for the given header could be applied fallback validation or not
+func (fhv *fallbackHeaderValidator) ShouldApplyFallbackValidation(headerHandler data.HeaderHandler) bool {
+	if check.IfNil(headerHandler) {
+		return false
+	}
+
+	return fhv.ShouldApplyFallbackValidationForHeaderWith(headerHandler.GetShardID(), headerHandler.IsStartOfEpochBlock(), headerHandler.GetRound(), headerHandler.GetPrevHash())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

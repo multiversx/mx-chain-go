@@ -12,20 +12,22 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
@@ -43,10 +45,13 @@ func createMockShardEpochStartTriggerArguments() *ArgsShardEpochStartTrigger {
 				return &mock.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
-				return testscommon.NewCacherStub()
+				return cache.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		},
 		Storage: &storageStubs.ChainStorerStub{
@@ -207,7 +212,7 @@ func TestNewEpochStartTrigger_NilHeadersPoolShouldErr(t *testing.T) {
 			return nil
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return testscommon.NewCacherStub()
+			return cache.NewCacherStub()
 		},
 	}
 	epochStartTrigger, err := NewEpochStartTrigger(args)
@@ -376,7 +381,7 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if bytes.Equal(key, peerMiniBlockHash) {
 						return peerMiniblock, true
@@ -387,6 +392,9 @@ func TestTrigger_ReceivedHeaderIsEpochStartTrueWithPeerMiniblocks(t *testing.T) 
 		},
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 			return &vic.ValidatorInfoCacherStub{}
+		},
+		ProofsCalled: func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{}
 		},
 	}
 	args.Uint64Converter = &mock.Uint64ByteSliceConverterMock{
@@ -679,7 +687,7 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 				return &mock.HeadersCacherStub{}
 			},
 			MiniBlocksCalled: func() storage.Cacher {
-				return testscommon.NewCacherStub()
+				return cache.NewCacherStub()
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &vic.ValidatorInfoCacherStub{}
@@ -697,6 +705,9 @@ func TestTrigger_UpdateMissingValidatorsInfo(t *testing.T) {
 						return nil, false
 					},
 				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{}
 			},
 		}
 

@@ -94,6 +94,9 @@ const ConnectionTopic = "connection"
 // ValidatorInfoTopic is the topic used for validatorInfo signaling
 const ValidatorInfoTopic = "validatorInfo"
 
+// EquivalentProofsTopic is the topic used for equivalent proofs
+const EquivalentProofsTopic = "equivalentProofs"
+
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 
@@ -339,6 +342,9 @@ const MetricMinGasLimit = "erd_min_gas_limit"
 
 // MetricExtraGasLimitGuardedTx specifies the extra gas limit required for guarded transactions
 const MetricExtraGasLimitGuardedTx = "erd_extra_gas_limit_guarded_tx"
+
+// MetricExtraGasLimitRelayedTx specifies the extra gas limit required for relayed v3 transactions
+const MetricExtraGasLimitRelayedTx = "erd_extra_gas_limit_relayed_tx"
 
 // MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
 const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
@@ -740,6 +746,9 @@ const (
 	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 are enabled
 	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
 
+	// MetricRelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer are enabled
+	MetricRelayedTransactionsV3FixESDTTransferEnableEpoch = "erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch"
+
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -848,10 +857,14 @@ const (
 const (
 	// StorerOrder defines the order of storers to be notified of a start of epoch event
 	StorerOrder = iota
+	// ChainParametersOrder defines the order in which ChainParameters is notified of a start of epoch event
+	ChainParametersOrder
 	// NodesCoordinatorOrder defines the order in which NodesCoordinator is notified of a start of epoch event
 	NodesCoordinatorOrder
-	// ConsensusOrder defines the order in which Consensus is notified of a start of epoch event
-	ConsensusOrder
+	// ConsensusHandlerOrder defines the order in which ConsensusHandler is notified of a start of epoch event
+	ConsensusHandlerOrder
+	// ConsensusStartRoundOrder defines the order in which Consensus StartRound subround is notified of a start of epoch event
+	ConsensusStartRoundOrder
 	// NetworkShardingOrder defines the order in which the network sharding subsystem is notified of a start of epoch event
 	NetworkShardingOrder
 	// IndexerOrder defines the order in which indexer is notified of a start of epoch event
@@ -960,7 +973,7 @@ const PutInStorerMaxTime = time.Second
 const DefaultUnstakedEpoch = math.MaxUint32
 
 // InvalidMessageBlacklistDuration represents the time to keep a peer in the black list if it sends a message that
-// does not follow the protocol: example not useing the same marshaler as the other peers
+// does not follow the protocol: example not using the same marshaler as the other peers
 const InvalidMessageBlacklistDuration = time.Second * 3600
 
 // PublicKeyBlacklistDuration represents the time to keep a public key in the black list if it will degrade its
@@ -1238,5 +1251,8 @@ const (
 	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
 	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	RelayedTransactionsV3FixESDTTransferFlag           core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
+	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
+	FixedOrderInConsensusFlag                          core.EnableEpochFlag = "FixedOrderInConsensusFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

@@ -9,14 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
 )
 
 var fromConnectedPeerId = core.PeerID("from connected peer Id")
@@ -24,7 +25,7 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 func createMockArgMiniblockResolver() resolvers.ArgMiniblockResolver {
 	return resolvers.ArgMiniblockResolver{
 		ArgBaseResolver:  createMockArgBaseResolver(),
-		MiniBlockPool:    testscommon.NewCacherStub(),
+		MiniBlockPool:    cache.NewCacherStub(),
 		MiniBlockStorage: &storageStubs.StorerStub{},
 		DataPacker:       &mock.DataPackerStub{},
 	}
@@ -173,7 +174,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolShouldRetValAndSend(
 	wasResolved := false
 	wasSent := false
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			wasResolved = true
@@ -232,7 +233,7 @@ func TestMiniblockResolver_ProcessReceivedMessageFoundInPoolMarshalizerFailShoul
 
 	assert.Nil(t, merr)
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		if bytes.Equal(key, mbHash) {
 			return &block.MiniBlock{}, true
@@ -286,7 +287,7 @@ func TestMiniblockResolver_ProcessReceivedMessageUnmarshalFails(t *testing.T) {
 
 	assert.Nil(t, merr)
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -331,7 +332,7 @@ func TestMiniblockResolver_ProcessReceivedMessagePackDataInChunksFails(t *testin
 
 	assert.Nil(t, merr)
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -375,7 +376,7 @@ func TestMiniblockResolver_ProcessReceivedMessageSendFails(t *testing.T) {
 
 	assert.Nil(t, merr)
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -420,7 +421,7 @@ func TestMiniblockResolver_ProcessReceivedMessageNotFoundInPoolShouldRetFromStor
 	wasResolved := false
 	wasSend := false
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -467,7 +468,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMarshalFails(t *testing.T) {
 
 	wasResolved := false
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}
@@ -519,7 +520,7 @@ func TestMiniblockResolver_ProcessReceivedMessageMissingDataShouldNotSend(t *tes
 
 	wasSent := false
 
-	cache := testscommon.NewCacherStub()
+	cache := cache.NewCacherStub()
 	cache.PeekCalled = func(key []byte) (value interface{}, ok bool) {
 		return nil, false
 	}

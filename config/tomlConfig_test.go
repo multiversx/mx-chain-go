@@ -48,6 +48,20 @@ func TestTomlParser(t *testing.T) {
 	}
 
 	cfgExpected := Config{
+		GeneralSettings: GeneralSettingsConfig{
+			ChainParametersByEpoch: []ChainParametersByEpochConfig{
+				{
+					EnableEpoch:                 0,
+					RoundDuration:               4000,
+					ShardMinNumNodes:            4,
+					ShardConsensusGroupSize:     3,
+					MetachainMinNumNodes:        6,
+					MetachainConsensusGroupSize: 5,
+					Hysteresis:                  0.0,
+					Adaptivity:                  false,
+				},
+			},
+		},
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
 				Capacity: uint32(txBlockBodyStorageSize),
@@ -150,6 +164,10 @@ func TestTomlParser(t *testing.T) {
 		},
 	}
 	testString := `
+[GeneralSettings]
+	ChainParametersByEpoch = [
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false }
+    ]
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
@@ -887,6 +905,15 @@ func TestEnableEpochConfig(t *testing.T) {
 	# RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
     RelayedTransactionsV3EnableEpoch = 103
 
+	# RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
+    RelayedTransactionsV3FixESDTTransferEnableEpoch = 104
+
+	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
+	EquivalentMessagesEnableEpoch = 105
+
+	# FixedOrderInConsensusEnableEpoch represents the epoch when the fixed order in consensus is enabled
+	FixedOrderInConsensusEnableEpoch = 106
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1008,6 +1035,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
+			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
+			EquivalentMessagesEnableEpoch:                            105,
+			FixedOrderInConsensusEnableEpoch:                         106,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

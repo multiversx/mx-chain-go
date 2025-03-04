@@ -239,10 +239,21 @@ func (txProc *baseTxProcessor) checkUserTxOfRelayedV3Values(
 
 func (txProc *baseTxProcessor) getFeePayer(
 	tx *transaction.Transaction,
-	acntSnd state.UserAccountHandler,
+	senderAccount state.UserAccountHandler,
+	destinationAccount state.UserAccountHandler,
 ) (state.UserAccountHandler, bool, error) {
 	if !common.IsRelayedTxV3(tx) {
-		return acntSnd, false, nil
+		return senderAccount, false, nil
+	}
+
+	relayerIsSender := bytes.Equal(tx.RelayerAddr, tx.SndAddr)
+	if relayerIsSender {
+		return senderAccount, true, nil // do not load the same account twice
+	}
+
+	relayerIsDestination := bytes.Equal(tx.RelayerAddr, tx.RcvAddr)
+	if relayerIsDestination {
+		return destinationAccount, true, nil // do not load the same account twice
 	}
 
 	acntRelayer, err := txProc.getAccountFromAddress(tx.RelayerAddr)

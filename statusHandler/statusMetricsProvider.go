@@ -246,6 +246,7 @@ func (sm *statusMetrics) ConfigMetrics() (map[string]interface{}, error) {
 	configMetrics[common.MetricMinGasPrice] = sm.uint64Metrics[common.MetricMinGasPrice]
 	configMetrics[common.MetricMinGasLimit] = sm.uint64Metrics[common.MetricMinGasLimit]
 	configMetrics[common.MetricExtraGasLimitGuardedTx] = sm.uint64Metrics[common.MetricExtraGasLimitGuardedTx]
+	configMetrics[common.MetricExtraGasLimitRelayedTx] = sm.uint64Metrics[common.MetricExtraGasLimitRelayedTx]
 	configMetrics[common.MetricMaxGasPerTransaction] = sm.uint64Metrics[common.MetricMaxGasPerTransaction]
 	configMetrics[common.MetricRoundDuration] = sm.uint64Metrics[common.MetricRoundDuration]
 	configMetrics[common.MetricStartTime] = sm.uint64Metrics[common.MetricStartTime]
@@ -380,6 +381,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch] = sm.uint64Metrics[common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch]
 	enableEpochsMetrics[common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch] = sm.uint64Metrics[common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch]
 	enableEpochsMetrics[common.MetricRelayedTransactionsV3EnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3EnableEpoch]
+	enableEpochsMetrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 

@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -61,7 +63,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type nextOperationForNode int
@@ -398,6 +399,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
+		managedCoreComponents.ChainParametersHandler(),
 	)
 	if err != nil {
 		return true, err
@@ -845,6 +847,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, coreComponents.EconomicsData().MinGasLimit())
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, coreComponents.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, coreComponents.EconomicsData().MinGasLimit())
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, coreComponents.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", coreComponents.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", coreComponents.EconomicsData().GasPriceModifier()))
@@ -1473,7 +1476,7 @@ func (nr *nodeRunner) CreateManagedCoreComponents(
 		ImportDbConfig:      *nr.configs.ImportDbConfig,
 		RatingsConfig:       *nr.configs.RatingsConfig,
 		EconomicsConfig:     *nr.configs.EconomicsConfig,
-		NodesFilename:       nr.configs.ConfigurationPathsHolder.Nodes,
+		NodesConfig:         *nr.configs.NodesConfig,
 		WorkingDirectory:    nr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess: chanStopNodeProcess,
 	}

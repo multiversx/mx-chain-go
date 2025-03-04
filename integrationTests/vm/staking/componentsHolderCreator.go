@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -69,6 +70,8 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		StakingV4Step3EnableEpoch:          stakingV4Step3EnableEpoch,
 		GovernanceEnableEpoch:              integrationTests.UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:      integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:   integrationTests.UnreachableEpoch,
 	}
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)

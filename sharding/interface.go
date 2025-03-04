@@ -1,6 +1,10 @@
 package sharding
 
-import "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+import (
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+)
 
 // Coordinator defines what a shard state coordinator should hold
 type Coordinator interface {
@@ -61,5 +65,26 @@ type GenesisNodesSetupHandler interface {
 	MinNumberOfNodesWithHysteresis() uint32
 	MinShardHysteresisNodes() uint32
 	MinMetaHysteresisNodes() uint32
+	ExportNodesConfig() config.NodesConfig
+	IsInterfaceNil() bool
+}
+
+// EpochStartEventNotifier provides Register and Unregister functionality for the end of epoch events
+type EpochStartEventNotifier interface {
+	RegisterHandler(handler epochStart.ActionHandler)
+	UnregisterHandler(handler epochStart.ActionHandler)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
+}
+
+// ChainParametersNotifierHandler defines the actions that need to be done by a component that can handle chain parameters changes
+type ChainParametersNotifierHandler interface {
+	UpdateCurrentChainParameters(params config.ChainParametersByEpochConfig)
 	IsInterfaceNil() bool
 }

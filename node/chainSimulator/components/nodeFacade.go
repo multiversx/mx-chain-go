@@ -85,7 +85,6 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		nodePack.WithNetworkComponents(node.NetworkComponentsHolder),
 		nodePack.WithInitialNodesPubKeys(node.CoreComponentsHolder.GenesisNodesSetup().InitialNodesPubKeys()),
 		nodePack.WithRoundDuration(node.CoreComponentsHolder.GenesisNodesSetup().GetRoundDuration()),
-		nodePack.WithConsensusGroupSize(int(node.CoreComponentsHolder.GenesisNodesSetup().GetShardConsensusGroupSize())),
 		nodePack.WithGenesisTime(node.CoreComponentsHolder.GenesisTime()),
 		nodePack.WithConsensusType(configs.GeneralConfig.Consensus.Type),
 		nodePack.WithRequestedItemsHandler(node.ProcessComponentsHolder.RequestedItemsHandler()),
@@ -177,6 +176,7 @@ func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error 
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, node.CoreComponentsHolder.EconomicsData().MinGasPrice())
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricMinGasLimit, node.CoreComponentsHolder.EconomicsData().MinGasLimit())
 	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitGuardedTx, node.CoreComponentsHolder.EconomicsData().ExtraGasLimitGuardedTx())
+	metrics.SaveUint64Metric(node.StatusCoreComponents.AppStatusHandler(), common.MetricExtraGasLimitRelayedTx, node.CoreComponentsHolder.EconomicsData().MinGasLimit())
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricRewardsTopUpGradientPoint, node.CoreComponentsHolder.EconomicsData().RewardsTopUpGradientPoint().String())
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricTopUpFactor, fmt.Sprintf("%g", node.CoreComponentsHolder.EconomicsData().RewardsTopUpFactor()))
 	metrics.SaveStringMetric(node.StatusCoreComponents.AppStatusHandler(), common.MetricGasPriceModifier, fmt.Sprintf("%g", node.CoreComponentsHolder.EconomicsData().GasPriceModifier()))

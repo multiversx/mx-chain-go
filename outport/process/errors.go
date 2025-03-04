@@ -60,8 +60,8 @@ var ErrNilMiniBlock = errors.New("nil miniBlock")
 // ErrNilExecutedTxHashes signals that a nil executed tx hashes map has been provided
 var ErrNilExecutedTxHashes = errors.New("nil executed tx hashes map")
 
-// ErrNilOrderedTxHashes signals that a nil ordered tx list has been provided
-var ErrNilOrderedTxHashes = errors.New("nil ordered tx list")
-
 // ErrIndexOutOfBounds signals that an index is out of bounds
 var ErrIndexOutOfBounds = errors.New("index out of bounds")
+
+// ErrNilProofsPool signals that a nil proofs pool was used
+var ErrNilProofsPool = errors.New("nil proofs pool")

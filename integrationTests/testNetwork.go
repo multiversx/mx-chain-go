@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 // ShardIdentifier is the numeric index of a shard
@@ -44,7 +45,7 @@ type TestNetwork struct {
 	NodesSharded       NodesByShardMap
 	Wallets            []*TestWalletAccount
 	DeploymentAddress  Address
-	Proposers          []int
+	Proposers          []*TestProcessorNode
 	Round              uint64
 	Nonce              uint64
 	T                  *testing.T
@@ -119,11 +120,11 @@ func (net *TestNetwork) Step() {
 func (net *TestNetwork) Steps(steps int) {
 	net.Nonce, net.Round = WaitOperationToBeDone(
 		net.T,
+		net.Proposers,
 		net.Nodes,
 		steps,
 		net.Nonce,
-		net.Round,
-		net.Proposers)
+		net.Round)
 }
 
 // Close shuts down the test network.
@@ -421,6 +422,8 @@ func (net *TestNetwork) createNodes() {
 		StakingV2EnableEpoch:                 UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:     UnreachableEpoch,
 	}
 
 	net.Nodes = CreateNodesWithEnableEpochs(
@@ -432,11 +435,11 @@ func (net *TestNetwork) createNodes() {
 }
 
 func (net *TestNetwork) indexProposers() {
-	net.Proposers = make([]int, net.NumShards+1)
+	net.Proposers = make([]*TestProcessorNode, net.NumShards+1)
 	for i := 0; i < net.NumShards; i++ {
-		net.Proposers[i] = i * net.NodesPerShard
+		net.Proposers[i] = net.Nodes[i*net.NodesPerShard]
 	}
-	net.Proposers[net.NumShards] = net.NumShards * net.NodesPerShard
+	net.Proposers[net.NumShards] = net.Nodes[net.NumShards*net.NodesPerShard]
 }
 
 func (net *TestNetwork) mapNodesByShard() {

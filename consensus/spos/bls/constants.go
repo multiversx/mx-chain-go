@@ -2,10 +2,7 @@ package bls
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-var log = logger.GetOrCreate("consensus/spos/bls")
 
 const (
 	// SrStartRound defines ID of Subround "Start round"
@@ -36,36 +33,6 @@ const (
 	MtInvalidSigners
 )
 
-// waitingAllSigsMaxTimeThreshold specifies the max allocated time for waiting all signatures from the total time of the subround signature
-const waitingAllSigsMaxTimeThreshold = 0.5
-
-// processingThresholdPercent specifies the max allocated time for processing the block as a percentage of the total time of the round
-const processingThresholdPercent = 85
-
-// srStartStartTime specifies the start time, from the total time of the round, of Subround Start
-const srStartStartTime = 0.0
-
-// srEndStartTime specifies the end time, from the total time of the round, of Subround Start
-const srStartEndTime = 0.05
-
-// srBlockStartTime specifies the start time, from the total time of the round, of Subround Block
-const srBlockStartTime = 0.05
-
-// srBlockEndTime specifies the end time, from the total time of the round, of Subround Block
-const srBlockEndTime = 0.25
-
-// srSignatureStartTime specifies the start time, from the total time of the round, of Subround Signature
-const srSignatureStartTime = 0.25
-
-// srSignatureEndTime specifies the end time, from the total time of the round, of Subround Signature
-const srSignatureEndTime = 0.85
-
-// srEndStartTime specifies the start time, from the total time of the round, of Subround End
-const srEndStartTime = 0.85
-
-// srEndEndTime specifies the end time, from the total time of the round, of Subround End
-const srEndEndTime = 0.95
-
 const (
 	// BlockBodyAndHeaderStringValue represents the string to be used to identify a block body and a block header
 	BlockBodyAndHeaderStringValue = "(BLOCK_BODY_AND_HEADER)"
@@ -89,7 +56,8 @@ const (
 	BlockDefaultStringValue = "Undefined message type"
 )
 
-func getStringValue(msgType consensus.MessageType) string {
+// GetStringValue returns the string value of a given MessageType
+func GetStringValue(msgType consensus.MessageType) string {
 	switch msgType {
 	case MtBlockBodyAndHeader:
 		return BlockBodyAndHeaderStringValue
@@ -108,8 +76,8 @@ func getStringValue(msgType consensus.MessageType) string {
 	}
 }
 
-// getSubroundName returns the name of each Subround from a given Subround ID
-func getSubroundName(subroundId int) string {
+// GetSubroundName returns the name of each Subround from a given Subround ID
+func GetSubroundName(subroundId int) string {
 	switch subroundId {
 	case SrStartRound:
 		return "(START_ROUND)"

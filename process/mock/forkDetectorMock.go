@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -19,6 +20,8 @@ type ForkDetectorMock struct {
 	RestoreToGenesisCalled          func()
 	ResetProbableHighestNonceCalled func()
 	SetFinalToLastCheckpointCalled  func()
+	ReceivedProofCalled             func(proof data.HeaderProofHandler)
+	AddCheckpointCalled             func(nonce uint64, round uint64, hash []byte)
 }
 
 // RestoreToGenesis -
@@ -28,17 +31,27 @@ func (fdm *ForkDetectorMock) RestoreToGenesis() {
 
 // AddHeader -
 func (fdm *ForkDetectorMock) AddHeader(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
-	return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	if fdm.AddHeaderCalled != nil {
+		return fdm.AddHeaderCalled(header, hash, state, selfNotarizedHeaders, selfNotarizedHeadersHashes)
+	}
+
+	return nil
 }
 
 // RemoveHeader -
 func (fdm *ForkDetectorMock) RemoveHeader(nonce uint64, hash []byte) {
-	fdm.RemoveHeaderCalled(nonce, hash)
+	if fdm.RemoveHeaderCalled != nil {
+		fdm.RemoveHeaderCalled(nonce, hash)
+	}
 }
 
 // CheckFork -
 func (fdm *ForkDetectorMock) CheckFork() *process.ForkInfo {
-	return fdm.CheckForkCalled()
+	if fdm.CheckForkCalled != nil {
+		return fdm.CheckForkCalled()
+	}
+
+	return nil
 }
 
 // GetHighestFinalBlockNonce -
@@ -51,12 +64,20 @@ func (fdm *ForkDetectorMock) GetHighestFinalBlockNonce() uint64 {
 
 // GetHighestFinalBlockHash -
 func (fdm *ForkDetectorMock) GetHighestFinalBlockHash() []byte {
-	return fdm.GetHighestFinalBlockHashCalled()
+	if fdm.GetHighestFinalBlockHashCalled != nil {
+		return fdm.GetHighestFinalBlockHashCalled()
+	}
+
+	return nil
 }
 
 // ProbableHighestNonce -
 func (fdm *ForkDetectorMock) ProbableHighestNonce() uint64 {
-	return fdm.ProbableHighestNonceCalled()
+	if fdm.ProbableHighestNonceCalled != nil {
+		return fdm.ProbableHighestNonceCalled()
+	}
+
+	return 0
 }
 
 // SetRollBackNonce -
@@ -68,12 +89,18 @@ func (fdm *ForkDetectorMock) SetRollBackNonce(nonce uint64) {
 
 // ResetFork -
 func (fdm *ForkDetectorMock) ResetFork() {
-	fdm.ResetForkCalled()
+	if fdm.ResetForkCalled != nil {
+		fdm.ResetForkCalled()
+	}
 }
 
 // GetNotarizedHeaderHash -
 func (fdm *ForkDetectorMock) GetNotarizedHeaderHash(nonce uint64) []byte {
-	return fdm.GetNotarizedHeaderHashCalled(nonce)
+	if fdm.GetNotarizedHeaderHashCalled != nil {
+		return fdm.GetNotarizedHeaderHashCalled(nonce)
+	}
+
+	return nil
 }
 
 // ResetProbableHighestNonce -
@@ -87,6 +114,20 @@ func (fdm *ForkDetectorMock) ResetProbableHighestNonce() {
 func (fdm *ForkDetectorMock) SetFinalToLastCheckpoint() {
 	if fdm.SetFinalToLastCheckpointCalled != nil {
 		fdm.SetFinalToLastCheckpointCalled()
+	}
+}
+
+// ReceivedProof -
+func (fdm *ForkDetectorMock) ReceivedProof(proof data.HeaderProofHandler) {
+	if fdm.ReceivedProofCalled != nil {
+		fdm.ReceivedProofCalled(proof)
+	}
+}
+
+// AddCheckpoint -
+func (fdm *ForkDetectorMock) AddCheckpoint(nonce uint64, round uint64, hash []byte) {
+	if fdm.AddCheckpointCalled != nil {
+		fdm.AddCheckpointCalled(nonce, round, hash)
 	}
 }
 

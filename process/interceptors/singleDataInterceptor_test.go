@@ -8,25 +8,27 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor {
 	return interceptors.ArgSingleDataInterceptor{
-		Topic:                "test topic",
-		DataFactory:          &mock.InterceptedDataFactoryStub{},
-		Processor:            &mock.InterceptorProcessorStub{},
-		Throttler:            createMockThrottler(),
-		AntifloodHandler:     &mock.P2PAntifloodHandlerStub{},
-		WhiteListRequest:     &testscommon.WhiteListHandlerStub{},
-		PreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		CurrentPeerId:        "pid",
+		Topic:                   "test topic",
+		DataFactory:             &mock.InterceptedDataFactoryStub{},
+		Processor:               &mock.InterceptorProcessorStub{},
+		Throttler:               createMockThrottler(),
+		AntifloodHandler:        &mock.P2PAntifloodHandlerStub{},
+		WhiteListRequest:        &testscommon.WhiteListHandlerStub{},
+		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
+		CurrentPeerId:           "pid",
+		InterceptedDataVerifier: createMockInterceptedDataVerifier(),
 	}
 }
 
@@ -53,6 +55,14 @@ func createMockThrottler() *mock.InterceptorThrottlerStub {
 	return &mock.InterceptorThrottlerStub{
 		CanProcessCalled: func() bool {
 			return true
+		},
+	}
+}
+
+func createMockInterceptedDataVerifier() *mock.InterceptedDataVerifierMock {
+	return &mock.InterceptedDataVerifierMock{
+		VerifyCalled: func(interceptedData process.InterceptedData) error {
+			return interceptedData.CheckValidity()
 		},
 	}
 }
@@ -143,6 +153,17 @@ func TestNewSingleDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewSingleDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.InterceptedDataVerifier = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilInterceptedDataVerifier, err)
 }
 
 func TestNewSingleDataInterceptor(t *testing.T) {

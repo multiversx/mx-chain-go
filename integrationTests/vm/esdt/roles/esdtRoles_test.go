@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/esdt"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/require"
 )
 
 // Test scenario
@@ -35,11 +36,11 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -65,7 +66,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 6
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
@@ -75,7 +76,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalBurn))
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply.Int64())
@@ -93,7 +94,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
@@ -112,7 +113,7 @@ func TestESDTRolesIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
@@ -141,11 +142,11 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -171,7 +172,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 12
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte("FTT")))
@@ -180,14 +181,14 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// unset special role
 	unsetRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalMint))
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply.Int64())
@@ -207,7 +208,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard = 7
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
@@ -215,7 +216,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 
 	setRole(nodes, nodes[0].OwnAccount.Address, []byte(tokenIdentifier), []byte(core.ESDTRoleLocalBurn))
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// burn local  tokens
@@ -231,7 +232,7 @@ func TestESDTRolesSetRolesAndUnsetRolesIssueAndTransactionsOnMultiShardEnvironme
 	)
 
 	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// check balance ofter local mint
@@ -273,11 +274,11 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -295,7 +296,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	round = integrationTests.IncrementAndPrintRound(round)
 	nonce++
 
-	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, idxProposers, &nonce, &round, "../testdata/egld-esdt-swap.wasm")
+	scAddress := esdt.DeployNonPayableSmartContract(t, nodes, leaders, &nonce, &round, "../testdata/egld-esdt-swap.wasm")
 
 	// issue ESDT by calling exec on dest context on child contract
 	ticker := "DSN"
@@ -316,7 +317,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 15
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := integrationTests.GetTokenIdentifier(nodes, []byte(ticker))
@@ -329,7 +330,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 		integrationTests.AdditionalGasLimit,
 	)
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	valueToWrap := big.NewInt(1000)
@@ -346,7 +347,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	}
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	for i, n := range nodes {
@@ -370,7 +371,7 @@ func TestESDTMintTransferAndExecute(t *testing.T) {
 	}
 	time.Sleep(time.Second)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	userAccount := esdt.GetUserAccountWithAddress(t, scAddress, nodes)
@@ -387,7 +388,9 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		ScheduledMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:    integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -396,11 +399,11 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 		enableEpochs,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -431,7 +434,7 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 12
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
@@ -445,7 +448,7 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 	}
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	finalSupply := initialSupply
@@ -460,7 +463,7 @@ func TestESDTLocalBurnFromAnyoneOfThisToken(t *testing.T) {
 	txData.Clear().LocalBurnESDT(tokenIdentifier, finalSupply)
 	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), tokenIssuer.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	for _, node := range nodes {
@@ -478,7 +481,9 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 	numMetachainNodes := 2
 
 	enableEpochs := config.EnableEpochs{
-		ScheduledMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
+		ScheduledMiniBlocksEnableEpoch:   integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:    integrationTests.UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -487,11 +492,11 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 		enableEpochs,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -522,7 +527,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 
 	time.Sleep(time.Second)
 	nrRoundsToPropagateMultiShard := 12
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
@@ -530,7 +535,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 	esdt.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 2, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 2, nonce, round)
 	time.Sleep(time.Second)
 
 	// send tx to other nodes
@@ -540,7 +545,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), node.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 	}
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	// send value back to the initial node
@@ -550,7 +555,7 @@ func TestESDTWithTransferRoleCrossShardShouldWork(t *testing.T) {
 		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), tokenIssuer.OwnAccount.Address, txData.ToString(), integrationTests.AdditionalGasLimit)
 	}
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 	time.Sleep(time.Second)
 
 	for _, node := range nodes[1:] {
