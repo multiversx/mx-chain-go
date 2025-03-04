@@ -455,10 +455,11 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTi
 
 		prevProof := shardData.GetPreviousProof()
 		headersPool := mp.dataPool.Headers()
-		prevHeader, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, shardHeadersStorer, mp.marshalizer, prevProof.GetHeaderShardId())
+		prevHeader, fromPool, err := process.GetHeader(prevProof.GetHeaderHash(), headersPool, shardHeadersStorer, mp.marshalizer, prevProof.GetHeaderShardId())
 		if err != nil {
 			return err
 		}
+		log.Debug("metaProcessor.checkProofsForShardData: getting header", "fromPool", fromPool)
 
 		err = common.VerifyProofAgainstHeader(prevProof, prevHeader)
 		if err != nil {
