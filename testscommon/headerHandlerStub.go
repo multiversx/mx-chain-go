@@ -41,6 +41,7 @@ type HeaderHandlerStub struct {
 	GetPreviousProofCalled                 func() data.HeaderProofHandler
 	SetPreviousProofCalled                 func(proof data.HeaderProofHandler)
 	GetShardIDCalled                       func() uint32
+	SetRootHashCalled                      func(hash []byte) error
 }
 
 // GetAccumulatedFees -
@@ -205,8 +206,11 @@ func (hhs *HeaderHandlerStub) SetTimeStamp(timestamp uint64) error {
 }
 
 // SetRootHash -
-func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetRootHash(hash []byte) error {
+	if hhs.SetRootHashCalled != nil {
+		return hhs.SetRootHashCalled(hash)
+	}
+	return nil
 }
 
 // SetPrevHash -
