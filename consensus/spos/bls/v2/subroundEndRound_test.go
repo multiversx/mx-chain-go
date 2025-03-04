@@ -691,7 +691,11 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		sr.SetStatus(2, spos.SsFinished)
 		sr.SetStatus(3, spos.SsNotFinished)
 
-		proof := &block.HeaderProof{}
+		headerHash := []byte("hash")
+		sr.SetData(headerHash)
+		proof := &block.HeaderProof{
+			HeaderHash: headerHash,
+		}
 		sr.ReceivedProof(proof)
 	})
 	t.Run("should work with equivalent messages flag on", func(t *testing.T) {
@@ -766,7 +770,15 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		srEndRound.ReceivedProof(proof)
 	})
-	t.Run("should return false when header is nil", func(t *testing.T) {
+	t.Run("should early return when job is already done", func(t *testing.T) {
+		t.Parallel()
+
+		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+		_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), true)
+
+		sr.ReceivedProof(&block.HeaderProof{})
+	})
+	t.Run("should early return when header is nil", func(t *testing.T) {
 		t.Parallel()
 
 		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
@@ -776,7 +788,18 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should return false when final info is not valid", func(t *testing.T) {
+	t.Run("should early return when header is not for current consensus", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.Header{Nonce: 37}
+		sr := initSubroundEndRound(&statusHandler.AppStatusHandlerStub{})
+		sr.SetHeader(hdr)
+		sr.AddReceivedHeader(hdr)
+
+		proof := &block.HeaderProof{}
+		sr.ReceivedProof(proof)
+	})
+	t.Run("should early return when final info is not valid", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -796,7 +819,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should return false when consensus data is not set", func(t *testing.T) {
+	t.Run("should early return when consensus data is not set", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -806,7 +829,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should return false when sender is not in consensus group", func(t *testing.T) {
+	t.Run("should early return when sender is not in consensus group", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -814,7 +837,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should return false when sender is self", func(t *testing.T) {
+	t.Run("should early return when sender is self", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -824,7 +847,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should return false when different data is received", func(t *testing.T) {
+	t.Run("should early return when different data is received", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -834,7 +857,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should return true when final info already received", func(t *testing.T) {
+	t.Run("should early return when final info already received", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
@@ -2072,5 +2095,68 @@ func TestSubroundEndRound_GetEquivalentProofSender(t *testing.T) {
 
 		sender := sr.GetEquivalentProofSender()
 		assert.NotEqual(t, selfKey, sender)
+	})
+}
+
+func TestSubroundEndRound_SendProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("existing proof should not send again", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		}
+		container.SetEquivalentProofsPool(proofsPool)
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+		sr.SendProof()
+	})
+	t.Run("not enough signatures should not send proof", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+		sr.SendProof()
+	})
+	t.Run("should send", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		wasSent := false
+		bm := &consensusMocks.BroadcastMessengerMock{
+			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
+				wasSent = true
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(bm)
+
+		for _, pubKey := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(pubKey, bls.SrSignature, true)
+		}
+
+		sr.SendProof()
+		require.True(t, wasSent)
 	})
 }
