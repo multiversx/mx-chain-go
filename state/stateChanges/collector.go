@@ -208,8 +208,13 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 		return nil
 	}
 
-	log.Trace("set index to last state change", "index", index)
-	c.stateChanges[len(c.stateChanges)-1].SetIndex(int32(index))
+	for i := len(c.stateChanges) - 1; i >= 0; i-- {
+		if c.stateChanges[i].GetIndex() != 0 {
+			return nil
+		}
+		log.Trace("set index to last state change", "stateChange num", i, "index", index)
+		c.stateChanges[i].SetIndex(int32(index))
+	}
 
 	return nil
 }
