@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/pkg/errors"
@@ -23,6 +24,7 @@ var log = logger.GetOrCreate("process/interceptors")
 type ArgMultiDataInterceptor struct {
 	Topic                   string
 	Marshalizer             marshal.Marshalizer
+	Hasher                  hashing.Hasher
 	DataFactory             process.InterceptedDataFactory
 	Processor               process.InterceptorProcessor
 	Throttler               process.InterceptorThrottler
@@ -37,6 +39,7 @@ type ArgMultiDataInterceptor struct {
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
 	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
 	factory            process.InterceptedDataFactory
 	whiteListRequest   process.WhiteListHandler
 	mutChunksProcessor sync.RWMutex
@@ -50,6 +53,9 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(arg.Hasher) {
+		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(arg.DataFactory) {
 		return nil, process.ErrNilInterceptedDataFactory
@@ -199,7 +205,25 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		mdi.throttler.EndProcessing()
 	}()
 
+	messageID := mdi.createInterceptedMultiDataMsgID(listInterceptedData)
+
 	return nil
+}
+
+func (mdi *MultiDataInterceptor) createInterceptedMultiDataMsgID(interceptedMultiData []process.InterceptedData) []byte {
+	if len(interceptedMultiData) == 0 {
+		return nil
+	}
+	if len(interceptedMultiData) == 1 {
+		return interceptedMultiData[0].Hash()
+	}
+
+	lenOneID := len(interceptedMultiData[0].Hash())
+	data := make([]byte, 0, lenOneID*len(interceptedMultiData))
+	for _, id := range interceptedMultiData {
+		data = append(data, id.Hash()...)
+	}
+	return mdi.hasher.Compute(string(data))
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {

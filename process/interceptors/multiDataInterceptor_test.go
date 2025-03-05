@@ -26,6 +26,7 @@ func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 	return interceptors.ArgMultiDataInterceptor{
 		Topic:                   "test topic",
 		Marshalizer:             &mock.MarshalizerMock{},
+		Hasher:                  &mock.HasherStub{},
 		DataFactory:             &mock.InterceptedDataFactoryStub{},
 		Processor:               &mock.InterceptorProcessorStub{},
 		Throttler:               createMockThrottler(),
@@ -158,7 +159,7 @@ func TestNewMultiDataInterceptor(t *testing.T) {
 	assert.Equal(t, arg.Topic, mdi.Topic())
 }
 
-//------- ProcessReceivedMessage
+// ------- ProcessReceivedMessage
 
 func TestMultiDataInterceptor_ProcessReceivedMessageNilMessageShouldErr(t *testing.T) {
 	t.Parallel()
@@ -491,7 +492,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	}
 	arg.DataFactory = &mock.InterceptedDataFactoryStub{
 		CreateCalled: func(buff []byte) (data process.InterceptedData, e error) {
-			assert.Equal(t, newBuffData, buff) //chunk processor switched the buffer
+			assert.Equal(t, newBuffData, buff) // chunk processor switched the buffer
 			createCalled = true
 			return interceptedData, nil
 		},
@@ -644,7 +645,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 	assert.True(t, isOriginatorBlackListed)
 }
 
-//------- debug
+// ------- debug
 
 func TestMultiDataInterceptor_SetInterceptedDebugHandlerNilShouldErr(t *testing.T) {
 	t.Parallel()
@@ -667,7 +668,7 @@ func TestMultiDataInterceptor_SetInterceptedDebugHandlerShouldWork(t *testing.T)
 	err := mdi.SetInterceptedDebugHandler(debugger)
 
 	assert.Nil(t, err)
-	assert.True(t, debugger == mdi.InterceptedDebugHandler()) //pointer testing
+	assert.True(t, debugger == mdi.InterceptedDebugHandler()) // pointer testing
 }
 
 func TestMultiDataInterceptor_ProcessReceivedMessageIsOriginatorNotOkButWhiteListed(t *testing.T) {

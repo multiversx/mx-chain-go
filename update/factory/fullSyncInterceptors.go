@@ -169,7 +169,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		whiteListHandler:       args.WhiteListHandler,
 		whiteListerVerifiedTxs: args.WhiteListerVerifiedTxs,
 		antifloodHandler:       args.AntifloodHandler,
-		//TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
+		// TODO: inject the real peers holder once we have the peers mapping before epoch bootstrap finishes
 		preferredPeersHolder:           disabled.NewPreferredPeersHolder(),
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
@@ -322,7 +322,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptor
 	keys := make([]string, numShards)
 	interceptorsSlice := make([]process.Interceptor, numShards)
 
-	//wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
+	// wire up to topics: shardBlocks_0_META, shardBlocks_1_META ...
 	for idx := uint32(0); idx < numShards; idx++ {
 		identifierHeader := factory.ShardBlocksTopic + tmpSC.CommunicationIdentifier(idx)
 		if ficf.checkIfInterceptorExists(identifierHeader) {
@@ -523,7 +523,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 		interceptorSlice[int(idx)] = interceptor
 	}
 
-	//tx interceptor for metachain topic
+	// tx interceptor for metachain topic
 	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTx) {
 		interceptor, err := ficf.createOneTxInterceptor(identifierTx)
@@ -574,6 +574,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			Hasher:                  ficf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             txFactory,
 			Processor:               txProcessor,
 			Throttler:               ficf.globalThrottler,
@@ -615,6 +616,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			Hasher:                  ficf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             txFactory,
 			Processor:               txProcessor,
 			Throttler:               ficf.globalThrottler,
@@ -656,6 +658,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			Hasher:                  ficf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             txFactory,
 			Processor:               txProcessor,
 			Throttler:               ficf.globalThrottler,
@@ -777,7 +780,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 		return err
 	}
 
-	//only one metachain header topic
+	// only one metachain header topic
 	interceptor, err := interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
 			Topic:                   identifierHdr,
@@ -823,6 +826,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             ficf.argInterceptorFactory.CoreComponents.InternalMarshalizer(),
+			Hasher:                  ficf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             trieNodesFactory,
 			Processor:               trieNodesProcessor,
 			Throttler:               ficf.globalThrottler,
