@@ -81,7 +81,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	receiverShardId := uint32(1)
+	receiverShardId := uint32(0)
 
 	// TODO MX-15942 uncomment sft/meta when ESDTTYpe VM hook will be implemented
 	// because get_esdt_token_data doesn't return real type and deposit will clear the storage
