@@ -103,7 +103,7 @@ func TestEpochStartMetaBlockInterceptor_ProcessReceivedMessageUnmarshalError(t *
 	message := &p2pmocks.P2PMessageMock{DataField: []byte("wrong meta block  bytes")}
 	msgID, err := esmbi.ProcessReceivedMessage(message, "", &p2pmocks.MessengerStub{})
 	require.Error(t, err)
-	require.NotNil(t, msgID)
+	require.Nil(t, msgID)
 }
 
 func TestEpochStartMetaBlockInterceptor_EntireFlowShouldWorkAndSetTheEpoch(t *testing.T) {
