@@ -1585,19 +1585,19 @@ func createArgsForComputeEndOfEpochEconomics(
 		MaxInflationRateCalled: func(_ uint32) float64 {
 			return 0.1
 		},
-		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+		ProtocolSustainabilityAddressInEpochCalled: func(_ uint32) string {
 			return commAddress
 		},
-		ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
+		ProtocolSustainabilityPercentageInEpochCalled: func(_ uint32) float64 {
 			return 0.1
 		},
-		LeaderPercentageInEpochCalled: func(epoch uint32) float64 {
+		LeaderPercentageInEpochCalled: func(_ uint32) float64 {
 			return 0.1
 		},
-		RewardsTopUpFactorInEpochCalled: func(epoch uint32) float64 {
+		RewardsTopUpFactorInEpochCalled: func(_ uint32) float64 {
 			return 0.25
 		},
-		RewardsTopUpGradientPointInEpochCalled: func(epoch uint32) *big.Int {
+		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return big.NewInt(0).Div(args.GenesisTotalSupply, big.NewInt(10))
 		},
 	}

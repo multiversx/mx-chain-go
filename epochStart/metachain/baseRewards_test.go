@@ -1168,13 +1168,13 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
 
 	rewardsHandler := &mock.RewardsHandlerStub{
-		RewardsTopUpGradientPointInEpochCalled: func(epoch uint32) *big.Int {
+		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return rewardsTopUpGradientPoint
 		},
-		RewardsTopUpFactorInEpochCalled: func(epoch uint32) float64 {
+		RewardsTopUpFactorInEpochCalled: func(_ uint32) float64 {
 			return 0.25
 		},
-		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
+		ProtocolSustainabilityAddressInEpochCalled: func(_ uint32) string {
 			return "11"
 		},
 	}

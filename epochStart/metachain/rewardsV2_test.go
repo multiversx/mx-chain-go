@@ -1767,10 +1767,10 @@ func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	topUpRewardFactor := 0.25
 
 	rewardsHandler := &economicsmocks.EconomicsHandlerMock{
-		RewardsTopUpGradientPointInEpochCalled: func(epoch uint32) *big.Int {
+		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return big.NewInt(0).Set(rewardsTopUpGradientPoint)
 		},
-		RewardsTopUpFactorInEpochCalled: func(epoch uint32) float64 {
+		RewardsTopUpFactorInEpochCalled: func(_ uint32) float64 {
 			return topUpRewardFactor
 		},
 	}
@@ -1787,10 +1787,10 @@ func getRewardsCreatorV35Arguments() RewardsCreatorArgsV2 {
 	topUpRewardFactor := 0.5
 
 	rewardsHandler := &economicsmocks.EconomicsHandlerMock{
-		RewardsTopUpGradientPointInEpochCalled: func(epoch uint32) *big.Int {
+		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return big.NewInt(0).Set(rewardsTopUpGradientPoint)
 		},
-		RewardsTopUpFactorInEpochCalled: func(epoch uint32) float64 {
+		RewardsTopUpFactorInEpochCalled: func(_ uint32) float64 {
 			return topUpRewardFactor
 		},
 	}
