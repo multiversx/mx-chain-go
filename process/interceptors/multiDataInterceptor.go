@@ -215,6 +215,10 @@ func (mdi *MultiDataInterceptor) createInterceptedMultiDataMsgID(interceptedMult
 	for _, id := range interceptedMultiData {
 		data = append(data, id.Hash()...)
 	}
+	if len(data) == 0 {
+		return nil
+	}
+
 	return mdi.hasher.Compute(string(data))
 }
 
