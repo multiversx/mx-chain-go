@@ -58,7 +58,8 @@ func TestSyncedMessenger_DisabledMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, messenger.SetPeerShardResolver(nil))
 	assert.Nil(t, messenger.ConnectToPeer(""))
 	assert.Nil(t, messenger.Bootstrap())
-	assert.Nil(t, messenger.ProcessReceivedMessage(nil, "", nil))
+	_, err := messenger.ProcessReceivedMessage(nil, "", nil)
+	assert.Nil(t, err)
 
 	messenger.WaitForConnections(0, 0)
 

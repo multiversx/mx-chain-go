@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/debug/handler"
@@ -21,6 +22,7 @@ var log = logger.GetOrCreate("process/interceptors")
 type ArgMultiDataInterceptor struct {
 	Topic                string
 	Marshalizer          marshal.Marshalizer
+	Hasher               hashing.Hasher
 	DataFactory          process.InterceptedDataFactory
 	Processor            process.InterceptorProcessor
 	Throttler            process.InterceptorThrottler
@@ -34,6 +36,7 @@ type ArgMultiDataInterceptor struct {
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
 	marshalizer        marshal.Marshalizer
+	hasher             hashing.Hasher
 	factory            process.InterceptedDataFactory
 	whiteListRequest   process.WhiteListHandler
 	mutChunksProcessor sync.RWMutex
@@ -47,6 +50,9 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	}
 	if check.IfNil(arg.Marshalizer) {
 		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(arg.Hasher) {
+		return nil, process.ErrNilHasher
 	}
 	if check.IfNil(arg.DataFactory) {
 		return nil, process.ErrNilInterceptedDataFactory
@@ -91,10 +97,10 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 
 // ProcessReceivedMessage is the callback func from the p2p.Messenger and will be called each time a new message was received
 // (for the topic this validator was registered to)
-func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) error {
+func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	err := mdi.preProcessMesage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	b := batch.Batch{}
@@ -107,13 +113,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		mdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
 		mdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
 
-		return err
+		return nil, err
 	}
 	multiDataBuff := b.Data
 	lenMultiData := len(multiDataBuff)
 	if lenMultiData == 0 {
 		mdi.throttler.EndProcessing()
-		return process.ErrNoDataInMessage
+		return nil, process.ErrNoDataInMessage
 	}
 
 	err = mdi.antifloodHandler.CanProcessMessagesOnTopic(
@@ -125,7 +131,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	)
 	if err != nil {
 		mdi.throttler.EndProcessing()
-		return err
+		return nil, err
 	}
 
 	mdi.mutChunksProcessor.RLock()
@@ -133,13 +139,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	mdi.mutChunksProcessor.RUnlock()
 	if err != nil {
 		mdi.throttler.EndProcessing()
-		return err
+		return nil, err
 	}
 
 	isIncompleteChunk := checkChunksRes.IsChunk && !checkChunksRes.HaveAllChunks
 	if isIncompleteChunk {
 		mdi.throttler.EndProcessing()
-		return nil
+		return nil, nil
 	}
 	isCompleteChunk := checkChunksRes.IsChunk && checkChunksRes.HaveAllChunks
 	if isCompleteChunk {
@@ -155,7 +161,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		listInterceptedData[index] = interceptedData
 		if err != nil {
 			mdi.throttler.EndProcessing()
-			return err
+			return nil, err
 		}
 
 		isWhiteListed := mdi.whiteListRequest.IsWhiteListed(interceptedData)
@@ -165,7 +171,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				p2p.PeerIdToShortString(message.Peer()),
 				"topic", mdi.topic,
 				"err", errOriginator)
-			return errOriginator
+			return nil, errOriginator
 		}
 
 		isForCurrentShard := interceptedData.IsForCurrentShard()
@@ -180,7 +186,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 				"is white listed", isWhiteListed,
 			)
 			mdi.throttler.EndProcessing()
-			return process.ErrInterceptedDataNotForCurrentShard
+			return nil, process.ErrInterceptedDataNotForCurrentShard
 		}
 	}
 
@@ -191,7 +197,25 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		mdi.throttler.EndProcessing()
 	}()
 
-	return nil
+	messageID := mdi.createInterceptedMultiDataMsgID(listInterceptedData)
+
+	return messageID, nil
+}
+
+func (mdi *MultiDataInterceptor) createInterceptedMultiDataMsgID(interceptedMultiData []process.InterceptedData) []byte {
+	if len(interceptedMultiData) == 0 {
+		return nil
+	}
+	if len(interceptedMultiData) == 1 {
+		return interceptedMultiData[0].Hash()
+	}
+
+	lenOneID := len(interceptedMultiData[0].Hash())
+	data := make([]byte, 0, lenOneID*len(interceptedMultiData))
+	for _, id := range interceptedMultiData {
+		data = append(data, id.Hash()...)
+	}
+	return mdi.hasher.Compute(string(data))
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
