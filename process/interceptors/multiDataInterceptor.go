@@ -54,6 +54,9 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if check.IfNil(arg.Hasher) {
 		return nil, process.ErrNilHasher
 	}
+	if check.IfNil(arg.Hasher) {
+		return nil, process.ErrNilHasher
+	}
 	if check.IfNil(arg.DataFactory) {
 		return nil, process.ErrNilInterceptedDataFactory
 	}
@@ -87,6 +90,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			debugHandler:         handler.NewDisabledInterceptorDebugHandler(),
 		},
 		marshalizer:      arg.Marshalizer,
+		hasher:           arg.Hasher,
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
 		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
