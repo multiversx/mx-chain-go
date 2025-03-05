@@ -13,7 +13,7 @@ fund() {
         return 1
     fi
 
-    echo "Fund wallet address ${$1} on sovereign chain..."
+    echo "Fund wallet address $1 on sovereign chain..."
 
     local OUTFILE="${OUTFILE_PATH}/get-funds-sovereign.interaction.json"
     mxpy tx new \
