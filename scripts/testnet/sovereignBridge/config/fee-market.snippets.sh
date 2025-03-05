@@ -52,8 +52,8 @@ upgradeFeeMarketContractSovereign() {
 
 upgradeFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -89,8 +89,8 @@ removeFeeInFeeMarketContractSovereign() {
 }
 removeFeeInFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -126,8 +126,8 @@ setFixedFeeMarketContractSovereign() {
 }
 setFixedFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -166,8 +166,8 @@ setAnyTokenFeeMarketContractSovereign() {
 }
 setAnyTokenFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1

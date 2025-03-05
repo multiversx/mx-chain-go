@@ -6,13 +6,13 @@ deployEsdtSafeContract() {
 
     local OUTFILE="${OUTFILE_PATH}/deploy-esdt-safe.interaction.json"
     mxpy contract deploy \
-        --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
+        --bytecode=$(eval echo ${MVX_ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --arguments \
-            false \
+            ${HEADER_VERIFIER_ADDRESS} \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
@@ -49,8 +49,8 @@ upgradeEsdtSafeContractSovereign() {
 
 upgradeEsdtSafeContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -59,7 +59,7 @@ upgradeEsdtSafeContractCall() {
     local OUTFILE=$4
 
     mxpy contract upgrade ${ADDRESS} \
-        --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
+        --bytecode=$(eval echo ${MVX_ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
         --proxy=${URL} \
         --chain=${CHAIN} \
@@ -86,8 +86,8 @@ pauseEsdtSafeContractSovereign() {
 }
 pauseEsdtSafeContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -123,8 +123,8 @@ unpauseEsdtSafeContractSovereign() {
 }
 unpauseEsdtSafeContractCall() {
     if [ $# -lt 4 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4>"
+        return 1
     fi
 
     local ADDRESS=$1
@@ -160,8 +160,8 @@ setFeeMarketAddressSovereign() {
 }
 setFeeMarketAddressCall() {
     if [ $# -lt 5 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4> <arg5>"
-        exit 1
+        echo "Usage: ${FUNCNAME[0]} <arg1> <arg2> <arg3> <arg4> <arg5>"
+        return 1
     fi
 
     local ESDT_SAFE_CONTRACT_ADDRESS=$1
@@ -177,26 +177,6 @@ setFeeMarketAddressCall() {
         --gas-limit=10000000 \
         --function="setFeeMarketAddress" \
         --arguments ${FEE_MARKET_CONTRACT_ADDRESS} \
-        --outfile=${OUTFILE} \
-        --recall-nonce \
-        --wait-result \
-        --send || return
-
-    printTxStatus ${OUTFILE}
-}
-
-setHeaderVerifierAddressInEsdtSafe() {
-    echo "Setting Header Verifier address in ESDT Safe contract on main chain..."
-    checkVariables ESDT_SAFE_ADDRESS HEADER_VERIFIER_ADDRESS || return
-
-    local OUTFILE="${OUTFILE_PATH}/set-header-verifier-address.interaction.json"
-    mxpy contract call ${ESDT_SAFE_ADDRESS} \
-        --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
-        --gas-limit=10000000 \
-        --function="setHeaderVerifierAddress" \
-        --arguments ${HEADER_VERIFIER_ADDRESS} \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
