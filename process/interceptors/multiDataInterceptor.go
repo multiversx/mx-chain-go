@@ -94,6 +94,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			interceptedDataVerifier: arg.InterceptedDataVerifier,
 		},
 		marshalizer:      arg.Marshalizer,
+		hasher:           arg.Hasher,
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
 		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
