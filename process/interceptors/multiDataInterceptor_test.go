@@ -24,9 +24,13 @@ var fromConnectedPeerId = core.PeerID("from connected peer Id")
 
 func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 	return interceptors.ArgMultiDataInterceptor{
-		Topic:                   "test topic",
-		Marshalizer:             &mock.MarshalizerMock{},
-		Hasher:                  &mock.HasherStub{},
+		Topic:       "test topic",
+		Marshalizer: &mock.MarshalizerMock{},
+		Hasher: &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return []byte("hash")
+			},
+		},
 		DataFactory:             &mock.InterceptedDataFactoryStub{},
 		Processor:               &mock.InterceptorProcessorStub{},
 		Throttler:               createMockThrottler(),
