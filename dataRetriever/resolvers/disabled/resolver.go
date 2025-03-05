@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
@@ -15,8 +16,8 @@ func NewDisabledResolver() *resolver {
 }
 
 // ProcessReceivedMessage returns nil as it is disabled
-func (r *resolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
-	return nil
+func (r *resolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
+	return nil, nil
 }
 
 // SetDebugHandler returns nil as it is disabled
