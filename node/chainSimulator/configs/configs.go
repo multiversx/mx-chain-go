@@ -132,24 +132,13 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
-		if idx == 1 {
-			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.MinNodesPerShard
-		} else {
-			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.ConsensusGroupSize
-		}
-
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = args.RoundDurationInMillis
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
-	}
-
+	updateConfigsChainParameters(args, configs)
 	node.ApplyArchCustomConfigs(configs)
 
 	if args.AlterConfigsFunction != nil {
 		args.AlterConfigsFunction(configs)
+		// this is needed to keep in sync EquivalentMessage flag and the second entry from chain parameters
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.EquivalentMessagesEnableEpoch
 	}
 
 	return &ArgsConfigsSimulator{
@@ -158,6 +147,21 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		GasScheduleFilename:   gasScheduleName,
 		InitialWallets:        initialWallets,
 	}, nil
+}
+
+func updateConfigsChainParameters(args ArgsChainSimulatorConfigs, configs *config.Configs) {
+	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.ConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = args.RoundDurationInMillis
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
+	}
+
+	if len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch) > 1 {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].ShardConsensusGroupSize = args.MinNodesPerShard
+	}
 }
 
 // SetMaxNumberOfNodesInConfigs will correctly set the max number of nodes in configs

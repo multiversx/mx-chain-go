@@ -116,22 +116,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		if errS != nil {
 			return errS
 		}
-
-		previousProof = &dataBlock.HeaderProof{
-			PubKeysBitmap:       pubKeyBitmap,
-			AggregatedSignature: sig,
-			HeaderHash:          prevHash,
-			HeaderEpoch:         currentHeader.GetEpoch(),
-			HeaderNonce:         currentHeader.GetNonce(),
-			HeaderShardId:       currentHeader.GetShardID(),
-			HeaderRound:         currentHeader.GetNonce(),
-			IsStartOfEpoch:      currentHeader.IsStartOfEpochBlock(),
-		}
-
-		wasAdded := creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
-		if !wasAdded {
-			log.Warn("proofsPool.AddProof not added", "currHdrHash", prevHash)
-		}
+		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, currentHeader)
+		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
 
 	header, block, err := bp.CreateBlock(newHeader, func() bool {
@@ -142,23 +128,10 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	if notNil && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.EquivalentMessagesFlag) {
-		selectionEpoch := epoch
-		if currentHeader.IsStartOfEpochBlock() {
-			selectionEpoch = selectionEpoch - 1
-		}
-
-		_, validators, err = creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), shardID, selectionEpoch)
-		if err != nil {
-			return err
-		}
-
-		previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
-		previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(prevHash, previousProof, validators)
-		if err != nil {
-			return err
-		}
-
-		header.SetPreviousProof(previousProof)
+		validators, err = creator.updatePreviousProofAndAddonHeader(prevHash, currentHeader, header, previousProof)
+	}
+	if err != nil {
+		return err
 	}
 
 	err = creator.setHeaderSignatures(header, blsKey.PubKey(), validators)
@@ -182,22 +155,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	var headerProof *dataBlock.HeaderProof
 	shouldAddCurrentProof := notNil && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
 	if shouldAddCurrentProof {
-		headerProof = &dataBlock.HeaderProof{
-			PubKeysBitmap:       pubKeyBitmap,
-			AggregatedSignature: newHeaderSig,
-			HeaderHash:          headerHash,
-			HeaderEpoch:         header.GetEpoch(),
-			HeaderNonce:         header.GetNonce(),
-			HeaderShardId:       header.GetShardID(),
-			HeaderRound:         header.GetNonce(),
-			IsStartOfEpoch:      header.IsStartOfEpochBlock(),
-		}
-
-		proofsPool := creator.nodeHandler.GetDataComponents().Datapool().Proofs()
-		wasAdded := proofsPool.AddProof(headerProof)
-		if !wasAdded {
-			log.Warn("proofsPool.AddProof not added", "currHdrHash", prevHash)
-		}
+		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
+		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(headerProof)
 	}
 
 	err = bp.CommitBlock(header, block)
@@ -228,6 +187,41 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	return creator.nodeHandler.GetBroadcastMessenger().BroadcastTransactions(transactions, blsKey.PubKey())
+}
+
+func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHash []byte, currentHeader, newHeader data.HeaderHandler, previousProof *dataBlock.HeaderProof) ([]nodesCoordinator.Validator, error) {
+	selectionEpoch := currentHeader.GetEpoch()
+	if currentHeader.IsStartOfEpochBlock() {
+		selectionEpoch = selectionEpoch - 1
+	}
+
+	_, validators, err := creator.nodeHandler.GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(currentHeader.GetPrevRandSeed(), currentHeader.GetRound(), currentHeader.GetShardID(), selectionEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	previousProof.PubKeysBitmap = GeneratePubKeyBitmap(len(validators))
+	previousProof.AggregatedSignature, err = creator.generateSignatureForProofs(currentHeaderHash, previousProof, validators)
+	if err != nil {
+		return nil, err
+	}
+
+	newHeader.SetPreviousProof(previousProof)
+
+	return validators, nil
+}
+
+func createProofForHeader(pubKeyBitmap, signature, headerHash []byte, header data.HeaderHandler) *dataBlock.HeaderProof {
+	return &dataBlock.HeaderProof{
+		PubKeysBitmap:       pubKeyBitmap,
+		AggregatedSignature: signature,
+		HeaderHash:          headerHash,
+		HeaderEpoch:         header.GetEpoch(),
+		HeaderNonce:         header.GetNonce(),
+		HeaderShardId:       header.GetShardID(),
+		HeaderRound:         header.GetNonce(),
+		IsStartOfEpoch:      header.IsStartOfEpochBlock(),
+	}
 }
 
 func (creator *blocksCreator) getPreviousHeaderData() (nonce, round uint64, prevHash, prevRandSeed []byte, epoch uint32, currentHeader data.HeaderHandler) {
