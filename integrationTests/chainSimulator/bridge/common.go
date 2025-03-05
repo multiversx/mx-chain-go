@@ -126,7 +126,7 @@ func esdtSafeContract(
 	_ ArgsEsdtSafe,
 	contractWasmPath string,
 ) []byte {
-	esdtSafeArgs := "@" // is_sovereign_chain
+	esdtSafeArgs := "@00000000000000000500f3c3c6f64f8a20ced95a45a7de596ab08f9082d0f8ef" // dummy header_verifier_address
 	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, contractWasmPath)
 }
 

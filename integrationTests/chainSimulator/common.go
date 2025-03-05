@@ -216,7 +216,7 @@ func RequireAccountHasToken(
 		require.False(t, found)
 		return
 	}
-	require.True(t, found)
+	require.True(t, found, fmt.Sprintf("%s token not found", token))
 	require.Equal(t, tokenData.Value, value)
 }
 

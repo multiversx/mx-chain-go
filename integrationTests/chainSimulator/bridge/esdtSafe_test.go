@@ -81,9 +81,11 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	receiverShardId := uint32(0)
+	receiverShardId := uint32(1)
 
-	// TODO MX-15942 uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
+	// TODO MX-15942 uncomment sft/meta when ESDTTYpe VM hook will be implemented
+	// because get_esdt_token_data doesn't return real type and deposit will clear the storage
+	// then on second execute will create a new sft/meta and this is not expected
 	tokens := make([]chainSim.ArgsDepositToken, 0)
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab1-TKN-123456",
@@ -95,37 +97,37 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		Identifier: "ab1-NFTV2-1a2b3c",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
-		Type:       core.NonFungibleV2,
+		Type:       1, // NFT
+	})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab2-DNFT-ead43f",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(1),
+		Type:       4, // DyNFT
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab2-DNFT-ead43f",
+	//	Identifier: "ab2-SFT-cedd55",
 	//	Nonce:      uint64(1),
-	//	Amount:     big.NewInt(1),
-	//	Type:       core.DynamicNFT,
+	//	Amount:     big.NewInt(1421),
+	//	Type:       2, // Semi
 	//})
-	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab2-SFT-cedd55",
-		Nonce:      uint64(1),
-		Amount:     big.NewInt(1421),
-		Type:       core.SemiFungible,
-	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
 	//	Identifier: "ab4-DSFT-f6b4c2",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1534),
-	//	Type:       core.DynamicSFT,
+	//	Type:       5, // DySFT
 	//})
-	tokens = append(tokens, chainSim.ArgsDepositToken{
-		Identifier: "ab5-META-4b543b",
-		Nonce:      uint64(1),
-		Amount:     big.NewInt(6231),
-		Type:       core.MetaFungible,
-	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab5-DMETA-4b543b",
+	//	Identifier: "ab5-META-4b543b",
+	//	Nonce:      uint64(1),
+	//	Amount:     big.NewInt(6231),
+	//	Type:       3, // Meta
+	//})
+	//tokens = append(tokens, chainSim.ArgsDepositToken{
+	//	Identifier: "ab5-DMETA-5ac72b",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(162367),
-	//	Type:       core.DynamicMeta,
+	//	Type:       6, DyMeta
 	//})
 
 	tokensMapper := make(map[string]string)
@@ -136,7 +138,7 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		// register sovereign token identifier
 		// this will issue a new token on main chain and create a mapper between the identifiers
 		registerTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, token)
-		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs, getTokenTicker(token.Identifier), token.Type.String())
+		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs, getTokenTicker(token.Identifier), "")
 
 		// create random receiver addresses in a shard
 		receiver, _ := cs.GenerateAndMintWalletAddress(receiverShardId, chainSim.InitialAmount)
@@ -228,6 +230,8 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		}
 
 		waitIfCrossShardProcessing(cs, esdtSafeAddrShard, receiverShardId)
+		_ = cs.GenerateBlocks(1) // one more block required for ESDTTransfer esdt-safe -> hello
+
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), receiver.Bech32, receivedToken.Amount)
 		if isSftOrMeta(receivedToken.Type) { // expect the contract to have 1 token
 			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(1))
@@ -389,7 +393,6 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 
 	receiverShardId := uint32(0)
 
-	// TODO MX-15942 uncomment dynamic tokens, currently there is no issue function in SC framework for dynamic esdts
 	tokens := make([]chainSim.ArgsDepositToken, 0)
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab1-TKN-123456",
@@ -401,38 +404,38 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		Identifier: "ab1-NFTV2-1a2b3c",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
-		Type:       core.NonFungibleV2,
+		Type:       1, // NFT
 	})
-	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab2-DNFT-ead43f",
-	//	Nonce:      uint64(1),
-	//	Amount:     big.NewInt(1),
-	//	Type:       core.DynamicNFT,
-	//})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab2-DNFT-cab42b",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(1),
+		Type:       4, // DyNFT
+	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab2-SFT-cedd55",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1421),
-		Type:       core.SemiFungible,
+		Type:       2, // Semi
 	})
-	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab4-DSFT-f6b4c2",
-	//	Nonce:      uint64(1),
-	//	Amount:     big.NewInt(1534),
-	//	Type:       core.DynamicSFT,
-	//})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab4-DSFT-f6b4c2",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(1534),
+		Type:       5, // DySFT
+	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab5-META-4b543b",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(6231),
-		Type:       core.MetaFungible,
+		Type:       3, // Meta
 	})
-	//tokens = append(tokens, chainSim.ArgsDepositToken{
-	//	Identifier: "ab5-DMETA-4b543b",
-	//	Nonce:      uint64(1),
-	//	Amount:     big.NewInt(162367),
-	//	Type:       core.DynamicMeta,
-	//})
+	tokens = append(tokens, chainSim.ArgsDepositToken{
+		Identifier: "ab5-DMETA-5ac72b",
+		Nonce:      uint64(1),
+		Amount:     big.NewInt(162367),
+		Type:       6, // DyMeta
+	})
 
 	// generate hello contracts in each shard
 	// hello contract has one endpoint "hello" which receives a number as argument
@@ -447,7 +450,7 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		// register sovereign token identifier
 		// this will issue a new token on main chain and create a mapper between the identifiers
 		registerTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, token)
-		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs, getTokenTicker(token.Identifier), token.Type.String())
+		tokensMapper[token.Identifier] = chainSim.GetIssuedEsdtIdentifier(t, cs, getTokenTicker(token.Identifier), "")
 
 		// get contract from next shard
 		receiver := receiverContracts[receiverShardId]
@@ -484,6 +487,10 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		// still no tokens in esdt-safe, tokens should be burned
 		if isSftOrMeta(receivedToken.Type) {
 			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(1))
+			if isMeta(receivedToken.Type) {
+				// for some reason it requires 1 more block for the supply to be updated if it was a cross-shard tx
+				_ = cs.GenerateBlocks(1)
+			}
 		} else {
 			chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(receivedToken), esdtSafeAddr, big.NewInt(0))
 		}
@@ -530,7 +537,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       core.NonFungibleV2,
+		Type:       1, // NFT
 	}
 	wallets[account] = token
 
@@ -543,7 +550,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       core.DynamicNFT,
+		Type:       5, // DyNFT
 	}
 	wallets[account] = token
 
@@ -556,7 +563,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       core.SemiFungible,
+		Type:       2, // Semi
 	}
 	wallets[account] = token
 
@@ -569,7 +576,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       core.DynamicSFT,
+		Type:       5, // DySFT
 	}
 	wallets[account] = token
 
@@ -582,7 +589,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       core.MetaFungible,
+		Type:       3, // Meta
 	}
 	wallets[account] = token
 
@@ -595,7 +602,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       core.DynamicMeta,
+		Type:       6, // DyMeta
 	}
 	wallets[account] = token
 
@@ -679,14 +686,17 @@ func deployReceiverContractInAllShards(t *testing.T, cs chainSim.ChainSimulator)
 }
 
 func isNft(esdtType core.ESDTType) bool {
-	return esdtType == core.NonFungible ||
-		esdtType == core.NonFungibleV2 ||
-		esdtType == core.DynamicNFT
+	return esdtType == 1 || // NFT
+		esdtType == 4 // DyNFT
+}
+
+func isMeta(esdtType core.ESDTType) bool {
+	return esdtType == 3 || // Meta
+		esdtType == 6 // DyMeta
 }
 
 func isSftOrMeta(esdtType core.ESDTType) bool {
-	return esdtType == core.SemiFungible ||
-		esdtType == core.DynamicSFT ||
-		esdtType == core.MetaFungible ||
-		esdtType == core.DynamicMeta
+	return esdtType == 2 || // SFT
+		esdtType == 5 || // DySFT
+		isMeta(esdtType)
 }
