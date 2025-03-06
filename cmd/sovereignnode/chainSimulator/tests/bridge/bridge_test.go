@@ -24,7 +24,7 @@ import (
 const (
 	defaultPathToInitialConfig = "../../../../node/config/"
 	sovereignConfigPath        = "../../../config/"
-	esdtSafeWasmPath           = "../testdata/esdt-safe.wasm"
+	esdtSafeWasmPath           = "../testdata/sov-esdt-safe.wasm"
 	feeMarketWasmPath          = "../testdata/fee-market.wasm"
 	issuePrice                 = "5000000000000000000"
 )
