@@ -232,19 +232,19 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 
 	err = c.RevertToIndex(numStateChanges)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges*2-1, len(c.stateChanges))
+	assert.Equal(t, numStateChanges*2, len(c.stateChanges))
 
 	err = c.RevertToIndex(numStateChanges - 1)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges-1, len(c.stateChanges))
+	assert.Equal(t, numStateChanges, len(c.stateChanges))
 
 	err = c.RevertToIndex(numStateChanges / 2)
 	require.Nil(t, err)
-	assert.Equal(t, numStateChanges/2, len(c.stateChanges))
+	assert.Equal(t, numStateChanges/2+1, len(c.stateChanges))
 
 	err = c.RevertToIndex(1)
 	require.Nil(t, err)
-	assert.Equal(t, 1, len(c.stateChanges))
+	assert.Equal(t, 2, len(c.stateChanges))
 
 	err = c.RevertToIndex(0)
 	require.Nil(t, err)
