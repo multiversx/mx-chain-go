@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainSimulator"
 	testsConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -575,6 +576,9 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 						},
 					}
 				},
+				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
 			}
 		},
 		GetProcessComponentsCalled: func() factory.ProcessComponentsHolder {
@@ -627,4 +631,13 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 			return &testsConsensus.BroadcastMessengerMock{}
 		},
 	}
+}
+
+func TestGeneratePubKeyBitmap(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, []byte{1}, chainSimulatorProcess.GeneratePubKeyBitmap(1))
+	require.Equal(t, []byte{3}, chainSimulatorProcess.GeneratePubKeyBitmap(2))
+	require.Equal(t, []byte{7}, chainSimulatorProcess.GeneratePubKeyBitmap(3))
+	require.Equal(t, []byte{255, 255, 15}, chainSimulatorProcess.GeneratePubKeyBitmap(20))
 }
