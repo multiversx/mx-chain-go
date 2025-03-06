@@ -590,7 +590,8 @@
     EndpointsThrottlers = [{ Endpoint = "/transaction/:hash", MaxNumGoRoutines = 10 },
                            { Endpoint = "/transaction/send", MaxNumGoRoutines = 2 },
                            { Endpoint = "/transaction/simulate", MaxNumGoRoutines = 1 },
-                           { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 }]
+                           { Endpoint = "/transaction/send-multiple", MaxNumGoRoutines = 2 },
+                           { Endpoint = "/pool/ppu-histogram", MaxNumGoRoutines = 1 }]
 
 [AddressPubkeyConverter]
     Length = 32

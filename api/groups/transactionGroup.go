@@ -22,18 +22,19 @@ import (
 )
 
 const (
-	sendTransactionEndpoint          = "/transaction/send"
-	simulateTransactionEndpoint      = "/transaction/simulate"
-	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
-	getTransactionEndpoint           = "/transaction/:hash"
-	getScrsByTxHashEndpoint          = "/transaction/scrs-by-tx-hash/:txhash"
-	sendTransactionPath              = "/send"
-	simulateTransactionPath          = "/simulate"
-	costPath                         = "/cost"
-	sendMultiplePath                 = "/send-multiple"
-	getTransactionPath               = "/:txhash"
-	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
-	getTransactionsPool              = "/pool"
+	sendTransactionEndpoint           = "/transaction/send"
+	simulateTransactionEndpoint       = "/transaction/simulate"
+	sendMultipleTransactionsEndpoint  = "/transaction/send-multiple"
+	getTransactionEndpoint            = "/transaction/:hash"
+	getScrsByTxHashEndpoint           = "/transaction/scrs-by-tx-hash/:txhash"
+	sendTransactionPath               = "/send"
+	simulateTransactionPath           = "/simulate"
+	costPath                          = "/cost"
+	sendMultiplePath                  = "/send-multiple"
+	getTransactionPath                = "/:txhash"
+	getScrsByTxHashPath               = "/scrs-by-tx-hash/:txhash"
+	getTransactionsPoolPath           = "/pool"
+	buildTransactionsPPUHistogramPath = "/pool/ppu-histogram"
 
 	queryParamWithResults    = "withResults"
 	queryParamCheckSignature = "checkSignature"
@@ -109,9 +110,20 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			Handler: tg.computeTransactionGasLimit,
 		},
 		{
-			Path:    getTransactionsPool,
+			Path:    getTransactionsPoolPath,
 			Method:  http.MethodGet,
 			Handler: tg.getTransactionsPool,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    buildTransactionsPPUHistogramPath,
+			Method:  http.MethodPost,
+			Handler: tg.buildTransactionsPPUHistogram,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
@@ -712,6 +724,21 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"nonceGaps": gaps},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// buildTransactionsPPUHistogram builds the PPU histogram for transactions in the pool
+func (tg *transactionGroup) buildTransactionsPPUHistogram(c *gin.Context) {
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data: gin.H{"bins": []interface{}{
+				// Dummy data, for now.
+				gin.H{"from": 500_000_000, "to": 1_000_000_000, "gas": 7_500_000_000_000},
+			}},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
