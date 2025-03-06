@@ -3402,11 +3402,6 @@ func TestBaseProcessor_AddPrevProofIfNeeded(t *testing.T) {
 		}
 
 		coreComp, dataComp, bootstrapComp, statusComp := createComponentHolderMocks()
-		//coreComp.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		//	IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-		//		return true
-		//	},
-		//}
 		dataPool := initDataPool([]byte(""))
 		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
