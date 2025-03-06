@@ -133,7 +133,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %s", err)
 	}
 
-	signersIndexes, err := odp.getSignersIndexes(arg.Header)
+	leaderBlsKey, leaderIndex, signersIndexes, err := odp.getSignersIndexes(arg.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +161,8 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 
 			HighestFinalBlockNonce: arg.HighestFinalBlockNonce,
 			HighestFinalBlockHash:  arg.HighestFinalBlockHash,
+			LeaderIndex:            leaderIndex,
+			LeaderBLSKey:           []byte(leaderBlsKey),
 		},
 		HeaderDataWithBody: &outportcore.HeaderDataWithBody{
 			Body:                 arg.Body,
@@ -310,24 +312,41 @@ func (odp *outportDataProvider) computeEpoch(header data.HeaderHandler) uint32 {
 	return epoch
 }
 
-func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) ([]uint64, error) {
+func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) (string, uint64, []uint64, error) {
 	epoch := odp.computeEpoch(header)
-	_, pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+	leader, pubKeys, err := odp.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		header.GetPrevRandSeed(),
 		header.GetRound(),
 		odp.shardID,
 		epoch,
 	)
+
 	if err != nil {
-		return nil, fmt.Errorf("nodesCoordinator.GetConsensusValidatorsPublicKeys %w", err)
+		return "", 0, nil, fmt.Errorf("nodesCoordinator.GetConsensusValidatorsPublicKeys %w", err)
 	}
 
-	signersIndexes, err := odp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
-	if err != nil {
-		return nil, fmt.Errorf("nodesCoordinator.GetValidatorsIndexes %s", err)
+	leaderIndex := findLeaderIndex(pubKeys, leader)
+
+	signersIndexes := make([]uint64, 0)
+	// when EquivalentMessages flag is enabled signer indices can be empty because all validators are in consensus group
+	if odp.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return leader, leaderIndex, signersIndexes, nil
 	}
 
-	return signersIndexes, nil
+	signersIndexes, err = odp.nodesCoordinator.GetValidatorsIndexes(pubKeys, epoch)
+	if err != nil {
+		return "", 0, nil, fmt.Errorf("nodesCoordinator.GetValidatorsIndexes %s", err)
+	}
+	return leader, leaderIndex, signersIndexes, nil
+}
+
+func findLeaderIndex(blsKeys []string, leaderBlsKey string) uint64 {
+	for i := 0; i < len(blsKeys); i++ {
+		if blsKeys[i] == leaderBlsKey {
+			return uint64(i)
+		}
+	}
+	return 0
 }
 
 func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {

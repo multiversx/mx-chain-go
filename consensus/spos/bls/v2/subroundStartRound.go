@@ -265,7 +265,10 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
-	signersIndexes, err := sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, epoch)
+	signersIndexes := make([]uint64, 0)
+	if !sr.EnableEpochsHandler().IsFlagEnabled(common.EquivalentMessagesFlag) {
+		signersIndexes, err = sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, epoch)
+	}
 	if err != nil {
 		log.Error(err.Error())
 		return
