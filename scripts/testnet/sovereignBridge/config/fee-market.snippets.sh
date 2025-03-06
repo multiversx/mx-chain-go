@@ -142,7 +142,6 @@ setFixedFeeMarketContractCall() {
         --gas-limit=10000000 \
         --function="setFee" \
         --arguments \
-            str:SVN-c53da0 \
             0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
