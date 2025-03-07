@@ -43,25 +43,21 @@ func deploySovereignBridgeSetup(
 	wallet dtos.WalletAddress,
 	esdtSafeWasmPath string,
 	feeMarketWasmPath string,
-) *ArgsBridgeSetup {
+) ArgsBridgeSetup {
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
 	nonce := GetNonce(t, nodeHandler, wallet.Bech32)
 
-	esdtSafeArgs := "@01" // is_sovereign_chain
+	esdtSafeArgs := "@000000000000000005002412c4ab184562d62a3eddaa7227730e9f17c53268a3" // pre-computed fee_market_address
 	esdtSafeAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@00" // no fee
 	feeMarketAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
 
-	setFeeMarketAddressData := "setFeeMarketAddress" +
-		"@" + hex.EncodeToString(feeMarketAddress)
-	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
-
 	chainSim.SendTransactionWithSuccess(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
 
-	return &ArgsBridgeSetup{
+	return ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,
 		FeeMarketAddress: feeMarketAddress,
 	}
