@@ -98,7 +98,7 @@ func deployBridgeSetup(
 	esdtSafeAddress := deployEsdtSafeContract(t, cs, ownerAddrBytes, &nonce, systemContractDeploy, argsEsdtSafe, contractWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
-		"@010000000d4e5445524e532d656161643135010000000d4e5445524e532d6561616431350000000405f5e1000000000405f5e100" // no fee
+		"@00" // no fee
 	feeMarketAddress := chainSim.DeployContract(t, cs, ownerAddrBytes, &nonce, systemContractDeploy, feeMarketArgs, feeMarketWasmPath)
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
@@ -170,8 +170,7 @@ func deposit(
 
 	depositArgs = depositArgs +
 		"@" + hex.EncodeToString([]byte("deposit")) +
-		"@" + hex.EncodeToString(receiver) +
-		"@2710@68656c6c6f@0000000131"
+		"@" + hex.EncodeToString(receiver)
 
 	return chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
 }

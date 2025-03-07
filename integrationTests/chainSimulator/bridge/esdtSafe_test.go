@@ -27,6 +27,18 @@ type wallet struct {
 	nonce      uint64
 }
 
+type rustESDTType uint32
+
+const (
+	fungible rustESDTType = iota
+	nonFungible
+	semiFungible
+	metaFungible
+	dynamicNFT
+	dynamicSFT
+	dynamicMeta
+)
+
 // 1. transfer from sovereign chain to main chain
 // 2. transfer from main chain to sovereign chain
 // 3. transfer again the same tokens from sovereign chain to main chain
@@ -97,37 +109,37 @@ func TestChainSimulator_ExecuteAndDepositTokensWithPrefix(t *testing.T) {
 		Identifier: "ab1-NFTV2-1a2b3c",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
-		Type:       1, // NFT
+		Type:       core.ESDTType(nonFungible),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab2-DNFT-ead43f",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
-		Type:       4, // DyNFT
+		Type:       core.ESDTType(dynamicNFT),
 	})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
 	//	Identifier: "ab2-SFT-cedd55",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1421),
-	//	Type:       2, // Semi
+	//	Type:       core.ESDTType(semiFungible),
 	//})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
 	//	Identifier: "ab4-DSFT-f6b4c2",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(1534),
-	//	Type:       5, // DySFT
+	//	Type:       core.ESDTType(dynamicSFT),
 	//})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
 	//	Identifier: "ab5-META-4b543b",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(6231),
-	//	Type:       3, // Meta
+	//	Type:       core.ESDTType(metaFungible),
 	//})
 	//tokens = append(tokens, chainSim.ArgsDepositToken{
 	//	Identifier: "ab5-DMETA-5ac72b",
 	//	Nonce:      uint64(1),
 	//	Amount:     big.NewInt(162367),
-	//	Type:       6, DyMeta
+	//	Type:       core.ESDTType(dynamicMeta),
 	//})
 
 	tokensMapper := make(map[string]string)
@@ -398,43 +410,43 @@ func TestChainSimulator_ExecuteWithTransferDataFails(t *testing.T) {
 		Identifier: "ab1-TKN-123456",
 		Nonce:      uint64(0),
 		Amount:     big.NewInt(14556666767),
-		Type:       core.Fungible,
+		Type:       core.ESDTType(fungible),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab1-NFTV2-1a2b3c",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
-		Type:       1, // NFT
+		Type:       core.ESDTType(nonFungible),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab2-DNFT-cab42b",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1),
-		Type:       4, // DyNFT
+		Type:       core.ESDTType(dynamicNFT),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab2-SFT-cedd55",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1421),
-		Type:       2, // Semi
+		Type:       core.ESDTType(semiFungible),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab4-DSFT-f6b4c2",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(1534),
-		Type:       5, // DySFT
+		Type:       core.ESDTType(dynamicSFT),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab5-META-4b543b",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(6231),
-		Type:       3, // Meta
+		Type:       core.ESDTType(metaFungible),
 	})
 	tokens = append(tokens, chainSim.ArgsDepositToken{
 		Identifier: "ab5-DMETA-5ac72b",
 		Nonce:      uint64(1),
 		Amount:     big.NewInt(162367),
-		Type:       6, // DyMeta
+		Type:       core.ESDTType(dynamicMeta),
 	})
 
 	// generate hello contracts in each shard
@@ -524,7 +536,7 @@ func generateAccountsAndTokens(
 		Identifier: tokenId,
 		Nonce:      uint64(0),
 		Amount:     supply,
-		Type:       core.Fungible,
+		Type:       core.ESDTType(fungible),
 	}
 	wallets[account] = token
 
@@ -537,7 +549,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       1, // NFT
+		Type:       core.ESDTType(nonFungible),
 	}
 	wallets[account] = token
 
@@ -550,7 +562,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       5, // DyNFT
+		Type:       core.ESDTType(dynamicNFT),
 	}
 	wallets[account] = token
 
@@ -563,7 +575,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       2, // Semi
+		Type:       core.ESDTType(semiFungible),
 	}
 	wallets[account] = token
 
@@ -576,7 +588,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       5, // DySFT
+		Type:       core.ESDTType(dynamicSFT),
 	}
 	wallets[account] = token
 
@@ -589,7 +601,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       3, // Meta
+		Type:       core.ESDTType(metaFungible),
 	}
 	wallets[account] = token
 
@@ -602,7 +614,7 @@ func generateAccountsAndTokens(
 		Identifier: collectionId,
 		Nonce:      uint64(1),
 		Amount:     supply,
-		Type:       6, // DyMeta
+		Type:       core.ESDTType(dynamicMeta),
 	}
 	wallets[account] = token
 
@@ -686,17 +698,17 @@ func deployReceiverContractInAllShards(t *testing.T, cs chainSim.ChainSimulator)
 }
 
 func isNft(esdtType core.ESDTType) bool {
-	return esdtType == 1 || // NFT
-		esdtType == 4 // DyNFT
+	return esdtType == core.ESDTType(nonFungible) ||
+		esdtType == core.ESDTType(dynamicNFT)
 }
 
 func isMeta(esdtType core.ESDTType) bool {
-	return esdtType == 3 || // Meta
-		esdtType == 6 // DyMeta
+	return esdtType == core.ESDTType(metaFungible) ||
+		esdtType == core.ESDTType(dynamicMeta)
 }
 
 func isSftOrMeta(esdtType core.ESDTType) bool {
-	return esdtType == 2 || // SFT
-		esdtType == 5 || // DySFT
+	return esdtType == core.ESDTType(semiFungible) ||
+		esdtType == core.ESDTType(dynamicSFT) ||
 		isMeta(esdtType)
 }
