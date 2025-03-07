@@ -17,7 +17,7 @@ func NewDisabledResolver() *resolver {
 
 // ProcessReceivedMessage returns nil as it is disabled
 func (r *resolver) ProcessReceivedMessage(_ p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
-	return nil, nil
+	return []byte{}, nil
 }
 
 // SetDebugHandler returns nil as it is disabled

@@ -170,7 +170,7 @@ func TestHeaderResolver_ProcessReceivedCanProcessMessageErrorsShouldErr(t *testi
 	assert.True(t, errors.Is(err, expectedErr))
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.False(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageNilValueShouldErr(t *testing.T) {
@@ -224,7 +224,7 @@ func TestHeaderResolver_ProcessReceivedMessageEpochTypeUnknownEpochShouldWork(t 
 	assert.True(t, wasSent)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
@@ -243,7 +243,7 @@ func TestHeaderResolver_ProcessReceivedMessage_Ok(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestUnknownTypeShouldErr(t *testing.T) {
@@ -263,7 +263,6 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	t.Parallel()
 
 	requestedData := []byte("aaaa")
-
 	searchWasCalled := false
 	sendWasCalled := false
 
@@ -836,7 +835,7 @@ func TestHeaderResolver_SetEpochHandlerConcurrency(t *testing.T) {
 			}
 			msgID, err := hdrRes.ProcessReceivedMessage(createRequestMsg(dataRetriever.EpochType, []byte("request_1")), fromConnectedPeerId, &p2pmocks.MessengerStub{})
 			assert.Nil(t, err)
-			assert.Nil(t, msgID)
+			assert.Len(t, msgID, 0)
 		}(i)
 	}
 	wg.Wait()

@@ -154,7 +154,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 		log.Trace("missing data",
 			"data", rd)
-		return nil, nil
+		return []byte{}, nil
 	}
 
 	hdrRes.DebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
