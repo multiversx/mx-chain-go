@@ -214,6 +214,11 @@ func (nar *nodeApiResolver) GetTransactionsPoolNonceGapsForSender(sender string,
 	return nar.apiTransactionHandler.GetTransactionsPoolNonceGapsForSender(sender, senderAccountNonce)
 }
 
+// BuildTransactionsPPUHistogram will build and return the transactions PPU histogram
+func (nar *nodeApiResolver) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	return nar.apiTransactionHandler.BuildTransactionsPPUHistogram()
+}
+
 // GetBlockByHash will return the block with the given hash and optionally with transactions
 func (nar *nodeApiResolver) GetBlockByHash(hash string, options api.BlockQueryOptions) (*api.Block, error) {
 	decodedHash, err := hex.DecodeString(hash)
