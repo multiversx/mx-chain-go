@@ -5,14 +5,11 @@ package systemSmartContracts
 
 import (
 	bytes "bytes"
-	encoding_binary "encoding/binary"
 	fmt "fmt"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
-	github_com_multiversx_mx_chain_core_go_data "github.com/multiversx/mx-chain-core-go/data"
 	io "io"
 	math "math"
-	math_big "math/big"
 	math_bits "math/bits"
 	reflect "reflect"
 	strconv "strconv"
@@ -58,19 +55,19 @@ func (VoteValueType) EnumDescriptor() ([]byte, []int) {
 }
 
 type GeneralProposal struct {
-	Nonce          uint64        `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce"`
-	CommitHash     []byte        `protobuf:"bytes,2,opt,name=CommitHash,proto3" json:"CommitHash"`
-	StartVoteEpoch uint64        `protobuf:"varint,3,opt,name=StartVoteEpoch,proto3" json:"StartVoteEpoch"`
-	EndVoteEpoch   uint64        `protobuf:"varint,4,opt,name=EndVoteEpoch,proto3" json:"EndVoteEpoch"`
-	Yes            *math_big.Int `protobuf:"bytes,5,opt,name=Yes,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"Yes"`
-	No             *math_big.Int `protobuf:"bytes,6,opt,name=No,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"No"`
-	Veto           *math_big.Int `protobuf:"bytes,7,opt,name=Veto,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"Veto"`
-	Abstain        *math_big.Int `protobuf:"bytes,8,opt,name=Abstain,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"Abstain"`
-	QuorumStake    *math_big.Int `protobuf:"bytes,9,opt,name=QuorumStake,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"QuorumStake"`
-	Passed         bool          `protobuf:"varint,10,opt,name=Passed,proto3" json:"Passed"`
-	Closed         bool          `protobuf:"varint,11,opt,name=Closed,proto3" json:"Closed"`
-	IssuerAddress  []byte        `protobuf:"bytes,12,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
-	ProposalCost   *math_big.Int `protobuf:"bytes,13,opt,name=ProposalCost,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalCost"`
+	Nonce          uint64 `protobuf:"varint,1,opt,name=Nonce,proto3" json:"Nonce"`
+	CommitHash     []byte `protobuf:"bytes,2,opt,name=CommitHash,proto3" json:"CommitHash"`
+	StartVoteEpoch uint64 `protobuf:"varint,3,opt,name=StartVoteEpoch,proto3" json:"StartVoteEpoch"`
+	EndVoteEpoch   uint64 `protobuf:"varint,4,opt,name=EndVoteEpoch,proto3" json:"EndVoteEpoch"`
+	Yes            []byte `protobuf:"bytes,5,opt,name=Yes,proto3" json:"Yes"`
+	No             []byte `protobuf:"bytes,6,opt,name=No,proto3" json:"No"`
+	Veto           []byte `protobuf:"bytes,7,opt,name=Veto,proto3" json:"Veto"`
+	Abstain        []byte `protobuf:"bytes,8,opt,name=Abstain,proto3" json:"Abstain"`
+	QuorumStake    []byte `protobuf:"bytes,9,opt,name=QuorumStake,proto3" json:"QuorumStake"`
+	Passed         bool   `protobuf:"varint,10,opt,name=Passed,proto3" json:"Passed"`
+	Closed         bool   `protobuf:"varint,11,opt,name=Closed,proto3" json:"Closed"`
+	IssuerAddress  []byte `protobuf:"bytes,12,opt,name=IssuerAddress,proto3" json:"IssuerAddress"`
+	ProposalCost   []byte `protobuf:"bytes,13,opt,name=ProposalCost,proto3" json:"ProposalCost"`
 }
 
 func (m *GeneralProposal) Reset()      { *m = GeneralProposal{} }
@@ -129,35 +126,35 @@ func (m *GeneralProposal) GetEndVoteEpoch() uint64 {
 	return 0
 }
 
-func (m *GeneralProposal) GetYes() *math_big.Int {
+func (m *GeneralProposal) GetYes() []byte {
 	if m != nil {
 		return m.Yes
 	}
 	return nil
 }
 
-func (m *GeneralProposal) GetNo() *math_big.Int {
+func (m *GeneralProposal) GetNo() []byte {
 	if m != nil {
 		return m.No
 	}
 	return nil
 }
 
-func (m *GeneralProposal) GetVeto() *math_big.Int {
+func (m *GeneralProposal) GetVeto() []byte {
 	if m != nil {
 		return m.Veto
 	}
 	return nil
 }
 
-func (m *GeneralProposal) GetAbstain() *math_big.Int {
+func (m *GeneralProposal) GetAbstain() []byte {
 	if m != nil {
 		return m.Abstain
 	}
 	return nil
 }
 
-func (m *GeneralProposal) GetQuorumStake() *math_big.Int {
+func (m *GeneralProposal) GetQuorumStake() []byte {
 	if m != nil {
 		return m.QuorumStake
 	}
@@ -185,7 +182,7 @@ func (m *GeneralProposal) GetIssuerAddress() []byte {
 	return nil
 }
 
-func (m *GeneralProposal) GetProposalCost() *math_big.Int {
+func (m *GeneralProposal) GetProposalCost() []byte {
 	if m != nil {
 		return m.ProposalCost
 	}
@@ -193,11 +190,11 @@ func (m *GeneralProposal) GetProposalCost() *math_big.Int {
 }
 
 type GovernanceConfig struct {
-	NumNodes         int64         `protobuf:"varint,1,opt,name=NumNodes,proto3" json:"NumNodes"`
-	MinQuorum        int32         `protobuf:"varint,2,opt,name=MinQuorum,proto3" json:"MinQuorum"`
-	MinPassThreshold int32         `protobuf:"varint,3,opt,name=MinPassThreshold,proto3" json:"MinPassThreshold"`
-	MinVetoThreshold int32         `protobuf:"varint,4,opt,name=MinVetoThreshold,proto3" json:"MinVetoThreshold"`
-	ProposalFee      *math_big.Int `protobuf:"bytes,5,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalFee"`
+	NumNodes         int64  `protobuf:"varint,1,opt,name=NumNodes,proto3" json:"NumNodes"`
+	MinQuorum        int32  `protobuf:"varint,2,opt,name=MinQuorum,proto3" json:"MinQuorum"`
+	MinPassThreshold int32  `protobuf:"varint,3,opt,name=MinPassThreshold,proto3" json:"MinPassThreshold"`
+	MinVetoThreshold int32  `protobuf:"varint,4,opt,name=MinVetoThreshold,proto3" json:"MinVetoThreshold"`
+	ProposalFee      []byte `protobuf:"bytes,5,opt,name=ProposalFee,proto3" json:"ProposalFee"`
 }
 
 func (m *GovernanceConfig) Reset()      { *m = GovernanceConfig{} }
@@ -256,7 +253,7 @@ func (m *GovernanceConfig) GetMinVetoThreshold() int32 {
 	return 0
 }
 
-func (m *GovernanceConfig) GetProposalFee() *math_big.Int {
+func (m *GovernanceConfig) GetProposalFee() []byte {
 	if m != nil {
 		return m.ProposalFee
 	}
@@ -264,12 +261,12 @@ func (m *GovernanceConfig) GetProposalFee() *math_big.Int {
 }
 
 type GovernanceConfigV2 struct {
-	MinQuorum         float32       `protobuf:"fixed32,1,opt,name=MinQuorum,proto3" json:"MinQuorum"`
-	MinPassThreshold  float32       `protobuf:"fixed32,2,opt,name=MinPassThreshold,proto3" json:"MinPassThreshold"`
-	MinVetoThreshold  float32       `protobuf:"fixed32,3,opt,name=MinVetoThreshold,proto3" json:"MinVetoThreshold"`
-	ProposalFee       *math_big.Int `protobuf:"bytes,4,opt,name=ProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"ProposalFee"`
-	LostProposalFee   *math_big.Int `protobuf:"bytes,5,opt,name=LostProposalFee,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"LostProposalFee"`
-	LastProposalNonce uint64        `protobuf:"varint,6,opt,name=LastProposalNonce,proto3" json:"LastProposalNonce"`
+	MinQuorum         []byte `protobuf:"bytes,1,opt,name=MinQuorum,proto3" json:"MinQuorum"`
+	MinPassThreshold  []byte `protobuf:"bytes,2,opt,name=MinPassThreshold,proto3" json:"MinPassThreshold"`
+	MinVetoThreshold  []byte `protobuf:"bytes,3,opt,name=MinVetoThreshold,proto3" json:"MinVetoThreshold"`
+	ProposalFee       []byte `protobuf:"bytes,4,opt,name=ProposalFee,proto3" json:"ProposalFee"`
+	LostProposalFee   []byte `protobuf:"bytes,5,opt,name=LostProposalFee,proto3" json:"LostProposalFee"`
+	LastProposalNonce uint64 `protobuf:"varint,6,opt,name=LastProposalNonce,proto3" json:"LastProposalNonce"`
 }
 
 func (m *GovernanceConfigV2) Reset()      { *m = GovernanceConfigV2{} }
@@ -300,35 +297,35 @@ func (m *GovernanceConfigV2) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_GovernanceConfigV2 proto.InternalMessageInfo
 
-func (m *GovernanceConfigV2) GetMinQuorum() float32 {
+func (m *GovernanceConfigV2) GetMinQuorum() []byte {
 	if m != nil {
 		return m.MinQuorum
 	}
-	return 0
+	return nil
 }
 
-func (m *GovernanceConfigV2) GetMinPassThreshold() float32 {
+func (m *GovernanceConfigV2) GetMinPassThreshold() []byte {
 	if m != nil {
 		return m.MinPassThreshold
 	}
-	return 0
+	return nil
 }
 
-func (m *GovernanceConfigV2) GetMinVetoThreshold() float32 {
+func (m *GovernanceConfigV2) GetMinVetoThreshold() []byte {
 	if m != nil {
 		return m.MinVetoThreshold
 	}
-	return 0
+	return nil
 }
 
-func (m *GovernanceConfigV2) GetProposalFee() *math_big.Int {
+func (m *GovernanceConfigV2) GetProposalFee() []byte {
 	if m != nil {
 		return m.ProposalFee
 	}
 	return nil
 }
 
-func (m *GovernanceConfigV2) GetLostProposalFee() *math_big.Int {
+func (m *GovernanceConfigV2) GetLostProposalFee() []byte {
 	if m != nil {
 		return m.LostProposalFee
 	}
@@ -484,10 +481,10 @@ func (m *DelegatedWithAddress) GetDelegatedAddress() []byte {
 }
 
 type DelegatedSCVoteInfo struct {
-	TotalPower *math_big.Int `protobuf:"bytes,1,opt,name=TotalPower,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalPower"`
-	UsedPower  *math_big.Int `protobuf:"bytes,2,opt,name=UsedPower,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"UsedPower"`
-	TotalStake *math_big.Int `protobuf:"bytes,3,opt,name=TotalStake,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"TotalStake"`
-	UsedStake  *math_big.Int `protobuf:"bytes,4,opt,name=UsedStake,proto3,casttypewith=math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster" json:"UsedStake"`
+	TotalPower []byte `protobuf:"bytes,1,opt,name=TotalPower,proto3" json:"TotalPower"`
+	UsedPower  []byte `protobuf:"bytes,2,opt,name=UsedPower,proto3" json:"UsedPower"`
+	TotalStake []byte `protobuf:"bytes,3,opt,name=TotalStake,proto3" json:"TotalStake"`
+	UsedStake  []byte `protobuf:"bytes,4,opt,name=UsedStake,proto3" json:"UsedStake"`
 }
 
 func (m *DelegatedSCVoteInfo) Reset()      { *m = DelegatedSCVoteInfo{} }
@@ -518,28 +515,28 @@ func (m *DelegatedSCVoteInfo) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DelegatedSCVoteInfo proto.InternalMessageInfo
 
-func (m *DelegatedSCVoteInfo) GetTotalPower() *math_big.Int {
+func (m *DelegatedSCVoteInfo) GetTotalPower() []byte {
 	if m != nil {
 		return m.TotalPower
 	}
 	return nil
 }
 
-func (m *DelegatedSCVoteInfo) GetUsedPower() *math_big.Int {
+func (m *DelegatedSCVoteInfo) GetUsedPower() []byte {
 	if m != nil {
 		return m.UsedPower
 	}
 	return nil
 }
 
-func (m *DelegatedSCVoteInfo) GetTotalStake() *math_big.Int {
+func (m *DelegatedSCVoteInfo) GetTotalStake() []byte {
 	if m != nil {
 		return m.TotalStake
 	}
 	return nil
 }
 
-func (m *DelegatedSCVoteInfo) GetUsedStake() *math_big.Int {
+func (m *DelegatedSCVoteInfo) GetUsedStake() []byte {
 	if m != nil {
 		return m.UsedStake
 	}
@@ -560,68 +557,70 @@ func init() {
 func init() { proto.RegisterFile("governance.proto", fileDescriptor_e18a03da5266c714) }
 
 var fileDescriptor_e18a03da5266c714 = []byte{
-	// 968 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0x4f, 0x6f, 0x1b, 0x45,
-	0x14, 0xf7, 0xfa, 0x5f, 0x92, 0x89, 0xd3, 0x6e, 0x87, 0x20, 0xad, 0x40, 0xda, 0x89, 0x7c, 0xb2,
-	0x40, 0xb1, 0xa5, 0x80, 0x54, 0x09, 0x2e, 0xed, 0xba, 0xa1, 0x44, 0x4a, 0xdd, 0x74, 0x13, 0x5c,
-	0x8a, 0x90, 0xd0, 0x78, 0x77, 0xb2, 0x5e, 0xe1, 0xdd, 0x89, 0x76, 0xc6, 0x6d, 0x83, 0x84, 0xc4,
-	0x89, 0x2b, 0x7c, 0x07, 0x2e, 0x88, 0x4f, 0xc2, 0x31, 0xc7, 0x9c, 0x16, 0xe2, 0x5c, 0x60, 0xc4,
-	0xa1, 0x12, 0x5f, 0x00, 0xcd, 0xac, 0xbd, 0x7f, 0xec, 0x48, 0x50, 0xb1, 0xea, 0x69, 0x66, 0x7e,
-	0x6f, 0xde, 0xef, 0xb7, 0xef, 0xed, 0x9b, 0x99, 0x07, 0x74, 0x8f, 0x3e, 0x27, 0x51, 0x88, 0x43,
-	0x87, 0x74, 0xcf, 0x22, 0xca, 0x29, 0x6c, 0xa8, 0xe1, 0x9d, 0x5d, 0xcf, 0xe7, 0xe3, 0xe9, 0xa8,
-	0xeb, 0xd0, 0xa0, 0xe7, 0x51, 0x8f, 0xf6, 0x14, 0x3c, 0x9a, 0x9e, 0xaa, 0x95, 0x5a, 0xa8, 0x59,
-	0xe2, 0xd5, 0xfe, 0x6b, 0x0d, 0xdc, 0x7e, 0x48, 0x42, 0x12, 0xe1, 0xc9, 0x51, 0x44, 0xcf, 0x28,
-	0xc3, 0x13, 0x88, 0x40, 0x63, 0x40, 0x43, 0x87, 0x18, 0xda, 0x8e, 0xd6, 0xa9, 0x5b, 0x1b, 0x22,
-	0x46, 0x09, 0x60, 0x27, 0x03, 0xec, 0x02, 0xd0, 0xa7, 0x41, 0xe0, 0xf3, 0x4f, 0x31, 0x1b, 0x1b,
-	0xd5, 0x1d, 0xad, 0xd3, 0xb2, 0x6e, 0x89, 0x18, 0xe5, 0x50, 0x3b, 0x37, 0x87, 0x1f, 0x81, 0x5b,
-	0xc7, 0x1c, 0x47, 0x7c, 0x48, 0x39, 0xd9, 0x3f, 0xa3, 0xce, 0xd8, 0xa8, 0x29, 0x66, 0x28, 0x62,
-	0xb4, 0x64, 0xb1, 0x97, 0xd6, 0xf0, 0x43, 0xd0, 0xda, 0x0f, 0xdd, 0xcc, 0xb3, 0xae, 0x3c, 0x75,
-	0x11, 0xa3, 0x02, 0x6e, 0x17, 0x56, 0x70, 0x04, 0x6a, 0xcf, 0x08, 0x33, 0x1a, 0xea, 0xd3, 0x8e,
-	0x44, 0x8c, 0xe4, 0xf2, 0x97, 0xdf, 0xd0, 0x7e, 0x80, 0xf9, 0xb8, 0x37, 0xf2, 0xbd, 0xee, 0x41,
-	0xc8, 0x3f, 0xce, 0xa5, 0x2a, 0x98, 0x4e, 0xb8, 0xff, 0x9c, 0x44, 0xec, 0x65, 0x2f, 0x78, 0xb9,
-	0xeb, 0x8c, 0xb1, 0x1f, 0xee, 0x3a, 0x34, 0x22, 0xbb, 0x1e, 0xed, 0xb9, 0x98, 0xe3, 0xae, 0xe5,
-	0x7b, 0x07, 0x21, 0xef, 0x63, 0xc6, 0x49, 0x64, 0x4b, 0x36, 0xf8, 0x15, 0xa8, 0x0e, 0xa8, 0xd1,
-	0x54, 0x12, 0x8f, 0x45, 0x8c, 0xaa, 0x03, 0x5a, 0x9e, 0x42, 0x75, 0x40, 0x21, 0x01, 0xf5, 0x21,
-	0xe1, 0xd4, 0x58, 0x53, 0x12, 0x4f, 0x44, 0x8c, 0xd4, 0xba, 0x3c, 0x11, 0x45, 0x07, 0x43, 0xb0,
-	0x76, 0x7f, 0xc4, 0x38, 0xf6, 0x43, 0x63, 0x5d, 0x29, 0x9d, 0x88, 0x18, 0x2d, 0xa0, 0xf2, 0xc4,
-	0x16, 0x8c, 0xf0, 0x1b, 0xb0, 0xf9, 0x64, 0x4a, 0xa3, 0x69, 0x70, 0xcc, 0xf1, 0xd7, 0xc4, 0xd8,
-	0x50, 0x9a, 0x9f, 0x8b, 0x18, 0xe5, 0xe1, 0xf2, 0x74, 0xf3, 0xac, 0xb0, 0x0d, 0x9a, 0x47, 0x98,
-	0x31, 0xe2, 0x1a, 0x60, 0x47, 0xeb, 0xac, 0x5b, 0x40, 0xc4, 0x68, 0x8e, 0xd8, 0xf3, 0x51, 0xee,
-	0xe9, 0x4f, 0xa8, 0xdc, 0xb3, 0x99, 0xed, 0x49, 0x10, 0x7b, 0x3e, 0xc2, 0xbb, 0x60, 0xeb, 0x80,
-	0xb1, 0x29, 0x89, 0xee, 0xbb, 0x6e, 0x44, 0x18, 0x33, 0x5a, 0x2a, 0x8a, 0x3b, 0x22, 0x46, 0x45,
-	0x83, 0x5d, 0x5c, 0xc2, 0x6f, 0x41, 0x6b, 0x71, 0xce, 0xfa, 0x94, 0x71, 0x63, 0x4b, 0xf9, 0x3d,
-	0x93, 0xe5, 0x9c, 0xc7, 0xcb, 0x0b, 0xbf, 0x40, 0xdb, 0xfe, 0xb3, 0x0a, 0xf4, 0x87, 0xe9, 0xcd,
-	0xd1, 0xa7, 0xe1, 0xa9, 0xef, 0xc1, 0x0e, 0x58, 0x1f, 0x4c, 0x83, 0x01, 0x75, 0x09, 0x53, 0x47,
-	0xbe, 0x66, 0xb5, 0x44, 0x8c, 0x52, 0xcc, 0x4e, 0x67, 0xf0, 0x7d, 0xb0, 0xf1, 0xc8, 0x0f, 0x93,
-	0x84, 0xaa, 0x73, 0xdf, 0xb0, 0xb6, 0x44, 0x8c, 0x32, 0xd0, 0xce, 0xa6, 0xf0, 0x1e, 0xd0, 0x1f,
-	0xf9, 0xa1, 0x4c, 0xea, 0xc9, 0x38, 0x22, 0x6c, 0x4c, 0x27, 0xae, 0x3a, 0xf7, 0x0d, 0x6b, 0x5b,
-	0xc4, 0x68, 0xc5, 0x66, 0xaf, 0x20, 0x73, 0x06, 0x59, 0xa4, 0x19, 0x43, 0xbd, 0xc0, 0x50, 0xb0,
-	0xd9, 0x2b, 0x88, 0xac, 0xb5, 0x45, 0xfc, 0x9f, 0x10, 0x32, 0xbf, 0x0f, 0x54, 0xad, 0xe5, 0xe0,
-	0x12, 0x6b, 0x2d, 0xc7, 0xda, 0xfe, 0xa1, 0x0e, 0xe0, 0x72, 0xae, 0x87, 0x7b, 0xc5, 0x1c, 0xca,
-	0x74, 0x57, 0x5f, 0x33, 0x87, 0x55, 0xe5, 0xf3, 0x7f, 0x72, 0x58, 0x2b, 0x30, 0xbc, 0x66, 0x0e,
-	0xeb, 0x6f, 0x30, 0x87, 0xf0, 0x7b, 0x0d, 0xdc, 0x3e, 0xa4, 0x8c, 0xaf, 0xfe, 0xc4, 0x2f, 0x45,
-	0x8c, 0x96, 0x4d, 0xe5, 0x7d, 0xc4, 0x32, 0x33, 0xec, 0x83, 0x3b, 0x87, 0x38, 0x83, 0x92, 0xf7,
-	0xb1, 0xa9, 0xde, 0xa2, 0xb7, 0x45, 0x8c, 0x56, 0x8d, 0xf6, 0x2a, 0xd4, 0x76, 0x80, 0xfe, 0x38,
-	0xf4, 0xa8, 0x1f, 0x7a, 0xf2, 0xa5, 0x72, 0x0f, 0x7d, 0xc6, 0xe5, 0x6d, 0xf3, 0xc0, 0x8f, 0x88,
-	0xc3, 0x0d, 0x6d, 0xa7, 0xd6, 0xa9, 0x27, 0xb7, 0x4d, 0x82, 0xd8, 0xf3, 0x51, 0x96, 0xcc, 0x03,
-	0x32, 0x21, 0x1e, 0xe6, 0x44, 0xfe, 0x7e, 0xb9, 0x4d, 0x95, 0x4c, 0x0a, 0xda, 0xd9, 0xb4, 0xfd,
-	0x93, 0x06, 0xe0, 0xb2, 0xca, 0x70, 0xef, 0x3f, 0xe9, 0xf8, 0x60, 0x3b, 0xe5, 0x79, 0xea, 0xf3,
-	0xf1, 0xe2, 0x72, 0x93, 0x92, 0x9b, 0x7b, 0xef, 0x26, 0x2d, 0x43, 0xf7, 0xa6, 0x2d, 0x96, 0x21,
-	0x62, 0x74, 0xa3, 0xb3, 0x7d, 0x23, 0xda, 0x3e, 0xbf, 0x59, 0xea, 0xdf, 0x7b, 0x8f, 0x7b, 0x40,
-	0x4f, 0x1d, 0xb3, 0xef, 0x93, 0x15, 0xa1, 0xea, 0x79, 0xd9, 0x66, 0xaf, 0x20, 0xed, 0xbf, 0x6b,
-	0xe0, 0xad, 0x14, 0x3c, 0xee, 0xcb, 0x24, 0x1d, 0x84, 0xa7, 0x14, 0xbe, 0x00, 0xe0, 0x84, 0x72,
-	0x3c, 0x39, 0xa2, 0x2f, 0x48, 0xa4, 0xf4, 0x5b, 0xd6, 0x53, 0xd9, 0xd5, 0x64, 0x68, 0x79, 0x05,
-	0x96, 0x23, 0x85, 0x1c, 0x6c, 0x7c, 0xc6, 0x88, 0x9b, 0xe8, 0x26, 0xb1, 0x0c, 0xe5, 0xef, 0x4d,
-	0xc1, 0xf2, 0x64, 0x33, 0xce, 0x34, 0xdc, 0xe4, 0x15, 0xae, 0x2d, 0x85, 0x5b, 0xf2, 0x23, 0x9c,
-	0x23, 0x5d, 0x84, 0x9b, 0xe8, 0xd6, 0x8b, 0xe1, 0x96, 0x2c, 0x9b, 0x71, 0xbe, 0x77, 0x17, 0x6c,
-	0xc9, 0x3f, 0x3d, 0xc4, 0x93, 0x29, 0x39, 0x39, 0x3f, 0x23, 0x70, 0x4d, 0xb5, 0x88, 0x7a, 0x05,
-	0x36, 0x65, 0x1f, 0xa7, 0x6b, 0x70, 0x3d, 0x69, 0xb7, 0xf4, 0x2a, 0xdc, 0x4c, 0x3b, 0x22, 0xbd,
-	0x66, 0x0d, 0x2e, 0xae, 0xcc, 0xca, 0xe5, 0x95, 0x59, 0x79, 0x75, 0x65, 0x6a, 0xdf, 0xcd, 0x4c,
-	0xed, 0xe7, 0x99, 0xa9, 0xfd, 0x3a, 0x33, 0xb5, 0x8b, 0x99, 0xa9, 0x5d, 0xce, 0x4c, 0xed, 0xf7,
-	0x99, 0xa9, 0xfd, 0x31, 0x33, 0x2b, 0xaf, 0x66, 0xa6, 0xf6, 0xe3, 0xb5, 0x59, 0xb9, 0xb8, 0x36,
-	0x2b, 0x97, 0xd7, 0x66, 0xe5, 0x8b, 0x6d, 0x76, 0xce, 0x38, 0x09, 0x8e, 0x03, 0x1c, 0xf1, 0x3e,
-	0x0d, 0x79, 0x84, 0x1d, 0xce, 0x46, 0x4d, 0x75, 0x8a, 0x3e, 0xf8, 0x27, 0x00, 0x00, 0xff, 0xff,
-	0xe3, 0x61, 0x5d, 0xd5, 0xc2, 0x0b, 0x00, 0x00,
+	// 993 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0x4d, 0x6f, 0x23, 0x35,
+	0x18, 0x8e, 0xf3, 0xd1, 0x0f, 0x37, 0xdd, 0x9d, 0x35, 0x45, 0x1a, 0x81, 0x34, 0xae, 0x72, 0x8a,
+	0x40, 0x4d, 0xa4, 0x82, 0xb4, 0x12, 0x5c, 0x76, 0x27, 0x5b, 0x96, 0x4a, 0xdd, 0x6c, 0x77, 0x5a,
+	0xb2, 0x2c, 0x02, 0x21, 0x67, 0xc6, 0x9d, 0x8c, 0xc8, 0x8c, 0xab, 0xb1, 0xb3, 0xbb, 0x45, 0x42,
+	0xe2, 0x84, 0xc4, 0x8d, 0xff, 0xc0, 0x05, 0xf1, 0x4b, 0x38, 0xf6, 0xd8, 0xd3, 0x40, 0xd3, 0x0b,
+	0x8c, 0xf6, 0xb0, 0x12, 0x7f, 0x00, 0xd9, 0x93, 0xcc, 0x47, 0x12, 0x01, 0x87, 0xd1, 0x9e, 0x6c,
+	0x3f, 0xaf, 0xfd, 0x3c, 0xaf, 0xed, 0xd7, 0xaf, 0x5f, 0xa8, 0xb9, 0xec, 0x39, 0x0d, 0x03, 0x12,
+	0xd8, 0xb4, 0x73, 0x1e, 0x32, 0xc1, 0x50, 0x43, 0x35, 0xef, 0xec, 0xb9, 0x9e, 0x18, 0x4d, 0x86,
+	0x1d, 0x9b, 0xf9, 0x5d, 0x97, 0xb9, 0xac, 0xab, 0xe0, 0xe1, 0xe4, 0x4c, 0x8d, 0xd4, 0x40, 0xf5,
+	0x92, 0x55, 0xad, 0x57, 0xeb, 0xf0, 0xf6, 0x43, 0x1a, 0xd0, 0x90, 0x8c, 0x8f, 0x43, 0x76, 0xce,
+	0x38, 0x19, 0x23, 0x0c, 0x1b, 0x7d, 0x16, 0xd8, 0x54, 0x07, 0xbb, 0xa0, 0x5d, 0x37, 0x37, 0xe3,
+	0x08, 0x27, 0x80, 0x95, 0x34, 0xa8, 0x03, 0x61, 0x8f, 0xf9, 0xbe, 0x27, 0x3e, 0x25, 0x7c, 0xa4,
+	0x57, 0x77, 0x41, 0xbb, 0x69, 0xde, 0x8a, 0x23, 0x9c, 0x43, 0xad, 0x5c, 0x1f, 0x7d, 0x04, 0x6f,
+	0x9d, 0x08, 0x12, 0x8a, 0x01, 0x13, 0xf4, 0xe0, 0x9c, 0xd9, 0x23, 0xbd, 0xa6, 0x98, 0x51, 0x1c,
+	0xe1, 0x05, 0x8b, 0xb5, 0x30, 0x46, 0x1f, 0xc2, 0xe6, 0x41, 0xe0, 0x64, 0x2b, 0xeb, 0x6a, 0xa5,
+	0x16, 0x47, 0xb8, 0x80, 0x5b, 0x85, 0x11, 0x1a, 0xc2, 0xda, 0x33, 0xca, 0xf5, 0x86, 0x72, 0xed,
+	0x38, 0x8e, 0xb0, 0x1c, 0xfe, 0xfa, 0x3b, 0x3e, 0xf0, 0x89, 0x18, 0x75, 0x87, 0x9e, 0xdb, 0x39,
+	0x0c, 0xc4, 0xc7, 0xb9, 0xa3, 0xf2, 0x27, 0x63, 0xe1, 0x3d, 0xa7, 0x21, 0x7f, 0xd9, 0xf5, 0x5f,
+	0xee, 0xd9, 0x23, 0xe2, 0x05, 0x7b, 0x36, 0x0b, 0xe9, 0x9e, 0xcb, 0xba, 0x0e, 0x11, 0xa4, 0x63,
+	0x7a, 0xee, 0x61, 0x20, 0x7a, 0x84, 0x0b, 0x1a, 0x5a, 0x92, 0x0d, 0x7d, 0x0d, 0xab, 0x7d, 0xa6,
+	0xaf, 0x29, 0x89, 0xc7, 0x71, 0x84, 0xab, 0x7d, 0x56, 0x9e, 0x42, 0xb5, 0xcf, 0x10, 0x85, 0xf5,
+	0x01, 0x15, 0x4c, 0x5f, 0x57, 0x12, 0x4f, 0xe2, 0x08, 0xab, 0x71, 0x79, 0x22, 0x8a, 0x0e, 0x05,
+	0x70, 0xfd, 0xfe, 0x90, 0x0b, 0xe2, 0x05, 0xfa, 0x86, 0x52, 0x3a, 0x8d, 0x23, 0x3c, 0x87, 0xca,
+	0x13, 0x9b, 0x33, 0xa2, 0x6f, 0xe1, 0xd6, 0x93, 0x09, 0x0b, 0x27, 0xfe, 0x89, 0x20, 0xdf, 0x50,
+	0x7d, 0x53, 0x69, 0x7e, 0x1e, 0x47, 0x38, 0x0f, 0x97, 0xa7, 0x9b, 0x67, 0x45, 0x2d, 0xb8, 0x76,
+	0x4c, 0x38, 0xa7, 0x8e, 0x0e, 0x77, 0x41, 0x7b, 0xc3, 0x84, 0x71, 0x84, 0x67, 0x88, 0x35, 0x6b,
+	0xe5, 0x9c, 0xde, 0x98, 0xc9, 0x39, 0x5b, 0xd9, 0x9c, 0x04, 0xb1, 0x66, 0x2d, 0xba, 0x0b, 0xb7,
+	0x0f, 0x39, 0x9f, 0xd0, 0xf0, 0xbe, 0xe3, 0x84, 0x94, 0x73, 0xbd, 0xa9, 0x76, 0x71, 0x27, 0x8e,
+	0x70, 0xd1, 0x60, 0x15, 0x87, 0xe8, 0x3b, 0xd8, 0x9c, 0xbf, 0xb3, 0x1e, 0xe3, 0x42, 0xdf, 0x56,
+	0xeb, 0x9e, 0xc9, 0x70, 0xce, 0xe3, 0xe5, 0x6d, 0xbf, 0x40, 0xdb, 0xfa, 0xab, 0x0a, 0xb5, 0x87,
+	0x69, 0xe6, 0xe8, 0xb1, 0xe0, 0xcc, 0x73, 0x51, 0x1b, 0x6e, 0xf4, 0x27, 0x7e, 0x9f, 0x39, 0x94,
+	0xab, 0x27, 0x5f, 0x33, 0x9b, 0x71, 0x84, 0x53, 0xcc, 0x4a, 0x7b, 0xe8, 0x7d, 0xb8, 0xf9, 0xc8,
+	0x0b, 0x92, 0x03, 0x55, 0xef, 0xbe, 0x61, 0x6e, 0xc7, 0x11, 0xce, 0x40, 0x2b, 0xeb, 0xa2, 0x7b,
+	0x50, 0x7b, 0xe4, 0x05, 0xf2, 0x50, 0x4f, 0x47, 0x21, 0xe5, 0x23, 0x36, 0x76, 0xd4, 0xbb, 0x6f,
+	0x98, 0x3b, 0x71, 0x84, 0x97, 0x6c, 0xd6, 0x12, 0x32, 0x63, 0x90, 0x41, 0x9a, 0x31, 0xd4, 0x0b,
+	0x0c, 0x05, 0x9b, 0xb5, 0x84, 0xc8, 0x58, 0x9b, 0xef, 0xff, 0x13, 0x4a, 0x67, 0xf9, 0x40, 0xc5,
+	0x5a, 0x0e, 0x2e, 0x31, 0xd6, 0x72, 0xac, 0xad, 0x57, 0x0d, 0x88, 0x16, 0xcf, 0x7a, 0xb0, 0x8f,
+	0x44, 0xfe, 0x0c, 0x81, 0x72, 0x68, 0x50, 0x38, 0xc3, 0xf2, 0xdc, 0xc9, 0x5d, 0xc6, 0x8f, 0x60,
+	0xc5, 0x6d, 0x24, 0x99, 0xfb, 0xab, 0x55, 0xb7, 0x51, 0x9e, 0x13, 0xcb, 0xd7, 0x3a, 0xf3, 0xa5,
+	0x78, 0xaf, 0xb5, 0x82, 0x2f, 0x05, 0x5b, 0xb9, 0xbe, 0xfc, 0x6b, 0x80, 0xd4, 0xdf, 0x60, 0x80,
+	0xa0, 0x1f, 0x00, 0xbc, 0x7d, 0xc4, 0xb8, 0x58, 0x8e, 0xd0, 0x2f, 0xe3, 0x08, 0x2f, 0x9a, 0xca,
+	0x73, 0x62, 0x91, 0x19, 0xf5, 0xe0, 0x9d, 0x23, 0x92, 0x41, 0xc9, 0xe7, 0xbf, 0xa6, 0x3e, 0xda,
+	0xb7, 0xe3, 0x08, 0x2f, 0x1b, 0xad, 0x65, 0xa8, 0x65, 0x43, 0xed, 0x71, 0xe0, 0x32, 0x2f, 0x70,
+	0xe5, 0x37, 0xec, 0x1c, 0x79, 0x5c, 0xc8, 0x54, 0xfa, 0xc0, 0x0b, 0xa9, 0x2d, 0x74, 0xb0, 0x5b,
+	0x6b, 0xd7, 0x93, 0x54, 0x9a, 0x20, 0xd6, 0xac, 0x95, 0x39, 0xe5, 0x01, 0x1d, 0x53, 0x97, 0x08,
+	0x2a, 0x23, 0x52, 0x4e, 0x53, 0x39, 0x25, 0x05, 0xad, 0xac, 0xdb, 0xfa, 0x19, 0x40, 0xb4, 0xa8,
+	0x32, 0xd8, 0xff, 0x5f, 0x3a, 0x1e, 0xdc, 0x49, 0x79, 0x9e, 0x7a, 0x62, 0x34, 0xcf, 0xdc, 0x52,
+	0x72, 0x6b, 0xff, 0xdd, 0xa4, 0x1e, 0xea, 0xac, 0x9a, 0x62, 0xea, 0x71, 0x84, 0x57, 0x2e, 0xb6,
+	0x56, 0xa2, 0xad, 0x8b, 0xd5, 0x52, 0xff, 0x5d, 0x58, 0xdd, 0x83, 0x5a, 0xba, 0x30, 0xf3, 0x4f,
+	0x46, 0x84, 0x4a, 0x78, 0x8b, 0x36, 0x6b, 0x09, 0x69, 0xfd, 0x5d, 0x83, 0x6f, 0xa5, 0xe0, 0x49,
+	0x4f, 0x1e, 0xd2, 0x61, 0x70, 0xc6, 0xd0, 0x0b, 0x08, 0x4f, 0x99, 0x20, 0xe3, 0x63, 0xf6, 0x82,
+	0x86, 0xb3, 0xb4, 0xf3, 0x54, 0x96, 0x6c, 0x19, 0x5a, 0x5e, 0x80, 0xe5, 0x48, 0x65, 0xba, 0xfb,
+	0x8c, 0x53, 0x27, 0xd1, 0xad, 0x66, 0xe9, 0x2e, 0x05, 0x4b, 0x4c, 0x77, 0x29, 0x67, 0xba, 0xdd,
+	0xa4, 0xc4, 0xa8, 0x2d, 0x6c, 0xb7, 0xe4, 0x0a, 0x23, 0x47, 0x3a, 0xdf, 0x6e, 0xa2, 0x5b, 0x2f,
+	0x6e, 0xb7, 0x64, 0xd9, 0x8c, 0xf3, 0xbd, 0xbb, 0x70, 0x5b, 0xde, 0xf4, 0x80, 0x8c, 0x27, 0xf4,
+	0xf4, 0xe2, 0x9c, 0xa2, 0x75, 0x55, 0xff, 0x6a, 0x15, 0xb4, 0x26, 0x8b, 0x54, 0x0d, 0xa0, 0x8d,
+	0xa4, 0x96, 0xd4, 0xaa, 0x68, 0x2b, 0x2d, 0xf7, 0xb4, 0x9a, 0xd9, 0xbf, 0xbc, 0x36, 0x2a, 0x57,
+	0xd7, 0x46, 0xe5, 0xf5, 0xb5, 0x01, 0xbe, 0x9f, 0x1a, 0xe0, 0x97, 0xa9, 0x01, 0x7e, 0x9b, 0x1a,
+	0xe0, 0x72, 0x6a, 0x80, 0xab, 0xa9, 0x01, 0xfe, 0x98, 0x1a, 0xe0, 0xcf, 0xa9, 0x51, 0x79, 0x3d,
+	0x35, 0xc0, 0x4f, 0x37, 0x46, 0xe5, 0xf2, 0xc6, 0xa8, 0x5c, 0xdd, 0x18, 0x95, 0x2f, 0x76, 0xf8,
+	0x05, 0x17, 0xd4, 0x3f, 0xf1, 0x49, 0x28, 0x7a, 0x2c, 0x10, 0x21, 0xb1, 0x05, 0x1f, 0xae, 0xa9,
+	0x57, 0xf4, 0xc1, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xda, 0x0a, 0xa1, 0x80, 0x9f, 0x0c, 0x00,
+	0x00,
 }
 
 func (x VoteValueType) String() string {
@@ -662,35 +661,20 @@ func (this *GeneralProposal) Equal(that interface{}) bool {
 	if this.EndVoteEpoch != that1.EndVoteEpoch {
 		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.Yes, that1.Yes) {
-			return false
-		}
+	if !bytes.Equal(this.Yes, that1.Yes) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.No, that1.No) {
-			return false
-		}
+	if !bytes.Equal(this.No, that1.No) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.Veto, that1.Veto) {
-			return false
-		}
+	if !bytes.Equal(this.Veto, that1.Veto) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.Abstain, that1.Abstain) {
-			return false
-		}
+	if !bytes.Equal(this.Abstain, that1.Abstain) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.QuorumStake, that1.QuorumStake) {
-			return false
-		}
+	if !bytes.Equal(this.QuorumStake, that1.QuorumStake) {
+		return false
 	}
 	if this.Passed != that1.Passed {
 		return false
@@ -701,11 +685,8 @@ func (this *GeneralProposal) Equal(that interface{}) bool {
 	if !bytes.Equal(this.IssuerAddress, that1.IssuerAddress) {
 		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.ProposalCost, that1.ProposalCost) {
-			return false
-		}
+	if !bytes.Equal(this.ProposalCost, that1.ProposalCost) {
+		return false
 	}
 	return true
 }
@@ -740,11 +721,8 @@ func (this *GovernanceConfig) Equal(that interface{}) bool {
 	if this.MinVetoThreshold != that1.MinVetoThreshold {
 		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.ProposalFee, that1.ProposalFee) {
-			return false
-		}
+	if !bytes.Equal(this.ProposalFee, that1.ProposalFee) {
+		return false
 	}
 	return true
 }
@@ -767,26 +745,20 @@ func (this *GovernanceConfigV2) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.MinQuorum != that1.MinQuorum {
+	if !bytes.Equal(this.MinQuorum, that1.MinQuorum) {
 		return false
 	}
-	if this.MinPassThreshold != that1.MinPassThreshold {
+	if !bytes.Equal(this.MinPassThreshold, that1.MinPassThreshold) {
 		return false
 	}
-	if this.MinVetoThreshold != that1.MinVetoThreshold {
+	if !bytes.Equal(this.MinVetoThreshold, that1.MinVetoThreshold) {
 		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.ProposalFee, that1.ProposalFee) {
-			return false
-		}
+	if !bytes.Equal(this.ProposalFee, that1.ProposalFee) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.LostProposalFee, that1.LostProposalFee) {
-			return false
-		}
+	if !bytes.Equal(this.LostProposalFee, that1.LostProposalFee) {
+		return false
 	}
 	if this.LastProposalNonce != that1.LastProposalNonce {
 		return false
@@ -913,29 +885,17 @@ func (this *DelegatedSCVoteInfo) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.TotalPower, that1.TotalPower) {
-			return false
-		}
+	if !bytes.Equal(this.TotalPower, that1.TotalPower) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.UsedPower, that1.UsedPower) {
-			return false
-		}
+	if !bytes.Equal(this.UsedPower, that1.UsedPower) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.TotalStake, that1.TotalStake) {
-			return false
-		}
+	if !bytes.Equal(this.TotalStake, that1.TotalStake) {
+		return false
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		if !__caster.Equal(this.UsedStake, that1.UsedStake) {
-			return false
-		}
+	if !bytes.Equal(this.UsedStake, that1.UsedStake) {
+		return false
 	}
 	return true
 }
@@ -1066,17 +1026,13 @@ func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.ProposalCost)
-		i -= size
-		if _, err := __caster.MarshalTo(m.ProposalCost, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.ProposalCost) > 0 {
+		i -= len(m.ProposalCost)
+		copy(dAtA[i:], m.ProposalCost)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.ProposalCost)))
+		i--
+		dAtA[i] = 0x6a
 	}
-	i--
-	dAtA[i] = 0x6a
 	if len(m.IssuerAddress) > 0 {
 		i -= len(m.IssuerAddress)
 		copy(dAtA[i:], m.IssuerAddress)
@@ -1104,61 +1060,41 @@ func (m *GeneralProposal) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x50
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.QuorumStake)
-		i -= size
-		if _, err := __caster.MarshalTo(m.QuorumStake, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.QuorumStake) > 0 {
+		i -= len(m.QuorumStake)
+		copy(dAtA[i:], m.QuorumStake)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.QuorumStake)))
+		i--
+		dAtA[i] = 0x4a
 	}
-	i--
-	dAtA[i] = 0x4a
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.Abstain)
-		i -= size
-		if _, err := __caster.MarshalTo(m.Abstain, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.Abstain) > 0 {
+		i -= len(m.Abstain)
+		copy(dAtA[i:], m.Abstain)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.Abstain)))
+		i--
+		dAtA[i] = 0x42
 	}
-	i--
-	dAtA[i] = 0x42
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.Veto)
-		i -= size
-		if _, err := __caster.MarshalTo(m.Veto, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.Veto) > 0 {
+		i -= len(m.Veto)
+		copy(dAtA[i:], m.Veto)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.Veto)))
+		i--
+		dAtA[i] = 0x3a
 	}
-	i--
-	dAtA[i] = 0x3a
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.No)
-		i -= size
-		if _, err := __caster.MarshalTo(m.No, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.No) > 0 {
+		i -= len(m.No)
+		copy(dAtA[i:], m.No)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.No)))
+		i--
+		dAtA[i] = 0x32
 	}
-	i--
-	dAtA[i] = 0x32
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.Yes)
-		i -= size
-		if _, err := __caster.MarshalTo(m.Yes, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.Yes) > 0 {
+		i -= len(m.Yes)
+		copy(dAtA[i:], m.Yes)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.Yes)))
+		i--
+		dAtA[i] = 0x2a
 	}
-	i--
-	dAtA[i] = 0x2a
 	if m.EndVoteEpoch != 0 {
 		i = encodeVarintGovernance(dAtA, i, uint64(m.EndVoteEpoch))
 		i--
@@ -1204,17 +1140,13 @@ func (m *GovernanceConfig) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.ProposalFee)
-		i -= size
-		if _, err := __caster.MarshalTo(m.ProposalFee, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.ProposalFee) > 0 {
+		i -= len(m.ProposalFee)
+		copy(dAtA[i:], m.ProposalFee)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.ProposalFee)))
+		i--
+		dAtA[i] = 0x2a
 	}
-	i--
-	dAtA[i] = 0x2a
 	if m.MinVetoThreshold != 0 {
 		i = encodeVarintGovernance(dAtA, i, uint64(m.MinVetoThreshold))
 		i--
@@ -1263,45 +1195,40 @@ func (m *GovernanceConfigV2) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i--
 		dAtA[i] = 0x30
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.LostProposalFee)
-		i -= size
-		if _, err := __caster.MarshalTo(m.LostProposalFee, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2a
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.ProposalFee)
-		i -= size
-		if _, err := __caster.MarshalTo(m.ProposalFee, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x22
-	if m.MinVetoThreshold != 0 {
-		i -= 4
-		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.MinVetoThreshold))))
+	if len(m.LostProposalFee) > 0 {
+		i -= len(m.LostProposalFee)
+		copy(dAtA[i:], m.LostProposalFee)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.LostProposalFee)))
 		i--
-		dAtA[i] = 0x1d
+		dAtA[i] = 0x2a
 	}
-	if m.MinPassThreshold != 0 {
-		i -= 4
-		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.MinPassThreshold))))
+	if len(m.ProposalFee) > 0 {
+		i -= len(m.ProposalFee)
+		copy(dAtA[i:], m.ProposalFee)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.ProposalFee)))
 		i--
-		dAtA[i] = 0x15
+		dAtA[i] = 0x22
 	}
-	if m.MinQuorum != 0 {
-		i -= 4
-		encoding_binary.LittleEndian.PutUint32(dAtA[i:], uint32(math.Float32bits(float32(m.MinQuorum))))
+	if len(m.MinVetoThreshold) > 0 {
+		i -= len(m.MinVetoThreshold)
+		copy(dAtA[i:], m.MinVetoThreshold)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.MinVetoThreshold)))
 		i--
-		dAtA[i] = 0xd
+		dAtA[i] = 0x1a
+	}
+	if len(m.MinPassThreshold) > 0 {
+		i -= len(m.MinPassThreshold)
+		copy(dAtA[i:], m.MinPassThreshold)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.MinPassThreshold)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.MinQuorum) > 0 {
+		i -= len(m.MinQuorum)
+		copy(dAtA[i:], m.MinQuorum)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.MinQuorum)))
+		i--
+		dAtA[i] = 0xa
 	}
 	return len(dAtA) - i, nil
 }
@@ -1475,50 +1402,34 @@ func (m *DelegatedSCVoteInfo) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.UsedStake)
-		i -= size
-		if _, err := __caster.MarshalTo(m.UsedStake, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.UsedStake) > 0 {
+		i -= len(m.UsedStake)
+		copy(dAtA[i:], m.UsedStake)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.UsedStake)))
+		i--
+		dAtA[i] = 0x22
 	}
-	i--
-	dAtA[i] = 0x22
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.TotalStake)
-		i -= size
-		if _, err := __caster.MarshalTo(m.TotalStake, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.TotalStake) > 0 {
+		i -= len(m.TotalStake)
+		copy(dAtA[i:], m.TotalStake)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.TotalStake)))
+		i--
+		dAtA[i] = 0x1a
 	}
-	i--
-	dAtA[i] = 0x1a
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.UsedPower)
-		i -= size
-		if _, err := __caster.MarshalTo(m.UsedPower, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.UsedPower) > 0 {
+		i -= len(m.UsedPower)
+		copy(dAtA[i:], m.UsedPower)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.UsedPower)))
+		i--
+		dAtA[i] = 0x12
 	}
-	i--
-	dAtA[i] = 0x12
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		size := __caster.Size(m.TotalPower)
-		i -= size
-		if _, err := __caster.MarshalTo(m.TotalPower, dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGovernance(dAtA, i, uint64(size))
+	if len(m.TotalPower) > 0 {
+		i -= len(m.TotalPower)
+		copy(dAtA[i:], m.TotalPower)
+		i = encodeVarintGovernance(dAtA, i, uint64(len(m.TotalPower)))
+		i--
+		dAtA[i] = 0xa
 	}
-	i--
-	dAtA[i] = 0xa
 	return len(dAtA) - i, nil
 }
 
@@ -1552,29 +1463,24 @@ func (m *GeneralProposal) Size() (n int) {
 	if m.EndVoteEpoch != 0 {
 		n += 1 + sovGovernance(uint64(m.EndVoteEpoch))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.Yes)
+	l = len(m.Yes)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.No)
+	l = len(m.No)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.Veto)
+	l = len(m.Veto)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.Abstain)
+	l = len(m.Abstain)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.QuorumStake)
+	l = len(m.QuorumStake)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
 	if m.Passed {
@@ -1587,9 +1493,8 @@ func (m *GeneralProposal) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.ProposalCost)
+	l = len(m.ProposalCost)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
 	return n
@@ -1613,9 +1518,8 @@ func (m *GovernanceConfig) Size() (n int) {
 	if m.MinVetoThreshold != 0 {
 		n += 1 + sovGovernance(uint64(m.MinVetoThreshold))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.ProposalFee)
+	l = len(m.ProposalFee)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
 	return n
@@ -1627,23 +1531,24 @@ func (m *GovernanceConfigV2) Size() (n int) {
 	}
 	var l int
 	_ = l
-	if m.MinQuorum != 0 {
-		n += 5
-	}
-	if m.MinPassThreshold != 0 {
-		n += 5
-	}
-	if m.MinVetoThreshold != 0 {
-		n += 5
-	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.ProposalFee)
+	l = len(m.MinQuorum)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.LostProposalFee)
+	l = len(m.MinPassThreshold)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	l = len(m.MinVetoThreshold)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	l = len(m.ProposalFee)
+	if l > 0 {
+		n += 1 + l + sovGovernance(uint64(l))
+	}
+	l = len(m.LostProposalFee)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
 	if m.LastProposalNonce != 0 {
@@ -1719,24 +1624,20 @@ func (m *DelegatedSCVoteInfo) Size() (n int) {
 	}
 	var l int
 	_ = l
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.TotalPower)
+	l = len(m.TotalPower)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.UsedPower)
+	l = len(m.UsedPower)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.TotalStake)
+	l = len(m.TotalStake)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
-	{
-		__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-		l = __caster.Size(m.UsedStake)
+	l = len(m.UsedStake)
+	if l > 0 {
 		n += 1 + l + sovGovernance(uint64(l))
 	}
 	return n
@@ -2007,13 +1908,9 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.Yes = tmp
-				}
+			m.Yes = append(m.Yes[:0], dAtA[iNdEx:postIndex]...)
+			if m.Yes == nil {
+				m.Yes = []byte{}
 			}
 			iNdEx = postIndex
 		case 6:
@@ -2045,13 +1942,9 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.No = tmp
-				}
+			m.No = append(m.No[:0], dAtA[iNdEx:postIndex]...)
+			if m.No == nil {
+				m.No = []byte{}
 			}
 			iNdEx = postIndex
 		case 7:
@@ -2083,13 +1976,9 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.Veto = tmp
-				}
+			m.Veto = append(m.Veto[:0], dAtA[iNdEx:postIndex]...)
+			if m.Veto == nil {
+				m.Veto = []byte{}
 			}
 			iNdEx = postIndex
 		case 8:
@@ -2121,13 +2010,9 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.Abstain = tmp
-				}
+			m.Abstain = append(m.Abstain[:0], dAtA[iNdEx:postIndex]...)
+			if m.Abstain == nil {
+				m.Abstain = []byte{}
 			}
 			iNdEx = postIndex
 		case 9:
@@ -2159,13 +2044,9 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.QuorumStake = tmp
-				}
+			m.QuorumStake = append(m.QuorumStake[:0], dAtA[iNdEx:postIndex]...)
+			if m.QuorumStake == nil {
+				m.QuorumStake = []byte{}
 			}
 			iNdEx = postIndex
 		case 10:
@@ -2271,13 +2152,9 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.ProposalCost = tmp
-				}
+			m.ProposalCost = append(m.ProposalCost[:0], dAtA[iNdEx:postIndex]...)
+			if m.ProposalCost == nil {
+				m.ProposalCost = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -2286,10 +2163,7 @@ func (m *GeneralProposal) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {
@@ -2438,13 +2312,9 @@ func (m *GovernanceConfig) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.ProposalFee = tmp
-				}
+			m.ProposalFee = append(m.ProposalFee[:0], dAtA[iNdEx:postIndex]...)
+			if m.ProposalFee == nil {
+				m.ProposalFee = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -2453,10 +2323,7 @@ func (m *GovernanceConfig) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {
@@ -2501,38 +2368,107 @@ func (m *GovernanceConfigV2) Unmarshal(dAtA []byte) error {
 		}
 		switch fieldNum {
 		case 1:
-			if wireType != 5 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinQuorum", wireType)
 			}
-			var v uint32
-			if (iNdEx + 4) > l {
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
-			iNdEx += 4
-			m.MinQuorum = float32(math.Float32frombits(v))
+			m.MinQuorum = append(m.MinQuorum[:0], dAtA[iNdEx:postIndex]...)
+			if m.MinQuorum == nil {
+				m.MinQuorum = []byte{}
+			}
+			iNdEx = postIndex
 		case 2:
-			if wireType != 5 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinPassThreshold", wireType)
 			}
-			var v uint32
-			if (iNdEx + 4) > l {
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
-			iNdEx += 4
-			m.MinPassThreshold = float32(math.Float32frombits(v))
+			m.MinPassThreshold = append(m.MinPassThreshold[:0], dAtA[iNdEx:postIndex]...)
+			if m.MinPassThreshold == nil {
+				m.MinPassThreshold = []byte{}
+			}
+			iNdEx = postIndex
 		case 3:
-			if wireType != 5 {
+			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field MinVetoThreshold", wireType)
 			}
-			var v uint32
-			if (iNdEx + 4) > l {
+			var byteLen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGovernance
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				byteLen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if byteLen < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGovernance
+			}
+			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			v = uint32(encoding_binary.LittleEndian.Uint32(dAtA[iNdEx:]))
-			iNdEx += 4
-			m.MinVetoThreshold = float32(math.Float32frombits(v))
+			m.MinVetoThreshold = append(m.MinVetoThreshold[:0], dAtA[iNdEx:postIndex]...)
+			if m.MinVetoThreshold == nil {
+				m.MinVetoThreshold = []byte{}
+			}
+			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ProposalFee", wireType)
@@ -2562,13 +2498,9 @@ func (m *GovernanceConfigV2) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.ProposalFee = tmp
-				}
+			m.ProposalFee = append(m.ProposalFee[:0], dAtA[iNdEx:postIndex]...)
+			if m.ProposalFee == nil {
+				m.ProposalFee = []byte{}
 			}
 			iNdEx = postIndex
 		case 5:
@@ -2600,13 +2532,9 @@ func (m *GovernanceConfigV2) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.LostProposalFee = tmp
-				}
+			m.LostProposalFee = append(m.LostProposalFee[:0], dAtA[iNdEx:postIndex]...)
+			if m.LostProposalFee == nil {
+				m.LostProposalFee = []byte{}
 			}
 			iNdEx = postIndex
 		case 6:
@@ -2634,10 +2562,7 @@ func (m *GovernanceConfigV2) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {
@@ -2839,10 +2764,7 @@ func (m *OngoingVotedList) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {
@@ -3002,10 +2924,7 @@ func (m *OngoingVotedListV2) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {
@@ -3108,10 +3027,7 @@ func (m *DelegatedWithAddress) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {
@@ -3184,13 +3100,9 @@ func (m *DelegatedSCVoteInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.TotalPower = tmp
-				}
+			m.TotalPower = append(m.TotalPower[:0], dAtA[iNdEx:postIndex]...)
+			if m.TotalPower == nil {
+				m.TotalPower = []byte{}
 			}
 			iNdEx = postIndex
 		case 2:
@@ -3222,13 +3134,9 @@ func (m *DelegatedSCVoteInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.UsedPower = tmp
-				}
+			m.UsedPower = append(m.UsedPower[:0], dAtA[iNdEx:postIndex]...)
+			if m.UsedPower == nil {
+				m.UsedPower = []byte{}
 			}
 			iNdEx = postIndex
 		case 3:
@@ -3260,13 +3168,9 @@ func (m *DelegatedSCVoteInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.TotalStake = tmp
-				}
+			m.TotalStake = append(m.TotalStake[:0], dAtA[iNdEx:postIndex]...)
+			if m.TotalStake == nil {
+				m.TotalStake = []byte{}
 			}
 			iNdEx = postIndex
 		case 4:
@@ -3298,13 +3202,9 @@ func (m *DelegatedSCVoteInfo) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			{
-				__caster := &github_com_multiversx_mx_chain_core_go_data.BigIntCaster{}
-				if tmp, err := __caster.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-					return err
-				} else {
-					m.UsedStake = tmp
-				}
+			m.UsedStake = append(m.UsedStake[:0], dAtA[iNdEx:postIndex]...)
+			if m.UsedStake == nil {
+				m.UsedStake = []byte{}
 			}
 			iNdEx = postIndex
 		default:
@@ -3313,10 +3213,7 @@ func (m *DelegatedSCVoteInfo) Unmarshal(dAtA []byte) error {
 			if err != nil {
 				return err
 			}
-			if skippy < 0 {
-				return ErrInvalidLengthGovernance
-			}
-			if (iNdEx + skippy) < 0 {
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
 				return ErrInvalidLengthGovernance
 			}
 			if (iNdEx + skippy) > l {

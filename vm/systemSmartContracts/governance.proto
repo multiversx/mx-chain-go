@@ -39,9 +39,9 @@ message GovernanceConfig {
 }
 
 message GovernanceConfigV2 {
-    float  MinQuorum         = 1 [(gogoproto.jsontag) = "MinQuorum"];
-    float  MinPassThreshold  = 2 [(gogoproto.jsontag) = "MinPassThreshold"];
-    float  MinVetoThreshold  = 3 [(gogoproto.jsontag) = "MinVetoThreshold"];
+    bytes  MinQuorum         = 1 [(gogoproto.jsontag) = "MinQuorum", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    bytes  MinPassThreshold  = 2 [(gogoproto.jsontag) = "MinPassThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
+    bytes  MinVetoThreshold  = 3 [(gogoproto.jsontag) = "MinVetoThreshold", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes  ProposalFee       = 4 [(gogoproto.jsontag) = "ProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     bytes  LostProposalFee   = 5 [(gogoproto.jsontag) = "LostProposalFee", (gogoproto.casttypewith) = "math/big.Int;github.com/multiversx/mx-chain-core-go/data.BigIntCaster"];
     uint64 LastProposalNonce = 6 [(gogoproto.jsontag) = "LastProposalNonce"];
