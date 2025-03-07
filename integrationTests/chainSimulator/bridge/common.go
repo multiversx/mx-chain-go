@@ -18,7 +18,7 @@ import (
 
 const (
 	issuePaymentCost         = "50000000000000000" // esdt-safe contract without header-verifier checks
-	esdtSafeWasmPath         = "testdata/esdt-safe.wasm"
+	esdtSafeWasmPath         = "testdata/mvx-esdt-safe.wasm"
 	enshrineEsdtSafeWasmPath = "testdata/enshrine-esdt-safe.wasm"
 	//enshrine esdt-safe contract without checks for prefix or issue cost paid for new tokens
 	simpleEnshrineEsdtSafeWasmPath = "testdata/simple-enshrine-esdt-safe.wasm"
@@ -126,7 +126,7 @@ func esdtSafeContract(
 	_ ArgsEsdtSafe,
 	contractWasmPath string,
 ) []byte {
-	esdtSafeArgs := "@" // is_sovereign_chain
+	esdtSafeArgs := "@00000000000000000500f3c3c6f64f8a20ced95a45a7de596ab08f9082d0f8ef" // dummy header_verifier_address
 	return chainSim.DeployContract(t, cs, ownerAddress, nonce, systemContractDeploy, esdtSafeArgs, contractWasmPath)
 }
 
