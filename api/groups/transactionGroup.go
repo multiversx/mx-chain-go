@@ -58,6 +58,7 @@ type transactionFacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -732,13 +733,23 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 
 // buildTransactionsPPUHistogram builds the PPU histogram for transactions in the pool
 func (tg *transactionGroup) buildTransactionsPPUHistogram(c *gin.Context) {
+	histogram, err := tg.getFacade().BuildTransactionsPPUHistogram()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
 	c.JSON(
 		http.StatusOK,
 		shared.GenericAPIResponse{
-			Data: gin.H{"bins": []interface{}{
-				// Dummy data, for now.
-				gin.H{"from": 500_000_000, "to": 1_000_000_000, "gas": 7_500_000_000_000},
-			}},
+			Data:  gin.H{"histogram": histogram},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},
