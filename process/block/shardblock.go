@@ -830,7 +830,7 @@ func (sp *shardProcessor) rollBackProcessedMiniBlocksInfo(headerHandler data.Hea
 		miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, []byte(miniBlockHash))
 		if miniBlockHeader == nil {
 			log.Warn("shardProcessor.rollBackProcessedMiniBlocksInfo: GetMiniBlockHeaderWithHash",
-				"mb hash", miniBlockHash,
+				"mbHash", miniBlockHash,
 				"error", process.ErrMissingMiniBlockHeader)
 			continue
 		}
@@ -853,10 +853,10 @@ func (sp *shardProcessor) rollBackProcessedMiniBlockInfo(miniBlockHeader data.Mi
 	_, metaBlockHash := sp.processedMiniBlocksTracker.GetProcessedMiniBlockInfo(miniBlockHash)
 	if metaBlockHash == nil {
 		log.Warn("shardProcessor.rollBackProcessedMiniBlockInfo: mini block was not found in ProcessedMiniBlockTracker component",
-			"sender shard", miniBlockHeader.GetSenderShardID(),
-			"receiver shard", miniBlockHeader.GetReceiverShardID(),
+			"senderShard", miniBlockHeader.GetSenderShardID(),
+			"receiverShard", miniBlockHeader.GetReceiverShardID(),
 			"tx count", miniBlockHeader.GetTxCount(),
-			"mb hash", miniBlockHash)
+			"mbHash", miniBlockHash)
 		return
 	}
 
@@ -1636,7 +1636,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 
 			miniBlockHeader := process.GetMiniBlockHeaderWithHash(headerHandler, miniBlockHash)
 			if miniBlockHeader == nil {
-				log.Warn("shardProcessor.addProcessedCrossMiniBlocksFromHeader: GetMiniBlockHeaderWithHash", "mb hash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
+				log.Warn("shardProcessor.addProcessedCrossMiniBlocksFromHeader: GetMiniBlockHeaderWithHash", "mbHash", miniBlockHash, "error", process.ErrMissingMiniBlockHeader)
 				continue
 			}
 

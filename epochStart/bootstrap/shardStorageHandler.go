@@ -259,7 +259,7 @@ func getProcessedMiniBlocks(
 	indexOfLastTxProcessed := make([]int32, 0, requiredLength)
 
 	for mbHash, mbHeader := range miniBlockHeadersDestMe {
-		log.Debug("getProcessedMiniBlocks", "mb hash", mbHash)
+		log.Debug("getProcessedMiniBlocks", "`mbHash`", mbHash)
 
 		miniBlockHashes = append(miniBlockHashes, []byte(mbHash))
 		fullyProcessed = append(fullyProcessed, mbHeader.IsFinal())
@@ -625,7 +625,7 @@ func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMet
 func setMiniBlocksInfoWithPendingMiniBlocks(epochShardData data.EpochStartShardDataHandler, mbsInfo *miniBlocksInfo) {
 	for _, mbHeader := range epochShardData.GetPendingMiniBlockHeaderHandlers() {
 		log.Debug("shardStorageHandler.setMiniBlocksInfoWithPendingMiniBlocks",
-			"mb hash", mbHeader.GetHash(),
+			"mbHash", mbHeader.GetHash(),
 			"len(reserved)", len(mbHeader.GetReserved()),
 			"index of first tx processed", mbHeader.GetIndexOfFirstTxProcessed(),
 			"index of last tx processed", mbHeader.GetIndexOfLastTxProcessed(),
@@ -649,7 +649,7 @@ func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta *block.MetaBlock, shard
 	miniBlockHeaders := getProcessedMiniBlockHeaders(neededMeta, shardID, mbsInfo.pendingMiniBlocksMap)
 	for mbHash, mbHeader := range miniBlockHeaders {
 		log.Debug("shardStorageHandler.setMiniBlocksInfoWithProcessedMiniBlocks",
-			"mb hash", mbHeader.GetHash(),
+			"mbHash", mbHeader.GetHash(),
 			"len(reserved)", len(mbHeader.GetReserved()),
 			"index of first tx processed", mbHeader.GetIndexOfFirstTxProcessed(),
 			"index of last tx processed", mbHeader.GetIndexOfLastTxProcessed(),

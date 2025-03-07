@@ -6,7 +6,7 @@ from scripts.logsConversion.logsToJsonConverter import LogsToJsonConverter
 from scripts.logsConversion.sample_data import (
     comma_separated_log, common_entries_log, contract_deployed_log,
     empty_value_log, several_words_in_key_log, special_chars_in_parameters_log,
-    statistics_entries_log, total_transactions_in_pool_logs,
+    statistics_entries_log, total_transactions_in_pool_logs, start_time_log, scheduled_txs_log,
     transactions_processed_table_log, trie_statistics_log, initialized_chainParametersHolder_log)
 
 
@@ -46,6 +46,47 @@ class TestLogsParsing:
         assert len(converter.log_content) == 3
         for line in converter.log_content:
             assert (line.to_dict() in expected_result)
+
+    def test_network_connection(self):
+        pass
+
+    def test_scheduled_txs(self):
+        converter = LogsToJsonConverter('node1')
+
+        expected_result = [
+            '{"v": "node1", "t": 1740141083.039, "l": 1, "n": "..block/preprocess", "s": "0", "e": "0", "r": "29", "sr": "END_ROUND", "m": "scheduledTxsExecution.GetScheduledRootHash scheduled root hash =", "a": {}}',
+            '{"v": "node1", "t": 1740141083.039, "l": 1, "n": "..block/preprocess", "s": "0", "e": "0", "r": "29", "sr": "END_ROUND", "m": "scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate", "a": {"txs": "0"}}',
+            '{"v": "node1", "t": 1740141083.04, "l": 1, "n": "..block/preprocess", "s": "0", "e": "0", "r": "29", "sr": "END_ROUND", "m": "scheduledTxsExecution.GetScheduledGasAndFees", "a": {"accumulatedFees": "0", "developerFees": "0", "gasProvided": "0", "gasPenalized": "0", "gasRefunded": "0"}}',
+            '{"v": "node1", "t": 1740141083.04, "l": 1, "n": "..block/preprocess", "s": "0", "e": "0", "r": "29", "sr": "END_ROUND", "m": "scheduledTxsExecution.SaveStateIfNeeded", "a": {"header hash": "eab8f3f0197e0ec68b71a6cf2fed98811dd740906595ae7a3d189d0c75e35a7e", "scheduled root hash": "_", "num of scheduled txs": "0", "num of scheduled intermediate txs": "0", "accumulatedFees": "0", "developerFees": "0", "gasProvided": "0", "gasPenalized": "0", "gasRefunded": "0"}}',
+            '{"v": "node1", "t": 1740156809.296, "l": 1, "n": "..block/preprocess", "s": "0", "e": "26", "r": "2650", "sr": "END_ROUND", "m": "scheduledTxsExecution.GetScheduledRootHash scheduled root", "a": {"hash": "39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149"}}',
+            '{"v": "node1", "t": 1740156809.296, "l": 1, "n": "..block/preprocess", "s": "0", "e": "26", "r": "2650", "sr": "END_ROUND", "m": "scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate", "a": {"txs": "0"}}',
+            '{"v": "node1", "t": 1740156809.296, "l": 1, "n": "..block/preprocess", "s": "0", "e": "26", "r": "2650", "sr": "END_ROUND", "m": "scheduledTxsExecution.GetScheduledGasAndFees", "a": {"accumulatedFees": "0", "developerFees": "0", "gasProvided": "0", "gasPenalized": "0", "gasRefunded": "0"}}',
+            '{"v": "node1", "t": 1740156809.296, "l": 1, "n": "..block/preprocess", "s": "0", "e": "26", "r": "2650", "sr": "END_ROUND", "m": "scheduledTxsExecution.SaveStateIfNeeded", "a": {"header hash": "cc77686defc6f5423759185f1cb07dbfb0cf10a2472d7d77558f94482831c0b3", "scheduled root hash": "39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149", "num of scheduled txs": "0", "num of scheduled intermediate txs": "0", "accumulatedFees": "0", "developerFees": "0", "gasProvided": "0", "gasPenalized": "0", "gasRefunded": "0"}}'
+        ]
+        converter.parse(scheduled_txs_log.split('\n'))
+        assert len(converter.log_content) == 8
+        for line in converter.log_content:
+            assert (line.to_dict() in expected_result)
+            # print(line.to_dict())
+
+    def test_start_time(self):
+        'formatted = Fri Feb 21 14:28:29 UTC 2025 seconds = 1740148109'
+        converter = LogsToJsonConverter('node1')
+        converter.parse(start_time_log.split('\n'))
+        assert len(converter.log_content) == 1
+        entry = converter.log_content[0]
+        assert entry.to_dict() == '{"v": "node1", "t": 1740140913.738, "l": 2, "n": "factory", "s": "", "e": 0, "r": 0, "sr": "", "m": "start time", "a": {"formatted": "Fri Feb 21 14:28:29 UTC 2025", "seconds": "1740148109"}}'
+        print(entry.to_dict())
+
+    def test_block_header_proof_sent(self):
+        block_header_proof_sent_log = 'DEBUG[2025-02-21 18:53:23.109] [..nsus/spos/bls/v2] [0/26/2649/(END_ROUND)] step 3: block header proof has been sent PubKeysBitmap = fd02 AggregateSignature = d94a7f18409f9d931a8f96691ea9f2b875281125bf71f9956f5223ccb6fb8d89bfd5f0e8abfeb4975e126c4e250d0988 proof sender = f547e115b1ada7cf9b8aeef45ee0d9ec4b206315ef44be706d994a0571688cd96291d1ab6c3761df29d00a2ba290a3185e4796bc49891906f86e16da01af3fd52320944b96b60e679ac8e686d4819e97e15e5fe46503c556b4acdd8079624005 '
+        ' step 3: block header proof has been sent PubKeysBitmap = fd02 AggregateSignature = d94a7f18409f9d931a8f96691ea9f2b875281125bf71f9956f5223ccb6fb8d89bfd5f0e8abfeb4975e126c4e250d0988 proof sender = f547e115b1ada7cf9b8aeef45ee0d9ec4b206315ef44be706d994a0571688cd96291d1ab6c3761df29d00a2ba290a3185e4796bc49891906f86e16da01af3fd52320944b96b60e679ac8e686d4819e97e15e5fe46503c556b4acdd8079624005'
+        converter = LogsToJsonConverter('node1')
+        converter.parse(block_header_proof_sent_log.split('\n'))
+        assert len(converter.log_content) == 1
+        entry = converter.log_content[0]
+        # assert entry.to_dict() == '{"v": "node1", "t": 1740140913.738, "l": 2, "n": "factory", "s": "", "e": 0, "r": 0, "sr": "", "m": "start time", "a": {"formatted": "Fri Feb 21 14:28:29 UTC 2025", "seconds": "1740148109"}}'
+        print(entry.to_dict())
 
     def test_trie_statistics_ignore(self):
         'num of nodes = 282160 total size = 33.37 MB num tries by type = dataTrie: 8, mainTrie: 1 num main trie leaves = 191807 max depth main trie = 8'
@@ -143,6 +184,3 @@ class TestLogsParsing:
 
         for entry in conv.log_content:
             assert entry.to_dict() in expected_result
-
-    def test_start_time(self):
-        pass

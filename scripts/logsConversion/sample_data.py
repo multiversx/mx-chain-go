@@ -92,6 +92,20 @@ enable epoch=0, round duration=6000, hysteresis=0.20, shard consensus group size
 start_time_log = '''
 INFO [2025-02-21 14:28:33.738] [factory]            [/0/0/]        start time                               formatted = Fri Feb 21 14:28:29 UTC 2025 seconds = 1740148109 '''
 
+network_connection_log = '''
+DEBUG[2025-02-21 18:53:14.625] [main/p2p]           [0/26/2647/(END_ROUND)] network connection status                network = main known peers = 55 connected peers = 28 intra shard validators = 2 intra shard observers = 7 cross shard validators = 5 cross shard observers = 13 unknown = 0 seeders = 1 current shard = 0 validators histogram = shard 0: 2, shard 1: 2, shard 2: 2, meta: 1 observers histogram = shard 0: 7, shard 1: 4, shard 2: 2, meta: 7 preferred peers histogram =  
+DEBUG[2025-02-21 18:53:14.625] [main/p2p]           [0/26/2647/(END_ROUND)] network connection metrics               network = main connections/s = 3 disconnections/s = 3 connections = 63 disconnections = 63 time = 20s 
+'''
+scheduled_txs_log = '''
+DEBUG[2025-02-21 14:31:23.039] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledRootHash scheduled root hash =  
+DEBUG[2025-02-21 14:31:23.039] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate txs = 0 
+DEBUG[2025-02-21 14:31:23.040] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.GetScheduledGasAndFees accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
+DEBUG[2025-02-21 14:31:23.040] [..block/preprocess] [0/0/29/(END_ROUND)] scheduledTxsExecution.SaveStateIfNeeded  header hash = eab8f3f0197e0ec68b71a6cf2fed98811dd740906595ae7a3d189d0c75e35a7e scheduled root hash =  num of scheduled txs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledRootHash scheduled root hash = 39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149 
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledIntermediateTxs num of scheduled intermediate txs = 0 
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.GetScheduledGasAndFees accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
+DEBUG[2025-02-21 18:53:29.296] [..block/preprocess] [0/26/2650/(END_ROUND)] scheduledTxsExecution.SaveStateIfNeeded  header hash = cc77686defc6f5423759185f1cb07dbfb0cf10a2472d7d77558f94482831c0b3 scheduled root hash = 39012320e3d45859b7bf97f2b89a1d0ed0fdde20176cbb23970c0ac3199a5149 num of scheduled txs = 0 num of scheduled intermediate txs = 0 accumulatedFees = 0 developerFees = 0 gasProvided = 0 gasPenalized = 0 gasRefunded = 0 
+'''
 special_chars_in_parameters_log = '''
 DEBUG[2025-02-21 14:58:59.305] [storage/leveldb]    [0/3/305/(END_ROUND)] processLoop - closing the leveldb process loop path = /home/ubuntu/go/src/github.com/multiversx/mx-chain-go/cmd/node/db/1/Epoch_0/Shard_0/BootstrapData
 DEBUG[2025-02-21 14:28:33.737] [node]               [/0/0/]        read enable epoch for max nodes change   epoch = [{0 48 4} {1 64 2} {3 56 2}]
@@ -614,7 +628,7 @@ DEBUG[2025-02-07 09:14:20.231] [process/track]      [1/0/859/(START_ROUND)] rece
 DEBUG[2025-02-07 09:14:20.231] [process/track]      [1/0/859/(START_ROUND)] requestHeadersIfNeeded                   shard = 4294967295 last notarized nonce = 800 numSortedReceivedHeaders = 6 numLongestChainHeaders = 0 highest nonce received = 850 highest nonce in longest chain = 800
 DEBUG[2025-02-07 09:14:20.231] [process/track]      [1/0/859/(START_ROUND)] received meta block from network in block tracker shard = 4294967295 epoch = 3 round = 801 nonce = 801 hash = ae95dac0a465c49470a5e554bb03f73b240d93f870e0a6e4f50e926fb8498972
 DEBUG[2025-02-07 09:14:20.231] [../requesthandlers] [1/0/859/(START_ROUND)] requesting transactions from network     topic = rewardsTransactions shard = 4294967295 num txs = 14
-DEBUG[2025-02-07 09:14:20.232] [..cess/coordinator] [1/0/859/(START_ROUND)] transactionCoordinator.requestMissingMiniBlocksAndTransactions: RequestTransactionsForMiniBlock mb hash = cd7f0e4d77990fe37c8c23c93a2375a4d28291bf71509476adb41198cbfc89c6 num txs requested = 14
+DEBUG[2025-02-07 09:14:20.232] [..cess/coordinator] [1/0/859/(START_ROUND)] transactionCoordinator.requestMissingMiniBlocksAndTransactions: RequestTransactionsForMiniBlock mbHash = cd7f0e4d77990fe37c8c23c93a2375a4d28291bf71509476adb41198cbfc89c6 num txs requested = 14
 DEBUG[2025-02-07 09:14:20.232] [process/track]      [1/0/859/(START_ROUND)] received meta block from network in block tracker shard = 4294967295 epoch = 4 round = 813 nonce = 808 hash = e109a40a504b979c242e4193ff56cd78ff1f122d7f3c30ad66282ab80eda5295
 DEBUG[2025-02-07 09:14:20.232] [process/track]      [1/0/859/(START_ROUND)] received proof from network in block tracker shard = 4294967295 epoch = 4 round = 812 nonce = 807 hash = 3ed56ddba8f5e731f00388e87372f41684f818e2ee05a34c554e8c75e874e46e
 DEBUG[2025-02-07 09:14:20.232] [process/track]      [1/0/859/(START_ROUND)] received meta block from network in block tracker shard = 4294967295 epoch = 4 round = 812 nonce = 807 hash = 3ed56ddba8f5e731f00388e87372f41684f818e2ee05a34c554e8c75e874e46e

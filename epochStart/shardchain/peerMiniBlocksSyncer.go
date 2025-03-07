@@ -153,7 +153,7 @@ func (p *peerMiniBlockSyncer) receivedMiniBlock(key []byte, val interface{}) {
 	numMissingPeerMiniBlocks := p.numMissingPeerMiniBlocks
 	p.mutMiniBlocksForBlock.Unlock()
 
-	log.Debug("peerMiniBlockSyncer.receivedMiniBlock", "mb hash", key, "num missing peer mini blocks", numMissingPeerMiniBlocks)
+	log.Debug("peerMiniBlockSyncer.receivedMiniBlock", "mbHash", key, "num missing peer mini blocks", numMissingPeerMiniBlocks)
 
 	if numMissingPeerMiniBlocks == 0 {
 		p.chRcvAllMiniBlocks <- struct{}{}

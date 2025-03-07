@@ -1960,7 +1960,7 @@ func (mp *metaProcessor) getFinalMiniBlockHeaders(miniBlockHeaderHandlers []data
 	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 	for _, miniBlockHeader := range miniBlockHeaderHandlers {
 		if !miniBlockHeader.IsFinal() {
-			log.Debug("metaProcessor.getFinalMiniBlockHeaders: do not check validity for mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+			log.Debug("metaProcessor.getFinalMiniBlockHeaders: do not check validity for mini block which is not final", "mbHash", miniBlockHeader.GetHash())
 			continue
 		}
 
@@ -2288,7 +2288,7 @@ func (mp *metaProcessor) createShardInfo() ([]data.ShardDataHandler, error) {
 			if mp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 				miniBlockHeader := shardHdr.GetMiniBlockHeaderHandlers()[i]
 				if !miniBlockHeader.IsFinal() {
-					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mb hash", miniBlockHeader.GetHash())
+					log.Debug("metaProcessor.createShardInfo: do not create shard data with mini block which is not final", "mbHash", miniBlockHeader.GetHash())
 					continue
 				}
 			}

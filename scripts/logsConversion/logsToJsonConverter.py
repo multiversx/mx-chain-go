@@ -54,8 +54,12 @@ class LogEntry:
 
 
 class LoggingLevel (Enum):
+    TRACE = 0
     DEBUG = 1
     INFO = 2
+    WARN = 3
+    ERROR = 4
+    NONE = 5
 
     @staticmethod
     def find(logging_level_name: str):
@@ -85,6 +89,10 @@ class LogsToJsonConverter:
     def add_parameters(self, target_dict: dict[str, Any], param_str: str):
         if not param_str:
             return
+
+        # empty scheduled root hash
+        if param_str.strip().endswith('scheduled root hash =') or 'scheduled root hash =  num of scheduled txs' in param_str:
+            param_str = param_str.replace('scheduled root hash =', 'scheduled root hash = _')
 
         # transaction in pool entries
         if param_str.strip().startswith('counts = Total:'):
@@ -159,7 +167,7 @@ class LogsToJsonConverter:
     def parse(self, log_lines: list[str]):
         print(f'Parsing content of log file {self.input_path} for {self.node_name}')
         pattern = re.compile(
-            r'^(?P<log_level>DEBUG|INFO)\s*\['         # Log level
+            r'^(?P<log_level>DEBUG|INFO|TRACE|WARN|ERROR)\s*\['         # Log level
             r'(?P<timestamp>[^\]]+)\]\s*'              # Timestamp
             r'\[(?P<module>[^\]]+)\]\s*'               # Logger name
             r'\[(?P<context>[^\]]*)\]\s*'              # context inside the third bracket
@@ -168,6 +176,8 @@ class LogsToJsonConverter:
 
         context_pattern = re.compile(r'(?P<shard>\d+)/(?P<epoch>\d+)/(?P<round>\d+)/\((?P<subround>[^)]+)\)')
 
+        no_space_in_message = []
+        first_params = []
         for line in log_lines:
             param_dict = {}
             match = pattern.match(line)
@@ -194,6 +204,9 @@ class LogsToJsonConverter:
                         parts = raw_message.split(' = ', 1)
                         message, first_label = parts[0].rsplit(" ", 1)
                         self.add_parameters(param_dict, first_label.strip() + ' = ' + parts[1].strip())
+                        if parts[0] not in no_space_in_message:
+                            no_space_in_message.append(parts[0])
+                            first_params.append(param_dict)
                     # message & parameters separated by at least double space
                     else:
                         splitted_message = re.split('  ', raw_message, 1)
@@ -250,6 +263,9 @@ class LogsToJsonConverter:
                     # potentialy irrelevant line. display to check if it should be handled
                     # elif '=' not in line:
                     #    print('***', line)
+        print('no space in message')
+        for item in no_space_in_message:
+            print(f'{item} => {first_params[no_space_in_message.index(item)]}')
 
     @staticmethod
     def from_logs(path: str, node_name: str, output_path: str = OUTPUT_FOLDER):
@@ -275,7 +291,7 @@ def recursive_post_process_keys_for_statistics(txt: str, matches: list[tuple[str
 def main():
     parser = argparse.ArgumentParser(
         description='''
-        Runs node log conversion. Example script:
+        Runs node log conversion to JSON format. Example script:
 
             python logsToJsonConverter --node_name=ovh-p03-validator-7 --path=logsPath/mx-chain-go-2024-12-10-10-14-21.log
         ''',
@@ -299,7 +315,7 @@ def main():
     args = parser.parse_args()
 
     converter = LogsToJsonConverter(args.node_name)
-    # log_file = '/home/mihaela/Downloads/perf-deg-andromeda/OVH-P04--Shard-0--4cd5fb6017a3--172.30.40.76--ovh-p04-validator-26/logs/logs/mx-chain-go-2025-02-21-14-28-33.log'
+    # log_file = '~/Downloads/perf-deg-andromeda/OVH-P04--Shard-0--4cd5fb6017a3--172.30.40.76--ovh-p04-validator-26/logs/logs/mx-chain-go-2025-02-21-14-28-33.log'
     with open(args.path, "r") as file:
         log = file.readlines()
         converter.parse(log)
@@ -307,7 +323,7 @@ def main():
     output_file_name = OUTPUT_FOLDER + '/' + f'{args.node_name}_{args.path.split('/')[-1].replace('.log', '.jsonl')}'
     directory = os.path.dirname(output_file_name)
     os.makedirs(directory, exist_ok=True)
-    print(output_file_name)
+    print('Output file name: ', output_file_name)
     with open(output_file_name, 'w') as f:
         for entry in converter.log_content:
             f.write(entry.to_dict())

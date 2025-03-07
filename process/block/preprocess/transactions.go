@@ -526,7 +526,7 @@ func (txs *transactions) processTxsToMe(
 		totalGasConsumedInSelfShard:           totalGasConsumed,
 	}
 
-	log.Debug("transactions.processTxsToMe: before processing",
+	log.Debug("transactions.processTxsToMe: before processing  ",
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
@@ -535,7 +535,7 @@ func (txs *transactions) processTxsToMe(
 		"total gas penalized", txs.gasHandler.TotalGasPenalized(),
 	)
 	defer func() {
-		log.Debug("transactions.processTxsToMe after processing",
+		log.Debug("transactions.processTxsToMe after processing  ",
 			"scheduled mode", scheduledMode,
 			"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 			"gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
