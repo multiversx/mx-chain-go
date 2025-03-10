@@ -1108,7 +1108,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		mapSCTxs,
 	)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to createScheduledMiniBlocks",
+	log.Debug("elapsed time to createScheduledMiniBlocks ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
