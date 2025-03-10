@@ -1975,12 +1975,16 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 	callerAddress := []byte("address")
 	args := createMockGovernanceArgs()
 	returnMessage := ""
+	returnedValues := make([]string, 0)
 	mockEEI := &mock.SystemEIStub{
 		GetStorageFromAddressCalled: func(_ []byte, _ []byte) []byte {
 			return []byte("invalid data")
 		},
 		AddReturnMessageCalled: func(msg string) {
 			returnMessage = msg
+		},
+		FinishCalled: func(value []byte) {
+			returnedValues = append(returnedValues, string(value))
 		},
 	}
 	args.Eei = mockEEI
@@ -2014,6 +2018,8 @@ func TestGovernanceContract_ViewConfig(t *testing.T) {
 
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+
+	require.Equal(t, []string{"10", "0.4000", "0.4000", "0.4000", "10"}, returnedValues)
 }
 
 func TestGovernanceContract_ViewProposal(t *testing.T) {
