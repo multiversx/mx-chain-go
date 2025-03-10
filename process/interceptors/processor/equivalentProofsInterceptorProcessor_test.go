@@ -98,10 +98,7 @@ func TestEquivalentProofsInterceptorProcessor_Save(t *testing.T) {
 		args.EquivalentProofsPool = &dataRetriever.ProofsPoolMock{
 			AddProofCalled: func(notarizedProof data.HeaderProofHandler) bool {
 				cntWasAdded++
-				if cntWasAdded == 1 {
-					return true
-				}
-				return false
+				return cntWasAdded == 1
 			},
 		}
 		epip, err := NewEquivalentProofsInterceptorProcessor(args)
