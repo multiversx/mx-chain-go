@@ -446,7 +446,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	startTime := time.Now()
 	mbIndex, err := tc.processMiniBlocksToMe(header, body, haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to processMiniBlocksToMe",
+	log.Debug("elapsed time to processMiniBlocksToMe ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -461,7 +461,7 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	startTime = time.Now()
 	err = tc.processMiniBlocksFromMe(header, &block.Body{MiniBlocks: miniBlocksFromMe}, haveTime)
 	elapsedTime = time.Since(startTime)
-	log.Debug("elapsed time to processMiniBlocksFromMe",
+	log.Debug("elapsed time to processMiniBlocksFromMe ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -486,7 +486,7 @@ func (tc *transactionCoordinator) processMiniBlocksFromMe(
 	separatedBodies := tc.separateBodyByType(body)
 
 	defer func() {
-		log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info",
+		log.Debug("transactionCoordinator.processMiniBlocksFromMe: gas consumed, refunded and penalized info ",
 			"num mini blocks processed", numMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
@@ -524,7 +524,7 @@ func (tc *transactionCoordinator) processMiniBlocksToMe(
 	numMiniBlocksProcessed := 0
 
 	defer func() {
-		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas provided, refunded and penalized info",
+		log.Debug("transactionCoordinator.processMiniBlocksToMe: gas provided, refunded and penalized info ",
 			"num mini blocks processed", numMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
@@ -596,7 +596,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 	finalCrossMiniBlockInfos := tc.getFinalCrossMiniBlockInfos(hdr.GetOrderedCrossMiniblocksWithDst(tc.shardCoordinator.SelfId()), hdr)
 
 	defer func() {
-		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info",
+		log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: gas provided, refunded and penalized info ",
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
@@ -612,21 +612,21 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
 		if !haveTime() && !haveAdditionalTime() {
-			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe ",
 				"scheduled mode", scheduledMode,
 				"stop creating", "time is out")
 			break
 		}
 
 		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
-			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe",
+			log.Debug("CreateMbsAndProcessCrossShardTransactionsDstMe ",
 				"scheduled mode", scheduledMode,
 				"stop creating", "max block size has been reached")
 			break
 		}
 
 		if shouldSkipShard[miniBlockInfo.SenderShardID] {
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: should skip shard",
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: should skip shard ",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -638,7 +638,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		processedMbInfo := getProcessedMiniBlockInfo(processedMiniBlocksInfo, miniBlockInfo.Hash)
 		if processedMbInfo.FullyProcessed {
 			createMBDestMeExecutionInfo.numAlreadyMiniBlocksProcessed++
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed",
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block already processed ",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -650,7 +650,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested ",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -662,7 +662,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		miniBlock, ok := miniVal.(*block.MiniBlock)
 		if !ok {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Error("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block assertion type failed",
+			log.Error("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block assertion type failed ",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -673,7 +673,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 
 		if scheduledMode && (miniBlock.Type != block.TxBlock || processedMbInfo.IndexOfLastTxProcessed > -1) {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block can not be processed in scheduled mode  ",
+			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block can not be processed in scheduled mode ",
 				"scheduled mode", scheduledMode,
 				"type", miniBlock.Type,
 				"sender shard", miniBlockInfo.SenderShardID,
@@ -692,7 +692,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		requestedTxs := preproc.RequestTransactionsForMiniBlock(miniBlock)
 		if requestedTxs > 0 {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested",
+			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: transactions not found and were requested ",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -708,7 +708,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 		tc.handleProcessMiniBlockExecution(oldIndexOfLastTxProcessed, miniBlock, processedMbInfo, createMBDestMeExecutionInfo)
 		if errProc != nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
-			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed",
+			log.Debug("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block failed ",
 				"scheduled mode", scheduledMode,
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -728,7 +728,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block succeeded",
+		log.Debug("transactionsCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: processed complete mini block succeeded ",
 			"scheduled mode", scheduledMode,
 			"sender shard", miniBlockInfo.SenderShardID,
 			"hash", miniBlockInfo.Hash,
@@ -762,7 +762,7 @@ func (tc *transactionCoordinator) requestMissingMiniBlocksAndTransactions(mbsInf
 	for _, mbInfo := range mbsInfo {
 		object, isMiniBlockFound := tc.miniBlockPool.Peek(mbInfo.Hash)
 		if !isMiniBlockFound {
-			log.Debug("transactionCoordinator.requestMissingMiniBlocksAndTransactions: mini block not found and was requested",
+			log.Debug("transactionCoordinator.requestMissingMiniBlocksAndTransactions: mini block not found and was requested ",
 				"senderShard", mbInfo.SenderShardID,
 				"hash", mbInfo.Hash,
 				"round", mbInfo.Round,
@@ -905,7 +905,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessTransactionsFromMe(
 	miniBlocks := make(block.MiniBlockSlice, 0)
 
 	defer func() {
-		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info",
+		log.Debug("transactionCoordinator.CreateMbsAndProcessTransactionsFromMe: gas provided, refunded and penalized info ",
 			"num mini blocks processed", numMiniBlocksProcessed,
 			"total gas provided", tc.gasHandler.TotalGasProvided(),
 			"total gas provided as scheduled", tc.gasHandler.TotalGasProvidedAsScheduled(),
@@ -1196,7 +1196,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 
 	snapshot := tc.handleProcessMiniBlockInit(miniBlockHash, headerHash)
 
-	log.Debug("transactionsCoordinator.processCompleteMiniBlock: before processing  ",
+	log.Debug("transactionsCoordinator.processCompleteMiniBlock: before processing ",
 		"scheduled mode", scheduledMode,
 		"sender shard", miniBlock.SenderShardID,
 		"hash", miniBlockHash,
@@ -1218,7 +1218,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 		tc,
 	)
 
-	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing",
+	log.Debug("transactionsCoordinator.processCompleteMiniBlock: after processing ",
 		"num all txs processed", indexOfLastTxProcessed+1,
 		"num current txs processed", indexOfLastTxProcessed-int(processedMbInfo.IndexOfLastTxProcessed),
 		"txs to be reverted", len(txsToBeReverted),
@@ -1229,7 +1229,7 @@ func (tc *transactionCoordinator) processCompleteMiniBlock(
 	)
 
 	if err != nil {
-		log.Debug("processCompleteMiniBlock.ProcessMiniBlock",
+		log.Debug("processCompleteMiniBlock.ProcessMiniBlock ",
 			"scheduled mode", scheduledMode,
 			"hash", miniBlockHash,
 			"type", miniBlock.Type,

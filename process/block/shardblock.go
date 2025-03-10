@@ -353,7 +353,7 @@ func (sp *shardProcessor) ProcessBlock(
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to process block transaction",
+	log.Debug("elapsed time to process block transaction ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -2006,7 +2006,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 	sp.hdrsForCurrBlock.mutHdrsForBlock.Lock()
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !createAndProcessInfo.haveTime() && !createAndProcessInfo.haveAdditionalTime() {
-			log.Debug("time is up after putting cross txs with destination to current shard",
+			log.Debug("time is up after putting cross txs with destination to current shard ",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
 				"num txs added", createAndProcessInfo.numTxsAdded,
 			)
@@ -2014,7 +2014,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 		}
 
 		if createAndProcessInfo.numHdrsAdded >= process.MaxMetaHeadersAllowedInOneShardBlock {
-			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
+			log.Debug("maximum meta headers allowed to be included in one shard block has been reached ",
 				"scheduled mode", createAndProcessInfo.scheduledMode,
 				"meta headers added", createAndProcessInfo.numHdrsAdded,
 			)
@@ -2076,7 +2076,7 @@ func (sp *shardProcessor) createAndProcessMiniBlocksDstMe(haveTime func() bool) 
 			"txs added", len(miniBlock.TxHashes))
 	}
 
-	log.Debug("createAndProcessMiniBlocksDstMe has been finished",
+	log.Debug("createAndProcessMiniBlocksDstMe has been finished ",
 		"num txs added", createAndProcessInfo.numTxsAdded,
 		"num hdrs added", createAndProcessInfo.numHdrsAdded)
 
@@ -2117,7 +2117,7 @@ func (sp *shardProcessor) createMbsAndProcessCrossShardTransactionsDstMe(
 	}
 
 	if !hdrProcessFinished {
-		log.Debug("meta block cannot be fully processed",
+		log.Debug("meta block cannot be fully processed ",
 			"scheduled mode", createAndProcessInfo.scheduledMode,
 			"round", createAndProcessInfo.currMetaHdr.GetRound(),
 			"nonce", createAndProcessInfo.currMetaHdr.GetNonce(),
@@ -2207,7 +2207,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		if len(createAndProcessMBsDestMeInfo.miniBlocks) > 0 {
 			miniBlocks = append(miniBlocks, createAndProcessMBsDestMeInfo.miniBlocks...)
 
-			log.Debug("processed miniblocks and txs with destination in self shard",
+			log.Debug("processed miniblocks and txs with destination in self shard ",
 				"num miniblocks", len(createAndProcessMBsDestMeInfo.miniBlocks),
 				"num txs", createAndProcessMBsDestMeInfo.numTxsAdded,
 				"num meta headers", createAndProcessMBsDestMeInfo.numHdrsAdded)

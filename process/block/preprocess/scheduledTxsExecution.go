@@ -364,12 +364,12 @@ func (ste *scheduledTxsExecution) GetScheduledIntermediateTxs() map[block.Type][
 		mapScheduledIntermediateTxs[blockType] = make([]data.TransactionHandler, len(scheduledIntermediateTxs))
 		for index, scheduledIntermediateTx := range scheduledIntermediateTxs {
 			mapScheduledIntermediateTxs[blockType][index] = scheduledIntermediateTx
-			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs", "blockType", blockType, "sender", mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
+			log.Trace("scheduledTxsExecution.GetScheduledIntermediateTxs ", "block type", blockType, "sender", mapScheduledIntermediateTxs[blockType][index].GetSndAddr(), "receiver", mapScheduledIntermediateTxs[blockType][index].GetRcvAddr())
 		}
 		numScheduledIntermediateTxs += len(scheduledIntermediateTxs)
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledIntermediateTxs", "num of scheduled intermediate txs", numScheduledIntermediateTxs)
+	log.Debug("scheduledTxsExecution.GetScheduledIntermediateTxs ", "num of scheduled intermediate txs", numScheduledIntermediateTxs)
 
 	return mapScheduledIntermediateTxs
 }
@@ -511,7 +511,7 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeader(
 		return nil, err
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeader ", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
 
 	return scheduledInfo.RootHash, nil
 }
@@ -526,7 +526,7 @@ func (ste *scheduledTxsExecution) GetScheduledRootHashForHeaderWithEpoch(
 		return nil, err
 	}
 
-	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeaderWithEpoch", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
+	log.Debug("scheduledTxsExecution.GetScheduledRootHashForHeaderWithEpoch ", "header hash", headerHash, "scheduled root hash", scheduledInfo.RootHash)
 
 	return scheduledInfo.RootHash, nil
 }

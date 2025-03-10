@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/block/poolsCleaner")
@@ -99,7 +99,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPools(ctx context.Context) {
 		numMiniblocksInMap := mbpc.cleanMiniblocksPoolsIfNeeded()
 		elapsedTime := time.Since(startTime)
 
-		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools",
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPools ",
 			"num miniblocks in map", numMiniblocksInMap,
 			"elapsed time", elapsedTime)
 	}
@@ -196,7 +196,7 @@ func (mbpc *miniBlocksPoolsCleaner) cleanMiniblocksPoolsIfNeeded() int {
 	elapsedTime := time.Since(startTime)
 
 	if numMbsCleaned > 0 {
-		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded",
+		log.Debug("miniBlocksPoolsCleaner.cleanMiniblocksPoolsIfNeeded ",
 			"num mbs cleaned", numMbsCleaned,
 			"elapsed time to remove mbs from cacher", elapsedTime)
 	}

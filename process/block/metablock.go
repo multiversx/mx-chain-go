@@ -378,7 +378,7 @@ func (mp *metaProcessor) ProcessBlock(
 	startTime := time.Now()
 	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
-	log.Debug("elapsed time to process block transaction",
+	log.Debug("elapsed time to process block transaction ",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
@@ -1062,7 +1062,7 @@ func (mp *metaProcessor) createMiniBlocks(
 	if len(mbsToMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsToMe...)
 
-		log.Debug("processed miniblocks and txs with destination in self shard",
+		log.Debug("processed miniblocks and txs with destination in self shard ",
 			"num miniblocks", len(mbsToMe),
 			"num txs", numTxs,
 			"num shard headers", numShardHeaders,

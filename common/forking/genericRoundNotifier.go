@@ -51,7 +51,7 @@ func (grn *genericRoundNotifier) CheckRound(header data.HeaderHandler) {
 	copy(handlersCopy, grn.handlers)
 	grn.mutHandler.RUnlock()
 
-	log.Debug("genericRoundNotifier.NotifyRoundChangeConfirmed",
+	log.Debug("genericRoundNotifier.NotifyRoundChangeConfirmed ",
 		"new Round", round,
 		"new Round at timestamp", timestamp,
 		"num handlers", len(handlersCopy),
