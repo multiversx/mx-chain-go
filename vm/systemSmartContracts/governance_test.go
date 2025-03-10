@@ -2031,7 +2031,7 @@ func TestGovernanceContract_FloatPrecisionIssue(t *testing.T) {
 		betterConversion := big.NewFloat(0).SetFloat64(float64(value)).String()
 
 		// For comparison - the ideal value with 2 decimal places
-		idealValue := fmt.Sprintf("%.2f", value)
+		idealValue := fmt.Sprintf("%.4f", value)
 
 		// Print actual values in all conversion methods
 		fmt.Printf("Value: %v\n", value)
@@ -2057,30 +2057,30 @@ func TestGovernanceContract_FloatPrecisionIssue(t *testing.T) {
 	badMinVetoThreshold := big.NewFloat(float64(testConfig.MinVetoThreshold)).String()
 
 	// Format using our fixed approach
-	goodMinQuorum := fmt.Sprintf("%.2f", testConfig.MinQuorum)
-	goodMinPassThreshold := fmt.Sprintf("%.2f", testConfig.MinPassThreshold)
-	goodMinVetoThreshold := fmt.Sprintf("%.2f", testConfig.MinVetoThreshold)
+	goodMinQuorum := fmt.Sprintf("%.4f", testConfig.MinQuorum)
+	goodMinPassThreshold := fmt.Sprintf("%.4f", testConfig.MinPassThreshold)
+	goodMinVetoThreshold := fmt.Sprintf("%.4f", testConfig.MinVetoThreshold)
 
 	// Print the results and compare
 	fmt.Println("Original implementation - float values with precision loss:")
-	fmt.Printf("MinQuorum: %s (expected 0.10)\n", badMinQuorum)
-	fmt.Printf("MinPassThreshold: %s (expected 0.20)\n", badMinPassThreshold)
-	fmt.Printf("MinVetoThreshold: %s (expected 0.30)\n", badMinVetoThreshold)
+	fmt.Printf("MinQuorum: %s (expected 0.1000)\n", badMinQuorum)
+	fmt.Printf("MinPassThreshold: %s (expected 0.2000)\n", badMinPassThreshold)
+	fmt.Printf("MinVetoThreshold: %s (expected 0.3000)\n", badMinVetoThreshold)
 
 	fmt.Println("\nFixed implementation - float values with correct precision:")
-	fmt.Printf("MinQuorum: %s (expected 0.10)\n", goodMinQuorum)
-	fmt.Printf("MinPassThreshold: %s (expected 0.20)\n", goodMinPassThreshold)
-	fmt.Printf("MinVetoThreshold: %s (expected 0.30)\n", goodMinVetoThreshold)
+	fmt.Printf("MinQuorum: %s (expected 0.1000)\n", goodMinQuorum)
+	fmt.Printf("MinPassThreshold: %s (expected 0.2000)\n", goodMinPassThreshold)
+	fmt.Printf("MinVetoThreshold: %s (expected 0.3000)\n", goodMinVetoThreshold)
 
 	// Verify the problematic approach has precision issues
-	require.NotEqual(t, "0.10", badMinQuorum, "Expected precision loss for MinQuorum")
-	require.NotEqual(t, "0.20", badMinPassThreshold, "Expected precision loss for MinPassThreshold")
-	require.NotEqual(t, "0.30", badMinVetoThreshold, "Expected precision loss for MinVetoThreshold")
+	require.NotEqual(t, "0.1000", badMinQuorum, "Expected precision loss for MinQuorum")
+	require.NotEqual(t, "0.2000", badMinPassThreshold, "Expected precision loss for MinPassThreshold")
+	require.NotEqual(t, "0.3000", badMinVetoThreshold, "Expected precision loss for MinVetoThreshold")
 
 	// Verify our fix produces the correct values
-	require.Equal(t, "0.10", goodMinQuorum, "Fixed approach should give correct value for MinQuorum")
-	require.Equal(t, "0.20", goodMinPassThreshold, "Fixed approach should give correct value for MinPassThreshold")
-	require.Equal(t, "0.30", goodMinVetoThreshold, "Fixed approach should give correct value for MinVetoThreshold")
+	require.Equal(t, "0.1000", goodMinQuorum, "Fixed approach should give correct value for MinQuorum")
+	require.Equal(t, "0.2000", goodMinPassThreshold, "Fixed approach should give correct value for MinPassThreshold")
+	require.Equal(t, "0.3000", goodMinVetoThreshold, "Fixed approach should give correct value for MinVetoThreshold")
 
 	// Verify actual implementation in the viewConfig function
 	// This requires a manual check after running the tests to confirm

@@ -28,7 +28,7 @@ const noString = "no"
 const vetoString = "veto"
 const abstainString = "abstain"
 const commitHashLength = 40
-const maxPercentage = float64(10000.0)
+const maxPercentage = float32(10000.0)
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
@@ -881,9 +881,9 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
-	g.eei.Finish([]byte(fmt.Sprintf("%.2f", gConfig.MinQuorum)))
-	g.eei.Finish([]byte(fmt.Sprintf("%.2f", gConfig.MinPassThreshold)))
-	g.eei.Finish([]byte(fmt.Sprintf("%.2f", gConfig.MinVetoThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinQuorum)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinPassThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.4f", gConfig.MinVetoThreshold)))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
@@ -1396,11 +1396,11 @@ func convertDecimalToPercentage(arg []byte) (float32, error) {
 		return 0.0, vm.ErrIncorrectConfig
 	}
 
-	valAsFloat := float64(value.Uint64()) / maxPercentage
-	if valAsFloat < 0.001 || valAsFloat > 1.0 {
+	valAsFloat := float32(value.Uint64()) / maxPercentage
+	if valAsFloat < 0.0001 || valAsFloat > 1.0 {
 		return 0.0, vm.ErrIncorrectConfig
 	}
-	return float32(valAsFloat), nil
+	return valAsFloat, nil
 }
 
 // CanUseContract returns true if contract is enabled
