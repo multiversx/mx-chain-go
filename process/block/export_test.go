@@ -694,6 +694,11 @@ func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock 
 	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
 }
 
+// CheckProofsForShardDataIfNeeded -
+func (mp *metaProcessor) CheckProofsForShardDataIfNeeded(header *block.MetaBlock, waitTime time.Duration) error {
+	return mp.checkProofsForShardDataIfNeeded(header, waitTime)
+}
+
 // ComputeExistingAndRequestMissingMetaHeaders -
 func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
 	return sp.computeExistingAndRequestMissingMetaHeaders(header)
