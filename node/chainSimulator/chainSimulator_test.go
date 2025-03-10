@@ -36,13 +36,24 @@ func TestNewChainSimulator(t *testing.T) {
 		NumOfShards:            3,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         core.OptionalUint64{},
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    20,
+		},
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  3,
+		MetaChainMinNodes: 3,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
+
+	for i := 0; i < 8; i++ {
+		err = chainSimulator.ForceChangeOfEpoch()
+		require.Nil(t, err)
+	}
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
 
 	time.Sleep(time.Second)
 
