@@ -894,7 +894,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 
 }
 
-func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testing.T) {
+func TestSubroundStartRound_IndexRoundIfNeededGetValidatorsIndexesShouldNotBeCalled(t *testing.T) {
 
 	pubKeys := []string{"testKey1", "testKey2"}
 
@@ -911,6 +911,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 	container.SetNodesCoordinator(
 		&shardingMocks.NodesCoordinatorStub{
 			GetValidatorsIndexesCalled: func(pubKeys []string, epoch uint32) ([]uint64, error) {
+				require.Fail(t, "SaveRoundsInfo should not be called")
 				return nil, expErr
 			},
 		})
@@ -925,17 +926,18 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 	)
 	require.Nil(t, err)
 
+	called := false
 	_ = startRound.SetOutportHandler(&outport.OutportStub{
 		HasDriversCalled: func() bool {
 			return true
 		},
 		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
-			require.Fail(t, "SaveRoundsInfo should not be called")
+			called = true
 		},
 	})
 
 	startRound.IndexRoundIfNeeded(pubKeys)
-
+	require.True(t, called)
 }
 
 func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
