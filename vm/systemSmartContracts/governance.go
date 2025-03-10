@@ -27,7 +27,8 @@ const noString = "no"
 const vetoString = "veto"
 const abstainString = "abstain"
 const commitHashLength = 40
-const maxPercentage = float64(10000.0)
+
+var maxPercentage = big.NewInt(10000)
 
 // ArgsNewGovernanceContract defines the arguments needed for the on-chain governance contract
 type ArgsNewGovernanceContract struct {
@@ -253,19 +254,19 @@ func (g *governanceContract) changeConfig(args *vmcommon.ContractCallInput) vmco
 		return vmcommon.UserError
 	}
 
-	minQuorum, err := convertDecimalToPercentage(args.Arguments[2])
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error() + " minQuorum")
+	minQuorum, okConvert := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
+	if !okConvert || minQuorum.Cmp(zero) <= 0 || minQuorum.Cmp(maxPercentage) >= 0 {
+		g.eei.AddReturnMessage("changeConfig third argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minVeto, err := convertDecimalToPercentage(args.Arguments[3])
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error() + " minVeto")
+	minVeto, okConvert := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
+	if !okConvert || minVeto.Cmp(zero) <= 0 || minVeto.Cmp(maxPercentage) >= 0 {
+		g.eei.AddReturnMessage("changeConfig forth argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
-	minPass, err := convertDecimalToPercentage(args.Arguments[4])
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error() + " minPass")
+	minPass, okConvert := big.NewInt(0).SetString(string(args.Arguments[2]), conversionBase)
+	if !okConvert || minPass.Cmp(zero) <= 0 || minPass.Cmp(maxPercentage) >= 0 {
+		g.eei.AddReturnMessage("changeConfig fifth argument is incorrectly formatted")
 		return vmcommon.UserError
 	}
 
@@ -880,9 +881,9 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinQuorum)).String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinPassThreshold)).String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinVetoThreshold)).String()))
+	g.eei.Finish([]byte(gConfig.MinQuorum.String()))
+	g.eei.Finish([]byte(gConfig.MinPassThreshold.String()))
+	g.eei.Finish([]byte(gConfig.MinVetoThreshold.String()))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
@@ -1040,22 +1041,17 @@ func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *Ge
 	totalVotes.Add(totalVotes, proposal.Veto)
 	totalVotes.Add(totalVotes, proposal.Abstain)
 
-	totalStake := g.getTotalStakeInSystem()
-	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, float64(baseConfig.MinQuorum))
-
-	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
+	if totalVotes.Cmp(baseConfig.MinQuorum) == -1 {
 		g.eei.Finish([]byte("Proposal did not reach minQuorum"))
 		return false
 	}
 
-	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
-	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
+	if proposal.Veto.Cmp(baseConfig.MinVetoThreshold) >= 0 {
 		g.eei.Finish([]byte("Proposal vetoed"))
 		return false
 	}
 
-	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
-	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
+	if proposal.Yes.Cmp(baseConfig.MinPassThreshold) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		g.eei.Finish([]byte("Proposal passed"))
 		return true
 	}
@@ -1347,7 +1343,7 @@ func (g *governanceContract) convertV2Config(config config.GovernanceSystemSCCon
 	}
 
 	return &GovernanceConfigV2{
-		MinQuorum:        float32(config.Active.MinQuorum),
+		MinQuorum:        big.NewInt(0).(config.Active.MinQuorum),
 		MinPassThreshold: float32(config.Active.MinPassThreshold),
 		MinVetoThreshold: float32(config.Active.MinVetoThreshold),
 		ProposalFee:      proposalFee,
