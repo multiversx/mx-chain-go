@@ -375,6 +375,18 @@ func (sp *shardProcessor) checkProofsForCrossNotarizedMetaBlocks(header data.Sha
 	sp.mutRequestedAttestingNoncesMap.Unlock()
 	_ = core.EmptyChannel(sp.allProofsReceived)
 
+	err := sp.checkProofsRequestingMissing(header)
+	if err != nil {
+		return nil
+	}
+
+	return sp.waitAllMissingProofs(waitTime)
+}
+
+func (sp *shardProcessor) checkProofsRequestingMissing(header data.ShardHeaderHandler) error {
+	sp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer sp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
+
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		hInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
 		if !ok {
@@ -388,7 +400,7 @@ func (sp *shardProcessor) checkProofsForCrossNotarizedMetaBlocks(header data.Sha
 		sp.checkProofRequestingNextHeaderIfMissing(core.MetachainShardId, metaBlockHash, hInfo.hdr.GetNonce())
 	}
 
-	return sp.waitAllMissingProofs(waitTime)
+	return nil
 }
 
 func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {

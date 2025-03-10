@@ -343,7 +343,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 	}
 
-	err = mp.checkProofsForShardData(header, haveTime())
+	err = mp.checkProofsForShardDataIfNeeded(header, haveTime())
 	if err != nil {
 		return err
 	}
@@ -418,7 +418,7 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTime time.Duration) error {
+func (mp *metaProcessor) checkProofsForShardDataIfNeeded(header *block.MetaBlock, waitTime time.Duration) error {
 	if !(mp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.Epoch) && header.GetNonce() > 1) {
 		return nil
 	}
@@ -427,6 +427,18 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTi
 	mp.requestedAttestingNoncesMap = make(map[string]uint64)
 	mp.mutRequestedAttestingNoncesMap.Unlock()
 	_ = core.EmptyChannel(mp.allProofsReceived)
+
+	err := mp.checkProofsForShardData(header)
+	if err != nil {
+		return err
+	}
+
+	return mp.waitAllMissingProofs(waitTime)
+}
+
+func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock) error {
+	mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
+	defer mp.hdrsForCurrBlock.mutHdrsForBlock.RUnlock()
 
 	for _, shardData := range header.ShardInfo {
 		// TODO: consider the validation of the proof:
@@ -466,7 +478,7 @@ func (mp *metaProcessor) checkProofsForShardData(header *block.MetaBlock, waitTi
 		}
 	}
 
-	return mp.waitAllMissingProofs(waitTime)
+	return nil
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
