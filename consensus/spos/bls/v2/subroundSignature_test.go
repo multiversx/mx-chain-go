@@ -949,7 +949,7 @@ func TestSubroundSignature_DoSignatureConsensusCheck(t *testing.T) {
 		sr.SetHeader(nil)
 		assert.False(t, sr.DoSignatureConsensusCheck())
 	})
-	t.Run("node node in consensus group should return true", func(t *testing.T) {
+	t.Run("node in consensus group should return true", func(t *testing.T) {
 		t.Parallel()
 
 		sr := initSubroundSignature()

@@ -767,16 +767,13 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should early return when final info is not valid", func(t *testing.T) {
+	t.Run("should early return when proof is not valid", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
 
 		headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{
 			VerifyLeaderSignatureCalled: func(header data.HeaderHandler) error {
-				return errors.New("error")
-			},
-			VerifySignatureCalled: func(header data.HeaderHandler) error {
 				return errors.New("error")
 			},
 		}
@@ -860,7 +857,7 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 		proof := &block.HeaderProof{}
 		sr.ReceivedProof(proof)
 	})
-	t.Run("should early return when final info already received", func(t *testing.T) {
+	t.Run("should early return when proof already received", func(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
