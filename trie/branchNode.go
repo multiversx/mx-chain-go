@@ -351,11 +351,20 @@ func (bn *branchNode) insert(
 		return nil
 	}
 
-	if bnHasBeenModified.IsSet() {
-		return bn
+	if !bnHasBeenModified.IsSet() {
+		return nil
 	}
 
-	return nil
+	bn.mutex.Lock()
+	hash, err := encodeNodeAndGetHash(bn)
+	if err != nil {
+		goRoutinesManager.SetError(err)
+		return nil
+	}
+	bn.hash = hash
+	bn.mutex.Unlock()
+
+	return bn
 }
 
 func (bn *branchNode) updateNode(
@@ -517,7 +526,7 @@ func (bn *branchNode) modifyNodeAfterInsert(modifiedHashes common.AtomicBytesSli
 	}
 
 	bn.childrenMutexes[childPos].Lock()
-	bn.EncodedChildren[childPos] = nil
+	bn.EncodedChildren[childPos] = newNode.getHash()
 	bn.children[childPos] = newNode
 	bn.childrenMutexes[childPos].Unlock()
 

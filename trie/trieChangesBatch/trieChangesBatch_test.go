@@ -27,7 +27,7 @@ func TestTrieChangesBatch_Add(t *testing.T) {
 	}
 
 	tcb := NewTrieChangesBatch("")
-	tcb.deletedKeys[string(dataForInsertion.Key)] = struct{}{}
+	tcb.deletedKeys[string(dataForInsertion.Key)] = core.TrieData{Key: dataForInsertion.Key}
 
 	tcb.Add(dataForInsertion)
 	assert.Equal(t, 0, len(tcb.deletedKeys))
@@ -79,7 +79,7 @@ func TestTrieChangesBatch_Get(t *testing.T) {
 
 		key := []byte("key")
 		tcb := NewTrieChangesBatch("")
-		tcb.deletedKeys[string(key)] = struct{}{}
+		tcb.deletedKeys[string(key)] = core.TrieData{Key: key}
 
 		data, foundInBatch := tcb.Get(key)
 		assert.True(t, foundInBatch)
@@ -117,13 +117,17 @@ func TestTrieChangesBatch_GetSortedDataForRemoval(t *testing.T) {
 
 	tcb := NewTrieChangesBatch("")
 
-	tcb.deletedKeys["key3"] = struct{}{}
-	tcb.deletedKeys["key1"] = struct{}{}
-	tcb.deletedKeys["key2"] = struct{}{}
+	key1 := "key1"
+	key2 := "key2"
+	key3 := "key3"
+
+	tcb.deletedKeys[key3] = core.TrieData{Key: []byte(key3)}
+	tcb.deletedKeys[key1] = core.TrieData{Key: []byte(key1)}
+	tcb.deletedKeys[key2] = core.TrieData{Key: []byte(key2)}
 
 	data := tcb.GetSortedDataForRemoval()
 	assert.Equal(t, 3, len(data))
-	assert.Equal(t, "key1", string(data[0].Key))
-	assert.Equal(t, "key2", string(data[1].Key))
-	assert.Equal(t, "key3", string(data[2].Key))
+	assert.Equal(t, key1, string(data[0].Key))
+	assert.Equal(t, key2, string(data[1].Key))
+	assert.Equal(t, key3, string(data[2].Key))
 }
