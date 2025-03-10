@@ -5,13 +5,17 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/require"
 )
+
+var testFlag = core.EnableEpochFlag("test flag")
 
 func TestIsValidRelayedTxV3(t *testing.T) {
 	t.Parallel()
@@ -269,4 +273,154 @@ func TestIsConsensusBitmapValid(t *testing.T) {
 		err := common.IsConsensusBitmapValid(log, pubKeys, bitmap, true)
 		require.Nil(t, err)
 	})
+}
+
+func TestIsEpochChangeBlockForFlagActivation(t *testing.T) {
+	t.Parallel()
+
+	providedEpoch := uint32(123)
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			require.Equal(t, testFlag, flag)
+			return providedEpoch
+		},
+	}
+
+	epochStartHeaderSameEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			EpochStartMetaHash: []byte("meta hash"),
+			Epoch:              providedEpoch,
+		},
+	}
+	notEpochStartHeaderSameEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			Epoch: providedEpoch,
+		},
+	}
+	epochStartHeaderOtherEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			EpochStartMetaHash: []byte("meta hash"),
+			Epoch:              providedEpoch + 1,
+		},
+	}
+	notEpochStartHeaderOtherEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			Epoch: providedEpoch + 1,
+		},
+	}
+
+	require.True(t, common.IsEpochChangeBlockForFlagActivation(epochStartHeaderSameEpoch, eeh, testFlag))
+	require.False(t, common.IsEpochChangeBlockForFlagActivation(notEpochStartHeaderSameEpoch, eeh, testFlag))
+	require.False(t, common.IsEpochChangeBlockForFlagActivation(epochStartHeaderOtherEpoch, eeh, testFlag))
+	require.False(t, common.IsEpochChangeBlockForFlagActivation(notEpochStartHeaderOtherEpoch, eeh, testFlag))
+}
+
+func TestIsEpochStartProofForFlagActivation(t *testing.T) {
+	t.Parallel()
+
+	providedEpoch := uint32(123)
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			require.Equal(t, common.EquivalentMessagesFlag, flag)
+			return providedEpoch
+		},
+	}
+
+	epochStartProofSameEpoch := &block.HeaderProof{
+		IsStartOfEpoch: true,
+		HeaderEpoch:    providedEpoch,
+	}
+	notEpochStartProofSameEpoch := &block.HeaderProof{
+		IsStartOfEpoch: false,
+		HeaderEpoch:    providedEpoch,
+	}
+	epochStartProofOtherEpoch := &block.HeaderProof{
+		IsStartOfEpoch: true,
+		HeaderEpoch:    providedEpoch + 1,
+	}
+	notEpochStartProofOtherEpoch := &block.HeaderProof{
+		IsStartOfEpoch: false,
+		HeaderEpoch:    providedEpoch + 1,
+	}
+
+	require.True(t, common.IsEpochStartProofForFlagActivation(epochStartProofSameEpoch, eeh))
+	require.False(t, common.IsEpochStartProofForFlagActivation(notEpochStartProofSameEpoch, eeh))
+	require.False(t, common.IsEpochStartProofForFlagActivation(epochStartProofOtherEpoch, eeh))
+	require.False(t, common.IsEpochStartProofForFlagActivation(notEpochStartProofOtherEpoch, eeh))
+}
+
+func TestShouldBlockHavePrevProof(t *testing.T) {
+	t.Parallel()
+
+	providedEpoch := uint32(123)
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			require.Equal(t, testFlag, flag)
+			return epoch >= providedEpoch
+		},
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			require.Equal(t, testFlag, flag)
+			return providedEpoch
+		},
+	}
+
+	epochStartHeaderInActivationEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			EpochStartMetaHash: []byte("meta hash"),
+			Epoch:              providedEpoch,
+			Nonce:              2,
+		},
+	}
+	notEpochStartHeaderInActivationEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			Epoch: providedEpoch,
+			Nonce: 2,
+		},
+	}
+	epochStartHeaderPrevEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			EpochStartMetaHash: []byte("meta hash"),
+			Epoch:              providedEpoch - 1,
+			Nonce:              2,
+		},
+	}
+	notEpochStartHeaderPrevEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			Epoch: providedEpoch - 1,
+			Nonce: 2,
+		},
+	}
+	epochStartHeaderNextEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			EpochStartMetaHash: []byte("meta hash"),
+			Epoch:              providedEpoch + 1,
+			Nonce:              2,
+		},
+	}
+	notEpochStartHeaderNextEpoch := &block.HeaderV2{
+		Header: &block.Header{
+			Epoch: providedEpoch + 1,
+			Nonce: 2,
+		},
+	}
+
+	require.False(t, common.ShouldBlockHavePrevProof(epochStartHeaderInActivationEpoch, eeh, testFlag))
+	require.True(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderInActivationEpoch, eeh, testFlag))
+	require.False(t, common.ShouldBlockHavePrevProof(epochStartHeaderPrevEpoch, eeh, testFlag))
+	require.False(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderPrevEpoch, eeh, testFlag))
+	require.True(t, common.ShouldBlockHavePrevProof(epochStartHeaderNextEpoch, eeh, testFlag))
+	require.True(t, common.ShouldBlockHavePrevProof(notEpochStartHeaderNextEpoch, eeh, testFlag))
+}
+
+func TestGetShardIDs(t *testing.T) {
+	t.Parallel()
+
+	shardIDs := common.GetShardIDs(2)
+	require.Equal(t, 3, len(shardIDs))
+	_, hasShard0 := shardIDs[0]
+	require.True(t, hasShard0)
+	_, hasShard1 := shardIDs[1]
+	require.True(t, hasShard1)
+	_, hasShardM := shardIDs[core.MetachainShardId]
+	require.True(t, hasShardM)
 }
