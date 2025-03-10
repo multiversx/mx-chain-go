@@ -94,12 +94,12 @@ func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 }
 
 // UpdateStateStorage -
-func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader data.HeaderHandler) {
+func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, currentHeader data.HeaderHandler, currentHeaderHash []byte) {
 	currShardHeader, ok := currentHeader.(data.ShardHeaderHandler)
 	if !ok {
 		return
 	}
-	sp.updateState(finalHeaders, currShardHeader)
+	sp.updateState(finalHeaders, currShardHeader, currentHeaderHash)
 }
 
 // NewShardProcessorEmptyWith3shards -

@@ -294,6 +294,12 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 		return false
 	}
 
+	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+	// placeholder for subroundEndRound.doEndRoundJobByLeader script
+	if !ok {
+		return false
+	}
+
 	err := sr.commitBlock()
 	if err != nil {
 		return false
@@ -332,12 +338,6 @@ func (sr *subroundEndRound) sendProof() {
 		return
 	}
 
-	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	// placeholder for subroundEndRound.doEndRoundJobByLeader script
-	if !ok {
-		return
-	}
-
 	roundHandler := sr.RoundHandler()
 	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
@@ -359,7 +359,7 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return true
+	return sr.IsSelfInConsensusGroup()
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) ([]byte, []byte, error) {

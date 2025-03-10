@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -32,6 +33,7 @@ type blockProcessor struct {
 	proofsPool          process.ProofsPool
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
+	headersPool         dataRetriever.HeadersPool
 
 	blockFinality uint64
 }
@@ -57,6 +59,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		roundHandler:                          arguments.RoundHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
 		proofsPool:                            arguments.ProofsPool,
+		headersPool:                           arguments.HeadersPool,
 		marshaller:                            arguments.Marshaller,
 		hasher:                                arguments.Hasher,
 	}
@@ -461,7 +464,11 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		"chronology round", bp.roundHandler.Index(),
 		"highest round in received headers", highestRoundInReceivedHeaders)
 
-	bp.requestHeaders(latestValidHeader.GetShardID(), latestValidHeader.GetNonce()+1)
+	fromNonce := latestValidHeader.GetNonce()
+	shardID := latestValidHeader.GetShardID()
+	// remove first header from pool - to force re-triggering the callbacks on receiving the header (edge case for epoch change)
+	bp.headersPool.RemoveHeaderByNonceAndShardId(fromNonce, shardID)
+	bp.requestHeaders(shardID, fromNonce)
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
@@ -531,6 +538,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNilReflect(arguments.Hasher) {
 		return process.ErrNilHasher
+	}
+	if check.IfNil(arguments.HeadersPool) {
+		return process.ErrNilHeadersDataPool
 	}
 
 	return nil

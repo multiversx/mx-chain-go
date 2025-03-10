@@ -263,6 +263,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		AccountsRepository:           &state.AccountsRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofsPool:                   tpn.ProofsPool,
 	}
 	blockAPIHandler, err := blockAPI.CreateAPIBlockProcessor(argsBlockAPI)
 	log.LogIfError(err)
