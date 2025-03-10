@@ -329,7 +329,7 @@ func (odp *outportDataProvider) getSignersIndexes(header data.HeaderHandler) (st
 
 	signersIndexes := make([]uint64, 0)
 	// when EquivalentMessages flag is enabled signer indices can be empty because all validators are in consensus group
-	if odp.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return leader, leaderIndex, signersIndexes, nil
 	}
 

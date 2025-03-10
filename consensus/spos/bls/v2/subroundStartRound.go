@@ -265,20 +265,11 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		return
 	}
 
-	signersIndexes := make([]uint64, 0)
-	if !sr.EnableEpochsHandler().IsFlagEnabled(common.EquivalentMessagesFlag) {
-		signersIndexes, err = sr.NodesCoordinator().GetValidatorsIndexes(pubKeys, epoch)
-	}
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
 	round := sr.RoundHandler().Index()
 
 	roundInfo := &outportcore.RoundInfo{
 		Round:            uint64(round),
-		SignersIndexes:   signersIndexes,
+		SignersIndexes:   make([]uint64, 0),
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
