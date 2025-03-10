@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -880,9 +881,9 @@ func (g *governanceContract) viewConfig(args *vmcommon.ContractCallInput) vmcomm
 	}
 
 	g.eei.Finish([]byte(gConfig.ProposalFee.String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinQuorum)).String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinPassThreshold)).String()))
-	g.eei.Finish([]byte(big.NewFloat(float64(gConfig.MinVetoThreshold)).String()))
+	g.eei.Finish([]byte(fmt.Sprintf("%.2f", gConfig.MinQuorum)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.2f", gConfig.MinPassThreshold)))
+	g.eei.Finish([]byte(fmt.Sprintf("%.2f", gConfig.MinVetoThreshold)))
 	g.eei.Finish([]byte(big.NewInt(int64(gConfig.LastProposalNonce)).String()))
 
 	return vmcommon.Ok
@@ -1028,6 +1029,13 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 	return g.eei.GetBalance(g.validatorSCAddress)
 }
 
+func getPercentageValue(value *big.Int, percentage float32) *big.Int {
+	// Convert float32 to string with exactly 2 decimal places to avoid precision issues
+	percentageStr := fmt.Sprintf("%.2f", percentage)
+	percentageFloat, _ := strconv.ParseFloat(percentageStr, 64)
+	return core.GetIntTrimmedPercentageOfValue(value, percentageFloat)
+}
+
 // computeEndResults computes if a proposal has passed or not based on votes accumulated
 func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *GeneralProposal, baseConfig *GovernanceConfigV2) bool {
 	voteStarted := currentEpoch >= proposal.StartVoteEpoch
@@ -1041,20 +1049,20 @@ func (g *governanceContract) computeEndResults(currentEpoch uint64, proposal *Ge
 	totalVotes.Add(totalVotes, proposal.Abstain)
 
 	totalStake := g.getTotalStakeInSystem()
-	minQuorumOutOfStake := core.GetIntTrimmedPercentageOfValue(totalStake, float64(baseConfig.MinQuorum))
+	minQuorumOutOfStake := getPercentageValue(totalStake, baseConfig.MinQuorum)
 
 	if totalVotes.Cmp(minQuorumOutOfStake) == -1 {
 		g.eei.Finish([]byte("Proposal did not reach minQuorum"))
 		return false
 	}
 
-	minVetoOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinVetoThreshold))
+	minVetoOfTotalVotes := getPercentageValue(totalVotes, baseConfig.MinVetoThreshold)
 	if proposal.Veto.Cmp(minVetoOfTotalVotes) >= 0 {
 		g.eei.Finish([]byte("Proposal vetoed"))
 		return false
 	}
 
-	minPassOfTotalVotes := core.GetIntTrimmedPercentageOfValue(totalVotes, float64(baseConfig.MinPassThreshold))
+	minPassOfTotalVotes := getPercentageValue(totalVotes, baseConfig.MinPassThreshold)
 	if proposal.Yes.Cmp(minPassOfTotalVotes) >= 0 && proposal.Yes.Cmp(proposal.No) > 0 {
 		g.eei.Finish([]byte("Proposal passed"))
 		return true
