@@ -698,10 +698,6 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 	}
 
 	generalProposal.Passed = g.computeEndResults(currentEpoch, generalProposal, baseConfig)
-	if err != nil {
-		g.eei.AddReturnMessage("computeEndResults error " + err.Error())
-		return vmcommon.UserError
-	}
 
 	err = g.saveGeneralProposal(generalProposal.CommitHash, generalProposal)
 	if err != nil {
@@ -1030,8 +1026,7 @@ func (g *governanceContract) getTotalStakeInSystem() *big.Int {
 }
 
 func getPercentageValue(value *big.Int, percentage float32) *big.Int {
-	// Convert float32 to string with exactly 2 decimal places to avoid precision issues
-	percentageStr := fmt.Sprintf("%.2f", percentage)
+	percentageStr := fmt.Sprintf("%.4f", percentage)
 	percentageFloat, _ := strconv.ParseFloat(percentageStr, 64)
 	return core.GetIntTrimmedPercentageOfValue(value, percentageFloat)
 }
