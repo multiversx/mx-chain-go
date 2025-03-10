@@ -3537,11 +3537,15 @@ func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
 		// init internal map to avoid panics
 		bp.InitRequestedAttestingNoncesMap()
 
+		chDone := make(chan bool, 1)
+
 		go func() {
 			// wait for missing proofs, this is a blocking operation
 			waitTime := time.Millisecond * 100
 			err := bp.WaitAllMissingProofs(waitTime)
 			require.NoError(t, err)
+
+			chDone <- true
 		}()
 
 		go func() {
@@ -3590,8 +3594,7 @@ func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
 			bp.ReceivedMetaBlock(metaBlock, metaBlockHash)
 		}()
 
-		// make sure we wait more than waitTime
-		time.Sleep(time.Millisecond * 200)
+		<-chDone
 	})
 	t.Run("no proof needed should early exit without error", func(t *testing.T) {
 		t.Parallel()
@@ -3617,14 +3620,17 @@ func TestBaseProcessor_SemiFunctional_WaitAllMissingProofs(t *testing.T) {
 		// first request next header, so waitAllMissingProofs knows it has to wait for a proof
 		bp.RequestNextHeader(requestedHash, requestedNonce, requestedShard)
 
+		chDone := make(chan bool, 1)
+
 		go func() {
 			// wait for missing proofs, this is a blocking operation
 			waitTime := time.Millisecond * 100
 			err := bp.WaitAllMissingProofs(waitTime)
 			require.Equal(t, process.ErrTimeIsOut, err)
+
+			chDone <- true
 		}()
 
-		// make sure we wait more than waitTime
-		time.Sleep(time.Millisecond * 200)
+		<-chDone
 	})
 }
