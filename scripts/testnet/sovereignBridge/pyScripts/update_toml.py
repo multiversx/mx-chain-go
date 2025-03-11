@@ -92,7 +92,7 @@ def update_main_chain_elastic_url(lines, section, key, value):
     for line in lines:
         if line.startswith("[" + section + "]"):
             section_found = True
-        if section_found and key in line:
+        if section_found and f"{key} =" in line:
             line = re.sub(rf'({re.escape(key)}\s*=\s*)".*?"', rf'\1"{value}"', line)
             section_found = False
         updated_lines.append(line)
