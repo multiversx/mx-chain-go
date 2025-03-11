@@ -78,6 +78,14 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	return consensusCore
 }
 
+func TestConsensusContainerValidator_ValidateNilConsensusCoreFail(t *testing.T) {
+	t.Parallel()
+
+	err := spos.ValidateConsensusCore(nil)
+
+	assert.Equal(t, spos.ErrNilConsensusCore, err)
+}
+
 func TestConsensusContainerValidator_ValidateNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
@@ -285,6 +293,83 @@ func TestConsensusContainerValidator_ValidateNilEnableEpochsHandlerShouldFail(t 
 	err := spos.ValidateConsensusCore(container)
 
 	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilBroadcastMessengerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetBroadcastMessenger(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilBroadcastMessenger, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilScheduledProcessorShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetScheduledProcessor(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilScheduledProcessor, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilMessageSigningHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetMessageSigningHandler(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilMessageSigningHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilPeerBlacklistHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetPeerBlacklistHandler(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilPeerBlacklistHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilEquivalentProofPoolShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetEquivalentProofsPool(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilEquivalentProofPool, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilEpochNotifierShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetEpochNotifier(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilEpochNotifier, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilEpochStartRegistrationHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetEpochStartNotifier(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilEpochStartNotifier, err)
 }
 
 func TestConsensusContainerValidator_ShouldWork(t *testing.T) {
