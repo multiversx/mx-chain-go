@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -154,4 +155,39 @@ func TestRound_RemainingTimeInCurrentRoundShouldReturnNegativeValue(t *testing.T
 
 	assert.Equal(t, time.Duration(int64(rnd.TimeDuration())-timeElapsed), remainingTime)
 	assert.True(t, remainingTime < 0)
+}
+
+func TestRound_RevertOneRound(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(10)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, startRound)
+	index := rnd.Index()
+	require.Equal(t, startRound, index)
+
+	rnd.RevertOneRound()
+	index = rnd.Index()
+	require.Equal(t, startRound-1, index)
+}
+
+func TestRound_BeforeGenesis(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(-1)
+	rnd, _ := round.NewRound(genesisTime, genesisTime, roundTimeDuration, syncTimerMock, startRound)
+	require.True(t, rnd.BeforeGenesis())
+
+	time.Sleep(roundTimeDuration * 2)
+	currentTime := time.Now()
+
+	rnd.UpdateRound(genesisTime, currentTime)
+	require.False(t, rnd.BeforeGenesis())
 }

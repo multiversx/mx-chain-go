@@ -298,6 +298,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             txFactory,
 			Processor:               txProcessor,
 			Throttler:               bicf.globalThrottler,
@@ -347,6 +348,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             txFactory,
 			Processor:               txProcessor,
 			Throttler:               bicf.globalThrottler,
@@ -396,6 +398,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             txFactory,
 			Processor:               txProcessor,
 			Throttler:               bicf.globalThrottler,
@@ -540,6 +543,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  hasher,
 			DataFactory:             miniblockFactory,
 			Processor:               miniblockProcessor,
 			Throttler:               bicf.globalThrottler,
@@ -630,6 +634,7 @@ func (bicf *baseInterceptorsContainerFactory) createOneTrieNodesInterceptor(topi
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   topic,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             trieNodesFactory,
 			Processor:               trieNodesProcessor,
 			Throttler:               bicf.globalThrottler,
@@ -696,7 +701,7 @@ func (bicf *baseInterceptorsContainerFactory) generateUnsignedTxsInterceptors() 
 	return bicf.addInterceptorsToContainers(keys, interceptorsSlice)
 }
 
-//------- PeerAuthentication interceptor
+// ------- PeerAuthentication interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationInterceptor() error {
 	identifierPeerAuthentication := common.PeerAuthenticationTopic
@@ -727,6 +732,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   identifierPeerAuthentication,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             peerAuthenticationFactory,
 			Processor:               peerAuthenticationProcessor,
 			Throttler:               bicf.globalThrottler,
@@ -749,7 +755,7 @@ func (bicf *baseInterceptorsContainerFactory) generatePeerAuthenticationIntercep
 	return bicf.mainContainer.Add(identifierPeerAuthentication, mdInterceptor)
 }
 
-//------- Heartbeat interceptor
+// ------- Heartbeat interceptor
 
 func (bicf *baseInterceptorsContainerFactory) generateHeartbeatInterceptor() error {
 	shardC := bicf.shardCoordinator
@@ -890,6 +896,7 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 		interceptors.ArgMultiDataInterceptor{
 			Topic:                   identifier,
 			Marshalizer:             internalMarshaller,
+			Hasher:                  bicf.argInterceptorFactory.CoreComponents.Hasher(),
 			DataFactory:             interceptedValidatorInfoFactory,
 			Processor:               validatorInfoProcessor,
 			Throttler:               bicf.globalThrottler,
