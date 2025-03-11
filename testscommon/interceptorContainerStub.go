@@ -31,8 +31,8 @@ func (ics *InterceptorsContainerStub) Get(topic string) (process.Interceptor, er
 	}
 
 	return &InterceptorStub{
-		ProcessReceivedMessageCalled: func(message p2p.MessageP2P) error {
-			return nil
+		ProcessReceivedMessageCalled: func(message p2p.MessageP2P) ([]byte, error) {
+			return nil, nil
 		},
 	}, nil
 }
