@@ -8,10 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // maxBuffToSendValidatorsInfo represents max buffer size to send in bytes
@@ -89,10 +90,10 @@ func checkArgs(args ArgValidatorInfoResolver) error {
 
 // ProcessReceivedMessage represents the callback func from the p2p.Messenger that is called each time a new message is received
 // (for the topic this validator was registered to, usually a request topic)
-func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error {
+func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) ([]byte, error) {
 	err := res.canProcessMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	res.throttler.StartProcessing()
@@ -100,17 +101,17 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	rd, err := res.parseReceivedMessage(message, fromConnectedPeer)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		return nil, res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	case dataRetriever.HashArrayType:
-		return res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		return nil, res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	}
 
-	return fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
+	return nil, fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 }
 
 // resolveHashRequest sends the response for a hash request
