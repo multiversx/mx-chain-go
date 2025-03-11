@@ -1976,3 +1976,90 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		require.Equal(t, msg, p2pMsgWithSignature)
 	})
 }
+
+func TestWorker_ReceivedHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		rcvHeaderHandler := func(header data.HeaderHandler) {
+			require.Fail(t, "should have not been called")
+		}
+		wrk.AddReceivedHeaderHandler(rcvHeaderHandler)
+		wrk.ReceivedHeader(nil, nil)
+	})
+	t.Run("unprocessable header should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		rcvHeaderHandler := func(header data.HeaderHandler) {
+			require.Fail(t, "should have not been called")
+		}
+		wrk.AddReceivedHeaderHandler(rcvHeaderHandler)
+		wrk.ReceivedHeader(&block.Header{
+			ShardID: workerArgs.ShardCoordinator.SelfId(),
+			Round:   uint64(workerArgs.RoundHandler.Index() + 1), // should not process this one
+		}, nil)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		wasHandlerCalled := false
+		rcvHeaderHandler := func(header data.HeaderHandler) {
+			wasHandlerCalled = true
+		}
+		wrk.AddReceivedHeaderHandler(rcvHeaderHandler)
+		wrk.ReceivedHeader(&block.Header{
+			ShardID: workerArgs.ShardCoordinator.SelfId(),
+			Round:   uint64(workerArgs.RoundHandler.Index()),
+		}, nil)
+		require.True(t, wasHandlerCalled)
+
+		wrk.RemoveAllReceivedHeaderHandlers() // coverage only
+	})
+}
+
+func TestWorker_ReceivedProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil proof should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		rcvProofHandler := func(proof consensus.ProofHandler) {
+			require.Fail(t, "should have not been called")
+		}
+		wrk.AddReceivedProofHandler(rcvProofHandler)
+		wrk.ReceivedProof(nil)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		wasHandlerCalled := false
+		rcvProofHandler := func(proof consensus.ProofHandler) {
+			wasHandlerCalled = true
+		}
+		wrk.AddReceivedProofHandler(rcvProofHandler)
+		wrk.ReceivedProof(&block.HeaderProof{})
+		require.True(t, wasHandlerCalled)
+	})
+}
