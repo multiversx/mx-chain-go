@@ -2241,12 +2241,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 			numTxs += len(mb.TxHashes)
 		}
 
-		log.Debug("processed miniblocks and txs from self shard",
+		log.Debug("processed miniblocks and txs from self shard ",
 			"num miniblocks", len(mbsFromMe),
 			"num txs", numTxs)
 	}
 
-	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+	log.Debug("creating mini blocks has been finished ", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 }
 

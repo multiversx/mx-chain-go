@@ -239,7 +239,7 @@ func (qfp *quotaFloodPreventer) ApplyConsensusSize(size int) {
 		return
 	}
 	if qfp.increaseThreshold > uint32(size) {
-		log.Debug("consensus size did not reach the threshold for quota flood preventer",
+		log.Debug("consensus size did not reach the threshold for quota flood preventer ",
 			"name", qfp.name,
 			"provided", size,
 			"threshold", qfp.increaseThreshold,

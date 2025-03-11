@@ -45,7 +45,7 @@ func (cpn *chainParametersNotifier) UpdateCurrentChainParameters(params config.C
 	copy(handlersCopy, cpn.handlers)
 	cpn.mutHandler.RUnlock()
 
-	log.Debug("chainParametersNotifier.UpdateCurrentChainParameters",
+	log.Debug("chainParametersNotifier.UpdateCurrentChainParameters ",
 		"enable epoch", params.EnableEpoch,
 		"shard consensus group size", params.ShardConsensusGroupSize,
 		"shard min number of nodes", params.ShardMinNumNodes,

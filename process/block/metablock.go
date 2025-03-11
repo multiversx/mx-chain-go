@@ -1078,13 +1078,13 @@ func (mp *metaProcessor) createMiniBlocks(
 			numTxs += uint32(len(mb.TxHashes))
 		}
 
-		log.Debug("processed miniblocks and txs from self shard",
+		log.Debug("processed miniblocks and txs from self shard ",
 			"num miniblocks", len(mbsFromMe),
 			"num txs", numTxs,
 		)
 	}
 
-	log.Debug("creating mini blocks has been finished",
+	log.Debug("creating mini blocks has been finished ",
 		"miniblocks created", len(miniBlocks),
 	)
 
