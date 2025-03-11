@@ -2,16 +2,17 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/pkg/errors"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/pkg/errors"
 )
 
 var errNotImplemented = errors.New("not implemented")
 
 // HeaderResolverStub -
 type HeaderResolverStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) ([]byte, error)
 	SetEpochHandlerCalled        func(epochHandler dataRetriever.EpochHandler) error
 	SetDebugHandlerCalled        func(handler dataRetriever.DebugHandler) error
 	CloseCalled                  func() error
@@ -26,12 +27,12 @@ func (hrs *HeaderResolverStub) SetEpochHandler(epochHandler dataRetriever.EpochH
 }
 
 // ProcessReceivedMessage -
-func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+func (hrs *HeaderResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	if hrs.ProcessReceivedMessageCalled != nil {
 		return hrs.ProcessReceivedMessageCalled(message)
 	}
 
-	return errNotImplemented
+	return nil, errNotImplemented
 }
 
 // SetDebugHandler -
