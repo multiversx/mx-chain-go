@@ -1401,7 +1401,7 @@ func TestHeaderSigVerifier_VerifyHeaderWithProof(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, wasAddProofCalled)
 	})
-	t.Run("non-transition VerifyHeaderProof error should work", func(t *testing.T) {
+	t.Run("should add previous proof if prevProof is valid but verify block fails", func(t *testing.T) {
 		t.Parallel()
 
 		args := createHeaderSigVerifierArgs()
