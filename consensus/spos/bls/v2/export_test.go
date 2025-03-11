@@ -360,3 +360,8 @@ func (sr *subroundEndRound) WaitForProof() bool {
 func (sr *subroundEndRound) GetEquivalentProofSender() string {
 	return sr.getEquivalentProofSender()
 }
+
+// SendProof -
+func (sr *subroundEndRound) SendProof() {
+	sr.sendProof()
+}

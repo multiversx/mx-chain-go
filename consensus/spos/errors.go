@@ -273,3 +273,6 @@ var ErrConsensusMessageNotExpected = errors.New("consensus message not expected"
 
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")
+
+// ErrNilEpochStartNotifier signals that nil epoch start notifier has been provided
+var ErrNilEpochStartNotifier = errors.New("nil epoch start notifier")

@@ -20,7 +20,7 @@ type SposWorkerMock struct {
 	RemoveAllReceivedHeaderHandlersCalled  func()
 	AddReceivedProofHandlerCalled          func(handler func(proofHandler consensus.ProofHandler))
 	RemoveAllReceivedMessagesCallsCalled   func()
-	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled           func(message p2p.MessageP2P) ([]byte, error)
 	SendConsensusMessageCalled             func(cnsDta *consensus.Message) bool
 	ExtendCalled                           func(subroundId int)
 	GetConsensusStateChangedChannelsCalled func() chan bool
@@ -79,11 +79,11 @@ func (sposWorkerMock *SposWorkerMock) RemoveAllReceivedMessagesCalls() {
 }
 
 // ProcessReceivedMessage -
-func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+func (sposWorkerMock *SposWorkerMock) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	if sposWorkerMock.ProcessReceivedMessageCalled == nil {
 		return sposWorkerMock.ProcessReceivedMessageCalled(message)
 	}
-	return nil
+	return nil, nil
 }
 
 // SendConsensusMessage -
