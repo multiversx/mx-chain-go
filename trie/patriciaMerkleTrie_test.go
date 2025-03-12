@@ -261,13 +261,16 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	t.Parallel()
 
 	tr := initTrie()
-	root1, _ := tr.RootHash()
+	root1, err := tr.RootHash()
+	assert.Nil(t, err)
 
 	_ = tr.Update([]byte("dodge"), []byte("viper"))
-	root2, _ := tr.RootHash()
+	root2, err := tr.RootHash()
+	assert.Nil(t, err)
 
 	tr.Delete([]byte("dodge"))
-	root3, _ := tr.RootHash()
+	root3, err := tr.RootHash()
+	assert.Nil(t, err)
 
 	assert.Equal(t, root1, root3)
 	assert.NotEqual(t, root1, root2)
@@ -1890,59 +1893,39 @@ func TestPatriciaMerkleTrie_RootHash(t *testing.T) {
 		}
 		trie.ExecuteUpdatesFromBatch(tr)
 
-		// compute rootHash
 		waitForSignal := atomic.Bool{}
 		waitForSignal.Store(true)
-		startedComputingRootHash := atomic.Bool{}
-		grm := &mock.GoroutinesManagerStub{
-			CanStartGoRoutineCalled: func() bool {
-				startedComputingRootHash.Store(true)
-				return true
-			},
-			EndGoRoutineProcessingCalled: func() {
-				for waitForSignal.Load() {
-					time.Sleep(time.Millisecond * 100)
-				}
-			},
-			SetErrorCalled: func(err error) {
-				assert.Fail(t, "should not have called this function")
-			},
-		}
-		trie.SetGoRoutinesManager(tr, grm)
-
-		go func() {
-			rootHash1, err := tr.RootHash()
-			assert.Nil(t, err)
-			assert.NotEqual(t, emptyTrieHash, rootHash1)
-		}()
-
-		// wait for start of the computation of the root hash
-		for !startedComputingRootHash.Load() {
-			time.Sleep(time.Millisecond * 100)
-		}
-
-		for i := numOperations; i < numOperations*2; i++ {
-			_ = tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
-		}
-		setNewErrChanCalled := atomic.Bool{}
 		wg := sync.WaitGroup{}
 		wg.Add(1)
 		go func() {
-			grm.SetNewErrorChannelCalled = func(common.BufferedErrChan) error {
-				setNewErrChanCalled.Store(true)
-				return nil
+			for waitForSignal.Load() {
+				rootHash1, err := tr.RootHash()
+				assert.Nil(t, err)
+				assert.NotEqual(t, emptyTrieHash, rootHash1)
 			}
-			trie.ExecuteUpdatesFromBatch(tr)
 			wg.Done()
 		}()
 
-		// commit batch to trie does not start until root hash is fully computed
-		time.Sleep(time.Millisecond * 500)
-		assert.False(t, setNewErrChanCalled.Load())
+		for i := numOperations; i < numOperations*10; i++ {
+			err := tr.Update([]byte("dog"+strconv.Itoa(i)), []byte("reindeer"))
+			assert.Nil(t, err)
+		}
 
 		waitForSignal.Store(false)
 		wg.Wait()
-		assert.True(t, setNewErrChanCalled.Load())
+
+		// check root hash is set
+		rootHash1, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.NotEqual(t, emptyTrieHash, rootHash1)
+
+		// check no vals are in the batch
+		batchManager := trie.GetBatchManager(tr)
+		batch, err := batchManager.MarkTrieUpdateInProgress()
+		assert.Nil(t, err)
+		insertData := batch.GetSortedDataForInsertion()
+		assert.Equal(t, 0, len(insertData))
+		batchManager.MarkTrieUpdateCompleted()
 	})
 	t.Run("set root hash and get from trie concurrently", func(t *testing.T) {
 		t.Parallel()

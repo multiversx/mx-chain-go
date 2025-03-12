@@ -495,6 +495,10 @@ func (bn *branchNode) insertOnNilChild(
 		goRoutinesManager.SetError(err)
 		return
 	}
+	newNode.setHash(goRoutinesManager)
+	if !goRoutinesManager.ShouldContinueProcessing() {
+		return
+	}
 
 	if len(newData) > 1 {
 		newNode = newNode.insert(newData[1:], goRoutinesManager, modifiedHashes, db)
@@ -577,6 +581,7 @@ func (bn *branchNode) reduceNodeIfNeeded(
 	}
 
 	if numChildren != 1 {
+		bn.setHash(goRoutinesManager)
 		return true, bn
 	}
 
@@ -596,7 +601,7 @@ func (bn *branchNode) reduceNodeIfNeeded(
 	if newChildHash && !child.isDirty() {
 		modifiedHashes.Append([][]byte{child.getHash()})
 	}
-
+	newNode.setHash(goRoutinesManager)
 	return true, newNode
 }
 
@@ -643,20 +648,25 @@ func (bn *branchNode) setNewChild(childPos byte, newNode node, modifiedHashes co
 	bn.hash = nil
 	bn.dirty = true
 
-	bn.childrenMutexes[childPos].Lock()
-	bn.children[childPos] = newNode
-	bn.EncodedChildren[childPos] = nil
-	bn.childrenMutexes[childPos].Unlock()
-
 	if check.IfNil(newNode) {
+		bn.childrenMutexes[childPos].Lock()
+		bn.children[childPos] = nil
+		bn.EncodedChildren[childPos] = nil
 		bn.setVersionForChild(core.NotSpecified, childPos)
+		bn.childrenMutexes[childPos].Unlock()
 		return nil
 	}
 	childVersion, err := newNode.getVersion()
 	if err != nil {
 		return err
 	}
+
+	bn.childrenMutexes[childPos].Lock()
+	bn.children[childPos] = newNode
+	bn.EncodedChildren[childPos] = newNode.getHash()
 	bn.setVersionForChild(childVersion, childPos)
+	bn.childrenMutexes[childPos].Unlock()
+
 	return nil
 }
 

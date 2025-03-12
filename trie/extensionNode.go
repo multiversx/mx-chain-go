@@ -519,6 +519,7 @@ func (en *extensionNode) delete(
 			return false, nil
 		}
 
+		n.setHash(goRoutinesManager)
 		return true, n
 	case *extensionNode:
 		n, err := newExtensionNode(concat(en.Key, newNode.Key...), newNode.child, en.marsh, en.hasher)
@@ -526,6 +527,8 @@ func (en *extensionNode) delete(
 			goRoutinesManager.SetError(err)
 			return false, nil
 		}
+		n.EncodedChild = newNode.child.getHash()
+		n.setHash(goRoutinesManager)
 
 		return true, n
 	case *branchNode:
@@ -534,6 +537,8 @@ func (en *extensionNode) delete(
 			goRoutinesManager.SetError(err)
 			return false, nil
 		}
+		n.EncodedChild = newNode.getHash()
+		n.setHash(goRoutinesManager)
 
 		return true, n
 	case nil:

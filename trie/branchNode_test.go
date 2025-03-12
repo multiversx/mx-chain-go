@@ -686,6 +686,7 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	data := []core.TrieData{{Key: key}}
 
 	goRoutinesManager := getTestGoroutinesManager()
+	ln.setHash(goRoutinesManager)
 	dirty, newBn := bn.delete(data, goRoutinesManager, common.NewModifiedHashesSlice(initialModifiedHashesCapacity), nil)
 	assert.True(t, dirty)
 	assert.Nil(t, goRoutinesManager.GetError())

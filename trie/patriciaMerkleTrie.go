@@ -213,7 +213,12 @@ func (tr *patriciaMerkleTrie) insertBatch(sortedDataForInsertion []core.TrieData
 		if err != nil {
 			return err
 		}
-
+		newRoot.setHash(tr.goRoutinesManager)
+		err = tr.goRoutinesManager.GetError()
+		if err != nil {
+			return err
+		}
+		
 		sortedDataForInsertion = sortedDataForInsertion[1:]
 		if len(sortedDataForInsertion) == 0 {
 			tr.SetNewRootNode(newRoot)
@@ -300,33 +305,16 @@ func (tr *patriciaMerkleTrie) RootHash() ([]byte, error) {
 	tr.updateTrieMutex.Lock()
 	defer tr.updateTrieMutex.Unlock()
 
-	return tr.getRootHash()
-}
-
-func (tr *patriciaMerkleTrie) getRootHash() ([]byte, error) {
 	rootNode := tr.GetRootNode()
-
 	if rootNode == nil {
 		return common.EmptyTrieHash, nil
 	}
 
 	hash := rootNode.getHash()
-	if hash != nil {
-		return hash, nil
+	if len(hash) == 0 {
+		return nil, fmt.Errorf("root hash should not be empty: trie = %v", tr.identifier)
 	}
-
-	err := tr.goRoutinesManager.SetNewErrorChannel(errChan.NewErrChanWrapper())
-	if err != nil {
-		return nil, err
-	}
-
-	rootNode.setHash(tr.goRoutinesManager)
-	err = tr.goRoutinesManager.GetError()
-	if err != nil {
-		return nil, err
-	}
-
-	return rootNode.getHash(), nil
+	return hash, nil
 }
 
 // Commit adds all the dirty nodes to the database
