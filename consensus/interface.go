@@ -224,4 +224,5 @@ type ProofHandler interface {
 	GetHeaderNonce() uint64
 	GetHeaderShardId() uint32
 	GetIsStartOfEpoch() bool
+	IsInterfaceNil() bool
 }

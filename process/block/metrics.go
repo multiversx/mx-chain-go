@@ -207,7 +207,7 @@ func indexRoundInfo(
 }
 
 func getSignersIndices(header, lastHeader data.HeaderHandler, round uint64, nodesCoordinator nodesCoordinator.NodesCoordinator) ([]uint64, bool) {
-	havePrevProf := !check.IfNilReflect(header.GetPreviousProof())
+	havePrevProf := !check.IfNil(header.GetPreviousProof())
 	// if a header have previous proof EquivalentMessage flag is active and all validators are in consensus group - signer indices no longer needed
 	if havePrevProf {
 		return make([]uint64, 0), true

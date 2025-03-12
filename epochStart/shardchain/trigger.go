@@ -563,7 +563,7 @@ func (t *trigger) changeEpochFinalityAttestingRoundIfNeeded(
 }
 
 func (t *trigger) receivedProof(headerProof data.HeaderProofHandler) {
-	if check.IfNilReflect(headerProof) {
+	if check.IfNil(headerProof) {
 		return
 	}
 	if headerProof.GetHeaderShardId() != core.MetachainShardId {

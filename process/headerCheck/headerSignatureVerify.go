@@ -141,7 +141,7 @@ func isIndexInBitmap(index uint16, bitmap []byte) error {
 }
 
 func (hsv *HeaderSigVerifier) getConsensusSignersForEquivalentProofs(proof data.HeaderProofHandler) ([][]byte, error) {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return nil, process.ErrNilHeaderProof
 	}
 	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proof.GetHeaderEpoch()) {
@@ -255,7 +255,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 	if hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return hsv.VerifyHeaderWithProof(header)
 	}
-	if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
+	if prevProof := header.GetPreviousProof(); !check.IfNil(prevProof) {
 		return ErrProofNotExpected
 	}
 
@@ -276,7 +276,7 @@ func (hsv *HeaderSigVerifier) VerifySignature(header data.HeaderHandler) error {
 
 func verifyPrevProofForHeaderIntegrity(header data.HeaderHandler) error {
 	prevProof := header.GetPreviousProof()
-	if check.IfNilReflect(prevProof) {
+	if check.IfNil(prevProof) {
 		return process.ErrNilHeaderProof
 	}
 
@@ -322,7 +322,7 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) error {
 	// first block for transition to equivalent proofs consensus does not have a previous proof
 	if !common.ShouldBlockHavePrevProof(header, hsv.enableEpochsHandler, common.EquivalentMessagesFlag) {
-		if prevProof := header.GetPreviousProof(); !check.IfNilReflect(prevProof) {
+		if prevProof := header.GetPreviousProof(); !check.IfNil(prevProof) {
 			return ErrProofNotExpected
 		}
 		return nil
@@ -381,7 +381,7 @@ func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderPro
 }
 
 func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderProofHandler) error {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return process.ErrNilHeaderProof
 	}
 	header, err := hsv.getHeaderForProofAtTransition(proof)
@@ -411,7 +411,7 @@ func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderPro
 
 // VerifyHeaderProof checks if the proof is correct for the header
 func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHandler) error {
-	if check.IfNilReflect(proofHandler) {
+	if check.IfNil(proofHandler) {
 		return process.ErrNilHeaderProof
 	}
 	if !hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, proofHandler.GetHeaderEpoch()) {

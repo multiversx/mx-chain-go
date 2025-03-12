@@ -126,7 +126,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 }
 
 func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
-	if check.IfNilReflect(proof) {
+	if check.IfNil(proof) {
 		return
 	}
 

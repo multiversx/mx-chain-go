@@ -324,7 +324,7 @@ func (wrk *Worker) RemoveAllReceivedHeaderHandlers() {
 
 // ReceivedProof process the received proof, calling each received proof handler registered in worker instance
 func (wrk *Worker) ReceivedProof(proofHandler consensus.ProofHandler) {
-	if check.IfNilReflect(proofHandler) {
+	if check.IfNil(proofHandler) {
 		log.Trace("ReceivedProof: nil proof handler")
 		return
 	}
@@ -565,7 +565,7 @@ func (wrk *Worker) checkHeaderPreviousProof(header data.HeaderHandler) error {
 		return fmt.Errorf("%w : received header on consensus topic after equivalent messages activation", ErrConsensusMessageNotExpected)
 	}
 
-	if !check.IfNilReflect(header.GetPreviousProof()) {
+	if !check.IfNil(header.GetPreviousProof()) {
 		return fmt.Errorf("%w : received header from consensus topic has previous proof", ErrHeaderProofNotExpected)
 	}
 
