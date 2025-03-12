@@ -156,6 +156,61 @@ func TestNewHeaderSigVerifier_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewHeaderSigVerifier_NilMultiSigContainerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.MultiSigContainer = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilMultiSignerContainer, err)
+}
+
+func TestNewHeaderSigVerifier_NilFallbackHeaderValidatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.FallbackHeaderValidator = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilFallbackHeaderValidator, err)
+}
+
+func TestNewHeaderSigVerifier_NilHeadersPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.HeadersPool = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilHeadersDataPool, err)
+}
+
+func TestNewHeaderSigVerifier_NilProofsPoolShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.ProofsPool = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilProofsPool, err)
+}
+
+func TestNewHeaderSigVerifier_NilStorageServiceShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createHeaderSigVerifierArgs()
+	args.StorageService = nil
+	hdrSigVerifier, err := NewHeaderSigVerifier(args)
+
+	require.Nil(t, hdrSigVerifier)
+	require.Equal(t, process.ErrNilStorageService, err)
+}
+
 func TestNewHeaderSigVerifier_OkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1006,7 +1061,48 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{})
 		require.Equal(t, expectedErr, err)
 	})
+	t.Run("getConsensusSignersForEquivalentProofs error should error", func(t *testing.T) {
+		t.Parallel()
 
+		headerHash := []byte("header hash")
+		wasVerifyAggregatedSigCalled := false
+		args := createHeaderSigVerifierArgs()
+		args.HeadersPool = &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return getFilledHeader(), nil
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.FixedOrderInConsensusFlag || flag == common.EquivalentMessagesFlag
+			},
+		}
+		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+				return &cryptoMocks.MultiSignerStub{
+					VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+						wasVerifyAggregatedSigCalled = true
+						return nil
+					},
+				}, nil
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+		hdrSigVerifier, err := NewHeaderSigVerifier(args)
+		require.NoError(t, err)
+
+		err = hdrSigVerifier.VerifyHeaderProof(&dataBlock.HeaderProof{
+			PubKeysBitmap:       []byte{0x3},
+			AggregatedSignature: make([]byte, 10),
+			HeaderHash:          headerHash,
+		})
+		require.Equal(t, expectedErr, err)
+		require.False(t, wasVerifyAggregatedSigCalled)
+	})
 	t.Run("should try multiple times to get header if not available", func(t *testing.T) {
 		t.Parallel()
 
@@ -1100,5 +1196,379 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		})
 		require.NoError(t, err)
 		require.True(t, wasVerifyAggregatedSigCalled)
+	})
+}
+
+func TestHeaderSigVerifier_VerifyHeaderWithProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("proof not expected should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		hdr := &testscommon.HeaderHandlerStub{
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{}
+			},
+		}
+		err := hdrSigVerifier.VerifyHeaderWithProof(hdr)
+		require.Equal(t, ErrProofNotExpected, err)
+	})
+	t.Run("should return nil before activation", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{})
+		require.NoError(t, err)
+	})
+	t.Run("nil prev proof should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+		})
+		require.Equal(t, process.ErrNilHeaderProof, err)
+	})
+	t.Run("different shard on prev proof should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{
+					HeaderShardId: 1,
+				}
+			},
+		})
+		require.Equal(t, ErrProofShardMismatch, err)
+	})
+	t.Run("different hash on prev proof should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("header hash")
+			},
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{
+					HeaderHash:    []byte("proof header hash"),
+					HeaderShardId: 0,
+				}
+			},
+		})
+		require.Equal(t, ErrProofHeaderHashMismatch, err)
+	})
+	t.Run("verifyHeaderProofAtTransition error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.StorageService = &testscommonStorage.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, expectedErr
+			},
+		}
+		wasAddProofCalled := false
+		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
+			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+				wasAddProofCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("header hash")
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{
+					IsStartOfEpoch: true,
+					HeaderShardId:  0,
+					HeaderHash:     []byte("header hash"),
+				}
+			},
+		})
+		require.Equal(t, expectedErr, err)
+		require.False(t, wasAddProofCalled)
+	})
+	t.Run("transition header should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error) {
+				return "", []string{"pk1"}, nil
+			},
+		}
+		wasAddProofCalled := false
+		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
+			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+				wasAddProofCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("header hash")
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{
+					IsStartOfEpoch:      true,
+					HeaderShardId:       0,
+					HeaderHash:          []byte("header hash"),
+					PubKeysBitmap:       []byte{1},
+					AggregatedSignature: []byte{1},
+				}
+			},
+		})
+		require.NoError(t, err)
+		require.True(t, wasAddProofCalled)
+	})
+	t.Run("should add previous proof if prevProof is valid but verify block fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+		wasAddProofCalled := false
+		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
+			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+				wasAddProofCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("header hash")
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{
+					HeaderShardId:       0,
+					HeaderHash:          []byte("header hash"),
+					PubKeysBitmap:       []byte{1},
+					AggregatedSignature: []byte{1},
+				}
+			},
+		})
+		require.Equal(t, expectedErr, err)
+		require.False(t, wasAddProofCalled)
+	})
+	t.Run("non-transition header should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return []string{"pk1"}, nil
+			},
+		}
+		wasAddProofCalled := false
+		args.ProofsPool = &dataRetrieverMocks.ProofsPoolMock{
+			AddProofCalled: func(headerProof data.HeaderProofHandler) bool {
+				wasAddProofCalled = true
+				return true
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		err := hdrSigVerifier.VerifyHeaderWithProof(&testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 2 // bypass ShouldBlockHavePrevProof
+			},
+			GetPrevHashCalled: func() []byte {
+				return []byte("header hash")
+			},
+			GetShardIDCalled: func() uint32 {
+				return 0
+			},
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &dataBlock.HeaderProof{
+					HeaderShardId:       0,
+					HeaderHash:          []byte("header hash"),
+					PubKeysBitmap:       []byte{1},
+					AggregatedSignature: []byte{1},
+				}
+			},
+		})
+		require.NoError(t, err)
+		require.True(t, wasAddProofCalled)
+	})
+}
+
+func TestHeaderSigVerifier_getConsensusSignersForEquivalentProofs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil proof should error", func(t *testing.T) {
+		t.Parallel()
+
+		hdrSigVerifier, _ := NewHeaderSigVerifier(createHeaderSigVerifierArgs())
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(nil)
+		require.Nil(t, signers)
+		require.Equal(t, process.ErrNilHeaderProof, err)
+	})
+	t.Run("flag not active should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{})
+		require.Nil(t, signers)
+		require.Equal(t, process.ErrUnexpectedHeaderProof, err)
+	})
+	t.Run("nodesCoordinator error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return nil, expectedErr
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{
+			IsStartOfEpoch: true, // for coverage only
+			HeaderEpoch:    1,
+		})
+		require.Nil(t, signers)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("invalid consensus bitmap error should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createHeaderSigVerifierArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+		args.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
+			GetAllEligibleValidatorsPublicKeysForShardCalled: func(epoch uint32, shardID uint32) ([]string, error) {
+				return []string{"pk1", "pk2", "pk3", "pk4", "pk5", "pk6", "pk7", "pk8"}, nil
+			},
+		}
+		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
+		require.NotNil(t, hdrSigVerifier)
+
+		signers, err := hdrSigVerifier.getConsensusSignersForEquivalentProofs(&dataBlock.HeaderProof{
+			PubKeysBitmap: []byte{1, 1},
+		})
+		require.Nil(t, signers)
+		require.Equal(t, common.ErrWrongSizeBitmap, err)
 	})
 }

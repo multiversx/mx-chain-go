@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDefaultBlockHeaderArgument() *ArgInterceptedBlockHeader {
@@ -131,6 +132,28 @@ func TestCheckBlockHeaderArgument_NilShardCoordinatorShouldErr(t *testing.T) {
 	err := checkBlockHeaderArgument(arg)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
+}
+
+func TestCheckBlockHeaderArgument_NilHeaderIntegrityVerifierShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.HeaderIntegrityVerifier = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilHeaderIntegrityVerifier, err)
+}
+
+func TestCheckBlockHeaderArgument_NilEpochStartTriggerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultBlockHeaderArgument()
+	arg.EpochStartTrigger = nil
+
+	err := checkBlockHeaderArgument(arg)
+
+	assert.Equal(t, process.ErrNilEpochStartTrigger, err)
 }
 
 func TestCheckBlockHeaderArgument_NilValidityAttesterShouldErr(t *testing.T) {
@@ -309,10 +332,31 @@ func TestCheckHeaderHandler_NilPrevRandSeedErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilPrevRandSeed, err)
 }
 
+func TestCheckHeaderHandler_InvalidProof(t *testing.T) {
+	t.Parallel()
+
+	hdr := createDefaultHeaderHandler()
+	hdr.GetPreviousProofCalled = func() data.HeaderProofHandler {
+		return nil
+	}
+	hdr.GetNonceCalled = func() uint64 {
+		return 2
+	}
+
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+
+	err := checkHeaderHandler(hdr, eeh)
+
+	assert.Equal(t, process.ErrMissingPrevHeaderProof, err)
+}
+
 func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
 	hdr := createDefaultHeaderHandler()
 	hdr.CheckFieldsForNilCalled = func() error {
 		return expectedErr
@@ -742,4 +786,58 @@ func TestCheckMiniBlocksHeaders_OkValsShouldWork(t *testing.T) {
 	err := checkMiniBlocksHeaders([]data.MiniBlockHeaderHandler{&miniblockHeader}, shardCoordinator)
 
 	assert.Nil(t, err)
+}
+
+func Test_CheckProofIntegrity(t *testing.T) {
+	t.Parallel()
+
+	eeh := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	headerWithNoPrevProof := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 2
+		},
+	}
+	err := checkProofIntegrity(headerWithNoPrevProof, eeh)
+	require.Equal(t, process.ErrMissingPrevHeaderProof, err)
+
+	headerWithUnexpectedPrevProof := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 1
+		},
+		GetPreviousProofCalled: func() data.HeaderProofHandler {
+			return &block.HeaderProof{}
+		},
+	}
+	err = checkProofIntegrity(headerWithUnexpectedPrevProof, eeh)
+	require.Equal(t, process.ErrUnexpectedHeaderProof, err)
+
+	headerWithIncompletePrevProof := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 2
+		},
+		GetPreviousProofCalled: func() data.HeaderProofHandler {
+			return &block.HeaderProof{}
+		},
+	}
+	err = checkProofIntegrity(headerWithIncompletePrevProof, eeh)
+	require.Equal(t, process.ErrInvalidHeaderProof, err)
+
+	headerWithPrevProofOk := &testscommon.HeaderHandlerStub{
+		GetNonceCalled: func() uint64 {
+			return 2
+		},
+		GetPreviousProofCalled: func() data.HeaderProofHandler {
+			return &block.HeaderProof{
+				AggregatedSignature: []byte("sig"),
+				PubKeysBitmap:       []byte("bitmap"),
+				HeaderHash:          []byte("hash"),
+			}
+		},
+	}
+	err = checkProofIntegrity(headerWithPrevProofOk, eeh)
+	require.NoError(t, err)
 }
