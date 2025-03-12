@@ -411,6 +411,11 @@ func (inf *initialNodeFacade) GetTransactionsPoolForSender(_, _ string) (*common
 	return nil, errNodeStarting
 }
 
+// BuildTransactionsPPUHistogram returns nil and error
+func (inf *initialNodeFacade) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	return nil, errNodeStarting
+}
+
 // GetGasConfigs return a nil map and error
 func (inf *initialNodeFacade) GetGasConfigs() (map[string]map[string]uint64, error) {
 	return nil, errNodeStarting

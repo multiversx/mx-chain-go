@@ -219,6 +219,9 @@
         # /transaction/pool?by-sender=erd1...&nonce-gaps=true will return all nonce gaps for the sender from the pool, if applicable
         { Name = "/pool", Open = true },
 
+        # /pool/ppu-histogram will return the PPU histogram for transactions in the pool
+        { Name = "/pool/ppu-histogram", Open = true },
+
         # /transaction/:txhash will return the transaction in JSON format based on its hash
         { Name = "/:txhash", Open = true },
 

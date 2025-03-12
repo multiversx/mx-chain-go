@@ -334,6 +334,11 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
 }
 
+// BuildTransactionsPPUHistogram will build and return the transactions PPU histogram
+func (nf *nodeFacade) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	return nf.apiResolver.BuildTransactionsPPUHistogram()
+}
+
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume
 func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error) {
 	return nf.apiResolver.ComputeTransactionGasLimit(tx)
