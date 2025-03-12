@@ -527,10 +527,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 	if err != nil {
 		return err
 	}
-
-	log.Trace("accountsDB.RemoveAccount",
-		"address", hex.EncodeToString(address),
-	)
+	log.Trace("accountsDB.RemoveAccount", "address", address)
 
 	adb.mainTrie.Delete(address)
 	return nil
