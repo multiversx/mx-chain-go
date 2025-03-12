@@ -224,14 +224,15 @@ Response example:
 
 ```
 {
-    "data": {
-        "histogram": {
-            "bins": [
-              { "from": ..., "to": ..., "gas": ... }   
-            ]
-        }
-    },
-    "error": "",
-    "code": "successful"
+  "data": {
+    "histogram": {
+      "bins": [
+        { "from": ..., "to": ..., "gas": ... },
+        ...
+      ]
+    }
+  },
+  "error": "",
+  "code": "successful"
 }
 ```
