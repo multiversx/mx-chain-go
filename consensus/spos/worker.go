@@ -491,6 +491,9 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 }
 
 func (wrk *Worker) shouldBlacklistPeer(err error) bool {
+	isFlagActive := wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
+	isDuplicatedInvalidSignersErr := errors.Is(err, ErrInvalidSignersAlreadyReceived)
+	isDuplicatedInvalidSignersErrAfterFlag := isFlagActive && isDuplicatedInvalidSignersErr
 	if err == nil ||
 		errors.Is(err, ErrMessageForPastRound) ||
 		errors.Is(err, ErrMessageForFutureRound) ||
@@ -500,7 +503,7 @@ func (wrk *Worker) shouldBlacklistPeer(err error) bool {
 		errors.Is(err, nodesCoordinator.ErrEpochNodesConfigDoesNotExist) ||
 		errors.Is(err, ErrMessageTypeLimitReached) ||
 		errors.Is(err, ErrEquivalentMessageAlreadyReceived) ||
-		errors.Is(err, ErrInvalidSignersAlreadyReceived) {
+		isDuplicatedInvalidSignersErrAfterFlag {
 		return false
 	}
 
@@ -576,7 +579,10 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 }
 
 func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) error {
-	// No need to guard this method by verification of common.EquivalentMessagesFlag as invalidSignersCache will have entries only for consensus v2
+	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		return nil
+	}
+
 	invalidSignersHash := wrk.hasher.Compute(string(cnsMsg.InvalidSigners))
 	if wrk.invalidSignersCache.HasInvalidSigners(string(invalidSignersHash)) {
 		// return error here to avoid further broadcast of this message

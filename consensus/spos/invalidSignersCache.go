@@ -3,14 +3,13 @@ package spos
 import "sync"
 
 type invalidSignersCache struct {
-	sync.RWMutex
-	invalidSignersMap map[string]struct{}
+	invalidSignersMap *sync.Map
 }
 
 // NewInvalidSignersCache returns a new instance of invalidSignersCache
 func NewInvalidSignersCache() *invalidSignersCache {
 	return &invalidSignersCache{
-		invalidSignersMap: make(map[string]struct{}),
+		invalidSignersMap: &sync.Map{},
 	}
 }
 
@@ -20,27 +19,18 @@ func (cache *invalidSignersCache) AddInvalidSigners(hash string) {
 		return
 	}
 
-	cache.Lock()
-	defer cache.Unlock()
-
-	cache.invalidSignersMap[hash] = struct{}{}
+	cache.invalidSignersMap.Store(hash, struct{}{})
 }
 
-// HasInvalidSigners check whether the provided hash exists in int internal map or not
+// HasInvalidSigners check whether the provided hash exists in the internal map or not
 func (cache *invalidSignersCache) HasInvalidSigners(hash string) bool {
-	cache.RLock()
-	defer cache.RUnlock()
-
-	_, has := cache.invalidSignersMap[hash]
+	_, has := cache.invalidSignersMap.Load(hash)
 	return has
 }
 
 // Reset clears the internal map
 func (cache *invalidSignersCache) Reset() {
-	cache.Lock()
-	defer cache.Unlock()
-
-	cache.invalidSignersMap = make(map[string]struct{})
+	cache.invalidSignersMap = &sync.Map{}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

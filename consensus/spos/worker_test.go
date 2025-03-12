@@ -2033,6 +2033,11 @@ func TestWorker_ProcessReceivedMessageWithInvalidSigners(t *testing.T) {
 			require.Fail(t, "should have not been called")
 		},
 	}
+	workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	}
 	wrk, _ := spos.NewWorker(workerArgs)
 	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
 
