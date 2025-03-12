@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -184,6 +185,10 @@ func (st *sovereignTrigger) checkIfTriggerCanBeActivated(hdr data.HeaderHandler)
 
 	st.epochStartNotifier.NotifyAllPrepare(hdr, blockBody)
 	return true
+}
+
+// ForceEpochStart does nothing
+func (st *sovereignTrigger) ForceEpochStart(_ uint64) {
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

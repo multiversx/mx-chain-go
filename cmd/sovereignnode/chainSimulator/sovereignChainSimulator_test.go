@@ -122,8 +122,9 @@ func TestSovereignSimulator_TriggerChangeOfEpoch(t *testing.T) {
 				HasValue: true,
 				Value:    20,
 			},
-			ApiInterface:     api.NewNoApiInterface(),
-			MinNodesPerShard: 1,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         10,
+			NumNodesWaitingListShard: 10,
 		},
 	})
 	require.Nil(t, err)
