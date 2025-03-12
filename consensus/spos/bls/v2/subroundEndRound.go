@@ -150,13 +150,12 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	invalidSignersHash := sr.Hasher().Compute(string(cnsDta.InvalidSigners))
 	invalidSignersCache := sr.InvalidSignersCache()
-	if invalidSignersCache.HasInvalidSigners(string(invalidSignersHash)) {
+	if invalidSignersCache.HasInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners) {
 		return false
 	}
 
-	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
+	invalidSignersPubKeys, err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
 		return false
@@ -164,7 +163,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 
 	log.Debug("step 3: invalid signers info has been evaluated")
 
-	invalidSignersCache.AddInvalidSigners(string(invalidSignersHash))
+	invalidSignersCache.AddInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners, invalidSignersPubKeys)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		messageSender,
@@ -175,32 +174,37 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	return true
 }
 
-func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) error {
+func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]string, error) {
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	pubKeys := make([]string, 0, len(messages))
 	for _, msg := range messages {
-		err = sr.verifyInvalidSigner(msg)
-		if err != nil {
-			return err
+		pubKey, errVerify := sr.verifyInvalidSigner(msg)
+		if errVerify != nil {
+			return nil, errVerify
+		}
+
+		if len(pubKey) > 0 {
+			pubKeys = append(pubKeys, pubKey)
 		}
 	}
 
-	return nil
+	return pubKeys, nil
 }
 
-func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
+func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, error) {
 	err := sr.MessageSigningHandler().Verify(msg)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	cnsMsg := &consensus.Message{}
 	err = sr.Marshalizer().Unmarshal(cnsMsg, msg.Data())
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
@@ -211,9 +215,11 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 			"error", err.Error(),
 		)
 		sr.applyBlacklistOnNode(msg.Peer())
+
+		return string(cnsMsg.PubKey), nil
 	}
 
-	return nil
+	return "", nil
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
@@ -520,7 +526,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 	}
 
 	if len(invalidSigners) > 0 {
-		sr.createAndBroadcastInvalidSigners(invalidSigners)
+		sr.createAndBroadcastInvalidSigners(invalidSigners, invalidPubKeys)
 	}
 
 	bitmap, sig, err := sr.computeAggSigOnValidNodes()
@@ -625,7 +631,7 @@ func (sr *subroundEndRound) getRandomManagedKeyProofSender() string {
 	return randManagedKey
 }
 
-func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte, invalidSignersPubKeys []string) {
 	if !sr.ShouldConsiderSelfKeyInConsensus() {
 		return
 	}
@@ -653,8 +659,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		invalidSigners,
 	)
 
-	invalidSignersHash := sr.Hasher().Compute(string(invalidSigners))
-	sr.InvalidSignersCache().AddInvalidSigners(string(invalidSignersHash))
+	sr.InvalidSignersCache().AddInvalidSigners(sr.GetData(), invalidSigners, invalidSignersPubKeys)
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {

@@ -271,8 +271,8 @@ type RoundThresholdHandler interface {
 
 // InvalidSignersCache encapsulates the methods needed for a invalid signers cache
 type InvalidSignersCache interface {
-	AddInvalidSigners(hash string)
-	HasInvalidSigners(hash string) bool
+	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
+	HasInvalidSigners(headerHash []byte, invalidSigners []byte) bool
 	Reset()
 	IsInterfaceNil() bool
 }

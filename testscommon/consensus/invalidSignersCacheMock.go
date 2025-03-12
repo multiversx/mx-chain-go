@@ -2,22 +2,22 @@ package consensus
 
 // InvalidSignersCacheMock -
 type InvalidSignersCacheMock struct {
-	AddInvalidSignersCalled func(hash string)
-	HasInvalidSignersCalled func(hash string) bool
+	AddInvalidSignersCalled func(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
+	HasInvalidSignersCalled func(headerHash []byte, invalidSigners []byte) bool
 	ResetCalled             func()
 }
 
 // AddInvalidSigners -
-func (mock *InvalidSignersCacheMock) AddInvalidSigners(hash string) {
+func (mock *InvalidSignersCacheMock) AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string) {
 	if mock.AddInvalidSignersCalled != nil {
-		mock.AddInvalidSignersCalled(hash)
+		mock.AddInvalidSignersCalled(headerHash, invalidSigners, invalidPublicKeys)
 	}
 }
 
 // HasInvalidSigners -
-func (mock *InvalidSignersCacheMock) HasInvalidSigners(hash string) bool {
+func (mock *InvalidSignersCacheMock) HasInvalidSigners(headerHash []byte, invalidSigners []byte) bool {
 	if mock.HasInvalidSignersCalled != nil {
-		return mock.HasInvalidSignersCalled(hash)
+		return mock.HasInvalidSignersCalled(headerHash, invalidSigners)
 	}
 	return false
 }

@@ -2017,7 +2017,7 @@ func TestWorker_ProcessReceivedMessageWithInvalidSigners(t *testing.T) {
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	cntHasInvalidSignersCalled := 0
 	workerArgs.InvalidSignersCache = &consensusMocks.InvalidSignersCacheMock{
-		HasInvalidSignersCalled: func(hash string) bool {
+		HasInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
 			cntHasInvalidSignersCalled++
 			return cntHasInvalidSignersCalled > 1
 		},

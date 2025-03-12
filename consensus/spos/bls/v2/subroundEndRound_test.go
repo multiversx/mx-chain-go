@@ -1507,7 +1507,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
-			HasInvalidSignersCalled: func(hash string) bool {
+			HasInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
 				return true
 			},
 		}
@@ -1551,7 +1551,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		wasAddInvalidSignersCalled := false
 		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
-			AddInvalidSignersCalled: func(hash string) {
+			AddInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string) {
 				wasAddInvalidSignersCalled = true
 			},
 		}
@@ -1581,7 +1581,6 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 
-		expectedErr := errors.New("expected err")
 		messageSigningHandler := &mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
 				return nil, expectedErr
@@ -1592,7 +1591,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		err := sr.VerifyInvalidSigners([]byte{})
+		_, err := sr.VerifyInvalidSigners([]byte{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1606,7 +1605,6 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		}}
 		invalidSignersBytes, _ := container.Marshalizer().Marshal(invalidSigners)
 
-		expectedErr := errors.New("expected err")
 		messageSigningHandler := &mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
 				require.Equal(t, invalidSignersBytes, messagesBytes)
@@ -1621,7 +1619,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		err := sr.VerifyInvalidSigners(invalidSignersBytes)
+		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1663,7 +1661,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		err := sr.VerifyInvalidSigners(invalidSignersBytes)
+		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
 		require.True(t, wasCalled)
 	})
@@ -1691,7 +1689,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-		err := sr.VerifyInvalidSigners(invalidSignersBytes)
+		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
 		require.Nil(t, err)
 	})
 }
@@ -1747,7 +1745,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 
 		wasAddInvalidSignersCalled := false
 		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
-			AddInvalidSignersCalled: func(hash string) {
+			AddInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string) {
 				wasAddInvalidSignersCalled = true
 			},
 		}
