@@ -219,3 +219,19 @@ One can access the histogram through the Node API, as follows:
 POST http://localhost:8080/transaction/pool/ppu-histogram HTTP/1.1
 Content-Type: application/json
 ```
+
+Response example:
+
+```
+{
+    "data": {
+        "histogram": {
+            "bins": [
+              { "from": ..., "to": ..., "gas": ... }   
+            ]
+        }
+    },
+    "error": "",
+    "code": "successful"
+}
+```

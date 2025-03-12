@@ -43,6 +43,7 @@ type ApiResolverStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	BuildTransactionsPPUHistogramCalled         func() (*common.TransactionsPPUHistogram, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
@@ -232,6 +233,15 @@ func (ars *ApiResolverStub) GetLastPoolNonceForSender(sender string) (uint64, er
 func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if ars.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return ars.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
+	}
+
+	return nil, nil
+}
+
+// BuildTransactionsPPUHistogram -
+func (ars *ApiResolverStub) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	if ars.BuildTransactionsPPUHistogramCalled != nil {
+		return ars.BuildTransactionsPPUHistogramCalled()
 	}
 
 	return nil, nil

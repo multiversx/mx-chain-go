@@ -83,6 +83,7 @@ type FacadeStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	BuildTransactionsPPUHistogramCalled         func() (*common.TransactionsPPUHistogram, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
 	RestApiInterfaceCalled                      func() string
 	RestAPIServerDebugModeCalled                func() bool
@@ -647,6 +648,15 @@ func (f *FacadeStub) GetLastPoolNonceForSender(sender string) (uint64, error) {
 func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if f.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return f.GetTransactionsPoolNonceGapsForSenderCalled(sender)
+	}
+
+	return nil, nil
+}
+
+// BuildTransactionsPPUHistogram -
+func (f *FacadeStub) BuildTransactionsPPUHistogram() (*common.TransactionsPPUHistogram, error) {
+	if f.BuildTransactionsPPUHistogramCalled != nil {
+		return f.BuildTransactionsPPUHistogramCalled()
 	}
 
 	return nil, nil
