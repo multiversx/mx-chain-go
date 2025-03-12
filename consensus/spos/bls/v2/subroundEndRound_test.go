@@ -1502,6 +1502,27 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
+	t.Run("invalid signers cache already has this message", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
+			HasInvalidSignersCalled: func(hash string) bool {
+				return true
+			},
+		}
+		container.SetInvalidSignersCache(invalidSignersCache)
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+			InvalidSigners:  []byte("invalidSignersData"),
+		}
+
+		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+	})
 	t.Run("invalid signers data", func(t *testing.T) {
 		t.Parallel()
 
@@ -1528,6 +1549,13 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		wasAddInvalidSignersCalled := false
+		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
+			AddInvalidSignersCalled: func(hash string) {
+				wasAddInvalidSignersCalled = true
+			},
+		}
+		container.SetInvalidSignersCache(invalidSignersCache)
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.HeaderV2{
@@ -1541,6 +1569,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
 		assert.True(t, res)
+		require.True(t, wasAddInvalidSignersCalled)
 	})
 }
 
@@ -1704,17 +1733,25 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 
 		expectedInvalidSigners := []byte("invalid signers")
 
-		wasCalled := false
+		wasBroadcastConsensusMessageCalled := false
 		container := consensusMocks.InitConsensusCore()
 		messenger := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
-				wasCalled = true
+				wasBroadcastConsensusMessageCalled = true
 				wg.Done()
 				return nil
 			},
 		}
 		container.SetBroadcastMessenger(messenger)
+
+		wasAddInvalidSignersCalled := false
+		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
+			AddInvalidSignersCalled: func(hash string) {
+				wasAddInvalidSignersCalled = true
+			},
+		}
+		container.SetInvalidSignersCache(invalidSignersCache)
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetSelfPubKey("A")
 
@@ -1722,7 +1759,8 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 
 		wg.Wait()
 
-		require.True(t, wasCalled)
+		require.True(t, wasBroadcastConsensusMessageCalled)
+		require.True(t, wasAddInvalidSignersCalled)
 	})
 }
 

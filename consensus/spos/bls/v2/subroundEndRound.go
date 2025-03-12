@@ -150,6 +150,12 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
+	invalidSignersHash := sr.Hasher().Compute(string(cnsDta.InvalidSigners))
+	invalidSignersCache := sr.InvalidSignersCache()
+	if invalidSignersCache.HasInvalidSigners(string(invalidSignersHash)) {
+		return false
+	}
+
 	err := sr.verifyInvalidSigners(cnsDta.InvalidSigners)
 	if err != nil {
 		log.Trace("receivedInvalidSignersInfo.verifyInvalidSigners", "error", err.Error())
@@ -157,6 +163,8 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	}
 
 	log.Debug("step 3: invalid signers info has been evaluated")
+
+	invalidSignersCache.AddInvalidSigners(string(invalidSignersHash))
 
 	sr.PeerHonestyHandler().ChangeScore(
 		messageSender,
@@ -501,24 +509,23 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail() ([]byte, []byte, 
 	invalidPubKeys, err := sr.verifyNodesOnAggSigFail(ctx)
 	cancel()
 	if err != nil {
-		log.Debug("doEndRoundJobByNode.verifyNodesOnAggSigFail", "error", err.Error())
+		log.Debug("handleInvalidSignersOnAggSigFail.verifyNodesOnAggSigFail", "error", err.Error())
 		return nil, nil, err
 	}
 
-	_, err = sr.getFullMessagesForInvalidSigners(invalidPubKeys)
+	invalidSigners, err := sr.getFullMessagesForInvalidSigners(invalidPubKeys)
 	if err != nil {
-		log.Debug("doEndRoundJobByNode.getFullMessagesForInvalidSigners", "error", err.Error())
+		log.Debug("handleInvalidSignersOnAggSigFail.getFullMessagesForInvalidSigners", "error", err.Error())
 		return nil, nil, err
 	}
 
-	// TODO: handle invalid signers broadcast without flooding the network
-	// if len(invalidSigners) > 0 {
-	// 	sr.createAndBroadcastInvalidSigners(invalidSigners)
-	// }
+	if len(invalidSigners) > 0 {
+		sr.createAndBroadcastInvalidSigners(invalidSigners)
+	}
 
 	bitmap, sig, err := sr.computeAggSigOnValidNodes()
 	if err != nil {
-		log.Debug("doEndRoundJobByNode.computeAggSigOnValidNodes", "error", err.Error())
+		log.Debug("handleInvalidSignersOnAggSigFail.computeAggSigOnValidNodes", "error", err.Error())
 		return nil, nil, err
 	}
 
@@ -645,6 +652,9 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		sr.GetAssociatedPid([]byte(sender)),
 		invalidSigners,
 	)
+
+	invalidSignersHash := sr.Hasher().Compute(string(invalidSigners))
+	sr.InvalidSignersCache().AddInvalidSigners(string(invalidSignersHash))
 
 	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {

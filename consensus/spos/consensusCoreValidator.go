@@ -88,6 +88,9 @@ func ValidateConsensusCore(container ConsensusCoreHandler) error {
 	if check.IfNil(container.EpochStartRegistrationHandler()) {
 		return ErrNilEpochStartNotifier
 	}
+	if check.IfNil(container.InvalidSignersCache()) {
+		return ErrNilInvalidSignersCache
+	}
 
 	return nil
 }

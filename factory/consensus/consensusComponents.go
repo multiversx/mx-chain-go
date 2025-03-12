@@ -180,6 +180,8 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	invalidSignersCache := spos.NewInvalidSignersCache()
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:         consensusService,
 		BlockChain:               ccf.dataComponents.Blockchain(),
@@ -207,6 +209,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
+		InvalidSignersCache:      invalidSignersCache,
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)
@@ -257,6 +260,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
+		InvalidSignersCache:           invalidSignersCache,
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
