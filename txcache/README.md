@@ -1,17 +1,17 @@
-## Mempool
+# Mempool
 
-### Glossary
+## Glossary
 
 1. **selection session:** an ephemeral session during which the mempool selects transactions for a proposer. A session starts when a proposer asks the mempool for transactions and ends when the mempool returns the transactions. The most important part of a session is the _selection loop_.
 2. **transaction PPU:** the price per unit of computation, for a transaction. It's computed as `initiallyPaidFee / gasLimit`.
 3. **initially paid transaction fee:** the fee for processing a transaction, as known before its actual processing. That is, without knowing the _refund_ component.
 
-### Configuration
+## Configuration
 
 1. **SelectTransactions::gasRequested:** `10_000_000_000`, the maximum total gas limit of the transactions to be returned to a proposer (one _selection session_). This value is provided by the Protocol.
 2. **SelectTransactions::maxNum:** `30_000`, the maximum number of transactions to be returned to a proposer (one _selection session_). This value is provided by the Protocol.
 
-### Transactions selection
+## Transactions selection
 
 ### Paragraph 1
 
@@ -208,3 +208,14 @@ Transactions from the same sender are organized based on specific rules to ensur
 2. **Gas price descending (same nonce)**: if multiple transactions share the same nonce, they are sorted by their gas prices in descending order - transactions offering higher gas prices are prioritized. This mechanism allows one to easily override a pending transaction with a higher gas price.
 
 3. **Hash ascending (same nonce and gas price)**: for transactions that have identical nonce and gas price, the tie is broken by sorting them based on their transaction hash in ascending order. This provides a consistent and deterministic ordering when other factors are equal. While this ordering isn't a critical aspect of the mempool's operation, it ensures logical consistency.
+
+## PPU histogram
+
+The mempool is able to provide a histogram of the PPU values of the transactions it holds. This histogram is useful for downstream network components, such as the gas price recommender (gas price station).
+
+One can access the histogram through the Node API, as follows:
+
+```
+POST http://localhost:8080/transaction/pool/ppu-histogram HTTP/1.1
+Content-Type: application/json
+```
