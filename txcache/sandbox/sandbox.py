@@ -21,7 +21,7 @@ FASTER_BUCKET_INDEX = 0
 
 
 class MempoolTransaction:
-    def __init__(self, hash: str, sender: str, sender_shard: int, nonce: int, data: str, gas_price: int, gas_limit: int):
+    def __init__(self, hash: str, sender: str, sender_shard: int, nonce: int, data: str, gas_price: int, gas_limit: int, function: str):
         self.hash = hash
         self.sender = sender
         self.sender_shard = sender_shard
@@ -29,6 +29,7 @@ class MempoolTransaction:
         self.data = data
         self.gas_price = gas_price
         self.gas_limit = gas_limit
+        self.function = function
 
         data_cost = MIN_GAS_LIMIT + len(data) * GAS_LIMIT_PER_BYTE
         execution_cost = gas_limit - data_cost
@@ -45,8 +46,9 @@ class MempoolTransaction:
         data = base64.b64decode(record["data"]).decode("utf-8") if "data" in record else ""
         gas_price = record["gasPrice"]
         gas_limit = record["gasLimit"]
+        function = record.get("function", "")
 
-        return cls(hash, sender, sender_shard, nonce, data, gas_price, gas_limit)
+        return cls(hash, sender, sender_shard, nonce, data, gas_price, gas_limit, function)
 
     def takes_precedence_over(self, other_transaction: "MempoolTransaction") -> bool:
         if self.sender == other_transaction.sender:
@@ -152,7 +154,7 @@ def get_all_mempool_transactions() -> list[MempoolTransaction]:
 def get_mempool_transactions_page(from_index: int, size: int) -> list[MempoolTransaction]:
     print(f"Getting transactions from index {from_index} to {from_index + size}")
 
-    url = f"{MEMPOOL_URL}?from={from_index}&size={size}&type=Transaction&fields=txHash,sender,senderShard,nonce,data,gasPrice,gasLimit"
+    url = f"{MEMPOOL_URL}?from={from_index}&size={size}&type=Transaction"
     response = requests.get(url)
     records = response.json()
     transactions = [MempoolTransaction.from_record(record) for record in records]
@@ -169,7 +171,7 @@ def sort_transactions(transactions: list[MempoolTransaction]) -> list[MempoolTra
     sorted_transactions: list[MempoolTransaction] = [heapq.heappop(transactions_heap) for _ in range(len(transactions_heap))]
 
     for transaction in sorted_transactions:
-        print(f"\t{transaction.sender}, nonce = {transaction.nonce}, ppu = { transaction.ppu:_}")
+        print(f"\t{transaction.sender}, nonce = {transaction.nonce}, ppu = {transaction.ppu:_}, gas_limit = {transaction.gas_limit:_}, gas_price = {transaction.gas_price:_}, fn = {transaction.function}")
 
     return sorted_transactions
 
@@ -188,9 +190,12 @@ def distribute_transactions_into_gas_buckets(transactions: list[MempoolTransacti
     # Don't forget to collect the last (could also be the first) bucket!
     buckets.append(current_gas_bucket)
 
+    print("-" * 10)
+    print("Number of buckets:", len(buckets))
+
     for bucket in buckets:
-        print(f"Bucket {bucket.index}, { bucket.gas_accumulated:_} gas, {bucket.num_transactions} txs")
-        print(f"\t{bucket.ppu_begin:_} .. {bucket.ppu_end:_}")
+        print(f"Bucket {bucket.index}, gas = {bucket.gas_accumulated:_}, num_txs = {bucket.num_transactions}")
+        print(f"\tppu: {bucket.ppu_begin:_} .. {bucket.ppu_end:_}")
 
     return buckets
 
