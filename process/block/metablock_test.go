@@ -42,8 +42,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
-var expectedErr = errors.New("expected error")
-
 func createMockComponentHolders() (
 	*mock.CoreComponentsMock,
 	*mock.DataComponentsMock,
