@@ -186,10 +186,10 @@ func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, eligibleNodes uint32, wai
 
 // SetQuickJailRatingConfig will set the rating config in a way that leads to rapid jailing of a node
 func SetQuickJailRatingConfig(cfg *config.Configs) {
-	cfg.RatingsConfig.ShardChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-	cfg.RatingsConfig.ShardChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
-	cfg.RatingsConfig.MetaChain.RatingSteps.ConsecutiveMissedBlocksPenalty = 100
-	cfg.RatingsConfig.MetaChain.RatingSteps.HoursToMaxRatingFromStartRating = 1
+	cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty = 100
+	cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating = 1
+	cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty = 100
+	cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating = 1
 }
 
 // SetStakingV4ActivationEpochs configures activation epochs for Staking V4.

@@ -28,19 +28,30 @@
         { MaxThreshold = 10000000,ChancePercent = 24},
     ]
 
-[ShardChain.RatingSteps]
-    HoursToMaxRatingFromStartRating = 72
-    ProposerValidatorImportance = 1.0
-    ProposerDecreaseFactor = -4.0
-    ValidatorDecreaseFactor = -4.0
-    ConsecutiveMissedBlocksPenalty = 1.50
+[ShardChain]
+    [[ShardChain.RatingStepsByEpoch]]
+        HoursToMaxRatingFromStartRating = 72
+        ProposerValidatorImportance = 1.0
+        ProposerDecreaseFactor = -4.0
+        ValidatorDecreaseFactor = -4.0
+        ConsecutiveMissedBlocksPenalty = 1.50
+        EnableEpoch = 0
+    [[ShardChain.RatingStepsByEpoch]]
+        HoursToMaxRatingFromStartRating = 55
+        ProposerValidatorImportance = 1.0
+        ProposerDecreaseFactor = -4.0
+        ValidatorDecreaseFactor = -4.0
+        ConsecutiveMissedBlocksPenalty = 1.50
+        EnableEpoch = 8
 
-[MetaChain.RatingSteps]
-    HoursToMaxRatingFromStartRating = 55
-    ProposerValidatorImportance = 1.0
-    ProposerDecreaseFactor = -4.0
-    ValidatorDecreaseFactor = -4.0
-    ConsecutiveMissedBlocksPenalty = 1.50
+[MetaChain]
+    [[MetaChain.RatingStepsByEpoch]]
+        HoursToMaxRatingFromStartRating = 55
+        ProposerValidatorImportance = 1.0
+        ProposerDecreaseFactor = -4.0
+        ValidatorDecreaseFactor = -4.0
+        ConsecutiveMissedBlocksPenalty = 1.50
+        EnableEpoch = 0
 
 [PeerHonesty]
     #this value will be multiplied with the current value for a public key each DecayUpdateIntervalInSeconds seconds

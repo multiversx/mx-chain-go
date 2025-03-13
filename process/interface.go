@@ -1047,6 +1047,7 @@ type RatingsInfoHandler interface {
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
 	SelectionChances() []SelectionChance
+	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
 

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -86,13 +87,33 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, cc)
 	})
-	t.Run("SetStatusHandler fails should error", func(t *testing.T) {
+	t.Run("SetStatusHandler on economics data fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErr := errors.New("expected error")
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents())
 		coreCompStub.EconomicsDataCalled = func() process.EconomicsDataHandler {
 			return &economicsmocks.EconomicsHandlerStub{
+				SetStatusHandlerCalled: func(statusHandler core.AppStatusHandler) error {
+					return expectedErr
+				},
+			}
+		}
+		args := componentsMock.GetStatusCoreArgs(coreCompStub)
+		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
+		require.Nil(t, err)
+
+		cc, err := sccf.Create()
+		require.Equal(t, expectedErr, err)
+		require.Nil(t, cc)
+	})
+	t.Run("SetStatusHandler on ratings data fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("expected error")
+		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents())
+		coreCompStub.RatingsDataCalled = func() process.RatingsInfoHandler {
+			return &testscommon.RatingsInfoMock{
 				SetStatusHandlerCalled: func(statusHandler core.AppStatusHandler) error {
 					return expectedErr
 				},
