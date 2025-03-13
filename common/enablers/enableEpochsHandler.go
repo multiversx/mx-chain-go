@@ -786,6 +786,30 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
 		},
+		common.RelayedTransactionsV3FixESDTTransferFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3FixESDTTransferEnableEpoch,
+		},
+		common.MaskInternalDependenciesErrorsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MaskVMInternalDependenciesErrorsEnableEpoch,
+		},
+		common.FixBackTransferOPCODEFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixBackTransferOPCODEEnableEpoch,
+		},
+		common.ValidationOnGobDecodeFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch,
+		},
 	}
 }
 
