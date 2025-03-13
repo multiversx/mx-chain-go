@@ -291,6 +291,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		MainTrieVal:     marshalledAccount,
 		DataTrieChanges: newDataTrieValues,
 		Operation:       stateChange.SaveAccount,
+		Index:           int32(len(adb.entries)),
 	}
 
 	adb.stateChangesCollector.AddSaveAccountStateChange(oldAccount, account, sc)
@@ -432,6 +433,15 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		return err
 	}
 
+	sc := &stateChange.StateChange{
+		Type:            stateChange.Read,
+		MainTrieKey:     newCodeHash,
+		MainTrieVal:     nil,
+		Operation:       stateChange.GetCode,
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(sc)
+
 	if newCodeEntry == nil {
 		newCodeEntry = &CodeEntry{
 			Code: newCode,
@@ -444,7 +454,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		return err
 	}
 
-	sc := &stateChange.StateChange{
+	sc = &stateChange.StateChange{
 		Type:            stateChange.Write,
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -538,7 +548,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*state
 		return nil, err
 	}
 	accountHandler.SetRootHash(rootHash)
-	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes())
+	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes(), "rootHash", rootHash)
 
 	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
 		trie, ok := accountHandler.DataTrie().(common.Trie)
@@ -645,12 +655,6 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
 
-	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
-	if err != nil {
-		return err
-	}
-	adb.journalize(entry)
-
 	sc := &stateChange.StateChange{
 		Type:            stateChange.Write,
 		MainTrieKey:     baseAcc.AddressBytes(),
@@ -658,6 +662,11 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(sc)
+	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
+	if err != nil {
+		return err
+	}
+	adb.journalize(entry)
 
 	return nil
 }
@@ -1147,7 +1156,13 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 		"entry type", fmt.Sprintf("%T", entry),
 	)
 
-	_ = adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
+	err := adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
+	if err != nil {
+		log.Trace("failed to set index to last state change",
+			"num journal entries", len(adb.entries),
+			"error", err.Error(),
+		)
+	}
 
 	if len(adb.entries) == 1 {
 		adb.stackDebug = debug.Stack()

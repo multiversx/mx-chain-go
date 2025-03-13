@@ -200,7 +200,7 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 	c.stateChangesMut.Lock()
 	defer c.stateChangesMut.Unlock()
 
-	if index > len(c.stateChanges) || index < 0 {
+	if index < 0 {
 		return fmt.Errorf("SetIndexToLastStateChange: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateChanges))
 	}
 
@@ -208,15 +208,20 @@ func (c *collector) SetIndexToLastStateChange(index int) error {
 		return nil
 	}
 
-	log.Trace("set index to last state change", "index", index)
-	c.stateChanges[len(c.stateChanges)-1].SetIndex(int32(index))
+	for i := len(c.stateChanges) - 1; i >= 0; i-- {
+		if c.stateChanges[i].GetIndex() != 0 {
+			return nil
+		}
+		log.Trace("set index to last state change", "stateChange num", i, "index", index)
+		c.stateChanges[i].SetIndex(int32(index))
+	}
 
 	return nil
 }
 
 // RevertToIndex will revert to index
 func (c *collector) RevertToIndex(index int) error {
-	if index > len(c.stateChanges) || index < 0 {
+	if index < 0 {
 		return fmt.Errorf("RevertToIndex: %w for index %v, num state changes %v", state.ErrStateChangesIndexOutOfBounds, index, len(c.stateChanges))
 	}
 
@@ -231,7 +236,7 @@ func (c *collector) RevertToIndex(index int) error {
 	log.Trace("num state changes before revert", "num", len(c.stateChanges))
 	for i := len(c.stateChanges) - 1; i >= 0; i-- {
 		if c.stateChanges[i].GetIndex() == int32(index) {
-			c.stateChanges = c.stateChanges[:i]
+			c.stateChanges = c.stateChanges[:i+1]
 			log.Trace("reverted to index", "index", index, "num state changes after revert", len(c.stateChanges))
 			break
 		}
