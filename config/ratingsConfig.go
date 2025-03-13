@@ -17,12 +17,12 @@ type General struct {
 	SelectionChances      []*SelectionChance
 }
 
-// ShardChain will hold RatingStepsSettings for the Shard
+// ShardChain will hold RatingSteps for the Shard
 type ShardChain struct {
 	RatingStepsByEpoch []RatingSteps
 }
 
-// MetaChain will hold RatingStepsSettings for the Meta
+// MetaChain will hold RatingSteps for the Meta
 type MetaChain struct {
 	RatingStepsByEpoch []RatingSteps
 }
