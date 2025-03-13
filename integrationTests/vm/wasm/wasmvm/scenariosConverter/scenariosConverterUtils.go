@@ -119,7 +119,7 @@ func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTest
 	if err != nil {
 		return nil, nil, exporter.InvalidBenchmarkTxPos, err
 	}
-	testContext, err = vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err = vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	if err != nil {
 		return nil, nil, exporter.InvalidBenchmarkTxPos, err
 	}
@@ -140,7 +140,7 @@ func SetStateFromScenariosTest(scenariosTestPath string) (testContext *vm.VMTest
 func CheckConverter(t *testing.T, scenariosTestPath string) {
 	stateAndBenchmarkInfo, err := exporter.GetAccountsAndTransactionsFromScenarios(scenariosTestPath)
 	require.Nil(t, err)
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	err = CreateAccountsFromScenariosAccs(testContext, stateAndBenchmarkInfo.Accs)
 	require.Nil(t, err)

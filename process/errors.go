@@ -534,6 +534,9 @@ var ErrInvalidExtraGasLimitGuardedTx = errors.New("invalid extra gas limit for g
 // ErrInvalidMaxGasPriceSetGuardian signals that an invalid maximum gas price has been provided in the config file
 var ErrInvalidMaxGasPriceSetGuardian = errors.New("invalid maximum gas price for set guardian")
 
+// ErrInvalidMaxGasHigherFactorAccepted signals that an invalid gas factor has been provided in the config file
+var ErrInvalidMaxGasHigherFactorAccepted = errors.New("invalid gas higher factor accepted")
+
 // ErrGuardianSignatureNotExpected signals that the guardian signature is not expected
 var ErrGuardianSignatureNotExpected = errors.New("guardian signature not expected")
 
@@ -1059,9 +1062,6 @@ var ErrNilIsMaxBlockSizeReachedHandler = errors.New("nil handler for max block s
 // ErrNilTxMaxTotalCostHandler signals a nil transaction max total cost
 var ErrNilTxMaxTotalCostHandler = errors.New("nil transaction max total cost")
 
-// ErrNilAccountTxsPerShard signals a nil mapping for account transactions to shard
-var ErrNilAccountTxsPerShard = errors.New("nil account transactions per shard mapping")
-
 // ErrScheduledRootHashDoesNotMatch signals that scheduled root hash does not match
 var ErrScheduledRootHashDoesNotMatch = errors.New("scheduled root hash does not match")
 
@@ -1229,3 +1229,15 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
 // ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
 var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")
+
+// ErrRelayedTxV3Disabled signals that relayed tx v3 are disabled
+var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 are disabled")
+
+// ErrGuardedRelayerNotAllowed signals that the provided relayer is guarded
+var ErrGuardedRelayerNotAllowed = errors.New("guarded relayer not allowed")
+
+// ErrRelayedByGuardianNotAllowed signals that the provided guardian is also the relayer
+var ErrRelayedByGuardianNotAllowed = errors.New("relayed by guardian not allowed")
+
+// ErrInvalidRelayedTxV3 signals that an invalid relayed tx v3 has been provided
+var ErrInvalidRelayedTxV3 = errors.New("invalid relayed transaction")

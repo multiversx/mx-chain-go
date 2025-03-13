@@ -179,6 +179,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMinGasPrice, 1000)
 	sm.SetUInt64Value(common.MetricMinGasLimit, 50000)
 	sm.SetUInt64Value(common.MetricExtraGasLimitGuardedTx, 50000)
+	sm.SetUInt64Value(common.MetricExtraGasLimitRelayedTx, 50000)
 	sm.SetStringValue(common.MetricRewardsTopUpGradientPoint, "12345")
 	sm.SetUInt64Value(common.MetricGasPerDataByte, 1500)
 	sm.SetStringValue(common.MetricChainId, "local-id")
@@ -202,6 +203,7 @@ func TestStatusMetrics_NetworkConfig(t *testing.T) {
 		"erd_meta_consensus_group_size":     uint64(25),
 		"erd_min_gas_limit":                 uint64(50000),
 		"erd_extra_gas_limit_guarded_tx":    uint64(50000),
+		"erd_extra_gas_limit_relayed_tx":    uint64(50000),
 		"erd_min_gas_price":                 uint64(1000),
 		"erd_min_transaction_version":       uint64(2),
 		"erd_num_metachain_nodes":           uint64(50),
@@ -400,6 +402,13 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricDynamicESDTEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricEGLDInMultiTransferEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricCryptoOpcodesV2EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRelayedTransactionsV3EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMaskVMInternalDependenciesErrorsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixBackTransferOPCODEEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(4))
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -529,6 +538,13 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricDynamicESDTEnableEpoch:                                   uint64(4),
 		common.MetricEGLDInMultiTransferEnableEpoch:                           uint64(4),
 		common.MetricCryptoOpcodesV2EnableEpoch:                               uint64(4),
+		common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch:          uint64(4),
+		common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch:           uint64(4),
+		common.MetricRelayedTransactionsV3EnableEpoch:                         uint64(4),
+		common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch:          uint64(4),
+		common.MetricMaskVMInternalDependenciesErrorsEnableEpoch:              uint64(4),
+		common.MetricFixBackTransferOPCODEEnableEpoch:                         uint64(4),
+		common.MetricValidationOnGobDecodeEnableEpoch:                         uint64(4),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{

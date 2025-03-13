@@ -9,11 +9,11 @@ import (
 
 // CreateMemUnit creates a new in-memory storage unit
 func CreateMemUnit() storage.Storer {
-	capacity := uint32(10)
+	capacity := uint32(10_000_000)
 	shards := uint32(1)
 	sizeInBytes := uint64(0)
 	cache, _ := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: capacity, Shards: shards, SizeInBytes: sizeInBytes})
-	persist, _ := database.NewlruDB(100000)
+	persist, _ := database.NewlruDB(10_000_000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit

@@ -340,6 +340,9 @@ const MetricMinGasLimit = "erd_min_gas_limit"
 // MetricExtraGasLimitGuardedTx specifies the extra gas limit required for guarded transactions
 const MetricExtraGasLimitGuardedTx = "erd_extra_gas_limit_guarded_tx"
 
+// MetricExtraGasLimitRelayedTx specifies the extra gas limit required for relayed v3 transactions
+const MetricExtraGasLimitRelayedTx = "erd_extra_gas_limit_relayed_tx"
+
 // MetricRewardsTopUpGradientPoint is the metric that specifies the rewards top up gradient point
 const MetricRewardsTopUpGradientPoint = "erd_rewards_top_up_gradient_point"
 
@@ -494,6 +497,9 @@ const (
 
 	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 is enabled
 	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
+
+	// MetricFixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost is enabled
+	MetricFixRelayedBaseCostEnableEpoch = "erd_fix_relayed_base_cost_enable_epoch"
 
 	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 is applied
 	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
@@ -727,6 +733,27 @@ const (
 
 	// MetricCryptoOpcodesV2EnableEpoch represents the epoch when crypto opcodes v2 feature is enabled
 	MetricCryptoOpcodesV2EnableEpoch = "erd_crypto_opcodes_v2_enable_epoch"
+
+	// MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign opcodes are enabled
+	MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch = "erd_multi_esdt_transfer_execute_by_user_enable_epoch"
+
+	// MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non-payable sc is enabled
+	MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch = "erd_fix_relayed_move_balance_to_non_payable_sc_enable_epoch"
+
+	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 are enabled
+	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
+
+	// MetricRelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer are enabled
+	MetricRelayedTransactionsV3FixESDTTransferEnableEpoch = "erd_relayed_transactions_v3_fix_esdt_transfer_enable_epoch"
+
+	// MetricMaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
+	MetricMaskVMInternalDependenciesErrorsEnableEpoch = "erd_mask_vm_internal_dependencies_errors_enable_epoch"
+
+	// MetricFixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+	MetricFixBackTransferOPCODEEnableEpoch = "erd_fix_back_transfer_opcode_enable_epoch"
+
+	// MetricValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+	MetricValidationOnGobDecodeEnableEpoch = "erd_validation_on_gobdecode_enable_epoch"
 
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
@@ -1217,8 +1244,18 @@ const (
 	CleanupAuctionOnLowWaitingListFlag                 core.EnableEpochFlag = "CleanupAuctionOnLowWaitingListFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
+	UseGasBoundedShouldFailExecutionFlag               core.EnableEpochFlag = "UseGasBoundedShouldFailExecutionFlag"
 	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicEsdtFlag"
 	EGLDInESDTMultiTransferFlag                        core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
 	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
+	UnJailCleanupFlag                                  core.EnableEpochFlag = "UnJailCleanupFlag"
+	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
+	MultiESDTNFTTransferAndExecuteByUserFlag           core.EnableEpochFlag = "MultiESDTNFTTransferAndExecuteByUserFlag"
+	FixRelayedMoveBalanceToNonPayableSCFlag            core.EnableEpochFlag = "FixRelayedMoveBalanceToNonPayableSCFlag"
+	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	RelayedTransactionsV3FixESDTTransferFlag           core.EnableEpochFlag = "RelayedTransactionsV3FixESDTTransferFlag"
+	MaskInternalDependenciesErrorsFlag                 core.EnableEpochFlag = "MaskInternalDependenciesErrorsFlag"
+	FixBackTransferOPCODEFlag                          core.EnableEpochFlag = "FixBackTransferOPCODEFlag"
+	ValidationOnGobDecodeFlag                          core.EnableEpochFlag = "ValidationOnGobDecodeFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

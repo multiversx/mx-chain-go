@@ -18,7 +18,7 @@ func TestESDTLocalMintShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -52,7 +52,7 @@ func TestESDTLocalMintNotAllowedShouldErr(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -61,7 +61,7 @@ func TestESDTLocalMintNotAllowedShouldErr(t *testing.T) {
 	egldBalance := big.NewInt(100000000)
 	esdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, egldBalance, token, 0, esdtBalance, uint32(core.Fungible))
 
 	gasLimit := uint64(40)
 	tx := utils.CreateESDTLocalMintTx(0, sndAddr, sndAddr, token, big.NewInt(100), gasPrice, gasLimit)

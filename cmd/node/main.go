@@ -290,6 +290,7 @@ func attachFileLogger(log logger.Logger, flagsConfig *config.ContextFlagsConfig)
 	logger.ToggleCorrelation(flagsConfig.EnableLogCorrelation)
 	logger.ToggleLoggerName(flagsConfig.EnableLogName)
 	logLevelFlagValue := flagsConfig.LogLevel
+
 	err = logger.SetLogLevel(logLevelFlagValue)
 	if err != nil {
 		return nil, err

@@ -723,7 +723,7 @@ func getArgumentsShard(
 		AntifloodHandler:             &mock.P2PAntifloodHandlerStub{},
 		WhiteListHandler:             &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
-		ArgumentsParser:              &mock.ArgumentParserMock{},
+		ArgumentsParser:              &testscommon.ArgumentParserMock{},
 		PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},

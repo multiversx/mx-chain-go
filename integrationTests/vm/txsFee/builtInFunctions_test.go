@@ -32,11 +32,11 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
-		})
+		}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -73,11 +73,11 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -111,11 +111,11 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, initialOwner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, initialOwner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -152,11 +152,11 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -190,11 +190,11 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -230,11 +230,11 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -275,7 +275,7 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 		config.EnableEpochs{
 			CleanUpInformativeSCRsEnableEpoch: integrationTests.UnreachableEpoch,
 			SCProcessorV2EnableEpoch:          integrationTests.UnreachableEpoch,
-		}, shardCoord)
+		}, shardCoord, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -313,7 +313,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
 		config.EnableEpochs{
 			BackwardCompSaveKeyValueEnableEpoch: 5,
-		}, shardCoord)
+		}, shardCoord, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -356,6 +356,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.5"),
+		1,
 	)
 	require.Nil(t, err)
 	defer testContext.Close()

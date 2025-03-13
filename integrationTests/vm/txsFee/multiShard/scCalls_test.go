@@ -18,11 +18,11 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{}
 
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextDst.Close()
 
@@ -98,11 +98,11 @@ func TestScCallExecuteOnSourceAndDstShardInvalidOnDst(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
-	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextDst.Close()
 

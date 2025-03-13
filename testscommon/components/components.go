@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"math"
 	"math/big"
 	"testing"
 
@@ -257,7 +258,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
@@ -439,10 +441,25 @@ func GetProcessArgs(
 	)
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
+	err = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+	if err != nil {
+		panic(err)
+	}
 
 	return processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
@@ -687,7 +704,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 				{
 					MarshallerType:     "json",
 					Mode:               "client",
-					URL:                "localhost:12345",
+					URL:                "ws://localhost:12345",
 					RetryDurationInSec: 1,
 				},
 			},
@@ -720,9 +737,21 @@ func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.Net
 // GetDataComponents -
 func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
 	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		panic(err)
+	}
+
+	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		panic(err)
+	}
+
+	err = dataComponents.Create()
+	if err != nil {
+		panic(err)
+	}
+
 	return dataComponents
 }
 

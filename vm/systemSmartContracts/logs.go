@@ -64,12 +64,9 @@ func (d *delegation) createAndAddLogEntryForDelegate(
 		function == mergeValidatorDataToDelegation ||
 		function == changeOwner {
 		address = contractCallInput.Arguments[0]
+	}
 
-		topics = append(topics, contractCallInput.RecipientAddr)
-	}
-	if function == core.SCDeployInitFunctionName {
-		topics = append(topics, contractCallInput.RecipientAddr)
-	}
+	topics = append(topics, contractCallInput.RecipientAddr)
 
 	entry := &vmcommon.LogEntry{
 		Identifier: []byte("delegate"),

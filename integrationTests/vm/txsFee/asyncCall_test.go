@@ -33,7 +33,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -94,7 +94,7 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 		gasMap[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 199
 		gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 100000
 		gasMap[common.MaxPerTransaction]["MaxNumberOfTrieReadsPerTx"] = 100000
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -202,6 +202,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
+		1,
 	)
 	require.Nil(t, err)
 	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
@@ -211,6 +212,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
+		1,
 	)
 	require.Nil(t, err)
 
@@ -340,6 +342,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
+		1,
 	)
 	require.Nil(t, err)
 	testContextShardMeta, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
@@ -349,6 +352,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
+		1,
 	)
 	require.Nil(t, err)
 

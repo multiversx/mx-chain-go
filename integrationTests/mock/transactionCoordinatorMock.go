@@ -5,13 +5,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
 
 // TransactionCoordinatorMock -
 type TransactionCoordinatorMock struct {
-	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType)
+	ComputeTransactionTypeCalled                         func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool)
 	RequestMiniBlocksAndTransactionsCalled               func(header data.HeaderHandler)
 	RequestBlockTransactionsCalled                       func(body *block.Body)
 	IsDataPreparedForProcessingCalled                    func(haveTime func() time.Duration) error
@@ -29,7 +30,7 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
 	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
-	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
+	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
@@ -54,9 +55,9 @@ func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
 }
 
 // ComputeTransactionType -
-func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+func (tcm *TransactionCoordinatorMock) ComputeTransactionType(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
 	if tcm.ComputeTransactionTypeCalled == nil {
-		return process.MoveBalance, process.MoveBalance
+		return process.MoveBalance, process.MoveBalance, false
 	}
 
 	return tcm.ComputeTransactionTypeCalled(tx)
@@ -213,12 +214,12 @@ func (tcm *TransactionCoordinatorMock) VerifyCreatedMiniBlocks(hdr data.HeaderHa
 }
 
 // AddIntermediateTransactions -
-func (tcm *TransactionCoordinatorMock) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error {
+func (tcm *TransactionCoordinatorMock) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error {
 	if tcm.AddIntermediateTransactionsCalled == nil {
 		return nil
 	}
 
-	return tcm.AddIntermediateTransactionsCalled(mapSCRs)
+	return tcm.AddIntermediateTransactionsCalled(mapSCRs, key)
 }
 
 // GetAllIntermediateTxs -

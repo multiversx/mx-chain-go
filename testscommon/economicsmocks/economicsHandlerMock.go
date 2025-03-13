@@ -26,10 +26,12 @@ type EconomicsHandlerMock struct {
 	ComputeFeeCalled                                    func(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled                         func(tx data.TransactionWithFeeHandler) error
 	ComputeMoveBalanceFeeCalled                         func(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeMoveBalanceFeeInEpochCalled                  func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeTxFeeCalled                                  func(tx data.TransactionWithFeeHandler) *big.Int
 	DeveloperPercentageCalled                           func() float64
 	MinGasPriceCalled                                   func() uint64
 	GasPerDataByteCalled                                func() uint64
+	MaxGasHigherFactorAcceptedCalled                    func() uint64
 	RewardsTopUpGradientPointCalled                     func() *big.Int
 	RewardsTopUpFactorCalled                            func() float64
 	ComputeFeeForProcessingCalled                       func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
@@ -46,6 +48,11 @@ type EconomicsHandlerMock struct {
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+}
+
+// ComputeGasUnitsFromRefundValue -
+func (ehm *EconomicsHandlerMock) ComputeGasUnitsFromRefundValue(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) uint64 {
+	return 0
 }
 
 // LeaderPercentage -
@@ -196,7 +203,14 @@ func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFee(tx data.TransactionWithFe
 		return ehm.ComputeMoveBalanceFeeCalled(tx)
 	}
 	return big.NewInt(0)
+}
 
+// ComputeMoveBalanceFeeInEpoch -
+func (ehm *EconomicsHandlerMock) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	if ehm.ComputeMoveBalanceFeeInEpochCalled != nil {
+		return ehm.ComputeMoveBalanceFeeInEpochCalled(tx, epoch)
+	}
+	return big.NewInt(0)
 }
 
 // ComputeGasLimitBasedOnBalance -
@@ -333,6 +347,14 @@ func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.Trans
 		return ehm.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
 	}
 	return nil
+}
+
+// MaxGasHigherFactorAccepted -
+func (ehm *EconomicsHandlerMock) MaxGasHigherFactorAccepted() uint64 {
+	if ehm.MaxGasHigherFactorAcceptedCalled != nil {
+		return ehm.MaxGasHigherFactorAcceptedCalled()
+	}
+	return 10
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -41,7 +41,8 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch:                  integrationTests.UnreachableEpoch,
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextSource.Close()
 
@@ -50,7 +51,8 @@ func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch:                  integrationTests.UnreachableEpoch,
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		},
+		1)
 	require.Nil(t, err)
 	defer testContextDst.Close()
 

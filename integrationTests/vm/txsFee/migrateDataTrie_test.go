@@ -45,7 +45,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 	t.Run("deterministic trie", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier)
+		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier, 1)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -123,7 +123,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 	t.Run("random trie - all leaves are migrated in multiple transactions", func(t *testing.T) {
 		t.Parallel()
 
-		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier)
+		testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier, 1)
 		require.Nil(t, err)
 		defer testContext.Close()
 

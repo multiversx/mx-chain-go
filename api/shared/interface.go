@@ -135,6 +135,7 @@ type FacadeHandler interface {
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
+	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
 	P2PPrometheusMetricsEnabled() bool
 	IsInterfaceNil() bool
 }

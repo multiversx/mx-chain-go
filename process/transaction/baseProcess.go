@@ -29,6 +29,7 @@ type baseTxProcessor struct {
 	enableEpochsHandler common.EnableEpochsHandler
 	txVersionChecker    process.TxVersionCheckerHandler
 	guardianChecker     process.GuardianChecker
+	txTypeHandler       process.TxTypeHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -118,7 +119,17 @@ func (txProc *baseTxProcessor) checkTxValues(
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
-	err := txProc.verifyGuardian(tx, acntSnd)
+
+	if common.IsRelayedTxV3(tx) {
+		relayerAccount, err := txProc.getAccountFromAddress(tx.RelayerAddr)
+		if err != nil {
+			return err
+		}
+
+		return txProc.checkUserTxOfRelayedV3Values(tx, acntSnd, acntDst, relayerAccount)
+	}
+
+	err := txProc.VerifyGuardian(tx, acntSnd)
 	if err != nil {
 		return err
 	}
@@ -145,7 +156,8 @@ func (txProc *baseTxProcessor) checkTxValues(
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
 			return process.ErrNotEnoughGasInUserTx
 		}
-		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+
+		txFee = txProc.computeInnerTxFee(tx)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -170,6 +182,109 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) checkUserTxOfRelayedV3Values(
+	tx *transaction.Transaction,
+	senderAccount state.UserAccountHandler,
+	destinationAccount state.UserAccountHandler,
+	relayerAccount state.UserAccountHandler,
+) error {
+	err := txProc.VerifyGuardian(tx, senderAccount)
+	if err != nil {
+		return err
+	}
+	err = txProc.checkUserNames(tx, senderAccount, destinationAccount)
+	if err != nil {
+		return err
+	}
+	if check.IfNil(senderAccount) {
+		return nil
+	}
+	if senderAccount.GetNonce() < tx.Nonce {
+		return process.ErrHigherNonceInTransaction
+	}
+	if senderAccount.GetNonce() > tx.Nonce {
+		return process.ErrLowerNonceInTransaction
+	}
+	err = txProc.economicsFee.CheckValidityTxValues(tx)
+	if err != nil {
+		return err
+	}
+
+	if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
+		return process.ErrNotEnoughGas
+	}
+
+	if check.IfNil(relayerAccount) {
+		return nil
+	}
+
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
+
+	if relayerAccount.GetBalance().Cmp(txFee) < 0 {
+		return fmt.Errorf("%w, has: %s, wanted: %s",
+			process.ErrInsufficientFee,
+			relayerAccount.GetBalance().String(),
+			txFee.String(),
+		)
+	}
+
+	if senderAccount.GetBalance().Cmp(tx.Value) < 0 {
+		return process.ErrInsufficientFunds
+	}
+
+	return nil
+}
+
+func (txProc *baseTxProcessor) getFeePayer(
+	tx *transaction.Transaction,
+	senderAccount state.UserAccountHandler,
+	destinationAccount state.UserAccountHandler,
+) (state.UserAccountHandler, bool, error) {
+	if !common.IsRelayedTxV3(tx) {
+		return senderAccount, false, nil
+	}
+
+	relayerIsSender := bytes.Equal(tx.RelayerAddr, tx.SndAddr)
+	if relayerIsSender {
+		return senderAccount, true, nil // do not load the same account twice
+	}
+
+	relayerIsDestination := bytes.Equal(tx.RelayerAddr, tx.RcvAddr)
+	if relayerIsDestination {
+		return destinationAccount, true, nil // do not load the same account twice
+	}
+
+	acntRelayer, err := txProc.getAccountFromAddress(tx.RelayerAddr)
+	if err != nil {
+		return nil, true, err
+	}
+
+	return acntRelayer, true, nil
+}
+
+func (txProc *baseTxProcessor) computeInnerTxFee(tx *transaction.Transaction) *big.Int {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+		return txProc.computeInnerTxFeeAfterBaseCostFix(tx)
+	}
+
+	return txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
+}
+
+func (txProc *baseTxProcessor) computeInnerTxFeeAfterBaseCostFix(tx *transaction.Transaction) *big.Int {
+	_, dstShardTxType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
+	if dstShardTxType == process.MoveBalance {
+		return txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	}
+
+	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
+	gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
+	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(tx, gasToUse)
+	txFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
+
+	return txFee
 }
 
 func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {
@@ -263,7 +378,8 @@ func (txProc *baseTxProcessor) checkGuardedAccountUnguardedTxPermission(tx *tran
 	return nil
 }
 
-func (txProc *baseTxProcessor) verifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
+// VerifyGuardian does the guardian verification
+func (txProc *baseTxProcessor) VerifyGuardian(tx *transaction.Transaction, account state.UserAccountHandler) error {
 	if check.IfNil(account) {
 		return nil
 	}

@@ -66,6 +66,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		db,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
+		1,
 	)
 	require.Nil(tb, err)
 
@@ -92,11 +93,11 @@ func TestScCallShouldWork(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -138,7 +139,7 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -171,11 +172,11 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -208,11 +209,11 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -246,11 +247,11 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -285,13 +286,13 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -332,7 +333,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -351,7 +352,7 @@ func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
 
 	localEsdtBalance := big.NewInt(100000000)
 	token := []byte("miiutoken")
-	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, localEsdtBalance)
+	utils.CreateAccountWithESDTBalance(t, testContext.Accounts, sndAddr, senderBalance, token, 0, localEsdtBalance, uint32(core.Fungible))
 
 	txData := txDataBuilder.NewBuilder()
 	valueToSendToSc := int64(1000)
@@ -421,7 +422,7 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 		RuntimeMemStoreLimitEnableEpoch:                   unreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
-	})
+	}, 1)
 	require.Nil(tb, err)
 
 	senderBalance := big.NewInt(1000000000000000000)
@@ -460,9 +461,10 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 	t.Run("transaction that fails", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880560,
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674406338403435353035353465346235333264333433363632333133383336406533")
 		require.Nil(t, errDecode)
@@ -487,9 +489,10 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 	})
 	t.Run("transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880566, // next timestamp
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
 		require.Nil(t, errDecode)
@@ -533,9 +536,10 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 	t.Run("first transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880566, // next timestamp
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674403264403435353035353465346235333264333433363632333133383336403337")
 		require.Nil(t, errDecode)
@@ -560,9 +564,10 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 	})
 	t.Run("second transaction that succeed", func(t *testing.T) {
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-		blockChainHook.SetCurrentHeader(&block.Header{
+		err := blockChainHook.SetCurrentHeader(&block.Header{
 			TimeStamp: 1635880572, // next timestamp
 		})
+		require.Nil(t, err)
 
 		txData, errDecode := hex.DecodeString("6275794e6674403434403435353035353465346235333264333433363632333133383336403531")
 		require.Nil(t, errDecode)
@@ -608,9 +613,10 @@ func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
 	blockChainHook := testContext.BlockchainHook.(process.BlockChainHookHandler)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
-	blockChainHook.SetCurrentHeader(&block.Header{
+	err = blockChainHook.SetCurrentHeader(&block.Header{
 		TimeStamp: 1668430842,
 	})
+	require.Nil(t, err)
 
 	txData, errDecode := hex.DecodeString("646973747269627574655f7374616b696e675f72657761726473")
 	require.Nil(t, errDecode)

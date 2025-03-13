@@ -102,10 +102,12 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 	scrHashesEpoch []*dblookupext.ScResultsHashesAndEpoch,
 ) error {
 	for _, scrHashesE := range scrHashesEpoch {
-		err := arp.putSmartContractResultsInTransactionByHashesAndEpoch(tx, scrHashesE.ScResultsHashes, scrHashesE.Epoch)
+		scrsAPI, err := arp.getSmartContractResultsInTransactionByHashesAndEpoch(scrHashesE.ScResultsHashes, scrHashesE.Epoch)
 		if err != nil {
 			return err
 		}
+
+		tx.SmartContractResults = append(tx.SmartContractResults, scrsAPI...)
 	}
 
 	statusFilters := filters.NewStatusFilters(arp.shardCoordinator.SelfId())
@@ -113,21 +115,22 @@ func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransaction(
 	return nil
 }
 
-func (arp *apiTransactionResultsProcessor) putSmartContractResultsInTransactionByHashesAndEpoch(tx *transaction.ApiTransactionResult, scrsHashes [][]byte, epoch uint32) error {
+func (arp *apiTransactionResultsProcessor) getSmartContractResultsInTransactionByHashesAndEpoch(scrsHashes [][]byte, epoch uint32) ([]*transaction.ApiSmartContractResult, error) {
+	scrsAPI := make([]*transaction.ApiSmartContractResult, 0, len(scrsHashes))
 	for _, scrHash := range scrsHashes {
 		scr, err := arp.getScrFromStorage(scrHash, epoch)
 		if err != nil {
-			return fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
+			return nil, fmt.Errorf("%w: %v, hash = %s", errCannotLoadContractResults, err, hex.EncodeToString(scrHash))
 		}
 
 		scrAPI := arp.adaptSmartContractResult(scrHash, scr)
 
 		arp.loadLogsIntoContractResults(scrHash, epoch, scrAPI)
 
-		tx.SmartContractResults = append(tx.SmartContractResults, scrAPI)
+		scrsAPI = append(scrsAPI, scrAPI)
 	}
 
-	return nil
+	return scrsAPI, nil
 }
 
 func (arp *apiTransactionResultsProcessor) loadLogsIntoTransaction(hash []byte, tx *transaction.ApiTransactionResult, epoch uint32) {

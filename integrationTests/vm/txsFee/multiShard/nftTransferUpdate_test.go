@@ -40,11 +40,11 @@ func TestNFTTransferAndUpdateOnOldTypeToken(t *testing.T) {
 	initialAttribute := []byte("initial attribute")
 	newAttribute := []byte("new attribute")
 
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
+	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs, 1)
 	require.Nil(t, err)
 	defer sh1Context.Close()
 

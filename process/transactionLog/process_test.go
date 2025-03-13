@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -88,7 +89,7 @@ func TestTxLogProcessor_SaveLogsMarshalErr(t *testing.T) {
 	retErr := errors.New("marshal err")
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{},
-		Marshalizer: &mock.MarshalizerStub{
+		Marshalizer: &testscommon.MarshallerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 				return nil, retErr
 			},
@@ -111,7 +112,7 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 				return retErr
 			},
 		},
-		Marshalizer: &mock.MarshalizerStub{
+		Marshalizer: &testscommon.MarshallerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 				return nil, nil
 			},
@@ -138,7 +139,7 @@ func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
 				return nil
 			},
 		},
-		Marshalizer: &mock.MarshalizerStub{
+		Marshalizer: &testscommon.MarshallerStub{
 			MarshalCalled: func(obj interface{}) (bytes []byte, err error) {
 				log, _ := obj.(*transaction.Log)
 				require.Equal(t, expectedLogData[0], log.Events[0].Data)
@@ -164,7 +165,7 @@ func TestTxLogProcessor_GetLogErrNotFound(t *testing.T) {
 				return nil, errors.New("storer error")
 			},
 		},
-		Marshalizer:          &mock.MarshalizerStub{},
+		Marshalizer:          &testscommon.MarshallerStub{},
 		SaveInStorageEnabled: true,
 	})
 
@@ -181,7 +182,7 @@ func TestTxLogProcessor_GetLogUnmarshalErr(t *testing.T) {
 				return make([]byte, 0), nil
 			},
 		},
-		Marshalizer: &mock.MarshalizerStub{
+		Marshalizer: &testscommon.MarshallerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return retErr
 			},
@@ -239,4 +240,20 @@ func TestTxLogProcessor_GetLogFromCacheNotInCacheShouldReturnFromStorage(t *test
 
 	_, found := txLogProcessor.GetLogFromCache([]byte("txhash"))
 	require.True(t, found)
+}
+
+func TestTxLogProcessor_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      &storageStubs.StorerStub{},
+		Marshalizer: nil,
+	})
+	require.True(t, txLogProcessor.IsInterfaceNil())
+
+	txLogProcessor, _ = transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
+		Storer:      &storageStubs.StorerStub{},
+		Marshalizer: &testscommon.MarshallerStub{},
+	})
+	require.False(t, txLogProcessor.IsInterfaceNil())
 }

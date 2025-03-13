@@ -15,18 +15,18 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-13-xlarge]
+        runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
-      - name: Set up Go 1.20.7
-        uses: actions/setup-go@v3
+      - name: Set up Go 1.23.6
+        uses: actions/setup-go@v5
         with:
-          go-version: 1.20.7
+          go-version: 1.23.6
         id: go
 
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: "0"
 
@@ -129,7 +129,7 @@ jobs:
           zip -r -j ${ARCHIVE} ${BUILD_DIR}
 
       - name: Save artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARCHIVE }}
           path: ${{ env.ARCHIVE }}
@@ -145,7 +145,7 @@ jobs:
         # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
         # A directory for each artifact is created using its name
       - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           path: assets
 

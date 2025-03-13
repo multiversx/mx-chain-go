@@ -32,7 +32,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
@@ -59,6 +61,8 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 				return &datafield.ResponseParseData{}
 			},
 		},
+		TxMarshaller:        &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 }
 
@@ -181,6 +185,24 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, ErrNilDataFieldParser, err)
 	})
+	t.Run("NilTxMarshaller", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.TxMarshaller = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.True(t, strings.Contains(err.Error(), process.ErrNilMarshalizer.Error()))
+	})
+	t.Run("NilEnableEpochsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.EnableEpochsHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
 }
 
 func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
@@ -266,6 +288,95 @@ func TestNode_GetTransactionFromPool(t *testing.T) {
 	require.Equal(t, transaction.TxStatusPending, actualE.Status)
 	require.Equal(t, transaction.TxStatusPending, actualF.Status)
 	require.Equal(t, transaction.TxStatusPending, actualG.Status)
+}
+
+func TestNode_GetSCRs(t *testing.T) {
+	scResultHash := []byte("scHash")
+	txHash := []byte("txHash")
+
+	marshalizer := &mock.MarshalizerFake{}
+	scResult := &smartContractResult.SmartContractResult{
+		Nonce:          1,
+		SndAddr:        []byte("snd"),
+		RcvAddr:        []byte("rcv"),
+		OriginalTxHash: txHash,
+		Data:           []byte("test"),
+	}
+
+	resultHashesByTxHash := &dblookupext.ResultsHashesByTxHash{
+		ScResultsHashesAndEpoch: []*dblookupext.ScResultsHashesAndEpoch{
+			{
+				Epoch:           0,
+				ScResultsHashes: [][]byte{scResultHash},
+			},
+		},
+	}
+
+	chainStorer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			switch unitType {
+			case dataRetriever.UnsignedTransactionUnit:
+				return &storageStubs.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return marshalizer.Marshal(scResult)
+					},
+				}, nil
+			default:
+				return nil, storage.ErrKeyNotFound
+			}
+		},
+	}
+
+	historyRepo := &dblookupextMock.HistoryRepositoryStub{
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+			return &dblookupext.MiniblockMetadata{}, nil
+		},
+		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return resultHashesByTxHash, nil
+		},
+	}
+
+	feeComp := &testscommon.FeeComputerStub{
+		ComputeTransactionFeeCalled: func(tx *transaction.ApiTransactionResult) *big.Int {
+			return big.NewInt(1000)
+		},
+	}
+
+	args := &ArgAPITransactionProcessor{
+		RoundDuration:            0,
+		GenesisTime:              time.Time{},
+		Marshalizer:              &mock.MarshalizerFake{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		HistoryRepository:        historyRepo,
+		StorageService:           chainStorer,
+		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              feeComp,
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
+		DataFieldParser: &testscommon.DataFieldParserStub{
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+				return &datafield.ResponseParseData{}
+			},
+		},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		TxMarshaller:        &mock.MarshalizerFake{},
+	}
+	apiTransactionProc, _ := NewAPITransactionProcessor(args)
+
+	scrs, err := apiTransactionProc.GetSCRsByTxHash(hex.EncodeToString(txHash), hex.EncodeToString(scResultHash))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(scrs))
+	require.Equal(t, &transaction.ApiSmartContractResult{
+		Nonce:          1,
+		Data:           "test",
+		Hash:           "736348617368",
+		RcvAddr:        "726376",
+		SndAddr:        "736e64",
+		OriginalTxHash: "747848617368",
+		Receivers:      []string{},
+	}, scrs[0])
 }
 
 func TestNode_GetTransactionFromStorage(t *testing.T) {
@@ -459,6 +570,8 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				return &datafield.ResponseParseData{}
 			},
 		},
+		TxMarshaller:        &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -763,33 +876,36 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 
 	txHash0, txHash1, txHash2 := []byte("txHash0"), []byte("txHash1"), []byte("txHash2")
 	sender := "alice"
-	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	txCacheIntraShard, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   4,
+		NumBytesThreshold:           1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 1,
+	}, txcachemocks.NewMempoolHostMock())
+
+	require.NoError(t, err)
+
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
 
 	txHash3, txHash4 := []byte("txHash3"), []byte("txHash4")
-	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test-meta",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	txCacheWithMeta, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test-meta",
+		NumChunks:                   4,
+		NumBytesThreshold:           1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 1,
+	}, txcachemocks.NewMempoolHostMock())
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
+
+	require.NoError(t, err)
 
 	args := createMockArgAPITransactionProcessor()
 	args.DataPool = &dataRetrieverMock.PoolsHolderStub{
@@ -820,6 +936,9 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		NumberOfShardsCalled: func() uint32 {
 			return 1
 		},
+		ComputeIdCalled: func(address []byte) uint32 {
+			return 1 // force to return different from 0
+		},
 	}
 	atp, err := NewAPITransactionProcessor(args)
 	require.NoError(t, err)
@@ -832,7 +951,17 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 	for i, tx := range res.Transactions {
 		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
 		require.Equal(t, expectedValues[i], tx.TxFields[valueField])
-		require.Equal(t, sender, tx.TxFields["sender"])
+		require.Equal(t, sender, tx.TxFields[senderField])
+		require.Equal(t, uint32(1), tx.TxFields[senderShardID])
+		require.Equal(t, uint32(1), tx.TxFields[senderShardID])
+	}
+
+	res, err = atp.GetTransactionsPoolForSender(sender, "sender,value") // no hash, should be by default
+	require.NoError(t, err)
+	for i, tx := range res.Transactions {
+		require.Equal(t, expectedHashes[i], tx.TxFields[hashField])
+		require.Equal(t, expectedValues[i], tx.TxFields[valueField])
+		require.Equal(t, sender, tx.TxFields[senderField])
 	}
 
 	// if no tx is found in pool for a sender, it isn't an error, but return empty slice
@@ -851,15 +980,14 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 	sender := "alice"
 	lastNonce := uint64(10)
 	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+		Name:                        "test",
+		NumChunks:                   4,
+		NumBytesThreshold:           1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 1,
+	}, txcachemocks.NewMempoolHostMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
@@ -903,27 +1031,29 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 
 	txHash1, txHash2, txHash3, txHash4 := []byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")
 	sender := "alice"
-	txCacheIntraShard, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	txCacheIntraShard, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   4,
+		NumBytesThreshold:           1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 1,
+	}, txcachemocks.NewMempoolHostMock())
 
-	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
-		Name:                       "test-meta",
-		NumChunks:                  4,
-		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
-		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	require.NoError(t, err)
+
+	txCacheWithMeta, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test-meta",
+		NumChunks:                   4,
+		NumBytesThreshold:           1_048_576, // 1 MB
+		NumBytesPerSenderThreshold:  1_048_576, // 1 MB
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		NumItemsToPreemptivelyEvict: 1,
+	}, txcachemocks.NewMempoolHostMock())
+
+	require.NoError(t, err)
 
 	accountNonce := uint64(20)
 	// expected nonce gaps: 21-31, 33-33, 36-38
@@ -1027,6 +1157,8 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser:          dataFieldParser,
+		TxMarshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)
@@ -1188,8 +1320,8 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.MoveBalance, process.SCDeployment
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.SCDeployment, false
 		}
 
 		dataPool.Transactions().AddData([]byte{0, 2}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
@@ -1200,10 +1332,23 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
 	})
 
+	t.Run("ProcessingType (with relayed v3)", func(t *testing.T) {
+		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.MoveBalance, process.SCDeployment, true
+		}
+
+		dataPool.Transactions().AddData([]byte{0, 3}, &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}, 42, "1")
+		tx, err := processor.GetTransaction("0003", true)
+
+		require.Nil(t, err)
+		require.Equal(t, process.MoveBalance.String(), tx.ProcessingTypeOnSource)
+		require.Equal(t, process.SCDeployment.String(), tx.ProcessingTypeOnDestination)
+	})
+
 	t.Run("IsRefund (false)", func(t *testing.T) {
 		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@ok"), Value: big.NewInt(0)}
-		dataPool.UnsignedTransactions().AddData([]byte{0, 3}, scr, 42, "foo")
-		tx, err := processor.GetTransaction("0003", true)
+		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0004", true)
 
 		require.Nil(t, err)
 		require.Equal(t, false, tx.IsRefund)
@@ -1211,8 +1356,8 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 
 	t.Run("IsRefund (true)", func(t *testing.T) {
 		scr := &smartContractResult.SmartContractResult{GasLimit: 0, Data: []byte("@6f6b"), Value: big.NewInt(500)}
-		dataPool.UnsignedTransactions().AddData([]byte{0, 4}, scr, 42, "foo")
-		tx, err := processor.GetTransaction("0004", true)
+		dataPool.UnsignedTransactions().AddData([]byte{0, 5}, scr, 42, "foo")
+		tx, err := processor.GetTransaction("0005", true)
 
 		require.Nil(t, err)
 		require.Equal(t, true, tx.IsRefund)
@@ -1232,8 +1377,8 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-		return process.MoveBalance, process.SCDeployment
+	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		return process.MoveBalance, process.SCDeployment, false
 	}
 
 	feeComputer.ComputeTransactionFeeCalled = func(tx *transaction.ApiTransactionResult) *big.Int {

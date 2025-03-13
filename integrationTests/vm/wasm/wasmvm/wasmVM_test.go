@@ -945,11 +945,11 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	zero := big.NewInt(0)
 	transferEGLD := big.NewInt(42)
 
-	testContextFunderSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextFunderSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextFunderSC.Close()
 
-	testContextParentSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextParentSC, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextParentSC.Close()
 

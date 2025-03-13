@@ -697,7 +697,7 @@ func getArgumentsMeta(
 		WhiteListHandler:             &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
 		AntifloodHandler:             &mock.P2PAntifloodHandlerStub{},
-		ArgumentsParser:              &mock.ArgumentParserMock{},
+		ArgumentsParser:              &testscommon.ArgumentParserMock{},
 		PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},

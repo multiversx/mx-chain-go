@@ -101,7 +101,7 @@ func createMockArgument(
 		ValidityAttester:             &mock.ValidityAttesterStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-		ArgsParser:                   &mock.ArgumentParserMock{},
+		ArgsParser:                   &testscommon.ArgumentParserMock{},
 		PeerSignatureHandler:         &processMocks.PeerSignatureHandlerStub{},
 		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,

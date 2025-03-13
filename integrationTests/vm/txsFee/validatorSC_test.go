@@ -54,13 +54,15 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T
 		t.Skip("this is not a short test")
 	}
 
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
 	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	err = testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	require.Nil(t, err)
+
 	saveDelegationManagerConfig(testContextMeta)
 
 	gasLimit := uint64(4000)
@@ -120,6 +122,7 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
+		1,
 	)
 
 	require.Nil(t, err)
@@ -127,7 +130,8 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 
 	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	err = testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	require.Nil(t, err)
 
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -170,14 +174,15 @@ func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *
 }
 
 func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T, enableEpochs config.EnableEpochs) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, enableEpochs)
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, enableEpochs, 1)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
 
 	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0})
+	err = testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 0})
+	require.Nil(t, err)
 
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -207,6 +212,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
+		1,
 	)
 
 	require.Nil(t, err)
@@ -214,7 +220,8 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 
 	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	err = testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	require.Nil(t, err)
 
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")
@@ -263,6 +270,7 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
+		1,
 	)
 
 	require.Nil(t, err)
@@ -270,7 +278,8 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t 
 
 	stakingcommon.SaveNodesConfig(testContextMeta.Accounts, testContextMeta.Marshalizer, 1, 1, 1)
 	saveDelegationManagerConfig(testContextMeta)
-	testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	err = testContextMeta.BlockchainHook.(*hooks.BlockChainHookImpl).SetCurrentHeader(&block.MetaBlock{Epoch: 1})
+	require.Nil(t, err)
 
 	gasLimit := uint64(4000)
 	sndAddr := []byte("12345678901234567890123456789012")

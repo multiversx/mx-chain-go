@@ -1,6 +1,8 @@
 package scrCommon
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -12,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"math/big"
 )
 
 // TestSmartContractProcessor is a SmartContractProcessor used in integration tests

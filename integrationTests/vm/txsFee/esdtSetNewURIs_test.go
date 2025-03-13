@@ -7,10 +7,13 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/process"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -32,9 +35,10 @@ func runEsdtSetNewURIsTest(t *testing.T, tokenType string) {
 	baseEsdtKeyPrefix := core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
 	key := append([]byte(baseEsdtKeyPrefix), token...)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
+	_ = testContext.BlockchainHook.(process.BlockChainHookHandler).SetCurrentHeader(&dataBlock.Header{Round: 7})
 
 	createAccWithBalance(t, testContext.Accounts, sndAddr, big.NewInt(100000000))
 	createAccWithBalance(t, testContext.Accounts, core.ESDTSCAddress, big.NewInt(100000000))
@@ -61,7 +65,12 @@ func runEsdtSetNewURIsTest(t *testing.T, tokenType string) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	retrievedMetaData := getMetaDataFromAcc(t, testContext, core.SystemAccountAddress, key)
+	retrievedMetaData := &esdt.MetaData{}
+	if tokenType == core.DynamicNFTESDT {
+		retrievedMetaData = getMetaDataFromAcc(t, testContext, sndAddr, key)
+	} else {
+		retrievedMetaData = getMetaDataFromAcc(t, testContext, core.SystemAccountAddress, key)
+	}
 	require.Equal(t, [][]byte{[]byte("newUri1"), []byte("newUri2")}, retrievedMetaData.URIs)
 }
 

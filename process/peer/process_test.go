@@ -94,6 +94,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 						MaxGasLimitPerTx:            "10000000",
 						MinGasLimit:                 "10",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				MinGasPrice:            "10",

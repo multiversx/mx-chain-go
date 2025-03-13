@@ -9,13 +9,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewOneMBPostProcessor_NilHasher(t *testing.T) {
@@ -154,7 +155,9 @@ func TestOneMBPostProcessor_CreateAllInterMiniBlocksOneMinBlock(t *testing.T) {
 	txs = append(txs, &transaction.Transaction{})
 	txs = append(txs, &transaction.Transaction{})
 
-	err := irp.AddIntermediateTransactions(txs)
+	// with no InitProcessedResults, means that the transactions are added as scheduled transactions, not as
+	// processing results from the execution of other transactions or miniblocks
+	err := irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	mbs := irp.CreateAllInterMiniBlocks()
@@ -198,7 +201,7 @@ func TestOneMBPostProcessor_VerifyTooManyBlock(t *testing.T) {
 	txs = append(txs, &transaction.Transaction{SndAddr: []byte("snd"), RcvAddr: []byte("recvaddr4")})
 	txs = append(txs, &transaction.Transaction{SndAddr: []byte("snd"), RcvAddr: []byte("recvaddr5")})
 
-	err := irp.AddIntermediateTransactions(txs)
+	err := irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	miniBlock := &block.MiniBlock{
@@ -267,7 +270,7 @@ func TestOneMBPostProcessor_VerifyOk(t *testing.T) {
 	txs = append(txs, &transaction.Transaction{SndAddr: []byte("snd"), RcvAddr: []byte("recvaddr4")})
 	txs = append(txs, &transaction.Transaction{SndAddr: []byte("snd"), RcvAddr: []byte("recvaddr5")})
 
-	err := irp.AddIntermediateTransactions(txs)
+	err := irp.AddIntermediateTransactions(txs, nil)
 	assert.Nil(t, err)
 
 	miniBlock := &block.MiniBlock{

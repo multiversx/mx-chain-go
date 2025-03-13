@@ -15,6 +15,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -38,13 +46,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/multiversx/mx-chain-vm-go/vmhost"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxEpoch = math.MaxUint32
@@ -93,7 +94,7 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 
 	return scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer: &mock.VMContainerMock{},
-		ArgsParser:  &mock.ArgumentParserMock{},
+		ArgsParser:  &testscommon.ArgumentParserMock{},
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
 		AccountsDB: &stateMock.AccountsStub{
@@ -438,7 +439,7 @@ func createTxLogsProcessor() process.TransactionLogProcessor {
 func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 	t.Parallel()
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = &mock.VMContainerMock{}
 	arguments.ArgsParser = argParser
@@ -553,13 +554,13 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	scrAdded := false
 	badTxAdded := false
 	arguments.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			badTxAdded = true
 			return nil
 		},
 	}
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			scrAdded = true
 			return nil
 		},
@@ -908,7 +909,7 @@ func TestScProcessor_DeploySmartContractWrongTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -930,7 +931,7 @@ func TestScProcessor_DeploySmartContractNilTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -952,7 +953,7 @@ func TestScProcessor_DeploySmartContractNotEmptyDestinationAddress(t *testing.T)
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -975,7 +976,7 @@ func TestScProcessor_DeploySmartContractCalculateHashFails(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1007,7 +1008,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeValidateFails(t *testing.T) 
 	expectedError := errors.New("expected error")
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1038,7 +1039,7 @@ func TestScProcessor_DeploySmartContractEconomicsFeeSaveAccountsFails(t *testing
 	expectedError := errors.New("expected error")
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1401,7 +1402,7 @@ func TestScProcessor_DeploySmartContractAddIntermediateTxFails(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			return expectedError
 		},
 	}
@@ -1436,7 +1437,7 @@ func TestScProcessor_DeploySmartContractComputeRewardsFails(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			return expectedError
 		},
 	}
@@ -1497,7 +1498,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1521,7 +1522,7 @@ func TestScProcessor_ExecuteSmartContractTransactionNilAccount(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1554,7 +1555,7 @@ func TestScProcessor_ExecuteSmartContractTransactionBadParser(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1586,7 +1587,7 @@ func TestScProcessor_ExecuteSmartContractTransactionVMRunError(t *testing.T) {
 	t.Parallel()
 
 	vmContainer := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vmContainer
 	arguments.ArgsParser = argParser
@@ -1723,7 +1724,7 @@ func TestScProcessor_ExecuteSmartContractTransaction(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -1756,7 +1757,7 @@ func TestScProcessor_ExecuteSmartContractTransactionSaveLogCalled(t *testing.T) 
 	slCalled := false
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -1793,7 +1794,7 @@ func TestScProcessor_CreateVMCallInputWrongCode(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1821,7 +1822,7 @@ func TestScProcessor_CreateVMCallInput(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1845,7 +1846,7 @@ func TestScProcessor_CreateVMDeployBadCode(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1872,7 +1873,7 @@ func TestScProcessor_CreateVMCallInputBadAsync(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1902,7 +1903,7 @@ func TestScProcessor_CreateVMDeployInput(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1966,7 +1967,7 @@ func TestScProcessor_CreateVMDeployInputWrongArgument(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -1995,7 +1996,7 @@ func TestScProcessor_InitializeVMInputFromTx_ShouldErrNotEnoughGas(t *testing.T)
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2025,7 +2026,7 @@ func TestScProcessor_InitializeVMInputFromTx(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2062,7 +2063,7 @@ func TestScProcessor_processVMOutputNilSndAcc(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2091,7 +2092,7 @@ func TestScProcessor_processVMOutputNilDstAcc(t *testing.T) {
 	t.Parallel()
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
@@ -2135,7 +2136,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2166,7 +2167,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2198,7 +2199,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2231,7 +2232,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2266,7 +2267,7 @@ func TestScProcessor_DeleteAccountsFailedAtRemove(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2301,7 +2302,7 @@ func TestScProcessor_DeleteAccountsNotInShard(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2341,7 +2342,7 @@ func TestScProcessor_DeleteAccountsInShard(t *testing.T) {
 	}
 
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm
 	arguments.ArgsParser = argParser
@@ -2377,7 +2378,7 @@ func TestScProcessor_ProcessSCPaymentAccNotInShardShouldNotReturnError(t *testin
 	tx.GasPrice = 10
 	tx.GasLimit = 10
 
-	err = sc.processSCPayment(tx, nil)
+	err = sc.processSCPayment(tx, nil, nil)
 	require.Nil(t, err)
 }
 
@@ -2408,9 +2409,118 @@ func TestScProcessor_ProcessSCPaymentNotEnoughBalance(t *testing.T) {
 
 	currBalance := acntSrc.GetBalance().Uint64()
 
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Equal(t, process.ErrInsufficientFunds, err)
 	require.Equal(t, currBalance, acntSrc.GetBalance().Uint64())
+}
+
+func TestScProcessor_ProcessSCPaymentWithFeePayer(t *testing.T) {
+	t.Parallel()
+
+	snd := []byte("SRC")
+	acntSrc := createAccount(snd)
+	rcv := []byte("DST")
+	acntRcv := createAccount(rcv)
+	rel := []byte("REL")
+	acntRel := createAccount(rel)
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3FixESDTTransferFlag)
+	loadAccountCnt := 0
+	arguments.AccountsDB = &stateMock.AccountsStub{
+		LoadAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+			loadAccountCnt++
+			if bytes.Equal(address, rel) {
+				return acntRel, nil
+			}
+
+			if bytes.Equal(address, snd) {
+				require.Fail(t, "should never load again for this test")
+				return acntSrc, nil
+			}
+			if bytes.Equal(address, rcv) {
+				require.Fail(t, "should never load again for this test")
+				return acntRcv, nil
+			}
+
+			return &stateMock.AccountWrapMock{
+				Balance: big.NewInt(0),
+			}, errors.New("account not found")
+		},
+	}
+	sc, err := NewSmartContractProcessorV2(arguments)
+
+	require.NotNil(t, sc)
+	require.Nil(t, err)
+
+	tx := &transaction.Transaction{}
+	tx.Nonce = 0
+	tx.SndAddr = snd
+	tx.RcvAddr = rcv
+	tx.RelayerAddr = rel
+
+	tx.Value = big.NewInt(0)
+	tx.GasPrice = 10
+	tx.GasLimit = 10
+
+	t.Run("fee payer is sender", func(t *testing.T) {
+		txLocal := *tx
+		txLocal.SndAddr = snd
+		txLocal.RcvAddr = rcv
+		txLocal.RelayerAddr = snd
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntSrc.AddToBalance(totalFee)
+
+		currBalance := acntSrc.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
+	})
+	t.Run("fee payer is receiver", func(t *testing.T) {
+		txLocal := *tx
+		txLocal.SndAddr = snd
+		txLocal.RcvAddr = rcv
+		txLocal.RelayerAddr = rcv
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntRcv.AddToBalance(totalFee)
+
+		currBalance := acntRcv.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntRcv.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, 0, loadAccountCnt)
+	})
+	t.Run("fee payer is different", func(t *testing.T) {
+		txLocal := *tx
+
+		totalFee := big.NewInt(0)
+		totalFee = totalFee.Mul(big.NewInt(int64(txLocal.GetGasLimit())), big.NewInt(int64(txLocal.GetGasPrice())))
+
+		_ = acntRel.AddToBalance(totalFee)
+
+		currBalance := acntRel.GetBalance().Uint64()
+		modifiedBalance := currBalance - txLocal.GasLimit*txLocal.GasLimit
+
+		err = sc.processSCPayment(&txLocal, acntSrc, acntRcv)
+		require.Nil(t, err)
+		require.Equal(t, modifiedBalance, acntRel.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntSrc.GetBalance().Uint64())
+		require.Equal(t, uint64(0), acntRcv.GetBalance().Uint64())
+		require.Equal(t, 1, loadAccountCnt)
+	})
 }
 
 func TestScProcessor_ProcessSCPayment(t *testing.T) {
@@ -2435,7 +2545,7 @@ func TestScProcessor_ProcessSCPayment(t *testing.T) {
 	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - tx.GasLimit*tx.GasLimit
 
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
@@ -2474,7 +2584,7 @@ func TestScProcessor_ProcessSCPaymentWithNewFlags(t *testing.T) {
 	acntSrc, _ := createAccounts(tx)
 	currBalance := acntSrc.GetBalance().Uint64()
 	modifiedBalance := currBalance - tx.Value.Uint64() - txFee.Uint64()
-	err = sc.processSCPayment(tx, acntSrc)
+	err = sc.processSCPayment(tx, acntSrc, nil)
 	require.Nil(t, err)
 	require.Equal(t, modifiedBalance, acntSrc.GetBalance().Uint64())
 }
@@ -3128,8 +3238,8 @@ func TestScProcessor_ProcessSmartContractResultDeploySCShouldError(t *testing.T)
 	arguments.AccountsDB = accountsDB
 	arguments.ShardCoordinator = shardCoordinator
 	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCDeployment, process.SCDeployment
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCDeployment, process.SCDeployment, false
 		},
 	}
 	sc, err := NewSmartContractProcessorV2(arguments)
@@ -3189,8 +3299,8 @@ func TestScProcessor_ProcessSmartContractResultExecuteSC(t *testing.T) {
 		},
 	}
 	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
 		},
 	}
 	sc, err := NewSmartContractProcessorV2(arguments)
@@ -3252,8 +3362,8 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 		},
 	}
 	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.BuiltInFunctionCall, process.BuiltInFunctionCall, false
 		},
 	}
 	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
@@ -3326,8 +3436,15 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 		},
 	}
 	arguments.TxTypeHandler = &testscommon.TxTypeHandlerMock{
-		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
-			return process.SCInvoking, process.SCInvoking
+		ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+			return process.SCInvoking, process.SCInvoking, false
+		},
+	}
+	wasSaveLogsCalled := false
+	arguments.TxLogsProcessor = &mock.TxLogsProcessorStub{
+		SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error {
+			wasSaveLogsCalled = true
+			return nil
 		},
 	}
 	sc, err := NewSmartContractProcessorV2(arguments)
@@ -3352,6 +3469,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	userFinalValue := baseValue.Sub(baseValue, scr.Value)
 	userFinalValue.Add(userFinalValue, userReturnValue)
 	require.True(t, userAcc.GetBalance().Cmp(userFinalValue) == 0)
+	require.True(t, wasSaveLogsCalled)
 }
 
 func TestScProcessor_checkUpgradePermission(t *testing.T) {
@@ -3434,20 +3552,41 @@ func TestScProcessor_penalizeUserIfNeededShouldWork(t *testing.T) {
 func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	t.Parallel()
 
+	economicsHandler := &economicsmocks.EconomicsHandlerStub{}
+
 	gasProvided := uint64(100)
-	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
+	maxGasToRemain := gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
 
-	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided)
+	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
 	assert.True(t, isTooMuchGas)
+
+	economicsHandler.MaxGasHigherFactorAcceptedCalled = func() uint64 {
+		return 2
+	}
+
+	maxGasToRemain = gasProvided - (gasProvided / economicsHandler.MaxGasHigherFactorAccepted())
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
+	assert.False(t, isTooMuchGas)
+
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
+	assert.True(t, isTooMuchGas)
+
 }
 
 func TestSCProcessor_createSCRWhenError(t *testing.T) {
@@ -4168,6 +4307,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPerDataByte:         "1500",
@@ -4343,7 +4483,7 @@ func TestSCProcessor_PrependAsyncParamsToData(t *testing.T) {
 func TestScProcessor_ForbidMultiLevelAsync(t *testing.T) {
 	t.Parallel()
 	vm := &mock.VMContainerMock{}
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	accntState := &stateMock.AccountsStub{}
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.VmContainer = vm

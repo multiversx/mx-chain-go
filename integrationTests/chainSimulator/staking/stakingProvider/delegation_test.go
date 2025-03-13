@@ -34,7 +34,7 @@ import (
 var log = logger.GetOrCreate("stakingProvider")
 
 const gasLimitForConvertOperation = 510_000_000
-const gasLimitForDelegationContractCreationOperation = 500_000_000
+const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
 const gasLimitForMergeOperation = 600_000_000
@@ -69,7 +69,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -113,7 +113,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 is not active and all is done in epoch 0", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -164,7 +164,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -201,7 +201,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -238,7 +238,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -290,6 +290,9 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	require.Nil(t, err)
 
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -487,7 +490,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -516,7 +519,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	})
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -545,7 +548,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	})
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -574,7 +577,7 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 	})
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -623,6 +626,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t *
 	require.Nil(t, err)
 
 	validatorOwnerB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -712,7 +718,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -743,7 +749,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	})
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -775,7 +781,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	})
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -807,7 +813,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	})
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -864,6 +870,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	require.Nil(t, err)
 
 	delegator, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
@@ -1032,7 +1041,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1071,7 +1080,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1110,7 +1119,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1149,7 +1158,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 	// 6. Check the node is unstaked in the next epoch
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1192,6 +1201,9 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Nil(t, err)
 
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, initialFunds)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	maxDelegationCap := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(51000)) // 51000 EGLD cap
@@ -1400,7 +1412,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1441,7 +1453,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1482,7 +1494,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1523,7 +1535,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 	// 10. Delegate from user B 20 EGLD, check it fails
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1569,6 +1581,9 @@ func testChainSimulatorMaxDelegationCap(t *testing.T, cs chainSimulatorIntegrati
 	require.Nil(t, err)
 
 	delegatorC, err := cs.GenerateAndMintWalletAddress(core.AllShardId, initialFunds)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Step 3: Create a new delegation contract
@@ -1810,7 +1825,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1841,7 +1856,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1873,7 +1888,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1905,7 +1920,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1954,6 +1969,9 @@ func testChainSimulatorMergingDelegation(t *testing.T, cs chainSimulatorIntegrat
 	require.Nil(t, err)
 
 	validatorB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	log.Info("Step 1. User A: - stake 1 node to have 100 egld more than minimum stake value")

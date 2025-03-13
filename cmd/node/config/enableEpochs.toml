@@ -1,9 +1,9 @@
 [EnableEpochs]
     # SCDeployEnableEpoch represents the epoch when the deployment of smart contracts will be enabled
-    SCDeployEnableEpoch = 1
+    SCDeployEnableEpoch = 0
 
     # BuiltInFunctionsEnableEpoch represents the epoch when the built in functions will be enabled
-    BuiltInFunctionsEnableEpoch = 1
+    BuiltInFunctionsEnableEpoch = 0
 
     # RelayedTransactionsEnableEpoch represents the epoch when the relayed transactions will be enabled
     RelayedTransactionsEnableEpoch = 1
@@ -309,14 +309,44 @@
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 1
 
+    # UseGasBoundedShouldFailExecutionEnableEpoch represents the epoch when use bounded gas function should fail execution in case of error
+    UseGasBoundedShouldFailExecutionEnableEpoch = 1
+
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
-    DynamicESDTEnableEpoch = 4
+    DynamicESDTEnableEpoch = 1
 
     # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in multitransfer is enabled
-    EGLDInMultiTransferEnableEpoch = 4
+    EGLDInMultiTransferEnableEpoch = 1
 
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
-    CryptoOpcodesV2EnableEpoch = 4
+    CryptoOpcodesV2EnableEpoch = 1
+
+    # UnjailCleanupEnableEpoch represents the epoch when the cleanup of the unjailed nodes is enabled
+    UnJailCleanupEnableEpoch = 1
+
+    # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
+    FixRelayedBaseCostEnableEpoch = 1
+
+    # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
+    MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
+
+    # FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 1
+
+    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 1
+
+    # RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
+    RelayedTransactionsV3FixESDTTransferEnableEpoch = 1 # TODO: keep this equal to RelayedTransactionsV3EnableEpoch for mainnet
+
+    # MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
+    MaskVMInternalDependenciesErrorsEnableEpoch = 2
+
+    # FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+    FixBackTransferOPCODEEnableEpoch = 2
+
+    # ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 2
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
@@ -338,5 +368,5 @@
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 0, FileName = "gasScheduleV8.toml" },
     ]

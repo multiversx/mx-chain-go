@@ -42,7 +42,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 }
 
 func testRelayedAsyncCallShouldWork(t *testing.T, enableEpochs config.EnableEpochs, senderAddr []byte) *vm.VMTestContext {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs, 1)
 	require.Nil(t, err)
 
 	localEgldBalance := big.NewInt(100000000)
