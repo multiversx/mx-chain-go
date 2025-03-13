@@ -2,19 +2,20 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
 
 // ResolverStub -
 type ResolverStub struct {
-	ProcessReceivedMessageCalled func(message p2p.MessageP2P) error
+	ProcessReceivedMessageCalled func(message p2p.MessageP2P) ([]byte, error)
 	SetDebugHandlerCalled        func(handler dataRetriever.DebugHandler) error
 	CloseCalled                  func() error
 }
 
 // ProcessReceivedMessage -
-func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) error {
+func (rs *ResolverStub) ProcessReceivedMessage(message p2p.MessageP2P, _ core.PeerID, _ p2p.MessageHandler) ([]byte, error) {
 	return rs.ProcessReceivedMessageCalled(message)
 }
 

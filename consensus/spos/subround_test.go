@@ -1156,4 +1156,191 @@ func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 
 		require.Equal(t, spos.LeaderSingleKeyStartMsg, sr.GetLeaderStartRoundMessage())
 	})
+
+	t.Run("should return empty string when leader is not managed by current node", func(t *testing.T) {
+		t.Parallel()
+
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return false
+			},
+		}
+		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		sr.SetSelfPubKey("5")
+
+		require.Equal(t, "", sr.GetLeaderStartRoundMessage())
+	})
+}
+
+func TestSubround_IsSelfInConsensusGroup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work with multi key node", func(t *testing.T) {
+		t.Parallel()
+
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return bytes.Equal([]byte("1"), pkBytes)
+			},
+		}
+		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		require.True(t, sr.IsSelfInConsensusGroup())
+	})
+
+	t.Run("should work with single key node", func(t *testing.T) {
+		t.Parallel()
+
+		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		sr.SetSelfPubKey("1")
+
+		require.True(t, sr.IsSelfInConsensusGroup())
+	})
+}
+
+func TestSubround_IsSelfLeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work with multi key node", func(t *testing.T) {
+		t.Parallel()
+
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return bytes.Equal([]byte("1"), pkBytes)
+			},
+		}
+		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		sr.SetLeader("1")
+
+		require.True(t, sr.IsSelfLeader())
+	})
+
+	t.Run("should work with single key node", func(t *testing.T) {
+		t.Parallel()
+
+		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		sr.SetSelfPubKey("1")
+		sr.SetLeader("1")
+
+		require.True(t, sr.IsSelfLeader())
+	})
+}
+
+func TestSubround_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	var sr *spos.Subround
+	require.True(t, sr.IsInterfaceNil())
+
+	consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+
+	sr, _ = spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		int64(5*roundTimeDuration/100),
+		int64(25*roundTimeDuration/100),
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+	require.False(t, sr.IsInterfaceNil())
 }
