@@ -88,7 +88,7 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.BaseStorer
-	GetFromOldEpochsWithoutAddingToCache(key []byte, epoch uint32) ([]byte, core.OptionalUint32, error)
+	GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
