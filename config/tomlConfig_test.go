@@ -890,6 +890,18 @@ func TestEnableEpochConfig(t *testing.T) {
 	# RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 will be enabled
     RelayedTransactionsV3EnableEpoch = 103
 
+	# RelayedTransactionsV3FixESDTTransferEnableEpoch represents the epoch when the fix for relayed transactions v3 with esdt transfer will be enabled
+    RelayedTransactionsV3FixESDTTransferEnableEpoch = 104
+
+	# MaskVMInternalDependenciesErrorsEnableEpoch represents the epoch when the additional internal erorr masking in vm is enabled
+	MaskVMInternalDependenciesErrorsEnableEpoch = 105
+
+	# FixBackTransferOPCODEEnableEpoch represents the epoch when the fix for back transfers opcode will be enabled
+	FixBackTransferOPCODEEnableEpoch = 106
+
+	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 107
+
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 104
 
@@ -1014,6 +1026,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			RelayedTransactionsV3EnableEpoch:                         103,
+			RelayedTransactionsV3FixESDTTransferEnableEpoch:          104,
+			MaskVMInternalDependenciesErrorsEnableEpoch:              105,
+			FixBackTransferOPCODEEnableEpoch:                         106,
+			ValidationOnGobDecodeEnableEpoch:                         107,
 			AutomaticActivationOfNodesDisableEpoch:                   104,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{

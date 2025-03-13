@@ -124,6 +124,10 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           107,
 		UseGasBoundedShouldFailExecutionEnableEpoch:              108,
 		RelayedTransactionsV3EnableEpoch:                         109,
+		RelayedTransactionsV3FixESDTTransferEnableEpoch:          110,
+		MaskVMInternalDependenciesErrorsEnableEpoch:              111,
+		FixBackTransferOPCODEEnableEpoch:                         112,
+		ValidationOnGobDecodeEnableEpoch:                         113,
 		AutomaticActivationOfNodesDisableEpoch:                   110,
 	}
 }
@@ -327,6 +331,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -451,6 +456,10 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.MultiESDTNFTTransferAndExecuteByUserFlag))
 	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
+	require.Equal(t, cfg.RelayedTransactionsV3FixESDTTransferEnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3FixESDTTransferFlag))
+	require.Equal(t, cfg.MaskVMInternalDependenciesErrorsEnableEpoch, handler.GetActivationEpoch(common.MaskInternalDependenciesErrorsFlag))
+	require.Equal(t, cfg.FixBackTransferOPCODEEnableEpoch, handler.GetActivationEpoch(common.FixBackTransferOPCODEFlag))
+	require.Equal(t, cfg.ValidationOnGobDecodeEnableEpoch, handler.GetActivationEpoch(common.ValidationOnGobDecodeFlag))
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
 }
 

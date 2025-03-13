@@ -381,6 +381,10 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch] = sm.uint64Metrics[common.MetricMultiESDTNFTTransferAndExecuteByUserEnableEpoch]
 	enableEpochsMetrics[common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch] = sm.uint64Metrics[common.MetricFixRelayedMoveBalanceToNonPayableSCEnableEpoch]
 	enableEpochsMetrics[common.MetricRelayedTransactionsV3EnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3EnableEpoch]
+	enableEpochsMetrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch] = sm.uint64Metrics[common.MetricRelayedTransactionsV3FixESDTTransferEnableEpoch]
+	enableEpochsMetrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch] = sm.uint64Metrics[common.MetricMaskVMInternalDependenciesErrorsEnableEpoch]
+	enableEpochsMetrics[common.MetricFixBackTransferOPCODEEnableEpoch] = sm.uint64Metrics[common.MetricFixBackTransferOPCODEEnableEpoch]
+	enableEpochsMetrics[common.MetricValidationOnGobDecodeEnableEpoch] = sm.uint64Metrics[common.MetricValidationOnGobDecodeEnableEpoch]
 	enableEpochsMetrics[common.MetricAutomaticActivationOfNodesDisableEpoch] = sm.uint64Metrics[common.MetricAutomaticActivationOfNodesDisableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
