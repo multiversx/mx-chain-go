@@ -1,7 +1,6 @@
 package proofscache
 
 import (
-	"sort"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -49,10 +48,6 @@ func (pc *proofsCache) addProof(proof data.HeaderProofHandler) {
 	pc.proofsByNonce = append(pc.proofsByNonce, &proofNonceMapping{
 		headerHash: string(proof.GetHeaderHash()),
 		nonce:      proof.GetHeaderNonce(),
-	})
-
-	sort.Slice(pc.proofsByNonce, func(i, j int) bool {
-		return pc.proofsByNonce[i].nonce < pc.proofsByNonce[j].nonce
 	})
 
 	pc.proofsByHash[string(proof.GetHeaderHash())] = proof
