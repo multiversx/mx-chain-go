@@ -4,6 +4,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"os"
+	"path"
+	"testing"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -11,11 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"os"
-	"path"
-	"testing"
-	"time"
 )
 
 const (
