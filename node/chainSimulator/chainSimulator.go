@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"math/big"
 	"sync"
 	"time"
@@ -181,6 +182,8 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	s.initialWalletKeys = outputConfigs.InitialWallets
 	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
+	s.addProofs()
+
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
 		"round per epoch", outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
@@ -190,6 +193,26 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		"temporary path", args.TempDir)
 
 	return nil
+}
+
+func (s *simulator) addProofs() {
+	proofs := make([]*block.HeaderProof, 0)
+
+	for shardID, nodeHandler := range s.nodes {
+		hash := nodeHandler.GetChainHandler().GetGenesisHeaderHash()
+		proofs = append(proofs, &block.HeaderProof{
+			HeaderShardId: shardID,
+			HeaderHash:    hash,
+		})
+	}
+
+	for _, proof := range proofs {
+		s.GetNodeHandler(core.MetachainShardId).GetDataComponents().Datapool().Proofs().AddProof(proof)
+
+		if proof.HeaderShardId != core.MetachainShardId {
+			s.GetNodeHandler(proof.HeaderShardId).GetDataComponents().Datapool().Proofs().AddProof(proof)
+		}
+	}
 }
 
 func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
