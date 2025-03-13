@@ -260,20 +260,58 @@ func TestPatriciaMerkleTree_NilRoot(t *testing.T) {
 func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	root1, err := tr.RootHash()
-	assert.Nil(t, err)
+	t.Run("root hash consistency for deterministic trie", func(t *testing.T) {
+		t.Parallel()
 
-	_ = tr.Update([]byte("dodge"), []byte("viper"))
-	root2, err := tr.RootHash()
-	assert.Nil(t, err)
+		tr := initTrie()
+		root1, err := tr.RootHash()
+		assert.Nil(t, err)
 
-	tr.Delete([]byte("dodge"))
-	root3, err := tr.RootHash()
-	assert.Nil(t, err)
+		_ = tr.Update([]byte("dodge"), []byte("viper"))
+		root2, err := tr.RootHash()
+		assert.Nil(t, err)
 
-	assert.Equal(t, root1, root3)
-	assert.NotEqual(t, root1, root2)
+		tr.Delete([]byte("dodge"))
+		root3, err := tr.RootHash()
+		assert.Nil(t, err)
+
+		assert.Equal(t, root1, root3)
+		assert.NotEqual(t, root1, root2)
+	})
+	t.Run("root hash consistency for non-deterministic trie", func(t *testing.T) {
+		t.Parallel()
+
+		tr := initTrie()
+		numValues := 1000
+		for i := 0; i < numValues; i++ {
+			_ = tr.Update(generateRandomByteArray(32), generateRandomByteArray(32))
+		}
+		originalRootHash, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.False(t, common.IsEmptyTrie(originalRootHash))
+
+		newKeys := make([][]byte, numValues)
+		for i := 0; i < numValues; i++ {
+			newKeys[i] = generateRandomByteArray(32)
+			_ = tr.Update(newKeys[i], generateRandomByteArray(32))
+		}
+		newRootHash, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.False(t, common.IsEmptyTrie(newRootHash))
+		assert.NotEqual(t, originalRootHash, newRootHash)
+
+		for i := 0; i < numValues; i++ {
+			tr.Delete(newKeys[i])
+		}
+		rootHashAfterDelete, err := tr.RootHash()
+		assert.Nil(t, err)
+		assert.Equal(t, originalRootHash, rootHashAfterDelete)
+	})
+}
+func generateRandomByteArray(size int) []byte {
+	r := make([]byte, size)
+	_, _ = cryptoRand.Read(r)
+	return r
 }
 
 func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
