@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"math/big"
 	"sync"
 	"time"
@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
