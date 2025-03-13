@@ -313,7 +313,14 @@ func (s *simulator) ForceChangeOfEpoch() error {
 	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
 	s.mutex.Unlock()
 
-	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
+	err := s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
+	if err != nil {
+		return err
+	}
+
+	s.incrementRoundOnAllValidators()
+
+	return s.allNodesCreateBlocks()
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
