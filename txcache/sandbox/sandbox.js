@@ -32,6 +32,7 @@ function recommendGasPrice(gasStationMetadata, senderShard, desiredLevel, transa
 
     if (gasPrice > MAX_GAS_PRICE) {
         console.warn(`Gas price ${gasPrice} too high, maybe bad formula? Using max gas price...`);
+        console.warn(`Estimated fee: ${(dataCost * MAX_GAS_PRICE + executionCost * MAX_GAS_PRICE * GAS_PRICE_MODIFIER) / 1e18} EGLD`)
         return MAX_GAS_PRICE;
     }
 
@@ -43,19 +44,16 @@ function recommendGasPrice(gasStationMetadata, senderShard, desiredLevel, transa
 
 let myGasStationMetadata = [
     {
-        "fast": 100_000_000,
-        "faster": 300_000_000,
-        "excellentJustLikeMoveBalance": 1_000_000_000
+        "fast": 0,
+        "faster": 11760000
     },
     {
-        "fast": 100_000_000,
-        "faster": 300_000_000,
-        "excellentJustLikeMoveBalance": 1_000_000_000
+        "fast": 1_000_000_000,
+        "faster": 1_000_000_000
     },
     {
-        "fast": 100_000_000,
-        "faster": 300_000_000,
-        "excellentJustLikeMoveBalance": 1_000_000_000
+        "fast": 0,
+        "faster": 11760000
     }
 ];
 
@@ -86,21 +84,22 @@ console.log(recommendGasPrice(myGasStationMetadata, 0, "faster", 600_000_000, 10
 console.log("h (move balance)", "=".repeat(10));
 console.log(recommendGasPrice(myGasStationMetadata, 0, "fast", 0, 50_000));
 
+console.log("j (xExchange swap)", "=".repeat(10));
+console.log(recommendGasPrice(myGasStationMetadata, 1, "fast", 143, 30_000_000));
+console.log(recommendGasPrice(myGasStationMetadata, 1, "faster", 143, 30_000_000));
+
 myGasStationMetadata = [
     {
-        "fast": 200_000_000,
-        "faster": 400_000_000,
-        "excellentJustLikeMoveBalance": 1_000_000_000
+        "fast": 11760000,
+        "faster": 22760000
     },
     {
-        "fast": 200_000_000,
-        "faster": 400_000_000,
-        "excellentJustLikeMoveBalance": 1_000_000_000
+        "fast": 1_000_000_000,
+        "faster": 1_000_000_000
     },
     {
-        "fast": 200_000_000,
-        "faster": 400_000_000,
-        "excellentJustLikeMoveBalance": 1_000_000_000
+        "fast": 11760000,
+        "faster": 22760000
     }
 ];
 
