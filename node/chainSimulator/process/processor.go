@@ -1,13 +1,15 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -44,7 +46,7 @@ func (creator *blocksCreator) IncrementRound() {
 func (creator *blocksCreator) CreateNewBlock() error {
 	bp := creator.nodeHandler.GetProcessComponents().BlockProcessor()
 
-	nonce, _, prevHash, prevRandSeed, epoch, currentHeader := creator.getPreviousHeaderData()
+	nonce, _, prevHash, prevRandSeed, epoch, prevHeader := creator.getPreviousHeaderData()
 	round := creator.nodeHandler.GetCoreComponents().RoundHandler().Index()
 	newHeader, err := bp.CreateNewHeader(uint64(round), nonce+1)
 	if err != nil {
@@ -82,7 +84,6 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	if err != nil {
 		return err
 	}
-	blsKey := leader
 
 	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
 	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
@@ -90,16 +91,16 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(blsKey.PubKey())
+	isManaged := creator.nodeHandler.GetCryptoComponents().KeysHandler().IsKeyManagedByCurrentNode(leader.PubKey())
 	if !isManaged {
 		log.Debug("cannot propose block - leader bls key is missing",
-			"leader key", blsKey.PubKey(),
+			"leader key", leader.PubKey(),
 			"shard", creator.nodeHandler.GetShardCoordinator().SelfId())
 		return nil
 	}
 
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
-	randSeed, err := signingHandler.CreateSignatureForPublicKey(newHeader.GetPrevRandSeed(), blsKey.PubKey())
+	randSeed, err := signingHandler.CreateSignatureForPublicKey(newHeader.GetPrevRandSeed(), leader.PubKey())
 	if err != nil {
 		return err
 	}
@@ -108,15 +109,15 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	notNil := !check.IfNil(currentHeader)
+	nilPrevHeader := check.IfNil(prevHeader)
 	enableEpochHandler := creator.nodeHandler.GetCoreComponents().EnableEpochsHandler()
 	var previousProof *dataBlock.HeaderProof
-	if notNil && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
-		sig, errS := creator.generateSignature(prevHash, blsKey.PubKey(), currentHeader)
+	if !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+		sig, errS := creator.generateSignature(prevHash, leader.PubKey(), prevHeader)
 		if errS != nil {
 			return errS
 		}
-		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, currentHeader)
+		previousProof = createProofForHeader(pubKeyBitmap, sig, prevHash, prevHeader)
 		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(previousProof)
 	}
 
@@ -127,36 +128,9 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	if notNil && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.EquivalentMessagesFlag) {
-		validators, err = creator.updatePreviousProofAndAddonHeader(prevHash, currentHeader, header, previousProof)
-	}
+	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, previousProof, enableEpochHandler, validators, leader, pubKeyBitmap)
 	if err != nil {
 		return err
-	}
-
-	err = creator.setHeaderSignatures(header, blsKey.PubKey(), validators)
-	if err != nil {
-		return err
-	}
-
-	marshalizedHdr, err := creator.nodeHandler.GetCoreComponents().
-		InternalMarshalizer().Marshal(header)
-	if err != nil {
-		return err
-	}
-	headerHash := creator.nodeHandler.GetCoreComponents().Hasher().Compute(string(marshalizedHdr))
-
-	pubKeys := extractValidatorPubKeys(validators)
-	newHeaderSig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), header.GetPubKeysBitmap(), pubKeys)
-	if err != nil {
-		return err
-	}
-
-	var headerProof *dataBlock.HeaderProof
-	shouldAddCurrentProof := notNil && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
-	if shouldAddCurrentProof {
-		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
-		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(headerProof)
 	}
 
 	err = bp.CommitBlock(header, block)
@@ -169,24 +143,70 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastHeader(header, blsKey.PubKey())
+	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastHeader(header, leader.PubKey())
 	if err != nil {
 		return err
 	}
 
-	if shouldAddCurrentProof {
-		err = creator.nodeHandler.GetBroadcastMessenger().BroadcastEquivalentProof(headerProof, blsKey.PubKey())
+	if !check.IfNil(headerProof) {
+		err = creator.nodeHandler.GetBroadcastMessenger().BroadcastEquivalentProof(headerProof, leader.PubKey())
 		if err != nil {
 			return err
 		}
 	}
 
-	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastMiniBlocks(miniBlocks, blsKey.PubKey())
+	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastMiniBlocks(miniBlocks, leader.PubKey())
 	if err != nil {
 		return err
 	}
 
-	return creator.nodeHandler.GetBroadcastMessenger().BroadcastTransactions(transactions, blsKey.PubKey())
+	return creator.nodeHandler.GetBroadcastMessenger().BroadcastTransactions(transactions, leader.PubKey())
+}
+
+func (creator *blocksCreator) ApplySignaturesAndGetProof(
+	header data.HeaderHandler,
+	prevHeader data.HeaderHandler,
+	prevProof *dataBlock.HeaderProof,
+	enableEpochHandler common.EnableEpochsHandler,
+	validators []nodesCoordinator.Validator,
+	leader nodesCoordinator.Validator,
+	pubKeyBitmap []byte,
+) (*dataBlock.HeaderProof, error) {
+	nilPrevHeader := check.IfNil(prevHeader)
+	var err error
+	if !nilPrevHeader && common.ShouldBlockHavePrevProof(header, enableEpochHandler, common.EquivalentMessagesFlag) {
+		validators, err = creator.updatePreviousProofAndAddonHeader(header.GetPrevHash(), prevHeader, header, prevProof)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	err = creator.setHeaderSignatures(header, leader.PubKey(), validators)
+	if err != nil {
+		return nil, err
+	}
+	hasher := creator.nodeHandler.GetCoreComponents().Hasher()
+	marshaller := creator.nodeHandler.GetCoreComponents().InternalMarshalizer()
+
+	headerHash, err := core.CalculateHash(marshaller, hasher, header)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeys := extractValidatorPubKeys(validators)
+	newHeaderSig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), header.GetPubKeysBitmap(), pubKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	var headerProof *dataBlock.HeaderProof
+	shouldAddCurrentProof := !nilPrevHeader && enableEpochHandler.IsFlagEnabled(common.EquivalentMessagesFlag)
+	if shouldAddCurrentProof {
+		headerProof = createProofForHeader(pubKeyBitmap, newHeaderSig, headerHash, header)
+		_ = creator.nodeHandler.GetDataComponents().Datapool().Proofs().AddProof(headerProof)
+	}
+
+	return headerProof, nil
 }
 
 func (creator *blocksCreator) updatePreviousProofAndAddonHeader(currentHeaderHash []byte, currentHeader, newHeader data.HeaderHandler, previousProof *dataBlock.HeaderProof) ([]nodesCoordinator.Validator, error) {

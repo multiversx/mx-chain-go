@@ -292,7 +292,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSendFullHistory(t *testing.T) {
@@ -330,7 +330,7 @@ func TestHeaderResolver_ValidateRequestHashTypeFoundInHdrPoolShouldSearchAndSend
 	assert.True(t, sendWasCalled)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestHashTypeFoundInHdrPoolMarshalizerFailsShouldErr(t *testing.T) {
@@ -415,7 +415,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestRetFromStorageShouldRetValA
 	assert.True(t, wasSent)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeInvalidSliceShouldErr(t *testing.T) {
@@ -557,7 +557,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	assert.True(t, wasSent)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolShouldRetFromStorageAndSend(t *testing.T) {
@@ -621,7 +621,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoo
 	assert.True(t, wasSend)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolButMarshalFailsShouldError(t *testing.T) {
@@ -721,7 +721,7 @@ func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeNotFoundInHdrNonce
 	assert.True(t, wasSend)
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 	assert.True(t, arg.Throttler.(*mock.ThrottlerStub).EndWasCalled())
-	assert.Nil(t, msgID)
+	assert.Len(t, msgID, 0)
 }
 
 func TestHeaderResolver_ProcessReceivedMessageRequestNonceTypeFoundInHdrNoncePoolCheckRetErr(t *testing.T) {

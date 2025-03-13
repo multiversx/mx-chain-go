@@ -158,8 +158,11 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 	}
 
 	hdrRes.DebugHandler().LogSucceededToResolveData(hdrRes.topic, rd.Value)
-
-	return nil, hdrRes.Send(buff, message.Peer(), source)
+	err = hdrRes.Send(buff, message.Peer(), source)
+	if err != nil {
+		return nil, err
+	}
+	return []byte{}, nil
 }
 
 func (hdrRes *HeaderResolver) resolveHeaderFromNonce(rd *dataRetriever.RequestData) ([]byte, error) {

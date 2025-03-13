@@ -468,12 +468,12 @@ func (wrk *Worker) ProcessReceivedMessage(message p2p.MessageP2P, fromConnectedP
 		log.Trace("checkSelfState", "error", errNotCritical.Error())
 		// in this case should return nil but do not process the message
 		// nil error will mean that the interceptor will validate this message and broadcast it to the connected peers
-		return nil, nil
+		return []byte{}, nil
 	}
 
 	go wrk.executeReceivedMessages(cnsMsg)
 
-	return nil, nil
+	return []byte{}, nil
 }
 
 func (wrk *Worker) shouldBlacklistPeer(err error) bool {

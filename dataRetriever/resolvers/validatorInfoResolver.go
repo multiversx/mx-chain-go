@@ -106,12 +106,17 @@ func (res *validatorInfoResolver) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	switch rd.Type {
 	case dataRetriever.HashType:
-		return nil, res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		err = res.resolveHashRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
 	case dataRetriever.HashArrayType:
-		return nil, res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+		err = res.resolveMultipleHashesRequest(rd.Value, rd.Epoch, fromConnectedPeer, source)
+	default:
+		err = fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
 	}
 
-	return nil, fmt.Errorf("%w for value %s", dataRetriever.ErrRequestTypeNotImplemented, logger.DisplayByteSlice(rd.Value))
+	if err != nil {
+		return nil, err
+	}
+	return []byte{}, nil
 }
 
 // resolveHashRequest sends the response for a hash request
