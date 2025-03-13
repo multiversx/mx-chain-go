@@ -106,7 +106,7 @@ export ALWAYS_NEW_APP_VERSION=0
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
 # Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
-export ALWAYS_UPDATE_CONFIGS=1
+export ALWAYS_UPDATE_CONFIGS=0
 
 # IP of the seednode
 export SEEDNODE_IP="127.0.0.1"

@@ -35,7 +35,7 @@
     TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 90
     
     SubscribedEvents = [
-        { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+        { Identifier = "deposit", Addresses = ["vibe1cj4rq9vdqcvvdfwvl8tad76573q2u3jx9jtdg2ggucn33gv52c2qgz2hkd"] }
     ]
 
 [OutGoingBridge]
@@ -55,8 +55,8 @@
     Enabled = false
 
     SubscribedEvents = [
-        { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] },
-        { Identifier = "execute", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+        { Identifier = "deposit", Addresses = ["vibe1cj4rq9vdqcvvdfwvl8tad76573q2u3jx9jtdg2ggucn33gv52c2qgz2hkd"] },
+        { Identifier = "execute", Addresses = ["vibe1cj4rq9vdqcvvdfwvl8tad76573q2u3jx9jtdg2ggucn33gv52c2qgz2hkd"] }
     ]
     [NotifierConfig.WebSocket]
         Url = "ws://localhost:22111"

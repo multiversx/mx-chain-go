@@ -587,7 +587,7 @@
     Length = 32
     Type = "bech32"
     SignatureLength = 64
-    Hrp = "erd"
+    Hrp = "vibe"
 
 [ValidatorPubkeyConverter]
     Length = 96
@@ -677,7 +677,7 @@
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
-            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
+            "vibe1qqqqqqqqqqqqqpgq24uykycu25ez0qjw2sz47504j0jlkx83cmuqg6pp5r", #shard 0
         ]
 
     [VirtualMachine.Querying]
@@ -689,7 +689,7 @@
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
-            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+            "vibe1qqqqqqqqqqqqqpgq24uykycu25ez0qjw2sz47504j0jlkx83cmuqg6pp5r",
         ]
 
     [VirtualMachine.GasConfig]
@@ -700,13 +700,11 @@
 
 [BuiltInFunctions]
     AutomaticCrawlerAddresses =[
-        "erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", #shard 0
-        "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", #shard 1
-        "erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", #shard 2
+        "vibe16qqsfd69uwurn0znrfr5yjtm8kpnw6vxvsusd88u0v6u9nmqyujqa0tqd9", #shard 0
     ]
     MaxNumAddressesInTransferRole = 100
     DNSV2Addresses =[
-        "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+        "vibe1qqqqqqqqqqqqqpgq24uykycu25ez0qjw2sz47504j0jlkx83cmuqg6pp5r",
     ]
 
 [Hardfork]
