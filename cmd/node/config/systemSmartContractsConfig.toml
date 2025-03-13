@@ -17,7 +17,7 @@
 [ESDTSystemSCConfig]
     BaseIssuingCost = "5000000000000000000" #5 eGLD
     OwnerAddress = "vibe1qqqqqqqqqqqqqpgq24uykycu25ez0qjw2sz47504j0jlkx83cmuqg6pp5r"
-    ESDTPrefix = ""
+    ESDTPrefix = "vibe"
 
 [GovernanceSystemSCConfig]
     OwnerAddress = "vibe1r7d892srrzq7uq530a94zmh0774gh6alpjh8cwcm98m4wzcpdtwqjfayme" #should use a multisign contract instead of a wallet address

@@ -69,6 +69,8 @@ sovereignStart() {
     updateAndStartBridgeService
 
     $TESTNET_DIR/sovereignStart.sh
+
+    /home/ubuntu/mx-services/redeploy.sh
 }
 
 # This function will reset sovereign:
@@ -116,6 +118,8 @@ stopSovereign() {
     screen -S sovereignBridgeService -X kill
 
     stopObserver
+
+    /home/ubuntu/mx-services/stop.sh
 }
 
 # This function will stop and clean sovereign:

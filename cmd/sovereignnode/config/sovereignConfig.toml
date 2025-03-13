@@ -79,4 +79,4 @@
 
 [GenesisConfig]
     # NativeESDT specifies the sovereign shard's native esdt currency
-    NativeESDT = "WEGLD-bd4d79"
+    NativeESDT = "VIBE-ac8b4d"
