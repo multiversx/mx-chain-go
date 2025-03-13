@@ -314,6 +314,8 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GasSchedule:              gasSchedule,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
@@ -761,7 +763,7 @@ func (context *TestContext) querySC(function string, args [][]byte) []byte {
 // GoToEpoch -
 func (context *TestContext) GoToEpoch(epoch int) {
 	header := &block.Header{Nonce: uint64(epoch) * 100, Round: uint64(epoch) * 100, Epoch: uint32(epoch)}
-	context.BlockchainHook.SetCurrentHeader(header)
+	_ = context.BlockchainHook.SetCurrentHeader(header)
 }
 
 // GetCompositeTestError -

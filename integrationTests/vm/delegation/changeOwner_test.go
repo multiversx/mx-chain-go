@@ -83,7 +83,8 @@ func testDelegationChangeOwnerOnAccountHandler(t *testing.T, epochToTest uint32)
 	tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: epochToTest,
 	})
-	tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+	err := tpn.BlockchainHook.SetCurrentHeader(&block.MetaBlock{Nonce: 1})
+	require.Nil(t, err)
 
 	delegationScAddress := deployNewSc(t, tpn, maxDelegationCap, serviceFee, big.NewInt(2000), firstOwner)
 	verifyDelegatorsStake(t, tpn, "getUserActiveStake", [][]byte{firstOwner}, delegationScAddress, big.NewInt(2000))
