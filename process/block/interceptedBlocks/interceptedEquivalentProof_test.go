@@ -235,6 +235,23 @@ func TestInterceptedEquivalentProof_IsForCurrentShard(t *testing.T) {
 
 		require.True(t, iep.IsForCurrentShard())
 	})
+	t.Run("meta proof on different shard should return true", func(t *testing.T) {
+		t.Parallel()
+
+		proof := &block.HeaderProof{
+			PubKeysBitmap:       []byte("bitmap"),
+			AggregatedSignature: []byte("sig"),
+			HeaderHash:          []byte("hash"),
+			HeaderShardId:       core.MetachainShardId,
+		}
+		args := createMockArgInterceptedEquivalentProof()
+		args.DataBuff, _ = args.Marshaller.Marshal(proof)
+		args.ShardCoordinator = &mock.ShardCoordinatorMock{ShardID: 0}
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		require.True(t, iep.IsForCurrentShard())
+	})
 	t.Run("self shard id return true", func(t *testing.T) {
 		t.Parallel()
 
