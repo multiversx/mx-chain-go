@@ -27,6 +27,7 @@ generateConfig() {
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
     -round-duration $ROUND_DURATION_IN_MS \
+    -hrp $DEFAULT_HRP \
     -sovereign=$SOVEREIGN_BOOL
 
   popd

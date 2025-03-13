@@ -94,6 +94,9 @@ export ALWAYS_NEW_CHAINID=1
 # DEFAULT_CHAIN_ID represents the default chain ID
 export DEFAULT_CHAIN_ID="V"
 
+# DEFAULT_HRP represents the addresses hrp
+export DEFAULT_HRP="vibe"
+
 # ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
 export ROUNDS_PER_EPOCH=43200
 
