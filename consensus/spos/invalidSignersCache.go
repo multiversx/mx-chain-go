@@ -79,11 +79,11 @@ func (cache *invalidSignersCache) AddInvalidSigners(headerHash []byte, invalidSi
 }
 
 // HasInvalidSigners check whether the provided hash exists in the internal map or not
-func (cache *invalidSignersCache) HasInvalidSigners(headerHash []byte, invalidSigners []byte) bool {
+func (cache *invalidSignersCache) HasInvalidSigners(headerHash []byte, serializedInvalidSigners []byte) bool {
 	cache.RLock()
 	defer cache.RUnlock()
 
-	invalidSignersHash := cache.hasher.Compute(string(invalidSigners))
+	invalidSignersHash := cache.hasher.Compute(string(serializedInvalidSigners))
 	_, hasSameInvalidSigners := cache.invalidSignersHashesMap[string(invalidSignersHash)]
 	if hasSameInvalidSigners {
 		return true
@@ -94,13 +94,12 @@ func (cache *invalidSignersCache) HasInvalidSigners(headerHash []byte, invalidSi
 		return false
 	}
 
-	messages, err := cache.signingHandler.Deserialize(invalidSigners)
+	invalidSignersP2PMessages, err := cache.signingHandler.Deserialize(serializedInvalidSigners)
 	if err != nil {
 		return false
 	}
 
-	knownInvalidSigners := 0
-	for _, msg := range messages {
+	for _, msg := range invalidSignersP2PMessages {
 		cnsMsg := &consensus.Message{}
 		err = cache.marshaller.Unmarshal(cnsMsg, msg.Data())
 		if err != nil {
@@ -108,15 +107,15 @@ func (cache *invalidSignersCache) HasInvalidSigners(headerHash []byte, invalidSi
 		}
 
 		_, isKnownInvalidSigner := cache.invalidSignersForHeaderMap[string(headerHash)][string(cnsMsg.PubKey)]
-		if isKnownInvalidSigner {
-			knownInvalidSigners++
+		if !isKnownInvalidSigner {
+			return false
 		}
 	}
 
-	return knownInvalidSigners == len(messages)
+	return true
 }
 
-// Reset clears the internal map
+// Reset clears the internal maps
 func (cache *invalidSignersCache) Reset() {
 	cache.Lock()
 	defer cache.Unlock()
