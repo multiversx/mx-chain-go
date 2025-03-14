@@ -6,11 +6,11 @@ go 1.20
 
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250206111825-25fbb1b4851c
+	github.com/multiversx/mx-chain-core-go v1.2.25-0.20250313171613-236d24251511
 	github.com/multiversx/mx-chain-go v1.8.4
 	github.com/multiversx/mx-chain-logger-go v1.0.15
 	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20250206093614-af9e9aa908ba
-	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230929085947-df9b345f49ac
+	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20250314080056-80a1c71082dc
 	github.com/multiversx/mx-sdk-abi-go v0.3.0
 	github.com/stretchr/testify v1.10.0
 	github.com/urfave/cli v1.22.16
