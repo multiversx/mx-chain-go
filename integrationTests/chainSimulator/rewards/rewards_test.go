@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,50 +89,66 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 	require.True(t, found)
 	require.NotNil(t, metaBlock)
 
-	nodesCoordinator := cs.GetNodeHandler(0).GetProcessComponents().NodesCoordinator()
+	coordinator := cs.GetNodeHandler(0).GetProcessComponents().NodesCoordinator()
 
-	shards := []uint32{0, 1, 2, core.MetachainShardId}
-
-	rewardsPerShard := make(map[uint32]*big.Int)
-	for _, shardID := range shards {
-		validatorsPerShard, errG := nodesCoordinator.GetAllEligibleValidatorsPublicKeysForShard(8, shardID)
-		require.Nil(t, errG)
-
-		for _, validator := range validatorsPerShard {
-			owner, ok := validators[hex.EncodeToString([]byte(validator))]
-			if !ok {
-				continue
-			}
-
-			for _, mb := range metaBlock.MiniBlocks {
-				if mb.Type != block.RewardsBlock.String() {
-					continue
-				}
-
-				for _, tx := range mb.Transactions {
-					if tx.Receiver != owner {
-						continue
-					}
-					_, ok = rewardsPerShard[shardID]
-					if !ok {
-						rewardsPerShard[shardID] = big.NewInt(0)
-					}
-
-					valueBig, okR := big.NewInt(0).SetString(tx.Value, 10)
-					require.True(t, okR)
-
-					rewardsPerShard[shardID].Add(rewardsPerShard[shardID], valueBig)
-				}
-			}
-		}
-
-	}
+	rewardsPerShard := computeRewardsForShards(metaBlock, coordinator, validators)
 
 	for shardID, reward := range rewardsPerShard {
 		fmt.Printf("rewards on shard %d: %s\n", shardID, reward.String())
 	}
 
 	require.True(t, allValuesEqual(rewardsPerShard))
+}
+
+func computeRewardsForShards(
+	metaBlock *apiCore.Block,
+	coordinator nodesCoordinator.NodesCoordinator,
+	validators map[string]string,
+) map[uint32]*big.Int {
+	shards := []uint32{0, 1, 2, core.MetachainShardId}
+	rewardsPerShard := make(map[uint32]*big.Int)
+
+	for _, shardID := range shards {
+		rewardsPerShard[shardID] = big.NewInt(0) // Initialize reward entry
+		computeRewardsForShard(metaBlock, coordinator, validators, shardID, rewardsPerShard)
+	}
+
+	return rewardsPerShard
+}
+
+func computeRewardsForShard(metaBlock *apiCore.Block,
+	coordinator nodesCoordinator.NodesCoordinator,
+	validators map[string]string,
+	shardID uint32,
+	rewardsPerShard map[uint32]*big.Int,
+) {
+	validatorsPerShard, _ := coordinator.GetAllEligibleValidatorsPublicKeysForShard(8, shardID)
+
+	for _, validator := range validatorsPerShard {
+		owner, exists := validators[hex.EncodeToString([]byte(validator))]
+		if !exists {
+			continue
+		}
+		accumulateShardRewards(metaBlock, shardID, owner, rewardsPerShard)
+	}
+}
+
+func accumulateShardRewards(metaBlock *apiCore.Block, shardID uint32, owner string, rewardsPerShard map[uint32]*big.Int) {
+	for _, mb := range metaBlock.MiniBlocks {
+		if mb.Type != block.RewardsBlock.String() {
+			continue
+		}
+
+		for _, tx := range mb.Transactions {
+			if tx.Receiver != owner {
+				continue
+			}
+
+			valueBig, _ := new(big.Int).SetString(tx.Value, 10)
+
+			rewardsPerShard[shardID].Add(rewardsPerShard[shardID], valueBig)
+		}
+	}
 }
 
 func readValidatorsAndOwners(filePath string) (map[string]string, error) {
