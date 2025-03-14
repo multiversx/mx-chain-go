@@ -2015,11 +2015,11 @@ func TestWorker_ProcessReceivedMessageWithInvalidSigners(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	cntHasInvalidSignersCalled := 0
+	cntCheckKnownInvalidSignersCalled := 0
 	workerArgs.InvalidSignersCache = &consensusMocks.InvalidSignersCacheMock{
-		HasInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
-			cntHasInvalidSignersCalled++
-			return cntHasInvalidSignersCalled > 1
+		CheckKnownInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
+			cntCheckKnownInvalidSignersCalled++
+			return cntCheckKnownInvalidSignersCalled > 1
 		},
 	}
 	workerArgs.AntifloodHandler = &mock.P2PAntifloodHandlerStub{

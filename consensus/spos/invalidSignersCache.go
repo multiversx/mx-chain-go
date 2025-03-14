@@ -78,8 +78,8 @@ func (cache *invalidSignersCache) AddInvalidSigners(headerHash []byte, invalidSi
 	}
 }
 
-// HasInvalidSigners check whether the provided hash exists in the internal map or not
-func (cache *invalidSignersCache) HasInvalidSigners(headerHash []byte, serializedInvalidSigners []byte) bool {
+// CheckKnownInvalidSigners checks whether all the provided invalid signers are known for the header hash
+func (cache *invalidSignersCache) CheckKnownInvalidSigners(headerHash []byte, serializedInvalidSigners []byte) bool {
 	cache.RLock()
 	defer cache.RUnlock()
 

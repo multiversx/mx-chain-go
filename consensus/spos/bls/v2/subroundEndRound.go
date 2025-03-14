@@ -151,7 +151,7 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 	}
 
 	invalidSignersCache := sr.InvalidSignersCache()
-	if invalidSignersCache.HasInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners) {
+	if invalidSignersCache.CheckKnownInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners) {
 		return false
 	}
 

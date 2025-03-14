@@ -577,7 +577,7 @@ func (wrk *Worker) doJobOnMessageWithHeader(cnsMsg *consensus.Message) error {
 
 func (wrk *Worker) verifyMessageWithInvalidSigners(cnsMsg *consensus.Message) error {
 	// No need to guard this method by verification of common.EquivalentMessagesFlag as invalidSignersCache will have entries only for consensus v2
-	if wrk.invalidSignersCache.HasInvalidSigners(cnsMsg.BlockHeaderHash, cnsMsg.InvalidSigners) {
+	if wrk.invalidSignersCache.CheckKnownInvalidSigners(cnsMsg.BlockHeaderHash, cnsMsg.InvalidSigners) {
 		// return error here to avoid further broadcast of this message
 		return ErrInvalidSignersAlreadyReceived
 	}

@@ -1507,7 +1507,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{
-			HasInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
+			CheckKnownInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
 				return true
 			},
 		}

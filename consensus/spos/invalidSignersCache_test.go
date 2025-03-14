@@ -126,15 +126,15 @@ func TestInvalidSignersCache(t *testing.T) {
 
 		cache.AddInvalidSigners(nil, nil, nil) // early return, for coverage only
 
-		require.False(t, cache.HasInvalidSigners(headerHash1, invalidSigners1))
+		require.False(t, cache.CheckKnownInvalidSigners(headerHash1, invalidSigners1))
 
 		cache.AddInvalidSigners(headerHash1, invalidSigners1, pubKeys1)
-		require.True(t, cache.HasInvalidSigners(headerHash1, invalidSigners1)) // should find in signers by hashes map
+		require.True(t, cache.CheckKnownInvalidSigners(headerHash1, invalidSigners1)) // should find in signers by hashes map
 
-		require.True(t, cache.HasInvalidSigners(headerHash1, invalidSigners2)) // should have different hash but the known signers
+		require.True(t, cache.CheckKnownInvalidSigners(headerHash1, invalidSigners2)) // should have different hash but the known signers
 
 		cache.Reset()
-		require.False(t, cache.HasInvalidSigners(headerHash1, invalidSigners1))
+		require.False(t, cache.CheckKnownInvalidSigners(headerHash1, invalidSigners1))
 	})
 	t.Run("concurrent ops should work", func(t *testing.T) {
 		t.Parallel()
@@ -160,7 +160,7 @@ func TestInvalidSignersCache(t *testing.T) {
 				case 0:
 					cache.AddInvalidSigners([]byte("hash"), []byte("invalidSigners"), []string{"pk0", "pk1"})
 				case 1:
-					cache.HasInvalidSigners([]byte("hash"), []byte("invalidSigners"))
+					cache.CheckKnownInvalidSigners([]byte("hash"), []byte("invalidSigners"))
 				case 2:
 					cache.Reset()
 				default:
