@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -1335,6 +1336,114 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			ScheduledDeveloperFees:   big.NewInt(0),
 			PreviousHeaderProof:      nil,
 		})
+
+		r := srEndRound.DoEndRoundJobByNode()
+		require.True(t, r)
+	})
+	t.Run("invalid signers should wait for more signatures then work", func(t *testing.T) {
+		t.Parallel()
+
+		chanSendNewSig := make(chan bool)
+		container := consensusMocks.InitConsensusCore()
+		shouldNotFailAnymore := atomic.Flag{}
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			VerifySignatureShareCalled: func(index uint16, sig []byte, msg []byte, epoch uint32) error {
+				if index == 3 {
+					return expectedErr
+				}
+				return nil
+			},
+			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
+				if !shouldNotFailAnymore.IsSet() {
+					return nil, expectedErr // force invalid signers on first aggregation
+				}
+
+				return []byte("sig"), nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+		container.SetBlockchain(&testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+		})
+		cntHasProof := 0
+		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				cntHasProof++
+				// second check for proof should be after recursive call
+				if cntHasProof == 3 {
+					chanSendNewSig <- true
+				}
+				return shouldNotFailAnymore.IsSet()
+			},
+		})
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
+
+		ch := make(chan bool, 1)
+		consensusState := initializers.InitConsensusState()
+		sr, _ := spos.NewSubround(
+			bls.SrSignature,
+			bls.SrEndRound,
+			-1,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(END_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		srEndRound, _ := v2.NewSubroundEndRound(
+			sr,
+			v2.ProcessingThresholdPercent,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{},
+			&consensusMocks.SposWorkerMock{},
+			&dataRetrieverMocks.ThrottlerStub{},
+		)
+
+		consensusSize := sr.ConsensusGroupSize()
+		threshold := 2*consensusSize/3 + 1
+		srEndRound.SetThreshold(bls.SrSignature, threshold)
+
+		for i := 0; i < threshold; i++ {
+			participant := srEndRound.ConsensusGroup()[i]
+			_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
+		}
+
+		srEndRound.SetHeader(&block.HeaderV2{
+			Header:                   createDefaultHeader(),
+			ScheduledRootHash:        []byte("sch root hash"),
+			ScheduledAccumulatedFees: big.NewInt(0),
+			ScheduledDeveloperFees:   big.NewInt(0),
+			PreviousHeaderProof:      nil,
+		})
+
+		go func() {
+			for {
+				select {
+				case <-chanSendNewSig:
+					// add one more valid signature and avoid further errors
+					participant := srEndRound.ConsensusGroup()[threshold]
+					_ = srEndRound.SetJobDone(participant, bls.SrSignature, true)
+					shouldNotFailAnymore.SetValue(true)
+					return
+				case <-time.After(roundTimeDuration):
+					require.Fail(t, "should have not passed all time")
+					return
+				}
+			}
+		}()
 
 		r := srEndRound.DoEndRoundJobByNode()
 		require.True(t, r)

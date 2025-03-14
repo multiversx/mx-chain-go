@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -260,9 +261,18 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		if !sr.waitForSignalSync() {
 			return false
 		}
-		sr.sendProof()
-		err := sr.prepareBroadcastBlockData()
-		log.LogIfError(err)
+
+		proofSent, shouldWaitForMoreSignatures := sr.sendProof()
+		// if not enough valid signatures were detected, wait a bit more
+		// either more signatures will be received, either proof from another participant
+		if shouldWaitForMoreSignatures {
+			return sr.doEndRoundJobByNode()
+		}
+
+		if proofSent {
+			err := sr.prepareBroadcastBlockData()
+			log.LogIfError(err)
+		}
 	}
 
 	return sr.finalizeConfirmedBlock()
@@ -332,23 +342,24 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendProof() {
+func (sr *subroundEndRound) sendProof() (bool, bool) {
 	if !sr.shouldSendProof() {
-		return
+		return false, false
 	}
 
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendProof.checkSignaturesValidity", "error", err.Error())
-		return
+		return false, false
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
+		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return
+		return false, shouldWaitForMoreSignatures
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -356,7 +367,7 @@ func (sr *subroundEndRound) sendProof() {
 		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return
+		return false, false
 	}
 
 	// broadcast header proof
@@ -364,6 +375,8 @@ func (sr *subroundEndRound) sendProof() {
 	if err != nil {
 		log.Warn("sendProof.createAndBroadcastProof", "error", err.Error())
 	}
+
+	return err == nil, false
 }
 
 func (sr *subroundEndRound) shouldSendProof() bool {
