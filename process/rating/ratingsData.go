@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/statusHandler"
+	"golang.org/x/exp/slices"
 )
 
 var _ process.RatingsInfoHandler = (*RatingsData)(nil)
@@ -497,6 +498,10 @@ func (rd *RatingsData) updateRatingsMetrics(epoch uint32) {
 }
 
 func getRatingStepsForEpoch(epoch uint32, ratingStepsPerEpoch []config.RatingSteps) (config.RatingSteps, bool) {
+	slices.SortFunc(ratingStepsPerEpoch, func(a, b config.RatingSteps) bool {
+		return a.EnableEpoch < b.EnableEpoch
+	})
+
 	var ratingSteps config.RatingSteps
 	found := false
 	for _, ratingStepsForEpoch := range ratingStepsPerEpoch {
@@ -510,6 +515,10 @@ func getRatingStepsForEpoch(epoch uint32, ratingStepsPerEpoch []config.RatingSte
 }
 
 func getChainParamsForEpoch(epoch uint32, chainParamsList []config.ChainParametersByEpochConfig) (config.ChainParametersByEpochConfig, bool) {
+	slices.SortFunc(chainParamsList, func(a, b config.ChainParametersByEpochConfig) bool {
+		return a.EnableEpoch < b.EnableEpoch
+	})
+
 	var chainParams config.ChainParametersByEpochConfig
 	found := false
 	for _, chainParamsForEpoch := range chainParamsList {

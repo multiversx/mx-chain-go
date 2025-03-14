@@ -30,28 +30,28 @@
 
 [ShardChain]
     [[ShardChain.RatingStepsByEpoch]]
+        EnableEpoch = 0
         HoursToMaxRatingFromStartRating = 72
         ProposerValidatorImportance = 1.0
         ProposerDecreaseFactor = -4.0
         ValidatorDecreaseFactor = -4.0
         ConsecutiveMissedBlocksPenalty = 1.50
-        EnableEpoch = 0
     [[ShardChain.RatingStepsByEpoch]]
+        EnableEpoch = 8
         HoursToMaxRatingFromStartRating = 55
         ProposerValidatorImportance = 1.0
         ProposerDecreaseFactor = -4.0
         ValidatorDecreaseFactor = -4.0
         ConsecutiveMissedBlocksPenalty = 1.50
-        EnableEpoch = 8
 
 [MetaChain]
     [[MetaChain.RatingStepsByEpoch]]
+        EnableEpoch = 0
         HoursToMaxRatingFromStartRating = 55
         ProposerValidatorImportance = 1.0
         ProposerDecreaseFactor = -4.0
         ValidatorDecreaseFactor = -4.0
         ConsecutiveMissedBlocksPenalty = 1.50
-        EnableEpoch = 0
 
 [PeerHonesty]
     #this value will be multiplied with the current value for a public key each DecayUpdateIntervalInSeconds seconds
