@@ -3,6 +3,7 @@ package rewards
 import (
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -91,7 +92,8 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 
 	coordinator := cs.GetNodeHandler(0).GetProcessComponents().NodesCoordinator()
 
-	rewardsPerShard := computeRewardsForShards(metaBlock, coordinator, validators)
+	rewardsPerShard, err := computeRewardsForShards(metaBlock, coordinator, validators)
+	require.Nil(t, err)
 
 	for shardID, reward := range rewardsPerShard {
 		fmt.Printf("rewards on shard %d: %s\n", shardID, reward.String())
@@ -104,16 +106,19 @@ func computeRewardsForShards(
 	metaBlock *apiCore.Block,
 	coordinator nodesCoordinator.NodesCoordinator,
 	validators map[string]string,
-) map[uint32]*big.Int {
+) (map[uint32]*big.Int, error) {
 	shards := []uint32{0, 1, 2, core.MetachainShardId}
 	rewardsPerShard := make(map[uint32]*big.Int)
 
 	for _, shardID := range shards {
 		rewardsPerShard[shardID] = big.NewInt(0) // Initialize reward entry
-		computeRewardsForShard(metaBlock, coordinator, validators, shardID, rewardsPerShard)
+		err := computeRewardsForShard(metaBlock, coordinator, validators, shardID, rewardsPerShard)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return rewardsPerShard
+	return rewardsPerShard, nil
 }
 
 func computeRewardsForShard(metaBlock *apiCore.Block,
@@ -121,7 +126,7 @@ func computeRewardsForShard(metaBlock *apiCore.Block,
 	validators map[string]string,
 	shardID uint32,
 	rewardsPerShard map[uint32]*big.Int,
-) {
+) error {
 	validatorsPerShard, _ := coordinator.GetAllEligibleValidatorsPublicKeysForShard(8, shardID)
 
 	for _, validator := range validatorsPerShard {
@@ -129,11 +134,17 @@ func computeRewardsForShard(metaBlock *apiCore.Block,
 		if !exists {
 			continue
 		}
-		accumulateShardRewards(metaBlock, shardID, owner, rewardsPerShard)
+		err := accumulateShardRewards(metaBlock, shardID, owner, rewardsPerShard)
+		if err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
-func accumulateShardRewards(metaBlock *apiCore.Block, shardID uint32, owner string, rewardsPerShard map[uint32]*big.Int) {
+func accumulateShardRewards(metaBlock *apiCore.Block, shardID uint32, owner string, rewardsPerShard map[uint32]*big.Int) error {
+	var firstValue *big.Int
 	for _, mb := range metaBlock.MiniBlocks {
 		if mb.Type != block.RewardsBlock.String() {
 			continue
@@ -145,10 +156,18 @@ func accumulateShardRewards(metaBlock *apiCore.Block, shardID uint32, owner stri
 			}
 
 			valueBig, _ := new(big.Int).SetString(tx.Value, 10)
+			if firstValue == nil {
+				firstValue = valueBig
+			}
+			if valueBig.Cmp(firstValue) != 0 {
+				return errors.New("different values in rewards transactions")
+			}
 
 			rewardsPerShard[shardID].Add(rewardsPerShard[shardID], valueBig)
 		}
 	}
+
+	return nil
 }
 
 func readValidatorsAndOwners(filePath string) (map[string]string, error) {
