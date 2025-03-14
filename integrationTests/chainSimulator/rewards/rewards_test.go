@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/stretchr/testify/require"
@@ -24,6 +23,10 @@ const (
 )
 
 func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -45,8 +48,6 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
@@ -69,7 +70,6 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 	nodesSetupFile := path.Join(tempDir, "config", "nodesSetup.json")
 	validators, err := readValidatorsAndOwners(nodesSetupFile)
 	require.Nil(t, err)
-	fmt.Println(validators)
 
 	// find block with rewards transactions, in this range we should find the epoch start block
 	var metaBlock *apiCore.Block
@@ -120,8 +120,9 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 						rewardsPerShard[shardID] = big.NewInt(0)
 					}
 
-					valueBig, okR := rewardsPerShard[shardID].SetString(tx.Value, 10)
+					valueBig, okR := big.NewInt(0).SetString(tx.Value, 10)
 					require.True(t, okR)
+
 					rewardsPerShard[shardID].Add(rewardsPerShard[shardID], valueBig)
 				}
 			}
@@ -163,14 +164,17 @@ func readValidatorsAndOwners(filePath string) (map[string]string, error) {
 }
 
 func allValuesEqual(m map[uint32]*big.Int) bool {
-	var firstValue *big.Int
-	firstSet := false
+	if len(m) == 0 {
+		return true
+	}
 
+	var firstValue *big.Int
 	for _, v := range m {
-		if !firstSet {
+		if firstValue == nil {
 			firstValue = v
-			firstSet = true
-		} else if firstValue.Cmp(v) != 0 {
+			continue
+		}
+		if firstValue.Cmp(v) != 0 {
 			return false
 		}
 	}

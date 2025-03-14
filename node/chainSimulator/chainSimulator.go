@@ -197,7 +197,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 }
 
 func (s *simulator) addProofs() {
-	proofs := make([]*block.HeaderProof, 0)
+	proofs := make([]*block.HeaderProof, 0, len(s.nodes))
 
 	for shardID, nodeHandler := range s.nodes {
 		hash := nodeHandler.GetChainHandler().GetGenesisHeaderHash()
@@ -207,11 +207,12 @@ func (s *simulator) addProofs() {
 		})
 	}
 
+	metachainProofsPool := s.GetNodeHandler(core.MetachainShardId).GetDataComponents().Datapool().Proofs()
 	for _, proof := range proofs {
-		s.GetNodeHandler(core.MetachainShardId).GetDataComponents().Datapool().Proofs().AddProof(proof)
+		_ = metachainProofsPool.AddProof(proof)
 
 		if proof.HeaderShardId != core.MetachainShardId {
-			s.GetNodeHandler(proof.HeaderShardId).GetDataComponents().Datapool().Proofs().AddProof(proof)
+			_ = s.GetNodeHandler(proof.HeaderShardId).GetDataComponents().Datapool().Proofs().AddProof(proof)
 		}
 	}
 }
