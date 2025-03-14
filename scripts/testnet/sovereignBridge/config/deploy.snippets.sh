@@ -50,8 +50,6 @@ sovereignDeploy() {
 
     mxpy config set default_address_hrp vibe
 
-    return
-
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign
