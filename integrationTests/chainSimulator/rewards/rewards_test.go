@@ -55,9 +55,6 @@ func TestRewardsTxsAfterEquivalentMessages(t *testing.T) {
 
 	targetEpoch := 9
 	for i := 0; i < targetEpoch; i++ {
-		if i == 8 {
-			fmt.Println("here")
-		}
 		err = cs.ForceChangeOfEpoch()
 		require.Nil(t, err)
 	}
@@ -167,14 +164,9 @@ func allValuesEqual(m map[uint32]*big.Int) bool {
 	if len(m) == 0 {
 		return true
 	}
-
-	var firstValue *big.Int
+	expectedValue := m[0]
 	for _, v := range m {
-		if firstValue == nil {
-			firstValue = v
-			continue
-		}
-		if firstValue.Cmp(v) != 0 {
+		if expectedValue.Cmp(v) != 0 {
 			return false
 		}
 	}
