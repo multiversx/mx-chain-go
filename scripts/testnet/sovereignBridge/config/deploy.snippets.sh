@@ -12,8 +12,6 @@ deploySovereignWithCrossChainContracts() {
 # - update sovereign configs
 # - prepare a main chain observer for sovereign nodes
 deployMainChainContractsAndSetupObserver() {
-    checkWalletBalanceOnMainChain || return
-
     deployEsdtSafeContract || return
 
     deployFeeMarketContract || return
@@ -36,8 +34,6 @@ deployMainChainContractsAndSetupObserver() {
 # - start the bridge service, nodes and the observer
 # - do other transactions in sovereign contracts
 sovereignDeploy() {
-    checkWalletBalanceOnMainChain || return
-
     updateNotifierNotarizationRound
 
     $TESTNET_DIR/config.sh
@@ -52,11 +48,15 @@ sovereignDeploy() {
 
     sovereignStart
 
+    mxpy config set default_address_hrp vibe
+
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign
 
     unpauseEsdtSafeContractSovereign
+
+    mxpy config set default_address_hrp erd
 }
 
 # This function will start sovereign:
@@ -69,6 +69,8 @@ sovereignStart() {
     updateAndStartBridgeService
 
     $TESTNET_DIR/sovereignStart.sh
+
+    /home/ubuntu/mx-services/redeploy.sh
 }
 
 # This function will reset sovereign:
@@ -116,6 +118,8 @@ stopSovereign() {
     screen -S sovereignBridgeService -X kill
 
     stopObserver
+
+    /home/ubuntu/mx-services/stop.sh
 }
 
 # This function will stop and clean sovereign:
