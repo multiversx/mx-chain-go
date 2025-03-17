@@ -302,7 +302,7 @@ func (sr *subroundEndRound) ReceivedInvalidSignersInfo(cnsDta *consensus.Message
 }
 
 // VerifyInvalidSigners calls the unexported verifyInvalidSigners function
-func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) error {
+func (sr *subroundEndRound) VerifyInvalidSigners(invalidSigners []byte) ([]string, error) {
 	return sr.verifyInvalidSigners(invalidSigners)
 }
 
@@ -313,7 +313,7 @@ func (sr *subroundEndRound) GetMinConsensusGroupIndexOfManagedKeys() int {
 
 // CreateAndBroadcastInvalidSigners calls the unexported createAndBroadcastInvalidSigners function
 func (sr *subroundEndRound) CreateAndBroadcastInvalidSigners(invalidSigners []byte) {
-	sr.createAndBroadcastInvalidSigners(invalidSigners)
+	sr.createAndBroadcastInvalidSigners(invalidSigners, nil)
 }
 
 // GetFullMessagesForInvalidSigners calls the unexported getFullMessagesForInvalidSigners function
@@ -359,4 +359,9 @@ func (sr *subroundEndRound) WaitForProof() bool {
 // GetEquivalentProofSender -
 func (sr *subroundEndRound) GetEquivalentProofSender() string {
 	return sr.getEquivalentProofSender()
+}
+
+// SendProof -
+func (sr *subroundEndRound) SendProof() {
+	sr.sendProof()
 }

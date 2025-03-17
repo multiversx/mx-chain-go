@@ -34,6 +34,7 @@ type SposWorkerMock struct {
 	ResetConsensusStateCalled              func()
 	ReceivedProofCalled                    func(proofHandler consensus.ProofHandler)
 	ResetConsensusRoundStateCalled         func()
+	ResetInvalidSignersCacheCalled         func()
 }
 
 // ResetConsensusRoundState -
@@ -172,4 +173,11 @@ func (sposWorkerMock *SposWorkerMock) ReceivedProof(proofHandler consensus.Proof
 // IsInterfaceNil returns true if there is no value under the interface
 func (sposWorkerMock *SposWorkerMock) IsInterfaceNil() bool {
 	return sposWorkerMock == nil
+}
+
+// ResetInvalidSignersCache -
+func (sposWorkerMock *SposWorkerMock) ResetInvalidSignersCache() {
+	if sposWorkerMock.ResetInvalidSignersCacheCalled != nil {
+		sposWorkerMock.ResetInvalidSignersCacheCalled()
+	}
 }

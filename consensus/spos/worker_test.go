@@ -123,6 +123,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
 		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		InvalidSignersCache:      &consensusMocks.InvalidSignersCacheMock{},
 	}
 
 	return workerArgs
@@ -388,6 +389,17 @@ func TestWorker_NewWorkerPoolEnableEpochsHandlerNilShouldFail(t *testing.T) {
 
 	assert.Nil(t, wrk)
 	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+}
+
+func TestWorker_NewWorkerPoolInvalidSignersCacheNilShouldFail(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	workerArgs.InvalidSignersCache = nil
+	wrk, err := spos.NewWorker(workerArgs)
+
+	assert.Nil(t, wrk)
+	assert.Equal(t, spos.ErrNilInvalidSignersCache, err)
 }
 
 func TestWorker_NewWorkerShouldWork(t *testing.T) {
@@ -1996,5 +2008,169 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
 		require.True(t, ok)
 		require.Equal(t, msg, p2pMsgWithSignature)
+	})
+}
+
+func TestWorker_ProcessReceivedMessageWithInvalidSigners(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	cntCheckKnownInvalidSignersCalled := 0
+	workerArgs.InvalidSignersCache = &consensusMocks.InvalidSignersCacheMock{
+		CheckKnownInvalidSignersCalled: func(headerHash []byte, invalidSigners []byte) bool {
+			cntCheckKnownInvalidSignersCalled++
+			return cntCheckKnownInvalidSignersCalled > 1
+		},
+	}
+	workerArgs.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
+		CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
+			return nil
+		},
+		CanProcessMessagesOnTopicCalled: func(peer core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error {
+			return nil
+		},
+		BlacklistPeerCalled: func(peer core.PeerID, reason string, duration time.Duration) {
+			require.Fail(t, "should have not been called")
+		},
+	}
+	workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	}
+	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+	hdr := &block.Header{}
+	hdr.Nonce = 1
+	hdr.TimeStamp = uint64(wrk.RoundHandler().TimeStamp().Unix())
+	hdrStr, _ := mock.MarshalizerMock{}.Marshal(hdr)
+	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
+	pubKey := []byte(wrk.ConsensusState().ConsensusGroup()[0])
+
+	invalidSigners := []byte("invalid signers")
+	cnsMsg := consensus.NewConsensusMessage(
+		hdrHash,
+		nil,
+		nil,
+		nil,
+		pubKey,
+		bytes.Repeat([]byte("a"), SignatureSize),
+		int(bls.MtInvalidSigners),
+		0,
+		chainID,
+		nil,
+		nil,
+		nil,
+		currentPid,
+		invalidSigners,
+	)
+	buff, err := wrk.Marshalizer().Marshal(cnsMsg)
+	require.Nil(t, err)
+
+	msg := &p2pmocks.P2PMessageMock{
+		DataField:      buff,
+		PeerField:      currentPid,
+		SignatureField: []byte("signature"),
+	}
+
+	// first call should be ok
+	msgID, err := wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
+	require.Nil(t, err)
+	require.Nil(t, msgID)
+
+	// reset the received messages to allow a second one of the same type
+	wrk.ResetConsensusMessages()
+
+	// second call should see this message as already received and return error
+	msgID, err = wrk.ProcessReceivedMessage(msg, "", &p2pmocks.MessengerStub{})
+	require.Equal(t, spos.ErrInvalidSignersAlreadyReceived, err)
+	require.Nil(t, msgID)
+}
+
+func TestWorker_ReceivedHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		rcvHeaderHandler := func(header data.HeaderHandler) {
+			require.Fail(t, "should have not been called")
+		}
+		wrk.AddReceivedHeaderHandler(rcvHeaderHandler)
+		wrk.ReceivedHeader(nil, nil)
+	})
+	t.Run("unprocessable header should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		rcvHeaderHandler := func(header data.HeaderHandler) {
+			require.Fail(t, "should have not been called")
+		}
+		wrk.AddReceivedHeaderHandler(rcvHeaderHandler)
+		wrk.ReceivedHeader(&block.Header{
+			ShardID: workerArgs.ShardCoordinator.SelfId(),
+			Round:   uint64(workerArgs.RoundHandler.Index() + 1), // should not process this one
+		}, nil)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		wasHandlerCalled := false
+		rcvHeaderHandler := func(header data.HeaderHandler) {
+			wasHandlerCalled = true
+		}
+		wrk.AddReceivedHeaderHandler(rcvHeaderHandler)
+		wrk.ReceivedHeader(&block.Header{
+			ShardID: workerArgs.ShardCoordinator.SelfId(),
+			Round:   uint64(workerArgs.RoundHandler.Index()),
+		}, nil)
+		require.True(t, wasHandlerCalled)
+
+		wrk.RemoveAllReceivedHeaderHandlers() // coverage only
+	})
+}
+
+func TestWorker_ReceivedProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil proof should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		rcvProofHandler := func(proof consensus.ProofHandler) {
+			require.Fail(t, "should have not been called")
+		}
+		wrk.AddReceivedProofHandler(rcvProofHandler)
+		wrk.ReceivedProof(nil)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().SetHeader(&block.HeaderV2{})
+
+		wasHandlerCalled := false
+		rcvProofHandler := func(proof consensus.ProofHandler) {
+			wasHandlerCalled = true
+		}
+		wrk.AddReceivedProofHandler(rcvProofHandler)
+		wrk.ReceivedProof(&block.HeaderProof{})
+		require.True(t, wasHandlerCalled)
 	})
 }

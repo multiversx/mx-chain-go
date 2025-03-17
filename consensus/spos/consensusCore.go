@@ -43,6 +43,7 @@ type ConsensusCore struct {
 	enableEpochsHandler           common.EnableEpochsHandler
 	equivalentProofsPool          consensus.EquivalentProofsPool
 	epochNotifier                 process.EpochNotifier
+	invalidSignersCache           InvalidSignersCache
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -72,6 +73,7 @@ type ConsensusCoreArgs struct {
 	EnableEpochsHandler           common.EnableEpochsHandler
 	EquivalentProofsPool          consensus.EquivalentProofsPool
 	EpochNotifier                 process.EpochNotifier
+	InvalidSignersCache           InvalidSignersCache
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -104,6 +106,7 @@ func NewConsensusCore(
 		enableEpochsHandler:           args.EnableEpochsHandler,
 		equivalentProofsPool:          args.EquivalentProofsPool,
 		epochNotifier:                 args.EpochNotifier,
+		invalidSignersCache:           args.InvalidSignersCache,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -239,6 +242,11 @@ func (cc *ConsensusCore) EquivalentProofsPool() consensus.EquivalentProofsPool {
 	return cc.equivalentProofsPool
 }
 
+// InvalidSignersCache returns the invalid signers cache component
+func (cc *ConsensusCore) InvalidSignersCache() InvalidSignersCache {
+	return cc.invalidSignersCache
+}
+
 // SetBlockchain sets blockchain handler
 func (cc *ConsensusCore) SetBlockchain(blockChain data.ChainHandler) {
 	cc.blockChain = blockChain
@@ -362,6 +370,11 @@ func (cc *ConsensusCore) SetEquivalentProofsPool(proofPool consensus.EquivalentP
 // SetEpochNotifier sets epoch notifier
 func (cc *ConsensusCore) SetEpochNotifier(epochNotifier process.EpochNotifier) {
 	cc.epochNotifier = epochNotifier
+}
+
+// SetInvalidSignersCache sets the invalid signers cache
+func (cc *ConsensusCore) SetInvalidSignersCache(cache InvalidSignersCache) {
+	cc.invalidSignersCache = cache
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
