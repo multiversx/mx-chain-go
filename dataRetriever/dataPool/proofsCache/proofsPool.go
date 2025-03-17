@@ -105,24 +105,24 @@ func (pp *proofsPool) addProof(
 }
 
 // IsProofEqual will check if the provided proof is equal with the already existing proof in the pool
-func (pp *proofsPool) IsProofEqual(headerProof data.HeaderProofHandler) (bool, error) {
+func (pp *proofsPool) IsProofEqual(headerProof data.HeaderProofHandler) bool {
 	if check.IfNilReflect(headerProof) {
-		return false, ErrNilProof
+		return false
 	}
 
 	existingProof, err := pp.GetProof(headerProof.GetHeaderShardId(), headerProof.GetHeaderHash())
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	if !bytes.Equal(existingProof.GetAggregatedSignature(), headerProof.GetAggregatedSignature()) {
-		return false, nil
+		return false
 	}
 	if !bytes.Equal(existingProof.GetPubKeysBitmap(), headerProof.GetPubKeysBitmap()) {
-		return false, nil
+		return false
 	}
 
-	return true, nil
+	return true
 }
 
 func (pp *proofsPool) callAddedProofSubscribers(headerProof data.HeaderProofHandler) {
