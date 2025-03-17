@@ -105,14 +105,14 @@ func (bn *branchNode) setHashForChild(childPos int, goRoutinesManager common.Tri
 		return
 	}
 
-	encChild, err := encodeNodeAndGetHash(bn.children[childPos])
+	childHash, err := encodeNodeAndGetHash(bn.children[childPos])
 	if err != nil {
 		goRoutinesManager.SetError(err)
 		return
 	}
 
 	bn.childrenMutexes[childPos].Lock()
-	bn.EncodedChildren[childPos] = encChild
+	bn.EncodedChildren[childPos] = childHash
 	bn.childrenMutexes[childPos].Unlock()
 }
 
