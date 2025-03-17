@@ -3,10 +3,12 @@ package proofscache_test
 import (
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,30 +22,83 @@ func TestProofsCache(t *testing.T) {
 		proof2 := &block.HeaderProof{HeaderHash: []byte{2}, HeaderNonce: 2}
 		proof3 := &block.HeaderProof{HeaderHash: []byte{3}, HeaderNonce: 3}
 		proof4 := &block.HeaderProof{HeaderHash: []byte{4}, HeaderNonce: 4}
+		proof5 := &block.HeaderProof{HeaderHash: []byte{5}, HeaderNonce: 5}
 
-		pc := proofscache.NewProofsCache()
+		pc := proofscache.NewProofsCache(4)
 
 		pc.AddProof(proof1)
 		pc.AddProof(proof2)
 		pc.AddProof(proof3)
 		pc.AddProof(proof4)
 
-		require.Equal(t, 4, pc.ProofsByNonceSize())
+		require.Equal(t, 4, pc.FullProofsByNonceSize())
 		require.Equal(t, 4, pc.ProofsByHashSize())
 
-		pc.CleanupProofsBehindNonce(4)
-		require.Equal(t, 1, pc.ProofsByNonceSize())
+		pc.AddProof(proof5) // added to new head bucket
+
+		require.Equal(t, 1, pc.HeadBucketSize())
+		require.Equal(t, 5, pc.ProofsByHashSize())
+
+		pc.CleanupProofsBehindNonce(5)
+		require.Equal(t, 1, pc.HeadBucketSize())
 		require.Equal(t, 1, pc.ProofsByHashSize())
 
 		pc.CleanupProofsBehindNonce(10)
-		require.Equal(t, 0, pc.ProofsByNonceSize())
+		require.Equal(t, 0, pc.HeadBucketSize())
+		require.Equal(t, 0, pc.ProofsByHashSize())
+	})
+
+	t.Run("non incremental nonces", func(t *testing.T) {
+		t.Parallel()
+
+		proof1 := &block.HeaderProof{HeaderHash: []byte{1}, HeaderNonce: 1}
+		proof2 := &block.HeaderProof{HeaderHash: []byte{2}, HeaderNonce: 2}
+		proof3 := &block.HeaderProof{HeaderHash: []byte{3}, HeaderNonce: 3}
+		proof4 := &block.HeaderProof{HeaderHash: []byte{4}, HeaderNonce: 4}
+		proof5 := &block.HeaderProof{HeaderHash: []byte{5}, HeaderNonce: 5}
+		proof6 := &block.HeaderProof{HeaderHash: []byte{6}, HeaderNonce: 6}
+
+		pc := proofscache.NewProofsCache(4)
+
+		pc.AddProof(proof5)
+		pc.AddProof(proof2)
+		pc.AddProof(proof3)
+		pc.AddProof(proof4)
+
+		require.Equal(t, 4, pc.FullProofsByNonceSize())
+		require.Equal(t, 4, pc.ProofsByHashSize())
+
+		pc.AddProof(proof1) // added to new head bucket
+
+		require.Equal(t, 1, pc.HeadBucketSize())
+		require.Equal(t, 5, pc.FullProofsByNonceSize())
+		require.Equal(t, 5, pc.ProofsByHashSize())
+
+		pc.CleanupProofsBehindNonce(5)
+
+		// cleanup up head bucket with only one proof
+		require.Equal(t, 4, pc.HeadBucketSize())
+		require.Equal(t, 4, pc.ProofsByHashSize())
+
+		pc.AddProof(proof6) // added to new head bucket
+
+		require.Equal(t, 1, pc.HeadBucketSize())
+		require.Equal(t, 5, pc.ProofsByHashSize())
+
+		pc.CleanupProofsBehindNonce(5) // will not remove any bucket
+		require.Equal(t, 1, pc.HeadBucketSize())
+		require.Equal(t, 5, pc.FullProofsByNonceSize())
+		require.Equal(t, 5, pc.ProofsByHashSize())
+
+		pc.CleanupProofsBehindNonce(10)
+		require.Equal(t, 0, pc.HeadBucketSize())
 		require.Equal(t, 0, pc.ProofsByHashSize())
 	})
 
 	t.Run("shuffled nonces, should cleanup all caches", func(t *testing.T) {
 		t.Parallel()
 
-		pc := proofscache.NewProofsCache()
+		pc := proofscache.NewProofsCache(10)
 
 		nonces := generateShuffledNonces(100)
 		for _, nonce := range nonces {
@@ -54,17 +109,42 @@ func TestProofsCache(t *testing.T) {
 			pc.AddProof(proof)
 		}
 
-		require.Equal(t, 100, pc.ProofsByNonceSize())
+		require.Equal(t, 10, pc.HeadBucketSize())
+		require.Equal(t, 100, pc.FullProofsByNonceSize())
 		require.Equal(t, 100, pc.ProofsByHashSize())
 
-		pc.CleanupProofsBehindNonce(50)
-		require.Equal(t, 50, pc.ProofsByNonceSize())
-		require.Equal(t, 50, pc.ProofsByHashSize())
-
 		pc.CleanupProofsBehindNonce(100)
-		require.Equal(t, 0, pc.ProofsByNonceSize())
+		require.Equal(t, 0, pc.FullProofsByNonceSize())
 		require.Equal(t, 0, pc.ProofsByHashSize())
 	})
+}
+
+func TestProofsCache_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	pc := proofscache.NewProofsCache(100)
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 2 {
+			case 0:
+				pc.AddProof(generateProof())
+			case 1:
+				pc.CleanupProofsBehindNonce(generateRandomNonce(100))
+			default:
+				assert.Fail(t, "should have not beed called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
 
 func generateShuffledNonces(n int) []uint64 {

@@ -3,13 +3,28 @@ package proofscache
 import "github.com/multiversx/mx-chain-core-go/data"
 
 // NewProofsCache -
-func NewProofsCache() *proofsCache {
-	return newProofsCache()
+func NewProofsCache(bucketSize int) *proofsCache {
+	return newProofsCache(bucketSize)
 }
 
-// ProofsByNonceSize -
-func (pc *proofsCache) ProofsByNonceSize() int {
-	return len(pc.proofsByNonce)
+// HeadBucketSize -
+func (pc *proofsCache) HeadBucketSize() int {
+	if len(pc.proofsByNonceBuckets) > 0 {
+		return len(pc.proofsByNonceBuckets[0].proofsByNonce)
+	}
+
+	return 0
+}
+
+// HeadBucketSize -
+func (pc *proofsCache) FullProofsByNonceSize() int {
+	size := 0
+
+	for _, bucket := range pc.proofsByNonceBuckets {
+		size += bucket.size()
+	}
+
+	return size
 }
 
 // ProofsByHashSize -

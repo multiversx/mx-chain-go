@@ -55,7 +55,7 @@ func (pp *proofsPool) AddProof(
 	pp.mutCache.Lock()
 	proofsPerShard, ok := pp.cache[shardID]
 	if !ok {
-		proofsPerShard = newProofsCache()
+		proofsPerShard = newProofsCache(bucketSize)
 		pp.cache[shardID] = proofsPerShard
 	}
 	pp.mutCache.Unlock()
