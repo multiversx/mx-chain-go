@@ -148,13 +148,7 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 }
 
 func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
-	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
-	headersStorer, err := bbt.store.GetStorer(headerUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, headersStorer, bbt.marshalizer, proof.GetHeaderShardId())
+	return process.GetHeader(proof.GetHeaderHash(), bbt.headersPool, bbt.store, bbt.marshalizer, proof.GetHeaderShardId())
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {

@@ -355,16 +355,11 @@ func (hsv *HeaderSigVerifier) VerifyHeaderWithProof(header data.HeaderHandler) e
 }
 
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
-	headerUnit := dataRetriever.GetHeadersDataUnit(proof.GetHeaderShardId())
-	headersStorer, err := hsv.storageService.GetStorer(headerUnit)
-	if err != nil {
-		return nil, err
-	}
-
 	var header data.HeaderHandler
+	var err error
 
 	for {
-		header, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, headersStorer, hsv.marshalizer, proof.GetHeaderShardId())
+		header, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, hsv.storageService, hsv.marshalizer, proof.GetHeaderShardId())
 		if err == nil {
 			break
 		}
